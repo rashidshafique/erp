@@ -1,0 +1,9 @@
+<?php $__env->startSection('title', 'Users'); ?>
+<?php $__env->startSection('content'); ?>
+<div class="page-heading"><div><h1>Users</h1><p>Login is <?php echo e(config('foundry.require_login') ? 'ON' : 'OFF (set FOUNDRY_REQUIRE_LOGIN=true to enforce)'); ?>.</p></div><a class="btn btn-primary" href="<?php echo e(route('users.create')); ?>">+ New user</a></div>
+<div class="panel"><div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Roles</th><th>Last login</th><th>Status</th><th></th></tr></thead><tbody>
+<?php $__empty_1 = true; $__currentLoopData = $users; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $u): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?><tr><td><?php echo e($u->name); ?></td><td><?php echo e($u->email); ?></td><td><?php echo e($u->roles->pluck('name')->join(', ') ?: '—'); ?></td><td><?php echo e($u->last_login_at?->format('d M Y H:i') ?? '—'); ?></td><td><?php echo e($u->is_active ? 'Active' : 'Switched off'); ?></td><td><a href="<?php echo e(route('users.edit', $u)); ?>">Edit</a></td></tr>
+<?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?><tr><td colspan="6" class="muted">No users yet. Run <code>php artisan foundry:make-admin you@example.com</code>.</td></tr><?php endif; ?></tbody></table></div></div>
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH /Users/rashid/sites/c-foundry-erp4/resources/views/users/index.blade.php ENDPATH**/ ?>

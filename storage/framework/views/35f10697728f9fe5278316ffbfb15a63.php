@@ -1,0 +1,2 @@
+<p class="muted small" style="margin:6px 0 14px">Rates, slabs and day rules are <strong>placeholders</strong> until you confirm them under <a href="<?php echo e(route('hr.payroll.setup', ['tab' => 'rules'])); ?>">Payroll setup → Rules</a>.</p>
+<?php /**PATH /Users/rashid/sites/c-foundry-erp4/resources/views/hr/payroll/_tabs_note.blade.php ENDPATH**/ ?>

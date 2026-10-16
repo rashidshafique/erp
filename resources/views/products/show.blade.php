@@ -1,0 +1,195 @@
+
+@extends('layouts.app')
+
+@section('title', $product->code)
+@section('breadcrumb')
+<a href="{{ route('products.index') }}">Products</a> / {{ $product->code }}
+@endsection
+
+@section('content')
+<div class="page-heading">
+    <div>
+        <h1>{{ $product->name }}</h1>
+        <p>{{ $product->code }} · {{ $product->product_type }}</p>
+    </div>
+    <div class="actions">
+        <a class="btn" href="{{ route('products.index') }}">All products</a>
+        <a class="btn btn-primary" href="{{ route('products.edit', $product) }}">Edit product</a>
+    </div>
+</div>
+
+<div class="tab-marker" data-tab-start="Specification"></div>
+<div class="panel">
+    <div class="panel-header">
+        <h2>Product specification</h2>
+        <span class="status {{ $product->active ? 'status-completed' : 'status-cancelled' }}">
+            {{ $product->active ? 'ACTIVE' : 'INACTIVE' }}
+        </span>
+    </div>
+    <div class="panel-body">
+        @include('attachments._cover', ['type' => 'product', 'id' => $product->id])
+        <div style="margin:6px 0 10px">{!! \App\Support\Code128::svg($product->code, 40, 2) !!} <a class="small" href="{{ route('labels.show', ['product', $product->id]) }}" target="_blank">Print label →</a></div>
+        <div class="detail-grid">
+            <div>
+                <div class="detail-label">Product code</div>
+                <div class="detail-value">{{ $product->code }}</div>
+            </div>
+            <div>
+                <div class="detail-label">Product name</div>
+                <div class="detail-value">{{ $product->name }}</div>
+            </div>
+            <div>
+                <div class="detail-label">Product type</div>
+                <div class="detail-value">{{ $product->product_type }}</div>
+            </div>
+            <div>
+                <div class="detail-label">Base unit</div>
+                <div class="detail-value">{{ $product->base_uom }}</div>
+            </div>
+            <div>
+                <div class="detail-label">Nominal weight</div>
+                <div class="detail-value">
+                    {{ $product->nominal_weight_kg !== null
+                        ? number_format((float) $product->nominal_weight_kg, 4).' kg'
+                        : 'Not specified' }}
+                </div>
+            </div>
+            <div>
+                <div class="detail-label">Revision count</div>
+                <div class="detail-value">{{ $product->revisions->count() }}</div>
+            </div>
+        </div>
+
+        @if ($product->description)
+            <div style="margin-top:20px">
+                <div class="detail-label">Description</div>
+                <div>{{ $product->description }}</div>
+            </div>
+        @endif
+    </div>
+</div>
+
+<div class="tab-marker" data-tab-start="Revisions"></div>
+<div class="panel">
+    <div class="panel-header">
+        <h2>Revision history</h2>
+    </div>
+
+    @if ($product->revisions->isEmpty())
+        <div class="empty-state">No revisions have been recorded for this product.</div>
+    @else
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Revision</th>
+                        <th>Status</th>
+                        <th>Net weight</th>
+                        <th>Effective from</th>
+                        <th>Effective to</th>
+                        <th>Engineering notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($product->revisions as $revision)
+                        <tr>
+                            <td><strong>{{ $revision->revision }}</strong></td>
+                            <td><span class="status">{{ $revision->status }}</span></td>
+                            <td>
+                                {{ $revision->net_weight_kg !== null
+                                    ? number_format((float) $revision->net_weight_kg, 4).' kg'
+                                    : '—' }}
+                            </td>
+                            <td>{{ $revision->effective_from?->format('d M Y') ?? '—' }}</td>
+                            <td>{{ $revision->effective_to?->format('d M Y') ?? '—' }}</td>
+                            <td style="white-space:normal;min-width:220px">
+                                {{ $revision->engineering_notes ?: '—' }}
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    @endif
+</div>
+
+@include('products._made-on-patterns', ['product' => $product])
+
+<div class="panel">
+    <div class="panel-header"><h2>Add revision</h2></div>
+    <div class="panel-body">
+        <form method="POST" action="{{ route('products.revisions.store', $product) }}">
+            @csrf
+            <div class="form-grid">
+                <div class="field">
+                    <label for="revision">Revision identifier <span class="required">*</span></label>
+                    <input id="revision" name="revision" maxlength="20" required
+                           value="{{ old('revision') }}" placeholder="e.g. B">
+                </div>
+
+                <div class="field">
+                    <label for="status">Revision status <span class="required">*</span></label>
+                    <select id="status" name="status" required>
+                        @foreach (['DRAFT', 'APPROVED', 'OBSOLETE'] as $status)
+                            <option value="{{ $status }}" @selected(old('status', 'DRAFT') === $status)>
+                                {{ $status }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label for="net_weight_kg">Net weight (kg)</label>
+                    <input id="net_weight_kg" name="net_weight_kg" type="number"
+                           step="0.0001" min="0" value="{{ old('net_weight_kg') }}">
+                </div>
+
+                <div class="field">
+                    <label for="effective_from">Effective from</label>
+                    <input id="effective_from" name="effective_from" type="date"
+                           value="{{ old('effective_from') }}">
+                </div>
+
+                <div class="field">
+                    <label for="effective_to">Effective to</label>
+                    <input id="effective_to" name="effective_to" type="date"
+                           value="{{ old('effective_to') }}">
+                </div>
+
+                <div class="field field-full">
+                    <label for="engineering_notes">Engineering notes</label>
+                    <textarea id="engineering_notes" name="engineering_notes">{{ old('engineering_notes') }}</textarea>
+                </div>
+            </div>
+
+            <div class="actions" style="margin-top:18px">
+                <button class="btn btn-primary" type="submit">Add revision</button>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="tab-marker" data-tab-start="Casting analysis"></div>
+@php($analyses = \App\Models\CastingAnalysis::where('product_id', $product->id)->orderByDesc('created_at')->limit(10)->get())
+<div class="panel">
+    <div class="panel-header">
+        <h2>Casting analysis</h2>
+        <a class="btn btn-primary btn-small" href="{{ route('casting-analyses.create', ['product' => $product->id]) }}">+ Analyse a model</a>
+    </div>
+    @if ($analyses->isEmpty())
+        <div class="panel-body muted">No analysis yet. Attach an STL or STEP model on the Files tab, or upload one here, to find hotspots, size feeders and get a manufacturability score.</div>
+    @else
+        <div class="table-wrap"><table>
+            <thead><tr><th>Code</th><th>Name</th><th>Score</th><th>Status</th><th>When</th><th></th></tr></thead>
+            <tbody>@foreach ($analyses as $an)
+                <tr><td><strong>{{ $an->code }}</strong></td><td>{{ $an->name }}</td><td>{{ $an->score !== null ? $an->score.' ('.$an->score_letter.')' : '—' }}</td>
+                    <td><span class="status {{ $an->status === 'COMPLETE' ? 'status-completed' : 'status-cancelled' }}">{{ $an->status }}</span></td>
+                    <td class="muted small">{{ $an->created_at->diffForHumans() }}</td><td><a href="{{ route('casting-analyses.show', $an) }}">Open →</a></td></tr>
+            @endforeach</tbody>
+        </table></div>
+    @endif
+</div>
+<div class="tab-marker" data-tab-start="Files & history"></div>
+@include('custom-fields._panel', ['entity' => 'product', 'id' => $product->id])
+@include('attachments._panel', ['type' => 'product', 'id' => $product->id])
+@include('audit._history', ['type' => 'Product', 'id' => $product->id])
+@endsection

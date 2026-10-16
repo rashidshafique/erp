@@ -1,0 +1,10 @@
+<div class="card">
+    <div class="chead"><div><h2>Sand lab snapshot</h2><p class="sub">Latest test per sand system.</p></div><a class="btnx" href="<?php echo e(route('sand-tests.index')); ?>">Full log</a></div>
+    <?php $__empty_1 = true; $__currentLoopData = $d['sand']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $s): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+        <div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:12px;color:var(--dx-mute);margin-bottom:6px"><strong style="color:var(--dx-ink)"><?php echo e($s['system']); ?></strong><span class="mono"><?php echo e($s['set']->taken_at?->format('d M H:i')); ?> · <span class="pill <?php echo e($s['set']->result === 'PASS' ? 'green' : 'red'); ?>"><?php echo e($s['set']->result); ?></span></span></div>
+        <div class="sand"><?php $__currentLoopData = $s['set']->measurements->sortBy('sort_order')->take(4); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $m): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><div class="t"><div class="l"><?php echo e($m->name); ?></div><div class="v mono" style="<?php echo e($m->passed === false ? 'color:#b91c1c' : ''); ?>"><?php echo e($m->value !== null ? rtrim(rtrim(number_format((float) $m->value, 2), '0'), '.') : ($m->text_value ?? '—')); ?> <span style="font-size:11px;font-weight:500;color:var(--dx-mute)"><?php echo e($m->unit); ?></span></div></div><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?></div></div>
+    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+        <div class="empty">No sand test has been recorded yet.</div>
+    <?php endif; ?>
+</div>
+<?php /**PATH /Users/rashid/sites/c-foundry-erp4/resources/views/dashboard/_sand.blade.php ENDPATH**/ ?>

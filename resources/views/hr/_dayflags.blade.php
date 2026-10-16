@@ -1,0 +1,1 @@
+@foreach (($flags ?? []) as $f)<span class="status {{ in_array($f, ['ABSENT', 'MISSING_IN', 'MISSING_OUT']) ? 'status-cancelled' : (in_array($f, ['LATE', 'EARLY_OUT']) ? 'status-on-hold' : 'status-in-progress') }}">{{ config('hr.attendance.flags')[$f] ?? $f }}</span> @endforeach

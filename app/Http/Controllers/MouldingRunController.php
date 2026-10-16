@@ -1,0 +1,268 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\MouldingRun;
+use App\Models\MouldConfiguration;
+use App\Models\PatternRevision;
+use App\Models\ProductionOrder;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
+use Illuminate\View\View;
+
+class MouldingRunController extends Controller
+{
+    public function index(Request $request): View
+    {
+        $runs = MouldingRun::query()
+            ->with([
+                'productionOrder.product',
+                'patternRevision.pattern',
+                'mouldConfiguration',
+            ])
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $search = trim($request->string('search')->toString());
+
+                $query->where(function ($query) use ($search) {
+                    $query->where('run_number', 'ilike', "%{$search}%")
+                        ->orWhere('operator_name', 'ilike', "%{$search}%")
+                        ->orWhereHas('productionOrder', function ($orderQuery) use ($search) {
+                            $orderQuery->where(
+                                'production_order_number',
+                                'ilike',
+                                "%{$search}%"
+                            );
+                        });
+                });
+            })
+            ->when($request->filled('status'), fn ($query) =>
+                $query->where('status', $request->input('status'))
+            )
+            ->when($request->filled('date_from'), fn ($query) =>
+                $query->whereDate('run_date', '>=', $request->input('date_from'))
+            )
+            ->when($request->filled('date_to'), fn ($query) =>
+                $query->whereDate('run_date', '<=', $request->input('date_to'))
+            )
+            ->orderByDesc('run_date')
+            ->orderByDesc('created_at')
+            ->paginate(20)
+            ->withQueryString();
+
+        $todayRuns = MouldingRun::whereDate('run_date', today())->count();
+
+        $inProgressRuns = MouldingRun::where('status', 'IN_PROGRESS')->count();
+
+        $todayMoulds = MouldingRun::whereDate('run_date', today())
+            ->sum('moulds_made_qty');
+
+        $todayDamaged = MouldingRun::whereDate('run_date', today())
+            ->sum('damaged_mould_qty');
+
+        return view('moulding-runs.index', compact(
+            'runs',
+            'todayRuns',
+            'inProgressRuns',
+            'todayMoulds',
+            'todayDamaged'
+        ));
+    }
+
+    public function create(Request $request): View
+    {
+        $productionOrders = ProductionOrder::query()
+            ->with(['product', 'productRevision'])
+            ->whereNotIn('status', ['COMPLETED', 'CANCELLED'])
+            ->orderByDesc('created_at')
+            ->get();
+
+        $patternRevisions = PatternRevision::query()
+            ->with('pattern')
+            ->orderByDesc('created_at')
+            ->get();
+
+        $mouldConfigurations = MouldConfiguration::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        $selectedProductionOrderId = old(
+            'production_order_id',
+            $request->query('production_order_id', '')
+        );
+
+        $defaults = [
+            'run_date' => today()->toDateString(),
+            'shift' => 'General',
+            'moulding_method' => 'Manual',
+            'sand_system' => 'Greensand',
+            'planned_mould_qty' => 0,
+            'moulds_made_qty' => 0,
+            'accepted_mould_qty' => 0,
+            'damaged_mould_qty' => 0,
+            'downtime_minutes' => 0,
+            'status' => 'IN_PROGRESS',
+        ];
+
+        return view('moulding-runs.create', compact(
+            'productionOrders',
+            'patternRevisions',
+            'mouldConfigurations',
+            'selectedProductionOrderId',
+            'defaults'
+        ));
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'production_order_id' => [
+                'required',
+                'uuid',
+                Rule::exists('production_orders', 'id')
+                    ->whereNull('deleted_at'),
+            ],
+            'pattern_revision_id' => [
+                'nullable',
+                'uuid',
+                Rule::exists('pattern_revisions', 'id'),
+            ],
+            'mould_configuration_id' => [
+                'nullable',
+                'uuid',
+                Rule::exists('mould_configurations', 'id')
+                    ->whereNull('deleted_at'),
+            ],
+            'run_date' => ['required', 'date'],
+            'shift' => ['nullable', 'string', 'max:30'],
+            'started_at' => ['nullable', 'date'],
+            'completed_at' => ['nullable', 'date', 'after_or_equal:started_at'],
+            'moulding_method' => ['nullable', 'string', 'max:100'],
+            'sand_system' => ['nullable', 'string', 'max:100'],
+            'operator_name' => ['nullable', 'string', 'max:150'],
+            'team_name' => ['nullable', 'string', 'max:150'],
+            'planned_mould_qty' => ['nullable', 'integer', 'min:0'],
+            'moulds_made_qty' => ['required', 'integer', 'min:0'],
+            'accepted_mould_qty' => ['required', 'integer', 'min:0'],
+            'damaged_mould_qty' => ['required', 'integer', 'min:0'],
+            'downtime_minutes' => ['nullable', 'integer', 'min:0'],
+            'downtime_reason' => ['nullable', 'string', 'max:2000'],
+            'status' => [
+                'required',
+                Rule::in(['IN_PROGRESS', 'COMPLETED', 'ON_HOLD', 'CANCELLED']),
+            ],
+            'notes' => ['nullable', 'string', 'max:5000'],
+        ]);
+
+        app(\App\Services\PatternCavityMap::class)->assertPatternMakesOrderProduct(
+            $validated['pattern_revision_id'] ?? null,
+            $validated['production_order_id']
+        );
+
+        if (
+            $validated['accepted_mould_qty'] + $validated['damaged_mould_qty']
+            > $validated['moulds_made_qty']
+        ) {
+            return back()
+                ->withErrors([
+                    'accepted_mould_qty' =>
+                        'Accepted moulds plus damaged moulds cannot exceed total moulds made.',
+                ])
+                ->withInput();
+        }
+
+        $run = DB::transaction(function () use ($validated) {
+            $validated['run_number'] = $this->nextRunNumber();
+
+            if (($validated['status'] ?? null) === 'COMPLETED'
+                && empty($validated['completed_at'])) {
+                $validated['completed_at'] = now();
+            }
+
+            return MouldingRun::create($validated);
+        });
+
+        return redirect()
+            ->route('moulding-runs.show', $run)
+            ->with('success', "Moulding run {$run->run_number} was created.");
+    }
+
+    public function show(MouldingRun $mouldingRun): View
+    {
+        $mouldingRun->load([
+            'productionOrder.product',
+            'productionOrder.productRevision',
+            'patternRevision.pattern',
+            'mouldConfiguration',
+            'mouldAssemblies.pourAssignment.pour',
+        ]);
+        $configurations = \App\Models\MouldConfiguration::where('is_active', true)->orderBy('code')->get();
+
+        $perMould = null;
+        if ($mouldingRun->patternRevision && $mouldingRun->productionOrder) {
+            $map = app(\App\Services\PatternCavityMap::class);
+            if ($map->hasMap($mouldingRun->pattern_revision_id)) {
+                $perMould = $map->expectedProductsPerMould(
+                    $mouldingRun->patternRevision,
+                    $mouldingRun->productionOrder->product_id
+                );
+            }
+        }
+
+        return view('moulding-runs.show', [
+            'run' => $mouldingRun,
+            'perMould' => $perMould,
+            'configurations' => $configurations,
+        ]);
+    }
+
+    private function nextRunNumber(): string
+    {
+        $prefix = 'MR-' . now()->format('Ymd') . '-';
+
+        $lastNumber = MouldingRun::query()
+            ->where('run_number', 'like', $prefix . '%')
+            ->lockForUpdate()
+            ->pluck('run_number')
+            ->map(fn ($number) => (int) substr($number, strlen($prefix)))
+            ->max() ?? 0;
+
+        return $prefix . str_pad((string) ($lastNumber + 1), 3, '0', STR_PAD_LEFT);
+    }
+
+    public function assemble(Request $request, MouldingRun $mouldingRun, \App\Services\Production\MouldAssembler $assembler): RedirectResponse
+    {
+        $data = $request->validate([
+            'count' => ['required', 'integer', 'min:1', 'max:500'],
+            'mould_configuration_id' => ['required', 'uuid', Rule::exists('mould_configurations', 'id')],
+            'layers' => ['required', 'integer', 'min:1', 'max:12'],
+            'assembled_by' => ['nullable', 'string', 'max:100'],
+            'checked_by' => ['nullable', 'string', 'max:100'],
+        ]);
+        try {
+            $made = $assembler->assemble($mouldingRun, (int) $data['count'], $data['mould_configuration_id'], (int) $data['layers'], $data['assembled_by'] ?? null, $data['checked_by'] ?? null);
+        } catch (\InvalidArgumentException $e) {
+            return back()->withErrors(['assemble' => $e->getMessage()])->withInput();
+        }
+
+        return back()->with('success', $made->count().' mould assembl'.($made->count() === 1 ? 'y' : 'ies').' created ('.$made->first()->assembly_number.($made->count() > 1 ? ' to '.$made->last()->assembly_number : '').').');
+    }
+
+    public function recordOutput(Request $request, MouldingRun $mouldingRun, \App\Services\Production\WorkListService $svc): RedirectResponse
+    {
+        $d = $request->validate([
+            'moulds_made_qty' => ['required', 'integer', 'min:0'], 'accepted_mould_qty' => ['required', 'integer', 'min:0'], 'damaged_mould_qty' => ['required', 'integer', 'min:0'],
+            'downtime_minutes' => ['nullable', 'integer', 'min:0'], 'downtime_reason' => ['nullable', 'string', 'max:2000'],
+        ]);
+        $d['downtime_minutes'] = $d['downtime_minutes'] ?? 0;
+        try {
+            $svc->recordOutput($mouldingRun, $d, $request->boolean('complete'));
+        } catch (\InvalidArgumentException $e) {
+            return back()->withErrors(['output' => $e->getMessage()])->withInput();
+        }
+
+        return back()->with('success', $request->boolean('complete') ? 'Run completed.' : 'Output saved.');
+    }
+}

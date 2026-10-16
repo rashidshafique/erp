@@ -1,0 +1,20 @@
+<?php $v = fn ($k, $d = null) => old($k, $item?->{$k} ?? $d); ?>
+<div class="form-grid" data-progressive="3">
+    <div class="field field-full"><label>Description</label><input name="description" value="<?php echo e($v('description')); ?>" required placeholder="What the part is"></div>
+    <div class="field"><label>Existing product</label><select name="product_id"><option value="">— new part —</option><?php $__currentLoopData = $products; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $p): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><option value="<?php echo e($p->id); ?>" <?php if($v('product_id') === $p->id): echo 'selected'; endif; ?>><?php echo e($p->code); ?> — <?php echo e($p->name); ?></option><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?></select></div>
+    <div class="field"><label>Iron family</label><select name="family"><option value="">— decide later —</option><option value="GREY" <?php if($v('family') === 'GREY'): echo 'selected'; endif; ?>>Grey iron</option><option value="DUCTILE" <?php if($v('family') === 'DUCTILE'): echo 'selected'; endif; ?>>Ductile iron</option></select></div>
+    <div class="field"><label>Drawing number</label><input name="drawing_ref" value="<?php echo e($v('drawing_ref')); ?>"></div>
+    <div class="field"><label>Drawing revision</label><input name="drawing_rev" value="<?php echo e($v('drawing_rev')); ?>"></div>
+    <div class="field"><label>Material asked for</label><input name="material_text" value="<?php echo e($v('material_text')); ?>" placeholder="e.g. EN-GJS-500-7"></div>
+    <div class="field"><label>Estimated weight, kg</label><input type="number" step="0.001" min="0" name="weight_kg" value="<?php echo e($v('weight_kg')); ?>"><div class="help">Used when there is no analysis. An analysis overrides it.</div></div>
+    <div class="field"><label>Yearly quantity</label><input type="number" min="0" name="annual_qty" value="<?php echo e($v('annual_qty')); ?>"></div>
+    <div class="field"><label>First batch</label><input type="number" min="0" name="first_batch_qty" value="<?php echo e($v('first_batch_qty')); ?>"><div class="help">The quantity the quotation prices.</div></div>
+    <div class="field"><label>Target price</label><input type="number" step="0.01" min="0" name="target_price" value="<?php echo e($v('target_price')); ?>"></div>
+    <div class="field"><label>Cores</label><input type="number" min="0" name="cores_count" value="<?php echo e($v('cores_count')); ?>"><div class="help">Used when there is no analysis.</div></div>
+    <div class="field"><label>Machining cost each</label><input type="number" step="0.01" min="0" name="machining_cost" value="<?php echo e($v('machining_cost', 0)); ?>"></div>
+    <div class="field"><label>Other cost each</label><input type="number" step="0.01" min="0" name="other_cost" value="<?php echo e($v('other_cost', 0)); ?>"><div class="help">Coating, painting, outside processes.</div></div>
+    <div class="field"><label>Tooling cost</label><input type="number" step="0.01" min="0" name="tooling_cost" value="<?php echo e($v('tooling_cost', 0)); ?>"><div class="help">Pattern and core boxes we would make. Zero if the customer supplies them.</div></div>
+    <div class="field"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="heat_treatment" value="1" <?php if($v('heat_treatment')): echo 'checked'; endif; ?>> Heat treated</label><label style="display:flex;gap:8px;align-items:center;margin-top:6px"><input type="checkbox" name="ndt" value="1" <?php if($v('ndt')): echo 'checked'; endif; ?>> NDT required</label></div>
+    <div class="field field-full"><label>Notes</label><textarea name="notes" rows="2"><?php echo e($v('notes')); ?></textarea></div>
+</div>
+<?php /**PATH /Users/rashid/sites/c-foundry-erp4/resources/views/enquiries/_item_fields.blade.php ENDPATH**/ ?>

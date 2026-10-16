@@ -1,0 +1,11 @@
+<?php $__env->startSection('title', 'Inspections'); ?>
+<?php $__env->startSection('content'); ?>
+<div class="page-heading"><div><h1>Inspections</h1><p>Start an inspection from a casting lot.</p></div><div class="actions"><a class="btn" href="<?php echo e(route('lots.index')); ?>">Casting lots</a></div></div>
+<?php if(session("success")): ?><div class="alert alert-success"><?php echo e(session("success")); ?></div><?php endif; ?>
+<?php if($errors->any()): ?><div class="alert alert-error"><?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $e): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><div><?php echo e($e); ?></div><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?></div><?php endif; ?>
+<div class="panel"><div class="table-wrap"><table><thead><tr><th>Number</th><th>Lot</th><th>Type</th><th>Status</th><th>Inspected</th><th>Accepted</th><th>Rejected</th></tr></thead><tbody>
+<?php $__empty_1 = true; $__currentLoopData = $inspections; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $i): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?><tr><td><a href="<?php echo e(route('inspections.show', $i)); ?>"><?php echo e($i->inspection_number); ?></a></td><td><?php echo e($i->lot?->lot_number); ?></td><td><?php echo e($i->inspection_type); ?></td><td><?php echo e($i->status); ?></td><td><?php echo e($i->quantity_inspected); ?></td><td><?php echo e($i->quantity_accepted); ?></td><td><?php echo e($i->quantity_rejected); ?></td></tr>
+<?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?><tr><td colspan="7" class="muted">No inspections yet.</td></tr><?php endif; ?></tbody></table></div><div class="panel-body"><?php echo e($inspections->links()); ?></div></div>
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH /Users/rashid/sites/c-foundry-erp4/resources/views/inspections/index.blade.php ENDPATH**/ ?>

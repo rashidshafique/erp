@@ -1,0 +1,75 @@
+<?php $__env->startSection('title', 'Payroll '.$p->month->format('F Y')); ?>
+<?php $__env->startSection('breadcrumb', 'Payroll'); ?>
+<?php $__env->startSection('content'); ?>
+<?php
+    $cls = ['DRAFT' => 'status-on-hold', 'CALCULATED' => 'status-in-progress', 'APPROVED' => 'status-released', 'PAID' => 'status-completed'];
+    $sc = ['UNPAID' => 'status-released', 'HELD' => 'status-on-hold', 'PAID' => 'status-completed'];
+    $m = fn ($v) => number_format((float) $v);
+    $editable = in_array($p->status, ['DRAFT', 'CALCULATED'], true);
+?>
+<div class="page-heading"><div><h1><?php echo e($p->month->format('F Y')); ?> <span class="status <?php echo e($cls[$p->status]); ?>" style="font-size:12px;vertical-align:middle"><?php echo e(ucfirst(strtolower($p->status))); ?></span></h1><p><?php echo e($p->starts_on->format('d M')); ?> – <?php echo e($p->ends_on->format('d M Y')); ?><?php if($p->calculated_at): ?> · calculated <?php echo e($p->calculated_at->diffForHumans()); ?><?php endif; ?> <?php if($p->approved_by_name): ?> · approved by <?php echo e($p->approved_by_name); ?><?php endif; ?></p></div>
+<div class="actions"><a class="btn" href="<?php echo e(route('hr.payroll.index')); ?>">All payrolls</a>
+<?php if($p->payslips->isNotEmpty() || $slips->isNotEmpty()): ?><a class="btn" href="<?php echo e(route('hr.payroll.register', $p)); ?>">Register (CSV)</a><?php if(in_array($p->status, ['APPROVED','PAID'], true)): ?><a class="btn" href="<?php echo e(route('hr.payroll.bank', $p)); ?>">Bank file (CSV)</a><?php endif; ?> <?php endif; ?></div></div>
+<?php if(session('error')): ?><div class="alert alert-error"><?php echo e(session('error')); ?></div><?php endif; ?>
+<?php echo $__env->make('hr.payroll._tabs_note', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+
+<div class="metrics">
+<div class="metric"><div class="metric-label">People</div><div class="metric-value"><?php echo e($sum['people'] ?? 0); ?></div><div class="metric-note">on this payroll</div></div>
+<div class="metric"><div class="metric-label">Gross pay</div><div class="metric-value"><?php echo e($m($totals['gross'])); ?></div><div class="metric-note">PKR</div></div>
+<div class="metric"><div class="metric-label">Net pay</div><div class="metric-value"><?php echo e($m($totals['net'])); ?></div><div class="metric-note"><?php echo e($m($totals['paid'])); ?> paid so far</div></div>
+<div class="metric"><div class="metric-label">Tax &amp; EOBI deducted</div><div class="metric-value"><?php echo e($m(($sum['tax'] ?? 0) + ($sum['eobi_employee'] ?? 0))); ?></div><div class="metric-note">employer cost extra: <?php echo e($m(($sum['eobi_employer'] ?? 0) + ($sum['ss_employer'] ?? 0))); ?></div></div>
+</div>
+
+<div class="panel"><div class="panel-body" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start">
+<?php if($editable): ?><form method="POST" action="<?php echo e(route('hr.payroll.calculate', $p)); ?>"><?php echo csrf_field(); ?><button class="btn btn-primary"><?php echo e($p->status === 'DRAFT' ? 'Calculate payroll' : 'Recalculate'); ?></button></form><?php endif; ?>
+<?php if($p->status === 'CALCULATED'): ?><form method="POST" action="<?php echo e(route('hr.payroll.approve', $p)); ?>" onsubmit="return confirm('Approve this payroll? Advance instalments are taken off the ledger.')"><?php echo csrf_field(); ?><button class="btn btn-primary" <?php if($checks['blockers']): echo 'disabled'; endif; ?>>Approve payroll</button></form><?php endif; ?>
+<?php if($p->status === 'APPROVED'): ?><form method="POST" action="<?php echo e(route('hr.payroll.revert', $p)); ?>" onsubmit="return confirm('Send this payroll back? Instalments taken off advances are put back.')"><?php echo csrf_field(); ?><button class="btn">Send back for changes</button></form><?php endif; ?>
+<?php if(in_array($p->status, ['APPROVED'], true)): ?>
+<form method="POST" action="<?php echo e(route('hr.payroll.pay', $p)); ?>" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end"><?php echo csrf_field(); ?>
+<div class="field" style="margin:0"><label>Paid on</label><input type="date" name="paid_on" value="<?php echo e(now()->toDateString()); ?>" required style="width:150px"></div>
+<div class="field" style="margin:0"><label>Reference</label><input name="payment_ref" placeholder="Batch no." style="width:140px"></div>
+<button class="btn btn-primary">Mark all unpaid as paid</button></form><?php endif; ?>
+</div></div>
+<?php if($checks['blockers'] && $p->status === 'CALCULATED'): ?><div class="alert alert-error"><strong>Fix before approving:</strong><ul style="margin:6px 0 0 18px"><?php $__currentLoopData = $checks['blockers']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $b): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><li><?php echo e($b); ?></li><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?></ul></div><?php endif; ?>
+
+<div class="tab-marker" data-tab-start="Payslips"></div>
+<div class="panel"><div class="panel-body"><form method="GET" class="filters">
+<div class="field"><label for="q">Find</label><input id="q" name="q" value="<?php echo e(request('q')); ?>" placeholder="Name or code"></div>
+<div class="field"><label for="st">Payment</label><select id="st" name="status"><option value="">All</option><?php $__currentLoopData = ['UNPAID' => 'Unpaid', 'HELD' => 'Held', 'PAID' => 'Paid']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $k => $l): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><option value="<?php echo e($k); ?>" <?php if(request('status') === $k): echo 'selected'; endif; ?>><?php echo e($l); ?></option><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?></select></div><button class="btn btn-primary">Filter</button></form></div></div>
+<div class="panel"><?php if($slips->isEmpty()): ?><div class="empty-state"><?php echo e($p->status === 'DRAFT' ? 'Calculate the payroll to see payslips.' : 'No payslips match.'); ?></div><?php else: ?>
+<div class="table-wrap"><table><thead><tr><th>Employee</th><th>Days</th><th>Gross</th><th>Tax</th><th>Other deductions</th><th>Net</th><th>Payment</th><th></th></tr></thead><tbody>
+<?php $__currentLoopData = $slips; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $s): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+<tr><td><a href="<?php echo e(route('hr.payroll.payslip', $s)); ?>"><strong><?php echo e($s->employee_code); ?></strong> <?php echo e($s->employee_name); ?></a><div class="muted small"><?php echo e($s->department_name); ?><?php $__currentLoopData = (array) $s->flags; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $f): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?> <span class="status status-on-hold" title="<?php echo e($f); ?>"><?php echo e(str_starts_with($f, 'UNCLOSED') ? 'Days not closed' : ucfirst(strtolower(str_replace('_', ' ', $f)))); ?></span><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?></div></td>
+<td><?php echo e(rtrim(rtrim(number_format($s->payable_days, 2), '0'), '.')); ?> / <?php echo e(rtrim(rtrim(number_format($s->period_days, 2), '0'), '.')); ?></td><td><?php echo e($m($s->gross)); ?></td><td><?php echo e($m($s->income_tax)); ?></td><td><?php echo e($m($s->total_deductions - $s->income_tax)); ?></td><td <?php if($s->net < 0): ?> style="color:var(--danger)" <?php endif; ?>><strong><?php echo e($m($s->net)); ?></strong></td>
+<td><span class="status <?php echo e($sc[$s->status]); ?>"><?php echo e(ucfirst(strtolower($s->status))); ?></span><?php if($s->hold_reason): ?><div class="muted small"><?php echo e($s->hold_reason); ?></div><?php endif; ?> <?php if($s->paid_on): ?><div class="muted small"><?php echo e($s->paid_on->format('d M')); ?></div><?php endif; ?></td>
+<td style="white-space:nowrap"><?php if($s->status === 'HELD'): ?><form method="POST" action="<?php echo e(route('hr.payroll.release', $s)); ?>"><?php echo csrf_field(); ?><button class="btn btn-small">Release</button></form>
+<?php elseif($s->status === 'UNPAID' && in_array($p->status, ['CALCULATED', 'APPROVED'], true)): ?><details class="row-edit"><summary class="muted small">Hold…</summary><form method="POST" action="<?php echo e(route('hr.payroll.hold', $s)); ?>" style="display:flex;gap:4px;margin-top:6px"><?php echo csrf_field(); ?><input name="hold_reason" placeholder="Why hold?" required style="min-height:28px;padding:2px 6px;max-width:150px"><button class="btn btn-small">Hold</button></form></details><?php endif; ?></td></tr>
+<?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?></tbody></table></div><?php endif; ?></div>
+
+<div class="tab-marker" data-tab-start="Checks<?php echo e(($checks['blockers'] || $checks['warnings']) ? ' ('.(count($checks['blockers']) + count($checks['warnings'])).')' : ''); ?>"></div>
+<div class="panel"><div class="panel-body">
+<?php $__empty_1 = true; $__currentLoopData = $checks['blockers']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $b): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?><div class="alert alert-error"><?php echo e($b); ?></div><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?><p style="color:var(--success)"><strong>No blockers.</strong> Nothing stops this payroll being approved.</p><?php endif; ?>
+<?php $__currentLoopData = $checks['warnings']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $w): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><div class="alert" style="background:#fff8e1;border:1px solid #e6c36a;color:#7a5b00"><?php echo e($w); ?></div><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+<p class="muted small">Blockers are open attendance exceptions, overtime still waiting for a decision and negative net pay. Fix them where they come from, then recalculate.</p>
+</div></div>
+
+<div class="tab-marker" data-tab-start="By department"></div>
+<div class="panel"><?php if($depts->isEmpty()): ?><div class="empty-state">Nothing calculated yet.</div><?php else: ?><div class="table-wrap"><table><thead><tr><th>Department</th><th>People</th><th>Gross</th><th>Tax</th><th>Deductions</th><th>Net</th><th>Employer EOBI / social security</th></tr></thead><tbody>
+<?php $__currentLoopData = $depts; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $d): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><tr><td><strong><?php echo e($d['name']); ?></strong></td><td><?php echo e($d['people']); ?></td><td><?php echo e($m($d['gross'])); ?></td><td><?php echo e($m($d['tax'])); ?></td><td><?php echo e($m($d['deductions'])); ?></td><td><?php echo e($m($d['net'])); ?></td><td><?php echo e($m($d['employer'])); ?></td></tr><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+<tr><td><strong>Total</strong></td><td><?php echo e($depts->sum('people')); ?></td><td><strong><?php echo e($m($depts->sum('gross'))); ?></strong></td><td><?php echo e($m($depts->sum('tax'))); ?></td><td><?php echo e($m($depts->sum('deductions'))); ?></td><td><strong><?php echo e($m($depts->sum('net'))); ?></strong></td><td><?php echo e($m($depts->sum('employer'))); ?></td></tr></tbody></table></div><?php endif; ?></div>
+
+<div class="tab-marker" data-tab-start="One-off items<?php echo e($adjustments->count() ? ' ('.$adjustments->count().')' : ''); ?>"></div>
+<div class="panel"><div class="panel-header"><h2>Bonuses, arrears and one-time deductions</h2><span class="muted small">Join the payslip when the month is calculated</span></div>
+<?php if($adjustments->isNotEmpty()): ?><div class="table-wrap"><table><thead><tr><th>Employee</th><th>Item</th><th>Amount</th><th>Taxable</th><th></th></tr></thead><tbody>
+<?php $__currentLoopData = $adjustments; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $a): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><tr><td><?php echo e($a->employee->code); ?> <?php echo e($a->employee->full_name); ?></td><td><?php echo e($a->name); ?><div class="muted small"><?php echo e($a->note); ?></div></td><td><?php echo e($a->kind === 'DEDUCTION' ? '−' : '+'); ?><?php echo e($m($a->amount)); ?></td><td><?php echo e($a->kind === 'EARNING' ? ($a->taxable ? 'Yes' : 'No') : '—'); ?></td>
+<td><?php if($a->payslip_id): ?><span class="status status-completed">Paid out</span><?php else: ?><form method="POST" action="<?php echo e(route('hr.payroll.adjustments.destroy', $a)); ?>" onsubmit="return confirm('Remove this item?')"><?php echo csrf_field(); ?> <?php echo method_field('DELETE'); ?><button class="btn btn-small">Remove</button></form><?php endif; ?></td></tr><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?></tbody></table></div><?php endif; ?>
+<?php if($editable): ?><div class="panel-body"><form method="POST" action="<?php echo e(route('hr.payroll.adjustments.store')); ?>"><?php echo csrf_field(); ?><input type="hidden" name="month" value="<?php echo e($p->month->format('Y-m')); ?>"><div class="form-grid">
+<?php echo $__env->make('hr._sel', ['blank' => false, 'name' => 'employee_id', 'label' => 'Employee', 'items' => $people->mapWithKeys(fn ($x) => [$x->id => $x->code.' · '.$x->full_name])->all(), 'sel' => '', 'blank' => 'Choose…', 'required' => true, 'keep' => true], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+<?php echo $__env->make('hr._sel', ['blank' => false, 'name' => 'kind', 'label' => 'Type', 'items' => ['EARNING' => 'Bonus / arrears (adds to pay)', 'DEDUCTION' => 'Deduction (takes off pay)'], 'sel' => 'EARNING', 'required' => true, 'keep' => true], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+<?php echo $__env->make('hr._in', ['name' => 'name', 'label' => 'What for', 'val' => '', 'required' => true, 'keep' => true], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?> <?php echo $__env->make('hr._in', ['name' => 'amount', 'label' => 'Amount (PKR)', 'type' => 'number', 'val' => '', 'required' => true, 'keep' => true], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+<?php echo $__env->make('hr._in', ['name' => 'note', 'label' => 'Note', 'val' => ''], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+<div class="field"><label><input type="checkbox" name="taxable" value="1" checked> Counts as taxable income</label></div></div><p><button class="btn btn-primary">Add item</button></p></form></div>
+<?php else: ?><div class="panel-body muted small">This payroll is approved, so items can no longer be added. Send it back for changes, or add the item to next month.</div><?php endif; ?></div>
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH /Users/rashid/sites/c-foundry-erp4/resources/views/hr/payroll/show.blade.php ENDPATH**/ ?>
