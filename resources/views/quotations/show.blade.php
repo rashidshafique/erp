@@ -31,7 +31,7 @@
 <tbody>
 @foreach ($q->lines as $l)
 <tr>
-    <td><strong>{{ $l->line_no }}. {{ $l->item->description }}</strong><div class="muted small">{{ $l->basis }}</div></td>
+    <td><strong>{{ $l->line_no }}. {{ $l->item->description }}</strong><div class="muted small">{{ $l->basis }}</div>@if ($toolingNotes[$l->id]['note'] ?? null)<div class="small {{ $toolingNotes[$l->id]['warning'] ? 'text-danger' : 'muted' }}">{{ $toolingNotes[$l->id]['note'] }}</div>@endif</td>
     <td class="num">@if ($draft)<input class="q-in" type="number" min="1" name="lines[{{ $l->id }}][qty]" value="{{ $l->qty }}">@else{{ $l->qty }}@endif</td>
     <td class="num">{{ $n($l->weight_kg, 2) }}</td><td class="num">{{ $n($l->poured_kg, 2) }}</td>
     <td class="num">@if ($draft)<input class="q-in" type="number" step="0.1" min="0" name="lines[{{ $l->id }}][scrap_pct]" value="{{ $l->scrap_pct }}">@else{{ $n($l->scrap_pct, 1) }}@endif</td>

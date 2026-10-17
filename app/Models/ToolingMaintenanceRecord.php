@@ -18,6 +18,7 @@ class ToolingMaintenanceRecord extends Model
         'core_definition_id',
         'core_box_id',
         'mould_configuration_id',
+        'flask_id',
         'mould_assembly_id',
         'record_number',
         'activity_type',
@@ -88,5 +89,10 @@ class ToolingMaintenanceRecord extends Model
     {
         return $this->hasMany(ToolingMaintenanceAttachment::class)
             ->latest('created_at');
+    }
+
+    public function flask(): BelongsTo
+    {
+        return $this->belongsTo(Flask::class)->withTrashed();
     }
 }

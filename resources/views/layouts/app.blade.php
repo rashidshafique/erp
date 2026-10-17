@@ -606,13 +606,14 @@
         <nav class="sidebar-nav" aria-label="Main navigation">
             <a href="{{ route('dashboard') }}" class="nav-link nav-top {{ request()->routeIs('dashboard') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('dashboard') !!}<span>Dashboard</span></a>
 
-            <div class="nav-group {{ request()->routeIs('products.*', 'patterns.*', 'casting-analyses.*', 'production-orders.*', 'moulding-runs.*', 'pours.*', 'work-lists.*', 'moulding-teams.*', 'sand-systems.*', 'mould-readiness.*') ? 'is-active' : '' }}">
+            <div class="nav-group {{ request()->routeIs('products.*', 'patterns.*', 'pattern-ownership.*', 'casting-analyses.*', 'production-orders.*', 'moulding-runs.*', 'pours.*', 'work-lists.*', 'moulding-teams.*', 'sand-systems.*', 'mould-readiness.*') ? 'is-active' : '' }}">
                 <button type="button" class="nav-group-toggle" aria-expanded="false">
                     <span class="nav-lab">{!! \App\Support\NavIcons::get('factory') !!}<span>Production</span></span><span class="nav-chevron">›</span>
                 </button>
                 <div class="nav-submenu" hidden>
                     <a href="{{ route('products.index') }}" class="nav-link {{ request()->routeIs('products.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('box') !!}<span>Products</span></a>
                     <a href="{{ route('patterns.index') }}" class="nav-link {{ request()->routeIs('patterns.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('layers') !!}<span>Patterns</span></a>
+                    <a href="{{ route('pattern-ownership.index') }}" class="nav-link {{ request()->routeIs('pattern-ownership.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('users') !!}<span>Pattern ownership</span></a>
                     <a href="{{ route('casting-analyses.index') }}" class="nav-link {{ request()->routeIs('casting-analyses.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('chart-line') !!}<span>Casting analysis</span></a>
                     <a href="{{ route('production-orders.index') }}" class="nav-link {{ request()->routeIs('production-orders.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('factory') !!}<span>Production orders</span></a>
                     <a href="{{ route('moulding-runs.index') }}" class="nav-link {{ request()->routeIs('moulding-runs.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('grid') !!}<span>Moulding runs</span></a>
@@ -676,11 +677,12 @@
                 </div>
             </div>
 
-            <div class="nav-group {{ request()->routeIs('tooling-maintenance.*', 'tooling-life.*') ? 'is-active' : '' }}">
+            <div class="nav-group {{ request()->routeIs('tooling-maintenance.*', 'tooling-life.*', 'flasks.*', 'flask-sizes.*') ? 'is-active' : '' }}">
                 <button type="button" class="nav-group-toggle" aria-expanded="false">
                     <span class="nav-lab">{!! \App\Support\NavIcons::get('wrench') !!}<span>Equipment &amp; Tooling</span></span><span class="nav-chevron">›</span>
                 </button>
                 <div class="nav-submenu" hidden>
+                    <a href="{{ route('flasks.index') }}" class="nav-link {{ request()->routeIs('flasks.*', 'flask-sizes.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('grid') !!}<span>Flasks</span></a>
                     <a href="{{ route('tooling-maintenance.dashboard') }}" class="nav-link {{ request()->routeIs('tooling-maintenance.dashboard') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('dashboard') !!}<span>Maintenance dashboard</span></a>
                     <a href="{{ route('tooling-maintenance.index') }}" class="nav-link {{ request()->routeIs('tooling-maintenance.index', 'tooling-maintenance.show', 'tooling-maintenance.edit') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('wrench') !!}<span>Maintenance records</span></a>
                     <a href="{{ route('tooling-life.dashboard') }}" class="nav-link {{ request()->routeIs('tooling-life.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('gauge') !!}<span>Tooling life</span></a>

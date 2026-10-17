@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\AttachableEntities;
 use App\Support\CodedRecords;
 use Illuminate\Support\Facades\DB;
 
@@ -17,7 +18,7 @@ class LabelController extends Controller
         // Tooling gets its mark on first print if it has none yet.
         $mark = null;
         if (in_array($type, CodedRecords::TOOLS, true)) {
-            $class = (new \ReflectionClass(\App\Support\AttachableEntities::class))->getConstant('MAP')[$type][1];
+            $class = (new \ReflectionClass(AttachableEntities::class))->getConstant('MAP')[$type][1];
             $mark = $class::find($id)->ensureMark();
         }
 
@@ -30,6 +31,9 @@ class LabelController extends Controller
 
     private function sub(string $type, object $row): ?string
     {
+        if ($type === 'pattern' && ($row->owner_type ?? 'FOUNDRY') !== 'FOUNDRY') {
+            return 'Property of '.(DB::table('customers')->where('id', $row->owner_customer_id)->value('name') ?? 'the customer');
+        }
         if ($type === 'casting_lot') {
             $p = DB::table('products')->where('id', $row->product_id ?? null)->first();
 

@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ApprovalRequest;
 use App\Models\Attachment;
+use App\Models\Customer;
 use App\Models\MouldAssembly;
 use App\Models\MouldCavity;
 use App\Models\MouldingRun;
@@ -10,8 +12,11 @@ use App\Models\MouldingWorkListItem;
 use App\Models\Pattern;
 use App\Models\PatternRevision;
 use App\Models\ProductRevision;
+use App\Models\Quotation;
 use App\Models\SandSystem;
+use App\Services\Audit\Audit;
 use App\Services\Codes\CodeGenerator;
+use App\Services\Patterns\PatternOwnership;
 use App\Services\Patterns\RevisionLayout;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,8 +32,11 @@ class PatternController extends Controller
         $archived = $request->boolean('archived');
         $patterns = Pattern::query()
             ->when($archived, fn ($q) => $q->onlyTrashed())
-            ->with('currentRevision')
+            ->with('currentRevision', 'ownerCustomer')
             ->withCount('revisions')
+            ->when($request->filled('owner'), fn ($q) => in_array($request->input('owner'), array_keys(Pattern::OWNERS), true)
+                ? $q->where('owner_type', $request->input('owner'))
+                : $q->where('owner_customer_id', $request->input('owner')))
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = trim($request->input('search'));
 
@@ -52,6 +60,7 @@ class PatternController extends Controller
             'archivedPatterns' => Pattern::onlyTrashed()->count(),
             'archived' => $archived,
             'baselineOnly' => Pattern::whereHas('currentRevision', fn ($r) => $r->baselineWithoutDrawing())->count(),
+            'owningCustomers' => Customer::withTrashed()->whereIn('id', Pattern::whereNotNull('owner_customer_id')->select('owner_customer_id'))->orderBy('name')->get(),
         ]);
     }
 
@@ -189,7 +198,10 @@ class PatternController extends Controller
             $pattern->update($data);
             app(CodeGenerator::class)->changeMark('pattern', $pattern, $mark);
 
-            return $current && $layout ? app(RevisionLayout::class)->save($current, $layout, $request->input('correction_reason')) : null;
+            $message = $current && $layout ? app(RevisionLayout::class)->save($current, $layout, $request->input('correction_reason')) : null;
+            $sizes = $current ? $this->syncFlaskSizes($request, $current) : null;
+
+            return trim(($message ?? '').' '.($sizes ?? '')) ?: null;
         });
 
         return redirect()->route('patterns.show', $pattern)->with('success', "{$pattern->code} saved.".($layoutMessage ? ' '.$layoutMessage : ''));
@@ -210,6 +222,9 @@ class PatternController extends Controller
      */
     public function archive(Pattern $pattern): RedirectResponse
     {
+        if ($pattern->isCustomers()) {
+            return back()->withErrors(['archive' => "{$pattern->code} belongs to {$pattern->ownerLabel()}. Return it to them or scrap it (with their consent) instead of archiving it."]);
+        }
         $revisionIds = $pattern->revisions()->pluck('id');
         $running = MouldingRun::whereIn('pattern_revision_id', $revisionIds)->whereIn('status', ['IN_PROGRESS', 'STARTED', 'RUNNING'])->pluck('run_number');
         $listed = MouldingWorkListItem::whereIn('pattern_revision_id', $revisionIds)->whereIn('status', ['PLANNED', 'IN_PROGRESS'])->count();
@@ -225,7 +240,13 @@ class PatternController extends Controller
 
     public function restore(Pattern $pattern): RedirectResponse
     {
+        if ($pattern->custody === 'SCRAPPED') {
+            return back()->withErrors(['restore' => "{$pattern->code} was scrapped and cannot be restored."]);
+        }
         $pattern->restore();
+        if ($pattern->custody === 'RETURNED') {
+            app(PatternOwnership::class)->update($pattern, ['custody' => 'IN_STORE', 'custody_location' => null], null, 'Back from the customer.');
+        }
 
         return redirect()->route('patterns.show', $pattern)->with('success', "{$pattern->code} restored.");
     }
@@ -252,6 +273,7 @@ class PatternController extends Controller
                 ->orderByDesc('created_at'),
             'revisions.cavityMap.productRevision.product',
             'revisions.cavityMap.copiedFrom',
+            'revisions.flaskSizes',
         ]);
         $revisionPhotos = Attachment::where('attachable_type', 'pattern_revision')->whereIn('attachable_id', $pattern->revisions->pluck('id'))
             ->whereNull('removed_at')->get()->groupBy('attachable_id');
@@ -265,7 +287,17 @@ class PatternController extends Controller
 
         $assembledRevisions = MouldCavity::whereIn('pattern_revision_id', $pattern->revisions->pluck('id'))->distinct()->pluck('pattern_revision_id')->all();
 
-        return view('patterns.show', compact('pattern', 'productRevisions', 'revisionPhotos', 'assembledRevisions'));
+        $pattern->load('ownerCustomer', 'ownershipQuotation', 'ownershipEvents');
+        $ownership = app(PatternOwnership::class);
+        $owner = [
+            'customers' => Customer::where('active', true)->orWhere('id', $pattern->owner_customer_id)->orderBy('name')->get(),
+            'quotations' => Quotation::orderByDesc('created_at')->limit(200)->get(['id', 'code', 'version']),
+            'payOff' => $ownership->payOffProgress($pattern),
+            'custody' => $ownership->custodyLabel($pattern),
+            'scrapRequest' => ApprovalRequest::where('action_key', 'pattern.scrap_customer_pattern')->where('subject_id', $pattern->id)->whereIn('status', ['PENDING', 'APPROVED'])->latest()->first(),
+        ];
+
+        return view('patterns.show', compact('pattern', 'productRevisions', 'revisionPhotos', 'assembledRevisions', 'owner'));
     }
 
     /**
@@ -275,9 +307,46 @@ class PatternController extends Controller
     public function updateLayout(Request $request, Pattern $pattern, PatternRevision $revision): RedirectResponse
     {
         abort_unless($revision->pattern_id === $pattern->id, 404);
-        $message = app(RevisionLayout::class)->save($revision, $this->validatedLayout($request), $request->input('correction_reason'));
+        $message = DB::transaction(function () use ($request, $revision) {
+            $layout = app(RevisionLayout::class)->save($revision, $this->validatedLayout($request), $request->input('correction_reason'));
+            $sizes = $this->syncFlaskSizes($request, $revision);
+
+            return trim(($layout ?? '').' '.($sizes ?? '')) ?: null;
+        });
 
         return redirect()->route('patterns.show', $pattern)->with('success', $message ?? "Mould layout of {$revision->code} unchanged.");
+    }
+
+    /**
+     * The flask sizes a revision fits, when its form sent them; the one it was designed for is marked. A single size is the
+     * designed-for size. The change is kept in the audit trail. Returns what happened, or null when nothing changed.
+     */
+    private function syncFlaskSizes(Request $request, PatternRevision $revision): ?string
+    {
+        if (! $request->has('flask_sizes_sent')) {
+            return null;
+        }
+        $d = $request->validate([
+            'flask_size_ids' => ['nullable', 'array'], 'flask_size_ids.*' => ['uuid', Rule::exists('flask_sizes', 'id')],
+            'primary_flask_size_id' => ['nullable', 'uuid', Rule::exists('flask_sizes', 'id')],
+        ]);
+        $ids = array_values(array_unique($d['flask_size_ids'] ?? []));
+        $primary = $d['primary_flask_size_id'] ?? (count($ids) === 1 ? $ids[0] : null);
+        if ($primary && ! in_array($primary, $ids, true)) {
+            $ids[] = $primary;
+        }
+        $describe = fn ($sizes) => $sizes->map(fn ($s) => $s->name.($s->pivot->is_primary ? ' (designed for)' : ''))->implode(', ') ?: 'none';
+        $before = $describe($revision->flaskSizes()->get());
+        // Detached first: the database allows one designed-for size per revision at any moment.
+        $revision->flaskSizes()->detach();
+        $revision->flaskSizes()->attach(collect($ids)->mapWithKeys(fn ($id) => [$id => ['is_primary' => $id === $primary]])->all());
+        $after = $describe($revision->flaskSizes()->get());
+        if ($before === $after) {
+            return null;
+        }
+        app(Audit::class)->record('UPDATED', 'PatternRevision', $revision->id, $revision->code, ['flask_sizes' => ['old' => $before, 'new' => $after]]);
+
+        return "Flask sizes of {$revision->code}: {$after}.";
     }
 
     /**

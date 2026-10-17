@@ -22,6 +22,7 @@ class CodeGenerator
         'core_box' => ['core_boxes', 'CBX', 3, 'Core box'],
         'core_definition' => ['core_definitions', 'COR', 4, 'Core'],
         'mould_configuration' => ['mould_configurations', 'MCF', 5, 'Mould configuration'],
+        'flask' => ['flasks', 'FLK', 6, 'Flask'],
         'casting_analysis' => ['casting_analyses', 'CAN', 6, 'Casting analysis'],
         'enquiry' => ['enquiries', 'ENQ', 7, 'Enquiry'],
         'quotation' => ['quotations', 'QUO', 8, 'Quotation'],
@@ -37,7 +38,7 @@ class CodeGenerator
         'hr_advance' => ['employee_advances', 'ADV', 9, 'Advance or loan'],
     ];
 
-    public const TOOL_KINDS = ['pattern', 'core_box', 'core_definition', 'mould_configuration'];
+    public const TOOL_KINDS = ['pattern', 'core_box', 'core_definition', 'mould_configuration', 'flask'];
 
     public static function setting(string $key, string $default): string
     {

@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Services\Patterns\PatternOwnership;
+use App\Services\Production\FlaskManager;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -57,6 +59,22 @@ class MouldingRun extends Model
     public function productionOrder(): BelongsTo
     {
         return $this->belongsTo(ProductionOrder::class);
+    }
+
+    protected static function booted(): void
+    {
+        // A returned or scrapped pattern moulds nothing; a customer's pattern makes only their castings when the rule blocks.
+        static::saving(function (MouldingRun $run) {
+            if ($run->pattern_revision_id && (! $run->exists || $run->isDirty(['pattern_revision_id', 'production_order_id']))) {
+                app(PatternOwnership::class)->checkUse(PatternRevision::with('pattern')->find($run->pattern_revision_id), $run->production_order_id ? ProductionOrder::find($run->production_order_id) : null);
+            }
+        });
+        // Under the "runs claim by count" rule, a run's moulds made hold that many sets of flasks.
+        static::saved(function (MouldingRun $run) {
+            if ($run->wasRecentlyCreated || $run->wasChanged(['moulds_made_qty', 'pattern_revision_id', 'moulding_station_id'])) {
+                app(FlaskManager::class)->runChanged($run);
+            }
+        });
     }
 
     /** The next run number of the day, MR-20261017-004. Call inside a transaction: it locks the day's runs. */

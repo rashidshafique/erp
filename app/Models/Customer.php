@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -29,6 +28,12 @@ class Customer extends Model
     protected function casts(): array
     {
         return ['active' => 'boolean'];
+    }
+
+    /** Patterns the customer owns or is paying off, held by the foundry. */
+    public function ownedPatterns(): HasMany
+    {
+        return $this->hasMany(Pattern::class, 'owner_customer_id');
     }
 
     public function salesOrders(): HasMany

@@ -2,19 +2,21 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ToolingMaintenanceRecord;
+use App\Models\CoreBox;
+use App\Models\CoreDefinition;
+use App\Models\Flask;
+use App\Models\MouldAssembly;
+use App\Models\MouldConfiguration;
 use App\Models\Pattern;
 use App\Models\PatternRevision;
-use App\Models\CoreDefinition;
-use App\Models\CoreBox;
-use App\Models\MouldConfiguration;
-use App\Models\MouldAssembly;
+use App\Models\ToolingMaintenanceRecord;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
-use Illuminate\View\View;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
 
 class ToolingMaintenanceRecordController extends Controller
 {
@@ -25,6 +27,7 @@ class ToolingMaintenanceRecordController extends Controller
         'CORE_BOX' => ['core_box_id', CoreBox::class],
         'MOULD_CONFIGURATION' => ['mould_configuration_id', MouldConfiguration::class],
         'MOULD_ASSEMBLY' => ['mould_assembly_id', MouldAssembly::class],
+        'FLASK' => ['flask_id', Flask::class],
     ];
 
     private const ACTIVITIES = [
@@ -103,7 +106,7 @@ class ToolingMaintenanceRecordController extends Controller
             $rules[$column] = [
                 'nullable',
                 'uuid',
-                Rule::exists((new $model())->getTable(), 'id'),
+                Rule::exists((new $model)->getTable(), 'id'),
             ];
         }
 
@@ -116,10 +119,10 @@ class ToolingMaintenanceRecordController extends Controller
 
         $selected = collect(self::TOOLING)
             ->pluck(0)
-            ->filter(fn ($column) => !empty($data[$column] ?? null));
+            ->filter(fn ($column) => ! empty($data[$column] ?? null));
 
         if ($selected->count() !== 1) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
+            throw ValidationException::withMessages([
                 'tooling_type' => 'Select exactly one tooling item.',
             ]);
         }
@@ -129,7 +132,7 @@ class ToolingMaintenanceRecordController extends Controller
             ->first(fn ($config) => $config[0] === $selectedColumn);
 
         if ($data['tooling_type'] !== array_search($selectedType, self::TOOLING, true)) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
+            throw ValidationException::withMessages([
                 'tooling_type' => 'The tooling type must match the selected tooling item.',
             ]);
         }
@@ -174,7 +177,7 @@ class ToolingMaintenanceRecordController extends Controller
     public function create(): View
     {
         return view('tooling-maintenance.form', [
-            'record' => new ToolingMaintenanceRecord(),
+            'record' => new ToolingMaintenanceRecord,
             'toolingOptions' => $this->toolingOptions(),
             'activities' => self::ACTIVITIES,
             'statuses' => self::STATUSES,
@@ -189,7 +192,7 @@ class ToolingMaintenanceRecordController extends Controller
 
         $record = DB::transaction(function () use ($data) {
             do {
-                $number = 'TM-' . now()->format('Ymd') . '-' . Str::upper(Str::random(6));
+                $number = 'TM-'.now()->format('Ymd').'-'.Str::upper(Str::random(6));
             } while (ToolingMaintenanceRecord::where('record_number', $number)->exists());
 
             $data['record_number'] = $number;

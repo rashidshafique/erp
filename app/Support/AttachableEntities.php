@@ -10,6 +10,7 @@ use App\Models\Employee;
 use App\Models\EmployeeDocument;
 use App\Models\Enquiry;
 use App\Models\Equipment;
+use App\Models\Flask;
 use App\Models\Furnace;
 use App\Models\Heat;
 use App\Models\HrPolicy;
@@ -33,7 +34,7 @@ use Illuminate\Database\Eloquent\Model;
 class AttachableEntities
 {
     public const MAP = [
-        'material' => ['Material', Material::class], 'furnace' => ['Furnace', Furnace::class], 'equipment' => ['Equipment', Equipment::class],
+        'material' => ['Material', Material::class], 'furnace' => ['Furnace', Furnace::class], 'flask' => ['Flask', Flask::class], 'equipment' => ['Equipment', Equipment::class],
         'heat' => ['Heat', Heat::class], 'pattern' => ['Pattern', Pattern::class], 'pattern_revision' => ['Pattern revision', PatternRevision::class], 'product' => ['Product', Product::class],
         'sales_order' => ['Sales order', SalesOrder::class], 'moulding_run' => ['Moulding run', MouldingRun::class], 'pour' => ['Pour', Pour::class],
         'casting_lot' => ['Casting lot', CastingLot::class], 'ncr' => ['Nonconformance report', NonconformanceReport::class],

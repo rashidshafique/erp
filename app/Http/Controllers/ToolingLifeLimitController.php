@@ -2,18 +2,20 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ToolingLifeLimit;
+use App\Models\CoreBox;
+use App\Models\CoreDefinition;
+use App\Models\Flask;
+use App\Models\MouldAssembly;
+use App\Models\MouldConfiguration;
 use App\Models\Pattern;
 use App\Models\PatternRevision;
-use App\Models\CoreDefinition;
-use App\Models\CoreBox;
-use App\Models\MouldConfiguration;
-use App\Models\MouldAssembly;
+use App\Models\ToolingLifeLimit;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
-use Illuminate\Http\RedirectResponse;
 
 class ToolingLifeLimitController extends Controller
 {
@@ -24,6 +26,7 @@ class ToolingLifeLimitController extends Controller
         'CORE_BOX' => ['core_box_id', CoreBox::class],
         'MOULD_CONFIGURATION' => ['mould_configuration_id', MouldConfiguration::class],
         'MOULD_ASSEMBLY' => ['mould_assembly_id', MouldAssembly::class],
+        'FLASK' => ['flask_id', Flask::class],
     ];
 
     private function toolingOptions(): array
@@ -59,7 +62,7 @@ class ToolingLifeLimitController extends Controller
     public function create(): View
     {
         return view('tooling-life.form', [
-            'limit' => new ToolingLifeLimit(),
+            'limit' => new ToolingLifeLimit,
             'toolingOptions' => $this->toolingOptions(),
             'editing' => false,
         ]);
@@ -97,7 +100,7 @@ class ToolingLifeLimitController extends Controller
 
         validator(
             ['tooling_id' => $data['tooling_id']],
-            ['tooling_id' => ['required', 'uuid', Rule::exists((new $model())->getTable(), 'id')]]
+            ['tooling_id' => ['required', 'uuid', Rule::exists((new $model)->getTable(), 'id')]]
         )->validate();
 
         $existing = ToolingLifeLimit::query()
@@ -109,7 +112,7 @@ class ToolingLifeLimitController extends Controller
             ->exists();
 
         if ($existing) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
+            throw ValidationException::withMessages([
                 'tooling_id' => 'A life-limit configuration already exists for this tooling item. Edit the existing configuration instead.',
             ]);
         }

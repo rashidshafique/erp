@@ -8,7 +8,7 @@
 <div class="page-heading">
     <div class="pattern-title">
         <h1>{{ $pattern->name }}</h1>
-        <p><span class="code">{{ $pattern->code }}</span><span class="dot-sep">·</span>{{ $typeLabel }}<span class="dot-sep">·</span><span class="status {{ $pattern->status === 'ACTIVE' ? 'status-completed' : 'status-cancelled' }}">{{ $pattern->status }}</span></p>
+        <p><span class="code">{{ $pattern->code }}</span><span class="dot-sep">·</span>{{ $typeLabel }}<span class="dot-sep">·</span><span class="status {{ $pattern->status === 'ACTIVE' ? 'status-completed' : 'status-cancelled' }}">{{ $pattern->status }}</span><span class="dot-sep">·</span><span title="Owner">{{ $pattern->owner_type === 'FOUNDRY' ? 'Foundry-owned' : 'Property of '.$pattern->ownerLabel() }}</span></p>
     </div>
     <div class="actions">
         <a class="btn" href="{{ route('patterns.index') }}">All patterns</a>
@@ -21,7 +21,8 @@
         @endif
     </div>
 </div>
-@if ($pattern->trashed())<div class="alert alert-warning">Archived on {{ $pattern->deleted_at->format('d M Y') }}. It is left out of the pattern list, its counts and the moulding pickers, and stays on the runs and tooling records that used it. Restore it to use it again.</div>@endif
+@if ($pattern->trashed() && in_array($pattern->custody, ['RETURNED', 'SCRAPPED'], true))<div class="alert alert-warning">{{ $pattern->custody === 'RETURNED' ? 'Returned to '.$pattern->ownerLabel() : 'Scrapped' }} on {{ $pattern->deleted_at->format('d M Y') }}. It cannot be moulded.@if ($pattern->custody === 'RETURNED') Restore it if the customer sends it back.@endif</div>
+@elseif ($pattern->trashed())<div class="alert alert-warning">Archived on {{ $pattern->deleted_at->format('d M Y') }}. It is left out of the pattern list, its counts and the moulding pickers, and stays on the runs and tooling records that used it. Restore it to use it again.</div>@endif
 
 @php $current = $pattern->revisions->firstWhere('is_current', true); @endphp
 @include('partials.quick-dialog', ['id' => 'qd-revision', 'title' => 'New revision of '.$pattern->code, 'action' => route('patterns.revisions.store', $pattern), 'submit' => 'Create revision', 'fields' => 'patterns._quick-revision', 'multipart' => true, 'current' => $current])
@@ -142,6 +143,9 @@
         </div>
     @endif
 </div>
+
+<div class="tab-marker" data-tab-start="Ownership"></div>
+@include('patterns._ownership', ['pattern' => $pattern, 'owner' => $owner])
 
 <div class="tab-marker" data-tab-start="Cavity map"></div>
 @include('patterns._cavity-map', ['pattern' => $pattern, 'productRevisions' => $productRevisions])

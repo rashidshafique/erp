@@ -7,15 +7,14 @@ use App\Models\Dispatch;
 use App\Models\DispatchItem;
 use App\Models\PackingRecord;
 use App\Models\PackingRecordItem;
+use App\Services\Patterns\PatternOwnership;
 use App\Services\QualityGates;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 class ShipmentService
 {
-    public function __construct(private QualityGates $gates)
-    {
-    }
+    public function __construct(private QualityGates $gates) {}
 
     public function packedQty(CastingLot $lot): float
     {
@@ -135,6 +134,8 @@ class ShipmentService
                 }
             }
             $disp->update(['total_net_weight_kg' => round($net, 3), 'total_packages' => count($packs)]);
+            // Patterns this customer is paying off by castings may now be theirs.
+            app(PatternOwnership::class)->dispatchedTo($disp->customer_id);
 
             return $disp;
         });

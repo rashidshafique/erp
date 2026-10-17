@@ -5,15 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\Enquiry;
 use App\Models\Quotation;
 use App\Models\QuotationLine;
+use App\Services\Patterns\PatternOwnership;
 use App\Services\Quotation\QuotationService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class QuotationController extends Controller
 {
-    public function __construct(private QuotationService $svc)
-    {
-    }
+    public function __construct(private QuotationService $svc) {}
 
     public function store(Enquiry $enquiry)
     {
@@ -43,6 +42,7 @@ class QuotationController extends Controller
         return view('quotations.show', [
             'q' => $quotation, 'blockers' => $quotation->status === 'DRAFT' ? $this->svc->issueBlockers($quotation) : [],
             'versions' => $quotation->enquiry->quotations()->get(['id', 'code', 'version', 'status']),
+            'toolingNotes' => $quotation->lines->mapWithKeys(fn ($l) => [$l->id => app(PatternOwnership::class)->toolingFor($quotation->enquiry->customer_id, $l->item?->product_id)]),
         ]);
     }
 

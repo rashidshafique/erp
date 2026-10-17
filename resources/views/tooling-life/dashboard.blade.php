@@ -126,7 +126,8 @@
                                 ?? $limit->core_definition_id
                                 ?? $limit->core_box_id
                                 ?? $limit->mould_configuration_id
-                                ?? $limit->mould_assembly_id;
+                                ?? $limit->mould_assembly_id
+                                ?? $limit->flask_id;
 
                             $statusClass = match ($item['status']) {
                                 'OK' => 'ok',

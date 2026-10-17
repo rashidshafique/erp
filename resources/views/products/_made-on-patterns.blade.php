@@ -45,7 +45,8 @@
                                 <span class="mono">{{ $pattern->code }}</span>
                                 <span class="mono">{{ $rev->code }}</span>
                                 @if ($rev->is_current)<span class="status status-completed">Current</span>@elseif ($rev->isSuperseded())<span class="status status-on-hold">Superseded</span>@endif
-                                @if ($pattern->trashed())<span class="status status-cancelled">Archived</span>@endif
+                                @if ($pattern->trashed())<span class="status status-cancelled">{{ $pattern->custody === 'RETURNED' ? 'Returned' : ($pattern->custody === 'SCRAPPED' ? 'Scrapped' : 'Archived') }}</span>@endif
+                                <span>{{ $pattern->owner_type === 'FOUNDRY' ? 'Foundry-owned' : 'Owner: '.$pattern->ownerLabel() }}</span>
                                 <span>{{ \Illuminate\Support\Str::before($rev->arrangementLabel(), ' (') }}</span>
                                 <span>cavit{{ $g['cavities']->count() === 1 ? 'y' : 'ies' }} {{ $g['cavities']->map(fn ($c) => $c->cavity_number.($c->cavity_mark ? ' ('.$c->cavity_mark.')' : ''))->implode(', ') }}@if ($g['cavities']->contains('cavity_role', 'PART')) · {{ $g['cavities']->where('cavity_role', 'PART')->pluck('component_label')->unique()->implode(', ') }}@endif</span>
                             </div>

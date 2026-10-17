@@ -24,7 +24,7 @@
         <div class="empty-state">No customers yet.</div>
     @else
         <div class="table-wrap"><table>
-            <thead><tr><th>Code</th><th>Name</th><th>Contact</th><th>Payment terms</th><th>Orders</th><th>Status</th></tr></thead>
+            <thead><tr><th>Code</th><th>Name</th><th>Contact</th><th>Payment terms</th><th>Orders</th><th>Patterns held</th><th>Status</th></tr></thead>
             <tbody>
             @foreach ($customers as $c)
                 <tr>
@@ -32,6 +32,7 @@
                     <td>{{ $c->contact_name ?: '—' }}{{ $c->email ? ' · '.$c->email : '' }}</td>
                     <td>{{ $c->payment_terms ?: '—' }}</td>
                     <td><a href="{{ route('sales-orders.index', ['search' => '']) }}">{{ $c->sales_orders_count }}</a></td>
+                    <td>@if ($c->owned_patterns_count)<a href="{{ route('patterns.index', ['owner' => $c->id]) }}">{{ $c->owned_patterns_count }}</a>@else — @endif</td>
                     <td>{{ $c->active ? 'Active' : 'Inactive' }}</td>
                 </tr>
             @endforeach

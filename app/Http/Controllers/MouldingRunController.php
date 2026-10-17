@@ -2,13 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Flask;
+use App\Models\MouldAssembly;
 use App\Models\MouldConfiguration;
 use App\Models\MouldingRun;
 use App\Models\MouldingTeam;
+use App\Models\MouldLayer;
 use App\Models\PatternRevision;
 use App\Models\ProductionOrder;
 use App\Models\SandSystem;
 use App\Services\PatternCavityMap;
+use App\Services\Patterns\PatternOwnership;
+use App\Services\Production\FlaskManager;
 use App\Services\Production\MouldAssembler;
 use App\Services\Production\WorkListService;
 use Illuminate\Http\RedirectResponse;
@@ -174,6 +179,10 @@ class MouldingRunController extends Controller
                 ->withInput();
         }
 
+        $ownershipWarning = app(PatternOwnership::class)->checkUse(
+            PatternRevision::with('pattern')->findOrFail($validated['pattern_revision_id']),
+            ! empty($validated['production_order_id']) ? ProductionOrder::find($validated['production_order_id']) : null,
+        );
         $run = DB::transaction(function () use ($validated) {
             $validated['run_number'] = MouldingRun::nextRunNumber();
 
@@ -187,7 +196,8 @@ class MouldingRunController extends Controller
 
         return redirect()
             ->route('moulding-runs.show', $run)
-            ->with('success', "Moulding run {$run->run_number} was created.");
+            ->with('success', "Moulding run {$run->run_number} was created.")
+            ->with('warning', $ownershipWarning);
     }
 
     public function show(MouldingRun $mouldingRun): View
@@ -198,7 +208,19 @@ class MouldingRunController extends Controller
             'patternRevision.pattern',
             'mouldConfiguration',
             'mouldAssemblies.pourAssignment.pour',
+            'mouldAssemblies.layers.flask',
+            'station',
         ]);
+        $flasks = app(FlaskManager::class);
+        $flaskInfo = ['flaskless' => $flasks->isFlaskless($mouldingRun->station, $mouldingRun->patternRevision), 'sizes' => collect(), 'free' => null,
+            'held' => Flask::where('current_moulding_run_id', $mouldingRun->id)->orderBy('code')->get()];
+        if (! $flaskInfo['flaskless'] && $mouldingRun->patternRevision) {
+            $flaskInfo['sizes'] = $flasks->sizesFor($mouldingRun->patternRevision, $mouldingRun->station);
+            $sections = (int) ($mouldingRun->mouldConfiguration?->nominal_layer_count ?? $mouldingRun->patternRevision->layers_per_mould ?? 2);
+            $open = max(0, (int) $mouldingRun->accepted_mould_qty - $mouldingRun->mouldAssemblies->count());
+            $flaskInfo['free'] = $open ? count($flasks->pick($flaskInfo['sizes'], $open, $flasks->layerTypes($sections))['sets']) : null;
+            $flaskInfo['open'] = $open;
+        }
         $configurations = MouldConfiguration::where('is_active', true)->orderBy('code')->get();
 
         $perMould = null;
@@ -214,11 +236,43 @@ class MouldingRunController extends Controller
 
         return view('moulding-runs.show', [
             'run' => $mouldingRun,
+            'flaskInfo' => $flaskInfo,
             'teams' => MouldingTeam::where('status', 'ACTIVE')->orWhere('id', $mouldingRun->moulding_team_id)->orderBy('code')->get(),
             'sands' => SandSystem::choices($mouldingRun->sand_system),
             'perMould' => $perMould,
             'configurations' => $configurations,
         ]);
+    }
+
+    /** Puts the flask actually used into a mould layer, found by its code or stamped mark. */
+    public function swapFlask(Request $request, MouldingRun $mouldingRun, MouldLayer $layer, FlaskManager $flasks): RedirectResponse
+    {
+        abort_unless($layer->assembly?->moulding_run_id === $mouldingRun->id, 404);
+        $code = strtoupper(trim((string) $request->validate(['flask' => ['required', 'string', 'max:40']])['flask']));
+        $flask = Flask::whereRaw('upper(code) = ? or upper(mark_code) = ?', [$code, $code])->first();
+        if (! $flask) {
+            return back()->withErrors(['flask' => "No flask with the code or mark {$code}."]);
+        }
+        DB::transaction(fn () => $flasks->swap($layer, $flask));
+
+        return back()->with('success', "{$flask->label()} is now the ".strtolower($layer->layer_type)." of {$layer->assembly->assembly_number}.");
+    }
+
+    /** Releases the flasks of one mould, when it was knocked out without a shakeout record. */
+    public function releaseMouldFlasks(MouldingRun $mouldingRun, MouldAssembly $assembly, FlaskManager $flasks): RedirectResponse
+    {
+        abort_unless($assembly->moulding_run_id === $mouldingRun->id, 404);
+        $count = DB::transaction(fn () => $flasks->releaseMould($assembly));
+
+        return back()->with('success', "{$count} ".($count === 1 ? 'flask' : 'flasks')." of {$assembly->assembly_number} released.");
+    }
+
+    /** Releases the flasks a run holds by count (the "runs claim by count" rule). */
+    public function releaseRunFlasks(MouldingRun $mouldingRun, FlaskManager $flasks): RedirectResponse
+    {
+        $count = DB::transaction(fn () => $flasks->releaseRun($mouldingRun));
+
+        return back()->with('success', "{$count} ".($count === 1 ? 'flask' : 'flasks')." of run {$mouldingRun->run_number} released.");
     }
 
     /** Corrects the team and sand of a run; the bulk editor takes them from the station. */
@@ -249,7 +303,9 @@ class MouldingRunController extends Controller
             return back()->withErrors(['assemble' => $e->getMessage()])->withInput();
         }
 
-        return back()->with('success', $made->count().' mould assembl'.($made->count() === 1 ? 'y' : 'ies').' created ('.$made->first()->assembly_number.($made->count() > 1 ? ' to '.$made->last()->assembly_number : '').').');
+        $response = back()->with('success', $made->count().' mould assembl'.($made->count() === 1 ? 'y' : 'ies').' created ('.$made->first()->assembly_number.($made->count() > 1 ? ' to '.$made->last()->assembly_number : '').').');
+
+        return $assembler->warning() ? $response->with('warning', $assembler->warning()) : $response;
     }
 
     public function recordOutput(Request $request, MouldingRun $mouldingRun, WorkListService $svc): RedirectResponse

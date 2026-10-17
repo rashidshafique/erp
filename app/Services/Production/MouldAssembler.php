@@ -20,7 +20,13 @@ use InvalidArgumentException;
  */
 class MouldAssembler
 {
-    public function __construct(private PatternCavityMap $map) {}
+    public function __construct(private PatternCavityMap $map, private FlaskManager $flasks) {}
+
+    /** A warning from the last assembly, when moulds were made with fewer flasks than they needed. */
+    public function warning(): ?string
+    {
+        return $this->flasks->warning;
+    }
 
     /** @return Collection<int, MouldAssembly> */
     public function assemble(MouldingRun $run, int $count, string $configurationId, int $layers = 2, ?string $assembledBy = null, ?string $checkedBy = null): Collection
@@ -81,6 +87,7 @@ class MouldAssembler
                 }
                 $made->push($asm);
             }
+            $this->flasks->assignToMoulds($run, $made);
 
             return $made;
         });

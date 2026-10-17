@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\FlaskSize;
 use App\Models\MouldingRun;
 use App\Models\MouldingStation;
 use App\Models\MouldingTeam;
@@ -22,9 +23,10 @@ class MouldingResourceController extends Controller
             ->get()->keyBy('k');
 
         return view('moulding-teams.index', [
-            'teams' => MouldingTeam::orderBy('code')->get(), 'stations' => MouldingStation::orderBy('code')->get(),
+            'teams' => MouldingTeam::orderBy('code')->get(), 'stations' => MouldingStation::with('flaskSizes')->orderBy('code')->get(),
             'teamStats' => $stats('moulding_team_id'), 'stationStats' => $stats('moulding_station_id'),
             'stationTypes' => MouldingStation::TYPES, 'sands' => SandSystem::names(),
+            'flaskSizes' => FlaskSize::ordered()->where('status', 'ACTIVE')->get(),
         ]);
     }
 
@@ -50,6 +52,7 @@ class MouldingResourceController extends Controller
     public function storeStation(Request $request): RedirectResponse|JsonResponse
     {
         $station = MouldingStation::create($this->stationData($request));
+        $this->syncFlaskSizes($request, $station);
         if ($request->wantsJson()) {
             return response()->json(['id' => $station->id, 'label' => "{$station->code} — {$station->name}"], 201);
         }
@@ -60,6 +63,7 @@ class MouldingResourceController extends Controller
     public function updateStation(Request $request, MouldingStation $station): RedirectResponse
     {
         $station->update($this->stationData($request, $station));
+        $this->syncFlaskSizes($request, $station);
 
         return back()->with('success', "Station {$station->code} updated.");
     }
@@ -89,7 +93,20 @@ class MouldingResourceController extends Controller
         $d['max_patterns'] = $d['station_type'] === 'AUTOMATED_LINE' ? 1 : (int) ($d['max_patterns'] ?? ($d['station_type'] === 'MATCHPLATE_MACHINE' ? 1 : 4));
         $d['default_moulding_team_id'] = $d['default_moulding_team_id'] ?? null;
         $d['default_sand_system'] = $d['default_sand_system'] ?? null;
+        if ($request->has('flask_sizes_sent')) {
+            $d['makes_flaskless'] = $request->boolean('makes_flaskless');
+        }
 
         return $d;
+    }
+
+    /** The flask sizes a station handles, when its form sent them. A flaskless station handles none. */
+    private function syncFlaskSizes(Request $request, MouldingStation $station): void
+    {
+        if (! $request->has('flask_sizes_sent')) {
+            return;
+        }
+        $ids = $request->validate(['flask_size_ids' => ['nullable', 'array'], 'flask_size_ids.*' => ['uuid', Rule::exists('flask_sizes', 'id')]])['flask_size_ids'] ?? [];
+        $station->flaskSizes()->sync($station->makes_flaskless ? [] : $ids);
     }
 }

@@ -37,6 +37,7 @@
             <div class="field"><label for="ru-{{ $revision->id }}">Runners per level (kg)</label><input id="ru-{{ $revision->id }}" type="number" name="runner_weight_per_level_kg" min="0" step="0.001" value="{{ $val('runner_weight_per_level_kg') }}"></div>
             <div class="field"><label for="sp-{{ $revision->id }}">Sprue and basin (kg)</label><input id="sp-{{ $revision->id }}" type="number" name="sprue_weight_kg" min="0" step="0.001" value="{{ $val('sprue_weight_kg') }}"><div class="help">Shared by the whole mould.</div></div>
             <div class="field"><label for="wt-{{ $revision->id }}">Weighed total per mould (kg)</label><input id="wt-{{ $revision->id }}" type="number" name="poured_weight_per_mould_kg" min="0.001" step="0.001" value="{{ $val('poured_weight_per_mould_kg') }}"><div class="help">Optional: the whole tree or stack on the scale. Used instead of the sum.</div></div>
+            @include('patterns._flask-sizes-field', ['revision' => $revision, 'mine' => $mine])
             @if ($assembled)<div class="field field-full"><label for="cr-{{ $revision->id }}">Why is the layout being corrected? *</label><input id="cr-{{ $revision->id }}" name="correction_reason" required minlength="5" maxlength="500" value="{{ $mine ? old('correction_reason') : '' }}" placeholder="e.g. Cavities were entered as 4, the plate has 6"></div>@endif
             <div class="field" style="align-self:end"><button class="btn btn-primary" type="submit">{{ $assembled ? 'Correct layout' : 'Save layout' }}</button></div>
         </form>

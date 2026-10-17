@@ -12,6 +12,7 @@ class CodedRecords
         'core_box' => ['core_boxes', 'code', 'Core box', null, 'name'],
         'core_definition' => ['core_definitions', 'code', 'Core', null, 'name'],
         'mould_configuration' => ['mould_configurations', 'code', 'Mould configuration', null, 'name'],
+        'flask' => ['flasks', 'code', 'Flask', 'flasks.show', null],
         'casting_lot' => ['casting_lots', 'lot_number', 'Casting lot', 'lots.show', null],
         'heat' => ['heats', 'heat_number', 'Heat', 'heats.show', null],
         'pour' => ['pours', 'pour_number', 'Pour', 'pours.show', null],
@@ -19,7 +20,7 @@ class CodedRecords
         'sales_order' => ['sales_orders', 'order_number', 'Sales order', 'sales-orders.show', null],
     ];
 
-    public const TOOLS = ['pattern', 'core_box', 'core_definition', 'mould_configuration'];
+    public const TOOLS = ['pattern', 'core_box', 'core_definition', 'mould_configuration', 'flask'];
 
     public static function url(string $type, string $id): string
     {

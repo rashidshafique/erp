@@ -59,6 +59,14 @@
                     <option value="baseline" @selected(request('revision') === 'baseline')>Baseline only, no drawing linked</option>
                 </select>
             </div>
+            <div class="field">
+                <label for="owner">Owner</label>
+                <select id="owner" name="owner">
+                    <option value="">Any owner</option>
+                    @foreach (\App\Models\Pattern::OWNERS as $k => $l)<option value="{{ $k }}" @selected(request('owner') === $k)>{{ $k === 'FOUNDRY' ? 'Foundry' : ($k === 'CUSTOMER' ? 'Any customer' : 'Being paid off') }}</option>@endforeach
+                    @foreach ($owningCustomers as $c)<option value="{{ $c->id }}" @selected(request('owner') === $c->id)>{{ $c->name }}</option>@endforeach
+                </select>
+            </div>
             <button class="btn btn-primary" type="submit">Filter</button>
             <a class="btn" href="{{ route('patterns.index') }}">Reset</a>
         </form>
@@ -89,6 +97,7 @@
                         <th>Current revision</th>
                         <th>Cavities / mould</th>
                         <th>Status</th>
+                        <th>Owner · where</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -107,6 +116,7 @@
                                     {{ $pattern->status }}
                                 </span>
                             </td>
+                            <td class="small">{{ $pattern->owner_type === 'FOUNDRY' ? 'Foundry' : $pattern->ownerLabel() }}@if ($pattern->custody !== 'IN_STORE')<div class="muted">{{ \App\Models\Pattern::CUSTODIES[$pattern->custody] ?? $pattern->custody }}</div>@endif</td>
                             <td style="white-space:nowrap"><a href="{{ route('patterns.show', $pattern) }}">Open →</a>@if ($archived)<form method="POST" action="{{ route('patterns.restore', $pattern) }}" style="display:inline;margin-left:8px">@csrf<button class="btn btn-small" type="submit">Restore</button></form>@endif</td>
                         </tr>
                     @endforeach

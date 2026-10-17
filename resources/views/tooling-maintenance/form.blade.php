@@ -35,6 +35,7 @@ $oldValues = [
     'core_box_id' => old('core_box_id', $record->core_box_id),
     'mould_configuration_id' => old('mould_configuration_id', $record->mould_configuration_id),
     'mould_assembly_id' => old('mould_assembly_id', $record->mould_assembly_id),
+    'flask_id' => old('flask_id', $record->flask_id),
 ];
 @endphp
 <div class="legacy-page">
@@ -80,7 +81,7 @@ $oldValues = [
                     </select>
                 </div>
 
-                @foreach (['pattern_id','pattern_revision_id','core_definition_id','core_box_id','mould_configuration_id','mould_assembly_id'] as $column)
+                @foreach (['pattern_id','pattern_revision_id','core_definition_id','core_box_id','mould_configuration_id','mould_assembly_id','flask_id'] as $column)
                     <input type="hidden" name="{{ $column }}" id="{{ $column }}" value="{{ old($column, $record->$column) }}">
                 @endforeach
 
@@ -192,7 +193,8 @@ const columns = {
     CORE_DEFINITION: 'core_definition_id',
     CORE_BOX: 'core_box_id',
     MOULD_CONFIGURATION: 'mould_configuration_id',
-    MOULD_ASSEMBLY: 'mould_assembly_id'
+    MOULD_ASSEMBLY: 'mould_assembly_id',
+    FLASK: 'flask_id'
 };
 const typeSelect = document.getElementById('tooling_type');
 const itemSelect = document.getElementById('tooling_item');

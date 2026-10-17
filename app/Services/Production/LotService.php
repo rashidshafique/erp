@@ -65,6 +65,9 @@ class LotService
                 'rejection_reason' => $d['rejection_reason'] ?? null, 'notes' => $d['notes'] ?? null,
             ]);
             $this->refresh($lot);
+            if ($stage->code === 'SHAKEOUT') {
+                app(FlaskManager::class)->shakenOut($lot);   // the mould is knocked out: its flasks go back to the rack
+            }
 
             return $event;
         });

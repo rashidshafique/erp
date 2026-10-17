@@ -10,6 +10,7 @@ use App\Models\ProductRevision;
 use App\Models\Quotation;
 use App\Models\SalesOrder;
 use App\Services\Approvals\ApprovalGate;
+use App\Services\Patterns\PatternOwnership;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -88,12 +89,13 @@ class QuotationService
             ]);
             foreach ($enquiry->items as $i => $item) {
                 $in = $inputs[$item->id];
+                $tooling = app(PatternOwnership::class)->toolingFor($enquiry->customer_id, $item->product_id);
                 $old = $prev?->lines->firstWhere('enquiry_item_id', $item->id);
                 $line = $q->lines()->create([
                     'enquiry_item_id' => $item->id, 'line_no' => $i + 1, 'qty' => $in['qty'], 'weight_kg' => $in['weight_kg'], 'poured_kg' => $in['poured_kg'], 'family' => $in['family'],
                     'cores_count' => $in['cores_count'], 'heat_treatment' => $item->heat_treatment, 'ndt' => $item->ndt,
                     'machining_cost' => $item->machining_cost, 'other_cost' => $item->other_cost, 'scrap_pct' => $in['scrap_pct'],
-                    'overhead_pct' => $rates['overhead_pct'], 'margin_pct' => $old?->margin_pct ?? $rates['margin_pct'], 'tooling_cost' => $item->tooling_cost,
+                    'overhead_pct' => $rates['overhead_pct'], 'margin_pct' => $old?->margin_pct ?? $rates['margin_pct'], 'tooling_cost' => $tooling['customer_owned'] ? 0 : $item->tooling_cost,
                     'price_override' => $old?->price_override, 'basis' => $in['basis'],
                 ]);
             }

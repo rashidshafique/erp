@@ -214,12 +214,27 @@
             <p class="muted small">Each assembly is one finished mould that will be poured. Its cavities are copied from the pattern's cavity map, so every cavity already knows which product (or part of a product) it makes.</p>
             @if ($run->mouldAssemblies->isNotEmpty())
                 <div class="table-wrap"><table>
-                    <thead><tr><th>Assembly</th><th>Status</th><th>Assembled</th><th>Pour</th></tr></thead>
+                    <thead><tr><th>Assembly</th><th>Status</th><th>Assembled</th><th>Pour</th><th>Flasks</th></tr></thead>
                     <tbody>
                     @foreach ($run->mouldAssemblies as $a)
                         <tr><td>{{ $a->assembly_number }}</td><td>{{ str_replace('_', ' ', $a->status) }}</td>
                             <td>{{ $a->assembled_at?->format('d M H:i') }}<div class="muted small">{{ $a->assembled_by }}</div></td>
-                            <td>@if ($a->pourAssignment?->pour)<a href="{{ route('pours.show', $a->pourAssignment->pour) }}">{{ $a->pourAssignment->pour->pour_number }}</a>@else<span class="muted">not poured</span>@endif</td></tr>
+                            <td>@if ($a->pourAssignment?->pour)<a href="{{ route('pours.show', $a->pourAssignment->pour) }}">{{ $a->pourAssignment->pour->pour_number }}</a>@else<span class="muted">not poured</span>@endif</td>
+                            <td class="small">
+                                @if ($a->is_flaskless)<span class="muted">Flaskless</span>
+                                @else
+                                    @foreach ($a->layers as $layer)
+                                        <div style="display:flex;gap:6px;align-items:center;margin-bottom:2px">
+                                            <span style="width:48px" class="muted">{{ ucfirst(strtolower($layer->layer_type)) }}</span>
+                                            @if ($layer->flask)<a class="mono" href="{{ route('flasks.show', $layer->flask) }}">{{ $layer->flask->label() }}</a>@else<span class="muted">none</span>@endif
+                                            @if (in_array($a->status, ['PREPARED', 'READY'], true) || ! $a->pourAssignment)
+                                                <form method="POST" action="{{ route('moulding-runs.layers.flask', [$run, $layer]) }}" style="display:flex;gap:4px">@csrf @method('PUT')<input name="flask" maxlength="40" placeholder="scan / type" style="width:96px;min-height:24px;padding:1px 6px;font-size:12px" aria-label="Flask used as the {{ strtolower($layer->layer_type) }} of {{ $a->assembly_number }}"><button class="btn btn-small" type="submit">Swap</button></form>
+                                            @endif
+                                        </div>
+                                    @endforeach
+                                    @if ($a->flasks()->exists())<form method="POST" action="{{ route('moulding-runs.assemblies.release', [$run, $a]) }}" onsubmit="return confirm('Release the flasks of {{ $a->assembly_number }}? Use this when it was knocked out without a shakeout record.')">@csrf<button class="btn btn-small" type="submit">Release flasks</button></form>@endif
+                                @endif
+                            </td></tr>
                     @endforeach
                     </tbody>
                 </table></div>
@@ -227,6 +242,11 @@
 
             @if ($run->status !== 'CANCELLED' && $run->accepted_mould_qty > $run->mouldAssemblies->count())
                 <h3 style="margin-top:20px;font-size:15px">Assemble moulds</h3>
+                <p class="muted small" style="margin:0 0 8px">
+                    @if ($flaskInfo['flaskless'])Flaskless moulds: no flasks are used.
+                    @elseif ($flaskInfo['sizes']->isEmpty())No flask size is set for this pattern{{ $run->station ? ' that station '.$run->station->code.' handles' : '' }}, so moulds are made without flasks.
+                    @else Flasks: {{ $flaskInfo['sizes']->pluck('name')->implode(' or ') }} — {{ $flaskInfo['free'] }} of {{ $flaskInfo['open'] }} {{ $flaskInfo['open'] === 1 ? 'set' : 'sets' }} free. <a href="{{ route('flasks.index') }}">Flask board</a>@endif
+                </p>
                 <form method="POST" action="{{ route('moulding-runs.assemble', $run) }}">@csrf
                     <div class="form-grid">
                         <div class="field"><label for="count">How many moulds *</label><input id="count" name="count" type="number" min="1" max="{{ $run->accepted_mould_qty - $run->mouldAssemblies->count() }}" value="{{ old('count', $run->accepted_mould_qty - $run->mouldAssemblies->count()) }}" required></div>
@@ -243,6 +263,16 @@
             @endif
         </div>
     </section>
+
+    @if ($flaskInfo['held']->isNotEmpty())
+        <section class="panel" id="run-flasks">
+            <div class="panel-header"><h2>Flasks held by this run</h2><span class="muted small">{{ $flaskInfo['held']->count() }} flasks for the moulds made, under the "runs claim by count" rule</span></div>
+            <div class="panel-body">
+                <p class="small" style="margin-top:0">@foreach ($flaskInfo['held'] as $f)<a class="mono" href="{{ route('flasks.show', $f) }}">{{ $f->label() }}</a>@if (! $loop->last), @endif @endforeach</p>
+                <form method="POST" action="{{ route('moulding-runs.release-flasks', $run) }}" onsubmit="return confirm('Release all flasks held by this run? Each counts one use.')">@csrf<button class="btn" type="submit">Release flasks</button></form>
+            </div>
+        </section>
+    @endif
 <div class="tab-marker" data-tab-start="Output"></div>
     @if (! in_array($run->status, ['COMPLETED', 'CANCELLED']))
     <section class="panel">

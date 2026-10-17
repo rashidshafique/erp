@@ -48,6 +48,7 @@
                             <div class="help" data-levels-hint></div></div>
                         <div class="field"><label for="cavities_per_mould">Cavities on the layout</label>
                             <input id="cavities_per_mould" type="number" name="cavities_per_mould" min="1" max="10000" value="{{ $lv('cavities_per_mould') }}"><div class="help">On one level.</div></div>
+                        @include('patterns._flask-sizes-field', ['revision' => $current, 'mine' => old('flask_sizes_sent') !== null])
                         @if ($assembled)
                             <div class="field field-full"><label for="correction_reason">Why is the layout being corrected?</label>
                                 <input id="correction_reason" name="correction_reason" maxlength="500" value="{{ old('correction_reason') }}" placeholder="Needed only when the layout changes">

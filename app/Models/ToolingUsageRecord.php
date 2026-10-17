@@ -16,6 +16,7 @@ class ToolingUsageRecord extends Model
         'core_definition_id',
         'core_box_id',
         'mould_configuration_id',
+        'flask_id',
         'mould_assembly_id',
         'tooling_type',
         'usage_quantity',
@@ -63,5 +64,10 @@ class ToolingUsageRecord extends Model
     public function mouldAssembly(): BelongsTo
     {
         return $this->belongsTo(MouldAssembly::class);
+    }
+
+    public function flask(): BelongsTo
+    {
+        return $this->belongsTo(Flask::class)->withTrashed();
     }
 }

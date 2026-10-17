@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class MouldingStation extends Model
@@ -30,6 +31,14 @@ class MouldingStation extends Model
     public function capacity(): int
     {
         return $this->isAutomated() ? 1 : max(1, (int) $this->max_patterns);
+    }
+
+    protected $casts = ['makes_flaskless' => 'boolean'];
+
+    /** The flask sizes this station can handle. */
+    public function flaskSizes(): BelongsToMany
+    {
+        return $this->belongsToMany(FlaskSize::class)->orderBy('sort_order')->orderBy('name');
     }
 
     public function defaultTeam(): BelongsTo

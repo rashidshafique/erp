@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\ToolingLifeLimit;
 use App\Models\ToolingUsageRecord;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 class ToolingLifeStatusService
 {
@@ -16,6 +15,7 @@ class ToolingLifeStatusService
         'CORE_BOX' => 'core_box_id',
         'MOULD_CONFIGURATION' => 'mould_configuration_id',
         'MOULD_ASSEMBLY' => 'mould_assembly_id',
+        'FLASK' => 'flask_id',
     ];
 
     public function dashboard(): Collection

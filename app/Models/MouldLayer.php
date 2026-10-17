@@ -19,6 +19,7 @@ class MouldLayer extends Model
         'flask_length_mm',
         'flask_width_mm',
         'flask_height_mm',
+        'flask_id',
         'notes',
     ];
 
@@ -38,5 +39,9 @@ class MouldLayer extends Model
     {
         return $this->hasMany(MouldCavity::class)->orderBy('cavity_number');
     }
-}
 
+    public function flask(): BelongsTo
+    {
+        return $this->belongsTo(Flask::class)->withTrashed();
+    }
+}

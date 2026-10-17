@@ -5,8 +5,11 @@ namespace App\Services\Production;
 use App\Models\MouldingRun;
 use App\Models\MouldingStation;
 use App\Models\PatternRevision;
+use App\Models\ProductionOrder;
 use App\Models\SandSystem;
 use App\Services\PatternCavityMap;
+use App\Services\Patterns\PatternOwnership;
+use App\Support\FlaskRules;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -174,6 +177,11 @@ class BulkRunEntry
             } catch (ValidationException) {
                 $errors['production_order_id'] = "{$revision->code} has no cavity for the product on the chosen order.";
             }
+            try {
+                $ownershipWarning = app(PatternOwnership::class)->checkUse($revision, ProductionOrder::find($orderId));
+            } catch (ValidationException $e) {
+                $errors['pattern_id'] = collect($e->errors())->flatten()->first();
+            }
         }
 
         if ($existing && $existing->mould_assemblies_count > 0) {
@@ -206,6 +214,11 @@ class BulkRunEntry
             'notes' => $d['notes'] ?? null,
         ];
         $warning = $revision->isSuperseded() ? "{$revision->code} is superseded; the run was saved against it as entered." : null;
+        $warning = trim(($warning ?? '').' '.($ownershipWarning ?? '')) ?: null;
+        $flaskWarning = $this->flaskCapacity($revision, $station, $made);
+        if ($flaskWarning) {
+            $warning = trim(($warning ?? '').' '.$flaskWarning);
+        }
 
         return [$clean, $errors, $warning];
     }
@@ -257,5 +270,17 @@ class BulkRunEntry
             ->when($id, fn ($q) => $q->whereKeyNot($id))
             ->whereNotIn('id', $submitted ?: ['00000000-0000-0000-0000-000000000000'])
             ->value('run_number');
+    }
+
+    /** A note when there are fewer free sets of flasks than moulds entered; flaskless moulds and untracked patterns need none. */
+    private function flaskCapacity(PatternRevision $revision, ?MouldingStation $station, int $made): ?string
+    {
+        $flasks = app(FlaskManager::class);
+        if ($made < 1 || FlaskRules::get('run_claims') === 'COUNT' || $flasks->isFlaskless($station, $revision) || ! $revision->flaskSizes()->exists()) {
+            return null;
+        }
+        $free = count($flasks->pick($flasks->sizesFor($revision, $station), $made, $flasks->layerTypes((int) ($revision->layers_per_mould ?: 2)))['sets']);
+
+        return $free < $made ? "only {$free} of {$made} sets of flasks are free for {$revision->code}." : null;
     }
 }

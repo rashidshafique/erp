@@ -124,6 +124,7 @@
                     <th>Castings poured</th>
                     <th>Poured weight</th>
                     <th>Casting lots</th>
+                    <th title="Cover (jacket) and weights put on the mould for pouring; optional">Cover · weights</th>
                     <th></th>
                 </tr>
             </thead>
@@ -152,11 +153,16 @@
                                 : '—' }}
                         </td>
                         <td>@foreach ($assignment->castingLots as $lot)<a href="{{ route('lots.show', $lot) }}">{{ $lot->lot_number }}</a><div class="muted small">{{ $lot->product?->code }} × {{ $lot->quantity_poured }}</div>@endforeach @if ($assignment->castingLots->isEmpty())—@endif</td>
+                        <td><form method="POST" action="{{ route('pours.assemblies.cover', [$pour, $assignment]) }}" style="display:flex;gap:4px;align-items:center">@csrf @method('PUT')
+                            <input name="cover_reference" value="{{ $assignment->cover_reference }}" maxlength="40" placeholder="cover" style="width:80px;min-height:24px;padding:1px 6px;font-size:12px" aria-label="Cover used on {{ $assignment->mouldAssembly?->assembly_number }}">
+                            <input type="number" name="weights_count" value="{{ $assignment->weights_count }}" min="0" max="100" placeholder="wts" style="width:56px;min-height:24px;padding:1px 6px;font-size:12px" aria-label="Weights on {{ $assignment->mouldAssembly?->assembly_number }}">
+                            <button class="btn btn-small" type="submit">Save</button></form>
+                            @if ($assignment->mouldAssembly?->is_flaskless)<div class="muted small">flaskless</div>@endif</td>
                         <td>@if ($pour->status !== 'COMPLETED')<form method="POST" action="{{ route('pours.assemblies.detach', [$pour, $assignment]) }}" onsubmit="return confirm('Remove this mould from the pour?')">@csrf @method('DELETE')@include('partials.icon-button', ['type' => 'delete', 'word' => 'Remove'])</form>@endif</td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="muted" style="padding:30px;text-align:center">
+                        <td colspan="8" class="muted" style="padding:30px;text-align:center">
                             No mould assemblies have been assigned yet.
                         </td>
                     </tr>

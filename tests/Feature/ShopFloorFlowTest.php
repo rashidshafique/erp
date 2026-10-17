@@ -29,6 +29,7 @@ use App\Models\QualityDefect;
 use App\Models\QualityInspection;
 use App\Models\SalesOrder;
 use App\Models\ThermalWindow;
+use App\Support\PatternOwnershipRules;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -173,6 +174,10 @@ class ShopFloorFlowTest extends TestCase
         $this->assertSame('PACKED', $lot->fresh()->status);
         $this->get(route('packing.index'))->assertOk();
 
+        // The pattern is being paid off by one casting; under the automatic rule the dispatch makes it the customer's.
+        PatternOwnershipRules::set('pay_off', 'AUTO');
+        Pattern::where('code', 'PAT-1')->update(['owner_type' => 'PAYING_OFF', 'owner_customer_id' => $w['customer']->id, 'amortise_qty' => 1]);
+
         // Dispatch: wrong customer refused, right customer accepted
         $this->get(route('dispatches.create'))->assertOk()->assertSee($lot->lot_number);
         $item = PackingRecordItem::firstOrFail();
@@ -181,6 +186,7 @@ class ShopFloorFlowTest extends TestCase
         $this->post(route('dispatches.store'), ['customer_id' => $w['customer']->id, 'qty' => [$item->id => 1], 'delivery_challan_number' => 'DC-1'])->assertSessionHasNoErrors();
         $disp = Dispatch::firstOrFail();
         $this->assertSame('DISPATCHED', $lot->fresh()->status);
+        $this->assertSame('CUSTOMER', Pattern::where('code', 'PAT-1')->value('owner_type'));
         $this->get(route('dispatches.show', $disp))->assertOk()->assertSee('DC-1');
         $this->get(route('sales-orders.show', $w['order']))->assertOk()->assertSee('Shipped');
         $this->assertSame(1.0, (float) DB::table('dispatch_items')->where('sales_order_line_id', $w['line']->id)->sum('quantity_dispatched'));

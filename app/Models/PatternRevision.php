@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
@@ -177,6 +178,18 @@ class PatternRevision extends Model
         return ($this->code ?: 'Revision '.$this->revision)
             .($this->is_current ? ' (current)' : ($this->isSuperseded() ? ' (superseded)' : ''))
             .($this->legacy_baseline ? ' · baseline' : '');
+    }
+
+    /** The flask sizes this revision fits; the one it was designed for is marked primary and listed first. */
+    public function flaskSizes(): BelongsToMany
+    {
+        return $this->belongsToMany(FlaskSize::class)->withPivot('is_primary')->orderByPivot('is_primary', 'desc')->orderBy('flask_sizes.sort_order')->orderBy('flask_sizes.name');
+    }
+
+    /** Moulds of a vertically parted flaskless arrangement never use flasks. */
+    public function isFlaskless(): bool
+    {
+        return $this->mould_arrangement === 'VERTICAL';
     }
 
     public function pattern(): BelongsTo

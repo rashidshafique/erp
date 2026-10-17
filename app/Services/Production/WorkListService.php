@@ -7,17 +7,23 @@ use App\Models\MouldingStation;
 use App\Models\MouldingTeam;
 use App\Models\MouldingWorkList;
 use App\Models\MouldingWorkListItem;
+use App\Models\PatternRevision;
+use App\Models\PatternRevisionCavity;
 use App\Models\ProductionOrder;
+use App\Models\SandSystem;
+use App\Services\Approvals\ApprovalGate;
+use App\Services\Orders\ProductionOrderFactory;
 use App\Services\PatternCavityMap;
+use App\Services\Patterns\PatternOwnership;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 
 /** The daily moulding list: who makes what, where, and the run that records it. */
 class WorkListService
 {
-    public function __construct(private PatternCavityMap $map)
-    {
-    }
+    public function __construct(private PatternCavityMap $map) {}
 
     public function create(string $date, string $shift, ?string $notes = null): MouldingWorkList
     {
@@ -36,7 +42,7 @@ class WorkListService
         if (! $order || ! $patternRevisionId || ! $this->map->hasMap($patternRevisionId)) {
             return null;
         }
-        $per = $this->map->expectedProductsPerMould(\App\Models\PatternRevision::findOrFail($patternRevisionId), $order->product_id);
+        $per = $this->map->expectedProductsPerMould(PatternRevision::findOrFail($patternRevisionId), $order->product_id);
         if ($per <= 0) {
             return null;
         }
@@ -67,6 +73,7 @@ class WorkListService
                 throw new InvalidArgumentException("Production order {$order->production_order_number} is {$order->status}; release it before moulding.");
             }
             $this->map->assertPatternMakesOrderProduct($d['pattern_revision_id'], $order->id);
+            app(PatternOwnership::class)->checkUse(PatternRevision::with('pattern')->findOrFail($d['pattern_revision_id']), $order);
             $d['order_link'] = 'MANUAL';
         } else {
             // No order chosen: link the open order that needs this pattern's product, if there is one.
@@ -75,7 +82,7 @@ class WorkListService
             $d['order_link'] = $order ? 'AUTO' : 'NONE';
         }
         // A pattern is made for one sand system; on another it usually needs a different taper allowance. Warn, and let someone accept it knowingly.
-        $pattern = \App\Models\PatternRevision::with('pattern')->findOrFail($d['pattern_revision_id'])->pattern;
+        $pattern = PatternRevision::with('pattern')->findOrFail($d['pattern_revision_id'])->pattern;
         $warning = $pattern->sandWarning($d['sand_system']);
         if ($warning && empty($d['sand_override'])) {
             throw new InvalidArgumentException($warning.' Tick "Use anyway" on that row to run it on '.$d['sand_system'].'.');
@@ -111,7 +118,7 @@ class WorkListService
                     ]);
                 } catch (InvalidArgumentException $e) {
                     throw new InvalidArgumentException('Row '.($n + 1).': '.$e->getMessage());
-                } catch (\Illuminate\Validation\ValidationException $e) {
+                } catch (ValidationException $e) {
                     throw new InvalidArgumentException('Row '.($n + 1).': '.collect($e->errors())->flatten()->first());
                 }
             }
@@ -123,7 +130,7 @@ class WorkListService
     /** The sand a station should start with: what this list already uses on it, else its usual sand, else Sheera. */
     public function sandFor(MouldingWorkList $list, MouldingStation $station): string
     {
-        return $list->items()->where('moulding_station_id', $station->id)->orderBy('sequence')->value('sand_system') ?: ($station->default_sand_system ?: (\App\Models\SandSystem::names()[0] ?? 'Sheera'));
+        return $list->items()->where('moulding_station_id', $station->id)->orderBy('sequence')->value('sand_system') ?: ($station->default_sand_system ?: (SandSystem::names()[0] ?? 'Sheera'));
     }
 
     /**
@@ -181,9 +188,9 @@ class WorkListService
      * Open orders that need what a pattern makes, best first: customer orders before stock, then by priority, then by due date.
      * Patterns without a cavity map cannot be matched, so they link to nothing automatically.
      */
-    public function openOrdersFor(string $patternRevisionId): \Illuminate\Support\Collection
+    public function openOrdersFor(string $patternRevisionId): Collection
     {
-        $products = \App\Models\PatternRevisionCavity::where('pattern_revision_id', $patternRevisionId)->with('productRevision')->get()->map(fn ($c) => $c->productRevision?->product_id)->filter()->unique();
+        $products = PatternRevisionCavity::where('pattern_revision_id', $patternRevisionId)->with('productRevision')->get()->map(fn ($c) => $c->productRevision?->product_id)->filter()->unique();
         if ($products->isEmpty()) {
             return collect();
         }
@@ -229,13 +236,13 @@ class WorkListService
         if ($this->relink($item)) {
             return;
         }
-        $cav = \App\Models\PatternRevisionCavity::where('pattern_revision_id', $item->pattern_revision_id)->with('productRevision.product')->orderBy('cavity_number')->get()
+        $cav = PatternRevisionCavity::where('pattern_revision_id', $item->pattern_revision_id)->with('productRevision.product')->orderBy('cavity_number')->get()
             ->first(fn ($c) => in_array($c->productRevision?->status, ['APPROVED', 'ACTIVE'], true));
         if (! $cav) {
             throw new InvalidArgumentException('No open order needs this pattern and its cavity map has no approved product to raise a stock order for. Choose an order.');
         }
-        $per = $this->map->expectedProductsPerMould(\App\Models\PatternRevision::findOrFail($item->pattern_revision_id), $cav->productRevision->product_id);
-        $order = app(\App\Services\Orders\ProductionOrderFactory::class)->forStock($cav->productRevision, ceil($item->planned_moulds * max(1, $per)),
+        $per = $this->map->expectedProductsPerMould(PatternRevision::findOrFail($item->pattern_revision_id), $cav->productRevision->product_id);
+        $order = app(ProductionOrderFactory::class)->forStock($cav->productRevision, ceil($item->planned_moulds * max(1, $per)),
             'Raised from work list '.$item->workList->list_number.': no open order needed this pattern.');
         $item->update(['production_order_id' => $order->id, 'order_link' => 'STOCK']);
         $this->releaseStock($order);
@@ -243,7 +250,7 @@ class WorkListService
 
     private function releaseStock(ProductionOrder $order): void
     {
-        if (! app(\App\Services\Approvals\ApprovalGate::class)->passes('production_order.release', 'ProductionOrder', (string) $order->id, $order->production_order_number, $msg)) {
+        if (! app(ApprovalGate::class)->passes('production_order.release', 'ProductionOrder', (string) $order->id, $order->production_order_number, $msg)) {
             throw new InvalidArgumentException("Stock order {$order->production_order_number} was raised for this work and cannot start until it is released. {$msg}");
         }
         $order->update(['status' => 'RELEASED', 'released_qty' => $order->planned_qty]);
@@ -314,7 +321,7 @@ class WorkListService
             if (in_array($run->status, ['COMPLETED', 'CANCELLED'], true)) {
                 throw new InvalidArgumentException("The run is {$run->status} and cannot be changed.");
             }
-            if ($d['accepted_mould_qty'] + $d['damaged_mould_qty'] > $d['moulds_made_qty']) {
+            if ($d['moulds_made_qty'] < $d['accepted_mould_qty'] + $d['damaged_mould_qty']) {
                 throw new InvalidArgumentException('Accepted plus damaged moulds cannot exceed the moulds made.');
             }
             $assembled = $run->mouldAssemblies()->count();

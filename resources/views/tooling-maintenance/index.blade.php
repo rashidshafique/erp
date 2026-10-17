@@ -137,7 +137,7 @@
                 <label for="tooling_type">Tooling type</label>
                 <select name="tooling_type" id="tooling_type">
                     <option value="">All tooling</option>
-                    @foreach (['PATTERN', 'PATTERN_REVISION', 'CORE_DEFINITION', 'CORE_BOX', 'MOULD_CONFIGURATION', 'MOULD_ASSEMBLY'] as $option)
+                    @foreach (['PATTERN', 'PATTERN_REVISION', 'CORE_DEFINITION', 'CORE_BOX', 'MOULD_CONFIGURATION', 'MOULD_ASSEMBLY', 'FLASK'] as $option)
                         <option value="{{ $option }}" @selected(($filters['tooling_type'] ?? '') === $option)>
                             {{ str_replace('_', ' ', $option) }}
                         </option>

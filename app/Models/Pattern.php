@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\GeneratesCodes;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -37,9 +38,30 @@ class Pattern extends Model
         'height_mm',
         'description',
         'notes',
+        'owner_type',
+        'owner_customer_id',
+        'supplied_by_customer',
+        'ownership_quotation_id',
+        'ownership_reference',
+        'acquired_on',
+        'insured_value',
+        'amortise_qty',
+        'ownership_notes',
+        'custody',
+        'custody_location',
     ];
 
+    /** Who owns the pattern: the foundry, a customer (held in the foundry's custody), or a customer paying it off. */
+    public const OWNERS = ['FOUNDRY' => 'Foundry', 'CUSTOMER' => 'Customer', 'PAYING_OFF' => 'Being paid off by the customer'];
+
+    /** Where the pattern physically is. Returned and scrapped patterns cannot be moulded. */
+    public const CUSTODIES = ['IN_STORE' => 'In our store', 'PATTERN_SHOP' => 'At the pattern shop', 'LENT' => 'Lent to another supplier', 'RETURNED' => 'Returned to the customer', 'SCRAPPED' => 'Scrapped'];
+
     protected $casts = [
+        'supplied_by_customer' => 'boolean',
+        'acquired_on' => 'date',
+        'insured_value' => 'decimal:2',
+        'amortise_qty' => 'integer',
         'compatible_sands' => 'array',
         'length_mm' => 'decimal:2',
         'width_mm' => 'decimal:2',
@@ -65,6 +87,33 @@ class Pattern extends Model
 
         return "Pattern {$this->code} was made for {$this->sand_system} and is not listed as suitable for {$sand}: another sand system usually needs a different taper allowance."
             .($this->sand_note ? " Note: {$this->sand_note}" : '');
+    }
+
+    public function ownerCustomer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class, 'owner_customer_id')->withTrashed();
+    }
+
+    public function ownershipQuotation(): BelongsTo
+    {
+        return $this->belongsTo(Quotation::class, 'ownership_quotation_id');
+    }
+
+    public function ownershipEvents(): HasMany
+    {
+        return $this->hasMany(PatternOwnershipEvent::class)->orderByDesc('occurred_on')->orderByDesc('created_at');
+    }
+
+    /** Owned or being paid off by a customer: the pattern is theirs to decide about. */
+    public function isCustomers(): bool
+    {
+        return $this->owner_type !== 'FOUNDRY' && $this->owner_customer_id !== null;
+    }
+
+    /** "Foundry", or "ACME Pumps" / "ACME Pumps (paying off)". */
+    public function ownerLabel(): string
+    {
+        return $this->owner_type === 'FOUNDRY' ? 'Foundry' : ($this->ownerCustomer?->name ?? 'Customer').($this->owner_type === 'PAYING_OFF' ? ' (paying off)' : '');
     }
 
     public function revisions(): HasMany
@@ -102,6 +151,10 @@ class Pattern extends Model
                 // Process limits set on the old geometry still apply until someone changes them.
                 DB::table('pattern_revisions')->where('id', $revision->id)
                     ->update(['min_cooling_minutes' => DB::table('pattern_revisions')->where('id', $previous->id)->value('min_cooling_minutes')]);
+            }
+            if ($previous) {
+                // The flask sizes the old geometry fitted still hold until someone changes them.
+                $revision->flaskSizes()->attach($previous->flaskSizes()->get()->mapWithKeys(fn ($size) => [$size->id => ['is_primary' => (bool) $size->pivot->is_primary]])->all());
             }
             if ($previous && $copyLayout) {
                 foreach ($previous->cavityMap()->get() as $cavity) {

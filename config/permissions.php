@@ -80,9 +80,12 @@ return [
         ['pattern' => 'casting-analyses.*', 'permission' => 'master.manage'],
         ['pattern' => 'products.*', 'permission' => 'master.manage'],
         ['pattern' => 'patterns.*', 'permission' => 'master.manage'],
+        ['pattern' => 'pattern-ownership.*', 'permission' => 'master.manage'],
         ['pattern' => 'pattern-revisions.*', 'permission' => 'master.manage'],
         ['pattern' => 'tooling-*', 'permission' => 'tooling.manage'],
         ['pattern' => 'tools.*', 'permission' => 'tooling.manage'],
+        ['pattern' => 'flasks.*', 'permission' => 'tooling.manage'],
+        ['pattern' => 'flask-sizes.*', 'permission' => 'tooling.manage'],
     ],
 
     // Starting permissions per role. ADMIN always has everything.

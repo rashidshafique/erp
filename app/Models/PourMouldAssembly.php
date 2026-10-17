@@ -18,6 +18,8 @@ class PourMouldAssembly extends Model
         'poured_weight_kg',
         'castings_poured_qty',
         'notes',
+        'cover_reference',
+        'weights_count',
     ];
 
     protected function casts(): array
