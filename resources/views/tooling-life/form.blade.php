@@ -25,7 +25,7 @@
 .legacy-page .notice { background: #fff7e6; border: 1px solid #f0d69b; border-radius: 6px; padding: 12px; margin-bottom: 18px; }
 .legacy-page .check { display: flex; align-items: center; gap: 9px; }
 .legacy-page .check input { width: auto; }
-@media (max-width: 600px) {
+@media (max-width: 768px) {
 .legacy-page .grid { grid-template-columns: 1fr; gap: 0; }
 .legacy-page .panel { padding: 17px; }
 }

@@ -442,6 +442,7 @@ Route::put('/pours/{pour}/assemblies/{row}/cover', [PourController::class, 'cove
 // ---- Pattern ownership ----
 Route::controller(PatternOwnershipController::class)->group(function () {
     Route::get('/pattern-ownership', 'index')->name('pattern-ownership.index');
+    Route::get('/settings/pattern-ownership', 'editRules')->name('settings.pattern-ownership.edit');
     Route::put('/settings/pattern-ownership', 'rules')->name('settings.pattern-ownership');
     Route::put('/patterns/{pattern}/ownership', 'update')->name('patterns.ownership');
     Route::post('/patterns/{pattern}/pay-off', 'payOff')->name('patterns.pay-off');
@@ -459,6 +460,7 @@ Route::prefix('flasks')->name('flasks.')->controller(FlaskController::class)->gr
     Route::post('/{flask}/status', 'status')->name('status');
     Route::post('/{flask}/release', 'release')->name('release');
 });
+Route::get('/settings/flasks', [FlaskController::class, 'editRules'])->name('settings.flasks.edit');
 Route::put('/settings/flasks', [FlaskController::class, 'rules'])->name('settings.flasks');
 Route::prefix('flask-sizes')->name('flask-sizes.')->controller(FlaskSizeController::class)->group(function () {
     Route::post('/', 'store')->name('store');

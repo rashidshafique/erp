@@ -165,7 +165,17 @@ class FlaskController extends Controller
         return back()->with('success', $count ? "{$count} ".($count === 1 ? 'flask' : 'flasks').' released.' : 'Nothing to release.');
     }
 
-    /** The flask rules on the board. */
+    /** The flask rules, under Settings. */
+    public function editRules(): View
+    {
+        return view('settings.rules', [
+            'title' => 'Flask rules', 'intro' => 'How the whole foundry handles flasks.',
+            'rules' => FlaskRules::RULES, 'values' => collect(FlaskRules::RULES)->map(fn ($r, $k) => FlaskRules::get($k))->all(),
+            'action' => route('settings.flasks'), 'backUrl' => route('flasks.index'), 'backLabel' => 'Flask board',
+            'note' => 'Flaskless stations (DISAMATIC, DISA Match) and vertically parted patterns never use flasks. A pattern with no flask size set is moulded without flasks until its sizes are chosen. Scrapped or cancelled moulds always give their flasks back.',
+        ]);
+    }
+
     public function rules(Request $request): RedirectResponse
     {
         $rules = [];

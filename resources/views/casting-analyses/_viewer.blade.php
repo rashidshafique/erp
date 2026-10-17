@@ -1,6 +1,6 @@
 <style>
     .ca-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 14px; }
-    @media (max-width: 1000px) { .ca-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 1024px) { .ca-grid { grid-template-columns: 1fr; } }
     .ca-ctl { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: end; margin-bottom: 10px; }
     .ca-ctl label { font-size: 11px; font-weight: 700; display: block; margin-bottom: 3px; }
     .ca-ctl select, .ca-ctl input[type=range] { min-height: 28px; padding: 2px 6px; width: auto; }

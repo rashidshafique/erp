@@ -129,7 +129,7 @@
                     <div class="table-wrap">
                         <table>
                             <thead>
-                                <tr><th>Material</th><th>Role</th><th>Calculation</th><th>Planned kg</th></tr>
+                                <tr><th>Material</th><th>Role</th><th>Calculation</th><th>Planned kg</th><th>% of total</th></tr>
                             </thead>
                             <tbody id="recipe-preview-body"></tbody>
                         </table>
@@ -194,27 +194,35 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         recipePreview.hidden = false;
-        recipePreviewBasis.textContent = selected.weight
-            ? 'Percentage quantities use target total charge weight: ' + Number(selected.weight).toLocaleString() + ' kg.'
-            : 'This recipe has no target total charge weight. Percentage components cannot be calculated until a basis is configured.';
+        const totalWeight = selected.weight !== null && selected.weight !== '' && Number(selected.weight) > 0
+            ? Number(selected.weight)
+            : null;
+        recipePreviewBasis.textContent = totalWeight
+            ? 'Total recipe charge: ' + totalWeight.toLocaleString(undefined, {maximumFractionDigits: 3}) + ' kg. Each material is shown in kg and as a share of this total.'
+            : 'This percentage recipe has no target total charge weight, so component kg values cannot be calculated.';
 
         selected.items.forEach(item => {
             let calculation = '—';
             let quantity = null;
+            let percentOfTotal = null;
 
             if (item.qty !== null && item.qty !== '') {
                 quantity = Number(item.qty);
                 calculation = 'Fixed quantity';
-            } else if (item.percent !== null && item.percent !== '' && selected.weight) {
-                quantity = Number(selected.weight) * Number(item.percent) / 100;
-                calculation = Number(item.percent).toFixed(4) + '% of charge';
+                if (totalWeight && totalWeight > 0) percentOfTotal = quantity / totalWeight * 100;
+            } else if (item.percent !== null && item.percent !== '' && totalWeight) {
+                percentOfTotal = Number(item.percent);
+                quantity = totalWeight * percentOfTotal / 100;
+                calculation = percentOfTotal.toFixed(4) + '% of charge';
             } else if (item.percent !== null && item.percent !== '') {
-                calculation = Number(item.percent).toFixed(4) + '%; basis missing';
+                percentOfTotal = Number(item.percent);
+                calculation = percentOfTotal.toFixed(4) + '%; basis missing';
             }
 
             const tr = document.createElement('tr');
             [item.material || 'Unknown material', item.role || '—', calculation,
-             quantity === null ? '—' : quantity.toLocaleString(undefined, {maximumFractionDigits: 3}) + ' kg'
+             quantity === null ? '—' : quantity.toLocaleString(undefined, {maximumFractionDigits: 3}) + ' kg',
+             percentOfTotal === null ? '—' : percentOfTotal.toLocaleString(undefined, {maximumFractionDigits: 4}) + '%'
             ].forEach(value => {
                 const td = document.createElement('td');
                 td.textContent = value;

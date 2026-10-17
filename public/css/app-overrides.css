@@ -1,0 +1,177 @@
+/* Selected menu item: accent text only, no background. Menu width is dragged by the handle on its edge. */
+.nav-submenu .nav-link.active, .nav-link.active, .nav-link.active:hover {
+    background: transparent !important; box-shadow: none !important; color: var(--accent-dark) !important;
+}
+.nav-submenu .nav-link.active .nav-ico, .nav-link.active .nav-ico { opacity: 1; }
+.sidebar { overflow: hidden !important; }
+.sidebar-nav { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; }
+.sidebar-profile { flex: none; display: flex; align-items: center; gap: 8px; margin: 8px -4px 0; padding: 10px 6px 0; border-top: 1px solid #e2e8f0; }
+.sp-link { display: flex; align-items: center; gap: 9px; min-width: 0; flex: 1; color: #0f172a; text-decoration: none !important; }
+.sp-link:hover .sp-text strong { color: var(--accent-dark); }
+.sp-avatar { flex: none; display: inline-flex; width: 32px; height: 32px; align-items: center; justify-content: center; border-radius: 50%; background: var(--accent); color: #fff; font-size: 12px; font-weight: 700; letter-spacing: .3px; }
+.sp-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.sp-text strong { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sp-text small { font-size: 11px; color: #64748b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sp-out { flex: none; display: inline-flex; width: 30px; height: 30px; align-items: center; justify-content: center; padding: 0; border: 0; border-radius: 7px; background: transparent; color: #64748b; cursor: pointer; }
+.sp-out:hover { background: #f1f5f9; color: #0f172a; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.sidebar-resizer { display: none; }
+@media (min-width: 769px) {
+    .sidebar { width: var(--side-w) !important; }
+    .main-area { margin-left: var(--side-w) !important; }
+    .sidebar-resizer { display: block; position: fixed; top: 0; bottom: 0; left: calc(var(--side-w) - 3px); width: 7px; z-index: 30; cursor: col-resize; touch-action: none; }
+    .sidebar-resizer::after { content: ""; position: absolute; top: 0; bottom: 0; left: 3px; width: 2px; background: transparent; transition: background .12s; }
+    .sidebar-resizer:hover::after, .sidebar-resizer:focus-visible::after, .sidebar-resizer.dragging::after { background: var(--accent); }
+    body.resizing-menu { cursor: col-resize; user-select: none; }
+}
+/* Calm SaaS look (2026-10): hairline borders, softer weights, rounded inputs, grey pill for the current page,
+   settings at the bottom of the menu with their own column. Colours stay on the variables; the accent is the brand's. */
+:root {
+    --page: #fbfbfc !important; --surface: #ffffff !important; --text: #1f2430 !important; --muted: #6b7280 !important;
+    --border: #e7e9ee !important; --border-strong: #d8dce3; --hover: #f3f4f6; --line: #eef0f3;
+}
+body { background: var(--page) !important; color: var(--text) !important; }
+.sidebar { background: var(--surface) !important; border-right: 1px solid var(--border) !important; }
+.brand { color: var(--text) !important; font-weight: 650; letter-spacing: -.2px; }
+.brand small { color: var(--muted) !important; font-weight: 500; letter-spacing: .08em; }
+.topbar { background: var(--surface) !important; border-bottom: 1px solid var(--border); }
+.breadcrumb { font-size: 12.5px; }
+.page-heading h1 { font-weight: 600; letter-spacing: -.3px; }
+.page-heading p { color: var(--muted); }
+
+/* Menu items: regular weight, muted icons; the current page is a light grey pill with accent text. */
+.nav-submenu .nav-link, .nav-link { color: #3f4654 !important; font-weight: 450; border-radius: 8px !important; }
+.nav-link .nav-ico, .nav-link svg { color: var(--muted); }
+.nav-submenu .nav-link:hover, .nav-link:hover { background: var(--hover) !important; color: var(--text) !important; }
+.nav-submenu .nav-link.active, .nav-link.active, .nav-link.active:hover { background: var(--hover) !important; color: var(--accent-dark) !important; font-weight: 500; }
+.nav-link.active svg { color: var(--accent); }
+.nav-group-toggle { color: var(--muted) !important; font-weight: 500 !important; letter-spacing: .06em; }
+.nav-group.is-open > .nav-group-toggle { font-weight: 600 !important; color: var(--text) !important; }
+/* "Every link under section labels": the group heading is a label and its links are always shown. */
+.menu-labels .nav-group .nav-group-toggle { pointer-events: none; padding: 14px 10px 4px !important; font-size: 10.5px !important; color: var(--muted) !important; font-weight: 500 !important; }
+.menu-labels .nav-group-toggle .nav-ico, .menu-labels .nav-chevron { display: none; }
+.menu-labels .nav-submenu, .menu-labels .nav-submenu[hidden] { display: block !important; margin: 0 !important; padding: 0 !important; border-left: 0 !important; }
+.sidebar-bottom { flex: none; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+.sidebar-profile { border-top-color: var(--border) !important; }
+.sp-avatar { border-radius: 10px !important; background: var(--text) !important; }
+
+/* Panels and tables */
+.metric, .panel { border-radius: 12px !important; border-color: var(--border) !important; box-shadow: none !important; }
+.panel-header { border-bottom-color: var(--border); }
+.panel-header h2 { font-weight: 600; }
+.metric-label { font-weight: 500; }
+.metric-value { font-weight: 650; letter-spacing: -.3px; }
+.detail-value { font-weight: 500; }
+th { background: transparent; color: var(--muted); font-weight: 500; text-transform: none; letter-spacing: 0; font-size: 12px; }
+th, td { border-bottom-color: var(--line); }
+tbody tr:hover { background: #fafbfc; }
+.status { font-weight: 600; border-radius: 6px; }
+
+/* Fields: rounded, hairline, a darker border on focus instead of a coloured glow; selects get an up/down chevron. */
+.field label { font-weight: 500; }
+.field > select + span.muted, .field > input + span.muted { display: block; margin-top: 4px; }
+input, select, textarea { border-color: var(--border-strong); border-radius: 8px !important; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--text); box-shadow: 0 0 0 3px rgb(31 36 48 / 7%); }
+select:not([multiple]):not([size]) {
+    appearance: none; -webkit-appearance: none; padding-right: 30px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 15 5 5 5-5M7 9l5-5 5 5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 9px center; background-size: 14px;
+}
+
+/* Buttons */
+.btn { border-radius: 8px; border-color: var(--border-strong); font-weight: 500; box-shadow: 0 1px 1px rgb(16 24 40 / 4%); }
+.btn:hover { background: var(--hover); }
+.btn-primary { box-shadow: inset 0 1px 0 rgb(255 255 255 / 18%), 0 1px 2px rgb(16 24 40 / 12%) !important; }
+.alert { border-radius: 10px; }
+.pagination-links a, .pagination-links span { border-radius: 7px; border-color: var(--border); }
+
+/* Menu text: light (300) and lighter grey, as in the reference design; the current page keeps a little more weight. */
+.nav-submenu .nav-link, .nav-link { color: #5d6573 !important; font-weight: 300 !important; }
+.nav-group-toggle, .nav-group.is-open > .nav-group-toggle { font-weight: 300 !important; }
+.nav-group-toggle { color: #7a818c !important; }
+.nav-group.is-open > .nav-group-toggle, .nav-group.is-active > .nav-group-toggle { color: #4b5260 !important; }
+.nav-submenu .nav-link.active, .nav-link.active, .nav-link.active:hover { font-weight: 400 !important; }
+.brand-mark { display: none; }
+.menu-toggle { flex: none; margin-right: 6px; }
+.menu-expand { display: none; }
+
+/* Slim menu: icons only, at 64px; the name of each link shows as a tooltip. Wide screens only. */
+@media (min-width: 769px) {
+    html.menu-slim { --side-w: 64px !important; }
+    .menu-slim .sidebar { padding-left: 8px !important; padding-right: 8px !important; }
+    .menu-slim .brand { padding: 0 0 14px !important; text-align: center; }
+    .menu-slim .brand-name, .menu-slim .brand small, .menu-slim .brand img { display: none !important; }
+    .menu-slim .brand-mark { display: inline-flex; width: 32px; height: 32px; align-items: center; justify-content: center; border-radius: 9px; background: var(--text); color: var(--surface); font-size: 15px; font-weight: 600; }
+    .menu-slim .nav-link > span, .menu-slim .nav-lab > span, .menu-slim .nav-chevron, .menu-slim .sp-text, .menu-slim .sidebar-footer { display: none !important; }
+    .menu-slim .nav-link, .menu-slim .nav-submenu .nav-link { justify-content: center; padding: 8px 0 !important; gap: 0; }
+    .menu-slim .nav-group-toggle { justify-content: center !important; padding: 8px 0 !important; }
+    .menu-slim .nav-lab { gap: 0; }
+    .menu-slim .nav-submenu { margin: 0 0 4px !important; padding: 0 !important; border-left: 0 !important; border-bottom: 1px solid var(--border); }
+    .menu-slim .menu-labels .nav-group .nav-group-toggle { padding: 4px 0 !important; border-top: 1px solid var(--border); }
+    .menu-slim .sidebar-profile { flex-direction: column; gap: 4px; }
+    .menu-slim .sp-link { justify-content: center; flex: none; }
+    .menu-slim .sidebar-resizer { display: none; }
+    .menu-slim .menu-expand { display: flex; align-items: center; justify-content: center; width: 100%; margin: 0 0 10px; padding: 8px 0 !important; border: 0; background: transparent; cursor: pointer; }
+    .menu-slim .topbar .menu-toggle { display: none; }
+}
+/* Responsive menu. Desktop: fixed, optionally slim. Tablet: always an icon rail; the button opens the full menu over the page.
+   Mobile: hidden off-canvas; the button slides it in over a dimmed backdrop. */
+.menu-backdrop { display: none; }
+@media (max-width: 768px) {
+    .main-area { margin-left: 0 !important; }
+    .sidebar { width: min(290px, 86vw) !important; z-index: 60; transform: translateX(-100%); transition: transform .2s ease; }
+    html.menu-open .sidebar { transform: none; box-shadow: 0 0 40px rgba(15, 23, 42, .25); }
+    html.menu-open .menu-backdrop { display: block; position: fixed; inset: 0; z-index: 55; background: rgba(15, 23, 42, .45); }
+    html.menu-open body { overflow: hidden; }
+    .sidebar-resizer { display: none !important; }
+}
+@media (min-width: 769px) and (max-width: 1024px) {
+    .sidebar-resizer { display: none !important; }
+    html.menu-peek .sidebar { z-index: 60; box-shadow: 0 0 40px rgba(15, 23, 42, .2); }
+    html.menu-peek .main-area { margin-left: 64px !important; }
+    html.menu-peek .menu-backdrop { display: block; position: fixed; inset: 0; z-index: 55; background: rgba(15, 23, 42, .35); }
+}
+
+/* Settings: a second column of links beside every settings page. */
+.settings-shell { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 28px; align-items: start; }
+.settings-nav { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 1px; padding-right: 20px; border-right: 1px solid var(--border); }
+.settings-nav-title { display: flex; align-items: center; gap: 8px; margin: 2px 0 10px; color: var(--muted); font-size: 12px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; }
+.settings-nav-section { margin: 12px 12px 4px; color: var(--muted); font-size: 11px; }
+.settings-nav a { display: flex; justify-content: space-between; align-items: center; padding: 7px 12px; border-radius: 8px; color: var(--text); font-size: 13.5px; text-decoration: none; }
+.settings-nav a:hover { background: var(--hover); }
+.settings-nav a.active { background: var(--hover); color: var(--accent-dark); font-weight: 500; }
+.settings-main { min-width: 0; }
+@media (max-width: 1024px) {
+    .settings-shell { grid-template-columns: 1fr; gap: 14px; }
+    .settings-nav { position: static; flex-direction: row; flex-wrap: nowrap; overflow-x: auto; padding: 0 0 8px; border-right: 0; border-bottom: 1px solid var(--border); }
+    .settings-nav-title, .settings-nav-section { display: none; }
+    .settings-nav a { flex: none; }
+}
+
+/* Record cards (partials/record-row): rows with a round icon, a title and sub line, and a pencil. */
+.record-list { max-width: 780px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+.record-row { display: flex; align-items: center; gap: 14px; padding: 14px 16px; }
+.record-row + .record-row { border-top: 1px solid var(--border); }
+.record-ico { flex: none; display: inline-flex; width: 38px; height: 38px; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: 50%; color: var(--text); }
+.record-text { flex: 1; min-width: 0; }
+.record-title { font-weight: 500; }
+.record-note, .record-sub { color: var(--muted); font-size: 12.5px; font-weight: 400; }
+.section-title { margin: 0 0 2px; font-size: 15px; font-weight: 600; }
+.section-sub { margin: 0 0 14px; color: var(--muted); }
+
+/* Rule pages (settings/rules) */
+.rule-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px 28px; }
+.rule-grid fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.rule-grid legend { margin-bottom: 6px; font-weight: 600; font-size: 13px; }
+.rule-grid label { display: flex; gap: 8px; align-items: flex-start; margin: 4px 0; font-size: 12.5px; }
+.rule-grid label input { width: auto; min-height: 0; margin-top: 2px; }
+
+/* "Unsaved changes" bar in the top bar, for the edit form being changed. */
+.save-bar { display: flex; align-items: center; gap: 8px; margin: 0 auto; padding: 4px 4px 4px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--hover); }
+.save-bar[hidden] { display: none; }
+.save-bar-note { display: inline-flex; align-items: center; gap: 7px; margin-right: 10px; color: var(--muted); font-size: 13px; }
+.save-bar .btn { min-height: 28px; padding: 3px 12px; }
+.save-bar:not([hidden]) ~ .scan-box { margin-left: 0 !important; }
+
+/* Font chosen by the administrator under Administration → Display */
+body, button, input, select, textarea { font-family: var(--ui-font); }

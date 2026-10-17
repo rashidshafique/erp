@@ -18,11 +18,11 @@
 .legacy-page th,
 .legacy-page td { text-align: left; padding: 11px; border-bottom: 1px solid #e7ebf0; font-size: 13px; }
 .legacy-page th { background: #f8fafc; }
-@media(max-width: 700px) {
+@media(max-width: 768px) {
 .legacy-page .cards { grid-template-columns: repeat(2, minmax(0,1fr)); }
 .legacy-page .number { font-size: 24px; }
 }
-@media(max-width: 420px) {
+@media(max-width: 768px) {
 .legacy-page .cards { grid-template-columns: 1fr; }
 }
 </style>

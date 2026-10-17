@@ -8,14 +8,9 @@
     $charging = $rules['storage'] === 'CHARGE';
     $ownerName = fn ($row) => $row->owner_type === 'FOUNDRY' ? 'Foundry' : ($customers[$row->owner_customer_id]->name ?? 'Customer');
 @endphp
-<style>
-    .po-rules { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px 20px; }
-    .po-rules label { display: flex; gap: 8px; align-items: flex-start; font-weight: 400; font-size: 12.5px; margin: 3px 0; }
-    .po-rules label input[type=radio] { width: auto; min-height: 0; margin-top: 2px; }
-</style>
 <div class="page-heading">
     <div><h1>Pattern ownership</h1><p>Whose patterns the foundry holds, which are away, which are being paid off, and which have sat unused.</p></div>
-    <div class="actions"><a class="btn" href="{{ route('patterns.index') }}">Pattern master</a></div>
+    <div class="actions">@if (\App\Support\SettingsNav::canOpen())<a class="btn" href="{{ route('settings.pattern-ownership.edit') }}">Ownership rules</a>@endif<a class="btn" href="{{ route('patterns.index') }}">Pattern master</a></div>
 </div>
 
 <div class="tab-marker" data-tab-start="By owner"></div>
@@ -90,27 +85,4 @@
     @endif
 </div>
 
-<div class="tab-marker" data-tab-start="Rules"></div>
-<div class="panel">
-    <div class="panel-header"><h2>Pattern ownership rules</h2><span class="muted small">Changing them needs the settings permission</span></div>
-    <div class="panel-body">
-        <form method="POST" action="{{ route('settings.pattern-ownership') }}">
-            @csrf @method('PUT')
-            <div class="po-rules">
-                @foreach (\App\Support\PatternOwnershipRules::RULES as $key => [, $label, $options])
-                    <fieldset style="border:0;padding:0;margin:0">
-                        <legend style="font-weight:600;font-size:13px;margin-bottom:4px">{{ $label }}</legend>
-                        @if ($options === null)
-                            <input type="number" name="{{ $key }}" value="{{ $rules[$key] }}" min="0" step="1" style="max-width:140px" aria-label="{{ $label }}">
-                        @else
-                            @foreach ($options as $value => $text)<label><input type="radio" name="{{ $key }}" value="{{ $value }}" @checked($rules[$key] === $value)> {{ $text }}</label>@endforeach
-                        @endif
-                    </fieldset>
-                @endforeach
-            </div>
-            <p class="muted small">Scrapping a customer's pattern always needs their written consent and an approval (Settings → Approvals). Returned and scrapped patterns can never be moulded.</p>
-            <button class="btn btn-primary" type="submit">Save rules</button>
-        </form>
-    </div>
-</div>
 @endsection

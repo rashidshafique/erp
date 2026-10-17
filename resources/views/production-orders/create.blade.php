@@ -18,7 +18,7 @@
 .legacy-page button { background: var(--accent); color: white; }
 .legacy-page a { color: var(--accent); }
 .legacy-page .error { color: #a12626; font-size: 13px; margin-top: 5px; }
-@media(max-width: 600px) {
+@media(max-width: 768px) {
 .legacy-page .grid { grid-template-columns: 1fr; }
 .legacy-page .wide { grid-column: auto; }
 }

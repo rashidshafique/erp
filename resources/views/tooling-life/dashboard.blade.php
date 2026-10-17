@@ -51,10 +51,10 @@
 .legacy-page .danger { background: #fde5e5; color: #a32020; }
 .legacy-page .neutral { background: #eef1f4; color: var(--muted); }
 .legacy-page .empty { padding: 30px; text-align: center; color: #697785; }
-@media (max-width: 800px) {
+@media (max-width: 768px) {
 .legacy-page .summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-@media (max-width: 420px) {
+@media (max-width: 768px) {
 .legacy-page .summary { grid-template-columns: 1fr 1fr; gap: 8px; }
 .legacy-page .card { padding: 12px; }
 .legacy-page .metric { font-size: 24px; }

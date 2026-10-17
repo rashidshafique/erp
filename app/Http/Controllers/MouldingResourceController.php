@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Employee;
 use App\Models\FlaskSize;
 use App\Models\MouldingRun;
 use App\Models\MouldingStation;
@@ -23,7 +24,8 @@ class MouldingResourceController extends Controller
             ->get()->keyBy('k');
 
         return view('moulding-teams.index', [
-            'teams' => MouldingTeam::orderBy('code')->get(), 'stations' => MouldingStation::with('flaskSizes')->orderBy('code')->get(),
+            'teams' => MouldingTeam::withCount('employees')->with(['employees', 'leadEmployee'])->orderBy('code')->get(), 'stations' => MouldingStation::with(['flaskSizes', 'defaultTeam'])->orderBy('code')->get(),
+            'employees' => Employee::current()->with(['department', 'designation'])->orderBy('first_name')->orderBy('last_name')->get(),
             'teamStats' => $stats('moulding_team_id'), 'stationStats' => $stats('moulding_station_id'),
             'stationTypes' => MouldingStation::TYPES, 'sands' => SandSystem::names(),
             'flaskSizes' => FlaskSize::ordered()->where('status', 'ACTIVE')->get(),
@@ -34,6 +36,7 @@ class MouldingResourceController extends Controller
     public function storeTeam(Request $request): RedirectResponse|JsonResponse
     {
         $team = MouldingTeam::create($this->teamData($request));
+        $this->syncTeamMembers($request, $team);
         if ($request->wantsJson()) {
             return response()->json(['id' => $team->id, 'label' => "{$team->code} — {$team->lead_name}"], 201);
         }
@@ -44,6 +47,7 @@ class MouldingResourceController extends Controller
     public function updateTeam(Request $request, MouldingTeam $team): RedirectResponse
     {
         $team->update($this->teamData($request, $team));
+        $this->syncTeamMembers($request, $team);
 
         return back()->with('success', "Team {$team->code} updated.");
     }
@@ -70,21 +74,92 @@ class MouldingResourceController extends Controller
 
     private function teamData(Request $request, ?MouldingTeam $team = null): array
     {
+        $leadIdWasSubmitted = array_key_exists('lead_employee_id', $request->all());
+        $membershipWasSubmitted = $request->boolean('employee_ids_sent');
+
         $d = $request->validate([
-            'code' => ['required', 'string', 'max:30', Rule::unique('moulding_teams', 'code')->ignore($team?->id)],
-            'name' => ['required', 'string', 'max:100'], 'lead_name' => ['required', 'string', 'max:100'],
-            'lead_phone' => ['nullable', 'string', 'max:30'], 'member_count' => ['required', 'integer', 'min:1', 'max:200'],
+            'code' => ['required', 'string', 'max:30', 'regex:/^[A-Za-z0-9._-]+$/', Rule::unique('moulding_teams', 'code')->ignore($team?->id)],
+            'name' => ['required', 'string', 'max:100'],
+            // lead_name remains for older callers; the dialogs derive it from the selected HR employee.
+            'lead_name' => [Rule::requiredIf(! $membershipWasSubmitted && ! $request->filled('lead_employee_id')), 'nullable', 'string', 'max:150'],
+            'lead_employee_id' => [Rule::requiredIf($membershipWasSubmitted && $leadIdWasSubmitted), 'nullable', 'uuid', 'exists:employees,id'],
+            'lead_phone' => ['nullable', 'string', 'max:40'],
+            'member_count' => [Rule::requiredIf(! $membershipWasSubmitted), 'integer', 'min:1', 'max:200'],
+            'employee_ids_sent' => ['sometimes', 'in:1'],
+            'employee_ids' => ['nullable', 'array', 'max:200'],
+            'employee_ids.*' => ['required', 'uuid', 'distinct', 'exists:employees,id'],
             'status' => ['required', 'in:ACTIVE,INACTIVE'], 'notes' => ['nullable', 'string', 'max:1000'],
         ]);
+
+        if ($membershipWasSubmitted) {
+            $ids = array_values(array_unique($d['employee_ids'] ?? []));
+            $currentCount = Employee::query()->whereIn('id', $ids)->where('status', '!=', 'EXITED')->count();
+            if ($currentCount !== count($ids)) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'employee_ids' => 'Choose current HR employees only. Employees who have exited cannot be assigned to a moulding team.',
+                ]);
+            }
+            if ($leadIdWasSubmitted) {
+                $leadId = $d['lead_employee_id'] ?? null;
+            } else {
+                // Backwards compatibility for older form posts that submitted memberships before there was a lead selector.
+                $legacyLeadName = trim((string) ($d['lead_name'] ?? ''));
+                $matchingLead = Employee::query()->whereIn('id', $ids)->get()->first(
+                    fn (Employee $employee) => mb_strtolower($employee->full_name) === mb_strtolower($legacyLeadName)
+                );
+                $leadId = $matchingLead?->id ?? ($ids[0] ?? null);
+            }
+
+            if (! $leadId || ! in_array($leadId, $ids, true)) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'lead_employee_id' => 'Select the team lead from the employees linked to this team.',
+                ]);
+            }
+            $lead = Employee::current()->whereKey($leadId)->first();
+            if (! $lead) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'lead_employee_id' => 'The team lead must be a current HR employee.',
+                ]);
+            }
+            $d['lead_employee_id'] = $lead->id;
+            $d['lead_name'] = $lead->full_name;
+            $d['member_count'] = count($ids);
+        } elseif (! empty($d['lead_employee_id'])) {
+            $lead = Employee::current()->whereKey($d['lead_employee_id'])->first();
+            if (! $lead) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'lead_employee_id' => 'The team lead must be a current HR employee.',
+                ]);
+            }
+            if (! $team || ! $team->employees()->whereKey($lead->id)->exists()) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'lead_employee_id' => 'The team lead must be linked to this team.',
+                ]);
+            }
+            $d['lead_name'] = $lead->full_name;
+        }
+
+        unset($d['employee_ids_sent'], $d['employee_ids']);
         $d['code'] = strtoupper($d['code']);
 
         return $d;
     }
 
+    /** Sync explicitly submitted HR membership; legacy callers without the marker remain compatible. */
+    private function syncTeamMembers(Request $request, MouldingTeam $team): void
+    {
+        if (! $request->boolean('employee_ids_sent')) {
+            return;
+        }
+
+        $team->employees()->sync($request->input('employee_ids', []));
+        $team->update(['member_count' => $team->employees()->count()]);
+    }
+
     private function stationData(Request $request, ?MouldingStation $station = null): array
     {
         $d = $request->validate([
-            'code' => ['required', 'string', 'max:30', Rule::unique('moulding_stations', 'code')->ignore($station?->id)],
+            'code' => ['required', 'string', 'max:30', 'regex:/^[A-Za-z0-9._-]+$/', Rule::unique('moulding_stations', 'code')->ignore($station?->id)],
             'name' => ['required', 'string', 'max:100'], 'station_type' => ['required', Rule::in(array_keys(MouldingStation::TYPES))],
             'status' => ['required', 'in:ACTIVE,INACTIVE,MAINTENANCE'], 'notes' => ['nullable', 'string', 'max:1000'],
             'max_patterns' => ['nullable', 'integer', 'min:1', 'max:20'], 'default_moulding_team_id' => ['nullable', 'uuid', 'exists:moulding_teams,id'], 'default_sand_system' => ['nullable', Rule::in(SandSystem::allNames())],

@@ -16,6 +16,7 @@ class ChargeBatchController extends Controller
     public function index(): View
     {
         $chargeBatches = ChargeBatch::query()
+            ->with('items')
             ->withCount('items')
             ->orderBy('process_type')
             ->orderBy('code')
@@ -32,7 +33,7 @@ class ChargeBatchController extends Controller
             ->get();
 
         return view('charge-batches.create', [
-            'chargeBatch' => new ChargeBatch(),
+            'chargeBatch' => new ChargeBatch,
             'materials' => $materials,
         ]);
     }
@@ -44,7 +45,15 @@ class ChargeBatchController extends Controller
         $items = $validated['items'];
         unset($validated['items']);
 
-        $this->validateRecipeItems($items);
+        $recipeTotals = $this->validateRecipeItems(
+            $items,
+            isset($validated['target_total_charge_weight_kg'])
+                ? (float) $validated['target_total_charge_weight_kg']
+                : null,
+        );
+        // For fixed-kg recipes the components are the source of truth. For percentage
+        // recipes the user-entered total is the basis for calculating each material.
+        $validated['target_total_charge_weight_kg'] = $recipeTotals['total_kg'];
 
         $chargeBatch = DB::transaction(function () use ($validated, $items) {
             $batch = ChargeBatch::create($validated);
@@ -110,7 +119,7 @@ class ChargeBatchController extends Controller
         ]);
     }
 
-    private function validateRecipeItems(array $items): void
+    private function validateRecipeItems(array $items, ?float $targetTotalChargeWeightKg): array
     {
         $materialIds = array_column($items, 'material_id');
 
@@ -130,8 +139,7 @@ class ChargeBatchController extends Controller
 
             if (($qty === null) === ($percent === null)) {
                 throw ValidationException::withMessages([
-                    "items.$index.target_qty_kg" =>
-                        'Enter either a fixed quantity or a percentage for each component, but not both.',
+                    "items.$index.target_qty_kg" => 'Enter either a fixed quantity or a percentage for each component, but not both.',
                 ]);
             }
 
@@ -164,5 +172,28 @@ class ChargeBatchController extends Controller
                     .number_format($percentTotal, 4).'%.',
             ]);
         }
+
+        if ($hasPercent) {
+            if ($targetTotalChargeWeightKg === null || $targetTotalChargeWeightKg <= 0) {
+                throw ValidationException::withMessages([
+                    'target_total_charge_weight_kg' => 'Enter the target total charge weight in kg for a percentage-based recipe so each material quantity can be calculated.',
+                ]);
+            }
+
+            return ['mode' => 'percentage', 'total_kg' => round($targetTotalChargeWeightKg, 3)];
+        }
+
+        $totalKg = array_sum(array_map(
+            static fn (array $item): float => (float) ($item['target_qty_kg'] ?? 0),
+            $items,
+        ));
+
+        if ($totalKg <= 0) {
+            throw ValidationException::withMessages([
+                'items' => 'The total fixed quantity must be greater than zero.',
+            ]);
+        }
+
+        return ['mode' => 'fixed', 'total_kg' => round($totalKg, 3)];
     }
 }

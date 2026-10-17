@@ -39,7 +39,7 @@
 .qd [aria-invalid=true] { border-color: var(--danger) !important; }
 .qd-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px 14px; }
 .qd-add { margin-left: 6px; font-size: 12px; font-weight: 600; color: var(--accent); white-space: nowrap; }
-@media (max-width: 560px) { .qd-fields { grid-template-columns: 1fr; } }
+@media (max-width: 768px) { .qd-fields { grid-template-columns: 1fr; } }
 </style>
 <script>
 (function () {

@@ -26,7 +26,8 @@ class SidebarMenuTest extends TestCase
 
     public function test_selected_item_has_no_background(): void
     {
-        $html = $this->get(route('dashboard'))->getContent();
+        $this->get(route('dashboard'))->assertOk();
+        $html = file_get_contents(public_path('css/app-base.css')).file_get_contents(public_path('css/app-overrides.css'));
         $this->assertMatchesRegularExpression('/\.nav-link\.active:hover\s*\{\s*background:\s*transparent !important/', $html);
     }
 

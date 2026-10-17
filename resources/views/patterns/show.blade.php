@@ -46,8 +46,8 @@
     .tool-notes { display: grid; gap: 14px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
     .tool-notes h3 { margin: 0 0 4px; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
     .tool-notes p { margin: 0; max-width: 75ch; line-height: 1.5; }
-    @media (max-width: 1100px) { .tool-layout { grid-template-columns: 150px minmax(0, 1fr); } .tool-diagram { grid-column: 1 / -1; justify-self: start; } }
-    @media (max-width: 700px) { .tool-layout { grid-template-columns: 1fr; } .tool-photo { max-width: 200px; } }
+    @media (max-width: 1024px) { .tool-layout { grid-template-columns: 150px minmax(0, 1fr); } .tool-diagram { grid-column: 1 / -1; justify-self: start; } }
+    @media (max-width: 768px) { .tool-layout { grid-template-columns: 1fr; } .tool-photo { max-width: 200px; } }
 </style>
 <div class="panel">
     <div class="panel-header"><h2>Physical tooling record</h2></div>

@@ -21,7 +21,7 @@ class QuickAddDialogTest extends TestCase
 
         $this->get(route('moulding-teams.index'))->assertOk()
             ->assertSee('<dialog id="qd-team"', false)->assertSee('<dialog id="qd-station"', false)->assertSee('<dialog id="qd-sand"', false)
-            ->assertSee('data-quick="qd-team" data-quick-target="ns-team"', false);
+            ->assertSee('data-quick="qd-team"', false)->assertSee('data-quick="qd-station"', false);
 
         $this->get(route('patterns.create'))->assertOk()
             ->assertSee('<dialog id="qd-sand"', false)->assertSee('data-quick-target="sand_system" data-quick-value="label"', false);

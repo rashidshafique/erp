@@ -27,7 +27,7 @@
 .legacy-page .success { background: #e3f6e9; color: #176b36; padding: 12px; border-radius: 6px; margin-bottom: 15px; }
 .legacy-page .error { color: #a12626; margin-bottom: 12px; }
 .legacy-page form.inline { display: inline; }
-@media(max-width: 600px) {
+@media(max-width: 768px) {
 .legacy-page .metric { min-width: 40%; }
 }
 </style>

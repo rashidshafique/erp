@@ -22,7 +22,8 @@ class FontSettingTest extends TestCase
 
     public function test_menu_sub_items_use_regular_weight(): void
     {
-        $html = $this->get(route('dashboard'))->assertOk()->getContent();
+        $this->get(route('dashboard'))->assertOk();
+        $html = file_get_contents(public_path('css/app-base.css')).file_get_contents(public_path('css/app-overrides.css'));
         $this->assertMatchesRegularExpression('/\.nav-submenu \.nav-link, \.nav-link \{[^}]*font-weight: 400;/s', $html);
         $this->assertMatchesRegularExpression('/\.nav-submenu \.nav-link\.active, \.nav-link\.active \{[^}]*font-weight: 400;/s', $html);
     }
@@ -33,7 +34,7 @@ class FontSettingTest extends TestCase
         $this->get(route('settings.display'))->assertOk()->assertSee('Font for the whole interface')->assertSee('Only the administrator sees this setting');
 
         $this->put(route('settings.display.font'), ['font' => 'inter'])->assertSessionHasNoErrors();
-        $this->get(route('dashboard'))->assertSee('--ui-font: "Inter"', false)->assertSee('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap', false);
+        $this->get(route('dashboard'))->assertSee('--ui-font: "Inter"', false)->assertSee('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&amp;display=swap', false);
 
         $this->put(route('settings.display.font'), ['font' => 'tahoma'])->assertSessionHasNoErrors();
         $this->get(route('dashboard'))->assertSee('--ui-font: Tahoma', false)->assertDontSee('fonts.googleapis.com', false);

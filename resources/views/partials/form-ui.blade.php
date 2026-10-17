@@ -54,7 +54,7 @@
     .more-toggle button:hover { text-decoration: underline; }
     .more-toggle .chev { display: inline-block; width: 18px; height: 18px; border-radius: 50%; background: color-mix(in srgb, var(--accent) 12%, #fff); text-align: center; line-height: 17px; font-size: 14px; }
 
-    @media (max-width: 700px) {
+    @media (max-width: 768px) {
         .form-grid { grid-template-columns: 1fr; gap: 20px; }
         .panel-body:has(> .form-grid), .panel-body:has(> form > .form-grid) { padding: 18px; }
         .field input, .field select, .field textarea { max-width: none !important; }

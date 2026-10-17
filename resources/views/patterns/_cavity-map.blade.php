@@ -12,7 +12,7 @@
             .layout-fig { flex: none; }
             .layout-text { flex: 1; min-width: 0; }
             .layout-summary { font-size: 12.5px; line-height: 1.6; margin: 2px 0 6px; }
-            @media (max-width: 700px) { .layout-row { flex-direction: column; } }
+            @media (max-width: 768px) { .layout-row { flex-direction: column; } }
             .layout-form summary { cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--accent); margin-bottom: 6px; }
             .layout-form { margin-bottom: 10px; }
         </style>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\FlaskSize;
 use App\Models\MouldingStation;
 use App\Models\MouldingTeam;
 use App\Models\MouldingWorkList;
@@ -57,7 +58,7 @@ class WorkListController extends Controller
         return view('work-lists.show', [
             'list' => $list, 'orders' => $orders, 'patterns' => $patterns, 'needed' => $needed,
             'teamOf' => $stations->mapWithKeys(fn ($s) => [$s->id => $s->defaultTeam ? $s->defaultTeam->code.' — '.$s->defaultTeam->lead_name : ''])->all(), 'patternProducts' => $patternProducts, 'patternSand' => $patternSand, 'autoOrder' => $autoOrder, 'running' => $running,
-            'stations' => $stations,
+            'stations' => $stations, 'flaskSizes' => FlaskSize::ordered()->where('status', 'ACTIVE')->get(),
             'sands' => \App\Models\SandSystem::choices(...$list->items()->pluck('sand_system')->all()), 'sandFor' => $stations->mapWithKeys(fn ($s) => [$s->id => $svc->sandFor($list, $s)])->all(),
         ]);
     }

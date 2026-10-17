@@ -21,7 +21,7 @@
     .made-on .mo-meta { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; font-size: 12.5px; color: var(--muted); margin-top: 3px; }
     .made-on .mo-count { text-align: right; font-size: 12px; color: var(--muted); }
     .made-on .mo-count strong { display: block; font-size: 20px; color: var(--text); }
-    @media (max-width: 700px) { .made-on .mo-row { grid-template-columns: 48px 1fr; } .made-on .mo-count { grid-column: 2; text-align: left; } }
+    @media (max-width: 768px) { .made-on .mo-row { grid-template-columns: 48px 1fr; } .made-on .mo-count { grid-column: 2; text-align: left; } }
 </style>
 <div class="panel">
     <div class="panel-header"><h2>Made on these patterns</h2><span class="muted small">Cavities are linked to products on each pattern's cavity map.</span></div>

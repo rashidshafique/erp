@@ -6,6 +6,7 @@ use App\Models\Concerns\GeneratesCodes;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 class Employee extends Model
@@ -29,6 +30,11 @@ class Employee extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function mouldingTeams(): BelongsToMany
+    {
+        return $this->belongsToMany(MouldingTeam::class, 'moulding_team_members', 'employee_id', 'moulding_team_id')->withTimestamps();
     }
 
     public function department(): BelongsTo

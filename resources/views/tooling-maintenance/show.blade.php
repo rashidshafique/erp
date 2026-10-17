@@ -14,7 +14,7 @@
 .legacy-page .value { white-space: pre-wrap; overflow-wrap: anywhere; }
 .legacy-page .btn { display: inline-block; padding: 10px 15px; border-radius: 6px; background: var(--accent); color: white; text-decoration: none; }
 .legacy-page .success { background: #e1f5e9; padding: 12px; border-radius: 6px; margin-bottom: 14px; }
-@media(max-width:650px) {
+@media(max-width:768px) {
 .legacy-page .grid { grid-template-columns: 1fr; }
 }
 </style>

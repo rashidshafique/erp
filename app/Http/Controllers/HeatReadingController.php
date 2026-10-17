@@ -1,19 +1,26 @@
 <?php
 
 namespace App\Http\Controllers;
-use App\Models\HeatChargePosting;
+
 use App\Models\AppSetting;
-use App\Models\MaterialLot;
-use App\Models\HeatMaterialConsumption;
-use App\Models\StockLotCostLayer;
-use App\Models\StockMovement;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
+use App\Models\ChargeBatch;
+use App\Models\Furnace;
 use App\Models\Heat;
+use App\Models\HeatChargePosting;
+use App\Models\HeatMaterialConsumption;
 use App\Models\HeatPowerReading;
 use App\Models\HeatProcessReading;
+use App\Models\IronGrade;
+use App\Models\Material;
+use App\Models\MaterialLot;
+use App\Models\StockLotCostLayer;
+use App\Models\StockMovement;
+use App\Services\FurnaceEligibility;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class HeatReadingController extends Controller
@@ -55,13 +62,13 @@ class HeatReadingController extends Controller
                 );
         });
 
-        $activeMaterials = \App\Models\Material::query()
+        $activeMaterials = Material::query()
             ->where('status', 'ACTIVE')
             ->whereNull('deleted_at')
             ->orderBy('name')
             ->get();
 
-        $acceptedLots = \App\Models\MaterialLot::query()
+        $acceptedLots = MaterialLot::query()
             ->with('material')
             ->where('status', 'ACCEPTED')
             ->whereNotNull('unit_cost')
@@ -189,16 +196,16 @@ class HeatReadingController extends Controller
             ->with('success', 'Process reading saved.');
     }
 
-    public function create(): \Illuminate\View\View
+    public function create(): View
     {
-        $furnaces = \App\Models\Furnace::query()
+        $furnaces = Furnace::query()
             ->where('status', 'ACTIVE')
             ->orderBy('code')
             ->get();
 
-        $grades = \App\Models\IronGrade::where('status', 'ACTIVE')->orderBy('code')->get();
+        $grades = IronGrade::where('status', 'ACTIVE')->orderBy('code')->get();
 
-        $chargeBatches = \App\Models\ChargeBatch::query()
+        $chargeBatches = ChargeBatch::query()
             ->where('status', 'ACTIVE')
             ->with('items.material')
             ->orderBy('code')
@@ -209,7 +216,11 @@ class HeatReadingController extends Controller
             'process' => $batch->process_type,
             'code' => $batch->code,
             'name' => $batch->name,
-            'weight' => $batch->target_total_charge_weight_kg,
+            'weight' => $batch->items->contains(fn ($item) => $item->target_percent !== null)
+                ? $batch->target_total_charge_weight_kg
+                : ($batch->items->isNotEmpty()
+                    ? $batch->items->sum(fn ($item) => (float) ($item->target_qty_kg ?? 0))
+                    : $batch->target_total_charge_weight_kg),
             'items' => $batch->items->map(fn ($item) => [
                 'material' => $item->material?->code.' — '.$item->material?->name,
                 'role' => $item->component_role,
@@ -221,13 +232,13 @@ class HeatReadingController extends Controller
         return view('heats.create', compact('furnaces', 'grades', 'chargeBatches', 'recipeData'));
     }
 
-    public function store(\Illuminate\Http\Request $request): \Illuminate\Http\RedirectResponse
+    public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'furnace_id' => [
                 'required',
                 'uuid',
-                \Illuminate\Validation\Rule::exists('furnaces', 'id')
+                Rule::exists('furnaces', 'id')
                     ->where('status', 'ACTIVE')
                     ->whereNull('deleted_at'),
             ],
@@ -235,7 +246,7 @@ class HeatReadingController extends Controller
             'charge_batch_id' => [
                 'nullable',
                 'uuid',
-                \Illuminate\Validation\Rule::exists('charge_batches', 'id')->where('status', 'ACTIVE'),
+                Rule::exists('charge_batches', 'id')->where('status', 'ACTIVE'),
             ],
             'planned_start_at' => ['nullable', 'date'],
             'target_metal_weight_kg' => ['required', 'numeric', 'gt:0', 'max:999999999'],
@@ -245,24 +256,24 @@ class HeatReadingController extends Controller
             'notes' => ['nullable', 'string', 'max:10000'],
         ]);
 
-        $furnace = \App\Models\Furnace::query()
+        $furnace = Furnace::query()
             ->whereKey($validated['furnace_id'])
             ->firstOrFail();
 
         if (! empty($validated['charge_batch_id'])) {
-            $recipe = \App\Models\ChargeBatch::findOrFail($validated['charge_batch_id']);
+            $recipe = ChargeBatch::findOrFail($validated['charge_batch_id']);
             if ($recipe->process_type !== $furnace->furnace_type) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
+                throw ValidationException::withMessages([
                     'charge_batch_id' => 'This charge recipe is for '.$recipe->process_type.' melting, but the furnace is '.$furnace->furnace_type.'.',
                 ]);
             }
         }
 
         if (! empty($validated['iron_grade_id'])) {
-            $grade = \App\Models\IronGrade::findOrFail($validated['iron_grade_id']);
-            $elig = app(\App\Services\FurnaceEligibility::class);
+            $grade = IronGrade::findOrFail($validated['iron_grade_id']);
+            $elig = app(FurnaceEligibility::class);
             if (! $elig->canMelt($furnace, $grade)) {
-                throw \Illuminate\Validation\ValidationException::withMessages(['iron_grade_id' => $elig->reason($furnace, $grade)]);
+                throw ValidationException::withMessages(['iron_grade_id' => $elig->reason($furnace, $grade)]);
             }
         }
 
@@ -275,9 +286,8 @@ class HeatReadingController extends Controller
                 && $maximum !== null
                 && (float) $limit > (float) $maximum
             ) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
-                    'operating_power_limit_kw' =>
-                        'The heat operating limit cannot exceed the furnace maximum of '
+                throw ValidationException::withMessages([
+                    'operating_power_limit_kw' => 'The heat operating limit cannot exceed the furnace maximum of '
                         .number_format((float) $maximum, 3).' kW.',
                 ]);
             }
@@ -286,21 +296,21 @@ class HeatReadingController extends Controller
             $validated['operating_power_limit_kw'] = null;
         }
 
-        $heat = \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $furnace) {
+        $heat = DB::transaction(function () use ($validated, $furnace) {
             $date = now()->format('Ymd');
 
             // Serialize heat-number generation for the same date in PostgreSQL.
-            \Illuminate\Support\Facades\DB::select(
+            DB::select(
                 'SELECT pg_advisory_xact_lock(hashtext(?))',
                 ['heat-number-'.$date]
             );
 
-            $lastNumber = (int) \App\Models\Heat::query()
+            $lastNumber = (int) Heat::query()
                 ->where('heat_number', 'like', 'H-'.$date.'-%')
                 ->selectRaw("COALESCE(MAX(CAST(SPLIT_PART(heat_number, '-', 3) AS INTEGER)), 0) AS max_number")
                 ->value('max_number');
 
-            return \App\Models\Heat::create([
+            return Heat::create([
                 'heat_number' => 'H-'.$date.'-'.str_pad((string) ($lastNumber + 1), 3, '0', STR_PAD_LEFT),
                 'furnace_id' => $furnace->id,
                 'process_type' => $furnace->furnace_type,
@@ -386,7 +396,7 @@ class HeatReadingController extends Controller
                         ]);
                     }
 
-                    $returnMaterial = \App\Models\Material::query()
+                    $returnMaterial = Material::query()
                         ->whereKey($entry->material_id)
                         ->where('status', 'ACTIVE')
                         ->whereNull('deleted_at')
@@ -487,7 +497,7 @@ class HeatReadingController extends Controller
                     ]);
                 }
 
-                $lot = \App\Models\MaterialLot::query()
+                $lot = MaterialLot::query()
                     ->whereKey($entry->material_lot_id)
                     ->where('material_id', $entry->material_id)
                     ->where('status', 'ACCEPTED')
@@ -523,7 +533,7 @@ class HeatReadingController extends Controller
                     throw ValidationException::withMessages([
                         'posted_by' => "Insufficient posted stock in lot {$lot->lot_number}. Available: "
                             .number_format($available, 3)
-                            ." kg; required: ".number_format($quantity, 3)." kg.",
+                            .' kg; required: '.number_format($quantity, 3).' kg.',
                     ]);
                 }
 

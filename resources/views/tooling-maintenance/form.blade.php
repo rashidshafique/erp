@@ -19,7 +19,7 @@
 .legacy-page .error { color: #a12424; font-size: 13px; margin-top: 4px; }
 .legacy-page .alert { padding: 12px; border-radius: 6px; background: #fff0dc; margin-bottom: 16px; }
 .legacy-page h2 { margin: 24px 0 14px; font-size: 17px; }
-@media(max-width:650px) {
+@media(max-width:768px) {
 .legacy-page .grid { grid-template-columns: 1fr; }
 .legacy-page .wide { grid-column: auto; }
 }

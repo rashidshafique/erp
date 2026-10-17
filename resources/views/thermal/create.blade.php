@@ -70,6 +70,6 @@
     .cup-grid .panel { margin-bottom:0; }
     .curve-box { margin-top:12px; border-top:1px solid #e6eaf0; padding-top:10px; }
     .curve-box summary { cursor:pointer; font-weight:600; font-size:13px; }
-    @media (max-width: 900px) { .cup-grid { grid-template-columns:1fr; } }
+    @media (max-width: 1024px) { .cup-grid { grid-template-columns:1fr; } }
 </style>
 @endsection

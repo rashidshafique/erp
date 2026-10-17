@@ -7,12 +7,13 @@
 <div class="panel" id="ownership">
     <div class="panel-header"><h2>Ownership</h2><a class="small" href="{{ route('pattern-ownership.index') }}">All patterns by owner</a></div>
     <div class="panel-body">
-        <div class="detail-grid">
-            <div><div class="detail-label">Owner</div><div class="detail-value">{{ $pattern->owner_type === 'FOUNDRY' ? 'Foundry' : $pattern->ownerLabel() }}@if ($pattern->supplied_by_customer)<div class="muted small">Supplied by the customer</div>@endif</div></div>
-            <div><div class="detail-label">Where it is</div><div class="detail-value">{{ $owner['custody'] }}</div></div>
-            <div><div class="detail-label">Paid under</div><div class="detail-value">@if ($pattern->ownershipQuotation)<a class="mono" href="{{ route('quotations.show', $pattern->ownershipQuotation) }}">{{ $pattern->ownershipQuotation->code }}</a> @endif{{ $pattern->ownership_reference ?: ($pattern->ownershipQuotation ? '' : '—') }}</div></div>
-            <div><div class="detail-label">Acquired / received</div><div class="detail-value">{{ $pattern->acquired_on?->format('d M Y') ?? '—' }}</div></div>
-            <div><div class="detail-label">Insured value</div><div class="detail-value">{{ $pattern->insured_value !== null ? 'PKR '.number_format((float) $pattern->insured_value, 0) : '—' }}</div></div>
+        <div class="record-list">
+            @include('partials.record-row', ['icon' => 'building', 'title' => $pattern->owner_type === 'FOUNDRY' ? 'Foundry-owned' : $pattern->ownerLabel(),
+                'note' => $pattern->supplied_by_customer ? 'supplied by the customer' : null,
+                'sub' => collect([$pattern->ownershipQuotation ? 'Quotation '.$pattern->ownershipQuotation->code : null, $pattern->ownership_reference, $pattern->acquired_on ? 'received '.$pattern->acquired_on->format('d M Y') : null, $pattern->insured_value !== null ? 'insured PKR '.number_format((float) $pattern->insured_value, 0) : null])->filter()->implode(' · ') ?: 'No paper recorded',
+                'editTarget' => $closed || $pattern->trashed() ? null : 'ownership-edit', 'editLabel' => 'Change owner'])
+            @include('partials.record-row', ['icon' => 'map-pin', 'title' => $owner['custody'], 'sub' => 'Where the pattern is now',
+                'editTarget' => $closed || $pattern->trashed() ? null : 'ownership-edit', 'editLabel' => 'Change location'])
         </div>
         @if ($pattern->ownership_notes)<p class="small" style="margin:12px 0 0">{{ $pattern->ownership_notes }}</p>@endif
 
@@ -32,7 +33,7 @@
 
     @unless ($closed || $pattern->trashed())
         <div class="panel-body" style="border-top:1px solid var(--border)">
-            <details @if ($errors->hasAny(['owner_type', 'owner_customer_id', 'amortise_qty', 'custody', 'custody_location'])) open @endif>
+            <details id="ownership-edit" @if ($errors->hasAny(['owner_type', 'owner_customer_id', 'amortise_qty', 'custody', 'custody_location'])) open @endif>
                 <summary class="btn">Change owner or location</summary>
                 <form method="POST" action="{{ route('patterns.ownership', $pattern) }}" style="margin-top:12px">@csrf @method('PUT')
                     <div class="form-grid">

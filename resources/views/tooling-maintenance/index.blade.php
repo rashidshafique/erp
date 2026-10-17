@@ -80,10 +80,10 @@
 .legacy-page .status-cancelled { background: #fce8e8; color: #9b2424; }
 .legacy-page .empty { padding: 36px 16px; text-align: center; color: #687586; }
 .legacy-page .pagination { padding-top: 16px; }
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
 .legacy-page .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-@media (max-width: 480px) {
+@media (max-width: 768px) {
 .legacy-page .filters { grid-template-columns: 1fr; }
 .legacy-page .summary { align-items: flex-start; flex-direction: column; }
 }

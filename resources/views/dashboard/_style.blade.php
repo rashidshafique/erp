@@ -69,6 +69,6 @@
 .dx .g-command{display:grid;gap:16px;grid-template-columns:minmax(0,1fr) 340px;align-items:start}
 .dx .g-columns{display:grid;gap:16px;grid-template-columns:290px minmax(0,1fr) 290px;align-items:start}
 .dx .g-command>div,.dx .g-columns>div{min-width:0}
-@media(max-width:1180px){.dx .g-columns{grid-template-columns:minmax(0,1fr) 300px}.dx .g-columns>div:nth-child(1){grid-column:1/-1}}
-@media(max-width:900px){.dx .g-command,.dx .g-columns{grid-template-columns:1fr}.dx .hero h1{font-size:23px}}
+@media(max-width:1024px){.dx .g-columns{grid-template-columns:minmax(0,1fr) 300px}.dx .g-columns>div:nth-child(1){grid-column:1/-1}}
+@media(max-width:1024px){.dx .g-command,.dx .g-columns{grid-template-columns:1fr}.dx .hero h1{font-size:23px}}
 </style>

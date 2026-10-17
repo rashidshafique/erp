@@ -74,7 +74,7 @@
 .dx.tm .tr4>div{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;color:var(--dx-sub)}
 .dx.tm .tr4 strong{display:block;font-size:14px;color:var(--dx-ink)}
 .dx.tm .empty{padding:6px 0;font-size:12.5px}
-@media(max-width:1000px){.dx.tm .tm-grid{grid-template-columns:1fr}}
+@media(max-width:1024px){.dx.tm .tm-grid{grid-template-columns:1fr}}
 </style>
 @if ($tv)<style>.sidebar,.topbar,.sidebar-resizer{display:none!important}.main-area{margin-left:0!important}.page-content{padding:10px 14px!important}</style>@endif
 

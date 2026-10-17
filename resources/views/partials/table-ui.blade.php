@@ -16,7 +16,7 @@
     .table-toolbar .btn { min-height: 26px; padding: 2px 8px; }
     .table-toolbar .btn-clear { color: var(--muted); }
     .table-toolbar.is-filtered .btn-clear { color: var(--danger); }
-    @media (max-width: 700px) { .table-toolbar { width: 100%; margin-left: 0; } .table-toolbar .tt-search, .table-toolbar .tt-search input { width: 100%; } }
+    @media (max-width: 768px) { .table-toolbar { width: 100%; margin-left: 0; } .table-toolbar .tt-search, .table-toolbar .tt-search input { width: 100%; } }
 </style>
 <script>
 (function () {

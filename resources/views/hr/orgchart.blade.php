@@ -123,7 +123,7 @@
 .oc-two .field select, .oc-two .field input { max-width: 100%; }
 .oc-more summary { margin-top: 12px; cursor: pointer; font-size: 12.5px; color: var(--accent-dark); }
 .oc-df { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 20px 18px; }
-@media (max-width: 900px) { .oc-wrap { grid-template-columns: 1fr; height: auto; } .oc-side { max-height: 240px; border-right: 0; border-bottom: 1px solid #e2e8f0; } .oc-stage { min-height: 420px; } .oc-two { grid-template-columns: 1fr; } }
+@media (max-width: 1024px) { .oc-wrap { grid-template-columns: 1fr; height: auto; } .oc-side { max-height: 240px; border-right: 0; border-bottom: 1px solid #e2e8f0; } .oc-stage { min-height: 420px; } .oc-two { grid-template-columns: 1fr; } }
 </style>
 <script>
 (function () {

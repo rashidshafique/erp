@@ -49,5 +49,5 @@
 .tl-seg.w { background: #7c3aed; } .tl-seg.o { background: #f59e0b; } .tl-seg.l { background: #ef4444; }
 .tl-note { font-size: 12px; color: #64748b; padding-top: 3px; }
 .hr-tbl { width: 100%; border-collapse: collapse; font-size: 13px; } .hr-tbl th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: #64748b; padding: 6px 8px; border-bottom: 1px solid #e2e8f0; } .hr-tbl td { padding: 8px; border-bottom: 1px solid #f1f5f9; }
-@media (max-width: 600px) { .hr-mini { grid-template-columns: repeat(2, 1fr); } .tl-main { grid-template-columns: 52px 1fr 52px; } }
+@media (max-width: 768px) { .hr-mini { grid-template-columns: repeat(2, 1fr); } .tl-main { grid-template-columns: 52px 1fr 52px; } }
 </style>

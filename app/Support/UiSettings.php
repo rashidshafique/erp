@@ -20,9 +20,10 @@ class UiSettings
                 'compact' => AppSetting::getValue('ui.density', 'COMPACT') !== 'COMFORTABLE',
                 'toolbar' => AppSetting::getValue('ui.table_toolbar', '1') === '1',
                 'tidy_forms' => AppSetting::getValue('ui.tidy_forms', '1') === '1',
+                'menu' => AppSetting::getValue('ui.menu', 'GROUPS') === 'LABELS' ? 'LABELS' : 'GROUPS',
             ];
         } catch (\Throwable) {
-            return ['compact' => true, 'toolbar' => true, 'tidy_forms' => true];
+            return ['compact' => true, 'toolbar' => true, 'tidy_forms' => true, 'menu' => 'GROUPS'];
         }
     }
 
@@ -55,10 +56,10 @@ class UiSettings
         'verdana' => ['label' => 'Verdana', 'stack' => 'Verdana, Geneva, sans-serif', 'google' => null],
         'tahoma' => ['label' => 'Tahoma', 'stack' => 'Tahoma, Geneva, sans-serif', 'google' => null],
         'georgia' => ['label' => 'Georgia (serif)', 'stack' => 'Georgia, "Times New Roman", serif', 'google' => null],
-        'inter' => ['label' => 'Inter (web font)', 'stack' => '"Inter", '.self::SYSTEM_STACK, 'google' => 'Inter:wght@400;500;600;700;900'],
-        'roboto' => ['label' => 'Roboto (web font)', 'stack' => '"Roboto", '.self::SYSTEM_STACK, 'google' => 'Roboto:wght@400;500;700;900'],
-        'opensans' => ['label' => 'Open Sans (web font)', 'stack' => '"Open Sans", '.self::SYSTEM_STACK, 'google' => 'Open+Sans:wght@400;500;600;700;800'],
-        'notosans' => ['label' => 'Noto Sans (web font)', 'stack' => '"Noto Sans", '.self::SYSTEM_STACK, 'google' => 'Noto+Sans:wght@400;500;600;700;900'],
+        'inter' => ['label' => 'Inter (web font)', 'stack' => '"Inter", '.self::SYSTEM_STACK, 'google' => 'Inter:wght@300;400;500;600;700;900'],
+        'roboto' => ['label' => 'Roboto (web font)', 'stack' => '"Roboto", '.self::SYSTEM_STACK, 'google' => 'Roboto:wght@300;400;500;700;900'],
+        'opensans' => ['label' => 'Open Sans (web font)', 'stack' => '"Open Sans", '.self::SYSTEM_STACK, 'google' => 'Open+Sans:wght@300;400;500;600;700;800'],
+        'notosans' => ['label' => 'Noto Sans (web font)', 'stack' => '"Noto Sans", '.self::SYSTEM_STACK, 'google' => 'Noto+Sans:wght@300;400;500;600;700;900'],
     ];
 
     /** A font name typed in by hand: letters, numbers, spaces and hyphens only, so it can never carry anything else into the page. */

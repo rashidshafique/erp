@@ -61,7 +61,7 @@
         </div>
         <style>
             .layout-edit { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 18px 28px; align-items: start; }
-            @media (max-width: 800px) { .layout-edit { grid-template-columns: 1fr; } }
+            @media (max-width: 768px) { .layout-edit { grid-template-columns: 1fr; } }
         </style>
         <script>
         (function () {

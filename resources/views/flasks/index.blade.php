@@ -11,6 +11,7 @@
 <div class="page-heading">
     <div><h1>Flasks</h1><p>Every flask by size: free, in a mould or in repair. Moulds claim a set when they are assembled and give it back when they are knocked out.</p></div>
     <div class="actions">
+        @if (\App\Support\SettingsNav::canOpen())<a class="btn" href="{{ route('settings.flasks.edit') }}">Flask rules</a>@endif
         <button type="button" class="btn" data-quick="qd-flask-size">+ Flask size</button>
         <button type="button" class="btn btn-primary" data-quick="qd-flasks" @if ($sizes->isEmpty()) disabled title="Add a flask size first" @endif>+ Add flasks</button>
     </div>
@@ -28,9 +29,6 @@
     .fb-card th:first-child, .fb-card td:first-child { text-align: left; }
     .fb-card th { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
     .fb-card .free { font-weight: 700; color: var(--accent); }
-    .fb-rules { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px 20px; }
-    .fb-rules label { display: flex; gap: 8px; align-items: flex-start; font-weight: 400; font-size: 12.5px; margin: 3px 0; }
-    .fb-rules label input { width: auto; min-height: 0; margin-top: 2px; }
 </style>
 
 <div class="tab-marker" data-tab-start="Board"></div>
@@ -102,23 +100,4 @@
     @endif
 </div>
 
-<div class="tab-marker" data-tab-start="Rules"></div>
-<div class="panel">
-    <div class="panel-header"><h2>Flask rules</h2><span class="muted small">How the whole foundry handles flasks. Changing them needs the settings permission.</span></div>
-    <div class="panel-body">
-        <form method="POST" action="{{ route('settings.flasks') }}">
-            @csrf @method('PUT')
-            <div class="fb-rules">
-                @foreach (\App\Support\FlaskRules::RULES as $key => [, $label, $options])
-                    <fieldset style="border:0;padding:0;margin:0">
-                        <legend style="font-weight:600;font-size:13px;margin-bottom:4px">{{ $label }}</legend>
-                        @foreach ($options as $value => $text)<label><input type="radio" name="{{ $key }}" value="{{ $value }}" @checked($rules[$key] === $value)> {{ $text }}</label>@endforeach
-                    </fieldset>
-                @endforeach
-            </div>
-            <p class="muted small">Flaskless stations (DISAMATIC, DISA Match) and vertically parted patterns never use flasks. A pattern with no flask size set is moulded without flasks until its sizes are chosen. Scrapped or cancelled moulds always give their flasks back.</p>
-            <button class="btn btn-primary" type="submit">Save rules</button>
-        </form>
-    </div>
-</div>
 @endsection

@@ -15,7 +15,7 @@
     .lb .lb-prev { left: 16px; top: 50%; transform: translateY(-50%); }
     .lb .lb-next { right: 16px; top: 50%; transform: translateY(-50%); }
     .lb button[hidden] { display: none; }
-    @media (max-width: 700px) { .lb figure { max-width: calc(100vw - 24px); } .lb .lb-prev, .lb .lb-next { top: auto; bottom: 16px; transform: none; } }
+    @media (max-width: 768px) { .lb figure { max-width: calc(100vw - 24px); } .lb .lb-prev, .lb .lb-next { top: auto; bottom: 16px; transform: none; } }
 </style>
 <div class="lb" id="lightbox" role="dialog" aria-modal="true" aria-label="Photo">
     <button type="button" class="lb-x" aria-label="Close">&times;</button>
