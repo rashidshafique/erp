@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\Customer;
 use App\Models\Furnace;
 use App\Models\IronGrade;
 use App\Models\Pattern;
@@ -126,7 +125,7 @@ class HeatPlannerTest extends TestCase
         $pr->cavityMap()->create(['cavity_number' => 2, 'product_revision_id' => $o->product_revision_id, 'casting_weight_kg' => 50, 'poured_weight_kg' => 80]);
 
         $per = app(HeatPlanner::class)->metalPerProduct($o->productRevision);
-        $this->assertSame('cavity poured weight', $per['source']);
+        $this->assertSame('mould metal (castings, gating, runners, sprue), shared by casting weight', $per['source']);
         $this->assertEqualsWithDelta(80.0, $per['kg'], 0.001);   // 160 kg poured per mould / 2 products
     }
 

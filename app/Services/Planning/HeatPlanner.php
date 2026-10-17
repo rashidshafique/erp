@@ -8,14 +8,14 @@ use App\Models\Heat;
 use App\Models\IronGrade;
 use App\Models\PatternRevisionCavity;
 use App\Models\PlannedHeat;
+use App\Models\ProductionOrder;
 use App\Models\ProductRevision;
 use App\Models\ProductSpecification;
-use App\Models\ProductionOrder;
 use App\Services\FurnaceEligibility;
 use App\Services\PatternCavityMap;
+use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use InvalidArgumentException;
 
 /**
@@ -26,11 +26,10 @@ use InvalidArgumentException;
 class HeatPlanner
 {
     private const SHIFT_HOURS_PER_DAY = 16.0;
+
     private const HANDLING_HOURS = 0.5;
 
-    public function __construct(private FurnaceEligibility $furnaces, private PatternCavityMap $cavities)
-    {
-    }
+    public function __construct(private FurnaceEligibility $furnaces, private PatternCavityMap $cavities) {}
 
     /** Poured metal needed per finished product (kg), and where the figure came from. */
     public function metalPerProduct(ProductRevision $rev): ?array
@@ -45,11 +44,19 @@ class HeatPlanner
             if ($perMould <= 0) {
                 continue;
             }
-            $poured = $group->sum(fn ($c) => (float) ($c->poured_weight_kg ?? 0));
+            $levels = $pr->castingLevels();
+            // The whole mould's metal (castings, gating, runners, shared sprue) is shared out by casting weight.
+            $mould = $this->cavities->metalPerMould($pr);
+            if ($mould && $mould['complete'] && $mould['castings_kg'] > 0) {
+                $productKg = $levels * $group->sum(fn ($c) => (float) $c->casting_weight_kg);
+
+                return ['kg' => round($mould['kg'] * $productKg / $mould['castings_kg'] / $perMould, 3), 'source' => $mould['weighed'] ? 'weighed mould metal, shared by casting weight' : 'mould metal (castings, gating, runners, sprue), shared by casting weight'];
+            }
+            $poured = $levels * $group->sum(fn ($c) => (float) ($c->poured_weight_kg ?? 0));
             if ($poured > 0 && $group->every(fn ($c) => $c->poured_weight_kg !== null)) {
                 return ['kg' => round($poured / $perMould, 3), 'source' => 'cavity poured weight'];
             }
-            $cast = $group->sum(fn ($c) => (float) ($c->casting_weight_kg ?? 0));
+            $cast = $levels * $group->sum(fn ($c) => (float) ($c->casting_weight_kg ?? 0));
             if ($cast > 0 && $group->every(fn ($c) => $c->casting_weight_kg !== null)) {
                 return ['kg' => round($cast / $perMould / (float) config('foundry.planner.default_yield'), 3), 'source' => 'cavity casting weight / default yield'];
             }
@@ -76,6 +83,7 @@ class HeatPlanner
 
     /**
      * Rebuild the plan (planned, unreleased heats only) from the given date.
+     *
      * @return array{heats: int, skipped: array<int, string>}
      */
     public function rebuild(CarbonInterface $from): array
@@ -126,7 +134,7 @@ class HeatPlanner
                     [$day, $changeover] = $this->place($furnace, $d['grade'], $fill, $slots, $from);
                     $date = $from->copy()->addDays($day);
                     $earliest = collect($link)->pluck(2)->filter()->min();
-                    $late = $earliest && $date->diffInDays(\Carbon\Carbon::parse($earliest), false) < (int) config('foundry.planner.late_buffer_days');
+                    $late = $earliest && $date->diffInDays(Carbon::parse($earliest), false) < (int) config('foundry.planner.late_buffer_days');
 
                     $heat = PlannedHeat::create([
                         'plan_number' => $this->nextPlanNumber($date),

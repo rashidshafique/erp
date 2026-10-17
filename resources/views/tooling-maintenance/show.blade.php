@@ -57,7 +57,7 @@
 
     <section class="panel">
         <h2>Tooling and status</h2>
-        @if ($toolKey)@include('attachments._cover', ['type' => $toolKey, 'id' => $toolId, 'size' => 130])@endif
+        @if ($toolKey)@include('attachments._cover', ['type' => $toolKey, 'id' => $toolId, 'size' => 130, 'upload' => false])@endif
         <div class="grid">
             <div><div class="label">Tooling type</div><div class="value">{{ str_replace('_', ' ', $record->tooling_type) }}</div></div>
             <div><div class="label">Tooling item</div><div class="value">{{ $toolingItem }}</div></div>

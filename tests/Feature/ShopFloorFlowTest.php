@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\CastingLot;
+use App\Models\CharacteristicLimit;
 use App\Models\Customer;
 use App\Models\CustomerProductRequirement;
 use App\Models\Dispatch;
@@ -13,20 +14,24 @@ use App\Models\MouldAssembly;
 use App\Models\MouldConfiguration;
 use App\Models\MouldingRun;
 use App\Models\NonconformanceReport;
+use App\Models\PackingRecordItem;
 use App\Models\Pattern;
 use App\Models\PatternRevision;
+use App\Models\PlannedHeat;
 use App\Models\Pour;
+use App\Models\PourMouldAssembly;
 use App\Models\Product;
 use App\Models\ProductionOrder;
 use App\Models\ProductionStageDefinition;
 use App\Models\ProductRevision;
 use App\Models\ProductSpecification;
+use App\Models\QualityDefect;
 use App\Models\QualityInspection;
 use App\Models\SalesOrder;
 use App\Models\ThermalWindow;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class ShopFloorFlowTest extends TestCase
@@ -46,8 +51,10 @@ class ShopFloorFlowTest extends TestCase
         ProductSpecification::create(['product_revision_id' => $rev->id, 'specification_code' => 'SP-1', 'title' => 'Spec', 'status' => 'APPROVED', 'material_grade' => 'EN-GJS-500-7']);
         CustomerProductRequirement::create(['customer_id' => $customer->id, 'product_revision_id' => $rev->id, 'requirement_code' => 'CR-1', 'title' => 'r', 'status' => 'APPROVED', 'customer_grade' => 'ISO 1083 JS/500-7']);
         $pat = Pattern::create(['code' => 'PAT-1', 'name' => 'Pump pattern']);
-        $pr = PatternRevision::create(['pattern_id' => $pat->id, 'revision' => 'A', 'status' => 'APPROVED', 'cavities_per_mould' => 1]);
+        // Two cavities on a cope-and-drag mould: two castings per mould (the drag and cope together hold the layout once).
+        $pr = PatternRevision::create(['pattern_id' => $pat->id, 'revision' => 'A', 'status' => 'APPROVED', 'cavities_per_mould' => 2]);
         $pr->cavityMap()->create(['cavity_number' => 1, 'product_revision_id' => $rev->id, 'casting_weight_kg' => 40, 'poured_weight_kg' => 65]);
+        $pr->cavityMap()->create(['cavity_number' => 2, 'product_revision_id' => $rev->id, 'casting_weight_kg' => 40, 'poured_weight_kg' => 65]);
         $grade = IronGrade::where('code', 'EN-GJS-500-7')->first();
         ThermalWindow::create(['iron_grade_id' => $grade->id, 'cup_type' => 'STABLE', 'te_min_floor_c' => 1130, 'recal_max_c' => 8]);
 
@@ -66,7 +73,7 @@ class ShopFloorFlowTest extends TestCase
         $this->post(route('production-orders.release', $po))->assertSessionHasNoErrors();
 
         $this->post(route('heat-plan.rebuild'), ['from' => today()->toDateString()]);
-        $this->post(route('heat-plan.release', \App\Models\PlannedHeat::firstOrFail()), ['operator_name' => 'Imran']);
+        $this->post(route('heat-plan.release', PlannedHeat::firstOrFail()), ['operator_name' => 'Imran']);
         $heat = Heat::firstOrFail();
         $this->post(route('heats.chemistry.store', $heat), ['sample_stage' => 'FINAL', 'test_method' => 'SPECTROMETER', 'carbon_percent' => 3.6, 'silicon_percent' => 2.5,
             'manganese_percent' => 0.2, 'phosphorus_percent' => 0.03, 'sulphur_percent' => 0.01, 'copper_percent' => 0.4, 'magnesium_percent' => 0.045])->assertSessionHasNoErrors();
@@ -112,7 +119,7 @@ class ShopFloorFlowTest extends TestCase
 
         // Shop-floor stage with a rejection needs a reason, and cannot exceed pieces
         $shakeout = ProductionStageDefinition::where('code', 'SHAKEOUT')->firstOrFail();
-        \Illuminate\Support\Facades\DB::table('pattern_revisions')->where('id', $w['run']->pattern_revision_id)->update(['min_cooling_minutes' => 120]);
+        DB::table('pattern_revisions')->where('id', $w['run']->pattern_revision_id)->update(['min_cooling_minutes' => 120]);
         $this->get(route('lots.show', $lot))->assertOk()->assertSee('Cooling before shakeout')->assertSee('wait until');
         $this->post(route('lots.stages.store', $lot), ['stage_definition_id' => $shakeout->id, 'quantity_in' => 2, 'quantity_accepted' => 2, 'quantity_rejected' => 0])->assertSessionHasErrors('stage');   // poured minutes ago
         $this->post(route('lots.stages.store', $lot), ['stage_definition_id' => $shakeout->id, 'quantity_in' => 2, 'quantity_accepted' => 2, 'quantity_rejected' => 0, 'cooling_override_reason' => 'Order urgent, light section'])->assertSessionHasNoErrors();
@@ -129,7 +136,7 @@ class ShopFloorFlowTest extends TestCase
         $this->get(route('inspections.show', $insp))->assertOk();
         $this->post(route('inspections.results.add', $insp), ['test_name' => 'Visual', 'result_type' => 'PASS_FAIL'])->assertSessionHasNoErrors();
         $r = $insp->results()->firstOrFail();
-        $this->post(route('inspections.results.save', $insp), ['results' => [$r->id => ['passed' => '0', 'quality_defect_id' => \App\Models\QualityDefect::where('code', 'SAND-INCL')->value('id')]]])->assertSessionHasNoErrors();
+        $this->post(route('inspections.results.save', $insp), ['results' => [$r->id => ['passed' => '0', 'quality_defect_id' => QualityDefect::where('code', 'SAND-INCL')->value('id')]]])->assertSessionHasNoErrors();
         $this->assertFalse($r->fresh()->passed);
         $bad = ['quantity_accepted' => 2, 'quantity_rejected' => 0, 'quantity_rework' => 0, 'quantity_pending' => 0, 'overall_disposition' => 'ACCEPT'];
         $this->post(route('inspections.complete', $insp), $bad)->assertSessionHasErrors('complete');                         // a failed result cannot pass every piece
@@ -154,7 +161,7 @@ class ShopFloorFlowTest extends TestCase
         $this->assertSame('READY', $lot->fresh()->status);
 
         // A grade that requires a tensile result stops packing until a passing one exists
-        \App\Models\CharacteristicLimit::where('subject_id', $w['heat']->iron_grade_id)->where('characteristic_key', 'tensile_mpa')->update(['is_required_for_release' => true]);
+        CharacteristicLimit::where('subject_id', $w['heat']->iron_grade_id)->where('characteristic_key', 'tensile_mpa')->update(['is_required_for_release' => true]);
         $this->post(route('packing.store'), ['qty' => [$lot->id => 1]])->assertSessionHasErrors('packing');
         $this->post(route('heats.tests.store', [$w['heat'], 'MECHANICAL']), ['sample_reference' => 'Y1', 'values' => ['tensile_mpa' => '520']])->assertSessionHasNoErrors();
 
@@ -168,7 +175,7 @@ class ShopFloorFlowTest extends TestCase
 
         // Dispatch: wrong customer refused, right customer accepted
         $this->get(route('dispatches.create'))->assertOk()->assertSee($lot->lot_number);
-        $item = \App\Models\PackingRecordItem::firstOrFail();
+        $item = PackingRecordItem::firstOrFail();
         $this->post(route('dispatches.store'), ['customer_id' => $w['other']->id, 'qty' => [$item->id => 1]])->assertSessionHasErrors('dispatch');
         $this->assertSame(0, Dispatch::count());
         $this->post(route('dispatches.store'), ['customer_id' => $w['customer']->id, 'qty' => [$item->id => 1], 'delivery_challan_number' => 'DC-1'])->assertSessionHasNoErrors();
@@ -176,7 +183,7 @@ class ShopFloorFlowTest extends TestCase
         $this->assertSame('DISPATCHED', $lot->fresh()->status);
         $this->get(route('dispatches.show', $disp))->assertOk()->assertSee('DC-1');
         $this->get(route('sales-orders.show', $w['order']))->assertOk()->assertSee('Shipped');
-        $this->assertSame(1.0, (float) \Illuminate\Support\Facades\DB::table('dispatch_items')->where('sales_order_line_id', $w['line']->id)->sum('quantity_dispatched'));
+        $this->assertSame(1.0, (float) DB::table('dispatch_items')->where('sales_order_line_id', $w['line']->id)->sum('quantity_dispatched'));
         $this->get(route('finished-goods.index'))->assertOk()->assertDontSee('Rack B2');
         $this->get(route('dispatches.index'))->assertOk();
         $this->post(route('dispatches.store'), ['customer_id' => $w['customer']->id, 'qty' => [$item->id => 1]])->assertSessionHasErrors('dispatch');   // nothing left
@@ -187,7 +194,7 @@ class ShopFloorFlowTest extends TestCase
         $this->get(route('lots.certificate', $lot))->assertOk()->assertSee('Material and inspection certificate')->assertSee('Visual');
         $this->get(route('reports.yield'))->assertOk()->assertSee('Metal yield')->assertSee('55.4')->assertSee('Sand inclusion')->assertSee('Inclusions or structural anomalies')->assertSee('No team recorded');   // 9 good x 40 kg of 650 kg poured
         $this->get(route('defects.index'))->assertOk()->assertSee('SAND-INCL');
-        $d = \App\Models\QualityDefect::where('code', 'SAND-INCL')->firstOrFail();
+        $d = QualityDefect::where('code', 'SAND-INCL')->firstOrFail();
         $this->assertSame('G', $d->icf_group);
         $this->put(route('defects.update', $d), ['code' => 'SAND-INCL', 'name' => 'Sand inclusion', 'category' => 'SAND', 'icf_group' => 'G', 'default_severity' => 'MAJOR', 'is_active' => 1])->assertSessionHasNoErrors();
         $this->post(route('defects.store'), ['code' => 'SAND-INCL', 'name' => 'dup', 'category' => 'SAND', 'default_severity' => 'MINOR'])->assertSessionHasErrors('code');
@@ -203,6 +210,6 @@ class ShopFloorFlowTest extends TestCase
         $w['heat']->update(['iron_grade_id' => $other->id]);
         $pour = Pour::create(['pour_number' => 'P-X', 'heat_id' => $w['heat']->id, 'status' => 'PLANNED']);
         $this->post(route('pours.assemblies.attach', $pour), ['assembly_ids' => [MouldAssembly::firstOrFail()->id]])->assertSessionHasErrors('assemblies');
-        $this->assertSame(0, \App\Models\PourMouldAssembly::count());
+        $this->assertSame(0, PourMouldAssembly::count());
     }
 }

@@ -26,7 +26,7 @@ class EnquiryItem extends Model
 
     public function product(): BelongsTo
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(Product::class)->withTrashed();   // archived products still show on old records
     }
 
     public function analysis(): BelongsTo

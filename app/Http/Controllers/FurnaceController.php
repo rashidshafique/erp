@@ -22,6 +22,17 @@ class FurnaceController extends Controller
         return view('furnaces.index', compact('furnaces'));
     }
 
+    /** One furnace: its ratings, photos and files, and its recent heats. */
+    public function show(Furnace $furnace): View
+    {
+        $furnace->load('equipment')->loadCount('heats');
+
+        return view('furnaces.show', [
+            'furnace' => $furnace,
+            'recentHeats' => $furnace->heats()->latest('created_at')->limit(10)->get(),
+        ]);
+    }
+
     public function create(): View
     {
         $equipment = Equipment::query()

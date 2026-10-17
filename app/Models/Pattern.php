@@ -16,6 +16,12 @@ class Pattern extends Model
 
     public string $codeKind = 'pattern';
 
+    /** Pattern types, and the way each is usually moulded (PatternRevision::ARRANGEMENTS). */
+    public const TYPES = [
+        'MATCHPLATE' => 'MATCHPLATE', 'COPE_DRAG' => 'COPE_DRAG', 'STACK_PLATE' => 'STACK', 'VERTICAL_PLATES' => 'VERTICAL',
+        'LOOSE_PATTERN' => 'LOOSE', 'SPLIT_PATTERN' => 'LOOSE', 'GATED' => 'GATED', 'OTHER' => 'OTHER',
+    ];
+
     protected $fillable = [
         'mark_code',
         'code',
@@ -73,8 +79,8 @@ class Pattern extends Model
 
     /**
      * Records a new revision of the tooling geometry and makes it current. The previous current revision is superseded and
-     * kept; the new one carries over its layout (parting, cavities, layers, weight) unless given. With $copyLayout, each
-     * cavity of the previous revision is copied onto the new one, marked for review; the old cavities are left as they were.
+     * kept; the new one carries over its layout (parting, arrangement, cavities, sections, levels, shared metal) unless given. With $copyLayout, each
+     * cavity of the previous revision is copied onto the new one and stays as it was until changed; the old cavities are left alone.
      *
      * @param  array<string, mixed>  $attributes
      */
@@ -87,7 +93,7 @@ class Pattern extends Model
                 // Cleared first: the database allows one current revision per pattern at any moment.
                 $previous->update(['is_current' => false, 'superseded_at' => now(), 'effective_to' => $previous->effective_to ?? today()]);
             }
-            $carried = $previous ? $previous->only(['parting_type', 'cavities_per_mould', 'layers_per_mould', 'pattern_weight_kg']) : [];
+            $carried = $previous ? $previous->only(['parting_type', 'cavities_per_mould', 'layers_per_mould', 'pattern_weight_kg', 'mould_arrangement', 'casting_levels', 'runner_weight_per_level_kg', 'sprue_weight_kg', 'poured_weight_per_mould_kg']) : [];
             $revision = $this->revisions()->create(array_merge($carried, array_filter($attributes, fn ($v) => $v !== null), [
                 'status' => $attributes['status'] ?? 'APPROVED', 'is_current' => true, 'superseded_at' => null, 'legacy_baseline' => false,
                 'effective_from' => $attributes['effective_from'] ?? today(),
@@ -101,7 +107,7 @@ class Pattern extends Model
                 foreach ($previous->cavityMap()->get() as $cavity) {
                     $revision->cavityMap()->create($cavity->only([
                         'cavity_number', 'product_revision_id', 'cavity_role', 'component_label', 'pieces_per_product', 'casting_weight_kg', 'poured_weight_kg', 'notes',
-                    ]) + ['copied_from_revision_id' => $previous->id, 'needs_review' => true]);
+                    ]) + ['copied_from_revision_id' => $previous->id, 'needs_review' => false]);
                 }
             }
             $this->unsetRelation('revisions')->unsetRelation('currentRevision');

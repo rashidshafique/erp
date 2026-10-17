@@ -48,10 +48,16 @@ Route::prefix('patterns')->name('patterns.')->controller(PatternController::clas
     Route::get('/', 'index')->name('index');
     Route::get('/create', 'create')->name('create');
     Route::post('/', 'store')->name('store');
-    Route::get('/{pattern}', 'show')->name('show');
+    Route::get('/{pattern}/edit', 'edit')->name('edit');
+    Route::put('/{pattern}', 'update')->name('update');
+    Route::get('/{pattern}', 'show')->name('show')->withTrashed();
+    Route::delete('/{pattern}', 'archive')->name('archive');
+    Route::post('/{pattern}/restore', 'restore')->name('restore')->withTrashed();
     Route::put('/{pattern}/sand', 'updateSand')->name('sand');
     Route::post('/{pattern}/revisions', 'storeRevision')->name('revisions.store');
+    Route::put('/{pattern}/revisions/{revision}/layout', 'updateLayout')->name('revisions.layout');
     Route::post('/{pattern}/cavities', [\App\Http\Controllers\PatternCavityController::class, 'add'])->name('cavities.add');
+    Route::put('/{pattern}/revisions/{revision}/cavity-map', [\App\Http\Controllers\PatternCavityController::class, 'saveMap'])->name('cavities.map');
     Route::post('/{pattern}/revisions/{revision}/cavities', [\App\Http\Controllers\PatternCavityController::class, 'store'])->name('cavities.store');
     Route::put('/{pattern}/revisions/{revision}/cavities/{cavity}', [\App\Http\Controllers\PatternCavityController::class, 'update'])->name('cavities.update');
     Route::put('/{pattern}/revisions/{revision}/cavities/{cavity}/reviewed', [\App\Http\Controllers\PatternCavityController::class, 'review'])->name('cavities.review');
@@ -129,7 +135,9 @@ Route::prefix('patterns')->name('patterns.')->controller(PatternController::clas
         Route::put('/{product}', 'update')->name('update');
         Route::post('/{product}/revisions', 'storeRevision')
             ->name('revisions.store');
-        Route::get('/{product}', 'show')->name('show');
+        Route::get('/{product}', 'show')->name('show')->withTrashed();
+        Route::delete('/{product}', 'archive')->name('archive');
+        Route::post('/{product}/restore', 'restore')->name('restore')->withTrashed();
     });
 
 Route::get(
@@ -238,6 +246,7 @@ Route::prefix('furnaces')
         Route::get('/', 'index')->name('index');
         Route::get('/create', 'create')->name('create');
         Route::post('/', 'store')->name('store');
+        Route::get('/{furnace}', 'show')->name('show');
     });
 
 Route::post(

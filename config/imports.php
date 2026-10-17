@@ -1,5 +1,15 @@
 <?php
 
+use App\Models\CoreBox;
+use App\Models\CoreDefinition;
+use App\Models\MouldConfiguration;
+use App\Models\Pattern;
+use App\Models\PatternRevision;
+use App\Models\Product;
+use App\Models\ProductRevision;
+use App\Models\SandSystem;
+use App\Services\Import\PatternCavityRows;
+
 /**
  * What can be imported and which fields each record has. The import screens, the column mapper, the validation
  * and the blank templates are all built from this list.
@@ -18,10 +28,10 @@ return [
 
     'entities' => [
         'product' => [
-            'label' => 'Products', 'model' => \App\Models\Product::class, 'table' => 'products', 'kind' => 'product',
+            'label' => 'Products', 'model' => Product::class, 'table' => 'products', 'kind' => 'product',
             'blurb' => 'Castings, cores and other items we make or sell. An optional revision column adds the first revision too.',
             'virtual' => ['revision', 'revision_status'],
-            'revisions' => ['model' => \App\Models\ProductRevision::class, 'owner_key' => 'product_id', 'copy' => ['net_weight_kg' => 'nominal_weight_kg']],
+            'revisions' => ['model' => ProductRevision::class, 'owner_key' => 'product_id', 'copy' => ['net_weight_kg' => 'nominal_weight_kg']],
             'match' => ['code' => 'Code', 'name' => 'Name'],
             'fields' => [
                 'code' => ['label' => 'Code', 'type' => 'string', 'max' => 40, 'aliases' => ['product code', 'part number', 'part no', 'item code', 'sku', 'id', 'item no'], 'help' => 'Leave blank to have the system make one.'],
@@ -36,18 +46,18 @@ return [
             ],
         ],
         'pattern' => [
-            'label' => 'Patterns', 'model' => \App\Models\Pattern::class, 'table' => 'patterns', 'kind' => 'pattern', 'tool' => true,
+            'label' => 'Patterns', 'model' => Pattern::class, 'table' => 'patterns', 'kind' => 'pattern', 'tool' => true,
             'blurb' => 'Matchplates, cope and drag sets and loose patterns, with their engraved mark. An optional revision column adds the first revision too.',
             'virtual' => ['revision', 'revision_status'],
-            'revisions' => ['model' => \App\Models\PatternRevision::class, 'owner_key' => 'pattern_id'],
+            'revisions' => ['model' => PatternRevision::class, 'owner_key' => 'pattern_id'],
             'match' => ['code' => 'Code', 'name' => 'Name', 'mark_code' => 'Engraving mark'],
             'fields' => [
                 'code' => ['label' => 'Code', 'type' => 'string', 'max' => 40, 'aliases' => ['pattern code', 'pattern no', 'pattern number', 'id', 'tool code'], 'help' => 'Leave blank to have the system make one.'],
                 'mark_code' => ['label' => 'Engraving mark', 'type' => 'mark', 'aliases' => ['mark', 'engraved mark', 'engraving', 'stamp', 'tool mark'], 'help' => 'The mark already engraved on an old tool. Blank: the next free mark is issued.'],
                 'name' => ['label' => 'Name', 'type' => 'string', 'max' => 255, 'required' => true, 'aliases' => ['pattern name', 'description', 'title']],
-                'pattern_type' => ['label' => 'Pattern type', 'type' => 'enum', 'enum' => ['MATCHPLATE', 'COPE_DRAG', 'LOOSE_PATTERN', 'SPLIT_PATTERN', 'OTHER'], 'default' => 'MATCHPLATE', 'aliases' => ['type', 'kind', 'plate type']],
+                'pattern_type' => ['label' => 'Pattern type', 'type' => 'enum', 'enum' => ['MATCHPLATE', 'COPE_DRAG', 'STACK_PLATE', 'VERTICAL_PLATES', 'LOOSE_PATTERN', 'SPLIT_PATTERN', 'GATED', 'OTHER'], 'default' => 'MATCHPLATE', 'aliases' => ['type', 'kind', 'plate type']],
                 'status' => ['label' => 'Status', 'type' => 'enum', 'enum' => $status, 'default' => 'ACTIVE', 'aliases' => ['state', 'condition']],
-                'sand_system' => ['label' => 'Made for sand', 'type' => 'enum', 'enum_from' => \App\Models\SandSystem::class, 'aliases' => ['sand', 'sand system', 'made for sand', 'moulding sand']],
+                'sand_system' => ['label' => 'Made for sand', 'type' => 'enum', 'enum_from' => SandSystem::class, 'aliases' => ['sand', 'sand system', 'made for sand', 'moulding sand']],
                 'material' => ['label' => 'Material', 'type' => 'string', 'max' => 50, 'aliases' => ['pattern material', 'made of']],
                 'length_mm' => ['label' => 'Length (mm)', 'type' => 'decimal', 'scale' => 2, 'min' => 0, 'aliases' => ['length', 'l', 'l mm']],
                 'width_mm' => ['label' => 'Width (mm)', 'type' => 'decimal', 'scale' => 2, 'min' => 0, 'aliases' => ['width', 'w', 'w mm', 'breadth']],
@@ -59,7 +69,7 @@ return [
             ],
         ],
         'pattern_cavity' => [
-            'label' => 'Pattern cavities', 'kind' => 'pattern_cavity', 'handler' => \App\Services\Import\PatternCavityRows::class,
+            'label' => 'Pattern cavities', 'kind' => 'pattern_cavity', 'handler' => PatternCavityRows::class,
             'blurb' => 'Which product each cavity of a pattern makes, one row per cavity. Import the patterns and products first.',
             'match' => ['cavity' => 'Pattern, revision and cavity number'],
             'columns' => ['Cavity', 'Makes'],
@@ -80,7 +90,7 @@ return [
             ],
         ],
         'core_definition' => [
-            'label' => 'Cores', 'model' => \App\Models\CoreDefinition::class, 'table' => 'core_definitions', 'kind' => 'core_definition', 'tool' => true,
+            'label' => 'Cores', 'model' => CoreDefinition::class, 'table' => 'core_definitions', 'kind' => 'core_definition', 'tool' => true,
             'blurb' => 'The cores themselves. Import these before the core boxes that make them.',
             'match' => ['code' => 'Code', 'name' => 'Name', 'mark_code' => 'Engraving mark'],
             'fields' => [
@@ -96,7 +106,7 @@ return [
             ],
         ],
         'core_box' => [
-            'label' => 'Core boxes', 'model' => \App\Models\CoreBox::class, 'table' => 'core_boxes', 'kind' => 'core_box', 'tool' => true,
+            'label' => 'Core boxes', 'model' => CoreBox::class, 'table' => 'core_boxes', 'kind' => 'core_box', 'tool' => true,
             'blurb' => 'Core boxes, each linked to the core it makes (by the core\'s code or name).',
             'match' => ['code' => 'Code', 'name' => 'Name', 'mark_code' => 'Engraving mark'],
             'fields' => [
@@ -115,7 +125,7 @@ return [
             ],
         ],
         'mould_configuration' => [
-            'label' => 'Mould configurations', 'model' => \App\Models\MouldConfiguration::class, 'table' => 'mould_configurations', 'kind' => 'mould_configuration', 'tool' => true,
+            'label' => 'Mould configurations', 'model' => MouldConfiguration::class, 'table' => 'mould_configurations', 'kind' => 'mould_configuration', 'tool' => true,
             'blurb' => 'Ways a mould is built up: flask sets, layer counts and moulding type.',
             'match' => ['code' => 'Code', 'name' => 'Name', 'mark_code' => 'Engraving mark'],
             'fields' => [

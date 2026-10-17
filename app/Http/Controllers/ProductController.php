@@ -3,7 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
-use App\Models\ProductRevision;
+use App\Models\ProductionOrder;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -12,14 +13,16 @@ class ProductController extends Controller
 {
     public function index(Request $request)
     {
+        $archived = $request->boolean('archived');
         $products = Product::query()
+            ->when($archived, fn ($q) => $q->onlyTrashed())
             ->withCount('revisions')
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = trim($request->input('search'));
 
                 $query->where(function ($q) use ($search) {
                     $q->where('code', 'ilike', "%{$search}%")
-                      ->orWhere('name', 'ilike', "%{$search}%");
+                        ->orWhere('name', 'ilike', "%{$search}%");
                 });
             })
             ->when($request->input('active') === '1', fn ($q) => $q->where('active', true))
@@ -33,13 +36,15 @@ class ProductController extends Controller
             'totalProducts' => Product::count(),
             'activeProducts' => Product::where('active', true)->count(),
             'inactiveProducts' => Product::where('active', false)->count(),
+            'archivedProducts' => Product::onlyTrashed()->count(),
+            'archived' => $archived,
         ]);
     }
 
     public function create()
     {
         return view('products.create', [
-            'product' => new Product(),
+            'product' => new Product,
             'revisionStatuses' => ['DRAFT', 'APPROVED', 'OBSOLETE'],
         ]);
     }
@@ -101,6 +106,28 @@ class ProductController extends Controller
         ]);
 
         return view('products.show', compact('product'));
+    }
+
+    /**
+     * Archives a product: it leaves the product list, its counts and every product picker, but stays on the orders, lots and
+     * quotes that used it and can be restored. A product with an open production order cannot be archived.
+     */
+    public function archive(Product $product): RedirectResponse
+    {
+        $open = ProductionOrder::open()->where('product_id', $product->id)->pluck('production_order_number');
+        if ($open->isNotEmpty()) {
+            return back()->withErrors(['archive' => "{$product->code} has open production orders (".$open->take(5)->implode(', ').($open->count() > 5 ? '…' : '').'). Complete or cancel them before archiving it.']);
+        }
+        $product->delete();
+
+        return redirect()->route('products.index')->with('success', "{$product->code} archived. It is out of the product list and pickers; find it under Archived to restore it.");
+    }
+
+    public function restore(Product $product): RedirectResponse
+    {
+        $product->restore();
+
+        return redirect()->route('products.show', $product)->with('success', "{$product->code} restored.");
     }
 
     public function edit(Product $product)

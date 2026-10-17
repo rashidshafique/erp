@@ -3,10 +3,10 @@
 namespace App\Services;
 
 use App\Models\MouldCavity;
-use App\Models\MouldingRun;
 use App\Models\PatternRevision;
 use App\Models\PatternRevisionCavity;
 use App\Models\ProductionOrder;
+use App\Models\ProductRevision;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 
@@ -39,7 +39,7 @@ class PatternCavityMap
             $errors['cavity_number'] = "Cavity {$data['cavity_number']} already has a product assigned on this revision.";
         }
 
-        $product = \App\Models\ProductRevision::find($data['product_revision_id']);
+        $product = ProductRevision::find($data['product_revision_id']);
         if ($product && $product->status === 'OBSOLETE') {
             $errors['product_revision_id'] = 'An obsolete product revision cannot be linked to a pattern cavity.';
         }
@@ -133,7 +133,42 @@ class PatternCavityMap
             $total += min($partsByLabel);
         }
 
-        return round($total, 3);
+        // The layout is repeated on every casting level (one for cope and drag, the joints of a stack).
+        return round($total * $revision->castingLevels(), 3);
+    }
+
+    /**
+     * Metal poured into one mould of a revision and what it is made of: the castings and their own gating on every level,
+     * the runners on each level and the shared sprue and pouring basin, or the weighed total when one is recorded.
+     * "complete" says the figure includes the gating, not only the castings.
+     *
+     * @return array{kg: float, castings_kg: float, own_gating_kg: float, runners_kg: float, sprue_kg: float, castings: int, levels: int, yield: ?float, weighed: bool, complete: bool}|null
+     */
+    public function metalPerMould(PatternRevision $revision): ?array
+    {
+        $cavities = $revision->relationLoaded('cavityMap') ? $revision->cavityMap : $revision->cavityMap()->get();
+        if ($cavities->isEmpty()) {
+            return null;
+        }
+        $levels = $revision->castingLevels();
+        $allCast = $cavities->every(fn ($c) => $c->casting_weight_kg !== null);
+        $castingsKg = $levels * $cavities->sum(fn ($c) => (float) $c->casting_weight_kg);
+        $ownGatingKg = $levels * $cavities->sum(fn ($c) => $c->poured_weight_kg !== null && $c->casting_weight_kg !== null ? (float) $c->poured_weight_kg - (float) $c->casting_weight_kg : 0);
+        $runnersKg = $levels * (float) ($revision->runner_weight_per_level_kg ?? 0);
+        $sprueKg = (float) ($revision->sprue_weight_kg ?? 0);
+        $weighed = $revision->poured_weight_per_mould_kg !== null;
+        $kg = $weighed ? (float) $revision->poured_weight_per_mould_kg : $castingsKg + $ownGatingKg + $runnersKg + $sprueKg;
+        if ($kg <= 0) {
+            return null;
+        }
+        $gatingKnown = $weighed || $cavities->every(fn ($c) => $c->poured_weight_kg !== null) || $revision->runner_weight_per_level_kg !== null || $revision->sprue_weight_kg !== null;
+
+        return [
+            'kg' => round($kg, 3), 'castings_kg' => round($castingsKg, 3), 'own_gating_kg' => round($ownGatingKg, 3), 'runners_kg' => round($runnersKg, 3), 'sprue_kg' => round($sprueKg, 3),
+            'castings' => $levels * $cavities->count(), 'levels' => $levels,
+            'yield' => $allCast && $castingsKg > 0 ? round(100 * $castingsKg / $kg, 1) : null,
+            'weighed' => $weighed, 'complete' => $allCast && $gatingKnown,
+        ];
     }
 
     /** Existing mould cavities that disagree with the map. */

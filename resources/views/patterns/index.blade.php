@@ -67,8 +67,8 @@
 
 <div class="panel">
     <div class="panel-header">
-        <h2>Patterns</h2>
-        <span class="muted small">{{ $patterns->total() }} records @if ($baselineOnly && request('revision') !== 'baseline') · <a href="{{ route('patterns.index', ['revision' => 'baseline']) }}">{{ $baselineOnly }} still on the as-imported baseline with no drawing linked</a>@endif</span>
+        <h2>{{ $archived ? 'Archived patterns' : 'Patterns' }}</h2>
+        <span class="muted small">{{ $patterns->total() }} records · @if ($archived)<a href="{{ route('patterns.index') }}">Back to current patterns</a>@elseif ($archivedPatterns)<a href="{{ route('patterns.index', ['archived' => 1]) }}">{{ $archivedPatterns }} archived</a>@else none archived @endif @if ($baselineOnly && request('revision') !== 'baseline') · <a href="{{ route('patterns.index', ['revision' => 'baseline']) }}">{{ $baselineOnly }} still on the as-imported baseline with no drawing linked</a>@endif</span>
     </div>
 
     @if ($patterns->isEmpty())
@@ -107,7 +107,7 @@
                                     {{ $pattern->status }}
                                 </span>
                             </td>
-                            <td><a href="{{ route('patterns.show', $pattern) }}">Open →</a></td>
+                            <td style="white-space:nowrap"><a href="{{ route('patterns.show', $pattern) }}">Open →</a>@if ($archived)<form method="POST" action="{{ route('patterns.restore', $pattern) }}" style="display:inline;margin-left:8px">@csrf<button class="btn btn-small" type="submit">Restore</button></form>@endif</td>
                         </tr>
                     @endforeach
                 </tbody>

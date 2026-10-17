@@ -1,61 +1,75 @@
 @extends('layouts.app')
 
-@section('title', $pattern->code)
+@section('title', $pattern->name.' · '.$pattern->code)
 @section('breadcrumb', 'Patterns / ' . $pattern->code)
 
 @section('content')
+@php $typeLabel = ucfirst(strtolower(str_replace('_', ' ', $pattern->pattern_type ?? 'other'))); @endphp
 <div class="page-heading">
-    <div>
-        <h1>{{ $pattern->code }}</h1>
-        <p>{{ $pattern->name }}</p>
+    <div class="pattern-title">
+        <h1>{{ $pattern->name }}</h1>
+        <p><span class="code">{{ $pattern->code }}</span><span class="dot-sep">·</span>{{ $typeLabel }}<span class="dot-sep">·</span><span class="status {{ $pattern->status === 'ACTIVE' ? 'status-completed' : 'status-cancelled' }}">{{ $pattern->status }}</span></p>
     </div>
     <div class="actions">
         <a class="btn" href="{{ route('patterns.index') }}">All patterns</a>
-        <button type="button" class="btn btn-primary" data-quick="qd-revision">+ New revision</button>
+        @if ($pattern->trashed())
+            <form method="POST" action="{{ route('patterns.restore', $pattern) }}" style="display:inline">@csrf<button class="btn btn-primary" type="submit">Restore pattern</button></form>
+        @else
+            <form method="POST" action="{{ route('patterns.archive', $pattern) }}" style="display:inline" onsubmit="return confirm(@js('Archive '.$pattern->code.'? It leaves the pattern list and pickers but stays on old runs, and can be restored.'))">@csrf @method('DELETE')<button class="btn" type="submit">Archive</button></form>
+            <a class="btn" href="{{ route('patterns.edit', $pattern) }}">Edit pattern</a>
+            <button type="button" class="btn btn-primary" data-quick="qd-revision">+ New revision</button>
+        @endif
     </div>
 </div>
+@if ($pattern->trashed())<div class="alert alert-warning">Archived on {{ $pattern->deleted_at->format('d M Y') }}. It is left out of the pattern list, its counts and the moulding pickers, and stays on the runs and tooling records that used it. Restore it to use it again.</div>@endif
 
 @php $current = $pattern->revisions->firstWhere('is_current', true); @endphp
 @include('partials.quick-dialog', ['id' => 'qd-revision', 'title' => 'New revision of '.$pattern->code, 'action' => route('patterns.revisions.store', $pattern), 'submit' => 'Create revision', 'fields' => 'patterns._quick-revision', 'multipart' => true, 'current' => $current])
 
 <div class="tab-marker" data-tab-start="Tooling"></div>
+<style>
+    .pattern-title h1 { font-size: 26px; line-height: 1.2; margin: 0 0 4px; }
+    .pattern-title p { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; color: var(--muted); font-size: 13px; }
+    .pattern-title .code { font: 600 13px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text); letter-spacing: .02em; }
+    .pattern-title .dot-sep { color: var(--border); }
+    .tool-layout { display: grid; grid-template-columns: 170px minmax(0, 1fr) 260px; gap: 20px 28px; align-items: start; }
+    .tool-photo > .cover-box { float: none; margin: 0; width: 100% !important; }
+    .tool-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 16px 24px; margin: 0; }
+    .tool-facts .fact-wide { grid-column: 1 / -1; }
+    .tool-facts dt { margin: 0 0 4px; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+    .tool-facts dd { margin: 0; font-size: 14px; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
+    .tool-facts dd details, .tool-facts dd a { font-size: 12px; font-weight: 400; }
+    .tool-facts dd details summary { color: var(--muted); }
+    .tool-facts dd .sub { display: block; margin-top: 2px; font-size: 12px; font-weight: 400; color: var(--muted); }
+    .tool-diagram { justify-self: center; padding: 6px 0; }
+    .tool-notes { display: grid; gap: 14px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+    .tool-notes h3 { margin: 0 0 4px; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+    .tool-notes p { margin: 0; max-width: 75ch; line-height: 1.5; }
+    @media (max-width: 1100px) { .tool-layout { grid-template-columns: 150px minmax(0, 1fr); } .tool-diagram { grid-column: 1 / -1; justify-self: start; } }
+    @media (max-width: 700px) { .tool-layout { grid-template-columns: 1fr; } .tool-photo { max-width: 200px; } }
+</style>
 <div class="panel">
-    <div class="panel-header">
-        <h2>Physical tooling record</h2>
-        <span class="status {{ $pattern->status === 'ACTIVE' ? 'status-completed' : 'status-cancelled' }}">
-            {{ $pattern->status }}
-        </span>
-    </div>
+    <div class="panel-header"><h2>Physical tooling record</h2></div>
     <div class="panel-body">
-        @include('attachments._cover', ['type' => 'pattern', 'id' => $pattern->id])
-        @include('tools._mark', ['tool' => $pattern, 'type' => 'pattern'])
-        <div class="detail-grid">
-            <div><span class="muted small">Pattern code</span><strong>{{ $pattern->code }}</strong></div>
-            <div><span class="muted small">Name</span><strong>{{ $pattern->name }}</strong></div>
-            <div><span class="muted small">Type</span><strong>{{ $pattern->pattern_type }}</strong></div>
-            <div><span class="muted small">Material</span><strong>{{ $pattern->material ?: '—' }}</strong></div>
-            <div><span class="muted small">Made for sand</span><strong>{{ $pattern->sand_system ?: 'not recorded' }}</strong>@if($pattern->compatible_sands)<div class="muted small">also works on {{ implode(', ', $pattern->compatible_sands) }}</div>@endif</div>
-            <div>
-                <span class="muted small">Dimensions (L × W × H)</span>
-                <strong>
-                    {{ $pattern->length_mm ?? '—' }} ×
-                    {{ $pattern->width_mm ?? '—' }} ×
-                    {{ $pattern->height_mm ?? '—' }} mm
-                </strong>
-            </div>
+        <div class="tool-layout">
+            <div class="tool-photo">@include('attachments._cover', ['type' => 'pattern', 'id' => $pattern->id, 'size' => 170])</div>
+            <dl class="tool-facts">
+                <div><dt>Pattern code</dt><dd class="mono">{{ $pattern->code }}</dd></div>
+                <div><dt>Type</dt><dd>{{ $typeLabel }}</dd></div>
+                <div><dt>Material</dt><dd>{{ $pattern->material ?: '—' }}</dd></div>
+                @php $mm = fn ($v) => $v === null ? '—' : rtrim(rtrim(number_format((float) $v, 2, '.', ''), '0'), '.'); @endphp
+                <div><dt>Dimensions (L × W × H)</dt><dd>@if ($pattern->length_mm || $pattern->width_mm || $pattern->height_mm){{ $mm($pattern->length_mm) }} × {{ $mm($pattern->width_mm) }} × {{ $mm($pattern->height_mm) }} mm @else — @endif</dd></div>
+                <div><dt>Made for sand</dt><dd>{{ $pattern->sand_system ?: 'Not recorded' }}@if ($pattern->compatible_sands)<span class="sub">also works on {{ implode(', ', $pattern->compatible_sands) }}</span>@endif</dd></div>
+                <div><dt>Current revision</dt><dd>@if ($current)<span class="mono">{{ $current->code }}</span>@if ($current->drawing_revision)<span class="sub">drawing rev {{ $current->drawing_revision }}</span>@endif @else — @endif</dd></div>
+                <div class="fact-wide"><dt>Engraved mark</dt><dd>@include('tools._mark', ['tool' => $pattern, 'type' => 'pattern', 'bare' => true])</dd></div>
+            </dl>
+            <div class="tool-diagram">@include('patterns._mould-diagram', ['revision' => $current, 'size' => 'lg'])</div>
         </div>
 
-        @if ($pattern->description)
-            <div class="field-full" style="margin-top: 20px">
-                <span class="muted small">Description</span>
-                <p>{{ $pattern->description }}</p>
-            </div>
-        @endif
-
-        @if ($pattern->notes)
-            <div class="field-full" style="margin-top: 16px">
-                <span class="muted small">General tooling notes</span>
-                <p>{{ $pattern->notes }}</p>
+        @if ($pattern->description || $pattern->notes)
+            <div class="tool-notes">
+                @if ($pattern->description)<div><h3>Description</h3><p>{{ $pattern->description }}</p></div>@endif
+                @if ($pattern->notes)<div><h3>General tooling notes</h3><p>{{ $pattern->notes }}</p></div>@endif
             </div>
         @endif
     </div>
@@ -87,7 +101,7 @@
                         <th>Drawing rev</th>
                         <th>Cost (PKR)</th>
                         <th>Casting / pour kg</th>
-                        <th>Cavities / mould</th>
+                        <th>Layout</th>
                         <th>Parting</th>
                         <th>Effective</th>
                         <th>Photo</th>
@@ -107,7 +121,7 @@
                             <td>{{ $revision->drawing_revision ?: '—' }}</td>
                             <td class="mono">@if ($revision->modification_cost !== null){{ number_format((float) $revision->modification_cost) }}@elseif ($revision->legacy_baseline)<span class="muted">not recorded</span>@else — @endif</td>
                             <td class="mono small">@if ($revision->casting_weight_kg || $revision->pour_weight_kg){{ $revision->casting_weight_kg !== null ? rtrim(rtrim(number_format((float) $revision->casting_weight_kg, 3), '0'), '.') : '—' }} / {{ $revision->pour_weight_kg !== null ? rtrim(rtrim(number_format((float) $revision->pour_weight_kg, 3), '0'), '.') : '—' }}@if ($revision->yieldPercent() !== null)<div class="muted">yield {{ $revision->yieldPercent() }} %@if ($revision->pieces_per_mould) · {{ $revision->pieces_per_mould }} pcs/mould @endif</div>@endif @elseif ($revision->legacy_baseline)<span class="muted">not recorded</span>@else — @endif</td>
-                            <td>{{ $revision->cavities_per_mould ?? '—' }}</td>
+                            <td class="small" title="{{ $revision->arrangementLabel() }}">{{ $revision->castingLevels() }} × {{ $revision->cavities_per_mould ?? '?' }}<div class="muted">{{ \Illuminate\Support\Str::before($revision->arrangementLabel(), ' (') }}</div></td>
                             <td>{{ $revision->parting_type ?: '—' }}</td>
                             <td class="small">{{ $revision->effective_from?->format('d M Y') ?? '—' }} – {{ $revision->effective_to?->format('d M Y') ?? '' }}</td>
                             <td>@foreach ($revisionPhotos->get($revision->id, collect()) as $photo)<a href="{{ route('attachments.download', $photo) }}" target="_blank">View</a> @endforeach</td>

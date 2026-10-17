@@ -102,20 +102,17 @@ class PatternRevisionTest extends TestCase
         $this->assertSame(['P-0300-R0', 'P-0300-R1'], [$first->code, $second->code]);
     }
 
-    public function test_the_cavity_form_defaults_to_the_current_revision_and_maps_onto_it(): void
+    public function test_each_revision_shows_one_editable_row_per_cavity(): void
     {
         $pattern = Pattern::create(['code' => 'P-0123', 'name' => 'Plate']);
-        PatternRevision::create(['pattern_id' => $pattern->id, 'status' => 'APPROVED', 'cavities_per_mould' => 4]);
-        $current = $pattern->addRevision(['change_description' => 'New gating']);
-        $product = $this->productRevision();
+        $revision = PatternRevision::create(['pattern_id' => $pattern->id, 'status' => 'APPROVED', 'cavities_per_mould' => 3]);
+        $revision->cavityMap()->create(['cavity_number' => 2, 'product_revision_id' => $this->productRevision()->id, 'casting_weight_kg' => 5]);
 
-        $this->get(route('patterns.show', $pattern))->assertOk()
-            ->assertSee('<option value="'.$current->id.'" selected>P-0123-R1 (current)</option>', false);
+        $page = $this->get(route('patterns.show', $pattern));
 
-        $response = $this->post(route('patterns.cavities.add', $pattern), ['pattern_revision_id' => $current->id, 'cavity_number' => 1, 'product_revision_id' => $product->id, 'cavity_role' => 'WHOLE']);
-
-        $response->assertSessionHasNoErrors()->assertSessionMissing('warning');
-        $this->assertSame(1, $current->cavityMap()->count());
+        $page->assertOk()->assertSee('name="cavities_per_mould" min="1" max="200" value="3"', false)
+            ->assertSee('data-cavity-row="1"', false)->assertSee('data-cavity-row="2"', false)->assertSee('data-cavity-row="3"', false)
+            ->assertDontSee('data-cavity-row="4"', false)->assertSee('name="rows[2][casting_weight_kg]" min="0.0001" step="0.0001" value="5"', false);
     }
 
     public function test_cavities_on_a_superseded_revision_are_allowed_with_a_warning(): void
@@ -160,7 +157,7 @@ class PatternRevisionTest extends TestCase
             ->assertSee('Bare plate')->assertDontSee('Drawn plate')->assertDontSee('Revised plate');
     }
 
-    public function test_copying_the_layout_duplicates_cavities_for_review_and_leaves_the_old_ones_alone(): void
+    public function test_a_new_revision_carries_the_cavity_map_over_and_leaves_the_old_one_alone(): void
     {
         $pattern = Pattern::create(['code' => 'P-0123', 'name' => 'Plate']);
         $old = PatternRevision::create(['pattern_id' => $pattern->id, 'status' => 'APPROVED', 'cavities_per_mould' => 2]);
@@ -169,30 +166,17 @@ class PatternRevisionTest extends TestCase
         $old->cavityMap()->create(['cavity_number' => 2, 'product_revision_id' => $product->id, 'casting_weight_kg' => 5]);
 
         $response = $this->post(route('patterns.revisions.store', $pattern), [
-            'change_description' => 'Moved the ingate', 'copy_layout' => '1', 'modification_cost' => '45000', 'effective_from' => '2026-10-20',
+            'change_description' => 'Moved the ingate', 'modification_cost' => '45000', 'effective_from' => '2026-10-20',
             'cost_note' => 'Pattern shop invoice 4471', 'casting_weight_kg' => '5', 'pour_weight_kg' => '8', 'pieces_per_mould' => '2', '_quick' => 'qd-revision',
         ]);
 
-        $response->assertSessionHas('success', 'Revision P-0123-R1 is now current. P-0123-R0 is superseded and kept. 2 cavities were copied from the old layout; check and mark each one reviewed.');
+        $response->assertSessionHas('success', 'Revision P-0123-R1 is now current. P-0123-R0 is superseded and kept. Its cavity map (2 cavities) was carried over; change it on the cavity map if the new layout differs.');
         $new = $pattern->currentRevision()->sole();
-        $this->assertSame([[1, 5.0, 'Left half', true, $old->id], [2, 5.0, null, true, $old->id]],
+        $this->assertSame([[1, 5.0, 'Left half', false, $old->id], [2, 5.0, null, false, $old->id]],
             $new->cavityMap->map(fn ($c) => [$c->cavity_number, (float) $c->casting_weight_kg, $c->notes, $c->needs_review, $c->copied_from_revision_id])->all());
         $this->assertSame([false, false], $old->cavityMap()->pluck('needs_review')->all());
         $this->assertSame(['45000.00', '2026-10-20', 'Pattern shop invoice 4471', 62.5, 2], [$new->modification_cost, $new->effective_from->toDateString(), $new->cost_note, $new->yieldPercent(), $new->pieces_per_mould]);
 
-        $this->put(route('patterns.cavities.review', [$pattern, $new, $new->cavityMap[0]]))->assertSessionHasNoErrors();
-        $this->assertFalse($new->cavityMap[0]->fresh()->needs_review);
-    }
-
-    public function test_without_copy_the_new_revision_starts_with_no_cavities(): void
-    {
-        $pattern = Pattern::create(['code' => 'P-0123', 'name' => 'Plate']);
-        $old = PatternRevision::create(['pattern_id' => $pattern->id, 'status' => 'APPROVED', 'cavities_per_mould' => 2]);
-        $old->cavityMap()->create(['cavity_number' => 1, 'product_revision_id' => $this->productRevision()->id]);
-
-        $this->post(route('patterns.revisions.store', $pattern), ['change_description' => 'New core prints', '_quick' => 'qd-revision'])->assertSessionHasNoErrors();
-
-        $this->assertSame(0, $pattern->currentRevision()->sole()->cavityMap()->count());
     }
 
     public function test_pour_weight_cannot_be_below_casting_weight(): void

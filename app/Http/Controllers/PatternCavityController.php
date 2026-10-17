@@ -7,13 +7,103 @@ use App\Models\Pattern;
 use App\Models\PatternRevision;
 use App\Models\PatternRevisionCavity;
 use App\Services\PatternCavityMap;
+use App\Services\Patterns\RevisionLayout;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class PatternCavityController extends Controller
 {
     public function __construct(private PatternCavityMap $map) {}
+
+    /**
+     * Saves a revision's whole cavity map from its grid: the cavity count, and one row per cavity. A row with a product is
+     * created or updated; a row left without one, or beyond the count, is removed. A cavity already used on an assembled mould
+     * keeps its product. Every row is checked first; nothing is saved if one fails.
+     */
+    public function saveMap(Request $request, Pattern $pattern, PatternRevision $revision, RevisionLayout $layout): RedirectResponse
+    {
+        abort_unless($revision->pattern_id === $pattern->id, 404);
+        $request->validate([
+            'cavities_per_mould' => ['required', 'integer', 'min:1', 'max:200'],
+            'rows' => ['array'],
+            'rows.*.product_revision_id' => ['nullable', 'uuid', Rule::exists('product_revisions', 'id')],
+            'rows.*.cavity_role' => ['nullable', Rule::in(['WHOLE', 'PART'])],
+            'rows.*.component_label' => ['nullable', 'string', 'max:100'],
+            'rows.*.pieces_per_product' => ['nullable', 'integer', 'min:1', 'max:1000'],
+            'rows.*.casting_weight_kg' => ['nullable', 'numeric', 'gt:0', 'max:99999999.9999'],
+            'rows.*.poured_weight_kg' => ['nullable', 'numeric', 'gt:0', 'max:99999999.9999'],
+            'rows.*.notes' => ['nullable', 'string', 'max:2000'],
+        ], ['cavities_per_mould.required' => 'Enter how many cavities the layout has.']);
+        $count = (int) $request->input('cavities_per_mould');
+        $rows = (array) $request->input('rows', []);
+        $existing = $revision->cavityMap()->get()->keyBy('cavity_number');
+        $used = MouldCavity::where('pattern_revision_id', $revision->id)->distinct()->pluck('cavity_number')->flip();
+        $probe = (clone $revision)->forceFill(['cavities_per_mould' => $count]);
+
+        $errors = [];
+        $save = [];
+        $remove = [];
+        for ($n = 1; $n <= $count; $n++) {
+            $row = array_map(fn ($v) => is_string($v) && trim($v) === '' ? null : $v, (array) ($rows[$n] ?? []));
+            $current = $existing[$n] ?? null;
+            if (blank($row['product_revision_id'] ?? null)) {
+                if ($current && isset($used[$n])) {
+                    $errors["rows.{$n}.product_revision_id"] = "Cavity {$n}: it is used on an assembled mould, so it cannot be cleared.";
+                } elseif ($current) {
+                    $remove[] = $current;
+                }
+
+                continue;
+            }
+            $data = [
+                'cavity_number' => $n, 'product_revision_id' => $row['product_revision_id'], 'cavity_role' => $row['cavity_role'] ?? 'WHOLE',
+                'component_label' => ($row['cavity_role'] ?? 'WHOLE') === 'PART' ? ($row['component_label'] ?? null) : null,
+                'pieces_per_product' => (int) ($row['pieces_per_product'] ?? 1), 'casting_weight_kg' => $row['casting_weight_kg'] ?? null,
+                'poured_weight_kg' => $row['poured_weight_kg'] ?? null, 'notes' => $row['notes'] ?? null,
+            ];
+            try {
+                $this->map->assertDefinable($probe, $data, $current?->id);
+            } catch (ValidationException $e) {
+                foreach ($e->errors() as $field => $messages) {
+                    $errors["rows.{$n}.{$field}"] = "Cavity {$n}: {$messages[0]}";
+                }
+            }
+            if ($current && isset($used[$n]) && $current->product_revision_id !== $data['product_revision_id']) {
+                $errors["rows.{$n}.product_revision_id"] = "Cavity {$n}: it is used on an assembled mould, so its product cannot change. Record a new revision instead.";
+            }
+            $save[] = [$current, $data];
+        }
+        foreach ($existing as $n => $cavity) {
+            if ($n > $count) {
+                if (isset($used[$n])) {
+                    $errors['cavities_per_mould'] = "Cavity {$n} is used on an assembled mould, so the count cannot go below {$n}.";
+                } else {
+                    $remove[] = $cavity;
+                }
+            }
+        }
+        if ($errors) {
+            throw ValidationException::withMessages($errors);
+        }
+
+        $layoutMessage = DB::transaction(function () use ($revision, $count, $save, $remove, $layout, $request) {
+            $message = $layout->save($revision, ['cavities_per_mould' => $count], $request->input('correction_reason'));
+            foreach ($remove as $cavity) {
+                $cavity->delete();
+            }
+            foreach ($save as [$current, $data]) {
+                $current ? $current->update($data + ['needs_review' => false]) : $revision->cavityMap()->create($data);
+            }
+
+            return $message;
+        });
+        $linked = count($save);
+
+        return redirect()->route('patterns.show', $pattern)->with('success', "Cavity map of {$revision->code} saved: {$linked} of {$count} ".($count === 1 ? 'cavity' : 'cavities').' linked to a product.'.($layoutMessage && str_contains($layoutMessage, 'corrected') ? ' '.$layoutMessage : ''));
+    }
 
     /** Maps a cavity on the revision picked in the form, which defaults to the pattern's current revision. */
     public function add(Request $request, Pattern $pattern): RedirectResponse

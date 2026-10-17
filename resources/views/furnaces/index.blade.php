@@ -55,7 +55,7 @@
             <tbody>
                 @forelse($furnaces as $furnace)
                     <tr>
-                        <td><strong>{{ $furnace->code }}</strong></td>
+                        <td><a href="{{ route('furnaces.show', $furnace) }}"><strong>{{ $furnace->code }}</strong></a></td>
                         <td>{{ $furnace->name }}</td>
                         <td>{{ $furnace->furnace_type }}</td>
                         <td>

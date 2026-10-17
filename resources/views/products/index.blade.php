@@ -58,13 +58,14 @@
 
 <div class="panel">
     <div class="panel-header">
-        <h2>Products</h2>
-        <span class="muted small">{{ $products->total() }} records</span>
+        <h2>{{ $archived ? 'Archived products' : 'Products' }}</h2>
+        <span class="muted small">{{ $products->total() }} records ·
+            @if ($archived)<a href="{{ route('products.index') }}">Back to current products</a>@elseif ($archivedProducts)<a href="{{ route('products.index', ['archived' => 1]) }}">{{ $archivedProducts }} archived</a>@else none archived @endif</span>
     </div>
 
     @if ($products->isEmpty())
         <div class="empty-state">
-            <strong>No products found</strong>
+            <strong>{{ $archived ? 'No archived products' : 'No products found' }}</strong>
             <p>Create your first product to start building the production workflow.</p>
             <a class="btn btn-primary" href="{{ route('products.create') }}">Create product</a>
         </div>
@@ -99,7 +100,7 @@
                                     {{ $product->active ? 'ACTIVE' : 'INACTIVE' }}
                                 </span>
                             </td>
-                            <td><a href="{{ route('products.show', $product) }}">Open →</a></td>
+                            <td style="white-space:nowrap"><a href="{{ route('products.show', $product) }}">Open →</a>@if ($archived)<form method="POST" action="{{ route('products.restore', $product) }}" style="display:inline;margin-left:8px">@csrf<button class="btn btn-small" type="submit">Restore</button></form>@endif</td>
                         </tr>
                     @endforeach
                 </tbody>

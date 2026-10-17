@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CastingLot extends Model
 {
@@ -52,7 +53,7 @@ class CastingLot extends Model
 
     public function product(): BelongsTo
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(Product::class)->withTrashed();   // archived products still show on old records
     }
 
     public function productRevision(): BelongsTo
@@ -60,22 +61,22 @@ class CastingLot extends Model
         return $this->belongsTo(ProductRevision::class);
     }
 
-    public function stageEvents(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function stageEvents(): HasMany
     {
         return $this->hasMany(CastingLotStageEvent::class)->orderBy('created_at');
     }
 
-    public function inspections(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function inspections(): HasMany
     {
         return $this->hasMany(QualityInspection::class)->orderBy('created_at');
     }
 
-    public function ncrs(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function ncrs(): HasMany
     {
         return $this->hasMany(NonconformanceReport::class)->orderBy('created_at');
     }
 
-    public function packingItems(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function packingItems(): HasMany
     {
         return $this->hasMany(PackingRecordItem::class);
     }

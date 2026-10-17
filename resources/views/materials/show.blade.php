@@ -16,7 +16,8 @@
     <div class="alert alert-success">{{ session('success') }}</div>
 @endif
 
-<div class="card" style="padding:18px;margin-bottom:20px">
+<div class="card" style="padding:18px;margin-bottom:20px;display:flow-root">
+    @include('attachments._cover', ['type' => 'material', 'id' => $material->id, 'size' => 140])
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px">
         <div><small>Status</small><h3>{{ $material->status }}</h3></div>
         <div><small>Lot records</small><h3>{{ $material->lots->count() }}</h3></div>
@@ -159,4 +160,5 @@
         </tbody>
     </table>
 </div>
+@include('attachments._panel', ['type' => 'material', 'id' => $material->id])
 @endsection

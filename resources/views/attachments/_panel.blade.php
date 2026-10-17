@@ -13,7 +13,7 @@
     @if ($atts->isNotEmpty())
         <div class="table-wrap"><table><thead><tr><th>File</th><th>Category</th><th>Size</th><th>Added</th><th></th></tr></thead><tbody>
             @foreach ($atts as $a)
-                <tr><td style="display:flex;gap:10px;align-items:center">@if($a->isImage())<a href="{{ route('attachments.download', $a) }}" target="_blank"><img src="{{ route('attachments.download', $a) }}" alt="" loading="lazy" style="width:44px;height:44px;object-fit:cover;border-radius:5px;border:1px solid var(--border);padding:0;min-height:0"></a>@endif<div><a href="{{ route('attachments.download', $a) }}" @if($a->isInlineViewable()) target="_blank" @endif>{{ $a->title ?: $a->original_name }}</a>
+                <tr><td style="display:flex;gap:10px;align-items:center">@if($a->isImage())<a href="{{ route('attachments.download', $a) }}" target="_blank" data-lightbox="photos-{{ $type }}-{{ $id }}" data-caption="{{ $a->title ?: $a->original_name }}"><img src="{{ route('attachments.download', $a) }}" alt="" loading="lazy" style="width:44px;height:44px;object-fit:cover;border-radius:5px;border:1px solid var(--border);padding:0;min-height:0"></a>@endif<div><a href="{{ route('attachments.download', $a) }}" @if($a->isInlineViewable()) target="_blank" @endif>{{ $a->title ?: $a->original_name }}</a>
                         @if($a->title)<div class="muted small">{{ $a->original_name }}</div>@endif<div class="muted small" title="SHA-256 {{ $a->sha256 }}">{{ substr($a->sha256, 0, 12) }}…</div></div></td>
                     <td>{{ $cats[$a->category] ?? $a->category }}</td><td>{{ $fmt($a->size_bytes) }}</td>
                     <td>{{ $a->created_at->format('d M Y H:i') }}<div class="muted small">{{ $a->uploaded_by_name }}</div></td>

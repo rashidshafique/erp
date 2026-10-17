@@ -32,65 +32,7 @@
         <div class="panel-header"><h2>Physical tooling</h2></div>
         <div class="panel-body">
             <div class="form-grid" data-progressive="3">
-                <div class="field">
-                    <label for="code">Pattern code</label>
-                    <input id="code" name="code" maxlength="40"
-                           value="{{ old('code') }}" placeholder="Leave blank to generate: {{ app(\App\Services\Codes\CodeGenerator::class)->preview('pattern') }}">
-                </div>
-                <div class="field">
-                    <label for="name">Pattern name *</label>
-                    <input id="name" name="name" required maxlength="255"
-                           value="{{ old('name') }}" placeholder="Part or tooling name">
-                </div>
-                <div class="field">
-                    <label for="pattern_type">Pattern type *</label>
-                    <select id="pattern_type" name="pattern_type" required>
-                        @foreach ($patternTypes as $type)
-                            <option value="{{ $type }}" @selected(old('pattern_type', 'MATCHPLATE') === $type)>
-                                {{ $type }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="field">
-                    <label for="status">Tooling status *</label>
-                    <select id="status" name="status" required>
-                        @foreach ($patternStatuses as $status)
-                            <option value="{{ $status }}" @selected(old('status', 'ACTIVE') === $status)>
-                                {{ $status }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="field">
-                    <label for="material">Pattern / plate material</label>
-                    <input id="material" name="material" maxlength="50"
-                           value="{{ old('material') }}" placeholder="e.g. Aluminium, wood, resin">
-                </div>
-                <div class="field">
-                    <label for="length_mm">Length (mm)</label>
-                    <input id="length_mm" name="length_mm" type="number" min="0.01" step="0.01"
-                           value="{{ old('length_mm') }}">
-                </div>
-                <div class="field">
-                    <label for="width_mm">Width (mm)</label>
-                    <input id="width_mm" name="width_mm" type="number" min="0.01" step="0.01"
-                           value="{{ old('width_mm') }}">
-                </div>
-                <div class="field">
-                    <label for="height_mm">Height (mm)</label>
-                    <input id="height_mm" name="height_mm" type="number" min="0.01" step="0.01"
-                           value="{{ old('height_mm') }}">
-                </div>
-                @include('patterns._sand')
-                <div class="field field-full">
-                    <label for="description">Description</label>
-                    <textarea id="description" name="description" rows="3">{{ old('description') }}</textarea>
-                </div>
-                <div class="field field-full">
-                    <label for="notes">General tooling notes</label>
-                    <textarea id="notes" name="notes" rows="3">{{ old('notes') }}</textarea>
-                </div>
+                @include('patterns._tooling-fields', ['withSand' => true])
             </div>
         </div>
     </div>

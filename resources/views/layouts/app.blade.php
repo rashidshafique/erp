@@ -953,6 +953,7 @@ document.addEventListener('DOMContentLoaded', () => {
 @include("partials.tabs")
 @include("partials.table-ui")
 @include("partials.form-ui")
+@include("partials.lightbox")
 @stack('dialogs')
 @include("partials.rowlink")
 </body>

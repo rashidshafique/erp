@@ -18,6 +18,23 @@ class PatternRevision extends Model
 {
     use HasUuids;
 
+    /**
+     * How the revision is moulded. Every arrangement counts castings the same way: casting levels × the cavity layout, where a
+     * level is a joint between a bottom and a top flask (or between two blocks of a flaskless line).
+     */
+    public const ARRANGEMENTS = [
+        'MATCHPLATE' => 'Matchplate (cope and drag on one plate)',
+        'COPE_DRAG' => 'Cope and drag (separate plates)',
+        'STACK' => 'Stack mould (sections stacked on one sprue)',
+        'VERTICAL' => 'Vertically parted, flaskless (DISA type)',
+        'LOOSE' => 'Loose or split pattern, hand moulded',
+        'GATED' => 'Gated pattern (runners on the pattern)',
+        'CORE_PACKAGE' => 'Core package (stacked cores)',
+        'SHELL' => 'Shell mould',
+        'CLUSTER' => 'Tree or cluster',
+        'OTHER' => 'Other',
+    ];
+
     protected $fillable = [
         'pattern_id',
         'revision',
@@ -34,6 +51,11 @@ class PatternRevision extends Model
         'casting_weight_kg',
         'pour_weight_kg',
         'pieces_per_mould',
+        'mould_arrangement',
+        'casting_levels',
+        'runner_weight_per_level_kg',
+        'sprue_weight_kg',
+        'poured_weight_per_mould_kg',
         'parting_type',
         'cavities_per_mould',
         'layers_per_mould',
@@ -56,6 +78,10 @@ class PatternRevision extends Model
         'casting_weight_kg' => 'decimal:4',
         'pour_weight_kg' => 'decimal:4',
         'pieces_per_mould' => 'integer',
+        'casting_levels' => 'integer',
+        'runner_weight_per_level_kg' => 'decimal:4',
+        'sprue_weight_kg' => 'decimal:4',
+        'poured_weight_per_mould_kg' => 'decimal:4',
         'effective_from' => 'date',
         'effective_to' => 'date',
     ];
@@ -75,6 +101,11 @@ class PatternRevision extends Model
                 }
                 $revision->revision = $label;
             }
+            if (blank($revision->mould_arrangement)) {
+                $type = Pattern::withTrashed()->whereKey($revision->pattern_id)->value('pattern_type');
+                $revision->mould_arrangement = Pattern::TYPES[$type] ?? 'OTHER';
+            }
+            $revision->casting_levels ??= 1;
             if (blank($revision->code)) {
                 $revision->code = static::codeFor(Pattern::withTrashed()->whereKey($revision->pattern_id)->value('code'), $revision->sequence);
             }
@@ -124,6 +155,17 @@ class PatternRevision extends Model
         return $query->where('legacy_baseline', true)->where(fn ($q) => $q->whereNull('drawing_revision')->orWhere('drawing_revision', ''));
     }
 
+    /** Joints holding castings in one mould: 1 for cope and drag, the sections less one for a stack. */
+    public function castingLevels(): int
+    {
+        return max(1, (int) ($this->casting_levels ?? 1));
+    }
+
+    public function arrangementLabel(): string
+    {
+        return self::ARRANGEMENTS[$this->mould_arrangement] ?? 'Not set';
+    }
+
     public function isSuperseded(): bool
     {
         return ! $this->is_current && $this->superseded_at !== null;
@@ -139,7 +181,7 @@ class PatternRevision extends Model
 
     public function pattern(): BelongsTo
     {
-        return $this->belongsTo(Pattern::class);
+        return $this->belongsTo(Pattern::class)->withTrashed();   // archived patterns still show on old records
     }
 
     public function cavityMap(): HasMany

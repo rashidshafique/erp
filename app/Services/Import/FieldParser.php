@@ -21,11 +21,15 @@ class FieldParser
         'MATCHPLATE' => ['MATCHPLATE', 'MATCHINGPLATE', 'PLATE'],
         'LOOSE_PATTERN' => ['LOOSE', 'LOOSEPATTERN', 'LOOSEPIECE'],
         'SPLIT_PATTERN' => ['SPLIT', 'SPLITPATTERN', 'TWOPIECE'],
+        'STACK_PLATE' => ['STACK', 'STACKPLATE', 'STACKMOULD', 'STACKMOLD', 'STACKPATTERN'],
+        'VERTICAL_PLATES' => ['VERTICAL', 'DISA', 'FLASKLESS', 'VERTICALPLATE'],
+        'GATED' => ['GATEDPATTERN', 'GATEDPLATE'],
         'WHOLE' => ['FULL', 'COMPLETE', 'WHOLECASTING', 'FULLCASTING'],
         'PART' => ['COMPONENT', 'SECTION', 'PIECE', 'PARTIAL'],
     ];
 
     private const TRUE_WORDS = ['1', 'YES', 'Y', 'TRUE', 'T', 'ON', 'ACTIVE', 'X', 'ENABLED', 'LIVE', 'OK'];
+
     private const FALSE_WORDS = ['0', 'NO', 'N', 'FALSE', 'F', 'OFF', 'INACTIVE', 'DISABLED', 'RETIRED', 'OBSOLETE', 'SCRAPPED', 'CLOSED'];
 
     public static function key(string $s): string
@@ -41,7 +45,7 @@ class FieldParser
      * @param  array<string, array{col:?int, default:?string}>  $mapping
      * @param  array<int, string>  $cells
      * @param  array<string, array<string, int>>  $unknown
-     * @return array{0: array<string, mixed>, 1: array<int, string>}  parsed values, error messages
+     * @return array{0: array<string, mixed>, 1: array<int, string>} parsed values, error messages
      */
     public static function row(array $fields, array $mapping, array $cells, array $options, array &$unknown): array
     {
@@ -59,10 +63,12 @@ class FieldParser
             }
             if ($raw === '') {
                 $parsed[$key] = null;
+
                 continue;
             }
             if ($f['type'] === 'ref') {
                 $parsed[$key] = $raw;
+
                 continue;
             }
             [$val, $err, $isUnknown] = self::parse($key, $f, $raw, $options, $valueMap[$key] ?? []);
@@ -79,7 +85,7 @@ class FieldParser
     }
 
     /**
-     * @return array{0: mixed, 1: ?string, 2: bool}  value, error message, whether the error is an unrecognised list value
+     * @return array{0: mixed, 1: ?string, 2: bool} value, error message, whether the error is an unrecognised list value
      */
     public static function parse(string $field, array $def, string $raw, array $options, array $valueMap = []): array
     {

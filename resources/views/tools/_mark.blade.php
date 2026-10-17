@@ -1,7 +1,7 @@
-{{-- Engraving mark with a way to record an existing one. Needs $tool and $type. --}}
+{{-- Engraving mark with a way to record an existing one. Needs $tool and $type; $bare leaves out the label when the page shows its own. --}}
 @php($mark = $tool->ensureMark())
-<div style="margin:6px 0">
-    <span class="muted small">Engraved mark</span>
+<div style="margin:{{ empty($bare) ? '6px 0' : '0' }}">
+    @if (empty($bare))<span class="muted small">Engraved mark</span>@endif
     <div style="font:700 22px monospace;letter-spacing:3px">{{ $mark }}</div>
     <details style="margin-top:4px"><summary class="small" style="cursor:pointer">Change (tool already engraved with another number)</summary>
         <form method="POST" action="{{ route('tools.mark', [$type, $tool->id]) }}" style="display:flex;gap:6px;margin-top:6px;max-width:320px">@csrf @method('PUT')

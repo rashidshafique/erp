@@ -6,18 +6,21 @@ use App\Models\MouldAssembly;
 use App\Models\MouldCavity;
 use App\Models\MouldingRun;
 use App\Models\MouldLayer;
+use App\Models\PatternRevision;
 use App\Models\PatternRevisionCavity;
 use App\Services\PatternCavityMap;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
-/** Turns accepted moulds of a moulding run into mould assemblies, with their cavities taken from the pattern's cavity map. */
+/**
+ * Turns accepted moulds of a moulding run into mould assemblies, with their cavities taken from the pattern's cavity map.
+ * Castings form at the joints between flask sections: a cope-and-drag mould (2 sections) holds the layout once, a stack of
+ * N sections up to N − 1 times, never more than the casting levels of the pattern revision.
+ */
 class MouldAssembler
 {
-    public function __construct(private PatternCavityMap $map)
-    {
-    }
+    public function __construct(private PatternCavityMap $map) {}
 
     /** @return Collection<int, MouldAssembly> */
     public function assemble(MouldingRun $run, int $count, string $configurationId, int $layers = 2, ?string $assembledBy = null, ?string $checkedBy = null): Collection
@@ -33,8 +36,9 @@ class MouldAssembler
         }
         $cavities = PatternRevisionCavity::where('pattern_revision_id', $run->pattern_revision_id)->orderBy('cavity_number')->get();
         $types = $layers <= 1 ? ['DRAG'] : array_merge(['DRAG'], array_fill(0, $layers - 2, 'STACK'), ['COPE']);
+        $levels = min(PatternRevision::findOrFail($run->pattern_revision_id)->castingLevels(), max(1, $layers - 1));
 
-        return DB::transaction(function () use ($run, $count, $configurationId, $assembledBy, $checkedBy, $cavities, $types) {
+        return DB::transaction(function () use ($run, $count, $configurationId, $assembledBy, $checkedBy, $cavities, $types, $levels) {
             MouldingRun::whereKey($run->id)->lockForUpdate()->first();
             $existing = MouldAssembly::where('moulding_run_id', $run->id)->count();
             if ((int) $run->accepted_mould_qty < $existing + $count) {
@@ -60,6 +64,9 @@ class MouldAssembler
                 ]);
                 foreach ($types as $n => $type) {
                     $layer = MouldLayer::create(['mould_assembly_id' => $asm->id, 'layer_number' => $n + 1, 'layer_type' => $type]);
+                    if ($n >= $levels) {
+                        continue;   // the top flask closes the mould; it holds no layout of its own
+                    }
                     foreach ($cavities as $c) {
                         MouldCavity::create([
                             'mould_layer_id' => $layer->id,

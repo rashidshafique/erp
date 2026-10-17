@@ -14,9 +14,15 @@
     </div>
     <div class="actions">
         <a class="btn" href="{{ route('products.index') }}">All products</a>
-        <a class="btn btn-primary" href="{{ route('products.edit', $product) }}">Edit product</a>
+        @if ($product->trashed())
+            <form method="POST" action="{{ route('products.restore', $product) }}" style="display:inline">@csrf<button class="btn btn-primary" type="submit">Restore product</button></form>
+        @else
+            <form method="POST" action="{{ route('products.archive', $product) }}" style="display:inline" onsubmit="return confirm(@js('Archive '.$product->code.'? It leaves the product list and pickers but stays on old orders, and can be restored.'))">@csrf @method('DELETE')<button class="btn" type="submit">Archive</button></form>
+            <a class="btn btn-primary" href="{{ route('products.edit', $product) }}">Edit product</a>
+        @endif
     </div>
 </div>
+@if ($product->trashed())<div class="alert alert-warning">Archived on {{ $product->deleted_at->format('d M Y') }}. It is left out of the product list, its counts and every product picker, and stays on the orders and lots that used it. Restore it to use it again.</div>@endif
 
 <div class="tab-marker" data-tab-start="Specification"></div>
 <div class="panel">
