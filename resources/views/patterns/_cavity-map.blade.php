@@ -32,22 +32,53 @@
             .cg-table input[name$="[component_label]"] { width: 120px; }
             .cg-table input[name$="[notes]"] { width: 150px; }
             .cg-table .cg-num { width: 78px; }
+            .cg-table .cg-mark { width: 70px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; text-transform: uppercase; }
             .cg-table .cg-n { width: 54px; text-align: center; }
             .cg-table .bad { border-color: var(--danger) !important; }
             .cg-table tr.has-error > td { background: color-mix(in srgb, var(--danger) 6%, transparent); }
             .cg-table tr.cg-errors td { color: var(--danger); font-size: 12px; padding-top: 0; }
         </style>
 
+        @php $older = $pattern->revisions->reject(fn ($r) => $r->is_current); @endphp
         @foreach ($pattern->revisions as $revision)
-            <h3 style="margin-top:22px" id="cavities-{{ $revision->id }}">{{ $revision->label() }}
-                <span class="muted small">({{ $revision->cavityMap->count() }} of {{ $revision->cavities_per_mould ?? '?' }} cavities linked)</span>
-            </h3>
-            @include('patterns._layout', ['revision' => $revision, 'pattern' => $pattern, 'assembled' => in_array($revision->id, $assembledRevisions, true)])
-            @if ($revision->isSuperseded() && $revision->cavityMap->isNotEmpty())
-                <div class="alert alert-warning">{{ \App\Http\Controllers\PatternCavityController::supersededWarning($revision) }}</div>
+            @php
+                // Only the current revision is open; an older one opens when it has a save error to show.
+                $open = $revision->is_current || in_array($revision->id, [old('_map'), old('_layout')], true) || ! $current;
+            @endphp
+            @if (! $revision->is_current && $loop->first === false && $older->first()?->id === $revision->id)
+                <h3 class="older-heading">Older revisions <span class="muted small">({{ $older->count() }}, kept for traceability)</span></h3>
             @endif
-            @include('patterns._cavity-grid', ['revision' => $revision, 'pattern' => $pattern, 'productRevisions' => $productRevisions, 'assembled' => in_array($revision->id, $assembledRevisions, true)])
+            <details class="rev-block {{ $revision->is_current ? 'is-current' : '' }}" id="cavities-{{ $revision->id }}" @if ($open) open @endif>
+                <summary>
+                    <strong>{{ $revision->label() }}</strong>
+                    <span class="muted small">{{ $revision->cavityMap->count() }} of {{ $revision->cavities_per_mould ?? '?' }} cavities linked @if ($revision->isSuperseded()) · superseded {{ $revision->superseded_at->format('d M Y') }}@endif</span>
+                </summary>
+                @include('patterns._layout', ['revision' => $revision, 'pattern' => $pattern, 'assembled' => in_array($revision->id, $assembledRevisions, true)])
+                @if ($revision->isSuperseded() && $revision->cavityMap->isNotEmpty())
+                    <div class="alert alert-warning">{{ \App\Http\Controllers\PatternCavityController::supersededWarning($revision) }}</div>
+                @endif
+                @include('patterns._cavity-grid', ['revision' => $revision, 'pattern' => $pattern, 'productRevisions' => $productRevisions, 'assembled' => in_array($revision->id, $assembledRevisions, true)])
+            </details>
         @endforeach
+        <style>
+            .rev-block { border: 1px solid var(--border); border-radius: 10px; padding: 0 14px; margin: 12px 0; }
+            .rev-block[open] { padding-bottom: 4px; }
+            .rev-block.is-current { border-color: var(--accent); }
+            .rev-block > summary { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; padding: 10px 0; cursor: pointer; font-size: 14px; }
+            .rev-block:not(.is-current) > summary strong { font-weight: 600; color: var(--muted); }
+            .older-heading { margin: 22px 0 4px; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+        </style>
+        <script>
+        (function () {
+            // A link to an older revision (from a product's Patterns tab) opens it.
+            function openTarget() {
+                var id = decodeURIComponent(location.hash.slice(1)), el = id && document.getElementById(id);
+                if (el && el.tagName === 'DETAILS' && el.classList.contains('rev-block')) { el.open = true; el.scrollIntoView({ block: 'start' }); }
+            }
+            window.addEventListener('hashchange', openTarget);
+            openTarget();
+        })();
+        </script>
         <script>
         (function () {
             document.querySelectorAll('[data-cavity-grid]').forEach(function (form) {

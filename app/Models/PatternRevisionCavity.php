@@ -24,6 +24,7 @@ class PatternRevisionCavity extends Model
         'casting_weight_kg',
         'poured_weight_kg',
         'notes',
+        'cavity_mark',
         'copied_from_revision_id',
         'needs_review',
     ];

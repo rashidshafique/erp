@@ -151,5 +151,5 @@
 <div class="tab-marker" data-tab-start="Files & history"></div>
 @include('custom-fields._panel', ['entity' => 'pattern', 'id' => $pattern->id])
 @include('attachments._panel', ['type' => 'pattern', 'id' => $pattern->id])
-@include('audit._history', ['type' => 'Pattern', 'id' => $pattern->id])
+@include('patterns._history', ['pattern' => $pattern])
 @endsection

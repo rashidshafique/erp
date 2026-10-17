@@ -18,7 +18,7 @@
     </div>
     <div class="table-wrap">
         <table class="cg-table">
-            <thead><tr><th>Cavity</th><th>Product</th><th>Makes</th><th>Component</th><th>Pieces / product</th><th>Casting kg</th><th>Poured kg, own gating</th><th>Notes</th></tr></thead>
+            <thead><tr><th>Cavity</th><th title="Number or code engraved or embossed on the cavity">Mark</th><th>Product</th><th>Makes</th><th>Component</th><th>Pieces / product</th><th>Casting kg</th><th>Poured kg, own gating</th><th>Notes</th></tr></thead>
             <tbody data-cavity-rows>
                 @for ($n = 1; $n <= $count; $n++)
                     @include('patterns._cavity-grid-row', ['n' => $n, 'value' => fn ($field) => $rowVal($n, $field), 'error' => fn ($field) => $err($n, $field), 'copied' => ! $mine && $mapped->get($n)?->copied_from_revision_id ? $mapped->get($n)->copiedFrom?->code : null])

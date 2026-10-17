@@ -11,6 +11,7 @@ use App\Models\Pattern;
 use App\Models\PatternRevision;
 use App\Models\Product;
 use App\Models\ProductRevision;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -21,7 +22,8 @@ class PatternEditTest extends TestCase
     /** @return array<string, mixed> */
     private function form(array $over = []): array
     {
-        return $over + ['code' => 'P-0123', 'name' => 'Flange plate', 'pattern_type' => 'COPE_DRAG', 'status' => 'ACTIVE', 'material' => 'Aluminium', 'length_mm' => 500, 'width_mm' => 400, 'height_mm' => 80, 'description' => 'Two flanges', 'notes' => null];
+        return $over + ['code' => 'P-0123', 'name' => 'Flange plate', 'pattern_type' => 'COPE_DRAG', 'status' => 'ACTIVE', 'material' => 'Aluminium', 'length_mm' => 500, 'width_mm' => 400, 'height_mm' => 80, 'description' => 'Two flanges', 'notes' => null,
+            'mark_code' => Pattern::where('code', 'P-0123')->value('mark_code')];
     }
 
     public function test_the_edit_page_shows_the_saved_values(): void
@@ -94,5 +96,38 @@ class PatternEditTest extends TestCase
         $this->put(route('patterns.update', $pattern), $this->form(['mould_arrangement' => 'COPE_DRAG', 'cavities_per_mould' => 3]))->assertSessionHasErrors('correction_reason');
 
         $this->assertSame(['Plate renamed', 2], [$pattern->fresh()->name, $revision->fresh()->cavities_per_mould]);
+    }
+
+    public function test_the_engraved_mark_is_edited_with_the_pattern_and_must_be_unique(): void
+    {
+        Pattern::create(['code' => 'P-0999', 'name' => 'Other', 'mark_code' => 'ZZ999']);
+        $pattern = Pattern::create(['code' => 'P-0123', 'name' => 'Flange plate', 'pattern_type' => 'COPE_DRAG', 'status' => 'ACTIVE']);
+        $this->get(route('patterns.edit', $pattern))->assertOk()->assertSee('name="mark_code"', false)->assertSee('value="'.$pattern->mark_code.'"', false);
+
+        $this->put(route('patterns.update', $pattern), $this->form(['mark_code' => 'zz999']))->assertSessionHasErrors(['mark_code' => 'Mark ZZ999 is already on another tool.']);
+        $this->put(route('patterns.update', $pattern), $this->form(['mark_code' => 'ab123']))->assertSessionHasNoErrors();
+
+        $this->assertSame('AB123', $pattern->fresh()->mark_code);
+        $this->assertDatabaseHas('tool_marks', ['tool_type' => 'pattern', 'tool_id' => $pattern->id, 'mark_code' => 'AB123']);
+    }
+
+    public function test_the_change_history_covers_the_pattern_its_revisions_cavities_and_files(): void
+    {
+        $this->actingAs(User::factory()->create(['name' => 'Rashid']));
+        $product = ProductRevision::create(['product_id' => Product::create(['code' => 'VALVE-1', 'name' => 'Valve'])->id, 'revision' => 'A', 'status' => 'APPROVED']);
+        $pattern = Pattern::create(['code' => 'P-0123', 'name' => 'Flange plat', 'pattern_type' => 'COPE_DRAG', 'status' => 'ACTIVE']);
+        $revision = PatternRevision::create(['pattern_id' => $pattern->id, 'status' => 'APPROVED', 'cavities_per_mould' => 2]);
+        $this->put(route('patterns.update', $pattern), $this->form(['name' => 'Flange plate']))->assertSessionHasNoErrors();
+        $this->put(route('patterns.cavities.map', [$pattern, $revision]), ['cavities_per_mould' => 2, 'rows' => [1 => ['product_revision_id' => $product->id, 'cavity_mark' => 'A1']]])->assertSessionHasNoErrors();
+        $this->put(route('patterns.cavities.map', [$pattern, $revision]), ['cavities_per_mould' => 2, 'rows' => []])->assertSessionHasNoErrors();
+
+        $page = $this->get(route('patterns.edit', $pattern));
+
+        $page->assertOk()->assertSee('Change history')
+            ->assertSee('Changed</strong> Pattern', false)->assertSee('Flange plat</span> → Flange plate', false)
+            ->assertSee('Added</strong> Cavity 1 of P-0123-R0', false)->assertSee('VALVE-1 rev A')->assertSee('A1')
+            ->assertSee('Removed</strong> Cavity 1 of P-0123-R0', false)
+            ->assertSee('Rashid');
+        $this->get(route('patterns.show', $pattern))->assertOk()->assertSee('Change history');
     }
 }

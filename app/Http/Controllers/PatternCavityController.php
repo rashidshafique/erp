@@ -36,7 +36,8 @@ class PatternCavityController extends Controller
             'rows.*.casting_weight_kg' => ['nullable', 'numeric', 'gt:0', 'max:99999999.9999'],
             'rows.*.poured_weight_kg' => ['nullable', 'numeric', 'gt:0', 'max:99999999.9999'],
             'rows.*.notes' => ['nullable', 'string', 'max:2000'],
-        ], ['cavities_per_mould.required' => 'Enter how many cavities the layout has.']);
+            'rows.*.cavity_mark' => ['nullable', 'string', 'max:20'],
+        ], ['cavities_per_mould.required' => 'Enter how many cavities the layout has.', 'rows.*.cavity_mark.max' => 'A cavity mark is at most 20 characters.']);
         $count = (int) $request->input('cavities_per_mould');
         $rows = (array) $request->input('rows', []);
         $existing = $revision->cavityMap()->get()->keyBy('cavity_number');
@@ -46,6 +47,7 @@ class PatternCavityController extends Controller
         $errors = [];
         $save = [];
         $remove = [];
+        $marks = [];
         for ($n = 1; $n <= $count; $n++) {
             $row = array_map(fn ($v) => is_string($v) && trim($v) === '' ? null : $v, (array) ($rows[$n] ?? []));
             $current = $existing[$n] ?? null;
@@ -63,7 +65,14 @@ class PatternCavityController extends Controller
                 'component_label' => ($row['cavity_role'] ?? 'WHOLE') === 'PART' ? ($row['component_label'] ?? null) : null,
                 'pieces_per_product' => (int) ($row['pieces_per_product'] ?? 1), 'casting_weight_kg' => $row['casting_weight_kg'] ?? null,
                 'poured_weight_kg' => $row['poured_weight_kg'] ?? null, 'notes' => $row['notes'] ?? null,
+                'cavity_mark' => isset($row['cavity_mark']) ? mb_strtoupper(trim($row['cavity_mark'])) : null,
             ];
+            if ($data['cavity_mark'] !== null) {
+                if (isset($marks[$data['cavity_mark']])) {
+                    $errors["rows.{$n}.cavity_mark"] = "Cavity {$n}: mark {$data['cavity_mark']} is already on cavity {$marks[$data['cavity_mark']]}.";
+                }
+                $marks[$data['cavity_mark']] ??= $n;
+            }
             try {
                 $this->map->assertDefinable($probe, $data, $current?->id);
             } catch (ValidationException $e) {
@@ -93,6 +102,11 @@ class PatternCavityController extends Controller
             $message = $layout->save($revision, ['cavities_per_mould' => $count], $request->input('correction_reason'));
             foreach ($remove as $cavity) {
                 $cavity->delete();
+            }
+            // Marks moving between cavities are cleared first, so a swap never meets itself in the unique index.
+            $moving = collect($save)->filter(fn ($pair) => $pair[0] && $pair[0]->cavity_mark !== null && $pair[0]->cavity_mark !== $pair[1]['cavity_mark'])->map(fn ($pair) => $pair[0]->id);
+            if ($moving->isNotEmpty()) {
+                PatternRevisionCavity::whereIn('id', $moving)->update(['cavity_mark' => null]);
             }
             foreach ($save as [$current, $data]) {
                 $current ? $current->update($data + ['needs_review' => false]) : $revision->cavityMap()->create($data);

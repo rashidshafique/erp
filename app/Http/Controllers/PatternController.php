@@ -11,6 +11,7 @@ use App\Models\Pattern;
 use App\Models\PatternRevision;
 use App\Models\ProductRevision;
 use App\Models\SandSystem;
+use App\Services\Codes\CodeGenerator;
 use App\Services\Patterns\RevisionLayout;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -168,7 +169,9 @@ class PatternController extends Controller
             'height_mm' => ['nullable', 'numeric', 'gt:0', 'max:99999999.99'],
             'description' => ['nullable', 'string'],
             'notes' => ['nullable', 'string'],
+            'mark_code' => CodeGenerator::MARK_RULES,
         ]);
+        $mark = Arr::pull($data, 'mark_code');
         $data['code'] = strtoupper(trim($data['code']));
         $data['name'] = trim($data['name']);
         $current = $pattern->currentRevision;
@@ -182,8 +185,9 @@ class PatternController extends Controller
             $layout = $this->validatedLayout($request);
         }
 
-        $layoutMessage = DB::transaction(function () use ($pattern, $data, $current, $layout, $request) {
+        $layoutMessage = DB::transaction(function () use ($pattern, $data, $current, $layout, $request, $mark) {
             $pattern->update($data);
+            app(CodeGenerator::class)->changeMark('pattern', $pattern, $mark);
 
             return $current && $layout ? app(RevisionLayout::class)->save($current, $layout, $request->input('correction_reason')) : null;
         });

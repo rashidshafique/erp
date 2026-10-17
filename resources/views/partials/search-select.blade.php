@@ -40,6 +40,17 @@
         var current = items.indexOf(target.options[target.selectedIndex]);
         mark(current >= 0 && !q ? current : 0);
     }
+    // Below the select when the list fits there, otherwise above it. Above, the list is held by its bottom edge so it stays
+    // against the select however short the filtered list gets.
+    function place() {
+        var r = target.getBoundingClientRect(), h = pop.offsetHeight, below = window.innerHeight - r.bottom - 8, above = r.top - 8;
+        if (h + 4 > below && above > below) {
+            pop.style.top = 'auto'; pop.style.bottom = (window.innerHeight - r.top + 4) + 'px';
+        } else {
+            pop.style.bottom = 'auto'; pop.style.top = (r.bottom + 4) + 'px';
+        }
+        pop.querySelector('ul').style.maxHeight = Math.max(120, Math.min(280, Math.max(below, above) - 60)) + 'px';
+    }
     function mark(i) {
         var lis = pop.querySelectorAll('li[role=option]'); if (!lis.length) return;
         active = Math.max(0, Math.min(lis.length - 1, i));
@@ -56,9 +67,7 @@
         pop = document.createElement('div'); pop.className = 'ss-pop'; pop.setAttribute('role', 'listbox');
         pop.innerHTML = '<input type="search" autocomplete="off" aria-label="Search"><ul></ul>';
         document.body.appendChild(pop);
-        var r = select.getBoundingClientRect(), top = r.bottom + 4;
-        if (top + 340 > window.innerHeight && r.top > 340) top = r.top - 344;
-        pop.style.top = top + 'px'; pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 308)) + 'px';
+        pop.style.left = Math.max(8, Math.min(select.getBoundingClientRect().left, window.innerWidth - 308)) + 'px';
         var input = pop.querySelector('input'); input.value = typed || '';
         input.addEventListener('input', function () { render(input.value); });
         input.addEventListener('keydown', function (e) {
@@ -69,7 +78,7 @@
             else if (e.key === 'Tab') { close(true); }
         });
         pop.addEventListener('mousedown', function (e) { var li = e.target.closest('li[role=option]'); if (li) { e.preventDefault(); pick(+li.dataset.i); } });
-        render(input.value); input.focus();
+        render(input.value); place(); input.focus();
     }
     document.addEventListener('mousedown', function (e) {
         var s = e.target.closest('select[data-search-select]');

@@ -64,6 +64,17 @@
                 <div class="detail-label">Revision count</div>
                 <div class="detail-value">{{ $product->revisions->count() }}</div>
             </div>
+            @php
+                $currentPatterns = $product->revisions->flatMap->patternCavities->map->patternRevision
+                    ->filter(fn ($r) => $r->is_current && ! $r->pattern->trashed())->unique('pattern_id')->map->pattern->sortBy('name');
+            @endphp
+            <div>
+                <div class="detail-label">Patterns</div>
+                <div class="detail-value">
+                    @forelse ($currentPatterns as $p)<a href="{{ route('patterns.show', $p) }}">{{ $p->name }}</a> <span class="muted small mono">{{ $p->code }}</span>@if (! $loop->last)<br>@endif
+                    @empty<span class="muted">None linked yet</span>@endforelse
+                </div>
+            </div>
         </div>
 
         @if ($product->description)
@@ -119,7 +130,6 @@
     @endif
 </div>
 
-@include('products._made-on-patterns', ['product' => $product])
 
 <div class="panel">
     <div class="panel-header"><h2>Add revision</h2></div>
@@ -174,6 +184,9 @@
         </form>
     </div>
 </div>
+<div class="tab-marker" data-tab-start="Patterns"></div>
+@include('products._made-on-patterns', ['product' => $product])
+
 <div class="tab-marker" data-tab-start="Casting analysis"></div>
 @php($analyses = \App\Models\CastingAnalysis::where('product_id', $product->id)->orderByDesc('created_at')->limit(10)->get())
 <div class="panel">

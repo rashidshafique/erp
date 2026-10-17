@@ -3,7 +3,9 @@
 namespace App\Services\Codes;
 
 use App\Models\AppSetting;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Item codes (PRD-00012) and engraving marks (00417). Unique by construction: a counter that never repeats,
@@ -146,6 +148,30 @@ class CodeGenerator
             DB::table($table)->where('id', $id)->update(['mark_code' => $mark]);
 
             return $mark;
+        });
+    }
+
+    /** Rules for a mark typed in by hand: what is already engraved on the tool. */
+    public const MARK_RULES = ['required', 'string', 'min:3', 'max:20', 'regex:/^[A-Za-z0-9]+$/'];
+
+    /**
+     * Records the mark engraved on a tool, such as one made before the app was used. Marks are unique across all tools.
+     * The tool's own record is updated (so the change is in its audit history) and the register follows.
+     */
+    public function changeMark(string $kind, Model $tool, string $mark): void
+    {
+        $mark = strtoupper(trim($mark));
+        if ($mark === $tool->mark_code) {
+            return;
+        }
+        $clash = DB::table('tool_marks')->where('mark_code', $mark)
+            ->where(fn ($q) => $q->where('tool_type', '!=', $kind)->orWhere('tool_id', '!=', (string) $tool->getKey()))->exists();
+        if ($clash) {
+            throw ValidationException::withMessages(['mark_code' => "Mark {$mark} is already on another tool."]);
+        }
+        DB::transaction(function () use ($kind, $tool, $mark) {
+            $tool->update(['mark_code' => $mark]);
+            $this->register($kind, (string) $tool->getKey(), $mark);
         });
     }
 

@@ -120,4 +120,38 @@ class CavityMapGridTest extends TestCase
         $page->assertOk()->assertSee('data-cavity-row="3" class="has-error"', false)->assertSee('Cavity 3: Name the component this cavity makes.')
             ->assertSee('value="Kept note"', false)->assertSee('name="cavities_per_mould" min="1" max="200" value="3"', false);
     }
+
+    public function test_cavity_marks_are_kept_unique_can_be_swapped_and_carry_over(): void
+    {
+        $valve = $this->product('VALVE-1');
+        $revision = $this->revision(2);
+
+        $this->save($revision, 2, [1 => ['product_revision_id' => $valve->id, 'cavity_mark' => ' a1 '], 2 => ['product_revision_id' => $valve->id, 'cavity_mark' => 'A1']])
+            ->assertSessionHasErrors(['rows.2.cavity_mark' => 'Cavity 2: mark A1 is already on cavity 1.']);
+        $this->save($revision, 2, [1 => ['product_revision_id' => $valve->id, 'cavity_mark' => ' a1 '], 2 => ['product_revision_id' => $valve->id, 'cavity_mark' => 'B2']])->assertSessionHasNoErrors();
+        $this->save($revision, 2, [1 => ['product_revision_id' => $valve->id, 'cavity_mark' => 'B2'], 2 => ['product_revision_id' => $valve->id, 'cavity_mark' => 'A1']])->assertSessionHasNoErrors();
+        $this->assertSame(['B2', 'A1'], $revision->cavityMap()->pluck('cavity_mark')->all());
+
+        $next = $revision->pattern->addRevision(['change_description' => 'New gating'], copyLayout: true);
+
+        $this->assertSame(['B2', 'A1'], $next->cavityMap()->pluck('cavity_mark')->all());
+        $this->get(route('patterns.show', $revision->pattern_id))->assertOk()->assertSee('name="rows[1][cavity_mark]" value="B2"', false);
+        $this->get(route('products.show', $valve->product_id))->assertOk()->assertSee('cavities 1 (B2), 2 (A1)');
+    }
+
+    public function test_older_revisions_are_folded_unless_they_have_an_error_to_show(): void
+    {
+        $valve = $this->product('VALVE-1');
+        $old = $this->revision(2);
+        $current = $old->pattern->addRevision(['change_description' => 'New gating'], copyLayout: true);
+
+        $page = $this->get(route('patterns.show', $old->pattern_id));
+
+        $page->assertOk()->assertSee('Older revisions')
+            ->assertSee('class="rev-block is-current" id="cavities-'.$current->id.'"  open', false)
+            ->assertSee('class="rev-block " id="cavities-'.$old->id.'" >', false);
+
+        $this->save($old, 2, [1 => ['product_revision_id' => $valve->id, 'cavity_role' => 'PART']]);
+        $this->get(route('patterns.show', $old->pattern_id))->assertSee('class="rev-block " id="cavities-'.$old->id.'"  open', false);
+    }
 }

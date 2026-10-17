@@ -94,4 +94,6 @@
         <a class="btn" href="{{ route('patterns.show', $pattern) }}">Cancel</a>
     </div>
 </form>
+
+<div style="margin-top:22px">@include('patterns._history', ['pattern' => $pattern])</div>
 @endsection

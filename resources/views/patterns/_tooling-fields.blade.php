@@ -6,6 +6,13 @@
            value="{{ old('code', $pattern->code) }}" placeholder="{{ $pattern->exists ? '' : 'Leave blank to generate: '.app(\App\Services\Codes\CodeGenerator::class)->preview('pattern') }}">
     @if ($pattern->exists)<div class="help">Revision codes already issued keep the code they were made with.</div>@endif
 </div>
+@if ($pattern->exists)
+<div class="field">
+    <label for="mark_code">Engraved mark *</label>
+    <input id="mark_code" name="mark_code" required minlength="3" maxlength="20" pattern="[A-Za-z0-9]+" value="{{ old('mark_code', $pattern->ensureMark()) }}" style="font-family:ui-monospace,Menlo,monospace;letter-spacing:2px;text-transform:uppercase">
+    <div class="help">The mark on the tool itself. Change it only if the tool is engraved with another number. Letters and digits, unique across all tools.</div>
+</div>
+@endif
 <div class="field">
     <label for="name">Pattern name *</label>
     <input id="name" name="name" required maxlength="255" value="{{ old('name', $pattern->name) }}" placeholder="Part or tooling name">
