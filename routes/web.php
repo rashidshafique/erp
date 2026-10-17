@@ -399,9 +399,15 @@ Route::controller(\App\Http\Controllers\MouldingResourceController::class)->pref
     Route::put('/teams/{team}', 'updateTeam')->name('teams.update');
     Route::post('/stations', 'storeStation')->name('stations.store');
     Route::put('/stations/{station}', 'updateStation')->name('stations.update');
-    Route::post('/sands', [\App\Http\Controllers\SandSystemController::class, 'store'])->name('sands.store');
-    Route::put('/sands/{sandSystem}', [\App\Http\Controllers\SandSystemController::class, 'update'])->name('sands.update');
-    Route::delete('/sands/{sandSystem}', [\App\Http\Controllers\SandSystemController::class, 'destroy'])->name('sands.destroy');
+});
+Route::prefix('sand-systems')->name('sand-systems.')->controller(\App\Http\Controllers\SandSystemController::class)->group(function () {
+    Route::get('/', 'index')->name('index');
+    Route::post('/', 'store')->name('store');
+    Route::put('/{sandSystem}', 'update')->name('update');
+    Route::delete('/{sandSystem}', 'destroy')->name('destroy');
+    Route::post('/sands', [\App\Http\Controllers\BaseSandController::class, 'store'])->name('base.store');
+    Route::put('/sands/{baseSand}', [\App\Http\Controllers\BaseSandController::class, 'update'])->name('base.update');
+    Route::delete('/sands/{baseSand}', [\App\Http\Controllers\BaseSandController::class, 'destroy'])->name('base.destroy');
 });
 Route::prefix('work-lists')->name('work-lists.')->controller(\App\Http\Controllers\WorkListController::class)->group(function () {
     Route::get('/', 'index')->name('index');

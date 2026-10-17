@@ -65,6 +65,7 @@ return [
         ['pattern' => 'moulding-runs.*', 'permission' => 'moulding.operate'],
         ['pattern' => 'work-lists.*', 'permission' => 'moulding.operate'],
         ['pattern' => 'moulding-teams.*', 'permission' => 'moulding.operate'],
+        ['pattern' => 'sand-systems.*', 'permission' => 'settings.manage', 'reads' => true],
         ['pattern' => 'sand-tests.*', 'permission' => 'moulding.operate'],
         ['pattern' => 'lots.*', 'permission' => 'shopfloor.record'],
         ['pattern' => 'inspections.*', 'permission' => 'quality.inspect'],

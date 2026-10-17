@@ -590,7 +590,7 @@
         <nav class="sidebar-nav" aria-label="Main navigation">
             <a href="{{ route('dashboard') }}" class="nav-link nav-top {{ request()->routeIs('dashboard') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('dashboard') !!}<span>Dashboard</span></a>
 
-            <div class="nav-group {{ request()->routeIs('products.*', 'patterns.*', 'casting-analyses.*', 'production-orders.*', 'moulding-runs.*', 'pours.*', 'work-lists.*', 'moulding-teams.*', 'mould-readiness.*') ? 'is-active' : '' }}">
+            <div class="nav-group {{ request()->routeIs('products.*', 'patterns.*', 'casting-analyses.*', 'production-orders.*', 'moulding-runs.*', 'pours.*', 'work-lists.*', 'moulding-teams.*', 'sand-systems.*', 'mould-readiness.*') ? 'is-active' : '' }}">
                 <button type="button" class="nav-group-toggle" aria-expanded="false">
                     <span class="nav-lab">{!! \App\Support\NavIcons::get('factory') !!}<span>Production</span></span><span class="nav-chevron">›</span>
                 </button>
@@ -603,6 +603,7 @@
                     <a href="{{ route('pours.index') }}" class="nav-link {{ request()->routeIs('pours.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('flame') !!}<span>Pour register</span></a>
                     <a href="{{ route('work-lists.index') }}" class="nav-link {{ request()->routeIs('work-lists.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('clipboard') !!}<span>Moulding work lists</span></a>
                     <a href="{{ route('moulding-teams.index') }}" class="nav-link {{ request()->routeIs('moulding-teams.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('users') !!}<span>Teams &amp; stations</span></a>
+                    <a href="{{ route('sand-systems.index') }}" class="nav-link {{ request()->routeIs('sand-systems.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('mountain') !!}<span>Sand systems</span></a>
                     <a href="{{ route('mould-readiness.index') }}" class="nav-link {{ request()->routeIs('mould-readiness.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('check-circle') !!}<span>Mould readiness</span></a>
                 </div>
             </div>
@@ -933,6 +934,7 @@ document.addEventListener('DOMContentLoaded', () => {
 @include("partials.tabs")
 @include("partials.table-ui")
 @include("partials.form-ui")
+@stack('dialogs')
 @include("partials.rowlink")
 </body>
 </html>

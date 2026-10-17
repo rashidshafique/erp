@@ -7,12 +7,13 @@
 @if($errors->any())<div class="alert alert-error">@foreach($errors->all() as $e)<div>{{ $e }}</div>@endforeach</div>@endif
 <div class="tab-marker" data-tab-start="Results"></div>
 <div class="panel"><div class="panel-header"><h2>Characteristics</h2></div>
+@if($open)@include('partials.quick-dialog', ['id' => 'qd-defect', 'title' => 'Add a defect', 'action' => route('defects.store'), 'submit' => 'Add defect', 'fields' => 'defects._quick-fields'])@endif
 <form method="POST" action="{{ route('inspections.results.save', $inspection) }}">@csrf
 <div class="table-wrap"><table><thead><tr><th>Characteristic</th><th>Limits</th><th>Measured</th><th>Pass?</th><th>Defect if failed</th><th>Notes</th></tr></thead><tbody>
 @forelse($inspection->results as $r)<tr><td>{{ $r->test_name }}<div class="muted small">{{ $r->test_method }}</div></td><td>{{ $r->minimum_value ?? '' }} – {{ $r->maximum_value ?? '' }} {{ $r->unit }}</td>
 <td>@if($r->result_type === 'NUMERIC')<input type="number" step="any" name="results[{{ $r->id }}][measured_value]" value="{{ $r->measured_value }}" @disabled(!$open)>@else<span class="muted small">—</span>@endif</td>
 <td>@if($r->result_type === 'NUMERIC')<strong>{{ $r->passed === null ? '' : ($r->passed ? 'PASS' : 'FAIL') }}</strong>@else<select name="results[{{ $r->id }}][passed]" @disabled(!$open)><option value="">—</option><option value="1" @selected($r->passed === true)>Pass</option><option value="0" @selected($r->passed === false)>Fail</option></select>@endif</td>
-<td><select name="results[{{ $r->id }}][quality_defect_id]" @disabled(!$open)><option value="">—</option>@foreach($defects as $d)<option value="{{ $d->id }}" @selected($r->quality_defect_id === $d->id)>{{ $d->category }} · {{ $d->name }}</option>@endforeach</select></td>
+<td style="white-space:nowrap"><select name="results[{{ $r->id }}][quality_defect_id]" id="defect-{{ $r->id }}" data-quick-list="defect" @disabled(!$open)><option value="">—</option>@foreach($defects as $d)<option value="{{ $d->id }}" @selected($r->quality_defect_id === $d->id)>{{ $d->category }} · {{ $d->name }}</option>@endforeach</select>@if($open)<a href="{{ route('defects.index') }}" class="qd-add" data-quick="qd-defect" data-quick-target="defect-{{ $r->id }}">+ Add</a>@endif</td>
 <td><input name="results[{{ $r->id }}][notes]" value="{{ $r->notes }}" @disabled(!$open)></td></tr>
 @empty<tr><td colspan="6" class="muted">No characteristics yet. Add them below.</td></tr>@endforelse</tbody></table></div>
 @if($open && $inspection->results->isNotEmpty())<div class="panel-body"><button class="btn btn-primary">Save results</button></div>@endif</form></div>

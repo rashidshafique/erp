@@ -1,6 +1,7 @@
 {{-- Sand system a pattern was made for, the others it works on, and a note on taper. $pattern may be new. --}}
 <div class="field" data-keep>
-    <label for="sand_system">Made for sand system</label>
+    <label for="sand_system">Made for sand system <a href="{{ route('sand-systems.index') }}" class="qd-add" data-quick="qd-sand" data-quick-target="sand_system" data-quick-value="label">+ Add</a></label>
+    @include('partials.quick-dialog', ['id' => 'qd-sand', 'title' => 'Add a sand system', 'action' => route('sand-systems.store'), 'submit' => 'Add sand system', 'fields' => 'sand-systems._quick-fields'])
     <select id="sand_system" name="sand_system" style="max-width:260px">
         <option value="">Not recorded (suits any)</option>
         @foreach ($sands as $sd)<option value="{{ $sd }}" @selected(old('sand_system', $pattern->sand_system) === $sd)>{{ $sd }}</option>@endforeach

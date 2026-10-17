@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\MouldingRun;
 use App\Models\MouldingStation;
 use App\Models\MouldingTeam;
 use App\Models\SandSystem;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -15,7 +17,7 @@ class MouldingResourceController extends Controller
     public function index(): View
     {
         $since = today()->subDays(30);
-        $stats = fn (string $col) => \App\Models\MouldingRun::where('run_date', '>=', $since)->whereNotNull($col)->groupBy($col)
+        $stats = fn (string $col) => MouldingRun::where('run_date', '>=', $since)->whereNotNull($col)->groupBy($col)
             ->selectRaw("$col as k, count(*) runs, coalesce(sum(moulds_made_qty),0) made, coalesce(sum(accepted_mould_qty),0) accepted, coalesce(sum(damaged_mould_qty),0) damaged, coalesce(sum(downtime_minutes),0) downtime")
             ->get()->keyBy('k');
 
@@ -23,14 +25,16 @@ class MouldingResourceController extends Controller
             'teams' => MouldingTeam::orderBy('code')->get(), 'stations' => MouldingStation::orderBy('code')->get(),
             'teamStats' => $stats('moulding_team_id'), 'stationStats' => $stats('moulding_station_id'),
             'stationTypes' => MouldingStation::TYPES, 'sands' => SandSystem::names(),
-            'sandSystems' => $sandSystems = SandSystem::ordered()->get(), 'sandTypes' => SandSystem::TYPES,
-            'sandUsage' => $sandSystems->mapWithKeys(fn (SandSystem $s) => [$s->id => $s->usage()])->all(),
         ]);
     }
 
-    public function storeTeam(Request $request): RedirectResponse
+    /** Adds a team; a quick add from a dropdown asks for JSON and gets back the option to add to it. */
+    public function storeTeam(Request $request): RedirectResponse|JsonResponse
     {
-        MouldingTeam::create($this->teamData($request));
+        $team = MouldingTeam::create($this->teamData($request));
+        if ($request->wantsJson()) {
+            return response()->json(['id' => $team->id, 'label' => "{$team->code} — {$team->lead_name}"], 201);
+        }
 
         return back()->with('success', 'Team added.');
     }
@@ -42,9 +46,13 @@ class MouldingResourceController extends Controller
         return back()->with('success', "Team {$team->code} updated.");
     }
 
-    public function storeStation(Request $request): RedirectResponse
+    /** Adds a station; a quick add from a dropdown asks for JSON and gets back the option to add to it. */
+    public function storeStation(Request $request): RedirectResponse|JsonResponse
     {
-        MouldingStation::create($this->stationData($request));
+        $station = MouldingStation::create($this->stationData($request));
+        if ($request->wantsJson()) {
+            return response()->json(['id' => $station->id, 'label' => "{$station->code} — {$station->name}"], 201);
+        }
 
         return back()->with('success', 'Station added.');
     }

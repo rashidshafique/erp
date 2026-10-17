@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
 
@@ -14,7 +15,7 @@ use Illuminate\Support\Facades\DB;
  */
 class SandSystem extends Model
 {
-    use HasUuids, SoftDeletes;
+    use Concerns\IsNamedListEntry, HasUuids, SoftDeletes;
 
     public const TYPES = [
         'MOLASSES_BONDED' => 'Molasses-bonded',
@@ -30,6 +31,40 @@ class SandSystem extends Model
     public function scopeOrdered(Builder $query): Builder
     {
         return $query->orderBy('sort_order')->orderBy('name');
+    }
+
+    /** The base sands this system is made of, the main one first. */
+    public function sands(): BelongsToMany
+    {
+        return $this->belongsToMany(BaseSand::class, 'sand_system_sands')->withPivot('is_main')->withTimestamps()
+            ->orderByPivot('is_main', 'desc')->orderBy('base_sands.sort_order')->orderBy('base_sands.name');
+    }
+
+    public function mainSand(): ?BaseSand
+    {
+        return $this->sands->first(fn (BaseSand $sand) => $sand->pivot->is_main);
+    }
+
+    /**
+     * Sets the base sands the system uses. The main sand is always one of them.
+     *
+     * @param  array<int, string>  $otherSandIds
+     */
+    public function syncSands(?string $mainSandId, array $otherSandIds): void
+    {
+        $sync = [];
+        foreach (array_unique(array_filter($otherSandIds)) as $id) {
+            $sync[$id] = ['is_main' => false];
+        }
+        if ($mainSandId) {
+            $sync[$mainSandId] = ['is_main' => true];
+        }
+        DB::transaction(function () use ($sync) {
+            // Clear the old main flag first: the database allows only one main sand per system at any moment.
+            DB::table('sand_system_sands')->where('sand_system_id', $this->id)->update(['is_main' => false]);
+            $this->sands()->sync($sync);
+        });
+        $this->unsetRelation('sands');
     }
 
     /** @return array<int, string> the active sands, in the order set on the list */
