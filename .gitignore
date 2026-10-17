@@ -9,7 +9,6 @@
 .phpunit.result.cache
 *.backup*
 .DS_Store
-.phpunit.result.cache
 /storage/framework/sessions/*
 !/storage/framework/sessions/.gitkeep
 /storage/framework/testing/*
