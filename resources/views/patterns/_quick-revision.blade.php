@@ -1,0 +1,18 @@
+{{-- Fields of the "New revision" dialog on a pattern (partials.quick-dialog). $current is the pattern's current revision, if any. --}}
+@if ($part === 'required')
+<p class="muted small field-full" style="margin:0">A revision is a change to the cast geometry or layout: shape, draft, allowances, shrinkage, gating on the pattern, parting line, cavity count or layout, core prints. Repairs, repainting and re-mounting are not revisions; record them in the <a href="{{ route('tooling-maintenance.create') }}">maintenance log</a>.</p>
+<div class="field field-full"><label for="qd-rev-reason">What changed and why</label><textarea id="qd-rev-reason" name="change_description" required maxlength="2000" placeholder="e.g. Added 0.5° draft on the boss; customer drawing rev C">{{ $old('change_description') }}</textarea></div>
+@if ($current)<div class="field field-full"><label><input type="checkbox" name="copy_layout" value="1" @checked($old('copy_layout', $old('change_description') === null ? '1' : null) === '1')> Copy cavity layout from {{ $current->code }} ({{ $current->cavityMap->count() }} {{ $current->cavityMap->count() === 1 ? 'cavity' : 'cavities' }}); copies are marked for review</label></div>@endif
+<p class="muted small field-full" style="margin:0">The code is made from the pattern code{{ $current ? ', after '.$current->code : '' }}. {{ $current ? $current->code.' becomes superseded and is kept.' : '' }}</p>
+@else
+<div class="field"><label for="qd-rev-drawing">Customer drawing revision</label><input id="qd-rev-drawing" name="drawing_revision" maxlength="40" placeholder="e.g. C" value="{{ $old('drawing_revision') }}"></div>
+<div class="field"><label for="qd-rev-cav">Cavities per mould</label><input id="qd-rev-cav" type="number" name="cavities_per_mould" min="1" max="10000" value="{{ $old('cavities_per_mould', $current?->cavities_per_mould) }}"></div>
+<div class="field field-full"><label for="qd-rev-shrink">Shrinkage / allowance note</label><input id="qd-rev-shrink" name="shrinkage_note" maxlength="2000" placeholder="e.g. 1.0 % shrink, 2 mm machining allowance on face A" value="{{ $old('shrinkage_note') }}"></div>
+<div class="field"><label for="qd-rev-cost">Modification cost (PKR)</label><input id="qd-rev-cost" type="number" name="modification_cost" min="0" step="0.01" value="{{ $old('modification_cost') }}"></div>
+<div class="field"><label for="qd-rev-from">Effective from</label><input id="qd-rev-from" type="date" name="effective_from" value="{{ $old('effective_from', today()->toDateString()) }}"></div>
+<div class="field field-full"><label for="qd-rev-costnote">Cost note</label><input id="qd-rev-costnote" name="cost_note" maxlength="2000" placeholder="e.g. Pattern shop invoice 4471" value="{{ $old('cost_note') }}"></div>
+<div class="field"><label for="qd-rev-cast">Casting weight, one piece (kg)</label><input id="qd-rev-cast" type="number" name="casting_weight_kg" min="0.0001" step="0.0001" value="{{ $old('casting_weight_kg', $current?->casting_weight_kg) }}"></div>
+<div class="field"><label for="qd-rev-pour">Poured per casting, incl. gating (kg)</label><input id="qd-rev-pour" type="number" name="pour_weight_kg" min="0.0001" step="0.0001" value="{{ $old('pour_weight_kg', $current?->pour_weight_kg) }}"></div>
+<div class="field"><label for="qd-rev-pieces">Pieces per mould</label><input id="qd-rev-pieces" type="number" name="pieces_per_mould" min="1" max="10000" value="{{ $old('pieces_per_mould', $current?->pieces_per_mould) }}"></div>
+<div class="field field-full"><label for="qd-rev-photo">Photo</label><input id="qd-rev-photo" type="file" name="photo" accept="image/jpeg,image/png,image/webp"></div>
+@endif

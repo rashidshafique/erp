@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AppSetting;
 use App\Support\UiSettings;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class DisplaySettingsController extends Controller
 {
@@ -36,7 +37,7 @@ class DisplaySettingsController extends Controller
 
     public function update(Request $request)
     {
-        $request->validate(['density' => 'required|in:COMPACT,COMFORTABLE', 'dashboard' => 'nullable|in:classic,command,columns']);
+        $request->validate(['density' => 'required|in:COMPACT,COMFORTABLE', 'dashboard' => ['nullable', Rule::in(UiSettings::DASHBOARD_LAYOUTS)]]);
         AppSetting::setValue('ui.table_toolbar', $request->boolean('table_toolbar') ? '1' : '0', 'Search and filters sit in the table header');
         AppSetting::setValue('ui.tidy_forms', $request->boolean('tidy_forms') ? '1' : '0', 'Long forms hide blank optional fields behind Show more');
         AppSetting::setValue('ui.density', $request->input('density'), 'Spacing of the interface');

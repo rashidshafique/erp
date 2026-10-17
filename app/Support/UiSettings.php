@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\AppSetting;
+use Illuminate\Support\Facades\Storage;
 
 /** Display preferences, set under Administration → Display. Safe to call before the database exists. */
 class UiSettings
@@ -25,7 +26,7 @@ class UiSettings
         }
     }
 
-    public const DASHBOARD_LAYOUTS = ['classic', 'command', 'columns'];
+    public const DASHBOARD_LAYOUTS = ['classic', 'command', 'columns', 'telemetry'];
 
     /** Which dashboard to show: ?layout= wins, then the person's own choice (cookie), then the site default from Display settings. */
     public static function dashboardLayout(?string $query = null, ?string $cookie = null): string
@@ -141,7 +142,7 @@ class UiSettings
     {
         try {
             $path = AppSetting::getValue('ui.logo_path');
-            $exists = $path && \Illuminate\Support\Facades\Storage::disk(config('foundry.attachments.disk'))->exists($path);
+            $exists = $path && Storage::disk(config('foundry.attachments.disk'))->exists($path);
 
             return [
                 'name' => AppSetting::getValue('ui.brand_name', 'Foundry ERP') ?: 'Foundry ERP',

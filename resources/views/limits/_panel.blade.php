@@ -19,7 +19,7 @@
                 <td><input name="unit" value="{{ $l->unit }}" size="6"></td>
                 <td><input type="checkbox" name="is_required_for_release" value="1" @checked($l->is_required_for_release)></td>
                 <td><button class="btn">Save</button></form>
-                <form method="POST" action="{{ route('limits.destroy', $l) }}" style="display:inline">@csrf @method('DELETE')<button class="btn btn-danger">Remove</button></form></td></tr>
+                <form method="POST" action="{{ route('limits.destroy', $l) }}" style="display:inline">@csrf @method('DELETE')@include('partials.icon-button', ['type' => 'delete', 'word' => 'Remove', 'name' => $l->name])</form></td></tr>
         @empty
             <tr><td colspan="7" class="muted">No limits set.</td></tr>
         @endforelse

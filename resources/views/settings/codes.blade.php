@@ -10,9 +10,10 @@
 <div class="field"><label>Digits in the running number</label><input type="number" name="code_digits" min="3" max="8" value="{{ \App\Services\Codes\CodeGenerator::codeDigits() }}"></div>
 </div>
 <table style="margin-top:10px"><thead><tr><th>Type</th><th>Prefix (letters)</th><th>Next code</th></tr></thead><tbody>
-@foreach($kinds as $k => $meta)<tr><td>{{ $meta[3] }}</td><td><input name="prefix[{{ $k }}]" maxlength="5" value="{{ \App\Services\Codes\CodeGenerator::prefix($k) }}" style="width:90px;text-transform:uppercase"></td><td><code>{{ $previews[$k] }}</code></td></tr>@endforeach
+@foreach($kinds as $k => $meta)<tr><td>{{ $meta[3] }}</td><td><input name="prefix[{{ $k }}]" maxlength="5" value="{{ \App\Services\Codes\CodeGenerator::prefix($k) }}" style="width:90px;text-transform:uppercase"></td><td><code>{{ $previews[$k] }}</code>@if ($k === 'pattern') <span class="muted small">revisions: <code>{{ $previews[$k] }}{{ \App\Models\PatternRevision::codeSuffix() }}1</code></span>@endif</td></tr>@endforeach
 </tbody></table>
-<p class="help">A code you type yourself is always accepted if it is not already used. Blank means generate. Prefixes are used by the letters styles; numbers only uses a type digit instead.</p>
+<p class="help">A code you type yourself is always accepted if it is not already used. Blank means generate. A pattern revision takes its pattern's code, the revision separator below and its number (0 is the first or the as-imported baseline), so it follows the pattern prefix here. Prefixes are used by the letters styles; numbers only uses a type digit instead.</p>
+<div class="field" style="margin-top:10px"><label for="revision_suffix">Revision separator</label><input id="revision_suffix" name="revision_suffix" maxlength="4" value="{{ \App\Models\PatternRevision::codeSuffix() }}" style="width:90px"><div class="help">Pattern code + this + revision number, e.g. P-0123-R1. Applies to revisions created from now on; existing codes never change.</div></div>
 </div></div>
 <div class="panel"><div class="panel-header"><h2>Engraving marks for tooling</h2></div><div class="panel-body">
 <div class="form-grid">

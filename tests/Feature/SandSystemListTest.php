@@ -111,4 +111,15 @@ class SandSystemListTest extends TestCase
         $this->assertContains('Furan', $field['enum']);
         $this->assertSame(['Furan', null, false], FieldParser::parse('sand_system', $field, 'furan', []));
     }
+
+    public function test_row_tools_are_icon_buttons_that_still_name_their_action_and_row(): void
+    {
+        $page = $this->get(route('sand-systems.index'));
+
+        $page->assertOk()
+            ->assertSee('title="Edit" aria-label="Edit Greensand" type="button" data-row-edit', false)
+            ->assertSee('title="Delete" aria-label="Delete Resin-coated sand"', false)
+            ->assertSee("onclick=\"return confirm('Delete Resin-coated sand?')\"", false)
+            ->assertDontSee('data-row-edit>Edit</button>', false);
+    }
 }

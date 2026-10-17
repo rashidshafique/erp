@@ -52,6 +52,13 @@
                     @endforeach
                 </select>
             </div>
+            <div class="field">
+                <label for="revision">Revision</label>
+                <select id="revision" name="revision">
+                    <option value="">Any revision</option>
+                    <option value="baseline" @selected(request('revision') === 'baseline')>Baseline only, no drawing linked</option>
+                </select>
+            </div>
             <button class="btn btn-primary" type="submit">Filter</button>
             <a class="btn" href="{{ route('patterns.index') }}">Reset</a>
         </form>
@@ -61,7 +68,7 @@
 <div class="panel">
     <div class="panel-header">
         <h2>Patterns</h2>
-        <span class="muted small">{{ $patterns->total() }} records</span>
+        <span class="muted small">{{ $patterns->total() }} records @if ($baselineOnly && request('revision') !== 'baseline') · <a href="{{ route('patterns.index', ['revision' => 'baseline']) }}">{{ $baselineOnly }} still on the as-imported baseline with no drawing linked</a>@endif</span>
     </div>
 
     @if ($patterns->isEmpty())
@@ -79,7 +86,7 @@
                         <th>Name</th>
                         <th>Type</th>
                         <th>Material</th>
-                        <th>Latest revision</th>
+                        <th>Current revision</th>
                         <th>Cavities / mould</th>
                         <th>Status</th>
                         <th></th>
@@ -87,13 +94,13 @@
                 </thead>
                 <tbody>
                     @foreach ($patterns as $pattern)
-                        @php($latestRevision = $pattern->revisions()->orderByDesc('created_at')->first())
+                        @php($latestRevision = $pattern->currentRevision)
                         <tr>
                             <td><strong>{{ $pattern->code }}</strong></td>
                             <td>{{ $pattern->name }}</td>
                             <td>{{ $pattern->pattern_type }}</td>
                             <td>{{ $pattern->material ?: '—' }}</td>
-                            <td>{{ $latestRevision?->revision ?? '—' }}</td>
+                            <td>@if ($latestRevision)<span class="mono">{{ $latestRevision->code }}</span>@if ($latestRevision->legacy_baseline) <span class="status" title="As-imported baseline">Baseline</span>@endif @if ($latestRevision->drawing_revision)<div class="muted small">Drawing rev {{ $latestRevision->drawing_revision }}</div>@endif @else — @endif</td>
                             <td>{{ $latestRevision?->cavities_per_mould ?? '—' }}</td>
                             <td>
                                 <span class="status {{ $pattern->status === 'ACTIVE' ? 'status-completed' : 'status-cancelled' }}">

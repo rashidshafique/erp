@@ -171,6 +171,18 @@
         </div>
     </section>
 
+    <section class="panel" id="crew">
+        <div class="panel-header"><h2>Team and sand</h2><span class="muted small">They come from the station when the run is entered; correct them here.</span></div>
+        <div class="panel-body">
+            <form method="POST" action="{{ route('moulding-runs.crew', $run) }}" class="form-grid">
+                @csrf @method('PUT')
+                <div class="field"><label for="crew-team">Team</label><select id="crew-team" name="moulding_team_id"><option value="">— none —</option>@foreach ($teams as $t)<option value="{{ $t->id }}" @selected(old('moulding_team_id', $run->moulding_team_id) === $t->id)>{{ $t->code }} — {{ $t->name }}</option>@endforeach</select></div>
+                <div class="field"><label for="crew-sand">Sand system</label><select id="crew-sand" name="sand_system"><option value="">— none —</option>@foreach ($sands as $sd)<option @selected(old('sand_system', $run->sand_system) === $sd)>{{ $sd }}</option>@endforeach</select></div>
+                <div class="field" style="align-self:end"><button class="btn btn-primary" type="submit">Save team and sand</button></div>
+            </form>
+        </div>
+    </section>
+
     <section class="panel">
         <div class="panel-header">
             <h2>Downtime and notes</h2>

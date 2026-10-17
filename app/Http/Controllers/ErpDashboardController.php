@@ -41,7 +41,11 @@ class ErpDashboardController extends Controller
             ->limit(8)
             ->get();
 
-        $extra = $layout === 'classic' ? [] : ['d' => $data->all()];
+        $extra = match ($layout) {
+            'classic' => [],
+            'telemetry' => ['d' => $data->telemetry()],
+            default => ['d' => $data->all()],
+        };
 
         $response = response()->view('dashboard.'.$layout, $extra + ['layout' => $layout,
             'openOrders' => $openOrders,

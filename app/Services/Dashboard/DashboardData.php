@@ -9,8 +9,10 @@ use App\Models\Furnace;
 use App\Models\Heat;
 use App\Models\MeasurementSet;
 use App\Models\MouldingRun;
+use App\Models\MouldingStation;
 use App\Models\NonconformanceReport;
 use App\Models\ProductionOrder;
+use App\Models\Quotation;
 use App\Models\SandSystem;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -81,7 +83,7 @@ class DashboardData
         $ncrOpen = NonconformanceReport::where('status', '!=', 'CLOSED');
 
         return [
-            'enquiries' => ['open' => $enqOpen, 'today' => Enquiry::whereDate('created_at', today())->count(), 'spark' => $enqSpark, 'quotes' => \App\Models\Quotation::where('status', 'ISSUED')->count()],
+            'enquiries' => ['open' => $enqOpen, 'today' => Enquiry::whereDate('created_at', today())->count(), 'spark' => $enqSpark, 'quotes' => Quotation::where('status', 'ISSUED')->count()],
             'due' => ['count' => $due->count(), 'qty' => (float) (clone $due)->sum('planned_qty'), 'overdue' => $overdue],
             'heats' => ['total' => $heatsToday->count(), 'done' => $heatsDone, 'tonnes' => $tapped / 1000, 'running' => Heat::where('status', 'IN_PROGRESS')->count()],
             'scrap' => ['rate' => $scrap, 'delta' => $scrap !== null && $scrapPrev !== null ? $scrap - $scrapPrev : null, 'spark' => array_map(fn ($d) => $d['scrap'] ?? 0, $daily)],
@@ -178,6 +180,109 @@ class DashboardData
         }
 
         return $out;
+    }
+
+    /**
+     * One row for every active furnace and every moulding station: what it is doing now, or what is next.
+     *
+     * @return array<int, array{kind: string, code: string, state: string, tone: string, job: string, progress: ?int, meta: string, url: string}>
+     */
+    public function board(): array
+    {
+        $rows = [];
+        $heats = Heat::where('status', 'IN_PROGRESS')->orderByDesc('actual_start_at')->get()->keyBy('furnace_id');
+        $next = Heat::where('status', 'PLANNED')->where('planned_start_at', '>=', now())->whereDate('planned_start_at', today())
+            ->orderBy('planned_start_at')->get()->unique('furnace_id')->keyBy('furnace_id');
+        foreach (Furnace::where('status', 'ACTIVE')->orderBy('code')->get() as $f) {
+            $h = $heats[$f->id] ?? null;
+            $n = $next[$f->id] ?? null;
+            $rows[] = $h
+                ? ['kind' => 'Furnace', 'code' => $f->code, 'state' => 'Melting', 'tone' => 'amber', 'job' => 'Heat '.$h->heat_number, 'progress' => null,
+                    'meta' => $h->actual_start_at ? $h->actual_start_at->diffForHumans(null, true, true) : '', 'url' => route('heats.show', $h)]
+                : ['kind' => 'Furnace', 'code' => $f->code, 'state' => 'Idle', 'tone' => 'grey', 'job' => $n ? 'Next: heat '.$n->heat_number.' at '.$n->planned_start_at->format('H:i') : '—', 'progress' => null,
+                    'meta' => '', 'url' => $n ? route('heats.show', $n) : route('furnaces.index')];
+        }
+        $runs = MouldingRun::whereIn('status', ['IN_PROGRESS', 'STARTED', 'RUNNING'])->whereNotNull('moulding_station_id')
+            ->with('patternRevision.pattern')->orderByDesc('started_at')->get()->unique('moulding_station_id')->keyBy('moulding_station_id');
+        foreach (MouldingStation::where('status', '!=', 'INACTIVE')->orderBy('code')->get() as $s) {
+            $r = $runs[$s->id] ?? null;
+            if ($r) {
+                $plan = (int) $r->planned_mould_qty;
+                $rows[] = ['kind' => 'Moulding', 'code' => $s->code, 'state' => 'Running', 'tone' => 'blue',
+                    'job' => $r->run_number.($r->patternRevision ? ' · '.$r->patternRevision->pattern->code.' rev '.$r->patternRevision->revision : ''),
+                    'progress' => $plan > 0 ? min(100, (int) round(100 * $r->moulds_made_qty / $plan)) : null,
+                    'meta' => $r->moulds_made_qty.'/'.($plan ?: '—').' moulds', 'url' => route('moulding-runs.show', $r)];
+            } else {
+                $down = $s->status === 'MAINTENANCE';
+                $rows[] = ['kind' => 'Moulding', 'code' => $s->code, 'state' => $down ? 'Maintenance' : 'Idle', 'tone' => $down ? 'red' : 'grey',
+                    'job' => $s->name, 'progress' => null, 'meta' => '', 'url' => route('moulding-teams.index')];
+            }
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Today's heats per furnace and moulding runs per station as bars on a shift window (06:00–18:00, stretched to cover
+     * anything outside it). Positions are percentages of the window.
+     *
+     * @return array{from: Carbon, to: Carbon, now: ?float, hours: array<int, array{label: string, at: float}>, lanes: array<string, array<int, array{label: string, left: float, width: float, tone: string, url: string}>>}
+     */
+    public function timeline(): array
+    {
+        $dayStart = today();
+        $dayEnd = today()->endOfDay();
+        $spans = [];
+        foreach (Heat::with('furnace')->whereNotNull('actual_start_at')->where('actual_start_at', '<=', $dayEnd)
+            ->where(fn ($q) => $q->whereNull('tapped_at')->orWhere('tapped_at', '>=', $dayStart))->orderBy('actual_start_at')->get() as $h) {
+            $end = $h->tapped_at ?? $h->closed_at ?? ($h->status === 'IN_PROGRESS' ? now() : null);
+            if ($end && $end->gte($dayStart)) {
+                $spans[] = ['lane' => $h->furnace?->code ?? 'Furnace', 'start' => $h->actual_start_at, 'end' => $end, 'label' => $h->heat_number, 'tone' => 'amber', 'url' => route('heats.show', $h)];
+            }
+        }
+        foreach (MouldingRun::with('station')->whereNotNull('started_at')->where('started_at', '<=', $dayEnd)
+            ->where(fn ($q) => $q->whereNull('completed_at')->orWhere('completed_at', '>=', $dayStart))->orderBy('started_at')->get() as $r) {
+            $end = $r->completed_at ?? (in_array($r->status, ['IN_PROGRESS', 'STARTED', 'RUNNING'], true) ? now() : null);
+            if ($end && $end->gte($dayStart)) {
+                $spans[] = ['lane' => $r->station?->code ?? 'Moulding', 'start' => $r->started_at, 'end' => $end, 'label' => $r->run_number, 'tone' => 'blue', 'url' => route('moulding-runs.show', $r)];
+            }
+        }
+
+        $from = today()->setTime(6, 0);
+        $to = today()->setTime(18, 0);
+        foreach ($spans as $s) {
+            $from = $from->min($s['start']->max($dayStart));
+            $to = $to->max($s['end']->min($dayEnd));
+        }
+        $from = $from->copy()->startOfHour();
+        $to = $to->copy()->ceilHour();
+        $total = max(1, $from->diffInSeconds($to));
+        $clip = fn (Carbon $t) => $t->copy()->max($from)->min($to);
+        $at = fn (Carbon $t) => round(100 * $from->diffInSeconds($clip($t)) / $total, 2);
+
+        $lanes = [];
+        foreach ($spans as $s) {
+            $width = round(100 * $clip($s['start'])->diffInSeconds($clip($s['end'])) / $total, 2);
+            $lanes[$s['lane']][] = ['label' => $s['label'], 'left' => $at($s['start']), 'width' => max(0.8, $width), 'tone' => $s['tone'], 'url' => $s['url']];
+        }
+        ksort($lanes);
+        $hours = [];
+        $step = $from->diffInHours($to) > 12 ? 3 : 2;
+        for ($t = $from->copy(); $t->lte($to); $t->addHours($step)) {
+            $hours[] = ['label' => $t->format('H:i'), 'at' => $at($t)];
+        }
+
+        return ['from' => $from, 'to' => $to, 'now' => now()->between($from, $to) ? $at(now()) : null, 'hours' => $hours, 'lanes' => $lanes];
+    }
+
+    /** Everything the telemetry layout needs: the shared figures plus the full floor board, the shift timeline and today's moulds. */
+    public function telemetry(): array
+    {
+        return $this->all() + [
+            'board' => $this->board(),
+            'timeline' => $this->timeline(),
+            'mouldsToday' => (int) MouldingRun::whereDate('run_date', today())->sum('moulds_made_qty'),
+        ];
     }
 
     public function all(): array

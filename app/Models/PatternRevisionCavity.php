@@ -11,6 +11,7 @@ class PatternRevisionCavity extends Model
     use HasUuids;
 
     public const ROLE_WHOLE = 'WHOLE';
+
     public const ROLE_PART = 'PART';
 
     protected $fillable = [
@@ -23,6 +24,8 @@ class PatternRevisionCavity extends Model
         'casting_weight_kg',
         'poured_weight_kg',
         'notes',
+        'copied_from_revision_id',
+        'needs_review',
     ];
 
     protected $casts = [
@@ -30,11 +33,18 @@ class PatternRevisionCavity extends Model
         'pieces_per_product' => 'integer',
         'casting_weight_kg' => 'decimal:4',
         'poured_weight_kg' => 'decimal:4',
+        'needs_review' => 'boolean',
     ];
 
     public function patternRevision(): BelongsTo
     {
         return $this->belongsTo(PatternRevision::class);
+    }
+
+    /** The revision this cavity was copied from when a new revision took over its layout. */
+    public function copiedFrom(): BelongsTo
+    {
+        return $this->belongsTo(PatternRevision::class, 'copied_from_revision_id');
     }
 
     public function productRevision(): BelongsTo

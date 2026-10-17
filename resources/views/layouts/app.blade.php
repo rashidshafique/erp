@@ -178,6 +178,21 @@
 
         .btn-danger { border-color: #efc6c3; color: var(--danger); }
 
+        /* Row tools (partials.icon-button): an icon with no text; the word is in its title and aria-label. */
+        .icon-btn {
+            display: inline-flex; align-items: center; justify-content: center; vertical-align: middle;
+            width: 28px; height: 28px; min-height: 0; padding: 0; margin: 0;
+            border: 0; border-radius: 6px; background: transparent; color: var(--muted);
+            cursor: pointer; list-style: none; text-decoration: none !important;
+        }
+        .icon-btn svg { margin: 0; }
+        .icon-btn::-webkit-details-marker { display: none; }
+        details > summary.icon-btn { color: var(--muted); }
+        details[open] > summary.icon-btn-edit { color: var(--accent); }
+        .icon-btn-edit:hover, .icon-btn-duplicate:hover, details > summary.icon-btn-edit:hover { color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+        .icon-btn-delete:hover { color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, transparent); }
+        .icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
         .metrics {
             display: grid;
             grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -308,6 +323,7 @@
 
         .alert-success { border-color: #b7e2c9; background: #eaf7ef; color: #176b43; }
         .alert-error { border-color: #efc6c3; background: #fff0ef; color: #a12820; }
+        .alert-warning { border-color: color-mix(in srgb, var(--warning) 35%, transparent); background: color-mix(in srgb, var(--warning) 9%, var(--surface)); color: var(--warning); }
 
         .empty-state { padding: 38px 20px; color: var(--muted); text-align: center; }
         .detail-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
@@ -772,6 +788,9 @@
                 <div class="alert alert-success" role="status">
                     {{ session('success') }}
                 </div>
+            @endif
+            @if (session('warning'))
+                <div class="alert alert-warning" role="status">{{ session('warning') }}</div>
             @endif
 
             @if ($errors->any())

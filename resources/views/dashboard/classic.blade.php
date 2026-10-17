@@ -11,7 +11,7 @@
         </div>
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
             <span class="muted small">Layout</span>
-            @foreach (['classic' => 'Classic', 'command' => 'Command', 'columns' => 'Columns'] as $k => $name)<a href="{{ route('dashboard', ['layout' => $k]) }}" class="btn btn-small {{ $k === 'classic' ? 'btn-primary' : '' }}">{{ $name }}</a>@endforeach
+            @foreach (['classic' => 'Classic', 'command' => 'Command', 'columns' => 'Columns', 'telemetry' => 'Telemetry'] as $k => $name)<a href="{{ route('dashboard', ['layout' => $k]) }}" class="btn btn-small {{ $k === 'classic' ? 'btn-primary' : '' }}">{{ $name }}</a>@endforeach
             <a href="{{ route('production-orders.create') }}" class="btn btn-primary">+ New production order</a>
         </div>
     </div>

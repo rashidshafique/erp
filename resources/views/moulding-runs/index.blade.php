@@ -15,6 +15,7 @@
             </a>
         </div>
     </div>
+    @include('moulding-runs._tabs', ['active' => 'runs'])
 
     <div class="metrics">
         <div class="metric">

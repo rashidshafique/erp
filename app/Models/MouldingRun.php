@@ -35,6 +35,8 @@ class MouldingRun extends Model
         'downtime_reason',
         'status',
         'notes',
+        'quality_defect_id',
+        'cavity_numbers',
     ];
 
     protected function casts(): array
@@ -48,12 +50,32 @@ class MouldingRun extends Model
             'accepted_mould_qty' => 'integer',
             'damaged_mould_qty' => 'integer',
             'downtime_minutes' => 'integer',
+            'cavity_numbers' => 'array',
         ];
     }
 
     public function productionOrder(): BelongsTo
     {
         return $this->belongsTo(ProductionOrder::class);
+    }
+
+    /** The next run number of the day, MR-20261017-004. Call inside a transaction: it locks the day's runs. */
+    public static function nextRunNumber(): string
+    {
+        $prefix = 'MR-'.now()->format('Ymd').'-';
+        $lastNumber = static::query()
+            ->where('run_number', 'like', $prefix.'%')
+            ->lockForUpdate()
+            ->pluck('run_number')
+            ->map(fn ($number) => (int) substr($number, strlen($prefix)))
+            ->max() ?? 0;
+
+        return $prefix.str_pad((string) ($lastNumber + 1), 3, '0', STR_PAD_LEFT);
+    }
+
+    public function defect(): BelongsTo
+    {
+        return $this->belongsTo(QualityDefect::class, 'quality_defect_id');
     }
 
     public function patternRevision(): BelongsTo
@@ -65,20 +87,24 @@ class MouldingRun extends Model
     {
         return $this->belongsTo(MouldConfiguration::class);
     }
-    public function mouldAssemblies(): \Illuminate\Database\Eloquent\Relations\HasMany
+
+    public function mouldAssemblies(): HasMany
     {
         return $this->hasMany(MouldAssembly::class)->orderBy('assembly_number');
     }
 
-    public function team(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function team(): BelongsTo
     {
         return $this->belongsTo(MouldingTeam::class, 'moulding_team_id');
     }
 
-    public function station(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function station(): BelongsTo
     {
         return $this->belongsTo(MouldingStation::class, 'moulding_station_id');
     }
 
-    public function workListItem(): BelongsTo { return $this->belongsTo(MouldingWorkListItem::class, 'moulding_work_list_item_id'); }
+    public function workListItem(): BelongsTo
+    {
+        return $this->belongsTo(MouldingWorkListItem::class, 'moulding_work_list_item_id');
+    }
 }

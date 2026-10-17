@@ -2,14 +2,17 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\GeneratesCodes;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 
 class Pattern extends Model
 {
-    use HasUuids, SoftDeletes, \App\Models\Concerns\GeneratesCodes;
+    use GeneratesCodes, HasUuids, SoftDeletes;
 
     public string $codeKind = 'pattern';
 
@@ -61,5 +64,49 @@ class Pattern extends Model
     public function revisions(): HasMany
     {
         return $this->hasMany(PatternRevision::class);
+    }
+
+    public function currentRevision(): HasOne
+    {
+        return $this->hasOne(PatternRevision::class)->where('is_current', true);
+    }
+
+    /**
+     * Records a new revision of the tooling geometry and makes it current. The previous current revision is superseded and
+     * kept; the new one carries over its layout (parting, cavities, layers, weight) unless given. With $copyLayout, each
+     * cavity of the previous revision is copied onto the new one, marked for review; the old cavities are left as they were.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    public function addRevision(array $attributes, bool $copyLayout = false): PatternRevision
+    {
+        return DB::transaction(function () use ($attributes, $copyLayout) {
+            static::whereKey($this->id)->lockForUpdate()->first();
+            $previous = $this->revisions()->where('is_current', true)->first();
+            if ($previous) {
+                // Cleared first: the database allows one current revision per pattern at any moment.
+                $previous->update(['is_current' => false, 'superseded_at' => now(), 'effective_to' => $previous->effective_to ?? today()]);
+            }
+            $carried = $previous ? $previous->only(['parting_type', 'cavities_per_mould', 'layers_per_mould', 'pattern_weight_kg']) : [];
+            $revision = $this->revisions()->create(array_merge($carried, array_filter($attributes, fn ($v) => $v !== null), [
+                'status' => $attributes['status'] ?? 'APPROVED', 'is_current' => true, 'superseded_at' => null, 'legacy_baseline' => false,
+                'effective_from' => $attributes['effective_from'] ?? today(),
+            ]));
+            if ($previous) {
+                // Process limits set on the old geometry still apply until someone changes them.
+                DB::table('pattern_revisions')->where('id', $revision->id)
+                    ->update(['min_cooling_minutes' => DB::table('pattern_revisions')->where('id', $previous->id)->value('min_cooling_minutes')]);
+            }
+            if ($previous && $copyLayout) {
+                foreach ($previous->cavityMap()->get() as $cavity) {
+                    $revision->cavityMap()->create($cavity->only([
+                        'cavity_number', 'product_revision_id', 'cavity_role', 'component_label', 'pieces_per_product', 'casting_weight_kg', 'poured_weight_kg', 'notes',
+                    ]) + ['copied_from_revision_id' => $previous->id, 'needs_review' => true]);
+                }
+            }
+            $this->unsetRelation('revisions')->unsetRelation('currentRevision');
+
+            return $revision->fresh();
+        });
     }
 }

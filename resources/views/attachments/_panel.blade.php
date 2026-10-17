@@ -17,7 +17,7 @@
                         @if($a->title)<div class="muted small">{{ $a->original_name }}</div>@endif<div class="muted small" title="SHA-256 {{ $a->sha256 }}">{{ substr($a->sha256, 0, 12) }}…</div></div></td>
                     <td>{{ $cats[$a->category] ?? $a->category }}</td><td>{{ $fmt($a->size_bytes) }}</td>
                     <td>{{ $a->created_at->format('d M Y H:i') }}<div class="muted small">{{ $a->uploaded_by_name }}</div></td>
-                    <td>@if($a->isImage())@if($a->is_cover)<span class="status status-completed">Main photo</span>@else<form method="POST" action="{{ route('attachments.cover', $a) }}" style="display:inline">@csrf<button class="btn btn-small">Use as main photo</button></form>@endif @endif<form method="POST" action="{{ route('attachments.remove', $a) }}" style="display:flex;gap:6px;margin-top:4px">@csrf<input name="removal_reason" placeholder="Reason" required style="width:130px"><button class="btn btn-danger">Remove</button></form></td></tr>
+                    <td>@if($a->isImage())@if($a->is_cover)<span class="status status-completed">Main photo</span>@else<form method="POST" action="{{ route('attachments.cover', $a) }}" style="display:inline">@csrf<button class="btn btn-small">Use as main photo</button></form>@endif @endif<form method="POST" action="{{ route('attachments.remove', $a) }}" style="display:flex;gap:6px;margin-top:4px">@csrf<input name="removal_reason" placeholder="Reason" required style="width:130px">@include('partials.icon-button', ['type' => 'delete', 'word' => 'Remove', 'name' => $a->title ?: $a->original_name])</form></td></tr>
             @endforeach
         </tbody></table></div>
     @endif

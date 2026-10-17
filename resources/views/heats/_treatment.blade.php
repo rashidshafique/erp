@@ -16,7 +16,7 @@
                 <tr><td>{{ $t->treated_at->format('d M H:i') }}</td><td>{{ $types[$t->treatment_type] }}</td><td>{{ $t->material }}</td>
                     <td>{{ $t->amount_kg }} kg @if($t->addition_pct)<div class="muted small">{{ $t->addition_pct }} %</div>@endif</td>
                     <td>{{ \App\Models\HeatTreatment::METHODS[$t->method] ?? '' }}</td><td>{{ $t->temperature_c }}</td><td>{{ $t->recovery_pct }}</td><td>{{ $t->treated_by }}</td>
-                    <td><form method="POST" action="{{ route('heats.treatments.destroy', [$heat, $t]) }}">@csrf @method('DELETE')<button class="btn btn-danger">Remove</button></form></td></tr>
+                    <td><form method="POST" action="{{ route('heats.treatments.destroy', [$heat, $t]) }}">@csrf @method('DELETE')@include('partials.icon-button', ['type' => 'delete', 'word' => 'Remove', 'name' => $types[$t->treatment_type]])</form></td></tr>
             @endforeach
         </tbody></table></div>
     @endif

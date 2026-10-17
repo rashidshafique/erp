@@ -11,9 +11,12 @@
     </div>
     <div class="actions">
         <a class="btn" href="{{ route('patterns.index') }}">All patterns</a>
-        <a class="btn btn-primary" href="#new-revision">+ Add revision</a>
+        <button type="button" class="btn btn-primary" data-quick="qd-revision">+ New revision</button>
     </div>
 </div>
+
+@php $current = $pattern->revisions->firstWhere('is_current', true); @endphp
+@include('partials.quick-dialog', ['id' => 'qd-revision', 'title' => 'New revision of '.$pattern->code, 'action' => route('patterns.revisions.store', $pattern), 'submit' => 'Create revision', 'fields' => 'patterns._quick-revision', 'multipart' => true, 'current' => $current])
 
 <div class="tab-marker" data-tab-start="Tooling"></div>
 <div class="panel">
@@ -69,54 +72,53 @@
 
 <div class="tab-marker" data-tab-start="Revisions"></div>
 <div class="panel">
-    <div class="panel-header"><h2>Engineering revisions</h2></div>
+    <div class="panel-header"><h2>Tooling revisions</h2><span class="muted small">One current revision; older ones are superseded and kept. Repairs and repainting go in the maintenance log, not here.</span></div>
 
     @if ($pattern->revisions->isEmpty())
-        <div class="empty-state">No revisions recorded.</div>
+        <div class="empty-state">No revisions recorded. Press “+ New revision” to record the first one.</div>
     @else
         <div class="table-wrap">
             <table>
                 <thead>
                     <tr>
-                        <th>Revision</th>
-                        <th>Status</th>
-                        <th>Parting</th>
+                        <th>Code</th>
+                        <th>State</th>
+                        <th>Approval</th>
+                        <th>Drawing rev</th>
+                        <th>Cost (PKR)</th>
+                        <th>Casting / pour kg</th>
                         <th>Cavities / mould</th>
-                        <th>Layers / mould</th>
-                        <th>Weight (kg)</th>
-                        <th>Effective dates</th>
+                        <th>Parting</th>
+                        <th>Effective</th>
+                        <th>Photo</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach ($pattern->revisions as $revision)
                         <tr>
-                            <td><strong>{{ $revision->revision }}</strong></td>
+                            <td><strong class="mono">{{ $revision->code ?? $revision->revision }}</strong></td>
+                            <td>
+                                @if ($revision->is_current)<span class="status status-completed">Current</span>
+                                @elseif ($revision->isSuperseded())<span class="status status-on-hold" title="Superseded {{ $revision->superseded_at->format('d M Y') }}">Superseded</span>
+                                @else<span class="status">Not current</span>@endif
+                                @if ($revision->legacy_baseline)<span class="status" title="Created from the imported data, not from a recorded change">Baseline</span>@endif
+                            </td>
                             <td>{{ $revision->status }}</td>
-                            <td>{{ $revision->parting_type ?: '—' }}</td>
+                            <td>{{ $revision->drawing_revision ?: '—' }}</td>
+                            <td class="mono">@if ($revision->modification_cost !== null){{ number_format((float) $revision->modification_cost) }}@elseif ($revision->legacy_baseline)<span class="muted">not recorded</span>@else — @endif</td>
+                            <td class="mono small">@if ($revision->casting_weight_kg || $revision->pour_weight_kg){{ $revision->casting_weight_kg !== null ? rtrim(rtrim(number_format((float) $revision->casting_weight_kg, 3), '0'), '.') : '—' }} / {{ $revision->pour_weight_kg !== null ? rtrim(rtrim(number_format((float) $revision->pour_weight_kg, 3), '0'), '.') : '—' }}@if ($revision->yieldPercent() !== null)<div class="muted">yield {{ $revision->yieldPercent() }} %@if ($revision->pieces_per_mould) · {{ $revision->pieces_per_mould }} pcs/mould @endif</div>@endif @elseif ($revision->legacy_baseline)<span class="muted">not recorded</span>@else — @endif</td>
                             <td>{{ $revision->cavities_per_mould ?? '—' }}</td>
-                            <td>{{ $revision->layers_per_mould ?? '—' }}</td>
-                            <td>
-                                {{ $revision->pattern_weight_kg !== null
-                                    ? number_format((float) $revision->pattern_weight_kg, 4)
-                                    : '—' }}
-                            </td>
-                            <td>
-                                {{ $revision->effective_from?->format('Y-m-d') ?? '—' }}
-                                to
-                                {{ $revision->effective_to?->format('Y-m-d') ?? '—' }}
-                            </td>
+                            <td>{{ $revision->parting_type ?: '—' }}</td>
+                            <td class="small">{{ $revision->effective_from?->format('d M Y') ?? '—' }} – {{ $revision->effective_to?->format('d M Y') ?? '' }}</td>
+                            <td>@foreach ($revisionPhotos->get($revision->id, collect()) as $photo)<a href="{{ route('attachments.download', $photo) }}" target="_blank">View</a> @endforeach</td>
                         </tr>
-                        @if ($revision->change_description || $revision->engineering_notes)
+                        @if ($revision->change_description || $revision->shrinkage_note || $revision->engineering_notes || $revision->cost_note)
                             <tr>
-                                <td colspan="7">
-                                    @if ($revision->change_description)
-                                        <strong>Change:</strong> {{ $revision->change_description }}
-                                    @endif
-                                    @if ($revision->engineering_notes)
-                                        <div class="muted small" style="margin-top: 5px">
-                                            <strong>Engineering notes:</strong> {{ $revision->engineering_notes }}
-                                        </div>
-                                    @endif
+                                <td colspan="10" class="small">
+                                    @if ($revision->change_description)<strong>Change:</strong> {{ $revision->change_description }}@endif
+                                    @if ($revision->cost_note)<div class="muted"><strong>Cost note:</strong> {{ $revision->cost_note }}</div>@endif
+                                    @if ($revision->shrinkage_note)<div class="muted"><strong>Shrinkage / allowance:</strong> {{ $revision->shrinkage_note }}</div>@endif
+                                    @if ($revision->engineering_notes)<div class="muted"><strong>Engineering notes:</strong> {{ $revision->engineering_notes }}</div>@endif
                                 </td>
                             </tr>
                         @endif
@@ -130,93 +132,6 @@
 <div class="tab-marker" data-tab-start="Cavity map"></div>
 @include('patterns._cavity-map', ['pattern' => $pattern, 'productRevisions' => $productRevisions])
 
-<div class="tab-marker" data-tab-start="New revision"></div>
-<div class="panel" id="new-revision">
-    <div class="panel-header">
-        <h2>Add engineering revision</h2>
-    </div>
-    <div class="panel-body">
-        <p class="muted small">
-            This creates a new revision; it does not modify existing revisions.
-            Record a meaningful change description for traceability.
-        </p>
-
-        @if ($errors->any())
-            <div class="alert alert-error">
-                <strong>Please correct the following:</strong>
-                <ul>
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
-
-        <form method="POST" action="{{ route('patterns.revisions.store', $pattern) }}">
-            @csrf
-            <div class="form-grid">
-                <div class="field">
-                    <label for="revision">Revision code *</label>
-                    <input id="revision" name="revision" required maxlength="20"
-                           value="{{ old('revision') }}" placeholder="e.g. B">
-                </div>
-                <div class="field">
-                    <label for="status">Revision status *</label>
-                    <select id="status" name="status" required>
-                        @foreach (['DRAFT', 'APPROVED', 'OBSOLETE'] as $status)
-                            <option value="{{ $status }}" @selected(old('status', 'DRAFT') === $status)>
-                                {{ $status }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="field">
-                    <label for="parting_type">Parting arrangement</label>
-                    <input id="parting_type" name="parting_type" maxlength="30"
-                           value="{{ old('parting_type') }}" placeholder="e.g. HORIZONTAL">
-                </div>
-                <div class="field">
-                    <label for="cavities_per_mould">Cavities per mould</label>
-                    <input id="cavities_per_mould" name="cavities_per_mould"
-                           type="number" min="1" step="1" value="{{ old('cavities_per_mould') }}">
-                </div>
-                <div class="field">
-                    <label for="layers_per_mould">Layers per mould</label>
-                    <input id="layers_per_mould" name="layers_per_mould"
-                           type="number" min="1" step="1" value="{{ old('layers_per_mould', 2) }}">
-                </div>
-                <div class="field">
-                    <label for="pattern_weight_kg">Pattern / plate weight (kg)</label>
-                    <input id="pattern_weight_kg" name="pattern_weight_kg"
-                           type="number" min="0.0001" step="0.0001"
-                           value="{{ old('pattern_weight_kg') }}">
-                </div>
-                <div class="field">
-                    <label for="effective_from">Effective from</label>
-                    <input id="effective_from" name="effective_from" type="date"
-                           value="{{ old('effective_from') }}">
-                </div>
-                <div class="field">
-                    <label for="effective_to">Effective to</label>
-                    <input id="effective_to" name="effective_to" type="date"
-                           value="{{ old('effective_to') }}">
-                </div>
-                <div class="field field-full">
-                    <label for="change_description">Change description *</label>
-                    <textarea id="change_description" name="change_description" rows="3"
-                              required>{{ old('change_description') }}</textarea>
-                </div>
-                <div class="field field-full">
-                    <label for="engineering_notes">Engineering notes</label>
-                    <textarea id="engineering_notes" name="engineering_notes" rows="3">{{ old('engineering_notes') }}</textarea>
-                </div>
-            </div>
-            <div class="actions" style="margin-top: 18px">
-                <button class="btn btn-primary" type="submit">Save new revision</button>
-            </div>
-        </form>
-    </div>
-</div>
 <div class="tab-marker" data-tab-start="Cooling"></div>
 @include('patterns._cooling', ['pattern' => $pattern])
 <div class="tab-marker" data-tab-start="Files & history"></div>

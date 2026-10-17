@@ -32,7 +32,7 @@
 <div class="panel"><div class="table-wrap"><table><thead><tr><th>Code</th><th>Shift</th><th>Hours</th><th>Break</th><th>Grace</th><th></th></tr></thead><tbody>
 @foreach ($shifts as $s)
 <tr><td><strong>{{ $s->code }}</strong></td><td>{{ $s->name }}@if ($s->crossesMidnight()) <span class="status status-in-progress">Night</span>@endif</td><td>{{ substr($s->starts_at, 0, 5) }} – {{ substr($s->ends_at, 0, 5) }} ({{ \App\Models\AttendanceRecord::hm($s->paidMinutes()) }} paid)</td><td>{{ $s->break_minutes }} min</td><td>{{ $s->grace_minutes }} min</td>
-<td><details class="row-edit"><summary>Edit</summary><form method="POST" action="{{ route('hr.shifts.update', $s) }}" class="form-grid">@csrf @method('PUT')
+<td><details class="row-edit">@include('partials.icon-button', ['type' => 'edit', 'name' => $s->name, 'tag' => 'summary'])<form method="POST" action="{{ route('hr.shifts.update', $s) }}" class="form-grid">@csrf @method('PUT')
 @include('hr._in', ['name' => 'code', 'label' => 'Code', 'val' => $s->code]) @include('hr._in', ['name' => 'name', 'label' => 'Name', 'val' => $s->name, 'required' => true])
 @include('hr._in', ['name' => 'starts_at', 'label' => 'Starts', 'type' => 'time', 'val' => substr($s->starts_at, 0, 5), 'required' => true]) @include('hr._in', ['name' => 'ends_at', 'label' => 'Ends', 'type' => 'time', 'val' => substr($s->ends_at, 0, 5), 'required' => true])
 @include('hr._in', ['name' => 'break_minutes', 'label' => 'Break (min)', 'type' => 'number', 'val' => $s->break_minutes, 'required' => true]) @include('hr._in', ['name' => 'grace_minutes', 'label' => 'Grace (min)', 'type' => 'number', 'val' => $s->grace_minutes, 'required' => true])
@@ -48,7 +48,7 @@
 <div class="panel"><div class="panel-header"><h2>Holidays {{ $year }}</h2>
 <form method="GET" style="display:flex;gap:6px"><input type="hidden" name="tab" value="holidays"><input type="number" name="year" value="{{ $year }}" style="width:90px;min-height:28px;padding:2px 6px"><button class="btn btn-small">Show</button></form></div>
 <div class="table-wrap"><table><thead><tr><th>Date</th><th>Holiday</th><th>Kind</th><th></th></tr></thead><tbody>
-@forelse ($holidays as $h)<tr><td>{{ $h->holiday_on->format('D d M Y') }}</td><td>{{ $h->name }}</td><td>{{ ucfirst(strtolower($h->kind)) }}</td><td><form method="POST" action="{{ route('hr.holidays.destroy', $h) }}" onsubmit="return confirm('Remove this holiday?')">@csrf @method('DELETE')<button class="btn btn-small">Remove</button></form></td></tr>
+@forelse ($holidays as $h)<tr><td>{{ $h->holiday_on->format('D d M Y') }}</td><td>{{ $h->name }}</td><td>{{ ucfirst(strtolower($h->kind)) }}</td><td><form method="POST" action="{{ route('hr.holidays.destroy', $h) }}" onsubmit="return confirm('Remove this holiday?')">@csrf @method('DELETE')@include('partials.icon-button', ['type' => 'delete', 'word' => 'Remove', 'name' => $h->name])</form></td></tr>
 @empty<tr><td colspan="4" class="muted">None for {{ $year }}.</td></tr>@endforelse</tbody></table></div>
 <div class="panel-body"><form method="POST" action="{{ route('hr.holidays.store') }}">@csrf<div class="form-grid">
 @include('hr._in', ['name' => 'holiday_on', 'label' => 'Date', 'type' => 'date', 'val' => '', 'required' => true]) @include('hr._in', ['name' => 'name', 'label' => 'Holiday', 'val' => '', 'required' => true, 'ph' => 'e.g. Eid ul Fitr'])

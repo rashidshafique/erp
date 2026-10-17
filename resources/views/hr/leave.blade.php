@@ -50,7 +50,7 @@
 <tr><td><strong>{{ $t->code }}</strong></td><td>{{ $t->name }} @unless ($t->active)<span class="status status-cancelled">Off</span>@endunless</td><td>{{ $t->annual_days > 0 ? $nf($t->annual_days) : '—' }}</td>
 <td>{{ ['NONE' => 'No balance kept', 'MONTHLY' => 'Earned monthly', 'UPFRONT' => 'Given at the start of the year'][$t->accrual] }}</td><td>{{ $t->tracksBalance() ? 'up to '.$nf($t->carry_forward_max) : '—' }}</td>
 <td class="small">{{ $t->paid ? 'Paid' : 'Unpaid' }}{{ $t->allow_half_day ? ', half days' : '' }}{{ $t->counts_days_off ? ', counts days off' : '' }}{{ $t->after_probation_only ? ', after probation' : '' }}{{ $t->gender ? ', '.($t->gender === 'F' ? 'women' : 'men').' only' : '' }}</td>
-<td><details class="row-edit"><summary>Edit</summary><form method="POST" action="{{ route('hr.leave.types.update', $t) }}" class="form-grid">@csrf @method('PUT')
+<td><details class="row-edit">@include('partials.icon-button', ['type' => 'edit', 'name' => $t->name, 'tag' => 'summary'])<form method="POST" action="{{ route('hr.leave.types.update', $t) }}" class="form-grid">@csrf @method('PUT')
 @include('hr._in', ['name' => 'code', 'label' => 'Code', 'val' => $t->code, 'required' => true]) @include('hr._in', ['name' => 'name', 'label' => 'Name', 'val' => $t->name, 'required' => true])
 @include('hr._in', ['name' => 'annual_days', 'label' => 'Days a year', 'type' => 'number', 'val' => $t->annual_days, 'required' => true])
 @include('hr._sel', ['name' => 'accrual', 'label' => 'Entitlement', 'items' => ['NONE' => 'No balance kept', 'MONTHLY' => 'Earned monthly', 'UPFRONT' => 'Given at the start of the year'], 'sel' => $t->accrual, 'blank' => false])

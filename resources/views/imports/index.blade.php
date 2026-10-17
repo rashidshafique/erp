@@ -31,7 +31,7 @@
 @if ($templates->isEmpty())<div class="empty-state">None yet. On the mapping screen, give the mapping a name to reuse it for the next file with the same headings.</div>@else
 <div class="table-wrap"><table><thead><tr><th>Name</th><th>For</th><th>Columns</th><th></th></tr></thead><tbody>
 @foreach ($templates as $t)<tr><td>{{ $t->name }}</td><td>{{ config('imports.entities.'.$t->entity.'.label') }}</td><td class="small muted">{{ implode(', ', array_slice($t->headers, 0, 8)) }}{{ count($t->headers) > 8 ? '…' : '' }}</td>
-<td><form method="POST" action="{{ route('imports.templates.destroy', $t) }}" onsubmit="return confirm('Remove this saved mapping?')">@csrf @method('DELETE')<button class="btn btn-danger" type="submit">Remove</button></form></td></tr>@endforeach
+<td><form method="POST" action="{{ route('imports.templates.destroy', $t) }}" onsubmit="return confirm('Remove this saved mapping?')">@csrf @method('DELETE')@include('partials.icon-button', ['type' => 'delete', 'word' => 'Remove', 'name' => $t->name])</form></td></tr>@endforeach
 </tbody></table></div>@endif
 </div>
 @endsection

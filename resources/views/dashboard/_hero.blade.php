@@ -8,7 +8,7 @@
         </div>
         <div style="display:flex;flex-direction:column;gap:10px;align-items:flex-end">
             <div class="switch" title="Choose a dashboard layout">
-                @foreach (['classic' => 'Classic', 'command' => 'Command', 'columns' => 'Columns'] as $k => $name)<a href="{{ route('dashboard', ['layout' => $k]) }}" class="{{ $L === $k ? 'on' : '' }}">{{ $name }}</a>@endforeach
+                @foreach (['classic' => 'Classic', 'command' => 'Command', 'columns' => 'Columns', 'telemetry' => 'Telemetry'] as $k => $name)<a href="{{ route('dashboard', ['layout' => $k]) }}" class="{{ $L === $k ? 'on' : '' }}">{{ $name }}</a>@endforeach
             </div>
             <div class="acts">
                 <a class="btnx" href="{{ route('scan') }}">Scan code</a>

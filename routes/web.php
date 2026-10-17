@@ -38,7 +38,10 @@ Route::prefix('moulding-runs')
         Route::get('/', 'index')->name('index');
         Route::get('/create', 'create')->name('create');
         Route::post('/', 'store')->name('store');
+        Route::get('/bulk', [\App\Http\Controllers\MouldingRunBulkController::class, 'edit'])->name('bulk');
+        Route::post('/bulk', [\App\Http\Controllers\MouldingRunBulkController::class, 'save'])->name('bulk.save');
         Route::get('/{mouldingRun}', 'show')->name('show');
+        Route::put('/{mouldingRun}/crew', 'updateCrew')->name('crew');
     });
 
 Route::prefix('patterns')->name('patterns.')->controller(PatternController::class)->group(function () {
@@ -48,8 +51,10 @@ Route::prefix('patterns')->name('patterns.')->controller(PatternController::clas
     Route::get('/{pattern}', 'show')->name('show');
     Route::put('/{pattern}/sand', 'updateSand')->name('sand');
     Route::post('/{pattern}/revisions', 'storeRevision')->name('revisions.store');
+    Route::post('/{pattern}/cavities', [\App\Http\Controllers\PatternCavityController::class, 'add'])->name('cavities.add');
     Route::post('/{pattern}/revisions/{revision}/cavities', [\App\Http\Controllers\PatternCavityController::class, 'store'])->name('cavities.store');
     Route::put('/{pattern}/revisions/{revision}/cavities/{cavity}', [\App\Http\Controllers\PatternCavityController::class, 'update'])->name('cavities.update');
+    Route::put('/{pattern}/revisions/{revision}/cavities/{cavity}/reviewed', [\App\Http\Controllers\PatternCavityController::class, 'review'])->name('cavities.review');
     Route::delete('/{pattern}/revisions/{revision}/cavities/{cavity}', [\App\Http\Controllers\PatternCavityController::class, 'destroy'])->name('cavities.destroy');
 });
 

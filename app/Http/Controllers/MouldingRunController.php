@@ -2,10 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\MouldingRun;
 use App\Models\MouldConfiguration;
+use App\Models\MouldingRun;
+use App\Models\MouldingTeam;
 use App\Models\PatternRevision;
 use App\Models\ProductionOrder;
+use App\Models\SandSystem;
+use App\Services\PatternCavityMap;
+use App\Services\Production\MouldAssembler;
+use App\Services\Production\WorkListService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -37,14 +42,11 @@ class MouldingRunController extends Controller
                         });
                 });
             })
-            ->when($request->filled('status'), fn ($query) =>
-                $query->where('status', $request->input('status'))
+            ->when($request->filled('status'), fn ($query) => $query->where('status', $request->input('status'))
             )
-            ->when($request->filled('date_from'), fn ($query) =>
-                $query->whereDate('run_date', '>=', $request->input('date_from'))
+            ->when($request->filled('date_from'), fn ($query) => $query->whereDate('run_date', '>=', $request->input('date_from'))
             )
-            ->when($request->filled('date_to'), fn ($query) =>
-                $query->whereDate('run_date', '<=', $request->input('date_to'))
+            ->when($request->filled('date_to'), fn ($query) => $query->whereDate('run_date', '<=', $request->input('date_to'))
             )
             ->orderByDesc('run_date')
             ->orderByDesc('created_at')
@@ -156,25 +158,24 @@ class MouldingRunController extends Controller
             'notes' => ['nullable', 'string', 'max:5000'],
         ]);
 
-        app(\App\Services\PatternCavityMap::class)->assertPatternMakesOrderProduct(
+        app(PatternCavityMap::class)->assertPatternMakesOrderProduct(
             $validated['pattern_revision_id'] ?? null,
             $validated['production_order_id']
         );
 
         if (
-            $validated['accepted_mould_qty'] + $validated['damaged_mould_qty']
-            > $validated['moulds_made_qty']
+            $validated['moulds_made_qty']
+            < $validated['accepted_mould_qty'] + $validated['damaged_mould_qty']
         ) {
             return back()
                 ->withErrors([
-                    'accepted_mould_qty' =>
-                        'Accepted moulds plus damaged moulds cannot exceed total moulds made.',
+                    'accepted_mould_qty' => 'Accepted moulds plus damaged moulds cannot exceed total moulds made.',
                 ])
                 ->withInput();
         }
 
         $run = DB::transaction(function () use ($validated) {
-            $validated['run_number'] = $this->nextRunNumber();
+            $validated['run_number'] = MouldingRun::nextRunNumber();
 
             if (($validated['status'] ?? null) === 'COMPLETED'
                 && empty($validated['completed_at'])) {
@@ -198,11 +199,11 @@ class MouldingRunController extends Controller
             'mouldConfiguration',
             'mouldAssemblies.pourAssignment.pour',
         ]);
-        $configurations = \App\Models\MouldConfiguration::where('is_active', true)->orderBy('code')->get();
+        $configurations = MouldConfiguration::where('is_active', true)->orderBy('code')->get();
 
         $perMould = null;
         if ($mouldingRun->patternRevision && $mouldingRun->productionOrder) {
-            $map = app(\App\Services\PatternCavityMap::class);
+            $map = app(PatternCavityMap::class);
             if ($map->hasMap($mouldingRun->pattern_revision_id)) {
                 $perMould = $map->expectedProductsPerMould(
                     $mouldingRun->patternRevision,
@@ -213,26 +214,27 @@ class MouldingRunController extends Controller
 
         return view('moulding-runs.show', [
             'run' => $mouldingRun,
+            'teams' => MouldingTeam::where('status', 'ACTIVE')->orWhere('id', $mouldingRun->moulding_team_id)->orderBy('code')->get(),
+            'sands' => SandSystem::choices($mouldingRun->sand_system),
             'perMould' => $perMould,
             'configurations' => $configurations,
         ]);
     }
 
-    private function nextRunNumber(): string
+    /** Corrects the team and sand of a run; the bulk editor takes them from the station. */
+    public function updateCrew(Request $request, MouldingRun $mouldingRun): RedirectResponse
     {
-        $prefix = 'MR-' . now()->format('Ymd') . '-';
+        $data = $request->validate([
+            'moulding_team_id' => ['nullable', 'uuid', Rule::exists('moulding_teams', 'id')],
+            'sand_system' => ['nullable', Rule::in(SandSystem::allNames())],
+        ]);
+        $team = filled($data['moulding_team_id'] ?? null) ? MouldingTeam::find($data['moulding_team_id']) : null;
+        $mouldingRun->update(['moulding_team_id' => $team?->id, 'team_name' => $team?->name, 'sand_system' => $data['sand_system'] ?? null]);
 
-        $lastNumber = MouldingRun::query()
-            ->where('run_number', 'like', $prefix . '%')
-            ->lockForUpdate()
-            ->pluck('run_number')
-            ->map(fn ($number) => (int) substr($number, strlen($prefix)))
-            ->max() ?? 0;
-
-        return $prefix . str_pad((string) ($lastNumber + 1), 3, '0', STR_PAD_LEFT);
+        return back()->with('success', "Team and sand saved for {$mouldingRun->run_number}.");
     }
 
-    public function assemble(Request $request, MouldingRun $mouldingRun, \App\Services\Production\MouldAssembler $assembler): RedirectResponse
+    public function assemble(Request $request, MouldingRun $mouldingRun, MouldAssembler $assembler): RedirectResponse
     {
         $data = $request->validate([
             'count' => ['required', 'integer', 'min:1', 'max:500'],
@@ -250,7 +252,7 @@ class MouldingRunController extends Controller
         return back()->with('success', $made->count().' mould assembl'.($made->count() === 1 ? 'y' : 'ies').' created ('.$made->first()->assembly_number.($made->count() > 1 ? ' to '.$made->last()->assembly_number : '').').');
     }
 
-    public function recordOutput(Request $request, MouldingRun $mouldingRun, \App\Services\Production\WorkListService $svc): RedirectResponse
+    public function recordOutput(Request $request, MouldingRun $mouldingRun, WorkListService $svc): RedirectResponse
     {
         $d = $request->validate([
             'moulds_made_qty' => ['required', 'integer', 'min:0'], 'accepted_mould_qty' => ['required', 'integer', 'min:0'], 'damaged_mould_qty' => ['required', 'integer', 'min:0'],

@@ -152,7 +152,7 @@
                                 : '—' }}
                         </td>
                         <td>@foreach ($assignment->castingLots as $lot)<a href="{{ route('lots.show', $lot) }}">{{ $lot->lot_number }}</a><div class="muted small">{{ $lot->product?->code }} × {{ $lot->quantity_poured }}</div>@endforeach @if ($assignment->castingLots->isEmpty())—@endif</td>
-                        <td>@if ($pour->status !== 'COMPLETED')<form method="POST" action="{{ route('pours.assemblies.detach', [$pour, $assignment]) }}" onsubmit="return confirm('Remove this mould from the pour?')">@csrf @method('DELETE')<button class="btn" type="submit">Remove</button></form>@endif</td>
+                        <td>@if ($pour->status !== 'COMPLETED')<form method="POST" action="{{ route('pours.assemblies.detach', [$pour, $assignment]) }}" onsubmit="return confirm('Remove this mould from the pour?')">@csrf @method('DELETE')@include('partials.icon-button', ['type' => 'delete', 'word' => 'Remove'])</form>@endif</td>
                     </tr>
                 @empty
                     <tr>

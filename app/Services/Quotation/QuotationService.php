@@ -4,10 +4,10 @@ namespace App\Services\Quotation;
 
 use App\Models\Enquiry;
 use App\Models\EnquiryItem;
+use App\Models\PatternRevision;
 use App\Models\Product;
 use App\Models\ProductRevision;
 use App\Models\Quotation;
-use App\Models\QuotationLine;
 use App\Models\SalesOrder;
 use App\Services\Approvals\ApprovalGate;
 use Illuminate\Support\Facades\Auth;
@@ -15,15 +15,27 @@ use Illuminate\Support\Facades\DB;
 
 class QuotationService
 {
-    public function __construct(private QuoteCalculator $calc = new QuoteCalculator())
-    {
-    }
+    public function __construct(private QuoteCalculator $calc = new QuoteCalculator) {}
 
-    /** What the cost build-up needs for one item: from the linked analysis when there is one, else from what was typed. */
+    /**
+     * What the cost build-up needs for one item. Weights come from the current revision of the pattern that makes the product
+     * when it has them recorded, else from the linked analysis, else from what was typed. Superseded revisions are never read.
+     */
     public function inputsFor(EnquiryItem $item, array $rates): array
     {
         $a = $item->analysis;
         $qty = (int) ($item->first_batch_qty ?: $item->annual_qty ?: 1);
+        if ($revision = $this->currentPatternRevisionFor($item)) {
+            $weight = (float) $revision->casting_weight_kg;
+            $poured = (float) $revision->pour_weight_kg;
+            $scrap = (float) $rates['scrap_default_pct'];
+
+            return [
+                'qty' => $qty, 'weight_kg' => $weight, 'poured_kg' => $poured, 'family' => $item->family ?: config('quotation.default_family'),
+                'cores_count' => (int) ($item->cores_count ?? 0), 'scrap_pct' => $scrap,
+                'basis' => sprintf('From pattern revision %s (current): casting %.2f kg, poured %.2f kg (yield %.0f%%), scrap assumed %.0f%%.', $revision->code, $weight, $poured, $revision->yieldPercent(), $scrap),
+            ];
+        }
         if ($a && $a->status === 'COMPLETE' && $a->recommendation) {
             $w = $a->recommendation['weight'];
             $weight = (float) $w['casting_kg'];
@@ -127,10 +139,12 @@ class QuotationService
             $label = "Item {$item->line_no} ({$item->description})";
             if ($item->feasibility_status === 'PENDING') {
                 $out[] = "$label has not been assessed for feasibility.";
+
                 continue;
             }
             if ($item->feasibility_status === 'NOT_FEASIBLE') {
                 $out[] = "$label is marked not feasible.";
+
                 continue;
             }
             $a = $item->analysis;
@@ -244,6 +258,20 @@ class QuotationService
     }
 
     /** The revision an order will use: the approved one for repeat work, a new draft for new work or a customer change. */
+    /** The current revision of a pattern that makes the item's product and has both weights recorded, newest first. */
+    private function currentPatternRevisionFor(EnquiryItem $item): ?PatternRevision
+    {
+        if (! $item->product_id) {
+            return null;
+        }
+
+        return PatternRevision::query()
+            ->where('is_current', true)->whereNotNull('casting_weight_kg')->whereNotNull('pour_weight_kg')
+            ->whereHas('cavityMap.productRevision', fn ($q) => $q->where('product_id', $item->product_id))
+            ->orderByDesc('effective_from')->orderByDesc('created_at')
+            ->first();
+    }
+
     private function revisionFor(Product $product, bool $forceNew, float $weight): ProductRevision
     {
         $revs = $product->revisions()->get();

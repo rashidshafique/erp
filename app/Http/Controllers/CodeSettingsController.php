@@ -28,12 +28,14 @@ class CodeSettingsController extends Controller
             'mark_style' => ['required', Rule::in(array_keys(CodeGenerator::STYLES))],
             'mark_length' => ['required', 'integer', 'between:3,10'],
             'prefix' => ['array'], 'prefix.*' => ['nullable', 'string', 'regex:/^[A-Za-z]{1,5}$/'],
-        ], ['prefix.*.regex' => 'Prefixes are 1 to 5 letters.']);
+            'revision_suffix' => ['nullable', 'string', 'regex:/^[-_.A-Za-z]{1,4}$/'],
+        ], ['prefix.*.regex' => 'Prefixes are 1 to 5 letters.', 'revision_suffix.regex' => 'The revision separator is 1 to 4 letters, dashes, dots or underscores, such as -R.']);
 
         AppSetting::setValue('codes.code_style', $d['code_style'], 'Style of generated product, pattern and tooling codes');
         AppSetting::setValue('codes.code_digits', (string) $d['code_digits'], 'Digits in the running number of generated codes');
         AppSetting::setValue('codes.mark_style', $d['mark_style'], 'Characters allowed in engraving marks');
         AppSetting::setValue('codes.mark_length', (string) $d['mark_length'], 'Length of engraving marks');
+        AppSetting::setValue('codes.revision_suffix', $d['revision_suffix'] ?? '-R', 'Between a pattern code and its revision number (P-0123-R1)');
         AppSetting::setValue('codes.mark_avoid_lookalikes', $request->boolean('mark_avoid_lookalikes') ? '1' : '0', 'Leave out look-alike characters (0/O, 1/I, Q)');
         foreach (array_keys(CodeGenerator::KINDS) as $k) {
             $p = $d['prefix'][$k] ?? null;

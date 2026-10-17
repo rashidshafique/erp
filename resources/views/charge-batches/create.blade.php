@@ -106,7 +106,7 @@
                     <td><input name="items[{{ $i }}][maximum_qty_kg]" type="number" min="0.001" step="0.001" class="form-control" value="{{ $item['maximum_qty_kg'] ?? '' }}"></td>
                     <td style="text-align:center"><input type="checkbox" name="items[{{ $i }}][is_required]" value="1" @checked(($item['is_required'] ?? '0') == '1')></td>
                     <td><input name="items[{{ $i }}][notes]" class="form-control" value="{{ $item['notes'] ?? '' }}"></td>
-                    <td><button type="button" class="btn btn-secondary remove-component">Remove</button></td>
+                    <td>@include('partials.icon-button', ['type' => 'delete', 'word' => 'Remove', 'buttonType' => 'button', 'class' => 'remove-component'])</td>
                 </tr>
             @endforeach
             </tbody>
@@ -171,7 +171,7 @@
             <td><input name="items[${index}][maximum_qty_kg]" type="number" min="0.001" step="0.001" class="form-control"></td>
             <td style="text-align:center"><input type="checkbox" name="items[${index}][is_required]" value="1" checked></td>
             <td><input name="items[${index}][notes]" class="form-control"></td>
-            <td><button type="button" class="btn btn-secondary remove-component">Remove</button></td>`;
+            <td>@include('partials.icon-button', ['type' => 'delete', 'word' => 'Remove', 'buttonType' => 'button', 'class' => 'remove-component'])</td>`;
         body.appendChild(row);
         updateSummary();
     }

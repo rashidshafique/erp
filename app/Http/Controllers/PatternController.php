@@ -2,16 +2,23 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Attachment;
 use App\Models\Pattern;
+use App\Models\ProductRevision;
+use App\Models\SandSystem;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class PatternController extends Controller
 {
     public function index(Request $request)
     {
         $patterns = Pattern::query()
+            ->with('currentRevision')
             ->withCount('revisions')
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = trim($request->input('search'));
@@ -21,9 +28,9 @@ class PatternController extends Controller
                         ->orWhere('name', 'ilike', "%{$search}%");
                 });
             })
-            ->when($request->filled('status'), fn ($q) =>
-                $q->where('status', $request->input('status'))
+            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status'))
             )
+            ->when($request->input('revision') === 'baseline', fn ($q) => $q->whereHas('currentRevision', fn ($r) => $r->baselineWithoutDrawing()))
             ->orderBy('code')
             ->paginate(20)
             ->withQueryString();
@@ -33,13 +40,14 @@ class PatternController extends Controller
             'totalPatterns' => Pattern::count(),
             'activePatterns' => Pattern::where('status', 'ACTIVE')->count(),
             'otherPatterns' => Pattern::where('status', '!=', 'ACTIVE')->count(),
+            'baselineOnly' => Pattern::whereHas('currentRevision', fn ($r) => $r->baselineWithoutDrawing())->count(),
         ]);
     }
 
     public function create()
     {
         return view('patterns.create', [
-            'pattern' => new Pattern(),
+            'pattern' => new Pattern,
             'patternTypes' => [
                 'MATCHPLATE',
                 'COPE_DRAG',
@@ -47,7 +55,7 @@ class PatternController extends Controller
                 'SPLIT_PATTERN',
                 'OTHER',
             ],
-            'sands' => \App\Models\SandSystem::names(),
+            'sands' => SandSystem::names(),
             'patternStatuses' => ['ACTIVE', 'INACTIVE', 'RETIRED'],
             'revisionStatuses' => ['DRAFT', 'APPROVED', 'OBSOLETE'],
             'partingTypes' => [
@@ -75,8 +83,8 @@ class PatternController extends Controller
             'height_mm' => ['nullable', 'numeric', 'gt:0', 'max:99999999.99'],
             'description' => ['nullable', 'string'],
             'notes' => ['nullable', 'string'],
-            'sand_system' => ['nullable', Rule::in(\App\Models\SandSystem::allNames())],
-            'compatible_sands' => ['nullable', 'array'], 'compatible_sands.*' => [Rule::in(\App\Models\SandSystem::allNames())],
+            'sand_system' => ['nullable', Rule::in(SandSystem::allNames())],
+            'compatible_sands' => ['nullable', 'array'], 'compatible_sands.*' => [Rule::in(SandSystem::allNames())],
             'sand_note' => ['nullable', 'string', 'max:1000'],
 
             'revision' => ['required', 'string', 'max:20'],
@@ -142,8 +150,8 @@ class PatternController extends Controller
     public function updateSand(Request $request, Pattern $pattern)
     {
         $data = $request->validate([
-            'sand_system' => ['nullable', Rule::in(\App\Models\SandSystem::allNames())],
-            'compatible_sands' => ['nullable', 'array'], 'compatible_sands.*' => [Rule::in(\App\Models\SandSystem::allNames())],
+            'sand_system' => ['nullable', Rule::in(SandSystem::allNames())],
+            'compatible_sands' => ['nullable', 'array'], 'compatible_sands.*' => [Rule::in(SandSystem::allNames())],
             'sand_note' => ['nullable', 'string', 'max:1000'],
         ]);
         $pattern->update(['sand_system' => $data['sand_system'] ?? null, 'compatible_sands' => $this->otherSands($data), 'sand_note' => $data['sand_note'] ?? null]);
@@ -155,46 +163,65 @@ class PatternController extends Controller
     {
         $pattern->load([
             'revisions' => fn ($query) => $query
-                ->orderByDesc('created_at')
-                ->orderBy('revision'),
+                ->orderByDesc('is_current')
+                ->orderByDesc('sequence')
+                ->orderByDesc('created_at'),
             'revisions.cavityMap.productRevision.product',
+            'revisions.cavityMap.copiedFrom',
         ]);
+        $revisionPhotos = Attachment::where('attachable_type', 'pattern_revision')->whereIn('attachable_id', $pattern->revisions->pluck('id'))
+            ->whereNull('removed_at')->get()->groupBy('attachable_id');
 
-        $productRevisions = \App\Models\ProductRevision::query()
+        $productRevisions = ProductRevision::query()
             ->with('product')
             ->where('status', '!=', 'OBSOLETE')
             ->get()
             ->sortBy(fn ($r) => $r->product?->code.' '.$r->revision)
             ->values();
 
-        return view('patterns.show', compact('pattern', 'productRevisions'));
+        return view('patterns.show', compact('pattern', 'productRevisions', 'revisionPhotos'));
     }
 
-    public function storeRevision(Request $request, Pattern $pattern)
+    /**
+     * Records a new revision of the tooling geometry and makes it current; the previous current revision is superseded and
+     * kept. Repairs and repainting are not revisions: they go in the maintenance log.
+     */
+    public function storeRevision(Request $request, Pattern $pattern): RedirectResponse
     {
         $data = $request->validate([
-            'revision' => [
-                'required',
-                'string',
-                'max:20',
-                Rule::unique('pattern_revisions', 'revision')
-                    ->where('pattern_id', $pattern->id),
-            ],
-            'status' => ['required', Rule::in(['DRAFT', 'APPROVED', 'OBSOLETE'])],
-            'parting_type' => ['nullable', 'string', 'max:30'],
+            'change_description' => ['required', 'string', 'max:2000'],
+            'drawing_revision' => ['nullable', 'string', 'max:40'],
+            'shrinkage_note' => ['nullable', 'string', 'max:2000'],
             'cavities_per_mould' => ['nullable', 'integer', 'min:1', 'max:10000'],
-            'layers_per_mould' => ['nullable', 'integer', 'min:1', 'max:1000'],
-            'pattern_weight_kg' => ['nullable', 'numeric', 'gt:0', 'max:99999999.9999'],
-            'change_description' => ['required', 'string', 'max:10000'],
-            'engineering_notes' => ['nullable', 'string'],
+            'modification_cost' => ['nullable', 'numeric', 'min:0', 'max:999999999999.99'],
             'effective_from' => ['nullable', 'date'],
-            'effective_to' => ['nullable', 'date', 'after_or_equal:effective_from'],
+            'cost_note' => ['nullable', 'string', 'max:2000'],
+            'casting_weight_kg' => ['nullable', 'numeric', 'gt:0', 'max:99999999.9999'],
+            'pour_weight_kg' => array_merge(['nullable', 'numeric', 'gt:0', 'max:99999999.9999'], $request->filled('casting_weight_kg') ? ['gte:casting_weight_kg'] : []),
+            'pieces_per_mould' => ['nullable', 'integer', 'min:1', 'max:10000'],
+            'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:'.config('foundry.attachments.max_kb')],
+        ], [
+            'change_description.required' => 'Say what changed in the tooling geometry or layout.',
+            'pour_weight_kg.gte' => 'The pour weight includes gating and risers, so it cannot be less than the casting weight.',
         ]);
+        $previous = $pattern->currentRevision;
+        $copyLayout = $request->boolean('copy_layout');
 
-        $pattern->revisions()->create($data);
+        $revision = DB::transaction(function () use ($pattern, $data, $request, $copyLayout) {
+            $revision = $pattern->addRevision(Arr::except($data, ['photo']), $copyLayout);
+            if ($request->hasFile('photo')) {
+                $error = AttachmentController::saveFiles([$request->file('photo')], 'pattern_revision', $revision->id, 'PHOTO', "{$revision->code} photo");
+                if ($error) {
+                    throw ValidationException::withMessages(['photo' => $error]);
+                }
+            }
+
+            return $revision;
+        });
 
         return redirect()
             ->route('patterns.show', $pattern)
-            ->with('success', 'Pattern revision added. Previous revisions were preserved.');
+            ->with('success', "Revision {$revision->code} is now current.".($previous ? " {$previous->code} is superseded and kept." : '')
+                .(($copied = $revision->cavityMap()->count()) ? " {$copied} ".($copied === 1 ? 'cavity was' : 'cavities were').' copied from the old layout; check and mark each one reviewed.' : ''));
     }
 }

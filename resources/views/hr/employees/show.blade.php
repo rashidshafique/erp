@@ -102,7 +102,7 @@
 <td @if ($t->done_at) style="text-decoration:line-through;color:var(--muted)" @endif>{{ $t->title }}</td><td>{{ \App\Models\EmployeeTask::OWNERS[$t->owner] ?? $t->owner }}</td>
 <td>@if ($t->isOverdue())<span class="status status-cancelled">{{ $t->due_on->format('d M') }}</span>@else{{ $t->due_on?->format('d M Y') ?? '—' }}@endif</td>
 <td class="muted small">{{ $t->done_at ? $t->done_at->format('d M Y').' · '.$t->done_by_name : '' }}</td>
-<td><form method="POST" action="{{ route('hr.tasks.destroy', $t) }}" onsubmit="return confirm('Remove this task?')">@csrf @method('DELETE')<button class="btn btn-small">Remove</button></form></td></tr>
+<td><form method="POST" action="{{ route('hr.tasks.destroy', $t) }}" onsubmit="return confirm('Remove this task?')">@csrf @method('DELETE')@include('partials.icon-button', ['type' => 'delete', 'word' => 'Remove', 'name' => $t->title])</form></td></tr>
 @endforeach</tbody></table></div>@endif
 <div class="panel-body"><form method="POST" action="{{ route('hr.employees.tasks.store', $e) }}" class="form-grid">@csrf<input type="hidden" name="kind" value="{{ $kind }}">
     @include('hr._in', ['name' => 'title', 'label' => 'Add a task', 'val' => '', 'required' => true])
@@ -155,7 +155,7 @@
 <tr><td>{{ config('hr.document_kinds')[$d->kind] ?? $d->kind }}{{ $d->title ? ' · '.$d->title : '' }}</td><td>{{ $d->number ?: '—' }}</td><td>{{ $d->issued_on?->format('d M Y') ?? '—' }}</td>
 <td>{{ $d->expires_on?->format('d M Y') ?? '—' }} @if ($st && $st !== 'OK')<span class="status {{ $expiry[$st][0] }}">{{ $expiry[$st][1] }}</span>@endif</td>
 <td>@foreach ($docFiles->get($d->id, collect()) as $f)<a href="{{ route('attachments.download', $f) }}" @if ($f->isInlineViewable()) target="_blank" @endif>{{ $f->original_name }}</a>@endforeach</td>
-<td><form method="POST" action="{{ route('hr.documents.destroy', $d) }}" onsubmit="return confirm('Remove this document record?')">@csrf @method('DELETE')<button class="btn btn-small">Remove</button></form></td></tr>
+<td><form method="POST" action="{{ route('hr.documents.destroy', $d) }}" onsubmit="return confirm('Remove this document record?')">@csrf @method('DELETE')@include('partials.icon-button', ['type' => 'delete', 'word' => 'Remove', 'name' => $d->title ?: (config('hr.document_kinds')[$d->kind] ?? $d->kind)])</form></td></tr>
 @endforeach</tbody></table></div>@endif
 <div class="panel-body"><form method="POST" action="{{ route('hr.employees.documents.store', $e) }}" enctype="multipart/form-data"><div class="form-grid">
     @include('hr._sel', ['name' => 'kind', 'label' => 'Type', 'items' => config('hr.document_kinds'), 'sel' => 'CNIC', 'blank' => false, 'required' => true])

@@ -50,7 +50,7 @@
         <td>@if($i->run)<a href="{{ route('moulding-runs.show', $i->run) }}">{{ $i->run->accepted_mould_qty }} ok / {{ $i->run->damaged_mould_qty }} dmg</a>@else—@endif</td>
         <td>{{ $i->status }}</td>
         <td>@if($list->status === 'ISSUED' && $i->status === 'PLANNED')<form method="POST" action="{{ route('work-lists.items.start', [$list, $i]) }}">@csrf<button class="btn btn-primary">Start run</button></form>
-        @elseif($editable && $i->status === 'PLANNED')<form method="POST" action="{{ route('work-lists.items.remove', [$list, $i]) }}">@csrf @method('DELETE')<button class="btn btn-danger">Remove</button></form>@endif</td></tr>
+        @elseif($editable && $i->status === 'PLANNED')<form method="POST" action="{{ route('work-lists.items.remove', [$list, $i]) }}">@csrf @method('DELETE')@include('partials.icon-button', ['type' => 'delete', 'word' => 'Remove', 'name' => $i->patternRevision->pattern->code])</form>@endif</td></tr>
     @endforeach</tbody></table></div>
 </div>
 @empty

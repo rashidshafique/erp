@@ -143,7 +143,7 @@
                 <form method="POST" action="{{ route('tooling-maintenance.attachments.destroy', [$record, $attachment]) }}" onsubmit="return confirm('Delete this photo?')">
                     @csrf
                     @method('DELETE')
-                    <button class="btn" type="submit">Delete photo</button>
+                    @include('partials.icon-button', ['type' => 'delete', 'word' => 'Delete photo'])
                 </form>
             </div>
         @empty

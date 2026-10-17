@@ -168,7 +168,7 @@
                                 </span>
                             </td>
                             <td>
-                                <a href="{{ route('tooling-life.edit', $limit) }}">Edit</a>
+                                @include('partials.icon-button', ['type' => 'edit', 'href' => route('tooling-life.edit', $limit)])
                             </td>
                         </tr>
                     @empty
