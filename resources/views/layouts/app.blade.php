@@ -178,7 +178,7 @@
 
     <div class="main-area">
         <header class="topbar">
-            <button type="button" class="icon-btn menu-toggle" id="menu-toggle" aria-controls="main-sidebar" aria-pressed="false" title="Shrink the menu to icons" aria-label="Shrink the menu to icons">{!! \App\Support\NavIcons::get('panel-left', 18) !!}</button>
+            <button type="button" class="icon-btn menu-toggle" id="menu-toggle" aria-controls="main-sidebar" aria-pressed="false" title="Shrink the menu to icons" aria-label="Shrink the menu to icons"><span class="ico-panel">{!! \App\Support\NavIcons::get('panel-left', 18) !!}</span><span class="ico-hamburger">{!! \App\Support\NavIcons::get('menu-two-line', 22) !!}</span></button>
             <div class="breadcrumb">
                 Operations / <strong>@hasSection('breadcrumb')@yield('breadcrumb')@else{{ \App\Support\SettingsNav::isSettingsPage() ? 'Settings / '.\App\Support\SettingsNav::current() : 'Dashboard' }}@endif</strong>
             </div>
@@ -187,7 +187,7 @@
                 <button type="button" class="btn" data-save-bar="discard">Discard</button>
                 <button type="button" class="btn btn-primary" data-save-bar="save">Save</button>
             </div>
-            <form method="GET" action="{{ route('scan') }}" class="scan-box" style="margin-left:auto;margin-right:12px"><input id="scan-input" name="code" placeholder="Scan or find a code…" autocomplete="off"><kbd id="scan-hint" class="scan-hint" title="Press to jump to the search box">Ctrl K</kbd></form>
+            <form method="GET" action="{{ route('scan') }}" class="scan-box" id="scan-box" data-suggest="{{ route('scan.suggest') }}" role="search"><button type="button" class="icon-btn scan-open" id="scan-open" title="Search" aria-label="Search">{!! \App\Support\NavIcons::get('search', 20) !!}</button><span class="scan-type" id="scan-type" hidden></span><input type="hidden" name="type" id="scan-type-input"><input id="scan-input" name="code" placeholder="Search or scan a code…" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="scan-results" aria-autocomplete="list"><kbd id="scan-hint" class="scan-hint" title="Press to jump to the search box">Ctrl K</kbd><div class="scan-results" id="scan-results" role="listbox" hidden></div></form>
             <style>
                 .scan-box{position:relative;display:inline-block}
                 .scan-box input:not(#_){width:230px;min-height:24px;padding:2px 52px 2px 8px}
@@ -198,8 +198,67 @@
                 (function () {
                     var i = document.getElementById('scan-input'), h = document.getElementById('scan-hint');
                     if (!i) return;
+                    var box = document.getElementById('scan-box'), opener = document.getElementById('scan-open');
+                    var chip = document.getElementById('scan-type'), typeInput = document.getElementById('scan-type-input'), list = document.getElementById('scan-results');
+                    var type = null, offer = null, rows = [], active = -1, timer = null, request = null;
+
+                    function open(show) { list.hidden = !show; i.setAttribute('aria-expanded', String(show)); }
+                    function setType(key, label) {
+                        type = key; typeInput.value = key || ''; chip.hidden = !key; chip.textContent = label || '';
+                        i.style.paddingLeft = key ? (chip.offsetWidth + 12) + 'px' : '';
+                        i.placeholder = key ? 'Search ' + label.toLowerCase() + 's…' : 'Search or scan a code…';
+                    }
+                    function highlight(n) {
+                        active = n;
+                        rows.forEach(function (r, k) { r.el.classList.toggle('is-active', k === n); r.el.setAttribute('aria-selected', String(k === n)); });
+                    }
+                    function row(html, onPick) {
+                        var el = document.createElement('a'); el.className = 'scan-row'; el.setAttribute('role', 'option'); el.href = onPick.url || '#';
+                        el.append.apply(el, html);
+                        el.addEventListener('mousedown', function (e) { e.preventDefault(); });
+                        el.addEventListener('click', function (e) { if (!onPick.url) { e.preventDefault(); onPick.run(); } });
+                        rows.push({ el: el, pick: onPick }); list.appendChild(el);
+                    }
+                    function span(cls, text) { var s = document.createElement('span'); s.className = cls; s.textContent = text; return s; }
+                    function render(data) {
+                        list.innerHTML = ''; rows = []; active = -1; offer = data.offer;
+                        if (offer) {
+                            row([span('scan-row-main', 'Search ' + offer.label.toLowerCase() + 's only'), span('scan-row-kind', 'Tab')], { run: pickOffer });
+                        }
+                        data.results.forEach(function (r) {
+                            row([span('scan-row-code', r.code), span('scan-row-name', r.name || ''), span('scan-row-kind', r.label)], { url: r.url });
+                        });
+                        if (!data.results.length && i.value.trim()) {
+                            var none = document.createElement('div'); none.className = 'scan-empty'; none.textContent = 'No direct matches. Press Enter to search.'; list.appendChild(none);
+                        }
+                        open(list.childNodes.length > 0);
+                    }
+                    function pickOffer() { setType(offer.type, offer.label); i.value = ''; offer = null; fetchNow(); i.focus(); }
+                    function fetchNow() {
+                        var q = i.value.trim();
+                        if (!q) { list.innerHTML = ''; rows = []; open(false); return; }
+                        if (request) request.abort();
+                        request = new AbortController();
+                        fetch(box.dataset.suggest + '?' + new URLSearchParams({ q: q, type: type || '' }), { headers: { Accept: 'application/json' }, signal: request.signal })
+                            .then(function (r) { return r.ok ? r.json() : null; }).then(function (d) { if (d) render(d); }).catch(function () {});
+                    }
+                    i.addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(fetchNow, 150); });
+                    i.addEventListener('focus', function () { if (rows.length) open(true); });
+                    i.addEventListener('keydown', function (e) {
+                        if (e.key === 'Tab' && !e.shiftKey && offer && !type) { e.preventDefault(); pickOffer(); }
+                        else if (e.key === 'Backspace' && type && i.value === '') { setType(null); fetchNow(); }
+                        else if (e.key === 'ArrowDown' && rows.length) { e.preventDefault(); open(true); highlight((active + 1) % rows.length); }
+                        else if (e.key === 'ArrowUp' && rows.length) { e.preventDefault(); highlight(active <= 0 ? rows.length - 1 : active - 1); }
+                        else if (e.key === 'Escape') { open(false); }
+                        else if (e.key === 'Enter' && active >= 0 && !list.hidden) {
+                            e.preventDefault(); var p = rows[active].pick; if (p.url) { location.href = p.url; } else { p.run(); }
+                        }
+                    });
+                    i.addEventListener('blur', function () { open(false); });
+                    opener.addEventListener('click', function () { box.classList.add('is-open'); i.focus(); });
+                    i.addEventListener('blur', function () { box.classList.remove('is-open'); });
                     var mac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
-                    h.textContent = mac ? '\u2318 K' : 'Ctrl K';
+                    h.textContent = mac ? '⌘ K' : 'Ctrl K';
                     document.addEventListener('keydown', function (e) {
                         var t = e.target, typing = t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable);
                         var combo = (e.key || '').toLowerCase() === 'k' && (mac ? e.metaKey : e.ctrlKey);

@@ -600,6 +600,7 @@ Route::put('/settings/codes', [CodeSettingsController::class, 'update'])->name('
 Route::get('/settings/documents', [DocumentSettingsController::class, 'edit'])->name('settings.documents');
 Route::put('/settings/documents', [DocumentSettingsController::class, 'update'])->name('settings.documents.update');
 Route::get('/scan', [ScanController::class, 'find'])->name('scan');
+Route::get('/scan/suggest', [ScanController::class, 'suggest'])->name('scan.suggest');
 Route::get('/labels/{type}/{id}', [LabelController::class, 'show'])->where('type', '[a-z_]+')->name('labels.show');
 Route::get('/tools/{type}/{id}', [ToolController::class, 'show'])->where('type', '[a-z_]+')->name('tools.show');
 Route::put('/tools/{type}/{id}/mark', [ToolController::class, 'updateMark'])->where('type', '[a-z_]+')->name('tools.mark');
