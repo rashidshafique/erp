@@ -402,6 +402,7 @@ Route::prefix('iron-grades')->name('iron-grades.')->controller(IronGradeControll
     Route::get('/{ironGrade}', 'show')->name('show');
     Route::put('/{ironGrade}', 'update')->name('update');
     Route::put('/{ironGrade}/thermal-window', 'updateWindow')->name('window');
+    Route::put('/{ironGrade}/thermal-window/white', 'updateWhiteWindow')->name('window.white');
     Route::post('/{ironGrade}/furnace-capability', 'setCapability')->name('capability');
 });
 
@@ -426,6 +427,9 @@ Route::post('/pours/{pour}/complete', [PourController::class, 'complete'])->name
 
 // ---- Shop floor: chemistry, pour assemblies, casting lots, inspection, packing, dispatch ----
 Route::post('/heats/{heat}/chemistry', [HeatChemistryController::class, 'store'])->name('heats.chemistry.store');
+Route::post('/heats/{heat}/chemistry/import', [\App\Http\Controllers\HeatChemistryImportController::class, 'store'])->name('heats.chemistry.import');
+Route::get('/heats/{heat}/summary', [\App\Http\Controllers\HeatSummaryController::class, 'show'])->name('heats.summary');
+Route::put('/heats/{heat}/timeline', [\App\Http\Controllers\HeatTimelineController::class, 'update'])->name('heats.timeline');
 Route::post('/heats/{heat}/chemistry/{reading}/verify', [HeatChemistryController::class, 'verify'])->name('heats.chemistry.verify');
 Route::post('/moulding-runs/{mouldingRun}/assemblies', [MouldingRunController::class, 'assemble'])->name('moulding-runs.assemble');
 Route::post('/pours/{pour}/assemblies', [PourController::class, 'attachAssemblies'])->name('pours.assemblies.attach');
@@ -455,6 +459,30 @@ Route::prefix('flasks')->name('flasks.')->controller(FlaskController::class)->gr
 });
 Route::get('/settings/flasks', [FlaskController::class, 'editRules'])->name('settings.flasks.edit');
 Route::put('/settings/flasks', [FlaskController::class, 'rules'])->name('settings.flasks');
+Route::prefix('corrective-actions')->name('capa.')->controller(\App\Http\Controllers\CapaController::class)->group(function () {
+    Route::get('/', 'index')->name('index');
+    Route::get('/create', 'create')->name('create');
+    Route::post('/', 'store')->name('store');
+    Route::post('/from-ncr/{ncr}', 'fromNcr')->name('from-ncr');
+    Route::get('/{capa}', 'show')->name('show');
+    Route::put('/{capa}', 'update')->name('update');
+    Route::post('/{capa}/complete', 'complete')->name('complete');
+    Route::post('/{capa}/verify', 'verify')->name('verify');
+    Route::post('/{capa}/cancel', 'cancel')->name('cancel');
+});
+Route::get('/settings/calibration', [\App\Http\Controllers\CalibrationRulesController::class, 'edit'])->name('settings.calibration.edit');
+Route::put('/settings/calibration', [\App\Http\Controllers\CalibrationRulesController::class, 'update'])->name('settings.calibration');
+Route::prefix('gauges')->name('gauges.')->controller(\App\Http\Controllers\GaugeController::class)->group(function () {
+    Route::get('/', 'index')->name('index');
+    Route::get('/create', 'create')->name('create');
+    Route::post('/', 'store')->name('store');
+    Route::get('/{gauge}', 'show')->name('show');
+    Route::get('/{gauge}/edit', 'edit')->name('edit');
+    Route::put('/{gauge}', 'update')->name('update');
+    Route::post('/{gauge}/calibrations', 'calibrate')->name('calibrate');
+});
+Route::get('/settings/pouring', [\App\Http\Controllers\PouringRulesController::class, 'edit'])->name('settings.pouring.edit');
+Route::put('/settings/pouring', [\App\Http\Controllers\PouringRulesController::class, 'update'])->name('settings.pouring');
 Route::prefix('flask-sizes')->name('flask-sizes.')->controller(FlaskSizeController::class)->group(function () {
     Route::post('/', 'store')->name('store');
     Route::get('/{flaskSize}/edit', 'edit')->name('edit');

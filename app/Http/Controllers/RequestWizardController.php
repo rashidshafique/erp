@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\Enquiry;
 use App\Models\Product;
 use App\Support\AttachableEntities;
+use App\Support\Uploads;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -67,6 +68,7 @@ class RequestWizardController extends Controller
             'change_note.required' => 'Say what has changed.', 'tool_note.required' => 'Describe the tooling the customer will send.',
             'concept_note.required' => 'Write down what the part has to do.', 'transfer_note.required' => 'Say where the part is made today and why it is moving.',
             'sample_note.required' => 'Describe the sample: how many, and what condition.',
+            'files.*.max' => 'Each file may be at most '.Uploads::megabytes($maxKb).'.', 'files.*.uploaded' => Uploads::failedMessage(), 'files.*.extensions' => 'That file type is not allowed. Allowed: '.implode(', ', $exts).'.',
         ]);
 
         // A part we have never seen needs something to work from: a drawing number or at least one file.

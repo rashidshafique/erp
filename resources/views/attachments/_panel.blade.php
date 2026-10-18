@@ -29,7 +29,7 @@
                             @if ($canEdit)
                                 <details class="small"><summary>New version</summary>
                                     <form method="POST" action="{{ route('attachments.version', $a) }}" enctype="multipart/form-data" style="display:grid;gap:6px;max-width:320px;margin-top:6px">@csrf
-                                        <input type="file" name="file" required><input name="revision_label" placeholder="Revision, e.g. Rev C" maxlength="30"><input name="change_note" placeholder="What changed" maxlength="300">
+                                        <input type="file" name="file" required data-max-kb="{{ \App\Support\Uploads::effectiveMaxKb() }}"><input name="revision_label" placeholder="Revision, e.g. Rev C" maxlength="30"><input name="change_note" placeholder="What changed" maxlength="300">
                                         <div><button class="btn btn-small btn-primary">Add version</button></div>
                                     </form>
                                 </details>
@@ -46,12 +46,13 @@
     @if ($canEdit)
     <div class="panel-body" style="border-top:1px solid var(--border,#ddd)">
         <form method="POST" action="{{ route('attachments.store', [$type, $id]) }}" enctype="multipart/form-data" class="form-grid">@csrf
-            <label>Files<input type="file" name="files[]" multiple required></label>
+            <label>Files<input type="file" name="files[]" multiple required data-max-kb="{{ \App\Support\Uploads::effectiveMaxKb() }}"></label>
             <label>Category<select name="category">@foreach ($cats as $k => $l)<option value="{{ $k }}">{{ $l }}</option>@endforeach</select></label>
             <label>Title (optional)<input name="title" maxlength="200"></label>
             <div><button class="btn btn-primary">Attach</button></div>
         </form>
-        <p class="muted small">PDF, images, Excel/Word, CSV, text and CAD files up to {{ round(config('foundry.attachments.max_kb') / 1024, 0) }} MB each. Files are stored privately.</p>
+        <p class="muted small">PDF, images, Excel/Word, CSV, text and CAD files up to {{ \App\Support\Uploads::megabytes(\App\Support\Uploads::effectiveMaxKb()) }} each, 10 files at a time. Files are stored privately.</p>
+        @if (\App\Support\Uploads::serverLimitsApp())<p class="small" style="color:var(--warning)">This server's PHP upload limit ({{ \App\Support\Uploads::megabytes(\App\Support\Uploads::phpFileLimitKb()) }}) is lower than the app setting ({{ \App\Support\Uploads::megabytes(\App\Support\Uploads::appMaxKb()) }}). Ask the administrator to raise upload_max_filesize and post_max_size.</p>@endif
     </div>
     @endif
 </div>

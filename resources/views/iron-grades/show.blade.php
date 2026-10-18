@@ -44,7 +44,7 @@
 
 <div class="tab-marker" data-tab-start="Thermal & furnaces"></div>
 <div class="panel">
-    <div class="panel-header"><h2>Thermal analysis acceptance window (stable cup)</h2></div>
+    <div class="panel-header"><h2>Thermal analysis acceptance window (grey / stable cup)</h2></div>
     <div class="panel-body">
         <p class="muted small">Set these from your own correlation of cooling curves with metallography and mechanical results. A field left empty is not judged. With every field empty, tests are recorded but not judged and the pouring gate does not ask for a thermal test.</p>
         <form method="POST" action="{{ route('iron-grades.window', $grade) }}">@csrf @method('PUT')
@@ -55,6 +55,24 @@
                 <div class="field field-full"><label for="w_notes">Notes</label><input id="w_notes" name="notes" maxlength="1000" value="{{ old('notes', $window->notes) }}"></div>
             </div>
             <button class="btn btn-primary" type="submit">Save window</button>
+        </form>
+    </div>
+</div>
+
+<div class="panel">
+    <div class="panel-header"><h2>Thermal analysis acceptance window (white / tellurium cup)</h2></div>
+    <div class="panel-body">
+        <p class="muted small">The white cup solidifies without a eutectic arrest, so it is judged on the liquidus, the carbon equivalent and the solidus only. When a sample has both cups and a CE limit is set here, CE is judged on the white cup and the grey cup's CE limit is not applied to that sample.
+            @if (! $whiteWindow->exists && ($grade->ce_min !== null || $grade->ce_max !== null))The CE boxes start from this grade's own chemistry limits ({{ $grade->ce_min }} to {{ $grade->ce_max }}); change them if your white cup reads differently.@endif</p>
+        <form method="POST" action="{{ route('iron-grades.window.white', $grade) }}">@csrf @method('PUT')
+            @php $startCe = ['ce_min' => $grade->ce_min, 'ce_max' => $grade->ce_max]; @endphp
+            <div class="form-grid">
+                @foreach (['tl_min_c' => 'TL min °C', 'tl_max_c' => 'TL max °C', 'ce_min' => 'CE from TL min', 'ce_max' => 'CE from TL max', 'solidus_min_c' => 'Solidus at least °C'] as $k => $l)
+                    <div class="field"><label for="ww_{{ $k }}">{{ $l }}</label><input id="ww_{{ $k }}" name="{{ $k }}" type="number" step="0.01" value="{{ old($k, $whiteWindow->exists ? $whiteWindow->{$k} : ($startCe[$k] ?? null)) }}"></div>
+                @endforeach
+                <div class="field field-full"><label for="ww_notes">Notes</label><input id="ww_notes" name="notes" maxlength="1000" value="{{ old('notes', $whiteWindow->notes) }}"></div>
+            </div>
+            <button class="btn btn-primary" type="submit">Save white cup window</button>
         </form>
     </div>
 </div>

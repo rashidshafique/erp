@@ -36,7 +36,7 @@ use Illuminate\Database\Eloquent\Model;
 class AttachableEntities
 {
     public const MAP = [
-        'material' => ['Material', Material::class], 'furnace' => ['Furnace', Furnace::class], 'flask' => ['Flask', Flask::class], 'equipment' => ['Equipment', Equipment::class],
+        'material' => ['Material', Material::class], 'furnace' => ['Furnace', Furnace::class], 'flask' => ['Flask', Flask::class], 'equipment' => ['Equipment', Equipment::class], 'gauge' => ['Gauge', \App\Models\Gauge::class], 'capa' => ['Corrective action', \App\Models\CapaAction::class],
         'heat' => ['Heat', Heat::class], 'pattern' => ['Pattern', Pattern::class], 'pattern_revision' => ['Pattern revision', PatternRevision::class], 'product' => ['Product', Product::class],
         'sales_order' => ['Sales order', SalesOrder::class], 'moulding_run' => ['Moulding run', MouldingRun::class], 'pour' => ['Pour', Pour::class],
         'casting_lot' => ['Casting lot', CastingLot::class], 'ncr' => ['Nonconformance report', NonconformanceReport::class],
@@ -61,7 +61,7 @@ class AttachableEntities
      * @var array<string, array{0: string, 1: string|null}>
      */
     public const ACCESS = [
-        'material' => ['stores.manage', null], 'furnace' => ['melting.operate', null], 'flask' => ['tooling.manage', null], 'equipment' => ['tooling.manage', null],
+        'material' => ['stores.manage', null], 'furnace' => ['melting.operate', null], 'flask' => ['tooling.manage', null], 'equipment' => ['tooling.manage', null], 'gauge' => ['quality.manage', null], 'capa' => ['quality.manage', null],
         'heat' => ['melting.operate', null], 'pattern' => ['master.manage', null], 'pattern_revision' => ['master.manage', null], 'product' => ['master.manage', null],
         'sales_order' => ['sales.manage', null], 'moulding_run' => ['moulding.operate', null], 'pour' => ['pouring.operate', null],
         'casting_lot' => ['shopfloor.record', null], 'ncr' => ['quality.manage', null],

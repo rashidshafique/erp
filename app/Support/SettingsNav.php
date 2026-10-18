@@ -21,6 +21,8 @@ class SettingsNav
             'Quotation rates' => ['settings.quotation', ['settings.quotation*']],
             'Custom fields' => ['custom-fields.index', ['custom-fields.*']],
             'Flask rules' => ['settings.flasks.edit', ['settings.flasks*']],
+            'Pouring rules' => ['settings.pouring.edit', ['settings.pouring*']],
+            'Calibration rules' => ['settings.calibration.edit', ['settings.calibration*']],
             'Pattern ownership rules' => ['settings.pattern-ownership.edit', ['settings.pattern-ownership*']],
         ],
         'Access & data' => [

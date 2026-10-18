@@ -2,21 +2,25 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Gauge;
 use App\Models\Heat;
 use App\Models\ThermalAnalysisTest;
 use App\Models\ThermalCalibration;
+use App\Services\Production\Containment;
+use App\Services\Quality\CalibrationStatus;
 use App\Services\Thermal\ThermalService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use InvalidArgumentException;
 
 class ThermalTestController extends Controller
 {
-    public function __construct(private ThermalService $thermal)
-    {
-    }
+    public function __construct(private ThermalService $thermal) {}
 
     public function index(): View
     {
@@ -32,6 +36,7 @@ class ThermalTestController extends Controller
         return view('thermal.create', [
             'heats' => Heat::with(['ironGrade', 'furnace'])->whereNotIn('status', ['CANCELLED', 'CLOSED'])->orderByDesc('created_at')->limit(60)->get(),
             'selected' => $request->query('heat_id'),
+            'gauges' => Gauge::where('status', 'IN_SERVICE')->orderBy('code')->get(),
         ]);
     }
 
@@ -40,6 +45,7 @@ class ThermalTestController extends Controller
         $reading = fn (string $max = '1400') => ['nullable', 'numeric', 'between:900,'.$max];
         $rules = [
             'heat_id' => ['required', 'uuid', 'exists:heats,id'],
+            'gauge_id' => ['nullable', 'uuid', Rule::exists('gauges', 'id')],
             'sample_reference' => ['nullable', 'string', 'max:60'],
             'stage' => ['required', 'in:BASE,POST_TREATMENT,PRE_POUR'],
             'taken_by' => ['nullable', 'string', 'max:100'],
@@ -47,7 +53,7 @@ class ThermalTestController extends Controller
             'notes' => ['nullable', 'string', 'max:2000'],
             // Older single-cup form fields, still accepted
             'cup_type' => ['nullable', 'in:STABLE,TELLURIUM'],
-            'silicon' => ['nullable', 'numeric', 'between:0,6'],
+            'silicon' => ['nullable', 'numeric', 'decimal:0,4', 'between:0,6'],
             'curve_text' => ['nullable', 'string', 'max:400000'],
             'curve_file' => ['nullable', 'file', 'max:2048', 'mimes:csv,txt'],
         ];
@@ -59,14 +65,15 @@ class ThermalTestController extends Controller
             $rules[$prefix.'recalescence_c'] = ['nullable', 'numeric', 'between:0,40'];
         }
         foreach (['white.', 'grey.'] as $prefix) {
-            $rules[$prefix.'carbon'] = ['nullable', 'numeric', 'between:0,5'];
-            $rules[$prefix.'silicon'] = ['nullable', 'numeric', 'between:0,6'];
+            $rules[$prefix.'carbon'] = ['nullable', 'numeric', 'decimal:0,4', 'between:0,5'];
+            $rules[$prefix.'silicon'] = ['nullable', 'numeric', 'decimal:0,4', 'between:0,6'];
             $rules[$prefix.'curve_text'] = ['nullable', 'string', 'max:400000'];
             $rules[$prefix.'curve_file'] = ['nullable', 'file', 'max:2048', 'mimes:csv,txt'];
         }
         $data = $request->validate($rules);
         $heat = Heat::with('ironGrade')->findOrFail($data['heat_id']);
-        $shared = array_intersect_key($data, array_flip(['sample_reference', 'stage', 'taken_by', 'inoculant_added_pct', 'notes']));
+        $calibrationWarning = app(CalibrationStatus::class)->check(filled($data['gauge_id'] ?? null) ? Gauge::find($data['gauge_id']) : null, 'gauge_id');
+        $shared = array_intersect_key($data, array_flip(['gauge_id', 'sample_reference', 'stage', 'taken_by', 'inoculant_added_pct', 'notes']));
 
         // One block per cup. The twin-cup form sends white[...] and grey[...]; the older form sends flat fields for one cup.
         $blocks = [];
@@ -94,12 +101,12 @@ class ThermalTestController extends Controller
             $blocks[] = [$data['cup_type'] ?? 'STABLE', $vals + $shared, $text, null];
         }
 
-        $group = count($blocks) > 1 ? (string) \Illuminate\Support\Str::uuid() : null;
+        $group = count($blocks) > 1 ? (string) Str::uuid() : null;
         // The grey cup has no silicon of its own on the form, so it uses the white cup's when entered.
         $si = collect($blocks)->map(fn ($b) => $b[1]['silicon'] ?? null)->first(fn ($x) => $x !== null && $x !== '');
         $first = null;
         try {
-            \Illuminate\Support\Facades\DB::transaction(function () use ($blocks, $heat, $group, $si, &$first) {
+            DB::transaction(function () use ($blocks, $heat, $group, $si, &$first) {
                 foreach ($blocks as [$cup, $vals, $text, $key]) {
                     if (($vals['silicon'] ?? null) === null || $vals['silicon'] === '') {
                         $vals['silicon'] = $si;
@@ -113,8 +120,10 @@ class ThermalTestController extends Controller
         }
 
         $n = count($blocks);
+        $containment = app(Containment::class);
+        $held = $containment->message($containment->apply($heat));
 
-        return redirect()->route('thermal.show', $first)->with('success', $n > 1 ? "Both cups saved. White cup: {$this->resultOf($first, 'TELLURIUM')}; grey cup: {$this->resultOf($first, 'STABLE')}." : "Test saved: {$first->result}.");
+        return redirect()->route('thermal.show', $first)->with('warning', trim($held.' '.$calibrationWarning))->with('success', $n > 1 ? "Both cups saved. White cup: {$this->resultOf($first, 'TELLURIUM')}; grey cup: {$this->resultOf($first, 'STABLE')}." : "Test saved: {$first->result}.");
     }
 
     private function resultOf(ThermalAnalysisTest $t, string $cup): string
@@ -159,12 +168,24 @@ class ThermalTestController extends Controller
 
     private function sampleCurve(): array
     {
-        $T = 1320.0; $k = 0.0095; $fa = 0.0; $fe = 0.0; $out = [];
+        $T = 1320.0;
+        $k = 0.0095;
+        $fa = 0.0;
+        $fe = 0.0;
+        $out = [];
         for ($t = 0.0; $t <= 600.0; $t += 0.5) {
             $out[] = [round($t, 1), round($T, 1)];
             $d = -$k * ($T - 300) * 0.5;
-            if ($T < 1195 && $fa < 0.22 && $fe == 0.0) { $x = min(0.22 - $fa, 0.0024 * (1195 - $T) * 0.5); $fa += $x; $d += 55 * $x / 0.22; }
-            if ($T < 1150 && $fe < 0.78 && ($fe > 0 || $T < 1142)) { $x = min(0.78 - $fe, 0.0075 * (1150 - $T) * 0.5); $fe += $x; $d += 190 * $x / 0.78; }
+            if ($T < 1195 && $fa < 0.22 && $fe == 0.0) {
+                $x = min(0.22 - $fa, 0.0024 * (1195 - $T) * 0.5);
+                $fa += $x;
+                $d += 55 * $x / 0.22;
+            }
+            if ($T < 1150 && $fe < 0.78 && ($fe > 0 || $T < 1142)) {
+                $x = min(0.78 - $fe, 0.0075 * (1150 - $T) * 0.5);
+                $fe += $x;
+                $d += 190 * $x / 0.78;
+            }
             $T += $d;
         }
 

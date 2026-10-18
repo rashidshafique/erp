@@ -29,6 +29,7 @@ class IronGradeController extends Controller
         return view('iron-grades.show', [
             'grade' => $ironGrade,
             'window' => ThermalWindow::firstOrNew(['iron_grade_id' => $ironGrade->id, 'cup_type' => 'STABLE']),
+            'whiteWindow' => ThermalWindow::firstOrNew(['iron_grade_id' => $ironGrade->id, 'cup_type' => 'TELLURIUM']),
             'furnaces' => $furnaces,
             'can' => $furnaces->mapWithKeys(fn ($f) => [$f->id => $eligibility->canMelt($f, $ironGrade)]),
             'overrides' => FurnaceGradeCapability::where('iron_grade_id', $ironGrade->id)->pluck('allowed', 'furnace_id'),
@@ -80,6 +81,23 @@ class IronGradeController extends Controller
         ThermalWindow::updateOrCreate(['iron_grade_id' => $ironGrade->id, 'cup_type' => 'STABLE'], $data);
 
         return back()->with('success', 'Thermal acceptance window saved.');
+    }
+
+    /** The white (tellurium) cup's window: TL, CE and solidus only. Eutectic values do not exist on a white cup. */
+    public function updateWhiteWindow(Request $request, IronGrade $ironGrade): RedirectResponse
+    {
+        $pair = fn (string $min, array $base) => $request->filled($min) ? array_merge($base, ["gte:{$min}"]) : $base;
+        $data = $request->validate([
+            'tl_min_c' => ['nullable', 'numeric', 'between:1000,1500'],
+            'tl_max_c' => $pair('tl_min_c', ['nullable', 'numeric', 'between:1000,1500']),
+            'ce_min' => ['nullable', 'numeric', 'between:2,6'],
+            'ce_max' => $pair('ce_min', ['nullable', 'numeric', 'between:2,6']),
+            'solidus_min_c' => ['nullable', 'numeric', 'between:900,1300'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+        ThermalWindow::updateOrCreate(['iron_grade_id' => $ironGrade->id, 'cup_type' => 'TELLURIUM'], $data + ['te_min_floor_c' => null, 'recal_min_c' => null, 'recal_max_c' => null]);
+
+        return back()->with('success', 'White cup acceptance window saved.');
     }
 
     public function setCapability(Request $request, IronGrade $ironGrade): RedirectResponse

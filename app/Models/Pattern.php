@@ -17,10 +17,12 @@ class Pattern extends Model
 
     public string $codeKind = 'pattern';
 
-    /** The engraved mark is optional: a pattern has none until one is recorded or its label is printed. */
+    /** Set for a pattern typed in on the form: the engraved mark stays blank until one is recorded or its label is printed. */
+    public bool $withoutMark = false;
+
     public function marksOnCreate(): bool
     {
-        return false;
+        return ! $this->withoutMark;
     }
 
     /** Pattern types, and the way each is usually moulded (PatternRevision::ARRANGEMENTS). */

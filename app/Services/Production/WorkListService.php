@@ -83,6 +83,9 @@ class WorkListService
         }
         // A pattern is made for one sand system; on another it usually needs a different taper allowance. Warn, and let someone accept it knowingly.
         $pattern = PatternRevision::with('pattern')->findOrFail($d['pattern_revision_id'])->pattern;
+        if ($pattern->trashed()) {
+            throw new InvalidArgumentException("{$pattern->code} is archived and cannot be given work. Restore it under Patterns → Archived first.");
+        }
         $warning = $pattern->sandWarning($d['sand_system']);
         if ($warning && empty($d['sand_override'])) {
             throw new InvalidArgumentException($warning.' Tick "Use anyway" on that row to run it on '.$d['sand_system'].'.');

@@ -163,7 +163,7 @@
     @include('hr._in', ['name' => 'issued_on', 'label' => 'Issued', 'type' => 'date', 'val' => ''])
     @include('hr._in', ['name' => 'expires_on', 'label' => 'Expires', 'type' => 'date', 'val' => ''])
     @include('hr._in', ['name' => 'title', 'label' => 'Title', 'val' => ''])
-    <div class="field"><label for="f_file">File</label><input id="f_file" type="file" name="file"></div>
+    <div class="field"><label for="f_file">File</label><input id="f_file" type="file" name="file" data-max-kb="{{ \App\Support\Uploads::effectiveMaxKb() }}"></div>
 </div><p><button class="btn btn-primary" type="submit">Add document</button></p></form></div></div>
 
 <div class="tab-marker" data-tab-start="Policies"></div>

@@ -6,6 +6,7 @@ use App\Models\CastingLot;
 use App\Models\Pour;
 use App\Models\PourMouldAssembly;
 use App\Models\ProductionOrder;
+use App\Support\PouringRules;
 use App\Support\RelatedFiles;
 use Illuminate\Support\Facades\DB;
 
@@ -72,6 +73,9 @@ class LotFactory
                         'created_from_pour_at' => $pour->completed_at ?? now(),
                     ]);
                     $made++;
+                    if ($pour->is_first_iron && PouringRules::get('hold_first_iron') === 'HOLD') {
+                        $lot->update(['status' => 'ON_HOLD', 'notes' => trim($lot->notes."\n".now()->format('d M H:i').' hold: first iron of heat '.$pour->heat?->heat_number.', held until QC passes')]);
+                    }
                     RelatedFiles::pin('casting_lot', $lot->id);   // keeps the drawing versions the lot was made to, when versioning is on
                     if ($order->status === 'RELEASED') {
                         $order->update(['status' => 'IN_PROGRESS', 'actual_started_at' => $order->actual_started_at ?? now()]);

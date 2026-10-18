@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('title', 'Edit '.$revision->code)
-@section('breadcrumb', 'Patterns / '.$pattern->code.' / '.$revision->code)
+@section('breadcrumb')<a href="{{ route('patterns.index') }}">Patterns</a> / <a href="{{ route('patterns.show', $pattern) }}">{{ $pattern->code }}</a> / {{ $revision->code }} @endsection
 
 @section('content')
 @php $f = fn ($field) => old($field, $revision->{$field}); @endphp

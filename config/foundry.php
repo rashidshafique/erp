@@ -35,7 +35,7 @@ return [
     'attachments' => [
         // Private disk: files are only reachable through the app, never by direct URL.
         'disk' => env('FOUNDRY_ATTACHMENT_DISK', 'local'),
-        'max_kb' => (int) env('FOUNDRY_ATTACHMENT_MAX_KB', 15360),
+        'max_kb' => (int) env('FOUNDRY_ATTACHMENT_MAX_KB', 8192),
         'extensions' => ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'xlsx', 'xls', 'csv', 'docx', 'doc', 'txt', 'dxf', 'dwg', 'step', 'stp', 'stl'],
     ],
 ];

@@ -6,9 +6,12 @@ use App\Models\Heat;
 use App\Models\MouldAssembly;
 use App\Models\Pour;
 use App\Models\PourMouldAssembly;
+use App\Services\Production\Containment;
+use App\Services\Production\CupolaTimeline;
 use App\Services\Production\LotFactory;
 use App\Services\Production\PourAssembler;
 use App\Services\QualityGates;
+use App\Support\PouringRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -117,20 +120,26 @@ class PourController extends Controller
         return view('pours.show', compact('pour', 'candidates'));
     }
 
-    public function start(Pour $pour, QualityGates $gates): RedirectResponse
+    public function start(Pour $pour, QualityGates $gates, CupolaTimeline $timeline): RedirectResponse
     {
         if ($pour->status !== 'PLANNED') {
             return back()->withErrors(['gate' => 'Only a planned pour can be started.']);
         }
-        $pour->load('heat.ironGrade');
-        $gate = $gates->pourGate($pour->heat);
-        if (! $gate['ok']) {
+        $pour->load('heat.ironGrade', 'heat.furnace');
+        $mode = PouringRules::gateMode($pour->heat?->furnace?->furnace_type ?? $pour->heat?->process_type);
+        $gate = $mode === 'OFF' ? ['ok' => true, 'reasons' => []] : $gates->pourGate($pour->heat);
+        if (! $gate['ok'] && $mode === 'ENFORCED') {
             return back()->withErrors(['gate' => 'The pour cannot start. '.implode(' ', $gate['reasons'])]);
         }
+        $waived = ! $gate['ok'] ? 'Started without a clear check: '.implode(' ', $gate['reasons']) : null;
 
-        $pour->update(['status' => 'IN_PROGRESS', 'started_at' => now()]);
+        $pour->fill(['status' => 'IN_PROGRESS', 'started_at' => now(), 'gate_mode' => $mode, 'gate_note' => $waived]);
+        $pour->is_first_iron = $timeline->onPourStart($pour);
+        $pour->save();
 
-        return back()->with('success', "Pour {$pour->pour_number} started.");
+        $message = "Pour {$pour->pour_number} started.".($pour->is_first_iron ? ' This is first iron: its lots will be held until QC passes.' : '');
+
+        return back()->with('success', $message)->with($waived ? ['warning' => $waived] : []);
     }
 
     public function complete(Request $request, Pour $pour): RedirectResponse
@@ -160,12 +169,14 @@ class PourController extends Controller
         ]);
 
         $made = app(LotFactory::class)->createForPour($pour->fresh());
+        $containment = app(Containment::class);
+        $held = $containment->message($containment->apply($pour->heat));
         $msg = "Pour {$pour->pour_number} completed. {$made['lots']} casting lot(s) created.";
         if ($made['warnings']) {
             $msg .= ' '.implode(' ', $made['warnings']);
         }
 
-        return back()->with('success', $msg);
+        return back()->with('success', trim($msg.' '.$held));
     }
 
     public function attachAssemblies(Request $request, Pour $pour, PourAssembler $assembler): RedirectResponse

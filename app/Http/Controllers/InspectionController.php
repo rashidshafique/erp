@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\CastingLot;
+use App\Models\Gauge;
 use App\Models\InspectionPlan;
 use App\Models\NonconformanceReport;
 use App\Models\ProductionStageDefinition;
@@ -10,12 +11,12 @@ use App\Models\QualityDefect;
 use App\Models\QualityInspection;
 use App\Models\QualityInspectionResult;
 use App\Services\Production\LotService;
+use App\Services\Quality\CalibrationStatus;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
-use InvalidArgumentException;
 
 class InspectionController extends Controller
 {
@@ -85,7 +86,10 @@ class InspectionController extends Controller
     {
         $inspection->load(['lot.product', 'results.defect', 'results.planItem', 'ncrs']);
 
-        return view('inspections.show', ['inspection' => $inspection, 'defects' => QualityDefect::where('is_active', true)->orderBy('category')->orderBy('name')->get()]);
+        return view('inspections.show', [
+            'inspection' => $inspection, 'defects' => QualityDefect::where('is_active', true)->orderBy('category')->orderBy('name')->get(),
+            'gauges' => Gauge::where('status', 'IN_SERVICE')->orderBy('code')->get(),
+        ]);
     }
 
     public function saveResults(Request $request, QualityInspection $inspection): RedirectResponse
@@ -96,11 +100,24 @@ class InspectionController extends Controller
         $request->validate([
             'results' => ['required', 'array'],
             'results.*.measured_value' => ['nullable', 'numeric'],
+            'results.*.gauge_id' => ['nullable', 'uuid', Rule::exists('gauges', 'id')],
             'results.*.text_result' => ['nullable', 'string', 'max:1000'],
             'results.*.passed' => ['nullable', 'in:1,0'],
             'results.*.quality_defect_id' => ['nullable', 'uuid', Rule::exists('quality_defects', 'id')],
             'results.*.notes' => ['nullable', 'string', 'max:1000'],
         ]);
+        $warnings = [];
+        $calibration = app(CalibrationStatus::class);
+        foreach ($inspection->results as $r) {
+            $in = $request->input("results.{$r->id}");
+            if (! $in || blank($in['gauge_id'] ?? null) || blank($in['measured_value'] ?? null)) {
+                continue;
+            }
+            $warning = $calibration->check(Gauge::find($in['gauge_id']), "results.{$r->id}.gauge_id");
+            if ($warning) {
+                $warnings[] = $r->test_name.' - '.$warning;
+            }
+        }
         foreach ($inspection->results as $r) {
             $in = $request->input("results.{$r->id}");
             if (! $in) {
@@ -116,10 +133,12 @@ class InspectionController extends Controller
                 'measured_value' => $measured, 'text_result' => $in['text_result'] ?? null, 'passed' => $passed,
                 'quality_defect_id' => $passed === false ? ($in['quality_defect_id'] ?? null) : null, 'notes' => $in['notes'] ?? null,
                 'tested_by' => $inspection->inspector_name, 'tested_at' => $passed === null ? null : now(),
+                'gauge_id' => $r->result_type === 'NUMERIC' ? ($in['gauge_id'] ?: null) : null,
+                'equipment_reference' => $r->result_type === 'NUMERIC' && ! empty($in['gauge_id']) ? Gauge::find($in['gauge_id'])?->code : $r->equipment_reference,
             ]);
         }
 
-        return back()->with('success', 'Results saved.');
+        return back()->with('success', 'Results saved.')->with($warnings ? ['warning' => implode(' ', $warnings)] : []);
     }
 
     public function addResult(Request $request, QualityInspection $inspection): RedirectResponse

@@ -2,16 +2,20 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Gauge;
 use App\Models\Heat;
 use App\Models\HeatChemistryReading;
+use App\Services\Production\Containment;
+use App\Services\Quality\CalibrationStatus;
 use App\Services\Quality\ChemistryJudge;
+use App\Services\Quality\ChemistryRecorder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class HeatChemistryController extends Controller
 {
-    public function store(Request $request, Heat $heat, ChemistryJudge $judge): RedirectResponse
+    public function store(Request $request, Heat $heat, ChemistryRecorder $recorder): RedirectResponse
     {
         $pct = ['nullable', 'numeric', 'between:0,100'];
         $data = $request->validate([
@@ -20,6 +24,7 @@ class HeatChemistryController extends Controller
             'carbon_percent' => $pct, 'silicon_percent' => $pct, 'manganese_percent' => $pct, 'sulphur_percent' => $pct,
             'phosphorus_percent' => $pct, 'chromium_percent' => $pct, 'copper_percent' => $pct, 'molybdenum_percent' => $pct,
             'magnesium_percent' => $pct,
+            'gauge_id' => ['nullable', 'uuid', Rule::exists('gauges', 'id')],
             'instrument_reference' => ['nullable', 'string', 'max:100'],
             'sample_reference' => ['nullable', 'string', 'max:100'],
             'tested_by' => ['nullable', 'string', 'max:100'],
@@ -30,26 +35,22 @@ class HeatChemistryController extends Controller
             return back()->withErrors(['chemistry' => 'Enter at least one element result.'])->withInput();
         }
 
-        $heat->loadMissing('ironGrade');
-        $ce = $judge->carbonEquivalent($data);
-        $verdict = $judge->judge($heat->ironGrade, $data, $ce);
+        $gauge = filled($data['gauge_id'] ?? null) ? Gauge::find($data['gauge_id']) : null;
+        $calibrationWarning = app(CalibrationStatus::class)->check($gauge, 'gauge_id');
+        if ($gauge && blank($data['instrument_reference'] ?? null)) {
+            $data['instrument_reference'] = $gauge->code;
+        }
 
-        $reading = DB::transaction(function () use ($heat, $data, $ce, $verdict) {
-            Heat::whereKey($heat->id)->lockForUpdate()->first();
-            $next = (int) HeatChemistryReading::where('heat_id', $heat->id)->max('reading_number') + 1;
-
-            return HeatChemistryReading::create($data + [
-                'heat_id' => $heat->id,
-                'reading_number' => $next,
-                'carbon_equivalent' => $ce,
-                'is_accepted' => $verdict['ok'],
-                'tested_at' => $data['tested_at'] ?? now(),
-            ]);
-        });
+        $result = $recorder->record($heat, $data);
+        $reading = $result['reading'];
+        $verdict = $result['verdict'];
 
         $msg = $verdict['ok'] === null ? 'Analysis saved (not judged).' : ($verdict['ok'] ? 'Analysis saved: within the grade limits.' : 'Analysis saved: OUT OF LIMITS. '.implode(' ', $verdict['findings']));
 
-        return redirect()->route('heats.show', $heat)->with('success', $msg)->with('chemistry_reading', $reading->id);
+        $containment = app(Containment::class);
+        $msg .= ' '.($containment->message($containment->apply($heat)) ?? '');
+
+        return redirect()->route('heats.show', $heat)->with('success', trim($msg))->with('chemistry_reading', $reading->id)->with($calibrationWarning ? ['warning' => $calibrationWarning] : []);
     }
 
     public function verify(Heat $heat, HeatChemistryReading $reading): RedirectResponse

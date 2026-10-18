@@ -12,9 +12,7 @@ use InvalidArgumentException;
 
 class ThermalService
 {
-    public function __construct(private CurveAnalyser $analyser)
-    {
-    }
+    public function __construct(private CurveAnalyser $analyser) {}
 
     /** Active relation TL -> CE for a cup type: the latest fit, or the configured default. */
     public function relation(string $cup = 'STABLE'): array
@@ -57,7 +55,7 @@ class ThermalService
     {
         $r = $this->analyser->analyse($curve);
         $ce = $r['tl_c'] !== null ? $this->ceFromTl($r['tl_c'], $cup) : null;
-        $carbon = ($ce !== null && $silicon !== null) ? round($ce - $silicon / 3, 2) : null;
+        $carbon = ($ce !== null && $silicon !== null) ? round($ce - $silicon / 3, 4) : null;
 
         $attrs = [
             'tl_c' => $r['tl_c'], 'te_min_c' => $r['te_min_c'], 'te_max_c' => $r['te_max_c'],
@@ -71,7 +69,11 @@ class ThermalService
     }
 
     /** @return array{result: string, findings: array} */
-    public function judge(array $m, ?IronGrade $grade, string $cup = 'STABLE'): array
+    /**
+     * Judges one cup against its grade's window. The white (tellurium) cup is judged on TL, CE and solidus only, since it has no
+     * eutectic arrest; the grey (stable) cup on all five. $ceOnWhiteCup leaves the CE check to the white cup of the same sample.
+     */
+    public function judge(array $m, ?IronGrade $grade, string $cup = 'STABLE', bool $ceOnWhiteCup = false): array
     {
         if (! $grade) {
             return ['result' => 'NOT_JUDGED', 'findings' => ['No iron grade is set on the heat, so the test cannot be judged.']];
@@ -99,9 +101,13 @@ class ThermalService
             }
         };
         $check('TL', $m['tl_c'], $w->tl_min_c, $w->tl_max_c, ' °C');
-        $check('CE from TL', $m['ce_from_tl'], $w->ce_min, $w->ce_max);
-        $check('TEmin', $m['te_min_c'], $w->te_min_floor_c, null, ' °C');
-        $check('Recalescence', $m['recalescence_c'], $w->recal_min_c, $w->recal_max_c, ' °C');
+        if (! $ceOnWhiteCup) {
+            $check('CE from TL', $m['ce_from_tl'], $w->ce_min, $w->ce_max);
+        }
+        if ($cup !== 'TELLURIUM') {
+            $check('TEmin', $m['te_min_c'], $w->te_min_floor_c, null, ' °C');
+            $check('Recalescence', $m['recalescence_c'], $w->recal_min_c, $w->recal_max_c, ' °C');
+        }
         $check('Solidus', $m['solidus_c'], $w->solidus_min_c, null, ' °C');
 
         return ['result' => $f ? 'FAIL' : 'PASS', 'findings' => $f];
@@ -204,12 +210,27 @@ class ThermalService
             $m['recalescence_c'] = round($m['te_max_c'] - $m['te_min_c'], 1);
         }
 
+        // The white cup of the same sample is the better source of carbon, silicon and CE, so a grey cup takes them from it when it has them.
+        $whiteCup = $cup === 'STABLE' && $sampleGroupId
+            ? ThermalAnalysisTest::where('sample_group_id', $sampleGroupId)->where('cup_type', 'TELLURIUM')->first()
+            : null;
         $si = isset($v['silicon']) && $v['silicon'] !== '' && $v['silicon'] !== null ? (float) $v['silicon'] : $this->latestSilicon($heat);
-        $carbonReported = isset($v['carbon']) && $v['carbon'] !== '' && $v['carbon'] !== null ? round((float) $v['carbon'], 2) : null;
+        $carbonReported = isset($v['carbon']) && $v['carbon'] !== '' && $v['carbon'] !== null ? round((float) $v['carbon'], 4) : null;
+        if ($whiteCup?->silicon_used !== null) {
+            $si = (float) $whiteCup->silicon_used;
+        }
+        if ($whiteCup?->carbon_reported_pct !== null) {
+            $carbonReported = (float) $whiteCup->carbon_reported_pct;
+        }
         $ce = $m['tl_c'] !== null ? $this->ceFromTl($m['tl_c'], $cup) : null;
-        $carbon = ($ce !== null && $si !== null) ? round($ce - $si / 3, 2) : null;
+        $carbon = ($ce !== null && $si !== null) ? round($ce - $si / 3, 4) : null;
+        if ($whiteCup?->ce_from_tl !== null) {
+            $ce = (float) $whiteCup->ce_from_tl;
+            $carbon = $whiteCup->carbon_from_tl !== null ? (float) $whiteCup->carbon_from_tl : $carbon;
+            $findings[] = "CE {$ce} and carbon from TL are taken from the white cup of this sample.";
+        }
 
-        $judged = $this->judge($m + ['ce_from_tl' => $ce], $heat->ironGrade, $cup);
+        $judged = $this->judge($m + ['ce_from_tl' => $ce], $heat->ironGrade, $cup, $this->whiteCupJudgesCe($heat, $cup, $sampleGroupId));
         if (! $curve) {
             $findings[] = 'Values were keyed in manually; no cooling curve is stored, so the picked points could not be checked.';
         }
@@ -217,6 +238,7 @@ class ThermalService
         return ThermalAnalysisTest::create([
             'heat_id' => $heat->id,
             'iron_grade_id' => $heat->iron_grade_id,
+            'gauge_id' => $v['gauge_id'] ?? null,
             'sample_reference' => $v['sample_reference'] ?? null,
             'sample_group_id' => $sampleGroupId,
             'stage' => $v['stage'] ?? 'POST_TREATMENT',
@@ -232,6 +254,18 @@ class ThermalService
             'inoculant_added_pct' => $v['inoculant_added_pct'] ?? null,
             'notes' => $v['notes'] ?? null,
         ]);
+    }
+
+    /** True when this grey cup comes with a white cup whose window sets a CE limit: CE is then judged on the white cup. */
+    private function whiteCupJudgesCe(Heat $heat, string $cup, ?string $sampleGroupId): bool
+    {
+        if ($cup !== 'STABLE' || ! $sampleGroupId || ! $heat->iron_grade_id) {
+            return false;
+        }
+        $white = ThermalWindow::where('iron_grade_id', $heat->iron_grade_id)->where('cup_type', 'TELLURIUM')->first();
+
+        return $white !== null && ($white->ce_min !== null || $white->ce_max !== null)
+            && ThermalAnalysisTest::where('sample_group_id', $sampleGroupId)->where('cup_type', 'TELLURIUM')->whereNotNull('tl_c')->exists();
     }
 
     public function latestSilicon(Heat $heat): ?float

@@ -7,6 +7,8 @@
     $count = (int) ($mine ? old('cavities_per_mould') : max((int) $revision->cavities_per_mould, (int) $mapped->keys()->max()));
     $rowVal = fn (int $n, string $field) => $mine ? old("rows.{$n}.{$field}") : $mapped->get($n)?->{$field};
     $err = fn (int $n, string $field) => $mine ? $errors->first("rows.{$n}.{$field}") : null;
+    // Products offered with more than one revision: the closed dropdown shows only the name, so those need the revision on it too.
+    $manyRevisions = $productRevisions->groupBy('product_id')->filter(fn ($g) => $g->count() > 1)->keys()->flip();
 @endphp
 <form method="POST" action="{{ route('patterns.cavities.map', [$pattern, $revision]) }}" class="cavity-grid" data-cavity-grid>
     @csrf @method('PUT')<input type="hidden" name="_map" value="{{ $revision->id }}">

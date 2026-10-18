@@ -22,6 +22,7 @@ use App\Services\Codes\CodeGenerator;
 use App\Services\Patterns\PatternOwnership;
 use App\Services\Patterns\RevisionLayout;
 use App\Services\ToolingLifeStatusService;
+use App\Support\Uploads;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -127,7 +128,7 @@ class PatternController extends Controller
         $mark = Arr::pull($data, 'mark_code');
 
         $pattern = DB::transaction(function () use ($data, $mark) {
-            $pattern = Pattern::create([
+            $pattern = new Pattern([
                 'code' => filled($data['code'] ?? null) ? strtoupper(trim($data['code'])) : null,
                 'name' => trim($data['name']),
                 'pattern_type' => $data['pattern_type'],
@@ -144,6 +145,8 @@ class PatternController extends Controller
                 'compatible_sands' => $this->otherSands($data),
                 'sand_note' => $data['sand_note'] ?? null,
             ]);
+            $pattern->withoutMark = true;
+            $pattern->save();
 
             $pattern->revisions()->create([
                 'revision' => trim($data['revision']),
@@ -547,6 +550,10 @@ class PatternController extends Controller
         ], [
             'change_description.required' => 'Say what changed in the tooling geometry or layout.',
             'pour_weight_kg.gte' => 'The pour weight includes gating and risers, so it cannot be less than the casting weight.',
+            'photo.max' => 'The photo may be at most '.Uploads::megabytes((int) config('foundry.attachments.max_kb')).'.',
+            'photo.uploaded' => Uploads::failedMessage(),
+            'photo.image' => 'The photo must be a JPG, PNG or WebP picture.',
+            'photo.mimes' => 'The photo must be a JPG, PNG or WebP picture.',
         ]);
         $data = array_merge($data, $this->validatedLayout($request, partial: true));
         $previous = $pattern->currentRevision;

@@ -75,7 +75,13 @@
     </div>
 </div>
 
+@include('heats._balance', ['heat' => $heat])
+@if ($heat->isCupola())
+    @include('heats._timeline', ['heat' => $heat])
+@endif
+
 <div class="tab-marker" data-tab-start="Chemistry & tests"></div>
+@include('heats._sampling', ['heat' => $heat])
 @include('heats._chemistry', ['heat' => $heat])
 @include('heats._treatment', ['heat' => $heat])
 @include('heats._tests', ['heat' => $heat])

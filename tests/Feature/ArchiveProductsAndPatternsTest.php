@@ -3,11 +3,13 @@
 namespace Tests\Feature;
 
 use App\Models\MouldingRun;
+use App\Models\MouldingStation;
 use App\Models\Pattern;
 use App\Models\PatternRevision;
 use App\Models\Product;
 use App\Models\ProductionOrder;
 use App\Models\ProductRevision;
+use App\Services\Production\WorkListService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -63,6 +65,12 @@ class ArchiveProductsAndPatternsTest extends TestCase
         $this->get(route('patterns.index'))->assertOk()->assertDontSee('Old cover plate')->assertViewHas('totalPatterns', 1)->assertSee('1 archived');
         $this->get(route('patterns.index', ['archived' => 1]))->assertOk()->assertSee('Old cover plate');
         $this->get(route('moulding-runs.bulk'))->assertOk()->assertSee('Flange plate')->assertDontSee('Old cover plate');
+        $list = app(WorkListService::class)->create(today()->toDateString(), 'Morning');
+        $this->get(route('work-lists.show', $list))->assertOk()->assertDontSee('Old cover plate');
+        $station = MouldingStation::create(['code' => 'MAN-A', 'name' => 'Bench', 'station_type' => 'MANUAL_BENCH', 'status' => 'ACTIVE', 'max_patterns' => 2]);
+        $this->post(route('work-lists.items.add', $list), ['moulding_station_id' => $station->id, 'pattern_revision_id' => $revision->id, 'planned_moulds' => 5])
+            ->assertSessionHasErrors('item');                                                   // and cannot be forced on by hand
+        $this->assertSame(0, $list->items()->count());
         $this->get(route('patterns.show', $gone))->assertOk()->assertSee('Archived on');
         $this->assertSame('MP-2', $revision->fresh()->pattern->code);
 

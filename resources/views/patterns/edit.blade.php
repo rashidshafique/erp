@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('title', 'Edit '.$pattern->name)
-@section('breadcrumb', 'Patterns / '.$pattern->code.' / Edit')
+@section('breadcrumb')<a href="{{ route('patterns.index') }}">Patterns</a> / <a href="{{ route('patterns.show', $pattern) }}">{{ $pattern->code }}</a> / Edit @endsection
 
 @section('content')
 <div class="page-heading">

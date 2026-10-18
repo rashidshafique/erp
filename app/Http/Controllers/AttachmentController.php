@@ -7,6 +7,7 @@ use App\Models\AttachmentLink;
 use App\Support\AttachableEntities;
 use App\Support\DocumentVersioning;
 use App\Support\RelatedFiles;
+use App\Support\Uploads;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,7 +31,7 @@ class AttachmentController extends Controller
             'files.*' => ['required', 'file', 'max:'.$max, 'extensions:'.implode(',', $exts)],
             'category' => ['required', Rule::in(array_keys(AttachableEntities::CATEGORIES))],
             'title' => ['nullable', 'string', 'max:200'],
-        ], ['files.*.max' => 'Each file may be at most '.round($max / 1024, 1).' MB.', 'files.*.extensions' => 'That file type is not allowed. Allowed: '.implode(', ', $exts).'.']);
+        ], ['files.*.max' => 'Each file may be at most '.Uploads::megabytes($max).'.', 'files.*.uploaded' => Uploads::failedMessage(), 'files.max' => 'Attach at most 10 files at a time.', 'files.*.extensions' => 'That file type is not allowed. Allowed: '.implode(', ', $exts).'.']);
 
         $saved = 0;
         $error = self::saveFiles($request->file('files'), $type, $id, $request->input('category'), $request->input('title'), $saved);
@@ -78,7 +79,7 @@ class AttachmentController extends Controller
             'file' => ['required', 'file', 'max:'.$max, 'extensions:'.implode(',', $exts)],
             'revision_label' => ['nullable', 'string', 'max:30'],
             'change_note' => ['nullable', 'string', 'max:300'],
-        ], ['file.max' => 'The file may be at most '.round($max / 1024, 1).' MB.', 'file.extensions' => 'That file type is not allowed. Allowed: '.implode(', ', $exts).'.']);
+        ], ['file.max' => 'The file may be at most '.Uploads::megabytes($max).'.', 'file.uploaded' => Uploads::failedMessage(), 'file.extensions' => 'That file type is not allowed. Allowed: '.implode(', ', $exts).'.']);
 
         $file = $request->file('file');
         if (hash_file('sha256', $file->getRealPath()) === $attachment->sha256) {

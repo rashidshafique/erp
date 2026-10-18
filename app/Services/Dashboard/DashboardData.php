@@ -6,6 +6,7 @@ use App\Models\ApprovalRequest;
 use App\Models\Attachment;
 use App\Models\Enquiry;
 use App\Models\Furnace;
+use App\Models\Gauge;
 use App\Models\Heat;
 use App\Models\MeasurementSet;
 use App\Models\MouldingRun;
@@ -14,6 +15,7 @@ use App\Models\NonconformanceReport;
 use App\Models\ProductionOrder;
 use App\Models\Quotation;
 use App\Models\SandSystem;
+use App\Support\CalibrationRules;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -121,6 +123,16 @@ class DashboardData
         $late = ProductionOrder::open()->whereDate('required_date', '<', today())->orderBy('required_date')->limit(2)->with('product')->get();
         foreach ($late as $o) {
             $items[] = ['tag' => 'Overdue', 'tone' => 'amber', 'at' => $o->required_date, 'ref' => $o->production_order_number, 'text' => ($o->product?->name ?? 'Order').' was due '.$o->required_date->format('d M').' and is still open.', 'actions' => [['Open orders', route('production-orders.index'), false]]];
+        }
+        $dueDays = (int) CalibrationRules::get('due_soon_days');
+        $dueBy = today()->addDays($dueDays);
+        $needsCalibration = Gauge::where('status', 'IN_SERVICE')->where('requires_calibration', true);
+        $overdue = (clone $needsCalibration)->where(fn ($q) => $q->whereNull('next_due_on')->orWhereDate('next_due_on', '<', today()));
+        $dueSoon = (clone $needsCalibration)->whereDate('next_due_on', '>=', today())->whereDate('next_due_on', '<=', $dueBy);
+        if (($count = $overdue->count()) > 0) {
+            $items[] = ['tag' => 'Calibration', 'tone' => 'red', 'at' => now(), 'ref' => null, 'text' => $count.' instrument'.($count === 1 ? ' is' : 's are').' overdue or never calibrated. Results measured with them will not stand up to an audit.', 'actions' => [['Open register', route('gauges.index', ['state' => 'overdue']), true]]];
+        } elseif (($count = $dueSoon->count()) > 0) {
+            $items[] = ['tag' => 'Calibration', 'tone' => 'amber', 'at' => now(), 'ref' => null, 'text' => $count.' instrument'.($count === 1 ? ' is' : 's are').' due for calibration within '.$dueDays.' days.', 'actions' => [['Open register', route('gauges.index', ['state' => 'soon']), false]]];
         }
         usort($items, fn ($a, $b) => $b['at'] <=> $a['at']);
 

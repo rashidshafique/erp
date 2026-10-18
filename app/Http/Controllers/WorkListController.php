@@ -40,7 +40,9 @@ class WorkListController extends Controller
     {
         $list->load(['items.team', 'items.station', 'items.productionOrder.product', 'items.productionOrder.salesOrderLine.salesOrder.customer', 'items.patternRevision.pattern', 'items.run']);
         $orders = ProductionOrder::with(['product', 'salesOrderLine.salesOrder.customer'])->whereIn('status', ['RELEASED', 'IN_PROGRESS'])->orderBy('production_order_number')->get();
-        $patterns = PatternRevision::with(['pattern', 'cavityMap.productRevision'])->get()
+        $patterns = PatternRevision::with(['pattern', 'cavityMap.productRevision'])
+            ->whereHas('pattern', fn ($q) => $q->whereNull('patterns.deleted_at'))   // archived plates leave the picker
+            ->get()
             ->sortBy(fn ($p) => mb_strtolower($p->pattern->name.' '.$p->revision), SORT_NATURAL)->values();
         $needed = [];
         foreach ($list->items as $i) {

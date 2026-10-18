@@ -154,4 +154,18 @@ class CavityMapGridTest extends TestCase
         $this->save($old, 2, [1 => ['product_revision_id' => $valve->id, 'cavity_role' => 'PART']]);
         $this->get(route('patterns.show', $old->pattern_id))->assertSee('class="rev-block " id="cavities-'.$old->id.'"  open', false);
     }
+
+    public function test_the_product_dropdown_leads_with_the_name_and_shows_the_code_below(): void
+    {
+        $valve = $this->product('VALVE-9');
+        $revision = $this->revision(1);
+        $page = $this->get(route('patterns.show', $revision->pattern_id))->assertOk();
+
+        $page->assertSee('data-sub="VALVE-9 rev A"', false)->assertSee('>VALVE-9 casting</option>', false);
+
+        // A second revision of the same product would otherwise look identical once the dropdown is closed.
+        ProductRevision::create(['product_id' => $valve->product_id, 'revision' => 'B', 'status' => 'APPROVED']);
+        $this->get(route('patterns.show', $revision->pattern_id))->assertOk()
+            ->assertSee('>VALVE-9 casting · rev A</option>', false)->assertSee('>VALVE-9 casting · rev B</option>', false);
+    }
 }

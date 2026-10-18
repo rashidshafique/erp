@@ -62,6 +62,8 @@
                 <div><dt>Dimensions (L × W × H)</dt><dd>@if ($pattern->length_mm || $pattern->width_mm || $pattern->height_mm){{ $mm($pattern->length_mm) }} × {{ $mm($pattern->width_mm) }} × {{ $mm($pattern->height_mm) }} mm @else — @endif</dd></div>
                 <div><dt>Made for sand</dt><dd>{{ $pattern->sand_system ?: 'Not recorded' }}@if ($pattern->compatible_sands)<span class="sub">also works on {{ implode(', ', $pattern->compatible_sands) }}</span>@endif</dd></div>
                 <div><dt>Current revision</dt><dd>@if ($current)<span class="mono">{{ $current->code }}</span>@if ($current->drawing_revision)<span class="sub">drawing rev {{ $current->drawing_revision }}</span>@endif @else — @endif</dd></div>
+                @php $madeProducts = $current ? $current->cavityMap->map(fn ($c) => $c->productRevision?->product)->filter()->unique('id') : collect(); @endphp
+                @if ($madeProducts->isNotEmpty())<div class="fact-wide"><dt>Makes</dt><dd>@foreach ($madeProducts as $made)<a href="{{ route('products.show', $made) }}">{{ $made->name }}</a> <span class="muted small mono">{{ $made->code }}</span>@if (! $loop->last)<span class="dot-sep"> · </span>@endif @endforeach</dd></div>@endif
                 <div class="fact-wide"><dt>Engraved mark</dt><dd>@include('tools._mark', ['tool' => $pattern, 'type' => 'pattern', 'bare' => true, 'optional' => true])</dd></div>
             </dl>
             <div class="tool-diagram">@include('patterns._mould-diagram', ['revision' => $current, 'size' => 'lg'])</div>

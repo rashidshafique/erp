@@ -23,6 +23,10 @@ class Pour extends Model
         'operator_name',
         'ladle_reference',
         'notes',
+        'gate_mode',
+        'gate_note',
+        'is_first_iron',
+        'containment_note',
     ];
 
     protected function casts(): array
@@ -33,6 +37,7 @@ class Pour extends Model
             'completed_at' => 'datetime',
             'pour_temperature_c' => 'decimal:2',
             'total_poured_weight_kg' => 'decimal:3',
+            'is_first_iron' => 'boolean',
         ];
     }
 

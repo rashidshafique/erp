@@ -48,7 +48,7 @@
     @if ($upload)
         <form method="POST" action="{{ route('attachments.store', [$type, $id]) }}" enctype="multipart/form-data" class="cover-add">
             @csrf<input type="hidden" name="category" value="PHOTO">
-            <label>{!! \App\Support\NavIcons::get('plus-circle', 14) !!}{{ $cover ? 'Add photos' : 'Add a photo' }}<input type="file" name="files[]" accept="image/jpeg,image/png,image/webp" multiple onchange="this.form.submit()"></label>
+            <label>{!! \App\Support\NavIcons::get('plus-circle', 14) !!}{{ $cover ? 'Add photos' : 'Add a photo' }}<input type="file" name="files[]" accept="image/jpeg,image/png,image/webp" multiple data-max-kb="{{ \App\Support\Uploads::effectiveMaxKb() }}" onchange="this.form.submit()"></label>
             <noscript><button class="btn btn-small" type="submit">Upload</button></noscript>
         </form>
     @endif

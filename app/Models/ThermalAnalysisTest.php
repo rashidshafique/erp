@@ -14,6 +14,7 @@ class ThermalAnalysisTest extends Model
     protected $fillable = [
         'heat_id',
         'iron_grade_id',
+        'gauge_id',
         'sample_reference',
         'stage',
         'cup_type',
@@ -52,6 +53,11 @@ class ThermalAnalysisTest extends Model
     public function siblings(): HasMany
     {
         return $this->hasMany(self::class, 'sample_group_id', 'sample_group_id')->where('id', '!=', $this->id);
+    }
+
+    public function gauge(): BelongsTo
+    {
+        return $this->belongsTo(Gauge::class)->withTrashed();
     }
 
     public function ironGrade(): BelongsTo

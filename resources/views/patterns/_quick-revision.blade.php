@@ -24,5 +24,5 @@
 <div class="field"><label for="qd-rev-cast">Casting weight, one piece (kg)</label><input id="qd-rev-cast" type="number" name="casting_weight_kg" min="0.0001" step="0.0001" value="{{ $old('casting_weight_kg', $current?->casting_weight_kg) }}"></div>
 <div class="field"><label for="qd-rev-pour">Poured per casting, incl. gating (kg)</label><input id="qd-rev-pour" type="number" name="pour_weight_kg" min="0.0001" step="0.0001" value="{{ $old('pour_weight_kg', $current?->pour_weight_kg) }}"></div>
 <div class="field"><label for="qd-rev-pieces">Pieces per mould</label><input id="qd-rev-pieces" type="number" name="pieces_per_mould" min="1" max="10000" value="{{ $old('pieces_per_mould', $current?->pieces_per_mould) }}"></div>
-<div class="field field-full"><label for="qd-rev-photo">Photo</label><input id="qd-rev-photo" type="file" name="photo" accept="image/jpeg,image/png,image/webp"></div>
+<div class="field field-full"><label for="qd-rev-photo">Photo</label><input id="qd-rev-photo" type="file" name="photo" accept="image/jpeg,image/png,image/webp" data-max-kb="{{ \App\Support\Uploads::effectiveMaxKb() }}"></div>
 @endif

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Heat extends Model
 {
@@ -30,6 +31,9 @@ class Heat extends Model
         'operator_name',
         'notes',
         'operating_power_limit_kw',
+        'blast_on_at',
+        'first_tap_at',
+        'dropped_at',
     ];
 
     protected function casts(): array
@@ -40,12 +44,21 @@ class Heat extends Model
             'melt_completed_at' => 'datetime',
             'tapped_at' => 'datetime',
             'closed_at' => 'datetime',
+            'blast_on_at' => 'datetime',
+            'first_tap_at' => 'datetime',
+            'dropped_at' => 'datetime',
             'target_metal_weight_kg' => 'decimal:3',
             'actual_tapped_weight_kg' => 'decimal:3',
             'target_temperature_c' => 'decimal:2',
             'actual_tap_temperature_c' => 'decimal:2',
             'operating_power_limit_kw' => 'decimal:3',
         ];
+    }
+
+    /** A cupola melts continuously and taps as it goes, so it is run on a timeline rather than as one batch. */
+    public function isCupola(): bool
+    {
+        return ($this->furnace?->furnace_type ?? $this->process_type) === 'CUPOLA';
     }
 
     public function furnace(): BelongsTo
@@ -102,7 +115,8 @@ class Heat extends Model
         return $this->hasMany(HeatMaterialConsumption::class)
             ->orderBy('sequence');
     }
-    public function chargePosting(): \Illuminate\Database\Eloquent\Relations\HasOne
+
+    public function chargePosting(): HasOne
     {
         return $this->hasOne(HeatChargePosting::class);
     }

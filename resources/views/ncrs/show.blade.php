@@ -5,7 +5,12 @@
 <div class="page-heading"><div><h1>{{ $ncr->ncr_number }}</h1><p>{{ $ncr->title }} · {{ $ncr->severity }} · <span class="status">{{ $ncr->status }}</span></p></div></div>
 @if(session("success"))<div class="alert alert-success">{{ session("success") }}</div>@endif
 @if($errors->any())<div class="alert alert-error">@foreach($errors->all() as $e)<div>{{ $e }}</div>@endforeach</div>@endif
+@php $capa = \App\Models\CapaAction::where('source_type', 'NCR')->where('source_id', $ncr->id)->orderByDesc('created_at')->first(); @endphp
 <div class="tab-marker" data-tab-start="Investigation"></div>
+<div class="panel"><div class="panel-body" style="display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+@if($capa)<span>Corrective action <a href="{{ route('capa.show', $capa) }}">{{ $capa->code }}</a>: @include('capa._status', ['capa' => $capa])</span>
+@else<span class="muted">Tracks the root cause, the action and the check that it worked in the corrective action register.</span><form method="POST" action="{{ route('capa.from-ncr', $ncr) }}">@csrf<button class="btn">Raise corrective action</button></form>@endif
+</div></div>
 <div class="panel"><div class="panel-body"><p>{{ $ncr->description }}</p>
 <p class="muted small">Lot <a href="{{ route('lots.show', $ncr->lot) }}">{{ $ncr->lot?->lot_number }}</a> · {{ $ncr->quantity_affected }} piece(s) affected @if($ncr->defect) · defect: {{ $ncr->defect->name }} @endif</p></div></div>
 <div class="panel"><div class="panel-header"><h2>Investigation and disposition</h2></div><div class="panel-body">

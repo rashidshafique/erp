@@ -14,7 +14,7 @@
 
 @section('content')
 <div class="page-heading">
-    <div><h1>Thermal test — heat {{ $test->heat?->heat_number }}</h1><p>{{ $test->ironGrade?->code ?? 'No grade' }} · {{ $test->taken_at->format('d M Y H:i') }} · {{ $test->cup_type === 'TELLURIUM' ? 'white (tellurium)' : 'grey (stable)' }} cup · {{ str_replace('_', ' ', $test->stage) }}</p></div>
+    <div><h1>Thermal test — heat {{ $test->heat?->heat_number }}</h1><p>{{ $test->ironGrade?->code ?? 'No grade' }} · {{ $test->taken_at->format('d M Y H:i') }} · {{ $test->cup_type === 'TELLURIUM' ? 'white (tellurium)' : 'grey (stable)' }} cup · {{ str_replace('_', ' ', $test->stage) }}@if ($test->gauge) · measured with <a href="{{ route('gauges.show', $test->gauge) }}">{{ $test->gauge->code }}</a>@endif</p></div>
     <div class="actions"><a class="btn" href="{{ route('thermal.index') }}">All tests</a><a class="btn" href="{{ route('thermal.create', ['heat_id' => $test->heat_id]) }}">New test on this heat</a></div>
 </div>
 @if (session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
@@ -29,8 +29,8 @@
     <div class="metric"><div class="metric-label">Recalescence</div><div class="metric-value" style="font-size:22px">{{ $test->recalescence_c }} °C</div></div>
     <div class="metric"><div class="metric-label">TS (solidus)</div><div class="metric-value" style="font-size:22px">{{ $test->solidus_c ?? '—' }} °C</div></div>
     <div class="metric"><div class="metric-label">Peak temperature</div><div class="metric-value" style="font-size:22px">{{ $test->peak_temp_c ?? '—' }} °C</div></div>
-    <div class="metric"><div class="metric-label">C / Si</div><div class="metric-value" style="font-size:22px">{{ $test->carbon_reported_pct ?? '—' }} / {{ $test->silicon_used ?? '—' }}</div><div class="metric-note">{{ $test->carbon_reported_pct !== null ? 'C as shown by the analyser' : 'No carbon keyed in' }}</div></div>
-    <div class="metric"><div class="metric-label">CE from TL</div><div class="metric-value" style="font-size:22px">{{ $test->ce_from_tl ?? '—' }}</div><div class="metric-note">Carbon from TL {{ $test->carbon_from_tl ?? '—' }}{{ $test->silicon_used !== null ? ' at Si '.$test->silicon_used : '' }}</div></div>
+    <div class="metric"><div class="metric-label">C / Si</div><div class="metric-value" style="font-size:22px">{{ $test->carbon_reported_pct !== null ? rtrim(rtrim((string) $test->carbon_reported_pct, '0'), '.') : '—' }} / {{ $test->silicon_used !== null ? rtrim(rtrim((string) $test->silicon_used, '0'), '.') : '—' }}</div><div class="metric-note">{{ $test->carbon_reported_pct !== null ? 'C as shown by the analyser' : 'No carbon keyed in' }}</div></div>
+    <div class="metric"><div class="metric-label">CE from TL</div><div class="metric-value" style="font-size:22px">{{ $test->ce_from_tl ?? '—' }}</div><div class="metric-note">Carbon from TL {{ $test->carbon_from_tl !== null ? rtrim(rtrim((string) $test->carbon_from_tl, '0'), '.') : '—' }}{{ $test->silicon_used !== null ? ' at Si '.$test->silicon_used : '' }}</div></div>
 </div>
 
 <div class="panel">

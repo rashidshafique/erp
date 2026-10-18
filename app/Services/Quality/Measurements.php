@@ -6,6 +6,8 @@ use App\Models\CharacteristicLimit;
 use App\Models\Heat;
 use App\Models\Measurement;
 use App\Models\MeasurementSet;
+use App\Models\SandSystem;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -128,11 +130,12 @@ class Measurements
 
     /**
      * State of the sand a run used: the latest sand test for that system in the 24 hours up to the run.
+     *
      * @return array{state:string, text:string, set:?MeasurementSet}
      */
-    public function sandStatus(?string $systemName, \Carbon\CarbonInterface $at): array
+    public function sandStatus(?string $systemName, CarbonInterface $at): array
     {
-        $sys = $systemName ? \App\Models\SandSystem::where('name', 'ilike', $systemName)->first() : null;
+        $sys = $systemName ? SandSystem::where('name', 'ilike', $systemName)->first() : null;
         if (! $sys) {
             return ['state' => 'NONE', 'text' => 'No sand system on record for this run.', 'set' => null];
         }

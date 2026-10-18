@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('title', 'Edit '.$flask->code)
-@section('breadcrumb', 'Flasks / '.$flask->code.' / Edit')
+@section('breadcrumb')<a href="{{ route('flasks.index') }}">Flasks</a> / <a href="{{ route('flasks.show', $flask) }}">{{ $flask->code }}</a> / Edit @endsection
 
 @section('content')
 <div class="page-heading">

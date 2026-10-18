@@ -1,21 +1,40 @@
 @php
     $gate = app(\App\Services\QualityGates::class)->pourGate($pour->heat);
     $grade = $pour->heat?->ironGrade;
+    $mode = $pour->status === 'PLANNED' ? \App\Support\PouringRules::gateMode($pour->heat?->furnace?->furnace_type ?? $pour->heat?->process_type) : ($pour->gate_mode ?? 'ENFORCED');
+    $canStart = $gate['ok'] || $mode !== 'ENFORCED';
 @endphp
 <div class="panel">
     <div class="panel-header">
         <h2>Pouring gate</h2>
-        <span class="status {{ $gate['ok'] ? 'status-completed' : 'status-cancelled' }}">{{ $gate['ok'] ? 'CLEAR' : 'BLOCKED' }}</span>
+        <span class="status {{ $gate['ok'] ? 'status-completed' : ($mode === 'ENFORCED' ? 'status-cancelled' : 'status-on-hold') }}">{{ $gate['ok'] ? 'CLEAR' : ($mode === 'ENFORCED' ? 'BLOCKED' : 'ADVISORY') }}</span>
     </div>
     <div class="panel-body">
         @if ($errors->has('gate') || $errors->has('complete'))
             <div class="alert alert-error">{{ $errors->first('gate') ?: $errors->first('complete') }}</div>
         @endif
 
+        @if ($mode === 'ADVISORY' && ! $gate['ok'])<div class="alert alert-warning">Advisory only: the pour can start, and what is missing will be recorded on the pour. Take the samples when you can; a sample that fails later holds the lots poured in its period.</div>@endif
+        @if ($mode === 'OFF')<div class="alert alert-warning">Checks before pouring are switched off for this furnace type (Settings → Pouring rules).</div>@endif
+        @if ($pour->is_first_iron)<div class="alert alert-warning">First iron: lots made from this pour are held until QC passes.</div>@endif
+        @if ($pour->containment_note)<div class="alert alert-error"><strong>Containment:</strong> {{ $pour->containment_note }} Release the lots from their hold once QC clears them.</div>@endif
+        @if ($pour->gate_note)<div class="alert alert-warning">{{ $pour->gate_note }}</div>@endif
+
         <p class="muted small">
             Heat {{ $pour->heat?->heat_number }} — grade {{ $grade?->code ?? 'none set' }}.
             A heat with a grade needs a chemistry reading in the grade window and a recent passing thermal test.
         </p>
+        @php $governing = app(\App\Services\Production\HeatSamples::class)->governing($pour); @endphp
+        @if ($pour->started_at)
+            <p class="small" style="margin:8px 0">
+                <strong>Samples for this pour:</strong>
+                @forelse ($governing as $kind => $g)
+                    {{ $kind === 'THERMAL' ? 'Thermal analysis' : 'Chemistry' }} {{ $g['sample']['reference'] ?: '' }} ({{ $g['sample']['result'] === 'PASS' ? 'pass' : ($g['sample']['result'] === 'FAIL' ? 'FAIL' : 'not judged') }}), taken {{ $g['minutes'] }} min {{ $g['timing'] === 'BEFORE' ? 'before' : 'after' }} the pour started{{ $loop->last ? '.' : ';' }}
+                @empty
+                    none taken yet.
+                @endforelse
+            </p>
+        @endif
         <ul>
             @foreach ($gate['checks'] as $c)
                 <li>
@@ -32,7 +51,7 @@
         @if ($pour->status === 'PLANNED')
             <form method="POST" action="{{ route('pours.start', $pour) }}" style="display:inline">
                 @csrf
-                <button class="btn btn-primary" type="submit" @disabled(! $gate['ok'])>Start pour</button>
+                <button class="btn btn-primary" type="submit" @disabled(! $canStart)>Start pour</button>
             </form>
         @elseif ($pour->status === 'IN_PROGRESS')
             <form method="POST" action="{{ route('pours.complete', $pour) }}" style="margin-top:14px">

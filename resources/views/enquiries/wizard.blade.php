@@ -76,7 +76,7 @@
         <div class="field"><label>Quote needed by</label><input type="date" name="due_on" value="{{ old('due_on') }}"></div>
         <div class="field"><label>Their reference</label><input name="customer_reference" value="{{ old('customer_reference') }}"></div>
         <div class="field"><label>Contact for this request</label><input name="contact_name" value="{{ old('contact_name') }}" placeholder="Defaults to the customer's contact"></div>
-        <div class="field field-full"><label>Files</label><input type="file" name="files[]" multiple><div class="help" id="fileHint">Drawings, models (STL, STEP), photos or the customer's email.</div>@error('files')<div class="error-text">{{ $message }}</div>@enderror @error('files.*')<div class="error-text">{{ $message }}</div>@enderror</div>
+        <div class="field field-full"><label>Files</label><input type="file" name="files[]" multiple data-max-kb="{{ \App\Support\Uploads::effectiveMaxKb() }}"><div class="help" id="fileHint">Drawings, models (STL, STEP), photos or the customer's email.</div>@error('files')<div class="error-text">{{ $message }}</div>@enderror @error('files.*')<div class="error-text">{{ $message }}</div>@enderror</div>
         <div class="field"><label>Kind of file</label><select name="file_category" id="file_category">@foreach ($categories as $k => $l)<option value="{{ $k }}" @selected(old('file_category') === $k)>{{ $l }}</option>@endforeach</select></div>
     </div>
 </div></div>

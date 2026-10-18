@@ -23,6 +23,8 @@ class CodeGenerator
         'core_definition' => ['core_definitions', 'COR', 4, 'Core'],
         'mould_configuration' => ['mould_configurations', 'MCF', 5, 'Mould configuration'],
         'flask' => ['flasks', 'FLK', 6, 'Flask'],
+        'gauge' => ['gauges', 'GAU', 3, 'Gauge'],
+        'capa' => ['capa_actions', 'CPA', 4, 'Corrective action'],
         'casting_analysis' => ['casting_analyses', 'CAN', 6, 'Casting analysis'],
         'enquiry' => ['enquiries', 'ENQ', 7, 'Enquiry'],
         'quotation' => ['quotations', 'QUO', 8, 'Quotation'],

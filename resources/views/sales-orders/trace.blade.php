@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('title', 'Trace '.$order->order_number)
-@section('breadcrumb', 'Sales orders / '.$order->order_number.' / Trace')
+@section('breadcrumb')<a href="{{ route('sales-orders.index') }}">Sales orders</a> / <a href="{{ route('sales-orders.show', $order) }}">{{ $order->order_number }}</a> / Trace @endsection
 
 @section('content')
 <div class="page-heading">

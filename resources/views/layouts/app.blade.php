@@ -85,7 +85,7 @@
                 </div>
             </div>
 
-            <div class="nav-group {{ request()->routeIs('lots.*', 'inspections.*', 'ncrs.*', 'packing.*', 'dispatches.*', 'finished-goods.*', 'reports.*', 'defects.*') ? 'is-active' : '' }}">
+            <div class="nav-group {{ request()->routeIs('lots.*', 'inspections.*', 'ncrs.*', 'capa.*', 'packing.*', 'dispatches.*', 'finished-goods.*', 'reports.*', 'defects.*') ? 'is-active' : '' }}">
                 <button type="button" class="nav-group-toggle" aria-expanded="false">
                     <span class="nav-lab">{!! \App\Support\NavIcons::get('check-circle') !!}<span>Quality &amp; Dispatch</span></span><span class="nav-chevron">›</span>
                 </button>
@@ -95,6 +95,7 @@
                     <a href="{{ route('finished-goods.index') }}" class="nav-link {{ request()->routeIs('finished-goods.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('archive') !!}<span>Finished goods</span></a>
                     <a href="{{ route('inspections.index') }}" class="nav-link {{ request()->routeIs('inspections.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('search-check') !!}<span>Inspections</span></a>
                     <a href="{{ route('ncrs.index') }}" class="nav-link {{ request()->routeIs('ncrs.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('alert') !!}<span>Nonconformance</span></a>
+                    <a href="{{ route('capa.index') }}" class="nav-link {{ request()->routeIs('capa.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('check-circle') !!}<span>Corrective actions</span></a>
                     <a href="{{ route('packing.index') }}" class="nav-link {{ request()->routeIs('packing.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('package') !!}<span>Packing</span></a>
                     <a href="{{ route('dispatches.index') }}" class="nav-link {{ request()->routeIs('dispatches.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('truck') !!}<span>Dispatch</span></a>
                     <a href="{{ route('reports.yield') }}" class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('bars') !!}<span>Yield &amp; scrap</span></a>
@@ -113,7 +114,7 @@
                 </div>
             </div>
 
-            <div class="nav-group {{ request()->routeIs('tooling-maintenance.*', 'tooling-life.*', 'flasks.*', 'flask-sizes.*') ? 'is-active' : '' }}">
+            <div class="nav-group {{ request()->routeIs('tooling-maintenance.*', 'tooling-life.*', 'flasks.*', 'flask-sizes.*', 'gauges.*') ? 'is-active' : '' }}">
                 <button type="button" class="nav-group-toggle" aria-expanded="false">
                     <span class="nav-lab">{!! \App\Support\NavIcons::get('wrench') !!}<span>Equipment &amp; Tooling</span></span><span class="nav-chevron">›</span>
                 </button>
@@ -121,6 +122,7 @@
                     <a href="{{ route('flasks.index') }}" class="nav-link {{ request()->routeIs('flasks.*', 'flask-sizes.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('grid') !!}<span>Flasks</span></a>
                     <a href="{{ route('tooling-maintenance.dashboard') }}" class="nav-link {{ request()->routeIs('tooling-maintenance.dashboard') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('dashboard') !!}<span>Maintenance dashboard</span></a>
                     <a href="{{ route('tooling-maintenance.index') }}" class="nav-link {{ request()->routeIs('tooling-maintenance.index', 'tooling-maintenance.show', 'tooling-maintenance.edit') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('wrench') !!}<span>Maintenance records</span></a>
+                    <a href="{{ route('gauges.index') }}" class="nav-link {{ request()->routeIs('gauges.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('gauge') !!}<span>Gauges &amp; calibration</span></a>
                     <a href="{{ route('tooling-life.dashboard') }}" class="nav-link {{ request()->routeIs('tooling-life.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('gauge') !!}<span>Tooling life</span></a>
                 </div>
             </div>
@@ -179,9 +181,22 @@
     <div class="main-area">
         <header class="topbar">
             <button type="button" class="icon-btn menu-toggle" id="menu-toggle" aria-controls="main-sidebar" aria-pressed="false" title="Shrink the menu to icons" aria-label="Shrink the menu to icons"><span class="ico-panel">{!! \App\Support\NavIcons::get('panel-left', 18) !!}</span><span class="ico-hamburger">{!! \App\Support\NavIcons::get('menu-two-line', 22) !!}</span></button>
+            @php($crumb = \App\Support\Breadcrumb::build($__env->hasSection('breadcrumb') ? $__env->yieldContent('breadcrumb') : ''))
             <div class="breadcrumb">
-                Operations / <strong>@hasSection('breadcrumb')@yield('breadcrumb')@else{{ \App\Support\SettingsNav::isSettingsPage() ? 'Settings / '.\App\Support\SettingsNav::current() : 'Dashboard' }}@endif</strong>
+                @if ($crumb['parent'])<a class="crumb-back" id="crumb-back" href="{{ $crumb['parent'] }}" title="Back" aria-label="Back">←</a>@endif
+                <strong>@if ($crumb['html'] !== ''){!! $crumb['html'] !!}@else{{ \App\Support\SettingsNav::isSettingsPage() ? 'Settings / '.\App\Support\SettingsNav::current() : 'Dashboard' }}@endif</strong>
             </div>
+            <script>
+            (function () {
+                var back = document.getElementById('crumb-back');
+                if (!back || !document.referrer) return;
+                try {
+                    var from = new URL(document.referrer);
+                    if (from.origin !== location.origin || from.href === location.href || /\/(edit|create|new)$/.test(from.pathname)) return;
+                    back.href = from.href;
+                } catch (e) {}
+            })();
+            </script>
             <div class="save-bar" id="save-bar" hidden role="status" aria-live="polite">
                 <span class="save-bar-note">{!! \App\Support\NavIcons::get('alert', 15) !!}<span>Unsaved changes</span></span>
                 <button type="button" class="btn" data-save-bar="discard">Discard</button>
@@ -572,5 +587,18 @@ document.addEventListener('DOMContentLoaded', () => {
 @include("partials.lightbox")
 @stack('dialogs')
 @include("partials.rowlink")
+<script>
+// Refuse an oversized file on the spot, with the real limit, instead of after a long upload that the server would drop.
+document.addEventListener('change', function (e) {
+    var input = e.target;
+    if (!input || input.type !== 'file' || !input.dataset.maxKb || !input.files) return;
+    var max = +input.dataset.maxKb * 1024, big = [];
+    Array.prototype.forEach.call(input.files, function (f) { if (f.size > max) big.push(f.name + ' (' + (f.size / 1048576).toFixed(1) + ' MB)'); });
+    if (!big.length) return;
+    e.stopImmediatePropagation();
+    input.value = '';
+    alert('Too large: ' + big.join(', ') + '.\nEach file can be at most ' + (max / 1048576).toFixed(max % 1048576 ? 1 : 0) + ' MB.');
+}, true);
+</script>
 </body>
 </html>

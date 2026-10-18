@@ -162,4 +162,43 @@ class ManualThermalEntryTest extends TestCase
         $this->post(route('thermal.store'), ['heat_id' => $heat->id, 'stage' => 'PRE_POUR', 'white' => ['tl_c' => 1182, 'solidus_c' => 1121], 'grey' => ['tl_c' => 1184, 'te_min_c' => 1130, 'te_max_c' => 1149]]);
         $this->assertFalse($gate()['ok']);
     }
+
+    public function test_carbon_and_silicon_keep_up_to_four_decimal_places_or_none(): void
+    {
+        $heat = $this->heat();
+
+        $this->post(route('thermal.store'), [
+            'heat_id' => $heat->id, 'stage' => 'POST_TREATMENT', 'sample_reference' => 'S-4DP',
+            'white' => ['carbon' => '3.6213', 'silicon' => '2.4057', 'tl_c' => 1182, 'solidus_c' => 1121],
+            'grey' => ['tl_c' => 1184, 'solidus_c' => 1122, 'te_min_c' => 1146, 'te_max_c' => 1149],
+        ])->assertSessionHasNoErrors();
+
+        $white = ThermalAnalysisTest::where('cup_type', 'TELLURIUM')->firstOrFail();
+        $this->assertSame(['3.6213', '2.4057'], [(string) $white->carbon_reported_pct, (string) $white->silicon_used]);
+        $this->get(route('thermal.show', $white))->assertOk()->assertSee('3.6213 / 2.4057');
+
+        $this->post(route('thermal.store'), [
+            'heat_id' => $heat->id, 'stage' => 'POST_TREATMENT', 'sample_reference' => 'S-WHOLE',
+            'white' => ['carbon' => '4', 'silicon' => '2', 'tl_c' => 1182, 'solidus_c' => 1121],
+        ])->assertSessionHasNoErrors();
+        $this->get(route('thermal.index'))->assertOk()->assertSee('S-WHOLE');
+        $this->assertEquals([4.0, 2.0], [(float) ThermalAnalysisTest::where('sample_reference', 'S-WHOLE')->firstOrFail()->carbon_reported_pct, (float) ThermalAnalysisTest::where('sample_reference', 'S-WHOLE')->firstOrFail()->silicon_used]);
+    }
+
+    public function test_more_than_four_decimal_places_are_refused(): void
+    {
+        $heat = $this->heat();
+
+        $this->post(route('thermal.store'), [
+            'heat_id' => $heat->id, 'stage' => 'POST_TREATMENT', 'white' => ['carbon' => '3.62134', 'silicon' => '2.40571', 'tl_c' => 1182, 'solidus_c' => 1121],
+        ])->assertSessionHasErrors(['white.carbon', 'white.silicon']);
+
+        $this->assertSame(0, ThermalAnalysisTest::count());
+    }
+
+    public function test_the_entry_form_allows_four_decimals_in_the_browser(): void
+    {
+        $this->get(route('thermal.create'))->assertOk()
+            ->assertSee('name="white[carbon]" type="number" step="0.0001"', false)->assertSee('name="grey[silicon]" type="number" step="0.0001"', false);
+    }
 }

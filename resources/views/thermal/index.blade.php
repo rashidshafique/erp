@@ -34,7 +34,7 @@
                 <tr>
                     <td><a href="{{ route('thermal.show', $t) }}">{{ $t->taken_at->format('d M H:i') }}</a></td>
                     <td>{{ $t->heat?->heat_number }}</td><td>{{ $t->ironGrade?->code ?? '—' }}</td><td>{{ $t->sample_reference ?: '—' }}@if ($t->entry_mode === 'MANUAL') <span class="muted small">(keyed in)</span>@endif</td>
-                    <td>{{ $t->cup_type === 'TELLURIUM' ? 'White' : 'Grey' }}</td><td>{{ $t->carbon_reported_pct ?? '—' }}</td><td>{{ $t->silicon_used ?? '—' }}</td>
+                    <td>{{ $t->cup_type === 'TELLURIUM' ? 'White' : 'Grey' }}</td><td>{{ $t->carbon_reported_pct !== null ? rtrim(rtrim((string) $t->carbon_reported_pct, '0'), '.') : '—' }}</td><td>{{ $t->silicon_used !== null ? rtrim(rtrim((string) $t->silicon_used, '0'), '.') : '—' }}</td>
                     <td>{{ $t->tl_c ?? '—' }}</td><td>{{ $t->solidus_c ?? '—' }}</td><td>{{ $t->te_min_c ?? '—' }}</td><td>{{ $t->recalescence_c ?? '—' }}</td><td>{{ $t->peak_temp_c ?? '—' }}</td><td>{{ $t->ce_from_tl ?? '—' }}</td>
                     <td><span class="status {{ $t->result === 'PASS' ? 'status-completed' : ($t->result === 'FAIL' ? 'status-cancelled' : 'status-on-hold') }}">{{ str_replace('_', ' ', $t->result) }}</span></td>
                 </tr>
