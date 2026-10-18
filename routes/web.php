@@ -643,6 +643,7 @@ Route::put('/settings/interface', [AppSettingController::class, 'updateInterface
 Route::get('/settings/display', [DisplaySettingsController::class, 'edit'])->name('settings.display');
 Route::put('/settings/display', [DisplaySettingsController::class, 'update'])->name('settings.display.update');
 Route::put('/settings/display/font', [DisplaySettingsController::class, 'updateFont'])->name('settings.display.font');
+Route::put('/settings/display/formats', [DisplaySettingsController::class, 'updateFormats'])->name('settings.display.formats');
 Route::get('/branding/logo', [BrandingController::class, 'logo'])->name('branding.logo');
 Route::put('/settings/branding', [BrandingController::class, 'update'])->name('settings.branding.update');
 

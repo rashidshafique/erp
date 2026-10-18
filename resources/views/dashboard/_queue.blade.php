@@ -9,8 +9,8 @@
                 <tr>
                     <td class="mono"><a href="{{ route('production-orders.index', ['q' => $o->production_order_number]) }}">{{ $o->production_order_number }}</a></td>
                     <td><div class="cell">@if ($o->cover)<img class="thumb" src="{{ route('attachments.download', $o->cover) }}" alt="">@else<span class="thumb"></span>@endif<div><strong>{{ $o->product?->name ?? '—' }}</strong><div class="sub" style="font-size:12px;color:var(--dx-mute)">{{ $o->salesOrderLine?->salesOrder?->customer?->name ?? $o->product?->code }}</div></div></div></td>
-                    <td class="mono" style="text-align:right">{{ number_format((float) $o->planned_qty) }}<div style="font-size:11px;color:var(--dx-mute)">{{ number_format((float) $o->completed_qty) }} done</div></td>
-                    <td class="mono" style="white-space:nowrap;{{ $late ? 'color:#b91c1c;font-weight:650' : '' }}">{{ $o->required_date?->format('d M') ?? '—' }}</td>
+                    <td class="mono" style="text-align:right">{{ \App\Support\Formats::number((float) $o->planned_qty) }}<div style="font-size:11px;color:var(--dx-mute)">{{ \App\Support\Formats::number((float) $o->completed_qty) }} done</div></td>
+                    <td class="mono" style="white-space:nowrap;{{ $late ? 'color:#b91c1c;font-weight:650' : '' }}">{{ $o->required_date?->displayShortDate() ?? '—' }}</td>
                     <td><span class="pill {{ $o->status === 'IN_PROGRESS' ? 'blue' : ($late ? 'red' : '') }}">{{ str_replace('_', ' ', $o->status) }}</span></td>
                 </tr>
             @endforeach

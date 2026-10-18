@@ -102,9 +102,9 @@
                         <td>{{ $movement->movement_type }}</td>
                         <td>{{ $movement->material?->name ?? '—' }}</td>
                         <td>{{ $movement->materialLot?->lot_number ?? '—' }}</td>
-                        <td>{{ number_format((float) $movement->quantity, 3) }}</td>
-                        <td>{{ $movement->unit_cost === null ? '—' : number_format((float) $movement->unit_cost, 4) }}</td>
-                        <td>{{ $movement->total_cost === null ? '—' : number_format((float) $movement->total_cost, 2) }}</td>
+                        <td>{{ \App\Support\Formats::number((float) $movement->quantity, 3) }}</td>
+                        <td>{{ $movement->unit_cost === null ? '—' : \App\Support\Formats::number((float) $movement->unit_cost, 4) }}</td>
+                        <td>{{ $movement->total_cost === null ? '—' : \App\Support\Formats::number((float) $movement->total_cost, 2) }}</td>
                         <td>
                             {{ $movement->source_type ?? '—' }}
                             @if($movement->source_id)

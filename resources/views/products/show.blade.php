@@ -22,7 +22,7 @@
         @endif
     </div>
 </div>
-@if ($product->trashed())<div class="alert alert-warning">Archived on {{ $product->deleted_at->format('d M Y') }}. It is left out of the product list, its counts and every product picker, and stays on the orders and lots that used it. Restore it to use it again.</div>@endif
+@if ($product->trashed())<div class="alert alert-warning">Archived on {{ $product->deleted_at->displayDate() }}. It is left out of the product list, its counts and every product picker, and stays on the orders and lots that used it. Restore it to use it again.</div>@endif
 
 <div class="tab-marker" data-tab-start="Specification"></div>
 <div class="panel">
@@ -56,7 +56,7 @@
                 <div class="detail-label">Nominal weight</div>
                 <div class="detail-value">
                     {{ $product->nominal_weight_kg !== null
-                        ? number_format((float) $product->nominal_weight_kg, 4).' kg'
+                        ? \App\Support\Formats::number((float) $product->nominal_weight_kg, 4).' kg'
                         : 'Not specified' }}
                 </div>
             </div>
@@ -114,11 +114,11 @@
                             <td><span class="status">{{ $revision->status }}</span></td>
                             <td>
                                 {{ $revision->net_weight_kg !== null
-                                    ? number_format((float) $revision->net_weight_kg, 4).' kg'
+                                    ? \App\Support\Formats::number((float) $revision->net_weight_kg, 4).' kg'
                                     : '—' }}
                             </td>
-                            <td>{{ $revision->effective_from?->format('d M Y') ?? '—' }}</td>
-                            <td>{{ $revision->effective_to?->format('d M Y') ?? '—' }}</td>
+                            <td>{{ $revision->effective_from?->displayDate() ?? '—' }}</td>
+                            <td>{{ $revision->effective_to?->displayDate() ?? '—' }}</td>
                             <td style="white-space:normal;min-width:220px">
                                 {{ $revision->engineering_notes ?: '—' }}
                             </td>

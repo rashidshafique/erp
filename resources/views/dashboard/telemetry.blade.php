@@ -7,7 +7,7 @@
 @section('content')
 @php
     $k = $d['kpis'];
-    $fmt = fn ($n, $dp = 0) => number_format((float) $n, $dp);
+    $fmt = fn ($n, $dp = 0) => \App\Support\Formats::number((float) $n, $dp);
     $tv = request()->boolean('tv');
     $daily = $d['daily'];
     $yields = array_values(array_filter(array_column($daily, 'yield'), fn ($v) => $v !== null));
@@ -130,7 +130,7 @@
     </section>
 
     <section>
-        <h2>Shift timeline <span class="mono" style="font-weight:500;letter-spacing:0;text-transform:none">{{ $tl['from']->format('H:i') }}–{{ $tl['to']->format('H:i') }}</span></h2>
+        <h2>Shift timeline <span class="mono" style="font-weight:500;letter-spacing:0;text-transform:none">{{ $tl['from']->displayTime() }}–{{ $tl['to']->displayTime() }}</span></h2>
         @if (count($tl['lanes']))
             <div class="tl-hours"><span></span><div class="tr">@foreach ($tl['hours'] as $h)<span style="left:{{ $h['at'] }}%">{{ $h['label'] }}</span>@endforeach</div></div>
             @foreach ($tl['lanes'] as $lane => $bars)
@@ -157,7 +157,7 @@
                 <div class="sd">
                     <span class="nm" title="{{ $m->name }}">{{ $m->name }}</span>
                     <span>@if ($hasRange)<span class="gauge" title="Limits {{ $lo }}–{{ $hi }}"><b style="left:{{ $pos($lo) }}%;width:{{ $pos($hi) - $pos($lo) }}%"></b><i class="{{ $m->passed === false ? 'bad' : '' }}" style="left:{{ $pos($v) }}%"></i></span>@endif</span>
-                    <span class="val mono {{ $m->passed === false ? 'bad' : '' }}">{{ $v !== null ? rtrim(rtrim(number_format((float) $v, 2), '0'), '.') : ($m->text_value ?? '—') }}{{ $m->unit ? ' '.$m->unit : '' }}</span>
+                    <span class="val mono {{ $m->passed === false ? 'bad' : '' }}">{{ $v !== null ? rtrim(rtrim(\App\Support\Formats::number((float) $v, 2), '0'), '.') : ($m->text_value ?? '—') }}{{ $m->unit ? ' '.$m->unit : '' }}</span>
                 </div>
             @endforeach
         @empty

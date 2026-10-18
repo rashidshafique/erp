@@ -60,7 +60,7 @@ class Containment
         $heldLots = 0;
 
         foreach ($this->affected($heat) as ['pour' => $pour, 'sample' => $sample]) {
-            $label = ($sample['kind'] === 'THERMAL' ? 'Thermal analysis' : 'Chemistry').' '.($sample['reference'] ?: '').' at '.$sample['at']->format('d M H:i').' was out of limits';
+            $label = ($sample['kind'] === 'THERMAL' ? 'Thermal analysis' : 'Chemistry').' '.($sample['reference'] ?: '').' at '.$sample['at']->displayShortDateTime().' was out of limits';
             if ($pour->containment_note === null) {
                 $newPours++;
             }
@@ -79,7 +79,7 @@ class Containment
         $lots = CastingLot::whereIn('pour_mould_assembly_id', $pour->mouldAssemblies()->pluck('id'))
             ->whereNotIn('status', ['ON_HOLD', 'DISPATCHED', 'CLOSED', 'SCRAPPED'])->get();
         foreach ($lots as $lot) {
-            $lot->update(['status' => 'ON_HOLD', 'notes' => trim($lot->notes."\n".Carbon::now()->format('d M H:i').' hold: containment, '.$reason)]);
+            $lot->update(['status' => 'ON_HOLD', 'notes' => trim($lot->notes."\n".Carbon::now()->displayShortDateTime().' hold: containment, '.$reason)]);
             $held++;
         }
 

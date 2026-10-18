@@ -6,7 +6,7 @@
         if (! $grade) return '';
         $min = $grade->{$key.'_min'}; $max = $grade->{$key.'_max'};
         if ($min === null && $max === null) return '';
-        return ($min !== null ? rtrim(rtrim(number_format((float) $min, 3), '0'), '.') : '') . '–' . ($max !== null ? rtrim(rtrim(number_format((float) $max, 3), '0'), '.') : '');
+        return ($min !== null ? rtrim(rtrim(\App\Support\Formats::number((float) $min, 3), '0'), '.') : '') . '–' . ($max !== null ? rtrim(rtrim(\App\Support\Formats::number((float) $max, 3), '0'), '.') : '');
     };
 @endphp
 <div class="panel" id="chemistry">
@@ -26,9 +26,9 @@
                 <tr>
                     <td>{{ $r->reading_number }}</td>
                     <td>{{ str_replace('_', ' ', $r->sample_stage) }}<div class="muted small">{{ $r->sample_reference }}</div></td>
-                    <td>{{ $r->tested_at?->format('d M H:i') }}<div class="muted small">{{ $r->tested_by }}</div></td>
-                    @foreach (\App\Services\Quality\ChemistryJudge::COLUMNS as $key => $col)<td>{{ $r->$col !== null ? rtrim(rtrim(number_format((float) $r->$col, 3), '0'), '.') : '—' }}</td>@endforeach
-                    <td>{{ $r->carbon_equivalent !== null ? number_format((float) $r->carbon_equivalent, 2) : '—' }}</td>
+                    <td>{{ $r->tested_at?->displayShortDateTime() }}<div class="muted small">{{ $r->tested_by }}</div></td>
+                    @foreach (\App\Services\Quality\ChemistryJudge::COLUMNS as $key => $col)<td>{{ $r->$col !== null ? rtrim(rtrim(\App\Support\Formats::number((float) $r->$col, 3), '0'), '.') : '—' }}</td>@endforeach
+                    <td>{{ $r->carbon_equivalent !== null ? \App\Support\Formats::number((float) $r->carbon_equivalent, 2) : '—' }}</td>
                     <td>
                         @if ($v['ok'] === null)<span class="status">NOT JUDGED</span>
                         @elseif ($v['ok'])<span class="status status-completed">IN LIMITS</span>

@@ -29,7 +29,7 @@
 <div class="table-wrap"><table><thead><tr><th style="width:36px"></th><th>Employee</th><th>Department</th><th>Acknowledged</th></tr></thead><tbody>
 @foreach ($employees as $x)@php $a = $acks->get($x->id); @endphp
 <tr><td>@unless ($a)<input type="checkbox" name="employee_ids[]" value="{{ $x->id }}">@endunless</td><td><a href="{{ route('hr.employees.show', $x) }}">{{ $x->code }}</a> {{ $x->full_name }}</td><td>{{ $x->department?->name ?? '—' }}</td>
-<td>@if ($a)<span class="status status-completed">{{ $a->acknowledged_at->format('d M Y') }}</span>@else<span class="muted">—</span>@endif</td></tr>@endforeach
+<td>@if ($a)<span class="status status-completed">{{ $a->acknowledged_at->displayDate() }}</span>@else<span class="muted">—</span>@endif</td></tr>@endforeach
 </tbody></table></div>
 <div class="panel-body"><button class="btn btn-primary">Record acknowledgement for the ticked people</button></div></div></form>
 @endif

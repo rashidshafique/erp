@@ -38,8 +38,8 @@
                 <td>{{ $gauge->name }}<div class="muted small">{{ collect([$gauge->manufacturer, $gauge->model, $gauge->serial_number ? 'S/N '.$gauge->serial_number : null])->filter()->implode(' · ') }}</div></td>
                 <td>{{ $types[$gauge->instrument_type] ?? $gauge->instrument_type }}</td>
                 <td>{{ $gauge->location ?: '—' }}</td>
-                <td>{{ $gauge->last_calibrated_on?->format('d M Y') ?? '—' }}</td>
-                <td>{{ $gauge->next_due_on?->format('d M Y') ?? '—' }}</td>
+                <td>{{ $gauge->last_calibrated_on?->displayDate() ?? '—' }}</td>
+                <td>{{ $gauge->next_due_on?->displayDate() ?? '—' }}</td>
                 <td>@include('gauges._status', ['state' => $gauge->calibrationStatus()])</td>
             </tr>
         @empty

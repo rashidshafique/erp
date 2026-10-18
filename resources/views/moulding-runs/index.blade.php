@@ -20,22 +20,22 @@
     <div class="metrics">
         <div class="metric">
             <div class="metric-label">Runs today</div>
-            <div class="metric-value">{{ number_format($todayRuns) }}</div>
+            <div class="metric-value">{{ \App\Support\Formats::number($todayRuns) }}</div>
             <div class="metric-note">Moulding run records</div>
         </div>
         <div class="metric">
             <div class="metric-label">Runs in progress</div>
-            <div class="metric-value">{{ number_format($inProgressRuns) }}</div>
+            <div class="metric-value">{{ \App\Support\Formats::number($inProgressRuns) }}</div>
             <div class="metric-note">Currently marked in progress</div>
         </div>
         <div class="metric">
             <div class="metric-label">Moulds made today</div>
-            <div class="metric-value">{{ number_format($todayMoulds) }}</div>
+            <div class="metric-value">{{ \App\Support\Formats::number($todayMoulds) }}</div>
             <div class="metric-note">Total recorded output</div>
         </div>
         <div class="metric">
             <div class="metric-label">Damaged today</div>
-            <div class="metric-value">{{ number_format($todayDamaged) }}</div>
+            <div class="metric-value">{{ \App\Support\Formats::number($todayDamaged) }}</div>
             <div class="metric-note">Mould damage, not casting rejection</div>
         </div>
     </div>
@@ -114,7 +114,7 @@
                                 </a>
                             </td>
                             <td>
-                                {{ $run->run_date?->format('d M Y') ?? '—' }}
+                                {{ $run->run_date?->displayDate() ?? '—' }}
                                 <div class="muted small">{{ $run->shift ?: 'No shift' }}</div>
                             </td>
                             <td>
@@ -133,9 +133,9 @@
                                 {{ $run->operator_name ?: '—' }}
                                 <div class="muted small">{{ $run->team_name ?: 'No team' }}</div>
                             </td>
-                            <td>{{ number_format($run->moulds_made_qty) }}</td>
-                            <td>{{ number_format($run->accepted_mould_qty) }}</td>
-                            <td>{{ number_format($run->damaged_mould_qty) }}</td>
+                            <td>{{ \App\Support\Formats::number($run->moulds_made_qty) }}</td>
+                            <td>{{ \App\Support\Formats::number($run->accepted_mould_qty) }}</td>
+                            <td>{{ \App\Support\Formats::number($run->damaged_mould_qty) }}</td>
                             <td>
                                 <span class="status status-{{ strtolower(str_replace('_', '-', $run->status)) }}">
                                     {{ str_replace('_', ' ', $run->status) }}

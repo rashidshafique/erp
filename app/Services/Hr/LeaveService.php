@@ -80,16 +80,16 @@ class LeaveService
         $clash = LeaveRequest::where('employee_id', $e->id)->whereIn('status', ['PENDING', 'APPROVED'])->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))
             ->whereDate('from_date', '<=', $to)->whereDate('to_date', '>=', $from)->first();
         if ($clash) {
-            throw new RuntimeException('That overlaps '.$clash->code.' ('.$clash->from_date->format('d M').' – '.$clash->to_date->format('d M').').');
+            throw new RuntimeException('That overlaps '.$clash->code.' ('.$clash->from_date->displayShortDate().' – '.$clash->to_date->displayShortDate().').');
         }
         if ($t->tracksBalance()) {
             $pending = (float) LeaveRequest::where('employee_id', $e->id)->where('leave_type_id', $t->id)->where('status', 'PENDING')->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))->sum('days');
             $left = $this->balance($e, $t) - $pending;
             if ($days > $left + 0.001) {
-                throw new RuntimeException('Not enough '.$t->name.': '.rtrim(rtrim(number_format($left, 2), '0'), '.').' day(s) available'.($pending ? " after {$pending} already asked for" : '').', '.rtrim(rtrim(number_format($days, 2), '0'), '.').' wanted.');
+                throw new RuntimeException('Not enough '.$t->name.': '.rtrim(rtrim(\App\Support\Formats::number($left, 2), '0'), '.').' day(s) available'.($pending ? " after {$pending} already asked for" : '').', '.rtrim(rtrim(\App\Support\Formats::number($days, 2), '0'), '.').' wanted.');
             }
         } elseif ($t->annual_days > 0 && $days > (float) $t->annual_days) {
-            throw new RuntimeException($t->name.' is limited to '.rtrim(rtrim(number_format($t->annual_days, 2), '0'), '.').' days at a time.');
+            throw new RuntimeException($t->name.' is limited to '.rtrim(rtrim(\App\Support\Formats::number($t->annual_days, 2), '0'), '.').' days at a time.');
         }
     }
 

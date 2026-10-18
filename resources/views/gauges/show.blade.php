@@ -13,9 +13,9 @@
 </div>
 
 @if ($status === 'OUT_OF_SERVICE')<div class="alert alert-error">Out of service. Do not use it for results until it passes a calibration.</div>
-@elseif ($status === 'OVERDUE')<div class="alert alert-error">Calibration was due {{ $gauge->next_due_on->format('d M Y') }}. Results measured with it since then will not stand up to an audit.</div>
+@elseif ($status === 'OVERDUE')<div class="alert alert-error">Calibration was due {{ $gauge->next_due_on->displayDate() }}. Results measured with it since then will not stand up to an audit.</div>
 @elseif ($status === 'NOT_CALIBRATED')<div class="alert alert-error">This instrument has never been calibrated. Record its first calibration below.</div>
-@elseif ($status === 'DUE_SOON')<div class="alert alert-warning">Calibration is due on {{ $gauge->next_due_on->format('d M Y') }}.</div>@endif
+@elseif ($status === 'DUE_SOON')<div class="alert alert-warning">Calibration is due on {{ $gauge->next_due_on->displayDate() }}.</div>@endif
 
 <div class="panel"><div class="panel-header"><h2>Instrument</h2></div>
 <div class="panel-body" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px">
@@ -23,7 +23,7 @@
         'Manufacturer / model' => collect([$gauge->manufacturer, $gauge->model])->filter()->implode(' '),
         'Serial number' => $gauge->serial_number, 'Range / resolution' => $gauge->range_description, 'Kept at' => $gauge->location, 'Responsible' => $gauge->responsible_person,
         'Calibration interval' => $gauge->requires_calibration ? $gauge->calibration_interval_days.' days' : 'Not needed',
-        'Last calibrated' => $gauge->last_calibrated_on?->format('d M Y'), 'Next due' => $gauge->next_due_on?->format('d M Y'),
+        'Last calibrated' => $gauge->last_calibrated_on?->displayDate(), 'Next due' => $gauge->next_due_on?->displayDate(),
     ] as $label => $value)
         <div><div class="muted small">{{ $label }}</div><strong>{{ $value ?: '—' }}</strong></div>
     @endforeach
@@ -57,9 +57,9 @@
             <tbody>
             @foreach ($gauge->calibrations as $c)
                 <tr>
-                    <td>{{ $c->calibrated_on->format('d M Y') }}</td>
+                    <td>{{ $c->calibrated_on->displayDate() }}</td>
                     <td><span class="status {{ $c->result === 'FAIL' ? 'status-cancelled' : 'status-completed' }}">{{ $results[$c->result] ?? $c->result }}</span></td>
-                    <td>{{ $c->due_on?->format('d M Y') ?? '—' }}</td>
+                    <td>{{ $c->due_on?->displayDate() ?? '—' }}</td>
                     <td>{{ $c->performed_by ?: '—' }}@if ($c->external_lab)<div class="muted small">outside laboratory</div>@endif</td>
                     <td>{{ $c->certificate_number ?: '—' }}</td>
                     <td class="small">{{ collect([$c->as_found ? 'As found: '.$c->as_found : null, $c->notes])->filter()->implode(' · ') ?: '—' }}</td>

@@ -10,7 +10,7 @@
         <div class="record-list">
             @include('partials.record-row', ['icon' => 'building', 'title' => $pattern->owner_type === 'FOUNDRY' ? 'Foundry-owned' : $pattern->ownerLabel(),
                 'note' => $pattern->supplied_by_customer ? 'supplied by the customer' : null,
-                'sub' => collect([$pattern->ownershipQuotation ? 'Quotation '.$pattern->ownershipQuotation->code : null, $pattern->ownership_reference, $pattern->acquired_on ? 'received '.$pattern->acquired_on->format('d M Y') : null, $pattern->insured_value !== null ? 'insured PKR '.number_format((float) $pattern->insured_value, 0) : null])->filter()->implode(' · ') ?: 'No paper recorded',
+                'sub' => collect([$pattern->ownershipQuotation ? 'Quotation '.$pattern->ownershipQuotation->code : null, $pattern->ownership_reference, $pattern->acquired_on ? 'received '.$pattern->acquired_on->displayDate() : null, $pattern->insured_value !== null ? 'insured PKR '.\App\Support\Formats::number((float) $pattern->insured_value, 0) : null])->filter()->implode(' · ') ?: 'No paper recorded',
                 'editTarget' => $closed || $pattern->trashed() ? null : 'ownership-edit', 'editLabel' => 'Change owner'])
             @include('partials.record-row', ['icon' => 'map-pin', 'title' => $owner['custody'], 'sub' => 'Where the pattern is now',
                 'editTarget' => $closed || $pattern->trashed() ? null : 'ownership-edit', 'editLabel' => 'Change location'])
@@ -20,7 +20,7 @@
         @if ($pattern->owner_type === 'PAYING_OFF')
             @php $pct = $payOff['target'] ? min(100, round(100 * $payOff['dispatched'] / $payOff['target'])) : 0; @endphp
             <div style="margin-top:14px;padding:10px 12px;border:1px solid var(--border);border-radius:8px">
-                <div class="small"><strong>Paying off:</strong> {{ number_format($payOff['dispatched']) }} of {{ number_format((int) $payOff['target']) }} castings dispatched to {{ $pattern->ownerCustomer?->name }} ({{ $pct }} %).
+                <div class="small"><strong>Paying off:</strong> {{ \App\Support\Formats::number($payOff['dispatched']) }} of {{ \App\Support\Formats::number((int) $payOff['target']) }} castings dispatched to {{ $pattern->ownerCustomer?->name }} ({{ $pct }} %).
                     @if ($payOff['ready'])<strong>Fully paid off.</strong>@endif</div>
                 <div style="height:6px;background:var(--border);border-radius:3px;margin:6px 0 8px"><div style="height:6px;width:{{ $pct }}%;background:var(--accent);border-radius:3px"></div></div>
                 @unless ($closed)
@@ -81,7 +81,7 @@
             <thead><tr><th>Date</th><th>What</th><th>From</th><th>To</th><th>Reference</th><th>By</th></tr></thead>
             <tbody>
                 @foreach ($pattern->ownershipEvents as $e)
-                    <tr><td>{{ $e->occurred_on->format('d M Y') }}</td><td>{{ \App\Models\PatternOwnershipEvent::TYPES[$e->event_type] ?? $e->event_type }}@if ($e->notes)<div class="muted small">{{ $e->notes }}</div>@endif</td><td>{{ $e->from_value ?? '—' }}</td><td>{{ $e->to_value ?? '—' }}</td><td class="mono small">{{ $e->reference ?? '—' }}</td><td class="small">{{ $e->recorded_by ?? '—' }}</td></tr>
+                    <tr><td>{{ $e->occurred_on->displayDate() }}</td><td>{{ \App\Models\PatternOwnershipEvent::TYPES[$e->event_type] ?? $e->event_type }}@if ($e->notes)<div class="muted small">{{ $e->notes }}</div>@endif</td><td>{{ $e->from_value ?? '—' }}</td><td>{{ $e->to_value ?? '—' }}</td><td class="mono small">{{ $e->reference ?? '—' }}</td><td class="small">{{ $e->recorded_by ?? '—' }}</td></tr>
                 @endforeach
             </tbody>
         </table></div>

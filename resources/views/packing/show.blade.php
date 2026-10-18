@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title', $packing->packing_number)
 @section('content')
-<div class="page-heading"><div><h1>{{ $packing->packing_number }}</h1><p>{{ $packing->status }} · {{ $packing->packed_at?->format('d M Y H:i') }} · {{ $packing->total_net_weight_kg }} kg net</p></div><div class="actions"><a class="btn btn-primary" href="{{ route('dispatches.create') }}">Dispatch</a></div></div>
+<div class="page-heading"><div><h1>{{ $packing->packing_number }}</h1><p>{{ $packing->status }} · {{ $packing->packed_at?->displayDateTime() }} · {{ $packing->total_net_weight_kg }} kg net</p></div><div class="actions"><a class="btn btn-primary" href="{{ route('dispatches.create') }}">Dispatch</a></div></div>
 @if(session("success"))<div class="alert alert-success">{{ session("success") }}</div>@endif
 @if($errors->any())<div class="alert alert-error">@foreach($errors->all() as $e)<div>{{ $e }}</div>@endforeach</div>@endif
 <div class="panel"><div class="table-wrap"><table><thead><tr><th>Lot</th><th>Product</th><th>Packed</th><th>Dispatched</th><th>Net kg</th></tr></thead><tbody>

@@ -28,7 +28,7 @@
             <tbody>
             @foreach ($heats as $h)
                 <tr>
-                    <td>{{ $h->planned_date->format('d M') }}</td>
+                    <td>{{ $h->planned_date->displayShortDate() }}</td>
                     <td><strong>{{ $h->plan_number }}</strong><div class="muted small">{{ $h->status }}</div></td>
                     <td>{{ $h->ironGrade?->code }}</td>
                     <td>
@@ -39,8 +39,8 @@
                                 </select></form>
                         @else {{ $h->furnace?->code }} @endif
                     </td>
-                    <td>{{ number_format((float) $h->planned_metal_kg, 1) }}</td>
-                    <td style="white-space:normal">@foreach ($h->orders as $o){{ $o->productionOrder?->production_order_number }} ({{ number_format((float) $o->metal_kg, 0) }} kg)<br>@endforeach</td>
+                    <td>{{ \App\Support\Formats::number((float) $h->planned_metal_kg, 1) }}</td>
+                    <td style="white-space:normal">@foreach ($h->orders as $o){{ $o->productionOrder?->production_order_number }} ({{ \App\Support\Formats::number((float) $o->metal_kg, 0) }} kg)<br>@endforeach</td>
                     <td style="white-space:normal">@if ($h->changeover_required)<span class="status status-on-hold">Changeover</span> @endif @if ($h->late_risk)<span class="status status-cancelled">Late risk</span>@endif</td>
                     <td>
                         @if ($h->status === 'PLANNED')

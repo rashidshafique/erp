@@ -11,7 +11,7 @@
     $ccOpts = $costCentres->mapWithKeys(fn ($c) => [$c->id => $c->code.' · '.$c->name])->all();
     $headOpts = $heads->mapWithKeys(fn ($h) => [$h->id => $h->code.' · '.$h->full_name])->all();
     $gradeOpts = $grades->mapWithKeys(fn ($g) => [$g->id => $g->name])->all();
-    $money = fn ($v) => $v === null ? '—' : 'PKR '.number_format($v);
+    $money = fn ($v) => $v === null ? '—' : 'PKR '.\App\Support\Formats::number($v);
 @endphp
 <style>.row-edit summary { cursor: pointer; color: var(--accent); font-weight: 600; } .row-edit[open] { padding: 10px 0; }</style>
 

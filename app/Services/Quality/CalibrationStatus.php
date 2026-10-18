@@ -54,7 +54,7 @@ class CalibrationStatus
         if ($rule === 'OFF') {
             return null;
         }
-        $message = "{$gauge->code} ({$gauge->name}): ".strtolower(self::LABELS[$this->of($gauge)]).($gauge->next_due_on ? ', due '.$gauge->next_due_on->format('d M Y') : '').'.';
+        $message = "{$gauge->code} ({$gauge->name}): ".strtolower(self::LABELS[$this->of($gauge)]).($gauge->next_due_on ? ', due '.$gauge->next_due_on->displayDate() : '').'.';
         if ($rule === 'BLOCK') {
             throw ValidationException::withMessages([$field => $message.' Choose another instrument or calibrate this one first.']);
         }

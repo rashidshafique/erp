@@ -117,7 +117,7 @@ class CapaController extends Controller
         ], ['verification_due_on.required' => 'Say when the effectiveness will be checked.']);
         $capa->update($data + ['status' => 'AWAITING_VERIFICATION']);
 
-        return back()->with('success', 'Action recorded as done. Its effectiveness check is due '.$capa->verification_due_on->format('d M Y').'.');
+        return back()->with('success', 'Action recorded as done. Its effectiveness check is due '.$capa->verification_due_on->displayDate().'.');
     }
 
     /** The check that the action worked. Effective closes it; not effective sends it back for a better action. */
@@ -135,7 +135,7 @@ class CapaController extends Controller
         if ($data['verification_result'] === 'NOT_EFFECTIVE' && blank($data['verification_notes'] ?? null)) {
             throw ValidationException::withMessages(['verification_notes' => 'Say what showed the action did not work.']);
         }
-        $entry = now()->format('d M Y').': '.str_replace('_', ' ', $data['verification_result']).' (checked by '.$data['verified_by'].')'.(filled($data['verification_notes'] ?? null) ? ' - '.$data['verification_notes'] : '');
+        $entry = now()->displayDate().': '.str_replace('_', ' ', $data['verification_result']).' (checked by '.$data['verified_by'].')'.(filled($data['verification_notes'] ?? null) ? ' - '.$data['verification_notes'] : '');
 
         if ($data['verification_result'] === 'NOT_EFFECTIVE') {
             $capa->update(['status' => 'IN_PROGRESS', 'completed_on' => null, 'verification_due_on' => null, 'verification_result' => 'NOT_EFFECTIVE', 'verification_log' => trim($capa->verification_log."\n".$entry)]);

@@ -24,6 +24,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Paginator::defaultView('vendor.pagination.minimal');
+        \App\Support\Formats::registerCarbonMacros();
 
         // Every model change, anywhere in the app, is written to the audit log.
         foreach (['created' => 'CREATED', 'updated' => 'UPDATED', 'deleted' => 'DELETED'] as $event => $action) {

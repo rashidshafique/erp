@@ -4,7 +4,7 @@
 @section('content')
 @php
     $cls = ['PENDING' => 'status-on-hold', 'APPROVED' => 'status-completed', 'REJECTED' => 'status-cancelled', 'CANCELLED' => 'status-cancelled'];
-    $nf = fn ($v) => rtrim(rtrim(number_format($v, 2), '0'), '.') ?: '0';
+    $nf = fn ($v) => rtrim(rtrim(\App\Support\Formats::number($v, 2), '0'), '.') ?: '0';
     $tab = request('tab');
 @endphp
 <div class="page-heading"><div><h1>Leave</h1><p>Requests, balances, leave types and the yearly runs.</p></div><div class="actions"><a class="btn" href="{{ route('leave.my') }}">My leave &amp; approvals</a></div></div>
@@ -20,7 +20,7 @@
 <div class="table-wrap"><table><thead><tr><th>Request</th><th>Employee</th><th>Leave</th><th>Dates</th><th>Days</th><th>Status</th><th></th></tr></thead><tbody>
 @foreach ($requests as $r)
 <tr><td><strong>{{ $r->code }}</strong></td><td><a href="{{ route('hr.employees.show', $r->employee) }}">{{ $r->employee->full_name }}</a><div class="muted small">{{ $r->employee->department?->name }}</div></td><td>{{ $r->type->name }}</td>
-<td>{{ $r->from_date->format('d M') }}{{ $r->to_date->ne($r->from_date) ? ' – '.$r->to_date->format('d M Y') : ' '.$r->from_date->format('Y') }}{{ $r->half_day ? ' (half day)' : '' }}@if ($r->reason)<div class="muted small">{{ $r->reason }}</div>@endif</td><td>{{ $nf($r->days) }}</td>
+<td>{{ $r->from_date->displayShortDate() }}{{ $r->to_date->ne($r->from_date) ? ' – '.$r->to_date->displayDate() : ' '.$r->from_date->format('Y') }}{{ $r->half_day ? ' (half day)' : '' }}@if ($r->reason)<div class="muted small">{{ $r->reason }}</div>@endif</td><td>{{ $nf($r->days) }}</td>
 <td><span class="status {{ $cls[$r->status] }}">{{ ucfirst(strtolower($r->status)) }}</span>@if ($r->decided_by_name)<div class="muted small">{{ $r->decided_by_name }}</div>@endif</td>
 <td style="min-width:240px">@if ($r->status === 'PENDING')
 <form method="POST" action="{{ route('leave.decide', $r) }}" style="display:flex;gap:4px">@csrf<input name="note" placeholder="Note" style="min-height:28px;padding:2px 6px;max-width:110px"><button class="btn btn-small btn-primary" name="decision" value="APPROVE">Approve</button><button class="btn btn-small" name="decision" value="REJECT">Reject</button></form>

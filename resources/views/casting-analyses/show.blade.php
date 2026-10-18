@@ -13,7 +13,7 @@
     $ok = $a->status === 'COMPLETE' && $res && $rec;
     $sevClass = ['HIGH' => 'status-cancelled', 'MEDIUM' => 'status-on-hold', 'LOW' => 'status-in-progress', 'INFO' => 'status-completed'];
     $roleLabel = ['PRIMARY' => 'Last to freeze', 'ISOLATED_SEVERE' => 'Cut off (severe)', 'ISOLATED' => 'Cut off'];
-    $n = fn ($v, $d = 1) => number_format((float) $v, $d);
+    $n = fn ($v, $d = 1) => \App\Support\Formats::number((float) $v, $d);
 @endphp
 <div class="page-heading">
     <div>

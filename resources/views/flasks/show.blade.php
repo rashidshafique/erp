@@ -30,11 +30,11 @@
             <div><div class="detail-label">Size</div><div class="detail-value">{{ $flask->size?->name }}<div class="muted small">{{ $flask->size?->dimensions() }}</div></div></div>
             <div><div class="detail-label">Position</div><div class="detail-value">{{ \App\Models\Flask::POSITIONS[$flask->position] ?? $flask->position }}</div></div>
             <div><div class="detail-label">Construction</div><div class="detail-value">{{ \App\Models\Flask::CONSTRUCTIONS[$flask->construction] ?? '—' }}</div></div>
-            <div><div class="detail-label">Material · weight</div><div class="detail-value">{{ $flask->material ?: '—' }} · {{ $flask->weight_kg !== null ? rtrim(rtrim(number_format((float) $flask->weight_kg, 2), '0'), '.').' kg' : '—' }}</div></div>
+            <div><div class="detail-label">Material · weight</div><div class="detail-value">{{ $flask->material ?: '—' }} · {{ $flask->weight_kg !== null ? rtrim(rtrim(\App\Support\Formats::number((float) $flask->weight_kg, 2), '0'), '.').' kg' : '—' }}</div></div>
             <div><div class="detail-label">Location</div><div class="detail-value">{{ $flask->location ?: '—' }}</div></div>
             <div><div class="detail-label">Fixed partner</div><div class="detail-value">@if ($flask->partner)<a class="mono" href="{{ route('flasks.show', $flask->partner) }}">{{ $flask->partner->label() }}</a>@else — @endif</div></div>
-            <div><div class="detail-label">Uses</div><div class="detail-value mono">{{ number_format($flask->cycles) }}@if ($life?->service_life_quantity) <span class="muted small">of {{ number_format((float) $life->service_life_quantity) }} ({{ $lifePct }} %)</span>@endif</div>
-                <div class="muted small">{{ $flask->last_used_at ? 'last knocked out '.$flask->last_used_at->format('d M Y') : 'not used yet' }}</div></div>
+            <div><div class="detail-label">Uses</div><div class="detail-value mono">{{ \App\Support\Formats::number($flask->cycles) }}@if ($life?->service_life_quantity) <span class="muted small">of {{ \App\Support\Formats::number((float) $life->service_life_quantity) }} ({{ $lifePct }} %)</span>@endif</div>
+                <div class="muted small">{{ $flask->last_used_at ? 'last knocked out '.$flask->last_used_at->displayDate() : 'not used yet' }}</div></div>
             <div><div class="detail-label">Now</div><div class="detail-value">
                 @if ($flask->currentMould)In mould {{ $flask->currentMould->assembly_number }}@if ($flask->currentMould->mouldingRun) · <a href="{{ route('moulding-runs.show', $flask->currentMould->mouldingRun) }}">run {{ $flask->currentMould->mouldingRun->run_number }}</a>@endif
                 @elseif ($flask->currentRun)Held by <a href="{{ route('moulding-runs.show', $flask->currentRun) }}">run {{ $flask->currentRun->run_number }}</a>
@@ -97,7 +97,7 @@
             <thead><tr><th>Record</th><th>Activity</th><th>Status</th><th>Reported</th><th>Problem</th></tr></thead>
             <tbody>
                 @foreach ($maintenance as $m)
-                    <tr><td><a href="{{ route('tooling-maintenance.show', $m) }}" class="mono">{{ $m->record_number }}</a></td><td>{{ $m->activity_type }}</td><td>{{ $m->status }}</td><td>{{ $m->reported_at?->format('d M Y') }}</td><td class="small">{{ \Illuminate\Support\Str::limit($m->problem_description, 120) }}</td></tr>
+                    <tr><td><a href="{{ route('tooling-maintenance.show', $m) }}" class="mono">{{ $m->record_number }}</a></td><td>{{ $m->activity_type }}</td><td>{{ $m->status }}</td><td>{{ $m->reported_at?->displayDate() }}</td><td class="small">{{ \Illuminate\Support\Str::limit($m->problem_description, 120) }}</td></tr>
                 @endforeach
             </tbody>
         </table></div>

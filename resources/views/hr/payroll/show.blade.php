@@ -5,10 +5,10 @@
 @php
     $cls = ['DRAFT' => 'status-on-hold', 'CALCULATED' => 'status-in-progress', 'APPROVED' => 'status-released', 'PAID' => 'status-completed'];
     $sc = ['UNPAID' => 'status-released', 'HELD' => 'status-on-hold', 'PAID' => 'status-completed'];
-    $m = fn ($v) => number_format((float) $v);
+    $m = fn ($v) => \App\Support\Formats::number((float) $v);
     $editable = in_array($p->status, ['DRAFT', 'CALCULATED'], true);
 @endphp
-<div class="page-heading"><div><h1>{{ $p->month->format('F Y') }} <span class="status {{ $cls[$p->status] }}" style="font-size:12px;vertical-align:middle">{{ ucfirst(strtolower($p->status)) }}</span></h1><p>{{ $p->starts_on->format('d M') }} – {{ $p->ends_on->format('d M Y') }}@if ($p->calculated_at) · calculated {{ $p->calculated_at->diffForHumans() }}@endif @if ($p->approved_by_name) · approved by {{ $p->approved_by_name }}@endif</p></div>
+<div class="page-heading"><div><h1>{{ $p->month->format('F Y') }} <span class="status {{ $cls[$p->status] }}" style="font-size:12px;vertical-align:middle">{{ ucfirst(strtolower($p->status)) }}</span></h1><p>{{ $p->starts_on->displayShortDate() }} – {{ $p->ends_on->displayDate() }}@if ($p->calculated_at) · calculated {{ $p->calculated_at->diffForHumans() }}@endif @if ($p->approved_by_name) · approved by {{ $p->approved_by_name }}@endif</p></div>
 <div class="actions"><a class="btn" href="{{ route('hr.payroll.index') }}">All payrolls</a>
 @if ($p->payslips->isNotEmpty() || $slips->isNotEmpty())<a class="btn" href="{{ route('hr.payroll.register', $p) }}">Register (CSV)</a>@if (in_array($p->status, ['APPROVED','PAID'], true))<a class="btn" href="{{ route('hr.payroll.bank', $p) }}">Bank file (CSV)</a>@endif @endif</div></div>
 @if (session('error'))<div class="alert alert-error">{{ session('error') }}</div>@endif
@@ -41,8 +41,8 @@
 <div class="table-wrap"><table><thead><tr><th>Employee</th><th>Days</th><th>Gross</th><th>Tax</th><th>Other deductions</th><th>Net</th><th>Payment</th><th></th></tr></thead><tbody>
 @foreach ($slips as $s)
 <tr><td><a href="{{ route('hr.payroll.payslip', $s) }}"><strong>{{ $s->employee_code }}</strong> {{ $s->employee_name }}</a><div class="muted small">{{ $s->department_name }}@foreach ((array) $s->flags as $f) <span class="status status-on-hold" title="{{ $f }}">{{ str_starts_with($f, 'UNCLOSED') ? 'Days not closed' : ucfirst(strtolower(str_replace('_', ' ', $f))) }}</span>@endforeach</div></td>
-<td>{{ rtrim(rtrim(number_format($s->payable_days, 2), '0'), '.') }} / {{ rtrim(rtrim(number_format($s->period_days, 2), '0'), '.') }}</td><td>{{ $m($s->gross) }}</td><td>{{ $m($s->income_tax) }}</td><td>{{ $m($s->total_deductions - $s->income_tax) }}</td><td @if ($s->net < 0) style="color:var(--danger)" @endif><strong>{{ $m($s->net) }}</strong></td>
-<td><span class="status {{ $sc[$s->status] }}">{{ ucfirst(strtolower($s->status)) }}</span>@if ($s->hold_reason)<div class="muted small">{{ $s->hold_reason }}</div>@endif @if ($s->paid_on)<div class="muted small">{{ $s->paid_on->format('d M') }}</div>@endif</td>
+<td>{{ rtrim(rtrim(\App\Support\Formats::number($s->payable_days, 2), '0'), '.') }} / {{ rtrim(rtrim(\App\Support\Formats::number($s->period_days, 2), '0'), '.') }}</td><td>{{ $m($s->gross) }}</td><td>{{ $m($s->income_tax) }}</td><td>{{ $m($s->total_deductions - $s->income_tax) }}</td><td @if ($s->net < 0) style="color:var(--danger)" @endif><strong>{{ $m($s->net) }}</strong></td>
+<td><span class="status {{ $sc[$s->status] }}">{{ ucfirst(strtolower($s->status)) }}</span>@if ($s->hold_reason)<div class="muted small">{{ $s->hold_reason }}</div>@endif @if ($s->paid_on)<div class="muted small">{{ $s->paid_on->displayShortDate() }}</div>@endif</td>
 <td style="white-space:nowrap">@if ($s->status === 'HELD')<form method="POST" action="{{ route('hr.payroll.release', $s) }}">@csrf<button class="btn btn-small">Release</button></form>
 @elseif ($s->status === 'UNPAID' && in_array($p->status, ['CALCULATED', 'APPROVED'], true))<details class="row-edit"><summary class="muted small">Hold…</summary><form method="POST" action="{{ route('hr.payroll.hold', $s) }}" style="display:flex;gap:4px;margin-top:6px">@csrf<input name="hold_reason" placeholder="Why hold?" required style="min-height:28px;padding:2px 6px;max-width:150px"><button class="btn btn-small">Hold</button></form></details>@endif</td></tr>
 @endforeach</tbody></table></div>@endif</div>

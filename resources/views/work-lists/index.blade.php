@@ -9,6 +9,6 @@
 <label>Shift<select name="shift">@foreach($shifts as $s)<option>{{ $s }}</option>@endforeach</select></label><label>Notes<input name="notes"></label>
 <div><button class="btn btn-primary">Create list</button></div></form></div></div>
 <div class="panel"><div class="table-wrap"><table><thead><tr><th>List</th><th>Date</th><th>Shift</th><th>Items</th><th>Status</th><th>Issued by</th></tr></thead><tbody>
-@forelse($lists as $l)<tr><td><a href="{{ route('work-lists.show', $l) }}">{{ $l->list_number }}</a></td><td>{{ $l->list_date->format('d M Y') }}</td><td>{{ $l->shift }}</td><td>{{ $l->items_count }}</td><td><span class="status">{{ $l->status }}</span></td><td>{{ $l->issued_by }}</td></tr>
+@forelse($lists as $l)<tr><td><a href="{{ route('work-lists.show', $l) }}">{{ $l->list_number }}</a></td><td>{{ $l->list_date->displayDate() }}</td><td>{{ $l->shift }}</td><td>{{ $l->items_count }}</td><td><span class="status">{{ $l->status }}</span></td><td>{{ $l->issued_by }}</td></tr>
 @empty<tr><td colspan="6" class="muted">No lists yet.</td></tr>@endforelse</tbody></table></div><div class="panel-body">{{ $lists->links() }}</div></div>
 @endsection

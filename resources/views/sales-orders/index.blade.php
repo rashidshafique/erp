@@ -37,8 +37,8 @@
                     <td><a href="{{ route('sales-orders.show', $o) }}"><strong>{{ $o->order_number }}</strong></a></td>
                     <td>{{ $o->customer?->name }}</td>
                     <td>{{ $o->customer_reference ?: '—' }}</td>
-                    <td>{{ $o->order_date?->format('d M Y') }}</td>
-                    <td>{{ $o->requested_delivery_date?->format('d M Y') ?? '—' }}</td>
+                    <td>{{ $o->order_date?->displayDate() }}</td>
+                    <td>{{ $o->requested_delivery_date?->displayDate() ?? '—' }}</td>
                     <td>{{ $o->lines_count }}</td>
                     <td><span class="status">{{ str_replace('_', ' ', $o->status) }}</span></td>
                 </tr>

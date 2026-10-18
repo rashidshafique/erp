@@ -42,7 +42,7 @@
         <div class="metric-label">Poured weight</div>
         <div class="metric-value" style="font-size:23px">
             {{ $pour->total_poured_weight_kg !== null
-                ? number_format((float) $pour->total_poured_weight_kg, 1) . ' kg'
+                ? \App\Support\Formats::number((float) $pour->total_poured_weight_kg, 1) . ' kg'
                 : '—' }}
         </div>
         <div class="metric-note">Recorded total</div>
@@ -51,7 +51,7 @@
         <div class="metric-label">Pour temperature</div>
         <div class="metric-value" style="font-size:23px">
             {{ $pour->pour_temperature_c !== null
-                ? number_format((float) $pour->pour_temperature_c, 0) . ' °C'
+                ? \App\Support\Formats::number((float) $pour->pour_temperature_c, 0) . ' °C'
                 : '—' }}
         </div>
         <div class="metric-note">Recorded temperature</div>
@@ -78,15 +78,15 @@
             </div>
             <div>
                 <div class="muted small">Planned time</div>
-                <strong>{{ $pour->planned_at?->format('d M Y, H:i') ?? '—' }}</strong>
+                <strong>{{ $pour->planned_at?->displayDateTime() ?? '—' }}</strong>
             </div>
             <div>
                 <div class="muted small">Started</div>
-                <strong>{{ $pour->started_at?->format('d M Y, H:i') ?? '—' }}</strong>
+                <strong>{{ $pour->started_at?->displayDateTime() ?? '—' }}</strong>
             </div>
             <div>
                 <div class="muted small">Completed</div>
-                <strong>{{ $pour->completed_at?->format('d M Y, H:i') ?? '—' }}</strong>
+                <strong>{{ $pour->completed_at?->displayDateTime() ?? '—' }}</strong>
             </div>
             <div>
                 <div class="muted small">Operator</div>
@@ -146,10 +146,10 @@
                                 </div>
                             @endif
                         </td>
-                        <td>{{ number_format((int) $assignment->castings_poured_qty) }}</td>
+                        <td>{{ \App\Support\Formats::number((int) $assignment->castings_poured_qty) }}</td>
                         <td>
                             {{ $assignment->poured_weight_kg !== null
-                                ? number_format((float) $assignment->poured_weight_kg, 3) . ' kg'
+                                ? \App\Support\Formats::number((float) $assignment->poured_weight_kg, 3) . ' kg'
                                 : '—' }}
                         </td>
                         <td>@foreach ($assignment->castingLots as $lot)<a href="{{ route('lots.show', $lot) }}">{{ $lot->lot_number }}</a><div class="muted small">{{ $lot->product?->code }} × {{ $lot->quantity_poured }}</div>@endforeach @if ($assignment->castingLots->isEmpty())—@endif</td>

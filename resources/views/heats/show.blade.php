@@ -44,7 +44,7 @@
             <div class="muted small">Target metal</div>
             <strong>
                 {{ $heat->target_metal_weight_kg !== null
-                    ? number_format((float) $heat->target_metal_weight_kg, 1).' kg'
+                    ? \App\Support\Formats::number((float) $heat->target_metal_weight_kg, 1).' kg'
                     : '—' }}
             </strong>
         </div>
@@ -52,7 +52,7 @@
             <div class="muted small">Rated furnace power</div>
             <strong>
                 {{ $heat->furnace?->rated_power_kw !== null
-                    ? number_format((float) $heat->furnace->rated_power_kw, 1).' kW'
+                    ? \App\Support\Formats::number((float) $heat->furnace->rated_power_kw, 1).' kW'
                     : '—' }}
             </strong>
         </div>
@@ -60,7 +60,7 @@
             <div class="muted small">Furnace operating maximum</div>
             <strong>
                 {{ $heat->furnace?->max_operating_power_kw !== null
-                    ? number_format((float) $heat->furnace->max_operating_power_kw, 1).' kW'
+                    ? \App\Support\Formats::number((float) $heat->furnace->max_operating_power_kw, 1).' kW'
                     : 'Not set' }}
             </strong>
         </div>
@@ -68,7 +68,7 @@
             <div class="muted small">Heat operating limit</div>
             <strong>
                 {{ $heat->operating_power_limit_kw !== null
-                    ? number_format((float) $heat->operating_power_limit_kw, 1).' kW'
+                    ? \App\Support\Formats::number((float) $heat->operating_power_limit_kw, 1).' kW'
                     : 'Not set' }}
             </strong>
         </div>
@@ -108,10 +108,10 @@
                             <tr>
                                 <td>{{ $item->material?->code }} — {{ $item->material?->name }}</td>
                                 <td>{{ $item->component_role }}</td>
-                                <td>{{ $item->target_percent !== null ? number_format((float) $item->target_percent, 4).'%' : '—' }}</td>
+                                <td>{{ $item->target_percent !== null ? \App\Support\Formats::number((float) $item->target_percent, 4).'%' : '—' }}</td>
                                 <td>
                                     {{ $item->planned_calculated_qty_kg !== null
-                                        ? number_format((float) $item->planned_calculated_qty_kg, 3)
+                                        ? \App\Support\Formats::number((float) $item->planned_calculated_qty_kg, 3)
                                         : 'Basis required' }}
                                 </td>
                             </tr>
@@ -192,10 +192,10 @@
                                         <span class="muted small">(No comparable plan)</span>
                                     @endif
                                 </td>
-                                <td>{{ $row['planned'] !== null ? number_format($row['planned'], 3) : '—' }}</td>
-                                <td>{{ number_format($row['actual'], 3) }}</td>
-                                <td>{{ $variance !== null ? number_format($variance, 3) : '—' }}</td>
-                                <td>{{ $variancePercent !== null ? number_format($variancePercent, 2).'%' : '—' }}</td>
+                                <td>{{ $row['planned'] !== null ? \App\Support\Formats::number($row['planned'], 3) : '—' }}</td>
+                                <td>{{ \App\Support\Formats::number($row['actual'], 3) }}</td>
+                                <td>{{ $variance !== null ? \App\Support\Formats::number($variance, 3) : '—' }}</td>
+                                <td>{{ $variancePercent !== null ? \App\Support\Formats::number($variancePercent, 2).'%' : '—' }}</td>
                             </tr>
                         @empty
                             <tr><td colspan="5" class="muted">No recipe or actual charge entries available for comparison.</td></tr>
@@ -218,17 +218,17 @@
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:18px;margin-bottom:20px">
             <div>
                 <div class="muted small">Actual charge weight</div>
-                <strong>{{ number_format($actualChargeQty, 3) }} kg</strong>
+                <strong>{{ \App\Support\Formats::number($actualChargeQty, 3) }} kg</strong>
             </div>
             <div>
                 <div class="muted small">Actual charge material cost</div>
-                <strong>PKR {{ number_format($actualChargeCost, 2) }}</strong>
+                <strong>PKR {{ \App\Support\Formats::number($actualChargeCost, 2) }}</strong>
             </div>
             <div>
     <div class="muted small">Average charge material cost</div>
     <strong>
         {{ $actualChargeCostPerKg !== null
-            ? 'PKR '.number_format($actualChargeCostPerKg, 2).'/kg'
+            ? 'PKR '.\App\Support\Formats::number($actualChargeCostPerKg, 2).'/kg'
             : '—' }}
     </strong>
 </div>
@@ -277,7 +277,7 @@
                                 <option value="{{ $lot->id }}"
                                         data-material-id="{{ $lot->material_id }}"
                                         @selected(old('material_lot_id') === $lot->id)>
-                                    {{ $lot->lot_number }} — {{ $lot->material?->name }} (PKR {{ number_format((float) $lot->unit_cost, 4) }}/kg)
+                                    {{ $lot->lot_number }} — {{ $lot->material?->name }} (PKR {{ \App\Support\Formats::number((float) $lot->unit_cost, 4) }}/kg)
                                 </option>
                             @endforeach
                         </select>
@@ -355,10 +355,10 @@
                         <td>{{ str_replace('_', ' ', $entry->consumption_type) }}</td>
                         <td>{{ $entry->material?->code }} — {{ $entry->material?->name }}</td>
                         <td>{{ $entry->materialLot?->lot_number ?? $entry->source_reference ?? '—' }}</td>
-                        <td>{{ number_format((float) $entry->actual_qty_kg, 3) }}</td>
-                        <td>{{ $entryUnitCost !== null ? number_format($entryUnitCost, 4) : '—' }}</td>
-                        <td>{{ number_format((float) $entry->actual_total_cost, 2) }}</td>
-                        <td>{{ $entry->consumed_at?->format('d M Y, H:i') ?? '—' }}</td>
+                        <td>{{ \App\Support\Formats::number((float) $entry->actual_qty_kg, 3) }}</td>
+                        <td>{{ $entryUnitCost !== null ? \App\Support\Formats::number($entryUnitCost, 4) : '—' }}</td>
+                        <td>{{ \App\Support\Formats::number((float) $entry->actual_total_cost, 2) }}</td>
+                        <td>{{ $entry->consumed_at?->displayDateTime() ?? '—' }}</td>
                         <td>{{ $entry->recorded_by }}</td>
                     </tr>
                 @empty
@@ -381,7 +381,7 @@
                 </p>
                 <p>
                     <strong>Posted charge cost:</strong>
-                    PKR {{ number_format($actualChargeCost, 2) }}
+                    PKR {{ \App\Support\Formats::number($actualChargeCost, 2) }}
                 </p>
             @elseif($heat->materialConsumptions->isEmpty())
                 <p class="muted">
@@ -607,15 +607,15 @@ document.addEventListener('DOMContentLoaded', function () {
                     @forelse($heat->powerReadings as $reading)
                         <tr>
                             <td>{{ $reading->reading_number }}</td>
-                            <td>{{ $reading->recorded_at?->format('d M Y, H:i') }}</td>
+                            <td>{{ $reading->recorded_at?->displayDateTime() }}</td>
                             <td>
                                 {{ $reading->actual_power_kw !== null
-                                    ? number_format((float) $reading->actual_power_kw, 3).' kW'
+                                    ? \App\Support\Formats::number((float) $reading->actual_power_kw, 3).' kW'
                                     : '—' }}
                             </td>
                             <td>
                                 {{ $reading->cumulative_energy_kwh !== null
-                                    ? number_format((float) $reading->cumulative_energy_kwh, 3).' kWh'
+                                    ? \App\Support\Formats::number((float) $reading->cumulative_energy_kwh, 3).' kWh'
                                     : '—' }}
                             </td>
                             <td>{{ $reading->recorded_by }}</td>
@@ -652,7 +652,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     @forelse($heat->processReadings as $reading)
                         <tr>
                             <td>{{ $reading->reading_number }}</td>
-                            <td>{{ $reading->recorded_at?->format('d M Y, H:i') }}</td>
+                            <td>{{ $reading->recorded_at?->displayDateTime() }}</td>
                             <td>{{ $reading->parameter_code }}</td>
                             <td>{{ $reading->numeric_value }} {{ $reading->unit }}</td>
                             <td>{{ $reading->recorded_by }}</td>

@@ -122,7 +122,7 @@ class DashboardData
         }
         $late = ProductionOrder::open()->whereDate('required_date', '<', today())->orderBy('required_date')->limit(2)->with('product')->get();
         foreach ($late as $o) {
-            $items[] = ['tag' => 'Overdue', 'tone' => 'amber', 'at' => $o->required_date, 'ref' => $o->production_order_number, 'text' => ($o->product?->name ?? 'Order').' was due '.$o->required_date->format('d M').' and is still open.', 'actions' => [['Open orders', route('production-orders.index'), false]]];
+            $items[] = ['tag' => 'Overdue', 'tone' => 'amber', 'at' => $o->required_date, 'ref' => $o->production_order_number, 'text' => ($o->product?->name ?? 'Order').' was due '.$o->required_date->displayShortDate().' and is still open.', 'actions' => [['Open orders', route('production-orders.index'), false]]];
         }
         $dueDays = (int) CalibrationRules::get('due_soon_days');
         $dueBy = today()->addDays($dueDays);
@@ -153,11 +153,11 @@ class DashboardData
         foreach ($heats as $h) {
             $busy[$h->furnace_id] = true;
             $cards[] = ['kind' => 'Furnace', 'name' => $h->furnace?->name ?? $h->furnace?->code ?? 'Furnace', 'sub' => 'Heat '.$h->heat_number, 'state' => 'Melting', 'tone' => 'amber',
-                'progress' => null, 'meta' => ($h->target_temperature_c ? 'Target '.number_format((float) $h->target_temperature_c).' °C' : '').($h->target_metal_weight_kg ? ' · '.number_format($h->target_metal_weight_kg / 1000, 1).' t' : ''), 'url' => route('heats.show', $h)];
+                'progress' => null, 'meta' => ($h->target_temperature_c ? 'Target '.\App\Support\Formats::number((float) $h->target_temperature_c).' °C' : '').($h->target_metal_weight_kg ? ' · '.\App\Support\Formats::number($h->target_metal_weight_kg / 1000, 1).' t' : ''), 'url' => route('heats.show', $h)];
         }
         foreach (Furnace::where('status', 'ACTIVE')->orderBy('code')->limit(6)->get() as $f) {
             if (! isset($busy[$f->id]) && count($cards) < 6) {
-                $cards[] = ['kind' => 'Furnace', 'name' => $f->name ?? $f->code, 'sub' => $f->furnace_type ?? '', 'state' => 'Idle', 'tone' => 'grey', 'progress' => null, 'meta' => $f->rated_capacity_kg ? number_format($f->rated_capacity_kg / 1000, 1).' t rated' : '', 'url' => route('furnaces.index')];
+                $cards[] = ['kind' => 'Furnace', 'name' => $f->name ?? $f->code, 'sub' => $f->furnace_type ?? '', 'state' => 'Idle', 'tone' => 'grey', 'progress' => null, 'meta' => $f->rated_capacity_kg ? \App\Support\Formats::number($f->rated_capacity_kg / 1000, 1).' t rated' : '', 'url' => route('furnaces.index')];
             }
         }
 
@@ -211,7 +211,7 @@ class DashboardData
             $rows[] = $h
                 ? ['kind' => 'Furnace', 'code' => $f->code, 'state' => 'Melting', 'tone' => 'amber', 'job' => 'Heat '.$h->heat_number, 'progress' => null,
                     'meta' => $h->actual_start_at ? $h->actual_start_at->diffForHumans(null, true, true) : '', 'url' => route('heats.show', $h)]
-                : ['kind' => 'Furnace', 'code' => $f->code, 'state' => 'Idle', 'tone' => 'grey', 'job' => $n ? 'Next: heat '.$n->heat_number.' at '.$n->planned_start_at->format('H:i') : '—', 'progress' => null,
+                : ['kind' => 'Furnace', 'code' => $f->code, 'state' => 'Idle', 'tone' => 'grey', 'job' => $n ? 'Next: heat '.$n->heat_number.' at '.$n->planned_start_at->displayTime() : '—', 'progress' => null,
                     'meta' => '', 'url' => $n ? route('heats.show', $n) : route('furnaces.index')];
         }
         $runs = MouldingRun::whereIn('status', ['IN_PROGRESS', 'STARTED', 'RUNNING'])->whereNotNull('moulding_station_id')
@@ -281,7 +281,7 @@ class DashboardData
         $hours = [];
         $step = $from->diffInHours($to) > 12 ? 3 : 2;
         for ($t = $from->copy(); $t->lte($to); $t->addHours($step)) {
-            $hours[] = ['label' => $t->format('H:i'), 'at' => $at($t)];
+            $hours[] = ['label' => $t->displayTime(), 'at' => $at($t)];
         }
 
         return ['from' => $from, 'to' => $to, 'now' => now()->between($from, $to) ? $at(now()) : null, 'hours' => $hours, 'lanes' => $lanes];

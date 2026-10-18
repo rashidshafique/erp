@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('title', 'Thermal test')
-@section('breadcrumb', 'Thermal tests / '.($test->sample_reference ?: $test->taken_at->format('d M H:i')))
+@section('breadcrumb', 'Thermal tests / '.($test->sample_reference ?: $test->taken_at->displayShortDateTime()))
 
 @php
     $pts = $test->curve ?? [];
@@ -14,7 +14,7 @@
 
 @section('content')
 <div class="page-heading">
-    <div><h1>Thermal test — heat {{ $test->heat?->heat_number }}</h1><p>{{ $test->ironGrade?->code ?? 'No grade' }} · {{ $test->taken_at->format('d M Y H:i') }} · {{ $test->cup_type === 'TELLURIUM' ? 'white (tellurium)' : 'grey (stable)' }} cup · {{ str_replace('_', ' ', $test->stage) }}@if ($test->gauge) · measured with <a href="{{ route('gauges.show', $test->gauge) }}">{{ $test->gauge->code }}</a>@endif</p></div>
+    <div><h1>Thermal test — heat {{ $test->heat?->heat_number }}</h1><p>{{ $test->ironGrade?->code ?? 'No grade' }} · {{ $test->taken_at->displayDateTime() }} · {{ $test->cup_type === 'TELLURIUM' ? 'white (tellurium)' : 'grey (stable)' }} cup · {{ str_replace('_', ' ', $test->stage) }}@if ($test->gauge) · measured with <a href="{{ route('gauges.show', $test->gauge) }}">{{ $test->gauge->code }}</a>@endif</p></div>
     <div class="actions"><a class="btn" href="{{ route('thermal.index') }}">All tests</a><a class="btn" href="{{ route('thermal.create', ['heat_id' => $test->heat_id]) }}">New test on this heat</a></div>
 </div>
 @if (session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif

@@ -32,7 +32,7 @@ class AdvanceService
         if ($a->status !== 'PENDING') {
             throw new RuntimeException('This request has already been decided.');
         }
-        if (! app(ApprovalGate::class)->passes('hr.approve_advance', 'EmployeeAdvance', $a->id, $a->code.' '.$a->employee->full_name.' '.number_format($a->amount), $message)) {
+        if (! app(ApprovalGate::class)->passes('hr.approve_advance', 'EmployeeAdvance', $a->id, $a->code.' '.$a->employee->full_name.' '.\App\Support\Formats::number($a->amount), $message)) {
             return false;
         }
         DB::transaction(function () use ($a) {
@@ -70,7 +70,7 @@ class AdvanceService
         }
         $bal = $a->balance();
         if ($kind === 'WAIVER' && $amount > $bal) {
-            throw new RuntimeException('You cannot write off more than the '.number_format($bal).' still owed.');
+            throw new RuntimeException('You cannot write off more than the '.\App\Support\Formats::number($bal).' still owed.');
         }
         $signed = $kind === 'WAIVER' ? -$amount : $amount;
         DB::transaction(function () use ($a, $kind, $signed, $note) {

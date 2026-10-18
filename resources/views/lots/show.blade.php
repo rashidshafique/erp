@@ -22,9 +22,9 @@
 
 <div class="tab-marker" data-tab-start="Stages"></div>
 <div class="panel"><div class="panel-header"><h2>Shop-floor stages</h2></div>
-@if($cooling)<div class="panel-body small">Cooling before shakeout: minimum {{ $cooling['minimum'] }} min from pour completion — @if($cooling['wait'] > 0)<strong>wait until {{ $cooling['ready_at']->format('d M H:i') }}</strong> ({{ $cooling['wait'] }} min left)@else <strong>cooling time met</strong>@endif</div>@endif
+@if($cooling)<div class="panel-body small">Cooling before shakeout: minimum {{ $cooling['minimum'] }} min from pour completion — @if($cooling['wait'] > 0)<strong>wait until {{ $cooling['ready_at']->displayShortDateTime() }}</strong> ({{ $cooling['wait'] }} min left)@else <strong>cooling time met</strong>@endif</div>@endif
 <div class="table-wrap"><table><thead><tr><th>Stage</th><th>In</th><th>Accepted</th><th>Rejected</th><th>Reason</th><th>Operator</th><th>When</th></tr></thead><tbody>
-@forelse($lot->stageEvents->sortBy('created_at') as $e)<tr><td>{{ $e->stage?->name }}</td><td>{{ $e->quantity_in }}</td><td>{{ $e->quantity_accepted }}</td><td>{{ $e->quantity_rejected }}</td><td>{{ $e->rejection_reason }}</td><td>{{ $e->operator_name }}</td><td>{{ $e->created_at?->format('d M H:i') }}</td></tr>
+@forelse($lot->stageEvents->sortBy('created_at') as $e)<tr><td>{{ $e->stage?->name }}</td><td>{{ $e->quantity_in }}</td><td>{{ $e->quantity_accepted }}</td><td>{{ $e->quantity_rejected }}</td><td>{{ $e->rejection_reason }}</td><td>{{ $e->operator_name }}</td><td>{{ $e->created_at?->displayShortDateTime() }}</td></tr>
 @empty<tr><td colspan="7" class="muted">No stage recorded yet.</td></tr>@endforelse</tbody></table></div>
 @if(in_array($lot->status, ['IN_PRODUCTION','ON_HOLD']))
 <div class="panel-body"><form method="POST" action="{{ route('lots.stages.store', $lot) }}" class="form-grid">@csrf

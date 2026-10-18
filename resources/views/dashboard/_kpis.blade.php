@@ -1,4 +1,4 @@
-@php $k = $d['kpis']; $fmt = fn ($n, $dp = 0) => number_format((float) $n, $dp); @endphp
+@php $k = $d['kpis']; $fmt = fn ($n, $dp = 0) => \App\Support\Formats::number((float) $n, $dp); @endphp
 <div class="kpis">
     <a class="kpi" href="{{ route('enquiries.index') }}">
         <div class="top"><span class="cap">Open enquiries</span><span class="pill blue">Active</span></div>

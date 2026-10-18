@@ -70,8 +70,8 @@ class SettlementService
             if (! $r) {
                 continue;
             }
-            $label = $segStart->format('M Y').' ('.$segStart->format('d').'–'.$segEnd->format('d M').')';
-            $add('DUE', 'SALARY', 'Salary '.$label, (float) $r['total_earnings'], rtrim(rtrim(number_format($r['payable_days'], 2), '0'), '.').' payable days');
+            $label = $segStart->format('M Y').' ('.$segStart->format('d').'–'.$segEnd->displayShortDate().')';
+            $add('DUE', 'SALARY', 'Salary '.$label, (float) $r['total_earnings'], rtrim(rtrim(\App\Support\Formats::number($r['payable_days'], 2), '0'), '.').' payable days');
             foreach ($r['lines'] as $l) {
                 if ($l['kind'] === 'DEDUCTION') {
                     $add('RECOVERY', $l['code'], $l['name'].' — '.$segStart->format('M Y'), (float) $l['amount']);
@@ -86,7 +86,7 @@ class SettlementService
         foreach (LeaveType::whereIn('code', $R['encash_leave_codes'] ?? [])->get() as $t) {
             $bal = $this->leave->balance($e, $t);
             if ($bal > 0) {
-                $add('DUE', 'LEAVE', 'Leave encashment — '.$t->name, $rd($bal * $daily), rtrim(rtrim(number_format($bal, 2), '0'), '.').' days at basic ÷ 30');
+                $add('DUE', 'LEAVE', 'Leave encashment — '.$t->name, $rd($bal * $daily), rtrim(rtrim(\App\Support\Formats::number($bal, 2), '0'), '.').' days at basic ÷ 30');
             }
         }
 

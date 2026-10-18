@@ -2,7 +2,7 @@
 @section('title', 'Statutory reports')
 @section('breadcrumb', 'Statutory reports')
 @section('content')
-@php $m = fn ($v) => number_format((float) $v); @endphp
+@php $m = fn ($v) => \App\Support\Formats::number((float) $v); @endphp
 <div class="page-heading"><div><h1>Statutory reports</h1><p>Income tax withheld, EOBI and social security, from approved payrolls.</p></div><div class="actions"><a class="btn" href="{{ route('hr.payroll.index') }}">Payroll</a><a class="btn" href="{{ request()->fullUrlWithQuery(['csv' => 1]) }}">Download CSV</a></div></div>
 @include('hr.payroll._tabs_note')
 <div class="panel"><div class="panel-body"><form method="GET" class="filters">

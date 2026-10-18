@@ -24,7 +24,7 @@
                 <tbody>
                 @foreach ($samples as $s)
                     <tr>
-                        <td>{{ $s['at']->format('d M H:i') }}@if ($heat->first_tap_at)<div class="muted small">{{ (int) $heat->first_tap_at->diffInMinutes($s['at'], false) }} min from first tap</div>@endif</td>
+                        <td>{{ $s['at']->displayShortDateTime() }}@if ($heat->first_tap_at)<div class="muted small">{{ (int) $heat->first_tap_at->diffInMinutes($s['at'], false) }} min from first tap</div>@endif</td>
                         <td>{{ $s['kind'] === 'THERMAL' ? 'Thermal analysis' : 'Chemistry' }}</td>
                         <td>{{ $s['reference'] ?: '—' }}</td>
                         <td><span class="status {{ $badge[$s['result']][0] }}" @if ($s['detail']) title="{{ $s['detail'] }}" @endif>{{ $badge[$s['result']][1] }}</span></td>
@@ -37,7 +37,7 @@
         @php $flagged = $heat->pours()->whereNotNull('containment_note')->orderBy('started_at')->get(); @endphp
         @if ($flagged->isNotEmpty())
             <div class="alert alert-error" style="margin-top:14px"><strong>Containment</strong>
-                @foreach ($flagged as $p)<div><a href="{{ route('pours.show', $p) }}">{{ $p->pour_number }}</a> ({{ $p->started_at->format('H:i') }}): {{ $p->containment_note }}</div>@endforeach
+                @foreach ($flagged as $p)<div><a href="{{ route('pours.show', $p) }}">{{ $p->pour_number }}</a> ({{ $p->started_at->displayTime() }}): {{ $p->containment_note }}</div>@endforeach
             </div>
         @endif
 

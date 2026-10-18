@@ -28,10 +28,10 @@ class HeatBalance
 
         $warnings = [];
         if ($tapped !== null && $poured > $tapped + 0.5) {
-            $warnings[] = 'More metal was poured ('.number_format($poured, 1).' kg) than was tapped ('.number_format($tapped, 1).' kg). Check the weights on the pours.';
+            $warnings[] = 'More metal was poured ('.\App\Support\Formats::number($poured, 1).' kg) than was tapped ('.\App\Support\Formats::number($tapped, 1).' kg). Check the weights on the pours.';
         }
         if ($charged > 0 && $poured > $charged + 0.5) {
-            $warnings[] = 'More metal was poured ('.number_format($poured, 1).' kg) than was charged ('.number_format($charged, 1).' kg).';
+            $warnings[] = 'More metal was poured ('.\App\Support\Formats::number($poured, 1).' kg) than was charged ('.\App\Support\Formats::number($charged, 1).' kg).';
         }
 
         return [

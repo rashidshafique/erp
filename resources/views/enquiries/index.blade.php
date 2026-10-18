@@ -29,7 +29,7 @@
                     <td>{{ $r->title }}@if ($r->customer_reference)<div class="muted small">Their ref {{ $r->customer_reference }}</div>@endif</td>
                     <td class="small">{{ \App\Models\Enquiry::SOURCES[$r->source_type] ?? $r->source_type }}</td>
                     <td>{{ $r->items_count }}</td>
-                    <td class="small">{{ $r->due_on?->format('d M Y') ?? '—' }}</td>
+                    <td class="small">{{ $r->due_on?->displayDate() ?? '—' }}</td>
                     <td><span class="status {{ $cls[$r->status] ?? '' }}">{{ $r->status }}</span></td>
                     <td><a href="{{ route('enquiries.show', $r) }}">Open →</a></td>
                 </tr>

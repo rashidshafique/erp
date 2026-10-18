@@ -6,7 +6,7 @@
 <div class="page-heading"><div><h1>Importing {{ strtolower($def['label']) }}…</h1><p>Large files are saved in steps. Keep this page open; it carries on by itself.</p></div></div>
 <div class="panel"><div class="panel-body">
     <div style="background:#e6ebe8;border-radius:999px;height:14px;overflow:hidden"><div style="width:{{ $pct }}%;height:100%;background:var(--accent)"></div></div>
-    <p><strong>{{ number_format($done) }}</strong> of {{ number_format($total) }} rows handled · {{ $b->counts['CREATE'] }} added · {{ $b->counts['UPDATE'] }} updated · {{ $b->counts['ERROR'] }} errors</p>
+    <p><strong>{{ \App\Support\Formats::number($done) }}</strong> of {{ \App\Support\Formats::number($total) }} rows handled · {{ $b->counts['CREATE'] }} added · {{ $b->counts['UPDATE'] }} updated · {{ $b->counts['ERROR'] }} errors</p>
     <form method="POST" action="{{ route('imports.commit', $b) }}" id="goOn">@csrf<button class="btn btn-primary" type="submit">Continue</button></form>
     <p class="muted small">If this page was closed or the connection dropped, open it again from Import data → Recent imports and press Continue. Rows already saved are not repeated.</p>
 </div></div>

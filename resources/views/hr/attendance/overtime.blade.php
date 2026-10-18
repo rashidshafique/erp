@@ -15,7 +15,7 @@
 @foreach ($rows as $r)
 <tr><td><input type="checkbox" name="ids[]" value="{{ $r->id }}"></td><td>{{ $r->work_date->format('D d M') }}</td>
 <td><a href="{{ route('hr.employees.show', $r->employee) }}"><strong>{{ $r->employee->code }}</strong></a> {{ $r->employee->full_name }}</td>
-<td class="small">{{ $r->check_in?->format('H:i') }} – {{ $r->check_out?->format('H:i') }} @if ($r->hasFlag('WORKED_OFF'))<span class="status status-in-progress">Day off</span>@endif</td>
+<td class="small">{{ $r->check_in?->displayTime() }} – {{ $r->check_out?->displayTime() }} @if ($r->hasFlag('WORKED_OFF'))<span class="status status-in-progress">Day off</span>@endif</td>
 <td>{{ \App\Models\AttendanceRecord::hm($r->overtime_minutes) }}</td>
 <td><input type="number" name="minutes[{{ $r->id }}]" value="{{ $r->overtime_status === 'APPROVED' ? $r->overtime_approved_minutes : $r->overtime_minutes }}" min="0" max="{{ $r->overtime_minutes }}" style="width:90px;min-height:30px;padding:3px 6px"></td>
 <td><span class="status {{ ['PENDING' => 'status-on-hold', 'APPROVED' => 'status-completed', 'REJECTED' => 'status-cancelled'][$r->overtime_status] ?? '' }}">{{ ucfirst(strtolower($r->overtime_status)) }}</span></td></tr>

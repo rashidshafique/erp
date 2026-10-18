@@ -233,7 +233,7 @@ class QuotationService
                 'order_number' => SalesOrder::nextNumber(), 'customer_id' => $enquiry->customer_id, 'order_date' => now()->toDateString(),
                 'requested_delivery_date' => $q->delivery_weeks ? now()->addWeeks($q->delivery_weeks)->toDateString() : null,
                 'customer_reference' => $enquiry->customer_reference ?: $enquiry->code,
-                'notes' => trim("From quotation {$q->code} ({$enquiry->code}).".($q->tooling_mode === 'UPFRONT' ? ' Tooling charge agreed: '.number_format($q->upfrontToolingPrice(), 2)." {$q->currency}, invoiced separately." : '')), 'status' => 'DRAFT',
+                'notes' => trim("From quotation {$q->code} ({$enquiry->code}).".($q->tooling_mode === 'UPFRONT' ? ' Tooling charge agreed: '.\App\Support\Formats::number($q->upfrontToolingPrice(), 2)." {$q->currency}, invoiced separately." : '')), 'status' => 'DRAFT',
             ]);
             foreach ($q->lines as $i => $line) {
                 $item = $line->item;

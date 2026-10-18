@@ -64,7 +64,7 @@
             <div><div class="label">Activity</div><div class="value">{{ str_replace('_', ' ', $record->activity_type) }}</div></div>
             <div><div class="label">Priority</div><div class="value">{{ $record->priority }}</div></div>
             <div><div class="label">Status</div><div class="value">{{ $record->status }}</div></div>
-            <div><div class="label">Reported at</div><div class="value">{{ $record->reported_at?->format('d M Y H:i') ?? '—' }}</div></div>
+            <div><div class="label">Reported at</div><div class="value">{{ $record->reported_at?->displayDateTime() ?? '—' }}</div></div>
             <div><div class="label">Reported by</div><div class="value">{{ $record->reported_by ?? '—' }}</div></div>
             <div><div class="label">Performed by</div><div class="value">{{ $record->performed_by ?? '—' }}</div></div>
         </div>
@@ -89,14 +89,14 @@
     <section class="panel">
         <h2>Costs, downtime and follow-up</h2>
         <div class="grid">
-            <div><div class="label">Labour hours</div><div class="value">{{ number_format((float) $record->labour_hours, 2) }}</div></div>
-            <div><div class="label">Downtime hours</div><div class="value">{{ number_format((float) $record->downtime_hours, 2) }}</div></div>
-            <div><div class="label">Parts cost (PKR)</div><div class="value">{{ number_format((float) $record->parts_cost, 2) }}</div></div>
-            <div><div class="label">Other cost (PKR)</div><div class="value">{{ number_format((float) $record->other_cost, 2) }}</div></div>
-            <div><div class="label">Total cost (PKR)</div><div class="value">{{ number_format($totalCost, 2) }}</div></div>
-            <div><div class="label">Next inspection due</div><div class="value">{{ $record->next_inspection_due_on?->format('d M Y') ?? '—' }}</div></div>
-            <div><div class="label">Started at</div><div class="value">{{ $record->started_at?->format('d M Y H:i') ?? '—' }}</div></div>
-            <div><div class="label">Completed at</div><div class="value">{{ $record->completed_at?->format('d M Y H:i') ?? '—' }}</div></div>
+            <div><div class="label">Labour hours</div><div class="value">{{ \App\Support\Formats::number((float) $record->labour_hours, 2) }}</div></div>
+            <div><div class="label">Downtime hours</div><div class="value">{{ \App\Support\Formats::number((float) $record->downtime_hours, 2) }}</div></div>
+            <div><div class="label">Parts cost (PKR)</div><div class="value">{{ \App\Support\Formats::number((float) $record->parts_cost, 2) }}</div></div>
+            <div><div class="label">Other cost (PKR)</div><div class="value">{{ \App\Support\Formats::number((float) $record->other_cost, 2) }}</div></div>
+            <div><div class="label">Total cost (PKR)</div><div class="value">{{ \App\Support\Formats::number($totalCost, 2) }}</div></div>
+            <div><div class="label">Next inspection due</div><div class="value">{{ $record->next_inspection_due_on?->displayDate() ?? '—' }}</div></div>
+            <div><div class="label">Started at</div><div class="value">{{ $record->started_at?->displayDateTime() ?? '—' }}</div></div>
+            <div><div class="label">Completed at</div><div class="value">{{ $record->completed_at?->displayDateTime() ?? '—' }}</div></div>
         </div>
     </section>
 

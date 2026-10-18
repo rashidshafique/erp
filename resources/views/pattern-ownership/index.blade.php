@@ -20,7 +20,7 @@
         <thead><tr><th>Owner</th><th>Ownership</th><th>Patterns</th><th>Insured value (PKR)</th><th></th></tr></thead>
         <tbody>
             @forelse ($byOwner->sortBy(fn ($r) => ($r->owner_type === 'FOUNDRY' ? '0' : '1').$ownerName($r)) as $row)
-                <tr><td>{{ $ownerName($row) }}</td><td>{{ $row->owner_type === 'PAYING_OFF' ? 'Being paid off' : ($row->owner_type === 'FOUNDRY' ? 'Foundry' : 'Customer') }}</td><td>{{ number_format($row->n) }}</td><td>{{ $row->value !== null ? number_format((float) $row->value, 0) : '—' }}</td>
+                <tr><td>{{ $ownerName($row) }}</td><td>{{ $row->owner_type === 'PAYING_OFF' ? 'Being paid off' : ($row->owner_type === 'FOUNDRY' ? 'Foundry' : 'Customer') }}</td><td>{{ \App\Support\Formats::number($row->n) }}</td><td>{{ $row->value !== null ? \App\Support\Formats::number((float) $row->value, 0) : '—' }}</td>
                     <td><a href="{{ route('patterns.index', ['owner' => $row->owner_customer_id ?? 'FOUNDRY']) }}">Patterns →</a></td></tr>
             @empty
                 <tr><td colspan="5" class="muted" style="text-align:center;padding:24px">No patterns yet.</td></tr>
@@ -37,7 +37,7 @@
         <tbody>
             @foreach ($payingOff as $row)
                 <tr><td><a href="{{ route('patterns.show', $row['pattern']) }}#ownership">{{ $row['pattern']->code }}</a> <span class="muted small">{{ $row['pattern']->name }}</span></td><td>{{ $row['pattern']->ownerCustomer?->name }}</td>
-                    <td class="mono">{{ number_format($row['dispatched']) }} / {{ number_format((int) $row['target']) }}</td><td>@if ($row['ready'])<span class="status status-completed">Paid off</span>@endif</td></tr>
+                    <td class="mono">{{ \App\Support\Formats::number($row['dispatched']) }} / {{ \App\Support\Formats::number((int) $row['target']) }}</td><td>@if ($row['ready'])<span class="status status-completed">Paid off</span>@endif</td></tr>
             @endforeach
         </tbody>
     </table></div>
@@ -76,11 +76,11 @@
                 @foreach ($idle as $row)
                     <tr><td><a href="{{ route('patterns.show', $row['pattern']) }}#ownership">{{ $row['pattern']->code }}</a> <span class="muted small">{{ $row['pattern']->name }}</span></td>
                         <td>{{ $row['pattern']->owner_type === 'FOUNDRY' ? 'Foundry' : $row['pattern']->ownerLabel() }}</td>
-                        <td>{{ $row['last_used']?->format('d M Y') ?? 'never' }}</td><td>{{ $row['months'] }} months</td>
-                        @if ($charging)<td class="mono">{{ $row['charge'] !== null ? number_format($row['charge'], 0) : '—' }}</td>@endif</tr>
+                        <td>{{ $row['last_used']?->displayDate() ?? 'never' }}</td><td>{{ $row['months'] }} months</td>
+                        @if ($charging)<td class="mono">{{ $row['charge'] !== null ? \App\Support\Formats::number($row['charge'], 0) : '—' }}</td>@endif</tr>
                 @endforeach
             </tbody>
-            @if ($charging)<tfoot><tr><td colspan="4"><strong>Total</strong></td><td class="mono"><strong>{{ number_format($idle->sum('charge'), 0) }}</strong></td></tr></tfoot>@endif
+            @if ($charging)<tfoot><tr><td colspan="4"><strong>Total</strong></td><td class="mono"><strong>{{ \App\Support\Formats::number($idle->sum('charge'), 0) }}</strong></td></tr></tfoot>@endif
         </table></div>
     @endif
 </div>

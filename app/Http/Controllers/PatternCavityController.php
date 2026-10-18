@@ -158,7 +158,7 @@ class PatternCavityController extends Controller
     {
         $current = PatternRevision::where('pattern_id', $revision->pattern_id)->where('is_current', true)->value('code');
 
-        return "{$revision->code} was superseded on {$revision->superseded_at->format('d M Y')}".($current ? " by {$current}" : '')
+        return "{$revision->code} was superseded on {$revision->superseded_at->displayDate()}".($current ? " by {$current}" : '')
             .'. Its cavities are kept for traceability; new moulds should use the current revision.';
     }
 

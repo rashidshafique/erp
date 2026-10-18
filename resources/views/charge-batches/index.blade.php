@@ -26,7 +26,7 @@
             <td>{{ $batch->name }}</td>
             <td>{{ $batch->process_type }}</td>
             <td>{{ $batch->revision }}</td>
-            <td>{{ $totalChargeKg !== null && $totalChargeKg > 0 ? number_format($totalChargeKg, 3).' kg' : 'Basis required' }}</td>
+            <td>{{ $totalChargeKg !== null && $totalChargeKg > 0 ? \App\Support\Formats::number($totalChargeKg, 3).' kg' : 'Basis required' }}</td>
             <td>{{ $batch->status }}</td>
             <td>{{ $batch->items_count }}</td>
         </tr>

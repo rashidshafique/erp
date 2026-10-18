@@ -73,27 +73,27 @@
     <div class="metrics">
         <div class="card metric">
             Total records
-            <strong>{{ number_format($summary['total_records']) }}</strong>
+            <strong>{{ \App\Support\Formats::number($summary['total_records']) }}</strong>
         </div>
         <div class="card metric">
             Completed records
-            <strong>{{ number_format($summary['completed_records']) }}</strong>
+            <strong>{{ \App\Support\Formats::number($summary['completed_records']) }}</strong>
         </div>
         <div class="card metric">
             Breakdown records
-            <strong>{{ number_format($summary['breakdowns']) }}</strong>
+            <strong>{{ \App\Support\Formats::number($summary['breakdowns']) }}</strong>
         </div>
         <div class="card metric">
             Recorded downtime
-            <strong>{{ number_format((float) $summary['downtime_hours'], 2) }} h</strong>
+            <strong>{{ \App\Support\Formats::number((float) $summary['downtime_hours'], 2) }} h</strong>
         </div>
         <div class="card metric">
             Parts cost (PKR)
-            <strong>{{ number_format((float) $summary['parts_cost'], 2) }}</strong>
+            <strong>{{ \App\Support\Formats::number((float) $summary['parts_cost'], 2) }}</strong>
         </div>
         <div class="card metric">
             Other cost (PKR)
-            <strong>{{ number_format((float) $summary['other_cost'], 2) }}</strong>
+            <strong>{{ \App\Support\Formats::number((float) $summary['other_cost'], 2) }}</strong>
         </div>
     </div>
 
@@ -130,9 +130,9 @@
                         <td>{{ $record->status }}</td>
                         <td>{{ $record->priority }}</td>
                         <td>{{ $record->problem_description ?: '—' }}</td>
-                        <td>{{ number_format((float) $record->downtime_hours, 2) }} h</td>
+                        <td>{{ \App\Support\Formats::number((float) $record->downtime_hours, 2) }} h</td>
                         <td>
-                            {{ number_format(
+                            {{ \App\Support\Formats::number(
                                 (float) $record->parts_cost
                                 + (float) $record->other_cost,
                                 2

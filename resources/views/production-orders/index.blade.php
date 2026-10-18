@@ -105,10 +105,10 @@
                             <span class="muted">{{ $order->product->name ?? 'Product unavailable' }}</span><br>
                             <span class="muted">Revision: {{ $order->productRevision->revision ?? '—' }}</span>
                         </td>
-                        <td>{{ number_format((float)$order->planned_qty, 3) }} {{ $order->uom }}</td>
-                        <td>{{ number_format((float)$order->completed_qty, 3) }}</td>
-                        <td>{{ number_format((float)$order->rejected_qty, 3) }}</td>
-                        <td>{{ $order->required_date?->format('d M Y') ?? '—' }}</td>
+                        <td>{{ \App\Support\Formats::number((float)$order->planned_qty, 3) }} {{ $order->uom }}</td>
+                        <td>{{ \App\Support\Formats::number((float)$order->completed_qty, 3) }}</td>
+                        <td>{{ \App\Support\Formats::number((float)$order->rejected_qty, 3) }}</td>
+                        <td>{{ $order->required_date?->displayDate() ?? '—' }}</td>
                         <td>{{ $order->priority }}</td>
                         <td>
                             <span class="status">{{ str_replace('_', ' ', $order->status) }}</span>

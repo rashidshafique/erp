@@ -48,14 +48,14 @@ class LeaveController extends Controller
             if ($request->boolean('approved_now') && HrAccess::isHr()) {
                 $r = $svc->fileAndApprove($e, $type, $d['from_date'], $to, $request->boolean('half_day'), $d['reason'] ?? null);
 
-                return back()->with('success', "{$r->code} recorded and approved: ".rtrim(rtrim(number_format($r->days, 2), '0'), '.').' day(s).');
+                return back()->with('success', "{$r->code} recorded and approved: ".rtrim(rtrim(\App\Support\Formats::number($r->days, 2), '0'), '.').' day(s).');
             }
             $r = $svc->request($e, $type, $d['from_date'], $to, $request->boolean('half_day'), $d['reason'] ?? null);
         } catch (RuntimeException $ex) {
             return back()->with('error', $ex->getMessage())->withInput();
         }
 
-        return back()->with('success', "{$r->code} sent for approval: ".rtrim(rtrim(number_format($r->days, 2), '0'), '.').' day(s).');
+        return back()->with('success', "{$r->code} sent for approval: ".rtrim(rtrim(\App\Support\Formats::number($r->days, 2), '0'), '.').' day(s).');
     }
 
     public function decide(Request $request, LeaveRequest $leave, LeaveService $svc): RedirectResponse

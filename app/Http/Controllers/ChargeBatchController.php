@@ -169,7 +169,7 @@ class ChargeBatchController extends Controller
         if ($hasPercent && abs($percentTotal - 100.0) > 0.01) {
             throw ValidationException::withMessages([
                 'items' => 'Percentage-based recipe components must total 100%. Current total: '
-                    .number_format($percentTotal, 4).'%.',
+                    .\App\Support\Formats::number($percentTotal, 4).'%.',
             ]);
         }
 

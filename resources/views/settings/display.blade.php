@@ -15,6 +15,20 @@
 </div></div>
 <p><button class="btn btn-primary">Save</button></p></form>
 
+@php($fmt = \App\Support\Formats::all())
+<form method="POST" action="{{ route('settings.display.formats') }}">@csrf @method('PUT')
+<div class="panel"><div class="panel-header"><h2>Dates, numbers and currency</h2></div><div class="panel-body">
+<div class="form-grid">
+<div class="field"><label>Date format</label><select name="date">@foreach(\App\Support\Formats::DATES as $k => $f)<option value="{{ $k }}" @selected($fmt['date'] === $k)>{{ $f['label'] }}</option>@endforeach</select></div>
+<div class="field"><label>Time format</label><select name="time">@foreach(\App\Support\Formats::TIMES as $k => $f)<option value="{{ $k }}" @selected($fmt['time'] === $k)>{{ $f['label'] }}</option>@endforeach</select></div>
+<div class="field"><label>Numbers</label><select name="number">@foreach(\App\Support\Formats::NUMBERS as $k => $f)<option value="{{ $k }}" @selected($fmt['number'] === $k)>{{ $f['label'] }}</option>@endforeach</select></div>
+<div class="field"><label>Currency symbol or code</label><input name="currency" maxlength="8" value="{{ old('currency', $fmt['currency']) }}" style="max-width:120px"></div>
+<div class="field"><label>Currency position</label><select name="currency_position"><option value="after" @selected($fmt['currency_position'] === 'after')>After the amount (1,500.00 PKR)</option><option value="before" @selected($fmt['currency_position'] === 'before')>Before the amount (PKR 1,500.00)</option></select></div>
+</div>
+<div class="help">Applies to every screen and every person. Only how things are shown changes; saved records are untouched. Date boxes in forms follow your browser's own format.</div>
+</div></div>
+<p><button class="btn btn-primary">Save formats</button></p></form>
+
 @php($fontNow = \App\Support\UiSettings::font())
 @if(\App\Support\UiSettings::canEditFont())
 <form method="POST" action="{{ route('settings.display.font') }}">@csrf @method('PUT')

@@ -127,7 +127,7 @@ class AttendanceController extends Controller
             try {
                 $in = $svc->punch($date, $inT);
                 $out = $svc->punch($date, $outT, $in);
-                $unchanged = $existing && (string) $existing->check_in?->format('H:i') === (string) $in?->format('H:i') && (string) $existing->check_out?->format('H:i') === (string) $out?->format('H:i') && ($existing->note ?? null) === $note;
+                $unchanged = $existing && (string) $existing->check_in?->displayTime() === (string) $in?->displayTime() && (string) $existing->check_out?->displayTime() === (string) $out?->displayTime() && ($existing->note ?? null) === $note;
                 if ($unchanged) {
                     continue;
                 }

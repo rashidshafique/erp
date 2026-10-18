@@ -68,7 +68,7 @@
 <div class="hr-pane" data-p="t">
     @if ($leaves->isEmpty())<div class="empty-state">No leave in this range.</div>@else
     <table class="hr-tbl"><thead><tr><th>Type</th><th>From</th><th>To</th><th>Days</th><th>Status</th></tr></thead><tbody>
-    @foreach ($leaves as $l)<tr><td>{{ $l->type->name }}</td><td>{{ $l->from_date->format('d M') }}</td><td>{{ $l->to_date->format('d M') }}</td><td>{{ rtrim(rtrim(number_format($l->days, 2), '0'), '.') }}{{ $l->half_day ? ' (half)' : '' }}</td><td><span class="status {{ ['APPROVED' => 'status-completed', 'REJECTED' => 'status-cancelled', 'PENDING' => 'status-on-hold'][$l->status] ?? '' }}">{{ ucfirst(strtolower($l->status)) }}</span></td></tr>@endforeach
+    @foreach ($leaves as $l)<tr><td>{{ $l->type->name }}</td><td>{{ $l->from_date->displayShortDate() }}</td><td>{{ $l->to_date->displayShortDate() }}</td><td>{{ rtrim(rtrim(\App\Support\Formats::number($l->days, 2), '0'), '.') }}{{ $l->half_day ? ' (half)' : '' }}</td><td><span class="status {{ ['APPROVED' => 'status-completed', 'REJECTED' => 'status-cancelled', 'PENDING' => 'status-on-hold'][$l->status] ?? '' }}">{{ ucfirst(strtolower($l->status)) }}</span></td></tr>@endforeach
     </tbody></table>@endif
     <p style="margin-top:12px"><a class="btn btn-small" href="{{ route('hr.leave') }}">Leave balances</a></p>
 </div>

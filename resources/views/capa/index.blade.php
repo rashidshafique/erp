@@ -35,7 +35,7 @@
                 <td>{{ \App\Models\CapaAction::SOURCES[$capa->source_type] ?? $capa->source_type }}<div class="muted small">{{ $capa->source_label }}</div></td>
                 <td>{{ \App\Models\CapaAction::SEVERITIES[$capa->severity] ?? $capa->severity }}</td>
                 <td>{{ $capa->owner ?: '—' }}</td>
-                <td>@if ($capa->status === 'AWAITING_VERIFICATION'){{ $capa->verification_due_on?->format('d M Y') ?? '—' }}<div class="muted small">check</div>@else{{ $capa->due_on?->format('d M Y') ?? '—' }}@endif</td>
+                <td>@if ($capa->status === 'AWAITING_VERIFICATION'){{ $capa->verification_due_on?->displayDate() ?? '—' }}<div class="muted small">check</div>@else{{ $capa->due_on?->displayDate() ?? '—' }}@endif</td>
                 <td>@include('capa._status', ['capa' => $capa])</td>
             </tr>
         @empty

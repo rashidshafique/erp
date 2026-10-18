@@ -142,25 +142,25 @@
                             <td>{{ $toolingId }}</td>
 
                             <td>
-                                {{ number_format($item['current_usage'], 3) }}
+                                {{ \App\Support\Formats::number($item['current_usage'], 3) }}
                                 {{ $limit->usage_unit }}
                             </td>
 
                             <td>
-                                {{ number_format($item['usage_since_inspection'], 3) }}
+                                {{ \App\Support\Formats::number($item['usage_since_inspection'], 3) }}
                                 {{ $limit->usage_unit }}
                             </td>
 
                             <td>
                                 {{ $item['life_percent'] === null
                                     ? 'Not configured'
-                                    : number_format($item['life_percent'], 1) . '%' }}
+                                    : \App\Support\Formats::number($item['life_percent'], 1) . '%' }}
                             </td>
 
                             <td>
                                 {{ $item['inspection_percent'] === null
                                     ? 'Not configured'
-                                    : number_format($item['inspection_percent'], 1) . '%' }}
+                                    : \App\Support\Formats::number($item['inspection_percent'], 1) . '%' }}
                             </td>
 
                             <td>

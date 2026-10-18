@@ -36,7 +36,7 @@
 </form>
 @else
 <p>{{ $e->summary ?: 'No summary.' }}</p>
-<p class="muted">Closed {{ $e->closed_at?->format('d M Y') }}@if ($e->lost_reason) — {{ $e->lost_reason }}@endif</p>
+<p class="muted">Closed {{ $e->closed_at?->displayDate() }}@if ($e->lost_reason) — {{ $e->lost_reason }}@endif</p>
 @endif
 </div></div>
 @if ($open)
@@ -57,8 +57,8 @@
     <p class="small muted">
         @if ($it->product)Product <a href="{{ route('products.show', $it->product) }}">{{ $it->product->code }}</a> · @endif
         @if ($it->drawing_ref)Drawing {{ $it->drawing_ref }}{{ $it->drawing_rev ? ' rev '.$it->drawing_rev : '' }} · @endif
-        {{ $it->material_text ?: 'Material not stated' }} · {{ $it->weight_kg ? number_format($it->weight_kg, 2).' kg' : 'weight unknown' }} ·
-        first batch {{ $it->first_batch_qty ?? '—' }}, yearly {{ $it->annual_qty ?? '—' }}@if ($it->target_price) · target {{ number_format($it->target_price, 2) }}@endif
+        {{ $it->material_text ?: 'Material not stated' }} · {{ $it->weight_kg ? \App\Support\Formats::number($it->weight_kg, 2).' kg' : 'weight unknown' }} ·
+        first batch {{ $it->first_batch_qty ?? '—' }}, yearly {{ $it->annual_qty ?? '—' }}@if ($it->target_price) · target {{ \App\Support\Formats::number($it->target_price, 2) }}@endif
     </p>
     <p>
         @if ($a)
@@ -116,7 +116,7 @@
     <div class="table-wrap"><table><thead><tr><th>Quotation</th><th>Version</th><th>Status</th><th>Lowest margin</th><th>Valid until</th><th></th></tr></thead><tbody>
     @foreach ($e->quotations as $q)
         <tr><td><strong>{{ $q->code }}</strong></td><td>{{ $q->version }}</td><td><span class="status {{ $qcls[$q->status] ?? '' }}">{{ $q->status }}</span></td>
-        <td>{{ $q->lines->isEmpty() ? '—' : number_format($q->lines->min('effective_margin_pct'), 1).'%' }}</td><td class="small">{{ $q->valid_until?->format('d M Y') ?? '—' }}</td><td><a href="{{ route('quotations.show', $q) }}">Open →</a></td></tr>
+        <td>{{ $q->lines->isEmpty() ? '—' : \App\Support\Formats::number($q->lines->min('effective_margin_pct'), 1).'%' }}</td><td class="small">{{ $q->valid_until?->displayDate() ?? '—' }}</td><td><a href="{{ route('quotations.show', $q) }}">Open →</a></td></tr>
     @endforeach
     </tbody></table></div>
 @endif

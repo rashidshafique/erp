@@ -18,19 +18,19 @@
 <div class="metrics">
     <div class="metric">
         <div class="metric-label">Total products</div>
-        <div class="metric-value">{{ number_format($totalProducts) }}</div>
+        <div class="metric-value">{{ \App\Support\Formats::number($totalProducts) }}</div>
     </div>
     <div class="metric">
         <div class="metric-label">Active</div>
-        <div class="metric-value">{{ number_format($activeProducts) }}</div>
+        <div class="metric-value">{{ \App\Support\Formats::number($activeProducts) }}</div>
     </div>
     <div class="metric">
         <div class="metric-label">Inactive</div>
-        <div class="metric-value">{{ number_format($inactiveProducts) }}</div>
+        <div class="metric-value">{{ \App\Support\Formats::number($inactiveProducts) }}</div>
     </div>
     <div class="metric">
         <div class="metric-label">Matching results</div>
-        <div class="metric-value">{{ number_format($products->total()) }}</div>
+        <div class="metric-value">{{ \App\Support\Formats::number($products->total()) }}</div>
     </div>
 </div>
 
@@ -91,7 +91,7 @@
                             <td>{{ $product->product_type }}</td>
                             <td>
                                 {{ $product->nominal_weight_kg !== null
-                                    ? number_format((float) $product->nominal_weight_kg, 4).' kg'
+                                    ? \App\Support\Formats::number((float) $product->nominal_weight_kg, 4).' kg'
                                     : '—' }}
                             </td>
                             <td>{{ $product->revisions_count }}</td>

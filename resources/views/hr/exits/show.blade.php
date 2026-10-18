@@ -3,7 +3,7 @@
 @section('breadcrumb')<a href="{{ route('hr.exits.index') }}">Exits</a> / {{ $e->code }} @endsection
 @section('content')
 @php $open = $x->status === 'INITIATED'; $tasks = $e->tasks->where('kind', 'EXIT'); @endphp
-<div class="page-heading"><div><h1>{{ $e->full_name }} is leaving</h1><p>{{ $e->code }} · {{ config('hr.exit_types')[$x->exit_type] }} · last day {{ $x->last_working_day->format('d M Y') }} · @include('hr._chip', ['s' => $x->status])</p></div>
+<div class="page-heading"><div><h1>{{ $e->full_name }} is leaving</h1><p>{{ $e->code }} · {{ config('hr.exit_types')[$x->exit_type] }} · last day {{ $x->last_working_day->displayDate() }} · @include('hr._chip', ['s' => $x->status])</p></div>
 <div class="actions"><a class="btn" href="{{ route('hr.employees.show', $e) }}">Employee record</a></div></div>
 @if (session('error'))<div class="alert alert-error">{{ session('error') }}</div>@endif
 
@@ -12,7 +12,7 @@
 <div class="table-wrap"><table><thead><tr><th style="width:44px"></th><th>Task</th><th>Owner</th><th>Done</th></tr></thead><tbody>
 @forelse ($tasks as $t)
 <tr><td>@if ($open)<form method="POST" action="{{ route('hr.tasks.toggle', $t) }}">@csrf<button class="btn btn-small">{!! $t->done_at ? '&#10003;' : '&#9675;' !!}</button></form>@else{!! $t->done_at ? '&#10003;' : '' !!}@endif</td>
-<td @if ($t->done_at) style="text-decoration:line-through;color:var(--muted)" @endif>{{ $t->title }}</td><td>{{ \App\Models\EmployeeTask::OWNERS[$t->owner] ?? $t->owner }}</td><td class="muted small">{{ $t->done_at ? $t->done_at->format('d M Y').' · '.$t->done_by_name : '' }}</td></tr>
+<td @if ($t->done_at) style="text-decoration:line-through;color:var(--muted)" @endif>{{ $t->title }}</td><td>{{ \App\Models\EmployeeTask::OWNERS[$t->owner] ?? $t->owner }}</td><td class="muted small">{{ $t->done_at ? $t->done_at->displayDate().' · '.$t->done_by_name : '' }}</td></tr>
 @empty<tr><td colspan="4" class="muted">No checklist items.</td></tr>@endforelse</tbody></table></div></div>
 @if ($open)
 <div class="panel"><div class="panel-body">
@@ -25,7 +25,7 @@
 @php $st = $x->settlement; @endphp
 <div class="tab-marker" data-tab-start="Final settlement"></div>
 <div class="panel"><div class="panel-header"><h2>Final settlement</h2></div><div class="panel-body">
-@if ($st)<p>Status: <strong>{{ $st->status }}</strong> · net {{ number_format($st->net) }} PKR. <a class="btn btn-small" href="{{ route('hr.payroll.settlements.show', $st) }}">Open settlement</a></p>
+@if ($st)<p>Status: <strong>{{ $st->status }}</strong> · net {{ \App\Support\Formats::number($st->net) }} PKR. <a class="btn btn-small" href="{{ route('hr.payroll.settlements.show', $st) }}">Open settlement</a></p>
 @else<p class="muted">Salary not yet paid, leave, gratuity and any loan balance are worked out here. It can be started before or after the exit is completed.</p><form method="POST" action="{{ route('hr.payroll.settlements.open', $x) }}">@csrf<button class="btn btn-primary">Calculate settlement</button></form>@endif
 </div></div>
 @endif

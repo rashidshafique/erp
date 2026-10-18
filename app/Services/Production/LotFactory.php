@@ -74,7 +74,7 @@ class LotFactory
                     ]);
                     $made++;
                     if ($pour->is_first_iron && PouringRules::get('hold_first_iron') === 'HOLD') {
-                        $lot->update(['status' => 'ON_HOLD', 'notes' => trim($lot->notes."\n".now()->format('d M H:i').' hold: first iron of heat '.$pour->heat?->heat_number.', held until QC passes')]);
+                        $lot->update(['status' => 'ON_HOLD', 'notes' => trim($lot->notes."\n".now()->displayShortDateTime().' hold: first iron of heat '.$pour->heat?->heat_number.', held until QC passes')]);
                     }
                     RelatedFiles::pin('casting_lot', $lot->id);   // keeps the drawing versions the lot was made to, when versioning is on
                     if ($order->status === 'RELEASED') {

@@ -51,7 +51,7 @@
                                 <span>cavit{{ $g['cavities']->count() === 1 ? 'y' : 'ies' }} {{ $g['cavities']->map(fn ($c) => $c->cavity_number.($c->cavity_mark ? ' ('.$c->cavity_mark.')' : ''))->implode(', ') }}@if ($g['cavities']->contains('cavity_role', 'PART')) · {{ $g['cavities']->where('cavity_role', 'PART')->pluck('component_label')->unique()->implode(', ') }}@endif</span>
                             </div>
                         </div>
-                        <div class="mo-count"><strong>{{ rtrim(rtrim(number_format($perMould, 2), '0'), '.') }}</strong>per mould</div>
+                        <div class="mo-count"><strong>{{ rtrim(rtrim(\App\Support\Formats::number($perMould, 2), '0'), '.') }}</strong>per mould</div>
                     </div>
                 @endforeach
             </div>

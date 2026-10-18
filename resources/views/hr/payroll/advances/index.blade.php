@@ -2,7 +2,7 @@
 @section('title', 'Advances and loans')
 @section('breadcrumb', 'Advances and loans')
 @section('content')
-@php $m = fn ($v) => number_format((float) $v); $cls = ['PENDING' => 'status-on-hold', 'ACTIVE' => 'status-in-progress', 'CLEARED' => 'status-completed', 'REJECTED' => 'status-cancelled', 'CANCELLED' => 'status-cancelled']; @endphp
+@php $m = fn ($v) => \App\Support\Formats::number((float) $v); $cls = ['PENDING' => 'status-on-hold', 'ACTIVE' => 'status-in-progress', 'CLEARED' => 'status-completed', 'REJECTED' => 'status-cancelled', 'CANCELLED' => 'status-cancelled']; @endphp
 <div class="page-heading"><div><h1>Advances &amp; loans</h1><p>Paid out once approved, then taken off salary a little each month.</p></div><div class="actions"><a class="btn" href="{{ route('hr.payroll.index') }}">Payroll</a></div></div>
 @if (session('error'))<div class="alert alert-error">{{ session('error') }}</div>@endif
 <div class="metrics"><div class="metric"><div class="metric-label">Still owed by staff</div><div class="metric-value">{{ $m($owed) }}</div><div class="metric-note">PKR, on the lists below</div></div></div>

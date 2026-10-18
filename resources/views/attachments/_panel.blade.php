@@ -6,7 +6,7 @@
     $older = \App\Models\Attachment::whereIn('document_id', $atts->pluck('document_id'))->whereNull('removed_at')->whereNotNull('superseded_at')->orderByDesc('version')->get()
         ->filter(fn ($a) => \App\Support\AttachableEntities::canView(auth()->user(), $type, $a->category))->groupBy('document_id');
     $cats = array_filter(\App\Support\AttachableEntities::CATEGORIES, fn ($k) => $canSensitive || ! \App\Support\AttachableEntities::isSensitive($k), ARRAY_FILTER_USE_KEY);
-    $fmt = fn ($b) => $b >= 1048576 ? number_format($b / 1048576, 1).' MB' : number_format(max(1, $b / 1024), 0).' KB';
+    $fmt = fn ($b) => $b >= 1048576 ? \App\Support\Formats::number($b / 1048576, 1).' MB' : \App\Support\Formats::number(max(1, $b / 1024), 0).' KB';
 @endphp
 <div class="panel">
     <div class="panel-header"><h2>Files</h2><span class="muted small">{{ $atts->count() }} attached</span></div>
@@ -23,7 +23,7 @@
                         @if (\App\Support\DocumentVersioning::appliesTo($a->category))
                             @if ($older->has($a->document_id))
                                 <details class="muted small"><summary>History ({{ $older[$a->document_id]->count() }} earlier)</summary>
-                                    @foreach ($older[$a->document_id] as $o)<div><a href="{{ route('attachments.download', $o) }}" @if($o->isInlineViewable()) target="_blank" @endif>v{{ $o->version }}@if($o->revision_label) · {{ $o->revision_label }}@endif</a> · {{ $o->created_at->format('d M Y') }} · {{ $o->uploaded_by_name }}@if($o->change_note) · {{ $o->change_note }}@endif</div>@endforeach
+                                    @foreach ($older[$a->document_id] as $o)<div><a href="{{ route('attachments.download', $o) }}" @if($o->isInlineViewable()) target="_blank" @endif>v{{ $o->version }}@if($o->revision_label) · {{ $o->revision_label }}@endif</a> · {{ $o->created_at->displayDate() }} · {{ $o->uploaded_by_name }}@if($o->change_note) · {{ $o->change_note }}@endif</div>@endforeach
                                 </details>
                             @endif
                             @if ($canEdit)
@@ -37,7 +37,7 @@
                         @endif
                     </div></td>
                     <td>{{ \App\Support\AttachableEntities::CATEGORIES[$a->category] ?? $a->category }}</td><td>{{ $fmt($a->size_bytes) }}</td>
-                    <td>{{ $a->created_at->format('d M Y H:i') }}<div class="muted small">{{ $a->uploaded_by_name }}</div></td>
+                    <td>{{ $a->created_at->displayDateTime() }}<div class="muted small">{{ $a->uploaded_by_name }}</div></td>
                     <td>@if($canEdit)@if($a->isImage())@if($a->is_cover)<span class="status status-completed">Main photo</span>@else<form method="POST" action="{{ route('attachments.cover', $a) }}" style="display:inline">@csrf<button class="btn btn-small">Use as main photo</button></form>@endif @endif<form method="POST" action="{{ route('attachments.remove', $a) }}" style="display:flex;gap:6px;margin-top:4px">@csrf<input name="removal_reason" placeholder="Reason" required style="width:130px">@include('partials.icon-button', ['type' => 'delete', 'word' => 'Remove', 'name' => $a->title ?: $a->original_name])</form>@endif</td></tr>
             @endforeach
         </tbody></table></div>

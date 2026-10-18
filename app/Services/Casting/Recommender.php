@@ -494,7 +494,7 @@ class Recommender
             'pour_temp' => $pour, 'pour_text' => $pourText, 'notes' => $notes, 'conflicts' => $conflicts,
             'grade_candidates' => array_slice($candidates, 0, 5),
             'section_tier' => ['Thin (M under 0.5 cm)', 'Light (0.5 to 1.5 cm)', 'Medium (1.5 to 2.5 cm)', 'Heavy (over 2.5 cm)'][$tier],
-            'summary' => sprintf('Heaviest section M %.2f cm (%s), thinnest wall %.1f mm. Target CE %.1f to %.1f. %s', $mHeavy, ['thin', 'light', 'medium', 'heavy'][$tier], $thinWall, $ce[0], $ce[1], $family === 'DUCTILE' ? 'Base S below 0.025 %, residual Mg '.number_format($rows[7]['min'] ?? 0.035, 3).' to '.number_format($rows[7]['max'] ?? 0.05, 3).' %.' : 'Keep Cr low and inoculate.'),
+            'summary' => sprintf('Heaviest section M %.2f cm (%s), thinnest wall %.1f mm. Target CE %.1f to %.1f. %s', $mHeavy, ['thin', 'light', 'medium', 'heavy'][$tier], $thinWall, $ce[0], $ce[1], $family === 'DUCTILE' ? 'Base S below 0.025 %, residual Mg '.\App\Support\Formats::number($rows[7]['min'] ?? 0.035, 3).' to '.\App\Support\Formats::number($rows[7]['max'] ?? 0.05, 3).' %.' : 'Keep Cr low and inoculate.'),
         ];
     }
 

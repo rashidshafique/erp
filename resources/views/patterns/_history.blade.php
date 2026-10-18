@@ -21,7 +21,7 @@
             <tbody>
                 @foreach ($history as $h)
                     <tr>
-                        <td style="white-space:nowrap">{{ $h['at']->setTimezone(config('app.timezone'))->format('d M Y H:i') }}</td>
+                        <td style="white-space:nowrap">{{ $h['at']->setTimezone(config('app.timezone'))->displayDateTime() }}</td>
                         <td>{{ $h['who'] ?? 'System' }}</td>
                         <td><strong>{{ $verb[$h['action']] ?? $h['action'] }}</strong> {{ $h['what'] }}</td>
                         <td>

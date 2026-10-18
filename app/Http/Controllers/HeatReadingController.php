@@ -288,7 +288,7 @@ class HeatReadingController extends Controller
             ) {
                 throw ValidationException::withMessages([
                     'operating_power_limit_kw' => 'The heat operating limit cannot exceed the furnace maximum of '
-                        .number_format((float) $maximum, 3).' kW.',
+                        .\App\Support\Formats::number((float) $maximum, 3).' kW.',
                 ]);
             }
         } else {
@@ -532,8 +532,8 @@ class HeatReadingController extends Controller
                 if ($available + 0.000001 < $quantity) {
                     throw ValidationException::withMessages([
                         'posted_by' => "Insufficient posted stock in lot {$lot->lot_number}. Available: "
-                            .number_format($available, 3)
-                            .' kg; required: '.number_format($quantity, 3).' kg.',
+                            .\App\Support\Formats::number($available, 3)
+                            .' kg; required: '.\App\Support\Formats::number($quantity, 3).' kg.',
                     ]);
                 }
 

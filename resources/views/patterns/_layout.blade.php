@@ -4,7 +4,7 @@
     $metal = app(\App\Services\PatternCavityMap::class)->metalPerMould($revision);
     $levels = $revision->castingLevels();
     $sections = (int) ($revision->layers_per_mould ?? 2);
-    $kg = fn ($v) => rtrim(rtrim(number_format((float) $v, 2), '0'), '.');
+    $kg = fn ($v) => rtrim(rtrim(\App\Support\Formats::number((float) $v, 2), '0'), '.');
     $mine = old('_layout') === $revision->id;
     $val = fn ($field) => $mine ? old($field) : $revision->{$field};
 @endphp

@@ -47,30 +47,30 @@
                     </td>
 
                     <td class="px-4 py-3 text-right">
-                        {{ number_format($row['receipts'], 3) }}
+                        {{ \App\Support\Formats::number($row['receipts'], 3) }}
                     </td>
 
                     <td class="px-4 py-3 text-right">
-                        {{ number_format($row['issues'], 3) }}
+                        {{ \App\Support\Formats::number($row['issues'], 3) }}
                     </td>
 
                     <td class="px-4 py-3 text-right">
-                        {{ number_format($row['movement_qty'], 3) }}
+                        {{ \App\Support\Formats::number($row['movement_qty'], 3) }}
                         {{ $row['material']->base_uom }}
                     </td>
 
                     <td class="px-4 py-3 text-right">
-                        {{ number_format($row['layer_qty'], 3) }}
+                        {{ \App\Support\Formats::number($row['layer_qty'], 3) }}
                         {{ $row['material']->base_uom }}
                     </td>
 
                     <td class="px-4 py-3 text-right">
-                        {{ number_format($row['difference'], 3) }}
+                        {{ \App\Support\Formats::number($row['difference'], 3) }}
                         {{ $row['material']->base_uom }}
                     </td>
 
                     <td class="px-4 py-3 text-right">
-                        {{ number_format($row['layer_value'], 2) }}
+                        {{ \App\Support\Formats::number($row['layer_value'], 2) }}
                     </td>
 
                     <td class="px-4 py-3">
@@ -133,22 +133,22 @@
                             </div>
                         </td>
                         <td class="px-4 py-3 text-right">
-                            {{ number_format($row['receipts'], 3) }}
+                            {{ \App\Support\Formats::number($row['receipts'], 3) }}
                         </td>
                         <td class="px-4 py-3 text-right">
-                            {{ number_format($row['issues'], 3) }}
+                            {{ \App\Support\Formats::number($row['issues'], 3) }}
                         </td>
                         <td class="px-4 py-3 text-right">
-                            {{ number_format($row['movement_qty'], 3) }}
+                            {{ \App\Support\Formats::number($row['movement_qty'], 3) }}
                         </td>
                         <td class="px-4 py-3 text-right">
-                            {{ number_format($row['layer_qty'], 3) }}
+                            {{ \App\Support\Formats::number($row['layer_qty'], 3) }}
                         </td>
                         <td class="px-4 py-3 text-right">
-                            {{ number_format($row['difference'], 3) }}
+                            {{ \App\Support\Formats::number($row['difference'], 3) }}
                         </td>
                         <td class="px-4 py-3 text-right">
-                            {{ number_format($row['layer_value'], 2) }}
+                            {{ \App\Support\Formats::number($row['layer_value'], 2) }}
                         </td>
                         <td class="px-4 py-3">{{ ucwords(strtolower($row['status'])) }}</td>
                     </tr>

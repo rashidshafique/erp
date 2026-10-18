@@ -6,7 +6,7 @@
 @php
     $qcls = ['DRAFT' => 'status-on-hold', 'ISSUED' => 'status-in-progress', 'ACCEPTED' => 'status-completed', 'REJECTED' => 'status-cancelled', 'EXPIRED' => 'status-cancelled', 'SUPERSEDED' => 'status-cancelled'];
     $draft = $q->status === 'DRAFT';
-    $n = fn ($v, $d = 2) => number_format((float) $v, $d);
+    $n = fn ($v, $d = 2) => \App\Support\Formats::number((float) $v, $d);
     $total = $q->lines->sum(fn ($l) => $l->unit_price * $l->qty);
     $min = \App\Services\Quotation\Rates::get()['min_margin_pct'];
     $low = $q->lines->min('effective_margin_pct');
@@ -64,7 +64,7 @@
 </div>
 <p><button class="btn btn-primary" type="submit">Save and recalculate</button></p>
 @else
-<p>Valid until {{ $q->valid_until?->format('d M Y') }} · delivery {{ $q->delivery_weeks ? $q->delivery_weeks.' weeks' : 'to be agreed' }} · {{ $q->payment_terms ?: 'payment terms not stated' }} · tooling {{ ['NONE' => 'not charged', 'UPFRONT' => 'charged up front ('.$n($q->upfrontToolingPrice()).')', 'AMORTISED' => 'spread over '.$q->tooling_amortise_qty.' castings'][$q->tooling_mode] }}</p>
+<p>Valid until {{ $q->valid_until?->displayDate() }} · delivery {{ $q->delivery_weeks ? $q->delivery_weeks.' weeks' : 'to be agreed' }} · {{ $q->payment_terms ?: 'payment terms not stated' }} · tooling {{ ['NONE' => 'not charged', 'UPFRONT' => 'charged up front ('.$n($q->upfrontToolingPrice()).')', 'AMORTISED' => 'spread over '.$q->tooling_amortise_qty.' castings'][$q->tooling_mode] }}</p>
 @if ($q->notes)<p>{{ $q->notes }}</p>@endif
 @endif
 </div></div>
@@ -81,13 +81,13 @@
 </div></div></div>
 @elseif ($q->status === 'ISSUED')
 <div class="panel"><div class="panel-header"><h2>Customer's answer</h2></div><div class="panel-body">
-<p>Issued {{ $q->issued_at?->format('d M Y') }} by {{ $q->issued_by_name }}. Accepting creates the product and a draft revision if they do not exist, and a draft sales order priced from this quotation.</p>
+<p>Issued {{ $q->issued_at?->displayDate() }} by {{ $q->issued_by_name }}. Accepting creates the product and a draft revision if they do not exist, and a draft sales order priced from this quotation.</p>
 <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
 <form method="POST" action="{{ route('quotations.accept', $q) }}" onsubmit="return confirm('Customer accepted? This creates a draft sales order.')">@csrf<button class="btn btn-primary" type="submit">Customer accepted</button></form>
 <form method="POST" action="{{ route('quotations.reject', $q) }}" style="display:flex;gap:6px">@csrf<input name="decision_note" placeholder="Why (optional)"><button class="btn btn-danger" type="submit">Customer declined</button></form>
 </div></div></div>
 @else
-<div class="panel"><div class="panel-body"><p>{{ $q->status }}{{ $q->decided_at ? ' on '.$q->decided_at->format('d M Y') : '' }}{{ $q->decision_note ? ' — '.$q->decision_note : '' }}</p></div></div>
+<div class="panel"><div class="panel-body"><p>{{ $q->status }}{{ $q->decided_at ? ' on '.$q->decided_at->displayDate() : '' }}{{ $q->decision_note ? ' — '.$q->decision_note : '' }}</p></div></div>
 @endif
 
 <div class="tab-marker" data-tab-start="Versions & history"></div>

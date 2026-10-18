@@ -50,11 +50,11 @@
         <div style="display:flex;gap:32px;flex-wrap:wrap">
             <div>
                 <div class="muted small">Stock quantity (kg)</div>
-                <strong>{{ number_format($totalQuantity, 3) }}</strong>
+                <strong>{{ \App\Support\Formats::number($totalQuantity, 3) }}</strong>
             </div>
             <div>
                 <div class="muted small">Stock value (PKR)</div>
-                <strong>{{ number_format($totalValue, 2) }}</strong>
+                <strong>{{ \App\Support\Formats::number($totalValue, 2) }}</strong>
             </div>
             <div>
                 <div class="muted small">Materials at/below minimum</div>
@@ -88,10 +88,10 @@
                             <td>{{ $lot->material->name }}</td>
                             <td>{{ $lot->lot_number }}</td>
                             <td>{{ $lot->status }}</td>
-                            <td>{{ number_format((float) $layer->remaining_qty, 3) }}</td>
-                            <td>{{ number_format((float) $layer->unit_cost, 4) }}</td>
+                            <td>{{ \App\Support\Formats::number((float) $layer->remaining_qty, 3) }}</td>
+                            <td>{{ \App\Support\Formats::number((float) $layer->unit_cost, 4) }}</td>
                             <td>
-                                {{ number_format(
+                                {{ \App\Support\Formats::number(
                                     (float) $layer->remaining_qty
                                     * (float) $layer->unit_cost,
                                     2

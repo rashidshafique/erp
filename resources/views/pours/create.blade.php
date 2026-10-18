@@ -55,7 +55,7 @@
                                 — {{ $heat->furnace?->code ?? 'No furnace code' }}
                                 — {{ str_replace('_', ' ', $heat->status) }}
                                 @if($heat->actual_tapped_weight_kg !== null)
-                                    — {{ number_format((float) $heat->actual_tapped_weight_kg, 1) }} kg tapped
+                                    — {{ \App\Support\Formats::number((float) $heat->actual_tapped_weight_kg, 1) }} kg tapped
                                 @endif
                             </option>
                         @endforeach

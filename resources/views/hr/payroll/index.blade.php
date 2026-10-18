@@ -2,7 +2,7 @@
 @section('title', 'Payroll')
 @section('breadcrumb', 'Payroll')
 @section('content')
-@php $cls = ['DRAFT' => 'status-on-hold', 'CALCULATED' => 'status-in-progress', 'APPROVED' => 'status-released', 'PAID' => 'status-completed']; $m = fn ($v) => number_format((float) $v); @endphp
+@php $cls = ['DRAFT' => 'status-on-hold', 'CALCULATED' => 'status-in-progress', 'APPROVED' => 'status-released', 'PAID' => 'status-completed']; $m = fn ($v) => \App\Support\Formats::number((float) $v); @endphp
 <div class="page-heading"><div><h1>Payroll</h1><p>One payroll a month: calculate from attendance and leave, check, approve, then pay.</p></div>
 <div class="actions"><a class="btn" href="{{ route('hr.payroll.advances') }}">Advances &amp; loans</a><a class="btn" href="{{ route('hr.payroll.settlements') }}">Final settlements</a><a class="btn" href="{{ route('hr.payroll.statutory') }}">Statutory reports</a><a class="btn" href="{{ route('hr.payroll.setup') }}">Payroll setup</a></div></div>
 @if (session('error'))<div class="alert alert-error">{{ session('error') }}</div>@endif

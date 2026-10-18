@@ -14,9 +14,9 @@
 <div class="panel">
     <div class="panel-header"><h2>TL to CE relation</h2></div>
     <div class="panel-body">
-        <p>CE = ({{ number_format($relation['a'], 1) }} − TL) / {{ number_format($relation['b'], 1) }}
+        <p>CE = ({{ \App\Support\Formats::number($relation['a'], 1) }} − TL) / {{ \App\Support\Formats::number($relation['b'], 1) }}
             — {{ $relation['calibrated'] ? 'calibrated on '.$relation['n'].' heats' : 'uncalibrated default; calibrate from your own history' }}.</p>
-        @if ($calibration)<p class="muted small">Last fit {{ $calibration->fitted_at->format('d M Y H:i') }}, R² {{ $calibration->r_squared }}, residual SD {{ $calibration->residual_sd_ce }} CE.</p>@endif
+        @if ($calibration)<p class="muted small">Last fit {{ $calibration->fitted_at->displayDateTime() }}, R² {{ $calibration->r_squared }}, residual SD {{ $calibration->residual_sd_ce }} CE.</p>@endif
         <form method="POST" action="{{ route('thermal.calibrate') }}">@csrf
             <button class="btn" type="submit">Calibrate from history</button>
             <span class="muted small">Needs 8 heats with both a cooling curve and a chemistry reading, spanning at least 0.15 CE.</span></form>
@@ -32,7 +32,7 @@
             <tbody>
             @foreach ($tests as $t)
                 <tr>
-                    <td><a href="{{ route('thermal.show', $t) }}">{{ $t->taken_at->format('d M H:i') }}</a></td>
+                    <td><a href="{{ route('thermal.show', $t) }}">{{ $t->taken_at->displayShortDateTime() }}</a></td>
                     <td>{{ $t->heat?->heat_number }}</td><td>{{ $t->ironGrade?->code ?? '—' }}</td><td>{{ $t->sample_reference ?: '—' }}@if ($t->entry_mode === 'MANUAL') <span class="muted small">(keyed in)</span>@endif</td>
                     <td>{{ $t->cup_type === 'TELLURIUM' ? 'White' : 'Grey' }}</td><td>{{ $t->carbon_reported_pct !== null ? rtrim(rtrim((string) $t->carbon_reported_pct, '0'), '.') : '—' }}</td><td>{{ $t->silicon_used !== null ? rtrim(rtrim((string) $t->silicon_used, '0'), '.') : '—' }}</td>
                     <td>{{ $t->tl_c ?? '—' }}</td><td>{{ $t->solidus_c ?? '—' }}</td><td>{{ $t->te_min_c ?? '—' }}</td><td>{{ $t->recalescence_c ?? '—' }}</td><td>{{ $t->peak_temp_c ?? '—' }}</td><td>{{ $t->ce_from_tl ?? '—' }}</td>

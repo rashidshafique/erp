@@ -19,7 +19,7 @@
 <div><button class="btn btn-primary">Save test</button></div></form></div></div>
 
 <div class="panel"><div class="panel-header"><h2>Recent tests</h2></div><div class="table-wrap"><table><thead><tr><th>When</th><th>Point</th><th>Shift</th><th>Results</th><th>Result</th></tr></thead><tbody>
-@forelse($sets as $s)<tr><td>{{ $s->taken_at->format('d M H:i') }}</td><td>{{ $s->sample_point }}</td><td>{{ $s->shift }}</td>
+@forelse($sets as $s)<tr><td>{{ $s->taken_at->displayShortDateTime() }}</td><td>{{ $s->sample_point }}</td><td>{{ $s->shift }}</td>
 <td>@foreach($s->measurements as $m){{ $m->name }}: <strong>{{ rtrim(rtrim(number_format((float) $m->value, 4, '.', ''), '0'), '.') }}</strong> {{ $m->unit }}@if($m->passed === false) <span style="color:var(--danger)">✘</span>@endif<br>@endforeach</td>
 <td><span class="status {{ $s->result === 'PASS' ? 'status-completed' : ($s->result === 'FAIL' ? 'status-cancelled' : '') }}">{{ $s->result }}</span></td></tr>
 @empty<tr><td colspan="5" class="muted">No tests yet.</td></tr>@endforelse</tbody></table></div></div>

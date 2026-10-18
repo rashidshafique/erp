@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 code: @json($order->product?->code ?? '—'),
                 product: @json($order->product?->name ?? 'Product unavailable'),
                 revision: @json($order->productRevision?->revision ?? '—'),
-                qty: @json(number_format((float) $order->planned_qty, 3) . ' ' . $order->uom)
+                qty: @json(\App\Support\Formats::number((float) $order->planned_qty, 3) . ' ' . $order->uom)
             },
         @endforeach
     };

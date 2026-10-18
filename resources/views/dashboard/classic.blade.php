@@ -32,25 +32,25 @@
     <div class="metrics">
         <div class="metric">
             <div class="metric-label">Open orders</div>
-            <div class="metric-value">{{ number_format($openOrders) }}</div>
+            <div class="metric-value">{{ \App\Support\Formats::number($openOrders) }}</div>
             <div class="metric-note">Not completed or cancelled</div>
         </div>
 
         <div class="metric">
             <div class="metric-label">Released orders</div>
-            <div class="metric-value">{{ number_format($releasedOrders) }}</div>
+            <div class="metric-value">{{ \App\Support\Formats::number($releasedOrders) }}</div>
             <div class="metric-note">Released for production</div>
         </div>
 
         <div class="metric">
             <div class="metric-label">Orders in progress</div>
-            <div class="metric-value">{{ number_format($inProgressOrders) }}</div>
+            <div class="metric-value">{{ \App\Support\Formats::number($inProgressOrders) }}</div>
             <div class="metric-note">Currently marked in progress</div>
         </div>
 
         <div class="metric">
             <div class="metric-label">Completed today</div>
-            <div class="metric-value">{{ number_format($completedToday) }}</div>
+            <div class="metric-value">{{ \App\Support\Formats::number($completedToday) }}</div>
             <div class="metric-note">Orders completed today</div>
         </div>
     </div>
@@ -110,10 +110,10 @@
                             <td><strong>{{ $order->production_order_number }}</strong></td>
                             <td>{{ $order->product?->name ?? '—' }}</td>
                             <td>
-                                {{ number_format((float) $order->planned_qty, 3) }}
+                                {{ \App\Support\Formats::number((float) $order->planned_qty, 3) }}
                                 {{ $order->uom }}
                             </td>
-                            <td>{{ $order->required_date?->format('d M Y') ?? '—' }}</td>
+                            <td>{{ $order->required_date?->displayDate() ?? '—' }}</td>
                             <td>
                                 <span class="status status-{{ strtolower(str_replace('_', '-', $order->status)) }}">
                                     {{ str_replace('_', ' ', $order->status) }}

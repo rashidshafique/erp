@@ -34,8 +34,8 @@
 <tr>
 <td><a href="{{ route('hr.employees.show', $p) }}"><strong>{{ $p->code }}</strong></a> <button type="button" class="hr-person" data-person-url="{{ route('hr.attendance.person', [$p, 'to' => $date->toDateString()]) }}">{{ $p->full_name }}</button><div class="muted small">{{ $p->department?->name }}</div></td>
 <td class="small">@if ($pl['kind'] === 'WORK'){{ $pl['shift']?->label() ?? 'No shift set' }}@elseif ($pl['kind'] === 'HOLIDAY')Holiday: {{ $pl['holiday'] }}@elseif ($pl['kind'] === 'LEAVE')On leave: {{ $pl['leave']->type->name }}@else Weekly off @endif</td>
-<td><input type="time" name="rows[{{ $p->id }}][in]" value="{{ $r?->check_in?->format('H:i') }}" style="min-height:30px;padding:3px 6px"></td>
-<td><input type="time" name="rows[{{ $p->id }}][out]" value="{{ $r?->check_out?->format('H:i') }}" style="min-height:30px;padding:3px 6px"></td>
+<td><input type="time" name="rows[{{ $p->id }}][in]" value="{{ $r?->check_in?->displayTime() }}" style="min-height:30px;padding:3px 6px"></td>
+<td><input type="time" name="rows[{{ $p->id }}][out]" value="{{ $r?->check_out?->displayTime() }}" style="min-height:30px;padding:3px 6px"></td>
 <td>@if ($r)<span class="status {{ $stCls[$r->status] ?? '' }}">{{ $st[$r->status] }}</span> @include('hr._dayflags', ['flags' => $r->flags])@if ($r->late_minutes)<span class="muted small">{{ $r->late_minutes }} min late</span>@endif @else <span class="muted">—</span> @endif</td>
 <td class="small">{{ $r ? \App\Models\AttendanceRecord::hm($r->worked_minutes) : '—' }}@if ($r && $r->overtime_minutes)<div class="muted">+{{ \App\Models\AttendanceRecord::hm($r->overtime_minutes) }} OT</div>@endif</td>
 <td><input name="rows[{{ $p->id }}][note]" value="{{ $r?->note }}" style="min-height:30px;padding:3px 6px;max-width:200px"></td></tr>

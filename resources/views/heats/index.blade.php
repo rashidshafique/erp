@@ -50,12 +50,12 @@
                         <td><span class="status">{{ $heat->status }}</span></td>
                         <td>
                             {{ $heat->target_metal_weight_kg !== null
-                                ? number_format((float) $heat->target_metal_weight_kg, 1).' kg'
+                                ? \App\Support\Formats::number((float) $heat->target_metal_weight_kg, 1).' kg'
                                 : '—' }}
                         </td>
                         <td>
                             {{ $heat->operating_power_limit_kw !== null
-                                ? number_format((float) $heat->operating_power_limit_kw, 1).' kW'
+                                ? \App\Support\Formats::number((float) $heat->operating_power_limit_kw, 1).' kW'
                                 : '—' }}
                         </td>
                         <td>{{ $heat->power_readings_count }}</td>

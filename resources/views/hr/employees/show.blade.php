@@ -21,7 +21,7 @@
     </div>
 </div>
 @if (session('error'))<div class="alert alert-error">{{ session('error') }}</div>@endif
-@if ($openExit)<div class="alert alert-error">Leaving on {{ $openExit->last_working_day->format('d M Y') }} ({{ config('hr.exit_types')[$openExit->exit_type] }}). <a href="{{ route('hr.exits.show', $openExit) }}">Open the exit</a></div>@endif
+@if ($openExit)<div class="alert alert-error">Leaving on {{ $openExit->last_working_day->displayDate() }} ({{ config('hr.exit_types')[$openExit->exit_type] }}). <a href="{{ route('hr.exits.show', $openExit) }}">Open the exit</a></div>@endif
 
 <div class="tab-marker" data-tab-start="Summary"></div>
 <div class="panel"><div class="panel-header"><h2>At a glance</h2></div><div class="panel-body">
@@ -32,8 +32,8 @@
     <div class="field"><label>Reports to</label><div>@if ($e->manager)<a href="{{ route('hr.employees.show', $e->manager) }}">{{ $e->manager->full_name }}</a>@else — @endif</div></div>
     <div class="field"><label>Cost centre</label><div>{{ $e->costCentre ? $e->costCentre->code.' · '.$e->costCentre->name : '—' }}</div></div>
     <div class="field"><label>Employment</label><div>{{ config('hr.employment_types')[$e->employment_type] ?? $e->employment_type }}</div></div>
-    <div class="field"><label>Joined</label><div>{{ $e->joined_on->format('d M Y') }} · {{ $e->service() }}</div></div>
-    <div class="field"><label>{{ $e->status === 'PROBATION' ? 'Probation ends' : 'Confirmed' }}</label><div>{{ $e->status === 'PROBATION' ? $e->probation_ends_on?->format('d M Y') : ($e->confirmed_on?->format('d M Y') ?? '—') }}</div></div>
+    <div class="field"><label>Joined</label><div>{{ $e->joined_on->displayDate() }} · {{ $e->service() }}</div></div>
+    <div class="field"><label>{{ $e->status === 'PROBATION' ? 'Probation ends' : 'Confirmed' }}</label><div>{{ $e->status === 'PROBATION' ? $e->probation_ends_on?->displayDate() : ($e->confirmed_on?->displayDate() ?? '—') }}</div></div>
     <div class="field"><label>Mobile</label><div>{{ $e->phone ?: '—' }}</div></div>
     <div class="field"><label>Work email</label><div>{{ $e->work_email ?: '—' }}</div></div>
     @if ($e->reports->isNotEmpty())<div class="field field-full"><label>Direct reports ({{ $e->reports->count() }})</label><div>@foreach ($e->reports as $r)<a href="{{ route('hr.employees.show', $r) }}">{{ $r->full_name }}</a>{{ $r->designation ? ' ('.$r->designation->name.')' : '' }}{{ ! $loop->last ? ', ' : '' }}@endforeach</div></div>@endif
@@ -70,7 +70,7 @@
 </div></div>
 @endif
 @if ($e->status === 'PROBATION')
-<div class="panel"><div class="panel-header"><h2>Confirm after probation</h2><span class="muted small">Probation ends {{ $e->probation_ends_on?->format('d M Y') ?? '—' }}</span></div><div class="panel-body">
+<div class="panel"><div class="panel-header"><h2>Confirm after probation</h2><span class="muted small">Probation ends {{ $e->probation_ends_on?->displayDate() ?? '—' }}</span></div><div class="panel-body">
 <form method="POST" action="{{ route('hr.employees.confirm', $e) }}">@csrf<div class="form-grid">
     @include('hr._in', ['name' => 'confirmed_on', 'label' => 'Confirmed from', 'type' => 'date', 'val' => now()->toDateString(), 'required' => true])
     @include('hr._in', ['name' => 'note', 'label' => 'Note', 'val' => ''])
@@ -88,7 +88,7 @@
 <div class="panel"><div class="panel-header"><h2>History</h2></div>
 <div class="table-wrap"><table><thead><tr><th>Date</th><th>Event</th><th>What changed</th><th>By</th></tr></thead><tbody>
 @foreach ($e->events as $ev)
-<tr><td>{{ $ev->effective_on->format('d M Y') }}</td><td>{{ \App\Models\EmployeeEvent::KINDS[$ev->kind] ?? $ev->kind }}</td>
+<tr><td>{{ $ev->effective_on->displayDate() }}</td><td>{{ \App\Models\EmployeeEvent::KINDS[$ev->kind] ?? $ev->kind }}</td>
 <td>@foreach (($ev->changes ?? []) as $c)@if (isset($c['label'])){{ $c['label'] }}: {{ $c['from'] ?? '—' }} → <strong>{{ $c['to'] ?? '—' }}</strong>@else{{ $c['from'] ?? '' }} → <strong>{{ $c['to'] ?? '' }}</strong>@endif<br>@endforeach{{ $ev->note }}</td><td class="muted">{{ $ev->created_by_name }}</td></tr>
 @endforeach</tbody></table></div></div>
 
@@ -100,8 +100,8 @@
 @foreach ($list as $t)
 <tr><td><form method="POST" action="{{ route('hr.tasks.toggle', $t) }}">@csrf<button class="btn btn-small" type="submit" title="{{ $t->done_at ? 'Mark not done' : 'Mark done' }}">{!! $t->done_at ? '&#10003;' : '&#9675;' !!}</button></form></td>
 <td @if ($t->done_at) style="text-decoration:line-through;color:var(--muted)" @endif>{{ $t->title }}</td><td>{{ \App\Models\EmployeeTask::OWNERS[$t->owner] ?? $t->owner }}</td>
-<td>@if ($t->isOverdue())<span class="status status-cancelled">{{ $t->due_on->format('d M') }}</span>@else{{ $t->due_on?->format('d M Y') ?? '—' }}@endif</td>
-<td class="muted small">{{ $t->done_at ? $t->done_at->format('d M Y').' · '.$t->done_by_name : '' }}</td>
+<td>@if ($t->isOverdue())<span class="status status-cancelled">{{ $t->due_on->displayShortDate() }}</span>@else{{ $t->due_on?->displayDate() ?? '—' }}@endif</td>
+<td class="muted small">{{ $t->done_at ? $t->done_at->displayDate().' · '.$t->done_by_name : '' }}</td>
 <td><form method="POST" action="{{ route('hr.tasks.destroy', $t) }}" onsubmit="return confirm('Remove this task?')">@csrf @method('DELETE')@include('partials.icon-button', ['type' => 'delete', 'word' => 'Remove', 'name' => $t->title])</form></td></tr>
 @endforeach</tbody></table></div>@endif
 <div class="panel-body"><form method="POST" action="{{ route('hr.employees.tasks.store', $e) }}" class="form-grid">@csrf<input type="hidden" name="kind" value="{{ $kind }}">
@@ -121,17 +121,17 @@
 @for ($d = $month->copy(); $d->month === $month->month; $d->addDay())
 @php $r = $attRows->get($d->toDateString()); @endphp
 <tr><td>{{ $d->format('D d') }}</td><td>@if ($r)<span class="status {{ $stc[$r->status] ?? '' }}">{{ config('hr.attendance.day_status')[$r->status] }}</span>@else<span class="muted">—</span>@endif</td>
-<td>{{ $r?->check_in?->format('H:i') ?? '' }}</td><td>{{ $r?->check_out?->format('H:i') ?? '' }}</td><td>{{ $r ? \App\Models\AttendanceRecord::hm($r->worked_minutes) : '' }}</td><td>@if ($r)@include('hr._dayflags', ['flags' => $r->flags])@endif</td></tr>
+<td>{{ $r?->check_in?->displayTime() ?? '' }}</td><td>{{ $r?->check_out?->displayTime() ?? '' }}</td><td>{{ $r ? \App\Models\AttendanceRecord::hm($r->worked_minutes) : '' }}</td><td>@if ($r)@include('hr._dayflags', ['flags' => $r->flags])@endif</td></tr>
 @endfor</tbody></table></div></div>
 
 <div class="tab-marker" data-tab-start="Leave"></div>
-@php $nf = fn ($v) => rtrim(rtrim(number_format($v, 2), '0'), '.') ?: '0'; @endphp
+@php $nf = fn ($v) => rtrim(rtrim(\App\Support\Formats::number($v, 2), '0'), '.') ?: '0'; @endphp
 <div class="metric-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:16px">
 @foreach ($leaveBalances as $b)<div class="metric"><div class="metric-label">{{ $b['type']->name }}</div><div class="metric-value">{{ $nf($b['balance']) }}</div></div>@endforeach</div>
 <div class="panel"><div class="panel-header"><h2>Requests</h2></div>
 @if ($leaveRequests->isEmpty())<div class="empty-state">No leave yet.</div>@else
 <div class="table-wrap"><table><thead><tr><th>Request</th><th>Leave</th><th>Dates</th><th>Days</th><th>Status</th></tr></thead><tbody>
-@foreach ($leaveRequests as $r)<tr><td>{{ $r->code }}</td><td>{{ $r->type->name }}</td><td>{{ $r->from_date->format('d M Y') }}{{ $r->to_date->ne($r->from_date) ? ' – '.$r->to_date->format('d M Y') : '' }}</td><td>{{ $nf($r->days) }}</td><td>{{ ucfirst(strtolower($r->status)) }}</td></tr>@endforeach
+@foreach ($leaveRequests as $r)<tr><td>{{ $r->code }}</td><td>{{ $r->type->name }}</td><td>{{ $r->from_date->displayDate() }}{{ $r->to_date->ne($r->from_date) ? ' – '.$r->to_date->displayDate() : '' }}</td><td>{{ $nf($r->days) }}</td><td>{{ ucfirst(strtolower($r->status)) }}</td></tr>@endforeach
 </tbody></table></div>@endif
 <div class="panel-body"><form method="POST" action="{{ route('leave.store') }}">@csrf<input type="hidden" name="employee_id" value="{{ $e->id }}"><div class="form-grid">
 @include('hr._sel', ['name' => 'leave_type_id', 'label' => 'Record leave', 'items' => $leaveTypes->mapWithKeys(fn ($t) => [$t->id => $t->name])->all(), 'sel' => '', 'blank' => 'Choose…', 'required' => true])
@@ -139,7 +139,7 @@
 <div class="field"><label><input type="checkbox" name="half_day" value="1"> Half day</label><label><input type="checkbox" name="approved_now" value="1" checked> Approved</label></div>
 </div><p><button class="btn btn-primary">Record leave</button></p></form></div></div>
 <div class="panel"><div class="panel-header"><h2>Balance history</h2></div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Leave</th><th>What</th><th>Days</th><th>Note</th></tr></thead><tbody>
-@forelse ($ledger as $l)<tr><td>{{ $l->entry_date->format('d M Y') }}</td><td>{{ $l->type->code }}</td><td>{{ ucfirst(strtolower($l->kind)) }}</td><td @if ($l->days < 0) style="color:var(--danger)" @endif>{{ $l->days > 0 ? '+' : '' }}{{ $nf($l->days) }}</td><td class="muted small">{{ $l->note }}</td></tr>@empty<tr><td colspan="5" class="muted">Nothing yet.</td></tr>@endforelse
+@forelse ($ledger as $l)<tr><td>{{ $l->entry_date->displayDate() }}</td><td>{{ $l->type->code }}</td><td>{{ ucfirst(strtolower($l->kind)) }}</td><td @if ($l->days < 0) style="color:var(--danger)" @endif>{{ $l->days > 0 ? '+' : '' }}{{ $nf($l->days) }}</td><td class="muted small">{{ $l->note }}</td></tr>@empty<tr><td colspan="5" class="muted">Nothing yet.</td></tr>@endforelse
 </tbody></table></div>
 <div class="panel-body"><form method="POST" action="{{ route('hr.leave.adjust', $e) }}"><div class="form-grid">@csrf
 @include('hr._sel', ['name' => 'leave_type_id', 'label' => 'Adjust a balance', 'items' => $leaveBalances->mapWithKeys(fn ($b) => [$b['type']->id => $b['type']->name])->all(), 'sel' => '', 'blank' => 'Choose…', 'required' => true])
@@ -152,8 +152,8 @@
 @if ($e->documents->isNotEmpty())<div class="table-wrap"><table><thead><tr><th>Document</th><th>Number</th><th>Issued</th><th>Expires</th><th>File</th><th></th></tr></thead><tbody>
 @foreach ($e->documents as $d)
 @php $st = $d->expiryState(); @endphp
-<tr><td>{{ config('hr.document_kinds')[$d->kind] ?? $d->kind }}{{ $d->title ? ' · '.$d->title : '' }}</td><td>{{ $d->number ?: '—' }}</td><td>{{ $d->issued_on?->format('d M Y') ?? '—' }}</td>
-<td>{{ $d->expires_on?->format('d M Y') ?? '—' }} @if ($st && $st !== 'OK')<span class="status {{ $expiry[$st][0] }}">{{ $expiry[$st][1] }}</span>@endif</td>
+<tr><td>{{ config('hr.document_kinds')[$d->kind] ?? $d->kind }}{{ $d->title ? ' · '.$d->title : '' }}</td><td>{{ $d->number ?: '—' }}</td><td>{{ $d->issued_on?->displayDate() ?? '—' }}</td>
+<td>{{ $d->expires_on?->displayDate() ?? '—' }} @if ($st && $st !== 'OK')<span class="status {{ $expiry[$st][0] }}">{{ $expiry[$st][1] }}</span>@endif</td>
 <td>@foreach ($docFiles->get($d->id, collect()) as $f)<a href="{{ route('attachments.download', $f) }}" @if ($f->isInlineViewable()) target="_blank" @endif>{{ $f->original_name }}</a>@endforeach</td>
 <td><form method="POST" action="{{ route('hr.documents.destroy', $d) }}" onsubmit="return confirm('Remove this document record?')">@csrf @method('DELETE')@include('partials.icon-button', ['type' => 'delete', 'word' => 'Remove', 'name' => $d->title ?: (config('hr.document_kinds')[$d->kind] ?? $d->kind)])</form></td></tr>
 @endforeach</tbody></table></div>@endif
@@ -173,7 +173,7 @@
 @foreach ($policies as $p)
 @php $a = $p->acks->firstWhere('version', $p->version); @endphp
 <tr><td><a href="{{ route('hr.policies.show', $p) }}">{{ $p->code }} · {{ $p->title }}</a></td><td>v{{ $p->version }}</td>
-<td>@if ($a)<span class="status status-completed">Acknowledged {{ $a->acknowledged_at->format('d M Y') }}</span>@else<span class="status status-on-hold">Not yet</span>@endif</td>
+<td>@if ($a)<span class="status status-completed">Acknowledged {{ $a->acknowledged_at->displayDate() }}</span>@else<span class="status status-on-hold">Not yet</span>@endif</td>
 <td>@unless ($a)<form method="POST" action="{{ route('hr.policies.acknowledge', $p) }}">@csrf<input type="hidden" name="employee_ids[]" value="{{ $e->id }}"><button class="btn btn-small">Record acknowledgement</button></form>@endunless</td></tr>
 @endforeach</tbody></table></div>@endif</div>
 

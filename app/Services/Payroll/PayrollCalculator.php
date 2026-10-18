@@ -141,7 +141,7 @@ class PayrollCalculator
             $base = $R['overtime_base'] === 'GROSS' ? $grossFull : (float) $salary->basic;
             $hourly = $base / $basis / max(1, (float) $R['hours_per_day']);
             $otAmount = $rd($otMinutes / 60 * $hourly * (float) $R['overtime_multiplier']);
-            $add('EARNING', 'OT', 'Overtime ('.intdiv($otMinutes, 60).' h '.($otMinutes % 60).' m × '.rtrim(rtrim(number_format((float) $R['overtime_multiplier'], 2), '0'), '.').')', $otAmount, 'OVERTIME', true);
+            $add('EARNING', 'OT', 'Overtime ('.intdiv($otMinutes, 60).' h '.($otMinutes % 60).' m × '.rtrim(rtrim(\App\Support\Formats::number((float) $R['overtime_multiplier'], 2), '0'), '.').')', $otAmount, 'OVERTIME', true);
         }
         // one-off items for this month
         $adj = [];

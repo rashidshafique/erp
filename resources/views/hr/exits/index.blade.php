@@ -8,6 +8,6 @@
     <button class="btn btn-primary">Filter</button></form></div></div>
 <div class="panel">@if ($exits->isEmpty())<div class="empty-state">No exits.</div>@else
 <div class="table-wrap"><table><thead><tr><th>Employee</th><th>Department</th><th>Type</th><th>Last day</th><th>Status</th></tr></thead><tbody>
-@foreach ($exits as $x)<tr><td><a href="{{ route('hr.exits.show', $x) }}"><strong>{{ $x->employee->code }}</strong></a> {{ $x->employee->full_name }}</td><td>{{ $x->employee->department?->name ?? '—' }}</td><td>{{ config('hr.exit_types')[$x->exit_type] }}</td><td>{{ $x->last_working_day->format('d M Y') }}</td><td>@include('hr._chip', ['s' => $x->status])</td></tr>@endforeach
+@foreach ($exits as $x)<tr><td><a href="{{ route('hr.exits.show', $x) }}"><strong>{{ $x->employee->code }}</strong></a> {{ $x->employee->full_name }}</td><td>{{ $x->employee->department?->name ?? '—' }}</td><td>{{ config('hr.exit_types')[$x->exit_type] }}</td><td>{{ $x->last_working_day->displayDate() }}</td><td>@include('hr._chip', ['s' => $x->status])</td></tr>@endforeach
 </tbody></table></div><div class="panel-body">{{ $exits->links() }}</div>@endif</div>
 @endsection

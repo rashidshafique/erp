@@ -11,14 +11,14 @@
 
 @foreach ($rows as $row)
     <div class="panel">
-        <div class="panel-header"><h2>Line {{ $row['line']->line_number }} — {{ $row['line']->product?->code }} × {{ rtrim(rtrim(number_format((float) $row['line']->ordered_qty, 3), '0'), '.') }}</h2></div>
+        <div class="panel-header"><h2>Line {{ $row['line']->line_number }} — {{ $row['line']->product?->code }} × {{ rtrim(rtrim(\App\Support\Formats::number((float) $row['line']->ordered_qty, 3), '0'), '.') }}</h2></div>
         @if (empty($row['orders']))
             <div class="empty-state">No production order yet.</div>
         @endif
         @foreach ($row['orders'] as $o)
             <div class="panel-body">
-                <p><strong>{{ $o['po']->production_order_number }}</strong> — {{ $o['po']->status }}, planned {{ rtrim(rtrim(number_format((float) $o['po']->planned_qty, 3), '0'), '.') }},
-                    completed {{ rtrim(rtrim(number_format((float) $o['po']->completed_qty, 3), '0'), '.') }}; {{ $o['moulding_runs'] }} moulding run(s); dispatched {{ rtrim(rtrim(number_format($o['dispatched'], 3), '0'), '.') }}.</p>
+                <p><strong>{{ $o['po']->production_order_number }}</strong> — {{ $o['po']->status }}, planned {{ rtrim(rtrim(\App\Support\Formats::number((float) $o['po']->planned_qty, 3), '0'), '.') }},
+                    completed {{ rtrim(rtrim(\App\Support\Formats::number((float) $o['po']->completed_qty, 3), '0'), '.') }}; {{ $o['moulding_runs'] }} moulding run(s); dispatched {{ rtrim(rtrim(\App\Support\Formats::number($o['dispatched'], 3), '0'), '.') }}.</p>
                 @if ($o['lots']->isEmpty())
                     <p class="muted small">No casting lot has been created from a pour yet.</p>
                 @else

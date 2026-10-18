@@ -17,17 +17,17 @@
 <div class="metrics">
     <div class="metric">
         <div class="metric-label">Total pours</div>
-        <div class="metric-value">{{ number_format($totalPours) }}</div>
+        <div class="metric-value">{{ \App\Support\Formats::number($totalPours) }}</div>
         <div class="metric-note">All recorded pours</div>
     </div>
     <div class="metric">
         <div class="metric-label">Active pours</div>
-        <div class="metric-value">{{ number_format($activePours) }}</div>
+        <div class="metric-value">{{ \App\Support\Formats::number($activePours) }}</div>
         <div class="metric-note">Planned or in progress</div>
     </div>
     <div class="metric">
         <div class="metric-label">Completed pours</div>
-        <div class="metric-value">{{ number_format($completedPours) }}</div>
+        <div class="metric-value">{{ \App\Support\Formats::number($completedPours) }}</div>
         <div class="metric-note">Marked completed</div>
     </div>
     <div class="metric">
@@ -101,15 +101,15 @@
                                 {{ str_replace('_', ' ', $pour->status) }}
                             </span>
                         </td>
-                        <td>{{ $pour->planned_at?->format('d M Y, H:i') ?? '—' }}</td>
+                        <td>{{ $pour->planned_at?->displayDateTime() ?? '—' }}</td>
                         <td>
                             {{ $pour->pour_temperature_c !== null
-                                ? number_format((float) $pour->pour_temperature_c, 0) . ' °C'
+                                ? \App\Support\Formats::number((float) $pour->pour_temperature_c, 0) . ' °C'
                                 : '—' }}
                         </td>
                         <td>
                             {{ $pour->total_poured_weight_kg !== null
-                                ? number_format((float) $pour->total_poured_weight_kg, 3) . ' kg'
+                                ? \App\Support\Formats::number((float) $pour->total_poured_weight_kg, 3) . ' kg'
                                 : '—' }}
                         </td>
                         <td>{{ $pour->mould_assemblies_count }}</td>

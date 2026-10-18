@@ -211,11 +211,11 @@
                             </span>
                         </td>
                         <td>{{ \Illuminate\Support\Str::limit($record->problem_description ?? '—', 90) }}</td>
-                        <td>{{ $record->reported_at?->format('d M Y H:i') ?? '—' }}</td>
+                        <td>{{ $record->reported_at?->displayDateTime() ?? '—' }}</td>
                         <td>{{ $record->performed_by ?? '—' }}</td>
-                        <td>{{ number_format((float) $record->downtime_hours, 2) }} h</td>
-                        <td>{{ number_format($totalCost, 2) }}</td>
-                        <td>{{ $record->next_inspection_due_on?->format('d M Y') ?? '—' }}</td>
+                        <td>{{ \App\Support\Formats::number((float) $record->downtime_hours, 2) }} h</td>
+                        <td>{{ \App\Support\Formats::number($totalCost, 2) }}</td>
+                        <td>{{ $record->next_inspection_due_on?->displayDate() ?? '—' }}</td>
                     </tr>
                 @empty
                     <tr>

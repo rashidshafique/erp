@@ -5,8 +5,8 @@
 
 @section('content')
 @php
-    $kg = fn ($v) => $v === null || $v === 0.0 ? '—' : number_format((float) $v, 1).' kg';
-    $time = fn ($v) => $v?->format('d M H:i') ?? '—';
+    $kg = fn ($v) => $v === null || $v === 0.0 ? '—' : \App\Support\Formats::number((float) $v, 1).' kg';
+    $time = fn ($v) => $v?->displayShortDateTime() ?? '—';
 @endphp
 <div class="page-heading">
     <div>
@@ -31,7 +31,7 @@
 <div class="panel"><div class="panel-header"><h2>Samples</h2></div><div class="panel-body">
     @if ($samples->isEmpty())<p class="muted" style="margin:0">No samples were recorded.</p>@else
     <div class="table-wrap"><table><thead><tr><th>Taken</th><th>Type</th><th>Reference</th><th>Result</th></tr></thead><tbody>
-        @foreach ($samples as $s)<tr><td>{{ $s['at']->format('d M H:i') }}</td><td>{{ $s['kind'] === 'THERMAL' ? 'Thermal analysis' : 'Chemistry' }}</td><td>{{ $s['reference'] ?: '—' }}</td><td>{{ ['PASS' => 'Pass', 'FAIL' => 'FAIL', 'UNJUDGED' => 'Not judged'][$s['result']] }}</td></tr>@endforeach
+        @foreach ($samples as $s)<tr><td>{{ $s['at']->displayShortDateTime() }}</td><td>{{ $s['kind'] === 'THERMAL' ? 'Thermal analysis' : 'Chemistry' }}</td><td>{{ $s['reference'] ?: '—' }}</td><td>{{ ['PASS' => 'Pass', 'FAIL' => 'FAIL', 'UNJUDGED' => 'Not judged'][$s['result']] }}</td></tr>@endforeach
     </tbody></table></div>@endif
 </div></div>
 

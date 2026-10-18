@@ -71,7 +71,7 @@ class QualityGates
             if ($grade->needs_mg_treatment) {
                 $mg = $tr->where('treatment_type', 'MG_TREATMENT')->sortBy('treated_at')->last();   // latest by time, not by row order
                 $checks[] = ['label' => 'Magnesium treatment', 'ok' => $verdict($mg === null), 'phase' => 'POUR',
-                    'detail' => $mg ? "Recorded at {$mg->treated_at->format('H:i')}".($mg->material ? " ({$mg->material})" : '').'.' : 'No magnesium treatment is recorded for the heat'.$note.'.'];
+                    'detail' => $mg ? "Recorded at {$mg->treated_at->displayTime()}".($mg->material ? " ({$mg->material})" : '').'.' : 'No magnesium treatment is recorded for the heat'.$note.'.'];
                 if ($mg) {
                     $mins = (int) $mg->treated_at->diffInMinutes(now());
                     $checks[] = ['label' => 'Treatment fade', 'ok' => $verdict($mins > $maxFade), 'phase' => 'POUR',

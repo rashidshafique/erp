@@ -19,8 +19,8 @@
 
 <div class="metrics">
     <div class="metric"><div class="metric-label">Status</div><div class="metric-value" style="font-size:21px">{{ str_replace('_', ' ', $order->status) }}</div></div>
-    <div class="metric"><div class="metric-label">Order date</div><div class="metric-value" style="font-size:21px">{{ $order->order_date?->format('d M Y') }}</div></div>
-    <div class="metric"><div class="metric-label">Requested delivery</div><div class="metric-value" style="font-size:21px">{{ $order->requested_delivery_date?->format('d M Y') ?? '—' }}</div></div>
+    <div class="metric"><div class="metric-label">Order date</div><div class="metric-value" style="font-size:21px">{{ $order->order_date?->displayDate() }}</div></div>
+    <div class="metric"><div class="metric-label">Requested delivery</div><div class="metric-value" style="font-size:21px">{{ $order->requested_delivery_date?->displayDate() ?? '—' }}</div></div>
     <div class="metric"><div class="metric-label">Customer reference</div><div class="metric-value" style="font-size:21px">{{ $order->customer_reference ?: '—' }}</div></div>
 </div>
 
@@ -36,9 +36,9 @@
                 <td>{{ $l->line_number }}</td>
                 <td><strong>{{ $l->product?->code }}</strong> {{ $l->product?->name }}</td>
                 <td>{{ $l->productRevision?->revision }}</td>
-                <td>{{ rtrim(rtrim(number_format((float) $l->ordered_qty, 3), '0'), '.') }}</td>
-                <td>{{ rtrim(rtrim(number_format($sched, 3), '0'), '.') }}</td>
-                <td>{{ rtrim(rtrim(number_format((float) ($shipped[$l->id] ?? 0), 3), '0'), '.') ?: '0' }}</td>
+                <td>{{ rtrim(rtrim(\App\Support\Formats::number((float) $l->ordered_qty, 3), '0'), '.') }}</td>
+                <td>{{ rtrim(rtrim(\App\Support\Formats::number($sched, 3), '0'), '.') }}</td>
+                <td>{{ rtrim(rtrim(\App\Support\Formats::number((float) ($shipped[$l->id] ?? 0), 3), '0'), '.') ?: '0' }}</td>
                 <td>{{ $l->productionOrders->pluck('production_order_number')->implode(', ') ?: '—' }}</td>
                 <td>
                     @if ($sched < (float) $l->ordered_qty - 0.0005)
@@ -93,7 +93,7 @@
                     <div class="field">
                         <strong>{{ $label }} sign-off</strong>
                         @if ($review->{$role.'_signed_at'})
-                            <div>{{ $review->{$role.'_signed_by'} }} · {{ $review->{$role.'_signed_at'}->format('d M Y H:i') }}</div>
+                            <div>{{ $review->{$role.'_signed_by'} }} · {{ $review->{$role.'_signed_at'}->displayDateTime() }}</div>
                         @elseif ($review->status === 'IN_REVIEW')
                             <form method="POST" action="{{ route('sales-orders.review.sign', $order) }}">@csrf
                                 <input type="hidden" name="role" value="{{ $role }}">

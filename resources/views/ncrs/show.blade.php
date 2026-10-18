@@ -24,7 +24,7 @@
 @unless($closed)<div><button class="btn btn-primary">Save</button></div>@endunless</form></div></div>
 @unless($closed)<div class="panel"><div class="panel-header"><h2>Close</h2></div><div class="panel-body"><form method="POST" action="{{ route('ncrs.close', $ncr) }}" class="form-grid">@csrf
 <label>Closed by<input name="closed_by" required></label><label>Verification notes<input name="verification_notes"></label><div><button class="btn btn-danger">Close NCR</button></div></form></div></div>
-@else<div class="panel"><div class="panel-body">Closed {{ $ncr->closed_at?->format('d M Y H:i') }} by {{ $ncr->closed_by }}. {{ $ncr->verification_notes }}</div></div>@endunless
+@else<div class="panel"><div class="panel-body">Closed {{ $ncr->closed_at?->displayDateTime() }} by {{ $ncr->closed_by }}. {{ $ncr->verification_notes }}</div></div>@endunless
 <div class="tab-marker" data-tab-start="Files & history"></div>
 @include('custom-fields._panel', ['entity' => 'ncr', 'id' => $ncr->id])
 @include('attachments._panel', ['type' => 'ncr', 'id' => $ncr->id])

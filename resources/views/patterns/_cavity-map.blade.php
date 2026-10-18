@@ -51,7 +51,7 @@
             <details class="rev-block {{ $revision->is_current ? 'is-current' : '' }}" id="cavities-{{ $revision->id }}" @if ($open) open @endif>
                 <summary>
                     <strong>{{ $revision->label() }}</strong>
-                    <span class="muted small">{{ $revision->cavityMap->count() }} of {{ $revision->cavities_per_mould ?? '?' }} cavities linked @if ($revision->isSuperseded()) · superseded {{ $revision->superseded_at->format('d M Y') }}@endif</span>
+                    <span class="muted small">{{ $revision->cavityMap->count() }} of {{ $revision->cavities_per_mould ?? '?' }} cavities linked @if ($revision->isSuperseded()) · superseded {{ $revision->superseded_at->displayDate() }}@endif</span>
                 </summary>
                 @include('patterns._layout', ['revision' => $revision, 'pattern' => $pattern, 'assembled' => in_array($revision->id, $assembledRevisions, true)])
                 @if ($revision->isSuperseded() && $revision->cavityMap->isNotEmpty())

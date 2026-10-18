@@ -63,17 +63,17 @@
                         </td>
                         <td>
                             {{ $furnace->rated_capacity_kg !== null
-                                ? number_format((float) $furnace->rated_capacity_kg, 1).' kg'
+                                ? \App\Support\Formats::number((float) $furnace->rated_capacity_kg, 1).' kg'
                                 : '—' }}
                         </td>
                         <td>
                             {{ $furnace->nominal_melting_rate_kg_per_hour !== null
-                                ? number_format((float) $furnace->nominal_melting_rate_kg_per_hour, 1).' kg/h'
+                                ? \App\Support\Formats::number((float) $furnace->nominal_melting_rate_kg_per_hour, 1).' kg/h'
                                 : '—' }}
                         </td>
                         <td>
                             {{ $furnace->rated_power_kw !== null
-                                ? number_format((float) $furnace->rated_power_kw, 1).' kW'
+                                ? \App\Support\Formats::number((float) $furnace->rated_power_kw, 1).' kW'
                                 : '—' }}
                         </td>
                         <td>

@@ -14,7 +14,7 @@
 </div>
 
 @if ($capa->verification_log)<div class="alert alert-warning"><strong>Earlier effectiveness checks</strong><div style="white-space:pre-line">{{ $capa->verification_log }}</div></div>@endif
-@if ($capa->status === 'CLOSED')<div class="alert alert-success">Closed {{ $capa->closed_at?->format('d M Y') }}. Checked {{ $capa->verified_on?->format('d M Y') }} by {{ $capa->verified_by }}: effective. {{ $capa->verification_notes }}</div>
+@if ($capa->status === 'CLOSED')<div class="alert alert-success">Closed {{ $capa->closed_at?->displayDate() }}. Checked {{ $capa->verified_on?->displayDate() }} by {{ $capa->verified_by }}: effective. {{ $capa->verification_notes }}</div>
 @elseif ($capa->status === 'CANCELLED')<div class="alert alert-warning">Cancelled: {{ $capa->cancel_reason }}</div>@endif
 
 <div class="panel"><div class="panel-header"><h2>Investigation and plan</h2></div><div class="panel-body">
@@ -47,7 +47,7 @@
 </div></div>
 @elseif ($capa->status === 'AWAITING_VERIFICATION')
 <div class="panel"><div class="panel-header"><h2>Check that the action worked</h2></div><div class="panel-body">
-    <p class="muted small" style="margin-top:0">Done {{ $capa->completed_on?->format('d M Y') }}. {{ $capa->implementation_notes }} The check is due {{ $capa->verification_due_on?->format('d M Y') }}: look at the records since then, for example further NCRs, rejects or complaints of the same kind.</p>
+    <p class="muted small" style="margin-top:0">Done {{ $capa->completed_on?->displayDate() }}. {{ $capa->implementation_notes }} The check is due {{ $capa->verification_due_on?->displayDate() }}: look at the records since then, for example further NCRs, rejects or complaints of the same kind.</p>
     <form method="POST" action="{{ route('capa.verify', $capa) }}">@csrf
         <div class="form-grid">
             <div class="field"><label for="verification_result">Result *</label><select id="verification_result" name="verification_result"><option value="EFFECTIVE">Effective: it has not happened again</option><option value="NOT_EFFECTIVE" @selected(old('verification_result') === 'NOT_EFFECTIVE')>Not effective: it has</option></select></div>

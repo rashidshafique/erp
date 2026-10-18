@@ -116,7 +116,7 @@ class GaugeController extends Controller
 
         return redirect()->route('gauges.show', $gauge)->with($data['result'] === 'FAIL' ? 'warning' : 'success', $data['result'] === 'FAIL'
             ? "{$gauge->code} failed calibration and is now out of service. Check the results measured with it since the last good calibration."
-            : 'Calibration recorded. Next due '.($gauge->next_due_on?->format('d M Y') ?? 'not set').'.');
+            : 'Calibration recorded. Next due '.($gauge->next_due_on?->displayDate() ?? 'not set').'.');
     }
 
     /** @return array<string, mixed> */

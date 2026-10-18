@@ -71,7 +71,7 @@ class LotController extends Controller
         if (in_array($lot->status, ['DISPATCHED', 'CLOSED', 'SCRAPPED'], true)) {
             return back()->withErrors(['hold' => "A {$lot->status} lot cannot be put on hold."]);
         }
-        $lot->update(['status' => 'ON_HOLD', 'notes' => trim($lot->notes."\n".now()->format('d M H:i').' hold: '.$d['reason'])]);
+        $lot->update(['status' => 'ON_HOLD', 'notes' => trim($lot->notes."\n".now()->displayShortDateTime().' hold: '.$d['reason'])]);
 
         return back()->with('success', 'Lot put on hold.');
     }
@@ -84,7 +84,7 @@ class LotController extends Controller
         if (! app(\App\Services\Approvals\ApprovalGate::class)->passes('lot.release_hold', 'CastingLot', (string) $lot->id, $lot->lot_number ?? (string) $lot->id, $msg)) {
             return back()->withErrors(['hold' => $msg]);
         }
-        $lot->update(['status' => 'IN_PRODUCTION', 'notes' => trim($lot->notes."\n".now()->format('d M H:i').' released from hold')]);
+        $lot->update(['status' => 'IN_PRODUCTION', 'notes' => trim($lot->notes."\n".now()->displayShortDateTime().' released from hold')]);
 
         return back()->with('success', 'Lot released from hold.');
     }

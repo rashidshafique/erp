@@ -21,8 +21,8 @@
         @endif
     </div>
 </div>
-@if ($pattern->trashed() && in_array($pattern->custody, ['RETURNED', 'SCRAPPED'], true))<div class="alert alert-warning">{{ $pattern->custody === 'RETURNED' ? 'Returned to '.$pattern->ownerLabel() : 'Scrapped' }} on {{ $pattern->deleted_at->format('d M Y') }}. It cannot be moulded.@if ($pattern->custody === 'RETURNED') Restore it if the customer sends it back.@endif</div>
-@elseif ($pattern->trashed())<div class="alert alert-warning">Archived on {{ $pattern->deleted_at->format('d M Y') }}. It is left out of the pattern list, its counts and the moulding pickers, and stays on the runs and tooling records that used it. Restore it to use it again.</div>@endif
+@if ($pattern->trashed() && in_array($pattern->custody, ['RETURNED', 'SCRAPPED'], true))<div class="alert alert-warning">{{ $pattern->custody === 'RETURNED' ? 'Returned to '.$pattern->ownerLabel() : 'Scrapped' }} on {{ $pattern->deleted_at->displayDate() }}. It cannot be moulded.@if ($pattern->custody === 'RETURNED') Restore it if the customer sends it back.@endif</div>
+@elseif ($pattern->trashed())<div class="alert alert-warning">Archived on {{ $pattern->deleted_at->displayDate() }}. It is left out of the pattern list, its counts and the moulding pickers, and stays on the runs and tooling records that used it. Restore it to use it again.</div>@endif
 
 @php $current = $pattern->revisions->firstWhere('is_current', true); @endphp
 @include('partials.quick-dialog', ['id' => 'qd-revision', 'title' => 'New revision of '.$pattern->code, 'action' => route('patterns.revisions.store', $pattern), 'submit' => 'Create revision', 'fields' => 'patterns._quick-revision', 'multipart' => true, 'current' => $current])
@@ -119,7 +119,7 @@
                             <td><strong class="mono">{{ $revision->code ?? $revision->revision }}</strong>@unless ($pattern->trashed())<div class="small"><a href="{{ route('patterns.revisions.edit', [$pattern, $revision]) }}">Edit details</a></div>@endunless</td>
                             <td>
                                 @if ($revision->is_current)<span class="status status-completed">Current</span>
-                                @elseif ($revision->isSuperseded())<span class="status status-on-hold" title="Superseded {{ $revision->superseded_at->format('d M Y') }}">Superseded</span>
+                                @elseif ($revision->isSuperseded())<span class="status status-on-hold" title="Superseded {{ $revision->superseded_at->displayDate() }}">Superseded</span>
                                 @else<span class="status">Not current</span>@endif
                                 @if ($revision->legacy_baseline)<span class="status" title="Created from the imported data, not from a recorded change">Baseline</span>@endif
                             </td>
@@ -132,12 +132,12 @@
                                 </form>
                             </td>
                             <td>{{ $revision->drawing_revision ?: '—' }}</td>
-                            <td class="mono">@if ($revision->modification_cost !== null){{ number_format((float) $revision->modification_cost) }}@elseif ($revision->legacy_baseline)<span class="muted">not recorded</span>@else — @endif</td>
-                            <td class="mono small">@if ($revision->casting_weight_kg || $revision->pour_weight_kg){{ $revision->casting_weight_kg !== null ? rtrim(rtrim(number_format((float) $revision->casting_weight_kg, 3), '0'), '.') : '—' }} / {{ $revision->pour_weight_kg !== null ? rtrim(rtrim(number_format((float) $revision->pour_weight_kg, 3), '0'), '.') : '—' }}@if ($revision->yieldPercent() !== null)<div class="muted">yield {{ $revision->yieldPercent() }} %@if ($revision->pieces_per_mould) · {{ $revision->pieces_per_mould }} pcs/mould @endif</div>@endif @elseif ($revision->legacy_baseline)<span class="muted">not recorded</span>@else — @endif</td>
+                            <td class="mono">@if ($revision->modification_cost !== null){{ \App\Support\Formats::number((float) $revision->modification_cost) }}@elseif ($revision->legacy_baseline)<span class="muted">not recorded</span>@else — @endif</td>
+                            <td class="mono small">@if ($revision->casting_weight_kg || $revision->pour_weight_kg){{ $revision->casting_weight_kg !== null ? rtrim(rtrim(\App\Support\Formats::number((float) $revision->casting_weight_kg, 3), '0'), '.') : '—' }} / {{ $revision->pour_weight_kg !== null ? rtrim(rtrim(\App\Support\Formats::number((float) $revision->pour_weight_kg, 3), '0'), '.') : '—' }}@if ($revision->yieldPercent() !== null)<div class="muted">yield {{ $revision->yieldPercent() }} %@if ($revision->pieces_per_mould) · {{ $revision->pieces_per_mould }} pcs/mould @endif</div>@endif @elseif ($revision->legacy_baseline)<span class="muted">not recorded</span>@else — @endif</td>
                             <td class="small" title="{{ $revision->arrangementLabel() }}">{{ $revision->castingLevels() }} × {{ $revision->cavities_per_mould ?? '?' }}<div class="muted">{{ \Illuminate\Support\Str::before($revision->arrangementLabel(), ' (') }}</div></td>
                             <td>{{ $revision->parting_type ?: '—' }}</td>
                             <td class="small">@if ($revision->shrinkage_percent !== null || $revision->tolerance_grade || $revision->machining_allowance_grade){{ $revision->shrinkage_percent !== null ? rtrim(rtrim($revision->shrinkage_percent, '0'), '.').' %' : '—' }}<div class="muted">{{ $revision->tolerance_grade ? 'CT '.$revision->tolerance_grade : '—' }} · {{ $revision->machining_allowance_grade ? 'RMAG '.$revision->machining_allowance_grade : '—' }}</div>@else — @endif</td>
-                            <td class="small">{{ $revision->effective_from?->format('d M Y') ?? '—' }} – {{ $revision->effective_to?->format('d M Y') ?? '' }}</td>
+                            <td class="small">{{ $revision->effective_from?->displayDate() ?? '—' }} – {{ $revision->effective_to?->displayDate() ?? '' }}</td>
                             <td>@foreach ($revisionPhotos->get($revision->id, collect()) as $photo)<a href="{{ route('attachments.download', $photo) }}" target="_blank">View</a> @endforeach</td>
                         </tr>
                         @if ($revision->change_description || $revision->shrinkage_note || $revision->engineering_notes || $revision->cost_note)

@@ -90,7 +90,7 @@
                         <td>{{ \Illuminate\Support\Str::before(\App\Models\Flask::POSITIONS[$f->position] ?? $f->position, ' (') }}</td>
                         <td><span class="status {{ $statusChip[$f->status] ?? '' }}">{{ \App\Models\Flask::STATUSES[$f->status] ?? $f->status }}</span></td>
                         <td class="small">@if ($f->currentMould)Mould {{ $f->currentMould->assembly_number }}@elseif ($f->currentRun)Run {{ $f->currentRun->run_number }}@else{{ $f->location ?: '—' }}@endif</td>
-                        <td class="mono">{{ number_format($f->cycles) }}</td>
+                        <td class="mono">{{ \App\Support\Formats::number($f->cycles) }}</td>
                         <td class="mono small">{{ $f->partner?->code ?? '—' }}</td>
                     </tr>
                 @endforeach

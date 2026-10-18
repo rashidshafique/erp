@@ -102,7 +102,7 @@
                     <td colspan="8" style="text-align:right">Total</td>
                     <td class="mono" data-total-made>{{ $made }}</td>
                     <td class="mono" data-total-rejected>{{ $rejected }}</td>
-                    <td colspan="4" class="mono" data-total-pct>{{ $made > 0 ? number_format(100 * $rejected / $made, 1).' % rejected' : '' }}</td>
+                    <td colspan="4" class="mono" data-total-pct>{{ $made > 0 ? \App\Support\Formats::number(100 * $rejected / $made, 1).' % rejected' : '' }}</td>
                 </tr></tfoot>
             </table>
         </div>

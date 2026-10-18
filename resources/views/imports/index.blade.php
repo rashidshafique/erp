@@ -19,7 +19,7 @@
 @if ($recent->isEmpty())<div class="empty-state">No imports yet.</div>@else
 <div class="table-wrap"><table><thead><tr><th>When</th><th>What</th><th>Source</th><th>Result</th><th>Status</th><th>By</th><th></th></tr></thead><tbody>
 @foreach ($recent as $r)
-<tr><td class="small">{{ $r->created_at->format('d M H:i') }}</td><td>{{ config('imports.entities.'.$r->entity.'.label') }}</td><td class="small">{{ $r->source_type }} · {{ \Illuminate\Support\Str::limit($r->source_label, 40) }}</td>
+<tr><td class="small">{{ $r->created_at->displayShortDateTime() }}</td><td>{{ config('imports.entities.'.$r->entity.'.label') }}</td><td class="small">{{ $r->source_type }} · {{ \Illuminate\Support\Str::limit($r->source_label, 40) }}</td>
 <td class="small">@if ($r->counts){{ $r->counts['CREATE'] }} added · {{ $r->counts['UPDATE'] }} updated · {{ $r->counts['ERROR'] }} errors @else — @endif</td>
 <td><span class="status {{ $cls[$r->status] ?? '' }}">{{ $r->status }}</span></td><td class="small">{{ $r->created_by_name ?? '—' }}</td>
 <td>@if ($r->status !== 'DISCARDED')<a href="{{ route('imports.show', $r) }}">{{ $r->status === 'COMMITTED' ? 'Open' : 'Continue' }} →</a>@endif</td></tr>

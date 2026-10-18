@@ -18,7 +18,7 @@
 <div class="table-wrap"><table>
 <thead><tr><th>Code</th><th>Name</th><th>Designation</th><th>Department</th><th>Location</th><th>Joined</th><th>Status</th></tr></thead>
 <tbody>@foreach ($employees as $x)
-<tr><td><a href="{{ route('hr.employees.show', $x) }}"><strong>{{ $x->code }}</strong></a></td><td>{{ $x->full_name }}</td><td>{{ $x->designation?->name ?? '—' }}</td><td>{{ $x->department?->name ?? '—' }}</td><td>{{ $x->location?->name ?? '—' }}</td><td>{{ $x->joined_on->format('d M Y') }}</td><td>@include('hr._chip', ['s' => $x->status])</td></tr>
+<tr><td><a href="{{ route('hr.employees.show', $x) }}"><strong>{{ $x->code }}</strong></a></td><td>{{ $x->full_name }}</td><td>{{ $x->designation?->name ?? '—' }}</td><td>{{ $x->department?->name ?? '—' }}</td><td>{{ $x->location?->name ?? '—' }}</td><td>{{ $x->joined_on->displayDate() }}</td><td>@include('hr._chip', ['s' => $x->status])</td></tr>
 @endforeach</tbody></table></div>
 <div class="panel-body">{{ $employees->links() }}</div>
 @endif

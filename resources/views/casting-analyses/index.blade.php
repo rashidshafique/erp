@@ -62,7 +62,7 @@
                             <td>{{ $r->product ? $r->product->code : '—' }}</td>
                             <td>{{ $rec['family_label'] ?? '—' }}</td>
                             <td>@if ($r->score !== null)<strong>{{ $r->score }}</strong> <span class="muted">({{ $r->score_letter }})</span>@else — @endif</td>
-                            <td>@if ($rec){{ number_format($rec['times']['hotspots_min'][array_key_first($rec['times']['hotspots_min'])] ?? 0, 1) }} min @else — @endif</td>
+                            <td>@if ($rec){{ \App\Support\Formats::number($rec['times']['hotspots_min'][array_key_first($rec['times']['hotspots_min'])] ?? 0, 1) }} min @else — @endif</td>
                             <td><span class="status {{ $r->status === 'COMPLETE' ? 'status-completed' : 'status-cancelled' }}">{{ $r->status }}</span></td>
                             <td class="muted small">{{ $r->created_at->diffForHumans() }}</td>
                             <td><a href="{{ route('casting-analyses.show', $r) }}">Open →</a></td>

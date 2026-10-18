@@ -3,7 +3,7 @@
 @section('breadcrumb')<a href="{{ route('imports.index') }}">Import data</a> / {{ $def['label'] }} / Result @endsection
 @section('content')
 @php $c = $b->counts; $cls = ['CREATE' => 'status-completed', 'UPDATE' => 'status-in-progress', 'UNCHANGED' => 'status-on-hold', 'SKIP' => 'status-on-hold', 'ERROR' => 'status-cancelled']; $bad = collect($b->report)->where('action', 'ERROR'); @endphp
-<div class="page-heading"><div><h1>Import finished</h1><p>{{ $def['label'] }} from {{ $b->source_label }}, {{ $b->committed_at?->format('d M Y H:i') }} by {{ $b->created_by_name ?? '—' }}.</p></div>
+<div class="page-heading"><div><h1>Import finished</h1><p>{{ $def['label'] }} from {{ $b->source_label }}, {{ $b->committed_at?->displayDateTime() }} by {{ $b->created_by_name ?? '—' }}.</p></div>
 <div class="actions"><a class="btn" href="{{ route('imports.report', $b) }}">Download the full report (CSV)</a> <a class="btn btn-primary" href="{{ route('imports.create', ['entity' => $b->entity]) }}">Import another file</a></div></div>
 <div class="panel"><div class="panel-body"><strong>{{ $c['CREATE'] }}</strong> added · <strong>{{ $c['UPDATE'] }}</strong> updated · {{ $c['UNCHANGED'] }} unchanged · {{ $c['SKIP'] }} skipped · <span style="{{ $c['ERROR'] ? 'color:#b00020' : '' }}">{{ $c['ERROR'] }} with errors</span> (of {{ $c['TOTAL'] }} rows)</div></div>
 @if ($bad->isNotEmpty())

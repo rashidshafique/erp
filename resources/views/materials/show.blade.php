@@ -22,7 +22,7 @@
         <div><small>Status</small><h3>{{ $material->status }}</h3></div>
         <div><small>Lot records</small><h3>{{ $material->lots->count() }}</h3></div>
         <div><small>Recipe components</small><h3>{{ $material->charge_batch_items_count }}</h3></div>
-        <div><small>Standard cost</small><h3>{{ $material->standard_cost_per_uom !== null ? number_format((float)$material->standard_cost_per_uom, 4).' PKR/'.$material->base_uom : 'Not set' }}</h3></div>
+        <div><small>Standard cost</small><h3>{{ $material->standard_cost_per_uom !== null ? \App\Support\Formats::number((float)$material->standard_cost_per_uom, 4).' PKR/'.$material->base_uom : 'Not set' }}</h3></div>
     </div>
     @if($material->description)<p>{{ $material->description }}</p>@endif
     @if($material->notes)<p><strong>Notes:</strong> {{ $material->notes }}</p>@endif
@@ -57,11 +57,11 @@
             <tr>
                 <td>{{ $lot->lot_number }}</td>
                 <td>{{ $lot->supplier_name_snapshot ?: '—' }}</td>
-                <td>{{ number_format((float) $lot->received_qty, 3) }}</td>
-                <td>{{ number_format((float) $lot->accepted_qty, 3) }}</td>
+                <td>{{ \App\Support\Formats::number((float) $lot->received_qty, 3) }}</td>
+                <td>{{ \App\Support\Formats::number((float) $lot->accepted_qty, 3) }}</td>
                 <td>
                     {{ $lot->unit_cost !== null
-                        ? number_format((float) $lot->unit_cost, 4).' '.$lot->currency_code
+                        ? \App\Support\Formats::number((float) $lot->unit_cost, 4).' '.$lot->currency_code
                         : '—' }}
                 </td>
                 <td>{{ $lot->status }}</td>
@@ -73,9 +73,9 @@
                             {{ $receipt->movement_number }}
                         </div>
                         <small>
-                            {{ number_format((float) $receipt->quantity, 3) }} kg
+                            {{ \App\Support\Formats::number((float) $receipt->quantity, 3) }} kg
                             · PKR
-                            {{ number_format((float) $receipt->total_cost, 2) }}
+                            {{ \App\Support\Formats::number((float) $receipt->total_cost, 2) }}
                         </small>
                     @elseif($canPostReceipt)
                         <details>
@@ -94,7 +94,7 @@
 
                                 <p>
                                     This will add
-                                    {{ number_format((float) $lot->accepted_qty, 3) }}
+                                    {{ \App\Support\Formats::number((float) $lot->accepted_qty, 3) }}
                                     kg to the stock ledger and create its cost layer.
                                 </p>
 

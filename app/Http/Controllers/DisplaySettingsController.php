@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AppSetting;
+use App\Support\Formats;
 use App\Support\UiSettings;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -33,6 +34,26 @@ class DisplaySettingsController extends Controller
         UiSettings::flush();
 
         return back()->with('success', 'Font saved.');
+    }
+
+    /** Date, time, number and currency styles used on every screen. Stored data is never changed. */
+    public function updateFormats(Request $request)
+    {
+        $d = $request->validate([
+            'date' => ['required', Rule::in(array_keys(Formats::DATES))],
+            'time' => ['required', Rule::in(array_keys(Formats::TIMES))],
+            'number' => ['required', Rule::in(array_keys(Formats::NUMBERS))],
+            'currency' => ['nullable', 'string', 'max:8'],
+            'currency_position' => ['required', Rule::in(['before', 'after'])],
+        ]);
+        AppSetting::setValue('format.date', $d['date'], 'How dates are shown');
+        AppSetting::setValue('format.time', $d['time'], 'How times are shown');
+        AppSetting::setValue('format.number', $d['number'], 'Decimal and thousands separators');
+        AppSetting::setValue('format.currency', trim((string) ($d['currency'] ?? '')), 'Currency symbol or code');
+        AppSetting::setValue('format.currency_position', $d['currency_position'], 'Currency before or after the amount');
+        Formats::flush();
+
+        return back()->with('success', 'Formats saved.');
     }
 
     public function update(Request $request)

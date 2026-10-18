@@ -53,10 +53,10 @@ class SalaryService
         });
         $g = $e->grade;
         if ($g && $g->min_salary && $basic < (float) $g->min_salary) {
-            $warnings[] = 'The basic is below the '.$g->name.' band (minimum '.number_format($g->min_salary).').';
+            $warnings[] = 'The basic is below the '.$g->name.' band (minimum '.\App\Support\Formats::number($g->min_salary).').';
         }
         if ($g && $g->max_salary && $basic > (float) $g->max_salary) {
-            $warnings[] = 'The basic is above the '.$g->name.' band (maximum '.number_format($g->max_salary).').';
+            $warnings[] = 'The basic is above the '.$g->name.' band (maximum '.\App\Support\Formats::number($g->max_salary).').';
         }
 
         return ['salary' => $salary, 'warnings' => $warnings];

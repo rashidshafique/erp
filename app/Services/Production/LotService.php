@@ -34,7 +34,7 @@ class LotService
                 $cool = $this->cooling($lot);
                 if ($cool && $cool['wait'] > 0) {
                     if (blank($d['cooling_override_reason'] ?? null)) {
-                        throw new InvalidArgumentException("Only {$cool['elapsed']} of the {$cool['minimum']} minutes of cooling since the pour have passed (ready at {$cool['ready_at']->format('d M H:i')}). Enter a reason to shake out early.");
+                        throw new InvalidArgumentException("Only {$cool['elapsed']} of the {$cool['minimum']} minutes of cooling since the pour have passed (ready at {$cool['ready_at']->displayShortDateTime()}). Enter a reason to shake out early.");
                     }
                     $d['notes'] = trim(($d['notes'] ?? '')." EARLY SHAKEOUT after {$cool['elapsed']} of {$cool['minimum']} min: ".$d['cooling_override_reason']);
                 }

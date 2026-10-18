@@ -145,9 +145,9 @@ class Measurements
             return ['state' => 'NONE', 'text' => "No {$sys->name} sand test in the 24 hours before this run.", 'set' => null];
         }
         if ($set->result === 'FAIL') {
-            return ['state' => 'FAIL', 'text' => "Latest {$sys->name} sand test ({$set->taken_at->format('d M H:i')}) FAILED: ".implode('; ', $set->findings ?? []), 'set' => $set];
+            return ['state' => 'FAIL', 'text' => "Latest {$sys->name} sand test ({$set->taken_at->displayShortDateTime()}) FAILED: ".implode('; ', $set->findings ?? []), 'set' => $set];
         }
 
-        return ['state' => 'OK', 'text' => "Latest {$sys->name} sand test ({$set->taken_at->format('d M H:i')}): {$set->result}.", 'set' => $set];
+        return ['state' => 'OK', 'text' => "Latest {$sys->name} sand test ({$set->taken_at->displayShortDateTime()}): {$set->result}.", 'set' => $set];
     }
 }

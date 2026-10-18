@@ -10,9 +10,9 @@
     </div>
     <div class="panel-body">
         <dl class="tool-facts" style="margin-bottom:{{ $toolLife['limits']->isEmpty() ? '0' : '18px' }}">
-            <div><dt>Condition</dt><dd>@if ($pattern->condition_grade)<span class="status {{ ['A' => 'status-completed', 'B' => 'status-on-hold'][$pattern->condition_grade] ?? 'status-cancelled' }}">{{ $pattern->condition_grade }} · {{ \App\Models\Pattern::CONDITIONS[$pattern->condition_grade] }}</span><span class="sub">graded {{ $pattern->condition_graded_on?->format('d M Y') }}</span>@else<span class="muted">Not graded</span><span class="sub"><a href="{{ route('patterns.edit', $pattern) }}">Grade it</a></span>@endif</dd></div>
-            <div><dt>Last maintenance</dt><dd>{{ $toolLife['lastDone']?->completed_at?->format('d M Y') ?? '—' }}@if ($toolLife['lastDone'])<span class="sub">{{ ucfirst(strtolower(str_replace('_', ' ', $toolLife['lastDone']->activity_type))) }} · {{ $toolLife['lastDone']->record_number }}</span>@endif</dd></div>
-            <div><dt>Next inspection due</dt><dd @if ($overdue) style="color:var(--danger)" @endif>{{ $toolLife['nextInspection']?->format('d M Y') ?? '—' }}@if ($overdue)<span class="sub">overdue</span>@endif</dd></div>
+            <div><dt>Condition</dt><dd>@if ($pattern->condition_grade)<span class="status {{ ['A' => 'status-completed', 'B' => 'status-on-hold'][$pattern->condition_grade] ?? 'status-cancelled' }}">{{ $pattern->condition_grade }} · {{ \App\Models\Pattern::CONDITIONS[$pattern->condition_grade] }}</span><span class="sub">graded {{ $pattern->condition_graded_on?->displayDate() }}</span>@else<span class="muted">Not graded</span><span class="sub"><a href="{{ route('patterns.edit', $pattern) }}">Grade it</a></span>@endif</dd></div>
+            <div><dt>Last maintenance</dt><dd>{{ $toolLife['lastDone']?->completed_at?->displayDate() ?? '—' }}@if ($toolLife['lastDone'])<span class="sub">{{ ucfirst(strtolower(str_replace('_', ' ', $toolLife['lastDone']->activity_type))) }} · {{ $toolLife['lastDone']->record_number }}</span>@endif</dd></div>
+            <div><dt>Next inspection due</dt><dd @if ($overdue) style="color:var(--danger)" @endif>{{ $toolLife['nextInspection']?->displayDate() ?? '—' }}@if ($overdue)<span class="sub">overdue</span>@endif</dd></div>
             <div><dt>Open maintenance jobs</dt><dd>{{ $toolLife['openJobs'] }}</dd></div>
         </dl>
         @if ($toolLife['limits']->isEmpty())

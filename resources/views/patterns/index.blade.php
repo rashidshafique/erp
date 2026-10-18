@@ -17,19 +17,19 @@
 <div class="metrics">
     <div class="metric">
         <div class="metric-label">Total patterns</div>
-        <div class="metric-value">{{ number_format($totalPatterns) }}</div>
+        <div class="metric-value">{{ \App\Support\Formats::number($totalPatterns) }}</div>
     </div>
     <div class="metric">
         <div class="metric-label">Active</div>
-        <div class="metric-value">{{ number_format($activePatterns) }}</div>
+        <div class="metric-value">{{ \App\Support\Formats::number($activePatterns) }}</div>
     </div>
     <div class="metric">
         <div class="metric-label">Inactive / retired</div>
-        <div class="metric-value">{{ number_format($otherPatterns) }}</div>
+        <div class="metric-value">{{ \App\Support\Formats::number($otherPatterns) }}</div>
     </div>
     <div class="metric">
         <div class="metric-label">Matching results</div>
-        <div class="metric-value">{{ number_format($patterns->total()) }}</div>
+        <div class="metric-value">{{ \App\Support\Formats::number($patterns->total()) }}</div>
     </div>
 </div>
 

@@ -26,22 +26,22 @@
     <div class="metrics">
         <div class="metric">
             <div class="metric-label">Moulds made</div>
-            <div class="metric-value">{{ number_format($run->moulds_made_qty) }}</div>
+            <div class="metric-value">{{ \App\Support\Formats::number($run->moulds_made_qty) }}</div>
             <div class="metric-note">Recorded total output</div>
         </div>
         <div class="metric">
             <div class="metric-label">Accepted moulds</div>
-            <div class="metric-value">{{ number_format($run->accepted_mould_qty) }}</div>
+            <div class="metric-value">{{ \App\Support\Formats::number($run->accepted_mould_qty) }}</div>
             <div class="metric-note">Accepted at moulding stage</div>
         </div>
         <div class="metric">
             <div class="metric-label">Damaged moulds</div>
-            <div class="metric-value">{{ number_format($run->damaged_mould_qty) }}</div>
+            <div class="metric-value">{{ \App\Support\Formats::number($run->damaged_mould_qty) }}</div>
             <div class="metric-note">Moulding damage only</div>
         </div>
         <div class="metric">
             <div class="metric-label">Downtime</div>
-            <div class="metric-value">{{ number_format($run->downtime_minutes) }}</div>
+            <div class="metric-value">{{ \App\Support\Formats::number($run->downtime_minutes) }}</div>
             <div class="metric-note">Minutes recorded</div>
         </div>
     </div>
@@ -96,9 +96,9 @@
                 <div>
                     <div class="detail-label">Expected products per mould (cavity map)</div>
                     <div class="detail-value">
-                        {{ rtrim(rtrim(number_format($perMould, 3), '0'), '.') }}
+                        {{ rtrim(rtrim(\App\Support\Formats::number($perMould, 3), '0'), '.') }}
                         &middot; accepted moulds {{ $run->accepted_mould_qty }}
-                        &rarr; about {{ rtrim(rtrim(number_format($perMould * $run->accepted_mould_qty, 1), '0'), '.') }} products
+                        &rarr; about {{ rtrim(rtrim(\App\Support\Formats::number($perMould * $run->accepted_mould_qty, 1), '0'), '.') }} products
                     </div>
                 </div>
                 @endif
@@ -143,28 +143,28 @@
                 <div>
                     <div class="detail-label">Planned moulds</div>
                     <div class="detail-value">
-                        {{ number_format($run->planned_mould_qty ?? 0) }}
+                        {{ \App\Support\Formats::number($run->planned_mould_qty ?? 0) }}
                     </div>
                 </div>
 
                 <div>
                     <div class="detail-label">Started at</div>
                     <div class="detail-value">
-                        {{ $run->started_at?->format('d M Y, H:i') ?? '—' }}
+                        {{ $run->started_at?->displayDateTime() ?? '—' }}
                     </div>
                 </div>
 
                 <div>
                     <div class="detail-label">Completed at</div>
                     <div class="detail-value">
-                        {{ $run->completed_at?->format('d M Y, H:i') ?? '—' }}
+                        {{ $run->completed_at?->displayDateTime() ?? '—' }}
                     </div>
                 </div>
 
                 <div>
                     <div class="detail-label">Record created</div>
                     <div class="detail-value">
-                        {{ $run->created_at?->format('d M Y, H:i') ?? '—' }}
+                        {{ $run->created_at?->displayDateTime() ?? '—' }}
                     </div>
                 </div>
             </div>
@@ -218,7 +218,7 @@
                     <tbody>
                     @foreach ($run->mouldAssemblies as $a)
                         <tr><td>{{ $a->assembly_number }}</td><td>{{ str_replace('_', ' ', $a->status) }}</td>
-                            <td>{{ $a->assembled_at?->format('d M H:i') }}<div class="muted small">{{ $a->assembled_by }}</div></td>
+                            <td>{{ $a->assembled_at?->displayShortDateTime() }}<div class="muted small">{{ $a->assembled_by }}</div></td>
                             <td>@if ($a->pourAssignment?->pour)<a href="{{ route('pours.show', $a->pourAssignment->pour) }}">{{ $a->pourAssignment->pour->pour_number }}</a>@else<span class="muted">not poured</span>@endif</td>
                             <td class="small">
                                 @if ($a->is_flaskless)<span class="muted">Flaskless</span>

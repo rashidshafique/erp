@@ -46,8 +46,8 @@
             ['Urgent active jobs', $urgentCount],
             ['Active breakdowns', $breakdownCount],
             ['Overdue inspections', $overdueCount],
-            ['Recorded downtime (hours)', number_format($downtimeHours, 2)],
-            ['All-time maintenance spend (PKR)', number_format($maintenanceSpend, 2)],
+            ['Recorded downtime (hours)', \App\Support\Formats::number($downtimeHours, 2)],
+            ['All-time maintenance spend (PKR)', \App\Support\Formats::number($maintenanceSpend, 2)],
         ] as [$label, $value])
             <div class="card">
                 <div class="label">{{ $label }}</div>
@@ -88,8 +88,8 @@
                         <td>{{ $record->activity_type }}</td>
                         <td>{{ $record->priority }}</td>
                         <td>{{ $record->status }}</td>
-                        <td>{{ $record->reported_at?->format('d M Y H:i') ?? '—' }}</td>
-                        <td>{{ number_format((float) $record->downtime_hours, 2) }}</td>
+                        <td>{{ $record->reported_at?->displayDateTime() ?? '—' }}</td>
+                        <td>{{ \App\Support\Formats::number((float) $record->downtime_hours, 2) }}</td>
                     </tr>
                 @empty
                     <tr><td colspan="7">No active maintenance jobs.</td></tr>
