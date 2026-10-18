@@ -86,7 +86,6 @@ use App\Http\Controllers\ThermalTestController;
 use App\Http\Controllers\ToolController;
 use App\Http\Controllers\ToolingLifeDashboardController;
 use App\Http\Controllers\ToolingLifeLimitController;
-use App\Http\Controllers\ToolingMaintenanceAttachmentController;
 use App\Http\Controllers\ToolingMaintenanceDashboardController;
 use App\Http\Controllers\ToolingMaintenanceHistoryController;
 use App\Http\Controllers\ToolingMaintenanceRecordController;
@@ -232,16 +231,6 @@ Route::post(
     '/tooling-maintenance',
     [ToolingMaintenanceRecordController::class, 'store']
 )->name('tooling-maintenance.store');
-
-Route::post(
-    '/tooling-maintenance/{toolingMaintenance}/attachments',
-    [ToolingMaintenanceAttachmentController::class, 'store']
-)->name('tooling-maintenance.attachments.store');
-
-Route::delete(
-    '/tooling-maintenance/{toolingMaintenance}/attachments/{attachment}',
-    [ToolingMaintenanceAttachmentController::class, 'destroy']
-)->name('tooling-maintenance.attachments.destroy');
 
 Route::get(
     '/tooling-maintenance/{toolingMaintenance}',

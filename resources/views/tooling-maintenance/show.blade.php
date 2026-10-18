@@ -30,7 +30,7 @@
     <p><a href="{{ route('tooling-maintenance.index') }}">← Back to register</a></p>
 
     @if (session('success')) <div class="success">{{ session('success') }}</div> @endif
-<a href="{{ route('tooling-maintenance.history', $toolingMaintenance) }}">
+<a href="{{ route('tooling-maintenance.history', $record) }}">
     View complete tooling history →
 </a>
     <p><a class="btn" href="{{ route('tooling-maintenance.edit', $record) }}">Edit record</a></p>
@@ -44,7 +44,7 @@
             ?? $record->mouldAssembly?->assembly_number
             ?? 'Tooling item unavailable';
         $totalCost = (float) $record->parts_cost + (float) $record->other_cost;
-        // The tool itself can carry photos and drawings (the maintenance photos below belong to this job only).
+        // The tool itself can carry photos and drawings (the files at the bottom belong to this job only).
         [$toolKey, $toolId] = match (true) {
             (bool) $record->pattern_id => ['pattern', $record->pattern_id],
             (bool) $record->patternRevision?->pattern_id => ['pattern', $record->patternRevision->pattern_id],
@@ -100,81 +100,7 @@
         </div>
     </section>
 
-<section class="panel">
-    <h2>Maintenance photos</h2>
-    <p class="label">Upload clear photos of the tooling condition before and after maintenance. Accepted formats: JPG, PNG and WebP; maximum 10 MB each.</p>
-
-    @if ($errors->any())
-        <ul>
-            @foreach ($errors->all() as $error)
-                <li>{{ $error }}</li>
-            @endforeach
-        </ul>
-    @endif
-
-    <form method="POST"
-          enctype="multipart/form-data"
-          action="{{ route('tooling-maintenance.attachments.store', $record) }}">
-        @csrf
-        <p>
-            <label for="photos">Choose photos</label>
-            <input id="photos" type="file" name="photos[]" accept="image/jpeg,image/png,image/webp" multiple required>
-        </p>
-        <p>
-            <label for="uploaded_by">Uploaded by</label>
-            <input id="uploaded_by" name="uploaded_by" maxlength="255">
-        </p>
-        <p class="label">Captions are optional. Add one caption per selected photo in the same order.</p>
-        <div id="photo-captions"></div>
-        <button class="btn" type="submit">Upload photos</button>
-    </form>
-
-    <div class="grid" style="margin-top:20px">
-        @forelse ($record->attachments as $attachment)
-            <div style="border:1px solid #dfe5eb;border-radius:8px;padding:12px;min-width:0">
-                <a href="{{ Storage::disk($attachment->disk)->url($attachment->path) }}" target="_blank" rel="noopener">
-                    <img
-                        src="{{ Storage::disk($attachment->disk)->url($attachment->path) }}"
-                        alt="{{ $attachment->caption ?? 'Maintenance photo' }}"
-                        style="width:100%;max-height:260px;object-fit:contain;background:#f3f5f8">
-                </a>
-                <p>{{ $attachment->caption ?: 'No caption' }}</p>
-                <p class="label">{{ $attachment->original_filename }} · {{ $attachment->created_at?->format('d M Y H:i') }}</p>
-                <form method="POST" action="{{ route('tooling-maintenance.attachments.destroy', [$record, $attachment]) }}" onsubmit="return confirm('Delete this photo?')">
-                    @csrf
-                    @method('DELETE')
-                    @include('partials.icon-button', ['type' => 'delete', 'word' => 'Delete photo'])
-                </form>
-            </div>
-        @empty
-            <p>No photos have been uploaded for this maintenance record.</p>
-        @endforelse
-    </div>
-</section>
-
-<script>
-const photoInput = document.getElementById('photos');
-const captionsContainer = document.getElementById('photo-captions');
-
-photoInput.addEventListener('change', () => {
-    captionsContainer.innerHTML = '';
-
-    Array.from(photoInput.files).forEach((file, index) => {
-        const label = document.createElement('label');
-        label.textContent = `Caption for ${file.name}`;
-        label.style.display = 'block';
-        label.style.marginTop = '10px';
-
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.name = `captions[${index}]`;
-        input.maxLength = 500;
-        input.style.width = '100%';
-
-        captionsContainer.append(label, input);
-    });
-});
-</script>
+    @include('attachments._panel', ['type' => 'tooling_maintenance', 'id' => $record->id])
 </div>
 </div>
 @endsection

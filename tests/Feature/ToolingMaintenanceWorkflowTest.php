@@ -18,7 +18,7 @@ class ToolingMaintenanceWorkflowTest extends TestCase
     private function createPattern(): Pattern
     {
         return Pattern::create([
-            'code' => 'WF-' . Str::upper(Str::random(8)),
+            'code' => 'WF-'.Str::upper(Str::random(8)),
             'name' => 'Workflow Test Pattern',
         ]);
     }
@@ -33,7 +33,7 @@ class ToolingMaintenanceWorkflowTest extends TestCase
             'id' => $id,
             'tooling_type' => 'PATTERN',
             'pattern_id' => $pattern->id,
-            'record_number' => 'TM-' . Str::upper(Str::random(10)),
+            'record_number' => 'TM-'.Str::upper(Str::random(10)),
             'activity_type' => 'INSPECTION',
             'status' => 'OPEN',
             'priority' => 'NORMAL',
@@ -49,140 +49,53 @@ class ToolingMaintenanceWorkflowTest extends TestCase
         return ToolingMaintenanceRecord::findOrFail($id);
     }
 
-    public function test_photo_upload_creates_attachment_and_stores_file(): void
+    public function test_photos_attach_to_a_maintenance_record_through_the_shared_files(): void
     {
-        Storage::fake('public');
+        Storage::fake(config('foundry.attachments.disk'));
 
         $pattern = $this->createPattern();
         $record = $this->createMaintenanceRecord($pattern);
-        $photo = new UploadedFile(
-            base_path('tests/Fixtures/test-image.png'),
-            'pattern-damage.png',
-            'image/png',
-            null,
-            true
-        );
+        $photo = new UploadedFile(base_path('tests/Fixtures/test-image.png'), 'pattern-damage.png', 'image/png', null, true);
 
-        $response = $this->post(
-            route('tooling-maintenance.attachments.store', $record),
-            [
-                'photos' => [$photo],
-                'captions' => ['Visible crack near the cavity'],
-                'uploaded_by' => 'Foundry maintenance',
-            ]
-        );
-
-        $response->assertRedirect(
-            route('tooling-maintenance.show', $record)
-        );
-
-        $this->assertDatabaseHas('tooling_maintenance_attachments', [
-            'tooling_maintenance_record_id' => $record->id,
-            'original_filename' => 'pattern-damage.png',
-            'caption' => 'Visible crack near the cavity',
-            'uploaded_by' => 'Foundry maintenance',
-            'disk' => 'public',
-        ]);
+        $this->post(route('attachments.store', ['tooling_maintenance', $record->id]), [
+            'files' => [$photo],
+            'category' => 'PHOTO',
+            'title' => 'Visible crack near the cavity',
+        ])->assertSessionHasNoErrors();
 
         $attachment = $record->attachments()->firstOrFail();
-
-        Storage::disk('public')->assertExists($attachment->path);
+        $this->assertSame('pattern-damage.png', $attachment->original_name);
+        Storage::disk(config('foundry.attachments.disk'))->assertExists($attachment->path);
+        $this->get(route('tooling-maintenance.show', $record))->assertOk()->assertSee('Visible crack near the cavity');
     }
 
-    public function test_photo_upload_requires_at_least_one_photo(): void
+    public function test_old_maintenance_photos_move_to_the_private_disk(): void
     {
         Storage::fake('public');
+        Storage::fake(config('foundry.attachments.disk'));
 
         $pattern = $this->createPattern();
         $record = $this->createMaintenanceRecord($pattern);
-
-        $response = $this->from(
-            route('tooling-maintenance.show', $record)
-        )->post(
-            route('tooling-maintenance.attachments.store', $record),
-            ['photos' => []]
-        );
-
-        $response->assertSessionHasErrors('photos');
-
-        $this->assertDatabaseCount('tooling_maintenance_attachments', 0);
-    }
-
-    public function test_photo_can_be_deleted_from_its_maintenance_record(): void
-    {
-        Storage::fake('public');
-
-        $pattern = $this->createPattern();
-        $record = $this->createMaintenanceRecord($pattern);
-
-        $path = 'tooling-maintenance/' . $record->id . '/test-photo.jpg';
-
-        Storage::disk('public')->put($path, 'fake image content');
-
-        $attachment = $record->attachments()->create([
-            'disk' => 'public',
-            'path' => $path,
-            'original_filename' => 'test-photo.jpg',
-            'mime_type' => 'image/jpeg',
-            'size_bytes' => 18,
-            'caption' => 'Test photo',
+        $oldPath = 'tooling-maintenance/'.$record->id.'/crack.jpg';
+        Storage::disk('public')->put($oldPath, 'fake image content');
+        $id = (string) Str::uuid();
+        DB::table('tooling_maintenance_attachments')->insert([
+            'id' => $id, 'tooling_maintenance_record_id' => $record->id, 'disk' => 'public', 'path' => $oldPath,
+            'original_filename' => 'crack.jpg', 'mime_type' => 'image/jpeg', 'size_bytes' => 18, 'caption' => 'Crack', 'uploaded_by' => 'Fitter',
+            'created_at' => now(), 'updated_at' => now(),
         ]);
 
-        $response = $this->delete(
-            route('tooling-maintenance.attachments.destroy', [
-                'toolingMaintenance' => $record,
-                'attachment' => $attachment,
-            ])
-        );
+        $migration = require database_path('migrations/2026_10_22_100000_move_tooling_maintenance_photos_to_attachments.php');
+        $migration->up();
+        $migration->up();   // running again does not copy twice
 
-        $response->assertRedirect(
-            route('tooling-maintenance.show', $record)
-        );
-
-        $this->assertDatabaseMissing(
-            'tooling_maintenance_attachments',
-            ['id' => $attachment->id]
-        );
-
-        Storage::disk('public')->assertMissing($path);
-    }
-
-    public function test_attachment_cannot_be_deleted_through_another_record(): void
-    {
-        Storage::fake('public');
-
-        $firstPattern = $this->createPattern();
-        $secondPattern = $this->createPattern();
-
-        $firstRecord = $this->createMaintenanceRecord($firstPattern);
-        $secondRecord = $this->createMaintenanceRecord($secondPattern);
-
-        $path = 'tooling-maintenance/' . $firstRecord->id . '/protected.jpg';
-
-        Storage::disk('public')->put($path, 'fake image content');
-
-        $attachment = $firstRecord->attachments()->create([
-            'disk' => 'public',
-            'path' => $path,
-            'original_filename' => 'protected.jpg',
-            'mime_type' => 'image/jpeg',
-            'size_bytes' => 18,
-        ]);
-
-        $response = $this->delete(
-            route('tooling-maintenance.attachments.destroy', [
-                'toolingMaintenance' => $secondRecord,
-                'attachment' => $attachment,
-            ])
-        );
-
-        $response->assertNotFound();
-
-        $this->assertDatabaseHas('tooling_maintenance_attachments', [
-            'id' => $attachment->id,
-        ]);
-
-        Storage::disk('public')->assertExists($path);
+        $moved = $record->attachments()->sole();
+        $this->assertSame($id, $moved->id);
+        $this->assertSame(['PHOTO', 'Crack', 'crack.jpg', 'Fitter'], [$moved->category, $moved->title, $moved->original_name, $moved->uploaded_by_name]);
+        $this->assertSame(hash('sha256', 'fake image content'), $moved->sha256);
+        Storage::disk(config('foundry.attachments.disk'))->assertExists($moved->path);
+        Storage::disk('public')->assertMissing($oldPath);
+        $this->get(route('attachments.download', $moved))->assertOk();
     }
 
     public function test_history_page_shows_the_selected_tooling_history(): void

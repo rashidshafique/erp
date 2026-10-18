@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Attachment;
 use App\Models\ToolingMaintenanceRecord;
 use Illuminate\Contracts\View\View;
 
@@ -44,7 +45,11 @@ class ToolingMaintenanceHistoryController extends Controller
                 'mouldConfiguration',
                 'mouldAssembly',
             ])
-            ->withCount('attachments')
+            ->select('tooling_maintenance_records.*')
+            ->addSelect(['attachments_count' => Attachment::selectRaw('count(*)')
+                ->where('attachable_type', 'tooling_maintenance')
+                ->whereNull('removed_at')
+                ->whereRaw('attachments.attachable_id = CAST(tooling_maintenance_records.id AS VARCHAR)')])
             ->orderByDesc('reported_at')
             ->orderByDesc('created_at')
             ->paginate(20)

@@ -87,7 +87,9 @@ class ToolingMaintenanceRecord extends Model
 
     public function attachments(): HasMany
     {
-        return $this->hasMany(ToolingMaintenanceAttachment::class)
+        return $this->hasMany(Attachment::class, 'attachable_id')
+            ->where('attachable_type', 'tooling_maintenance')
+            ->whereNull('removed_at')
             ->latest('created_at');
     }
 
