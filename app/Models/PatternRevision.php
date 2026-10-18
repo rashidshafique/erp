@@ -36,6 +36,13 @@ class PatternRevision extends Model
         'OTHER' => 'Other',
     ];
 
+    /** ISO 8062-3 casting tolerance grades (DCTG) and machining allowance grades (RMAG) a drawing can call out. */
+    public const TOLERANCE_GRADES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+
+    public const PARTING_TYPES = ['HORIZONTAL', 'VERTICAL', 'SINGLE_SIDED', 'OTHER'];
+
+    public const ALLOWANCE_GRADES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K'];
+
     protected $fillable = [
         'pattern_id',
         'revision',
@@ -47,6 +54,9 @@ class PatternRevision extends Model
         'legacy_baseline',
         'drawing_revision',
         'shrinkage_note',
+        'shrinkage_percent',
+        'tolerance_grade',
+        'machining_allowance_grade',
         'modification_cost',
         'cost_note',
         'casting_weight_kg',
@@ -68,6 +78,7 @@ class PatternRevision extends Model
     ];
 
     protected $casts = [
+        'shrinkage_percent' => 'decimal:3',
         'sequence' => 'integer',
         'is_current' => 'boolean',
         'legacy_baseline' => 'boolean',

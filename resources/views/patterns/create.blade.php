@@ -84,6 +84,24 @@
                            value="{{ old('pattern_weight_kg') }}">
                 </div>
                 <div class="field">
+                    <label for="shrinkage_percent">Shrinkage allowance (%)</label>
+                    <input id="shrinkage_percent" name="shrinkage_percent" type="number" min="0" max="9.999" step="0.001" value="{{ old('shrinkage_percent') }}" placeholder="e.g. 1.0">
+                </div>
+                <div class="field">
+                    <label for="tolerance_grade">Casting tolerance grade (ISO 8062 CT)</label>
+                    <select id="tolerance_grade" name="tolerance_grade">
+                        <option value="">Not specified</option>
+                        @foreach (\App\Models\PatternRevision::TOLERANCE_GRADES as $grade)<option value="{{ $grade }}" @selected((string) old('tolerance_grade') === (string) $grade)>CT {{ $grade }}</option>@endforeach
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="machining_allowance_grade">Machining allowance grade (RMAG)</label>
+                    <select id="machining_allowance_grade" name="machining_allowance_grade">
+                        <option value="">Not specified</option>
+                        @foreach (\App\Models\PatternRevision::ALLOWANCE_GRADES as $grade)<option value="{{ $grade }}" @selected(old('machining_allowance_grade') === $grade)>{{ $grade }}</option>@endforeach
+                    </select>
+                </div>
+                <div class="field">
                     <label for="effective_from">Effective from</label>
                     <input id="effective_from" name="effective_from" type="date"
                            value="{{ old('effective_from') }}">

@@ -6,13 +6,11 @@
            value="{{ old('code', $pattern->code) }}" placeholder="{{ $pattern->exists ? '' : 'Leave blank to generate: '.app(\App\Services\Codes\CodeGenerator::class)->preview('pattern') }}">
     @if ($pattern->exists)<div class="help">Revision codes already issued keep the code they were made with.</div>@endif
 </div>
-@if ($pattern->exists)
 <div class="field">
-    <label for="mark_code">Engraved mark *</label>
-    <input id="mark_code" name="mark_code" required minlength="3" maxlength="20" pattern="[A-Za-z0-9]+" value="{{ old('mark_code', $pattern->ensureMark()) }}" style="font-family:ui-monospace,Menlo,monospace;letter-spacing:2px;text-transform:uppercase">
-    <div class="help">The mark on the tool itself. Change it only if the tool is engraved with another number. Letters and digits, unique across all tools.</div>
+    <label for="mark_code">Engraved mark</label>
+    <input id="mark_code" name="mark_code" minlength="3" maxlength="20" pattern="[A-Za-z0-9]+" value="{{ old('mark_code', $pattern->mark_code) }}" placeholder="Optional" style="font-family:ui-monospace,Menlo,monospace;letter-spacing:2px;text-transform:uppercase">
+    <div class="help">Optional. Fill it in only if the tool is already engraved with a number. Letters and digits, unique across all tools.</div>
 </div>
-@endif
 <div class="field">
     <label for="name">Pattern name *</label>
     <input id="name" name="name" required maxlength="255" value="{{ old('name', $pattern->name) }}" placeholder="Part or tooling name">
@@ -33,6 +31,16 @@
             <option value="{{ $status }}" @selected(old('status', $pattern->status ?? 'ACTIVE') === $status)>{{ $status }}</option>
         @endforeach
     </select>
+</div>
+<div class="field">
+    <label for="condition_grade">Condition</label>
+    <select id="condition_grade" name="condition_grade">
+        <option value="">Not graded</option>
+        @foreach (\App\Models\Pattern::CONDITIONS as $grade => $meaning)
+            <option value="{{ $grade }}" @selected(old('condition_grade', $pattern->condition_grade) === $grade)>{{ $grade }} · {{ $meaning }}</option>
+        @endforeach
+    </select>
+    <div class="help">Grade it after inspection or repair. A = good, B = worn but usable, C = needs repair, D = unfit for use.</div>
 </div>
 <div class="field">
     <label for="material">Pattern / plate material</label>

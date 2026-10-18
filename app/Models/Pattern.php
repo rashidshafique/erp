@@ -17,6 +17,12 @@ class Pattern extends Model
 
     public string $codeKind = 'pattern';
 
+    /** The engraved mark is optional: a pattern has none until one is recorded or its label is printed. */
+    public function marksOnCreate(): bool
+    {
+        return false;
+    }
+
     /** Pattern types, and the way each is usually moulded (PatternRevision::ARRANGEMENTS). */
     public const TYPES = [
         'MATCHPLATE' => 'MATCHPLATE', 'COPE_DRAG' => 'COPE_DRAG', 'STACK_PLATE' => 'STACK', 'VERTICAL_PLATES' => 'VERTICAL',
@@ -49,7 +55,12 @@ class Pattern extends Model
         'ownership_notes',
         'custody',
         'custody_location',
+        'condition_grade',
+        'condition_graded_on',
     ];
+
+    /** How fit the physical tool is for moulding, as graded at the last inspection. */
+    public const CONDITIONS = ['A' => 'Good', 'B' => 'Worn, usable', 'C' => 'Needs repair', 'D' => 'Unfit for use'];
 
     /** Who owns the pattern: the foundry, a customer (held in the foundry's custody), or a customer paying it off. */
     public const OWNERS = ['FOUNDRY' => 'Foundry', 'CUSTOMER' => 'Customer', 'PAYING_OFF' => 'Being paid off by the customer'];
@@ -60,6 +71,7 @@ class Pattern extends Model
     protected $casts = [
         'supplied_by_customer' => 'boolean',
         'acquired_on' => 'date',
+        'condition_graded_on' => 'date',
         'insured_value' => 'decimal:2',
         'amortise_qty' => 'integer',
         'compatible_sands' => 'array',

@@ -37,4 +37,24 @@ class PatternToolLifePanelTest extends TestCase
         $this->get(route('patterns.show', $pattern))->assertOk()
             ->assertSee('850 / 1,000 cycles', false)->assertSee('Approaching limit')->assertSee('overdue');
     }
+
+    public function test_grading_the_condition_stamps_the_date_and_shows_on_the_pattern_page(): void
+    {
+        $pattern = $this->pattern();
+        $fields = ['code' => $pattern->code, 'name' => $pattern->name, 'pattern_type' => 'MATCHPLATE', 'status' => 'ACTIVE'];
+
+        $this->put(route('patterns.update', $pattern), $fields + ['condition_grade' => 'C'])->assertSessionHasNoErrors();
+
+        $pattern->refresh();
+        $this->assertSame('C', $pattern->condition_grade);
+        $this->assertTrue($pattern->condition_graded_on->isToday());
+        $this->get(route('patterns.show', $pattern))->assertSee('C · Needs repair');
+    }
+
+    public function test_an_unknown_condition_grade_is_rejected(): void
+    {
+        $pattern = $this->pattern();
+
+        $this->put(route('patterns.update', $pattern), ['code' => $pattern->code, 'name' => 'Plate', 'pattern_type' => 'MATCHPLATE', 'status' => 'ACTIVE', 'condition_grade' => 'Z'])->assertSessionHasErrors('condition_grade');
+    }
 }

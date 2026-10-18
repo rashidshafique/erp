@@ -98,6 +98,8 @@ class PatternController extends Controller
             ],
             'status' => ['required', Rule::in(['ACTIVE', 'INACTIVE', 'RETIRED'])],
             'material' => ['nullable', 'string', 'max:50'],
+            'condition_grade' => ['nullable', Rule::in(array_keys(Pattern::CONDITIONS))],
+            'mark_code' => ['nullable', 'string', 'min:3', 'max:20', 'regex:/^[A-Za-z0-9]+$/'],
             'length_mm' => ['nullable', 'numeric', 'gt:0', 'max:99999999.99'],
             'width_mm' => ['nullable', 'numeric', 'gt:0', 'max:99999999.99'],
             'height_mm' => ['nullable', 'numeric', 'gt:0', 'max:99999999.99'],
@@ -110,6 +112,9 @@ class PatternController extends Controller
             'revision' => ['required', 'string', 'max:20'],
             'revision_status' => ['required', Rule::in(['DRAFT', 'APPROVED', 'OBSOLETE'])],
             'parting_type' => ['nullable', 'string', 'max:30'],
+            'shrinkage_percent' => ['nullable', 'numeric', 'min:0', 'max:9.999'],
+            'tolerance_grade' => ['nullable', 'integer', Rule::in(PatternRevision::TOLERANCE_GRADES)],
+            'machining_allowance_grade' => ['nullable', Rule::in(PatternRevision::ALLOWANCE_GRADES)],
             'cavities_per_mould' => ['nullable', 'integer', 'min:1', 'max:10000'],
             'layers_per_mould' => ['nullable', 'integer', 'min:1', 'max:1000'],
             'pattern_weight_kg' => ['nullable', 'numeric', 'gt:0', 'max:99999999.9999'],
@@ -119,13 +124,17 @@ class PatternController extends Controller
             'effective_to' => ['nullable', 'date', 'after_or_equal:effective_from'],
         ]);
 
-        $pattern = DB::transaction(function () use ($data) {
+        $mark = Arr::pull($data, 'mark_code');
+
+        $pattern = DB::transaction(function () use ($data, $mark) {
             $pattern = Pattern::create([
                 'code' => filled($data['code'] ?? null) ? strtoupper(trim($data['code'])) : null,
                 'name' => trim($data['name']),
                 'pattern_type' => $data['pattern_type'],
                 'status' => $data['status'],
                 'material' => $data['material'] ?? null,
+                'condition_grade' => $data['condition_grade'] ?? null,
+                'condition_graded_on' => filled($data['condition_grade'] ?? null) ? today() : null,
                 'length_mm' => $data['length_mm'] ?? null,
                 'width_mm' => $data['width_mm'] ?? null,
                 'height_mm' => $data['height_mm'] ?? null,
@@ -140,6 +149,9 @@ class PatternController extends Controller
                 'revision' => trim($data['revision']),
                 'status' => $data['revision_status'],
                 'parting_type' => $data['parting_type'] ?? null,
+                'shrinkage_percent' => $data['shrinkage_percent'] ?? null,
+                'tolerance_grade' => $data['tolerance_grade'] ?? null,
+                'machining_allowance_grade' => $data['machining_allowance_grade'] ?? null,
                 'cavities_per_mould' => $data['cavities_per_mould'] ?? null,
                 'layers_per_mould' => $data['layers_per_mould'] ?? null,
                 'pattern_weight_kg' => $data['pattern_weight_kg'] ?? null,
@@ -148,6 +160,10 @@ class PatternController extends Controller
                 'effective_from' => $data['effective_from'] ?? null,
                 'effective_to' => $data['effective_to'] ?? null,
             ]);
+
+            if (filled($mark)) {
+                app(CodeGenerator::class)->changeMark('pattern', $pattern, $mark);
+            }
 
             return $pattern;
         });
@@ -206,16 +222,23 @@ class PatternController extends Controller
             'pattern_type' => ['required', Rule::in(array_keys(Pattern::TYPES))],
             'status' => ['required', Rule::in(['ACTIVE', 'INACTIVE', 'RETIRED'])],
             'material' => ['nullable', 'string', 'max:50'],
+            'condition_grade' => ['nullable', Rule::in(array_keys(Pattern::CONDITIONS))],
+            'mark_code' => ['nullable', 'string', 'min:3', 'max:20', 'regex:/^[A-Za-z0-9]+$/'],
             'length_mm' => ['nullable', 'numeric', 'gt:0', 'max:99999999.99'],
             'width_mm' => ['nullable', 'numeric', 'gt:0', 'max:99999999.99'],
             'height_mm' => ['nullable', 'numeric', 'gt:0', 'max:99999999.99'],
             'description' => ['nullable', 'string'],
             'notes' => ['nullable', 'string'],
-            'mark_code' => CodeGenerator::MARK_RULES,
         ]);
         $mark = Arr::pull($data, 'mark_code');
         $data['code'] = strtoupper(trim($data['code']));
         $data['name'] = trim($data['name']);
+        if (array_key_exists('condition_grade', $data)) {
+            $data['condition_grade'] = $data['condition_grade'] ?: null;
+            if ($data['condition_grade'] !== $pattern->condition_grade) {
+                $data['condition_graded_on'] = $data['condition_grade'] ? today() : null;
+            }
+        }
         $current = $pattern->currentRevision;
         $layout = $current && $request->filled('mould_arrangement') ? $this->validatedLayout($request) : null;
 
@@ -229,7 +252,9 @@ class PatternController extends Controller
 
         $layoutMessage = DB::transaction(function () use ($pattern, $data, $current, $layout, $request, $mark) {
             $pattern->update($data);
-            app(CodeGenerator::class)->changeMark('pattern', $pattern, $mark);
+            if (filled($mark)) {
+                app(CodeGenerator::class)->changeMark('pattern', $pattern, $mark);
+            }
 
             $message = $current && $layout ? app(RevisionLayout::class)->save($current, $layout, $request->input('correction_reason')) : null;
             $sizes = $current ? $this->syncFlaskSizes($request, $current) : null;
@@ -364,6 +389,64 @@ class PatternController extends Controller
         return back()->with('success', 'Revision '.($revision->code ?? $revision->revision)." is now {$data['status']} (was {$from}).");
     }
 
+    public function editRevision(Pattern $pattern, PatternRevision $revision)
+    {
+        abort_unless($revision->pattern_id === $pattern->id, 404);
+
+        return view('patterns.revision-edit', ['pattern' => $pattern, 'revision' => $revision, 'partingTypes' => PatternRevision::PARTING_TYPES]);
+    }
+
+    /**
+     * Fills in or corrects the descriptive data of a revision: weights, drawing revision, allowances, cost, dates and notes.
+     * A blank can be filled freely; changing or clearing a value already recorded needs a reason, which is audited. The code,
+     * status, current flag and mould layout are not touched here.
+     */
+    public function updateRevisionDetails(Request $request, Pattern $pattern, PatternRevision $revision): RedirectResponse
+    {
+        abort_unless($revision->pattern_id === $pattern->id, 404);
+        $data = $request->validate([
+            'drawing_revision' => ['nullable', 'string', 'max:40'],
+            'shrinkage_percent' => ['nullable', 'numeric', 'min:0', 'max:9.999'],
+            'tolerance_grade' => ['nullable', 'integer', Rule::in(PatternRevision::TOLERANCE_GRADES)],
+            'machining_allowance_grade' => ['nullable', Rule::in(PatternRevision::ALLOWANCE_GRADES)],
+            'shrinkage_note' => ['nullable', 'string', 'max:2000'],
+            'modification_cost' => ['nullable', 'numeric', 'min:0', 'max:999999999999.99'],
+            'cost_note' => ['nullable', 'string', 'max:2000'],
+            'casting_weight_kg' => ['nullable', 'numeric', 'gt:0', 'max:99999999.9999'],
+            'pour_weight_kg' => array_merge(['nullable', 'numeric', 'gt:0', 'max:99999999.9999'], $request->filled('casting_weight_kg') ? ['gte:casting_weight_kg'] : []),
+            'pieces_per_mould' => ['nullable', 'integer', 'min:1', 'max:10000'],
+            'parting_type' => ['nullable', Rule::in(PatternRevision::PARTING_TYPES)],
+            'pattern_weight_kg' => ['nullable', 'numeric', 'gt:0', 'max:99999999.9999'],
+            'effective_from' => ['nullable', 'date'],
+            'effective_to' => ['nullable', 'date', 'after_or_equal:effective_from'],
+            'change_description' => ['nullable', 'string', 'max:2000'],
+            'engineering_notes' => ['nullable', 'string'],
+            'correction_reason' => ['nullable', 'string', 'max:500'],
+        ], [
+            'pour_weight_kg.gte' => 'The pour weight includes gating and risers, so it cannot be less than the casting weight.',
+        ]);
+        $reason = trim((string) Arr::pull($data, 'correction_reason'));
+
+        $revision->fill($data);
+        $changes = collect($revision->getDirty())->mapWithKeys(fn ($new, $field) => [$field => ['old' => $revision->getOriginal($field), 'new' => $new]]);
+        if ($changes->isEmpty()) {
+            return redirect()->route('patterns.show', $pattern)->with('success', "Nothing changed on {$revision->code}.");
+        }
+
+        $corrected = $changes->filter(fn ($change) => $change['old'] !== null && $change['old'] !== '')->keys();
+        if ($corrected->isEmpty()) {
+            $revision->save();
+        } else {
+            if (mb_strlen($reason) < 5) {
+                throw ValidationException::withMessages(['correction_reason' => 'Say why the recorded '.$corrected->map(fn ($f) => str_replace('_', ' ', $f))->implode(', ').' '.($corrected->count() === 1 ? 'is' : 'are').' being changed.']);
+            }
+            $revision->saveQuietly();
+            app(Audit::class)->record('UPDATED', 'PatternRevision', $revision->id, $revision->code, $changes->all(), 'Details corrected: '.$reason);
+        }
+
+        return redirect()->route('patterns.show', $pattern)->with('success', "Details of {$revision->code} saved.");
+    }
+
     public function updateLayout(Request $request, Pattern $pattern, PatternRevision $revision): RedirectResponse
     {
         abort_unless($revision->pattern_id === $pattern->id, 404);
@@ -450,6 +533,9 @@ class PatternController extends Controller
             'change_description' => ['required', 'string', 'max:2000'],
             'drawing_revision' => ['nullable', 'string', 'max:40'],
             'shrinkage_note' => ['nullable', 'string', 'max:2000'],
+            'shrinkage_percent' => ['nullable', 'numeric', 'min:0', 'max:9.999'],
+            'tolerance_grade' => ['nullable', 'integer', Rule::in(PatternRevision::TOLERANCE_GRADES)],
+            'machining_allowance_grade' => ['nullable', Rule::in(PatternRevision::ALLOWANCE_GRADES)],
             'cavities_per_mould' => ['nullable', 'integer', 'min:1', 'max:10000'],
             'modification_cost' => ['nullable', 'numeric', 'min:0', 'max:999999999999.99'],
             'effective_from' => ['nullable', 'date'],

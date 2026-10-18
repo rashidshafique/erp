@@ -62,7 +62,7 @@
                 <div><dt>Dimensions (L × W × H)</dt><dd>@if ($pattern->length_mm || $pattern->width_mm || $pattern->height_mm){{ $mm($pattern->length_mm) }} × {{ $mm($pattern->width_mm) }} × {{ $mm($pattern->height_mm) }} mm @else — @endif</dd></div>
                 <div><dt>Made for sand</dt><dd>{{ $pattern->sand_system ?: 'Not recorded' }}@if ($pattern->compatible_sands)<span class="sub">also works on {{ implode(', ', $pattern->compatible_sands) }}</span>@endif</dd></div>
                 <div><dt>Current revision</dt><dd>@if ($current)<span class="mono">{{ $current->code }}</span>@if ($current->drawing_revision)<span class="sub">drawing rev {{ $current->drawing_revision }}</span>@endif @else — @endif</dd></div>
-                <div class="fact-wide"><dt>Engraved mark</dt><dd>@include('tools._mark', ['tool' => $pattern, 'type' => 'pattern', 'bare' => true])</dd></div>
+                <div class="fact-wide"><dt>Engraved mark</dt><dd>@include('tools._mark', ['tool' => $pattern, 'type' => 'pattern', 'bare' => true, 'optional' => true])</dd></div>
             </dl>
             <div class="tool-diagram">@include('patterns._mould-diagram', ['revision' => $current, 'size' => 'lg'])</div>
         </div>
@@ -106,6 +106,7 @@
                         <th>Casting / pour kg</th>
                         <th>Layout</th>
                         <th>Parting</th>
+                        <th>Shrink / tolerance</th>
                         <th>Effective</th>
                         <th>Photo</th>
                     </tr>
@@ -113,7 +114,7 @@
                 <tbody>
                     @foreach ($pattern->revisions as $revision)
                         <tr>
-                            <td><strong class="mono">{{ $revision->code ?? $revision->revision }}</strong></td>
+                            <td><strong class="mono">{{ $revision->code ?? $revision->revision }}</strong>@unless ($pattern->trashed())<div class="small"><a href="{{ route('patterns.revisions.edit', [$pattern, $revision]) }}">Edit details</a></div>@endunless</td>
                             <td>
                                 @if ($revision->is_current)<span class="status status-completed">Current</span>
                                 @elseif ($revision->isSuperseded())<span class="status status-on-hold" title="Superseded {{ $revision->superseded_at->format('d M Y') }}">Superseded</span>
@@ -133,12 +134,13 @@
                             <td class="mono small">@if ($revision->casting_weight_kg || $revision->pour_weight_kg){{ $revision->casting_weight_kg !== null ? rtrim(rtrim(number_format((float) $revision->casting_weight_kg, 3), '0'), '.') : '—' }} / {{ $revision->pour_weight_kg !== null ? rtrim(rtrim(number_format((float) $revision->pour_weight_kg, 3), '0'), '.') : '—' }}@if ($revision->yieldPercent() !== null)<div class="muted">yield {{ $revision->yieldPercent() }} %@if ($revision->pieces_per_mould) · {{ $revision->pieces_per_mould }} pcs/mould @endif</div>@endif @elseif ($revision->legacy_baseline)<span class="muted">not recorded</span>@else — @endif</td>
                             <td class="small" title="{{ $revision->arrangementLabel() }}">{{ $revision->castingLevels() }} × {{ $revision->cavities_per_mould ?? '?' }}<div class="muted">{{ \Illuminate\Support\Str::before($revision->arrangementLabel(), ' (') }}</div></td>
                             <td>{{ $revision->parting_type ?: '—' }}</td>
+                            <td class="small">@if ($revision->shrinkage_percent !== null || $revision->tolerance_grade || $revision->machining_allowance_grade){{ $revision->shrinkage_percent !== null ? rtrim(rtrim($revision->shrinkage_percent, '0'), '.').' %' : '—' }}<div class="muted">{{ $revision->tolerance_grade ? 'CT '.$revision->tolerance_grade : '—' }} · {{ $revision->machining_allowance_grade ? 'RMAG '.$revision->machining_allowance_grade : '—' }}</div>@else — @endif</td>
                             <td class="small">{{ $revision->effective_from?->format('d M Y') ?? '—' }} – {{ $revision->effective_to?->format('d M Y') ?? '' }}</td>
                             <td>@foreach ($revisionPhotos->get($revision->id, collect()) as $photo)<a href="{{ route('attachments.download', $photo) }}" target="_blank">View</a> @endforeach</td>
                         </tr>
                         @if ($revision->change_description || $revision->shrinkage_note || $revision->engineering_notes || $revision->cost_note)
                             <tr>
-                                <td colspan="10" class="small">
+                                <td colspan="11" class="small">
                                     @if ($revision->change_description)<strong>Change:</strong> {{ $revision->change_description }}@endif
                                     @if ($revision->cost_note)<div class="muted"><strong>Cost note:</strong> {{ $revision->cost_note }}</div>@endif
                                     @if ($revision->shrinkage_note)<div class="muted"><strong>Shrinkage / allowance:</strong> {{ $revision->shrinkage_note }}</div>@endif

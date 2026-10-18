@@ -16,7 +16,7 @@ trait GeneratesCodes
             if (blank($model->code)) {
                 $model->code = $gen->code($model->codeKind);
             }
-            if (in_array($model->codeKind, CodeGenerator::TOOL_KINDS, true) && blank($model->mark_code)) {
+            if ($model->marksOnCreate() && in_array($model->codeKind, CodeGenerator::TOOL_KINDS, true) && blank($model->mark_code)) {
                 $model->mark_code = $gen->mark();
             }
         });
@@ -25,6 +25,12 @@ trait GeneratesCodes
                 app(CodeGenerator::class)->register($model->codeKind, (string) $model->getKey(), $model->mark_code);
             }
         });
+    }
+
+    /** Whether a new record is given a mark straight away. A model can say no and leave it blank until one is recorded. */
+    public function marksOnCreate(): bool
+    {
+        return true;
     }
 
     public function ensureMark(): string
