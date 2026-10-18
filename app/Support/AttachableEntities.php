@@ -119,6 +119,16 @@ class AttachableEntities
         return $category === null || ! self::isSensitive($category) || $user->hasPermission('documents.sensitive');
     }
 
+    /** A record's name for lists: its code, or its name. */
+    public static function describe(string $key, string $id): string
+    {
+        $label = self::MAP[$key][0] ?? $key;
+        $record = self::find($key, $id);
+        $name = $record ? collect(['code', 'lot_number', 'heat_number', 'pour_number', 'order_number', 'name'])->map(fn ($c) => $record->getAttribute($c))->filter()->first() : null;
+
+        return $name ? $label.' '.$name : $label;
+    }
+
     public static function find(string $key, string $id): ?Model
     {
         $class = self::MAP[$key][1] ?? null;

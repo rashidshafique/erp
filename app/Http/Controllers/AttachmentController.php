@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Attachment;
+use App\Models\AttachmentLink;
 use App\Support\AttachableEntities;
 use App\Support\DocumentVersioning;
+use App\Support\RelatedFiles;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -105,7 +108,7 @@ class AttachmentController extends Controller
     public function download(Attachment $attachment): StreamedResponse
     {
         abort_if($attachment->removed_at !== null, 404);
-        abort_unless(AttachableEntities::canView(Auth::user(), $attachment->attachable_type, $attachment->category), 403);
+        abort_unless(AttachableEntities::canView(Auth::user(), $attachment->attachable_type, $attachment->category) || $this->mayViewThroughLink($attachment), 403);
         $disk = Storage::disk($attachment->disk);
         abort_unless($disk->exists($attachment->path), 404, 'The file is missing from storage.');
 
@@ -114,6 +117,68 @@ class AttachmentController extends Controller
             'X-Content-Type-Options' => 'nosniff',
             'Content-Security-Policy' => "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox",
         ], $attachment->isInlineViewable() ? 'inline' : 'attachment');
+    }
+
+    /** Matching files on other records that this person may link to the record they are on. */
+    public function find(Request $request): JsonResponse
+    {
+        $d = $request->validate(['q' => ['required', 'string', 'min:2', 'max:100'], 'type' => ['required', 'string'], 'id' => ['required', 'string']]);
+        abort_unless(AttachableEntities::find($d['type'], $d['id']), 404);
+        $like = '%'.mb_strtolower($d['q']).'%';
+        $linked = AttachmentLink::where('attachable_type', $d['type'])->where('attachable_id', $d['id'])->pluck('document_id');
+        $found = Attachment::current()->whereNotIn('category', AttachableEntities::SENSITIVE_CATEGORIES)
+            ->where(fn ($q) => $q->whereRaw('lower(coalesce(title, \'\')) like ?', [$like])->orWhereRaw('lower(original_name) like ?', [$like]))
+            ->whereNotIn('document_id', $linked)
+            ->where(fn ($q) => $q->where('attachable_type', '!=', $d['type'])->orWhere('attachable_id', '!=', $d['id']))
+            ->orderByDesc('created_at')->limit(30)->get()
+            ->filter(fn (Attachment $a) => AttachableEntities::canView(Auth::user(), $a->attachable_type, $a->category))->take(10);
+
+        return response()->json($found->map(fn (Attachment $a) => [
+            'id' => $a->id, 'name' => $a->title ?: $a->original_name, 'category' => AttachableEntities::CATEGORIES[$a->category] ?? $a->category,
+            'record' => AttachableEntities::describe($a->attachable_type, $a->attachable_id),
+        ])->values());
+    }
+
+    /** Shows an existing file on another record too, without a second copy. */
+    public function link(Request $request, Attachment $attachment, string $type, string $id): RedirectResponse
+    {
+        abort_if($attachment->removed_at !== null || $attachment->superseded_at !== null, 404);
+        abort_unless(AttachableEntities::find($type, $id), 404);
+        abort_if($attachment->attachable_type === $type && $attachment->attachable_id === $id, 422, 'The file is already on this record.');
+        abort_unless(AttachableEntities::canEdit(Auth::user(), $type, $attachment->category) && AttachableEntities::canView(Auth::user(), $attachment->attachable_type, $attachment->category), 403);
+        AttachmentLink::firstOrCreate(
+            ['document_id' => $attachment->document_id, 'attachable_type' => $type, 'attachable_id' => $id],
+            ['linked_by_id' => Auth::id(), 'linked_by_name' => Auth::user()?->name],
+        );
+
+        return back()->with('success', 'File linked. It stays with its original record; removing it here only removes the link.');
+    }
+
+    public function unlink(AttachmentLink $link): RedirectResponse
+    {
+        $category = Attachment::where('document_id', $link->document_id)->current()->value('category');
+        abort_unless(AttachableEntities::canEdit(Auth::user(), $link->attachable_type, $category), 403);
+        $link->delete();
+
+        return back()->with('success', 'Link removed. The file is still on its original record.');
+    }
+
+    /** Whether the file is shown, by a link, on a record this person may see it on. */
+    private function mayViewThroughLink(Attachment $attachment): bool
+    {
+        return AttachmentLink::where('document_id', $attachment->document_id)->get()
+            ->contains(fn (AttachmentLink $l) => AttachableEntities::canView(Auth::user(), $l->attachable_type, $attachment->category));
+    }
+
+    /** Records the document versions this record is made to. */
+    public function pin(string $type, string $id): RedirectResponse
+    {
+        abort_unless(AttachableEntities::find($type, $id), 404);
+        abort_unless(AttachableEntities::canEdit(Auth::user(), $type), 403);
+        abort_unless(DocumentVersioning::enabled(), 404);
+        $count = RelatedFiles::pin($type, $id);
+
+        return back()->with('success', $count === 1 ? 'Recorded the version of 1 document used.' : "Recorded the versions of {$count} documents used.");
     }
 
     public function cover(Attachment $attachment): RedirectResponse

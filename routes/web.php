@@ -569,6 +569,10 @@ Route::get('/audit', [AuditController::class, 'index'])->name('audit.index');
 // ---- File attachments ----
 Route::post('/attachments/{type}/{id}', [AttachmentController::class, 'store'])->where('type', '[a-z_]+')->name('attachments.store');
 Route::get('/attachments/{attachment}/download', [AttachmentController::class, 'download'])->name('attachments.download');
+Route::get('/attachments/find', [AttachmentController::class, 'find'])->name('attachments.find');
+Route::post('/attachments/{attachment}/link/{type}/{id}', [AttachmentController::class, 'link'])->where('type', '[a-z_]+')->name('attachments.link');
+Route::post('/attachment-links/{link}/remove', [AttachmentController::class, 'unlink'])->name('attachments.unlink');
+Route::post('/attachments/{type}/{id}/pin', [AttachmentController::class, 'pin'])->where('type', '[a-z_]+')->name('attachments.pin');
 Route::post('/attachments/{attachment}/version', [AttachmentController::class, 'version'])->name('attachments.version');
 Route::post('/attachments/{attachment}/cover', [AttachmentController::class, 'cover'])->name('attachments.cover');
 Route::post('/attachments/{attachment}/remove', [AttachmentController::class, 'remove'])->name('attachments.remove');

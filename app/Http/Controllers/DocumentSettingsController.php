@@ -14,7 +14,7 @@ class DocumentSettingsController extends Controller
     public function edit(): View
     {
         return view('settings.documents', [
-            'enabled' => DocumentVersioning::enabled(), 'selected' => DocumentVersioning::categories(), 'categories' => AttachableEntities::CATEGORIES,
+            'enabled' => DocumentVersioning::enabled(), 'related' => DocumentVersioning::showRelated(), 'selected' => DocumentVersioning::categories(), 'categories' => AttachableEntities::CATEGORIES,
         ]);
     }
 
@@ -23,7 +23,7 @@ class DocumentSettingsController extends Controller
         $d = $request->validate([
             'categories' => ['array'], 'categories.*' => [Rule::in(array_keys(AttachableEntities::CATEGORIES))],
         ]);
-        DocumentVersioning::save($request->boolean('versioning'), $d['categories'] ?? []);
+        DocumentVersioning::save($request->boolean('versioning'), $d['categories'] ?? [], $request->boolean('related'));
 
         return back()->with('success', 'Document settings saved. Files already uploaded keep their history either way.');
     }

@@ -6,6 +6,7 @@ use App\Models\CastingLot;
 use App\Models\Pour;
 use App\Models\PourMouldAssembly;
 use App\Models\ProductionOrder;
+use App\Support\RelatedFiles;
 use Illuminate\Support\Facades\DB;
 
 /** Creates the casting lots of a completed pour: one lot per product revision in each mould assembly. */
@@ -56,7 +57,7 @@ class LotFactory
                         continue;
                     }
                     $seq++;
-                    CastingLot::create([
+                    $lot = CastingLot::create([
                         'lot_number' => 'LOT-'.$pour->pour_number.'-'.str_pad((string) $seq, 2, '0', STR_PAD_LEFT),
                         'pour_mould_assembly_id' => $row->id,
                         'production_order_id' => $order->id,
@@ -71,6 +72,7 @@ class LotFactory
                         'created_from_pour_at' => $pour->completed_at ?? now(),
                     ]);
                     $made++;
+                    RelatedFiles::pin('casting_lot', $lot->id);   // keeps the drawing versions the lot was made to, when versioning is on
                     if ($order->status === 'RELEASED') {
                         $order->update(['status' => 'IN_PROGRESS', 'actual_started_at' => $order->actual_started_at ?? now()]);
                     }

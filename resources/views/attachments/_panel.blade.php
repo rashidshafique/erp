@@ -42,6 +42,7 @@
             @endforeach
         </tbody></table></div>
     @endif
+    @include('attachments._related', ['type' => $type, 'id' => $id, 'canEdit' => $canEdit])
     @if ($canEdit)
     <div class="panel-body" style="border-top:1px solid var(--border,#ddd)">
         <form method="POST" action="{{ route('attachments.store', [$type, $id]) }}" enctype="multipart/form-data" class="form-grid">@csrf
