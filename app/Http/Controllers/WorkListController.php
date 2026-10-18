@@ -2,14 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Attachment;
 use App\Models\FlaskSize;
 use App\Models\MouldingStation;
-use App\Models\MouldingTeam;
 use App\Models\MouldingWorkList;
 use App\Models\MouldingWorkListItem;
 use App\Models\PatternRevision;
 use App\Models\ProductionOrder;
+use App\Models\SandSystem;
 use App\Services\Production\WorkListService;
+use App\Services\Quality\Measurements;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -38,7 +40,8 @@ class WorkListController extends Controller
     {
         $list->load(['items.team', 'items.station', 'items.productionOrder.product', 'items.productionOrder.salesOrderLine.salesOrder.customer', 'items.patternRevision.pattern', 'items.run']);
         $orders = ProductionOrder::with(['product', 'salesOrderLine.salesOrder.customer'])->whereIn('status', ['RELEASED', 'IN_PROGRESS'])->orderBy('production_order_number')->get();
-        $patterns = PatternRevision::with(['pattern', 'cavityMap.productRevision'])->orderBy('pattern_id')->get();
+        $patterns = PatternRevision::with(['pattern', 'cavityMap.productRevision'])->get()
+            ->sortBy(fn ($p) => mb_strtolower($p->pattern->name.' '.$p->revision), SORT_NATURAL)->values();
         $needed = [];
         foreach ($list->items as $i) {
             $needed[$i->id] = $svc->mouldsStillNeeded($i->productionOrder, $i->pattern_revision_id);
@@ -57,9 +60,10 @@ class WorkListController extends Controller
 
         return view('work-lists.show', [
             'list' => $list, 'orders' => $orders, 'patterns' => $patterns, 'needed' => $needed,
+            'patternPhotos' => Attachment::coversFor('pattern', $patterns->pluck('pattern_id')->unique()->values()->all()),
             'teamOf' => $stations->mapWithKeys(fn ($s) => [$s->id => $s->defaultTeam ? $s->defaultTeam->code.' — '.$s->defaultTeam->lead_name : ''])->all(), 'patternProducts' => $patternProducts, 'patternSand' => $patternSand, 'autoOrder' => $autoOrder, 'running' => $running,
             'stations' => $stations, 'flaskSizes' => FlaskSize::ordered()->where('status', 'ACTIVE')->get(),
-            'sands' => \App\Models\SandSystem::choices(...$list->items()->pluck('sand_system')->all()), 'sandFor' => $stations->mapWithKeys(fn ($s) => [$s->id => $svc->sandFor($list, $s)])->all(),
+            'sands' => SandSystem::choices(...$list->items()->pluck('sand_system')->all()), 'sandFor' => $stations->mapWithKeys(fn ($s) => [$s->id => $svc->sandFor($list, $s)])->all(),
         ]);
     }
 
@@ -151,7 +155,7 @@ class WorkListController extends Controller
             return back()->withErrors(['item' => $e->getMessage()]);
         }
 
-        $sand = app(\App\Services\Quality\Measurements::class)->sandStatus($run->sand_system, now());
+        $sand = app(Measurements::class)->sandStatus($run->sand_system, now());
         $msg = "Run {$run->run_number} started for team {$item->team->code}.".($sand['state'] === 'OK' ? '' : ' WARNING: '.$sand['text']);
 
         return redirect()->route('moulding-runs.show', $run)->with('success', $msg);

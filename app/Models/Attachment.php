@@ -53,6 +53,26 @@ class Attachment extends Model
             ?? $q()->orderByDesc('created_at')->orderByDesc('id')->first();
     }
 
+    /**
+     * The main photo of many records at once, in one query, keyed by record. Same choice as coverFor.
+     *
+     * @param  list<string>  $ids
+     * @return array<string, self>
+     */
+    public static function coversFor(string $type, array $ids): array
+    {
+        if ($ids === []) {
+            return [];
+        }
+
+        return static::where('attachable_type', $type)->whereIn('attachable_id', $ids)->current()
+            ->whereNotIn('category', AttachableEntities::SENSITIVE_CATEGORIES)
+            ->whereIn('mime_type', ['image/png', 'image/jpeg', 'image/webp'])
+            ->orderByDesc('is_cover')->orderByRaw("case when category = 'PHOTO' then 0 else 1 end")
+            ->orderByDesc('created_at')->orderByDesc('id')
+            ->get()->unique('attachable_id')->keyBy('attachable_id')->all();
+    }
+
     public function isInlineViewable(): bool
     {
         return in_array($this->mime_type, ['application/pdf', 'image/png', 'image/jpeg', 'image/webp'], true);

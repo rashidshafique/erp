@@ -44,7 +44,7 @@
             <div class="muted small">{{ $i->productionOrder->product?->code }} · {{ $i->productionOrder->order_type }}</div>
             @else<span class="muted">No order yet</span><div class="muted small">@if($i->status === 'PLANNED')links to an open order, or a stock order is raised when the run starts @endif</div>
             @if($editable && $i->status === 'PLANNED')<form method="POST" action="{{ route('work-lists.items.link', [$list, $i]) }}">@csrf<button class="btn btn-small">Find open order</button></form>@endif @endif</td>
-        <td>{{ $i->patternRevision->pattern->code }} rev {{ $i->patternRevision->revision }}<div class="muted small">{{ $i->patternRevision->pattern->pattern_type }}</div></td>
+        <td>@include('work-lists._pattern-cell', ['revision' => $i->patternRevision])</td>
         <td>{{ $i->sand_system }}@if($i->sand_override)<div><span class="status" style="color:var(--danger,#b42318)" title="This plate is not listed as suited to this sand system; someone chose to run it anyway">sand mismatch accepted</span></div>@endif</td>
         <td>{{ $i->planned_moulds }}@if(($needed[$i->id] ?? null) !== null)<div class="muted small">order still needs ≈{{ $needed[$i->id] }}</div>@endif</td>
         <td>@if($i->run)<a href="{{ route('moulding-runs.show', $i->run) }}">{{ $i->run->accepted_mould_qty }} ok / {{ $i->run->damaged_mould_qty }} dmg</a>@else—@endif</td>
@@ -75,6 +75,7 @@
 <div style="margin-top:12px"><button class="btn btn-primary">Add to list</button></div>
 </form>
 <template id="aw-tpl"><table><tbody>@include('work-lists._row', ['i' => '__i__', 'row' => []])</tbody></table></template>
+@include('partials.search-select')
 </div></div>
 <script>
 (function () {

@@ -109,12 +109,10 @@ class MouldingRunBulkController extends Controller
      * @param  array<int, string>  $patternIds
      * @return array<string, string> pattern id => image URL
      */
+    /** @param  list<string>  $patternIds */
     private function coverPhotos(array $patternIds): array
     {
-        return Attachment::where('attachable_type', 'pattern')->whereIn('attachable_id', $patternIds)->whereNull('removed_at')
-            ->whereIn('mime_type', ['image/png', 'image/jpeg', 'image/webp'])
-            ->orderByDesc('is_cover')->orderByRaw("category = 'PHOTO' desc")->orderByDesc('created_at')
-            ->get(['id', 'attachable_id'])->unique('attachable_id')
-            ->mapWithKeys(fn (Attachment $a) => [$a->attachable_id => route('attachments.download', $a)])->all();
+        return collect(Attachment::coversFor('pattern', $patternIds))
+            ->map(fn (Attachment $a) => route('attachments.download', $a))->all();
     }
 }

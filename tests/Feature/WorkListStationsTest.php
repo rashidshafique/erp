@@ -2,7 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\ApprovalPolicy;
+use App\Models\ApprovalRequest;
+use App\Models\Attachment;
 use App\Models\Customer;
+use App\Models\MouldingRun;
 use App\Models\MouldingStation;
 use App\Models\MouldingTeam;
 use App\Models\MouldingWorkList;
@@ -99,7 +103,7 @@ class WorkListStationsTest extends TestCase
         $third = $list->items()->where('status', 'PLANNED')->firstOrFail();
         $this->post(route('work-lists.items.start', [$list, $third]))->assertSessionHasErrors('item');
 
-        $this->assertSame('Imtiaz', \App\Models\MouldingRun::first()->operator_name);
+        $this->assertSame('Imtiaz', MouldingRun::first()->operator_name);
     }
 
     public function test_team_comes_from_the_moulding_line_and_is_not_chosen_on_the_list(): void
@@ -119,15 +123,16 @@ class WorkListStationsTest extends TestCase
 
         // the add form has no team field; it shows the line's team instead
         $this->get(route('work-lists.show', $list))->assertOk()->assertDontSee('name="moulding_team_id"', false)->assertDontSee('id="aw-team"', false)
-            ->assertSee('data-team="T3 — Usual Lead"', false)->assertSee('data-products="'.$a['product']->id.'"', false);
+            ->assertSee('data-team="T3 — Usual Lead"', false)->assertSee('data-products="'.$a['product']->id.'"', false)
+            ->assertSee('Pattern A3 — P-A3 rev A')->assertSee('class="aw-pattern" data-search-select', false);   // plates are named and the list is searchable
 
         // the run is made by the line's team; a line without one runs without a team name
         $this->post(route('work-lists.issue', $list), ['issued_by' => 'Planner']);
         foreach ($list->items as $item) {
             $this->post(route('work-lists.items.start', [$list, $item]))->assertSessionHasNoErrors();
         }
-        $this->assertSame('Usual Lead', \App\Models\MouldingRun::where('moulding_station_id', $bench->id)->value('operator_name'));
-        $this->assertNull(\App\Models\MouldingRun::where('moulding_station_id', $bare->id)->value('operator_name'));
+        $this->assertSame('Usual Lead', MouldingRun::where('moulding_station_id', $bench->id)->value('operator_name'));
+        $this->assertNull(MouldingRun::where('moulding_station_id', $bare->id)->value('operator_name'));
     }
 
     public function test_station_settings_are_saved_and_a_line_is_forced_to_one(): void
@@ -191,7 +196,7 @@ class WorkListStationsTest extends TestCase
             'order_type' => 'CUSTOMER', 'status' => 'RELEASED', 'planned_qty' => 40, 'uom' => 'piece']);
         $this->post(route('work-lists.items.start', [$list, $item]))->assertSessionHasNoErrors();
         $this->assertSame($late->id, $item->fresh()->production_order_id);
-        $this->assertSame($late->id, \App\Models\MouldingRun::firstOrFail()->production_order_id);
+        $this->assertSame($late->id, MouldingRun::firstOrFail()->production_order_id);
 
         // and with nothing open at all, a stock order is raised
         $b = $this->job('B7', 'Beta Valves');
@@ -204,12 +209,12 @@ class WorkListStationsTest extends TestCase
         $this->assertSame($b['product']->id, $stock->product_id);
         $this->assertSame(6.0, (float) $stock->planned_qty);                                      // 6 moulds x 1 casting
         $this->assertSame('STOCK', $second->fresh()->order_link);
-        $this->assertSame($stock->id, \App\Models\MouldingRun::where('moulding_work_list_item_id', $second->id)->value('production_order_id'));
+        $this->assertSame($stock->id, MouldingRun::where('moulding_work_list_item_id', $second->id)->value('production_order_id'));
     }
 
     public function test_stock_order_waits_for_release_approval_when_a_policy_requires_it(): void
     {
-        \App\Models\ApprovalPolicy::create(['action_key' => 'production_order.release', 'is_active' => true, 'required_approvals' => 1, 'permission' => 'approvals.decide', 'allow_self_approval' => false]);
+        ApprovalPolicy::create(['action_key' => 'production_order.release', 'is_active' => true, 'required_approvals' => 1, 'permission' => 'approvals.decide', 'allow_self_approval' => false]);
         $team = $this->team('T8', 'Lead Eight');
         $bench = MouldingStation::create(['code' => 'MAN-8', 'name' => 'Bench 8', 'station_type' => 'FLOOR', 'status' => 'ACTIVE', 'max_patterns' => 2, 'default_moulding_team_id' => $team->id]);
         $list = $this->issued();
@@ -223,8 +228,8 @@ class WorkListStationsTest extends TestCase
         $stock = ProductionOrder::where('order_type', 'STOCK')->firstOrFail();
         $this->assertSame('DRAFT', $stock->status);
         $this->assertSame($stock->id, $item->fresh()->production_order_id);
-        $this->assertSame(0, \App\Models\MouldingRun::count());
-        $this->assertSame(1, \App\Models\ApprovalRequest::where('subject_id', $stock->id)->count());
+        $this->assertSame(0, MouldingRun::count());
+        $this->assertSame(1, ApprovalRequest::where('subject_id', $stock->id)->count());
         $this->post(route('work-lists.items.start', [$list, $item]))->assertSessionHasErrors('item');   // still waiting, no second order
         $this->assertSame(1, ProductionOrder::where('order_type', 'STOCK')->count());
     }
@@ -362,5 +367,24 @@ class WorkListStationsTest extends TestCase
         $this->assertSame(['Sheera'], $p->compatible_sands);
         $this->get(route('patterns.show', $p))->assertOk()->assertSee('Made for sand')->assertSee('also works on Sheera')->assertSee('Wider taper');
         $this->put(route('patterns.sand', $p), ['sand_system' => 'Mud'])->assertSessionHasErrors('sand_system');
+    }
+
+    public function test_the_plate_column_shows_the_name_code_type_and_photo(): void
+    {
+        $team = $this->team('T9', 'Rashid');
+        $bench = MouldingStation::create(['code' => 'MAN-9', 'name' => 'Bench', 'station_type' => 'MANUAL_BENCH', 'status' => 'ACTIVE', 'max_patterns' => 2, 'default_moulding_team_id' => $team->id]);
+        $list = $this->issued();
+        $job = $this->job('D9', 'Delta Castings');
+        $this->post(route('work-lists.items.add', $list), $this->row($bench, $job))->assertSessionHasNoErrors();
+
+        $photo = Attachment::create([
+            'attachable_type' => 'pattern', 'attachable_id' => $job['pr']->pattern_id, 'category' => 'PHOTO',
+            'original_name' => 'plate.png', 'disk' => 'local', 'path' => 'attachments/plate.png', 'mime_type' => 'image/png',
+            'size_bytes' => 10, 'sha256' => str_repeat('a', 64),
+        ]);
+
+        $this->get(route('work-lists.show', $list))->assertOk()
+            ->assertSee('Pattern D9')->assertSee('P-D9 rev A')->assertSee('loose pattern')
+            ->assertSee(route('attachments.download', $photo), false);
     }
 }
