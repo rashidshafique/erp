@@ -11,6 +11,7 @@ use App\Models\Pattern;
 use App\Models\Product;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\DocumentVersioning;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -155,5 +156,75 @@ class AttachmentsTest extends TestCase
         $this->actingAs($hrWithoutSensitive)->get(route('attachments.download', $passport))->assertForbidden();
         $this->actingAs($hrWithoutSensitive)->post(route('attachments.store', ['employee', $employee->id]), ['files' => [$this->png('d.png')], 'category' => 'ID_DOCUMENT'])->assertForbidden();
         $this->actingAs($hrWithoutSensitive)->get(route('hr.employees.show', $employee))->assertOk()->assertDontSee('ID / personal document');
+    }
+
+    /** A tiny real PDF; the number makes the content, and so the checksum, different. */
+    private function pdf(string $name, int $revision): UploadedFile
+    {
+        return UploadedFile::fake()->createWithContent($name, "%PDF-1.4\n1 0 obj<<>>endobj\n% revision {$revision}\ntrailer<<>>\n%%EOF\n");
+    }
+
+    public function test_versioning_is_off_until_switched_on(): void
+    {
+        Storage::fake('local');
+        $heat = $this->heat();
+        $this->post(route('attachments.store', ['heat', $heat->id]), ['files' => [$this->pdf('drawing.pdf', 50)], 'category' => 'DRAWING'])->assertSessionHasNoErrors();
+        $drawing = Attachment::firstOrFail();
+
+        $this->assertSame($drawing->id, $drawing->document_id);
+        $this->assertSame(1, $drawing->version);
+        $this->get(route('heats.show', $heat))->assertOk()->assertDontSee('New version');
+        $this->post(route('attachments.version', $drawing), ['file' => $this->pdf('drawing2.pdf', 60)])->assertNotFound();
+    }
+
+    public function test_new_version_replaces_the_old_one_on_the_record_but_keeps_it(): void
+    {
+        Storage::fake('local');
+        DocumentVersioning::save(true, ['DRAWING']);
+        $heat = $this->heat();
+        $this->post(route('attachments.store', ['heat', $heat->id]), ['files' => [$this->pdf('drawing.pdf', 50)], 'category' => 'DRAWING', 'title' => 'Housing drawing'])->assertSessionHasNoErrors();
+        $v1 = Attachment::firstOrFail();
+
+        $this->post(route('attachments.version', $v1), ['file' => $this->pdf('drawing-c.pdf', 60), 'revision_label' => 'Rev C', 'change_note' => 'Riser enlarged'])->assertSessionHasNoErrors();
+
+        $v2 = Attachment::where('version', 2)->firstOrFail();
+        $this->assertSame($v1->document_id, $v2->document_id);
+        $this->assertSame('Housing drawing', $v2->title);
+        $this->assertNotNull($v1->fresh()->superseded_at);
+        $this->assertSame($v2->id, $v1->fresh()->superseded_by_id);
+        $this->get(route('heats.show', $heat))->assertOk()->assertSee('Rev C')->assertSee('Riser enlarged')->assertSee('History (1 earlier)');
+        $this->get(route('attachments.download', $v1))->assertOk();            // old versions stay downloadable
+        $this->post(route('attachments.version', $v1), ['file' => $this->pdf('x.pdf', 70)])->assertNotFound();   // only the current one takes a new version
+
+        // Removing the newest version brings the one before it back.
+        $this->post(route('attachments.remove', $v2), ['removal_reason' => 'Wrong file'])->assertSessionHasNoErrors();
+        $this->assertNull($v1->fresh()->superseded_at);
+        $this->get(route('heats.show', $heat))->assertOk()->assertSee('v1');
+    }
+
+    public function test_an_identical_file_is_not_accepted_as_a_new_version_and_other_categories_are_left_alone(): void
+    {
+        Storage::fake('local');
+        DocumentVersioning::save(true, ['DRAWING']);
+        $heat = $this->heat();
+        $this->post(route('attachments.store', ['heat', $heat->id]), ['files' => [$this->png('a.png')], 'category' => 'DRAWING'])->assertSessionHasNoErrors();
+        $this->post(route('attachments.store', ['heat', $heat->id]), ['files' => [$this->png('b.png')], 'category' => 'PHOTO'])->assertSessionHasNoErrors();
+        $drawing = Attachment::where('category', 'DRAWING')->firstOrFail();
+        $photo = Attachment::where('category', 'PHOTO')->firstOrFail();
+
+        $this->post(route('attachments.version', $drawing), ['file' => $this->png('same.png')])->assertSessionHasErrors('files');
+        $this->assertSame(1, Attachment::where('category', 'DRAWING')->count());
+        $this->post(route('attachments.version', $photo), ['file' => $this->pdf('x.pdf', 30)])->assertNotFound();   // photos are not versioned
+    }
+
+    public function test_document_settings_page_saves_the_choices(): void
+    {
+        $this->put(route('settings.documents.update'), ['versioning' => 1, 'categories' => ['DRAWING', 'REPORT']])->assertSessionHasNoErrors();
+
+        $this->assertTrue(DocumentVersioning::enabled());
+        $this->assertSame(['DRAWING', 'REPORT'], DocumentVersioning::categories());
+        $this->get(route('settings.documents'))->assertOk()->assertSee('Keep versions of files');
+        $this->put(route('settings.documents.update'), [])->assertSessionHasNoErrors();
+        $this->assertFalse(DocumentVersioning::enabled());
     }
 }

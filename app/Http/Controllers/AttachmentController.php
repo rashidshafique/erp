@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Attachment;
 use App\Support\AttachableEntities;
+use App\Support\DocumentVersioning;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -38,7 +39,8 @@ class AttachmentController extends Controller
     }
 
     /** Stores uploaded files against a record. Returns an error message, or null when all were saved. */
-    public static function saveFiles(array $files, string $type, string $id, string $category, ?string $title, int &$saved = 0): ?string
+    /** @param array<string, mixed> $extra Extra columns for each new row, such as the version fields. */
+    public static function saveFiles(array $files, string $type, string $id, string $category, ?string $title, int &$saved = 0, array $extra = []): ?string
     {
         $disk = config('foundry.attachments.disk');
         foreach ($files as $file) {
@@ -55,11 +57,49 @@ class AttachmentController extends Controller
                 'attachable_type' => $type, 'attachable_id' => $id, 'category' => $category, 'title' => $title,
                 'original_name' => $name, 'disk' => $disk, 'path' => $path, 'mime_type' => $mime, 'size_bytes' => $file->getSize(),
                 'sha256' => hash_file('sha256', $file->getRealPath()), 'uploaded_by_id' => Auth::id(), 'uploaded_by_name' => Auth::user()?->name,
-            ]);
+            ] + $extra);
             $saved++;
         }
 
         return null;
+    }
+
+    /** A new version of a file already on the record. The old one stays, marked as replaced. */
+    public function version(Request $request, Attachment $attachment): RedirectResponse
+    {
+        abort_if($attachment->removed_at !== null || $attachment->superseded_at !== null || ! DocumentVersioning::appliesTo($attachment->category), 404);
+        abort_unless(AttachableEntities::canEdit(Auth::user(), $attachment->attachable_type, $attachment->category), 403);
+        $exts = config('foundry.attachments.extensions');
+        $max = config('foundry.attachments.max_kb');
+        $request->validate([
+            'file' => ['required', 'file', 'max:'.$max, 'extensions:'.implode(',', $exts)],
+            'revision_label' => ['nullable', 'string', 'max:30'],
+            'change_note' => ['nullable', 'string', 'max:300'],
+        ], ['file.max' => 'The file may be at most '.round($max / 1024, 1).' MB.', 'file.extensions' => 'That file type is not allowed. Allowed: '.implode(', ', $exts).'.']);
+
+        $file = $request->file('file');
+        if (hash_file('sha256', $file->getRealPath()) === $attachment->sha256) {
+            return back()->withErrors(['files' => 'That file is identical to the current version.']);
+        }
+
+        $error = DB::transaction(function () use ($request, $attachment, $file) {
+            $newId = (string) Str::uuid();
+            $saved = 0;
+            $error = self::saveFiles([$file], $attachment->attachable_type, $attachment->attachable_id, $attachment->category, $attachment->title, $saved, [
+                'id' => $newId, 'document_id' => $attachment->document_id, 'version' => (int) Attachment::where('document_id', $attachment->document_id)->max('version') + 1,
+                'revision_label' => $request->input('revision_label'), 'change_note' => $request->input('change_note'),
+            ]);
+            if ($error === null) {
+                $attachment->update(['superseded_at' => now(), 'superseded_by_id' => $newId]);
+            }
+
+            return $error;
+        });
+        if ($error) {
+            return back()->withErrors(['files' => $error]);
+        }
+
+        return back()->with('success', 'New version added. The earlier version is kept in the history.');
     }
 
     public function download(Attachment $attachment): StreamedResponse
@@ -95,7 +135,12 @@ class AttachmentController extends Controller
         $d = $request->validate(['removal_reason' => ['required', 'string', 'max:300']]);
         abort_if($attachment->removed_at !== null, 404);
         abort_unless(AttachableEntities::canEdit(Auth::user(), $attachment->attachable_type, $attachment->category), 403);
-        $attachment->update(['removed_at' => now(), 'removed_by_name' => Auth::user()?->name, 'removal_reason' => $d['removal_reason']]);
+        DB::transaction(function () use ($attachment, $d) {
+            $attachment->update(['removed_at' => now(), 'removed_by_name' => Auth::user()?->name, 'removal_reason' => $d['removal_reason']]);
+            if ($attachment->superseded_at === null && ($previous = $attachment->olderVersions()->first())) {
+                $previous->update(['superseded_at' => null, 'superseded_by_id' => null]);   // the version before it is current again
+            }
+        });
 
         return back()->with('success', 'File removed from the record. A copy is kept for the audit trail.');
     }

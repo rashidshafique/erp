@@ -4,7 +4,7 @@
 @php
     $size ??= 150;
     $upload = ($upload ?? true) && \App\Support\AttachableEntities::canEdit(auth()->user(), $type, 'PHOTO');
-    $photos = \App\Models\Attachment::where('attachable_type', $type)->where('attachable_id', (string) $id)->whereNull('removed_at')
+    $photos = \App\Models\Attachment::where('attachable_type', $type)->where('attachable_id', (string) $id)->current()
         ->whereIn('mime_type', ['image/png', 'image/jpeg', 'image/webp'])->orderByDesc('created_at')->orderByDesc('id')->get()
         ->filter(fn ($p) => \App\Support\AttachableEntities::canView(auth()->user(), $type, $p->category));
     $cover = \App\Models\Attachment::coverFor($type, (string) $id);

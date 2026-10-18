@@ -21,6 +21,7 @@ use App\Http\Controllers\DataImportController;
 use App\Http\Controllers\DefectController;
 use App\Http\Controllers\DirectoryController;
 use App\Http\Controllers\DispatchController;
+use App\Http\Controllers\DocumentSettingsController;
 use App\Http\Controllers\DisplaySettingsController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeDocumentController;
@@ -568,6 +569,7 @@ Route::get('/audit', [AuditController::class, 'index'])->name('audit.index');
 // ---- File attachments ----
 Route::post('/attachments/{type}/{id}', [AttachmentController::class, 'store'])->where('type', '[a-z_]+')->name('attachments.store');
 Route::get('/attachments/{attachment}/download', [AttachmentController::class, 'download'])->name('attachments.download');
+Route::post('/attachments/{attachment}/version', [AttachmentController::class, 'version'])->name('attachments.version');
 Route::post('/attachments/{attachment}/cover', [AttachmentController::class, 'cover'])->name('attachments.cover');
 Route::post('/attachments/{attachment}/remove', [AttachmentController::class, 'remove'])->name('attachments.remove');
 
@@ -595,6 +597,8 @@ Route::put('/approval-policies', [ApprovalPolicyController::class, 'update'])->n
 // ---- Codes, barcodes, labels, scan ----
 Route::get('/settings/codes', [CodeSettingsController::class, 'edit'])->name('settings.codes');
 Route::put('/settings/codes', [CodeSettingsController::class, 'update'])->name('settings.codes.update');
+Route::get('/settings/documents', [DocumentSettingsController::class, 'edit'])->name('settings.documents');
+Route::put('/settings/documents', [DocumentSettingsController::class, 'update'])->name('settings.documents.update');
 Route::get('/scan', [ScanController::class, 'find'])->name('scan');
 Route::get('/labels/{type}/{id}', [LabelController::class, 'show'])->where('type', '[a-z_]+')->name('labels.show');
 Route::get('/tools/{type}/{id}', [ToolController::class, 'show'])->where('type', '[a-z_]+')->name('tools.show');
