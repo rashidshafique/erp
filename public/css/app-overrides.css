@@ -85,12 +85,16 @@ select:not([multiple]):not([size]) {
 .alert { border-radius: 10px; }
 .pagination-links a, .pagination-links span { border-radius: 7px; border-color: var(--border); }
 
-/* Menu text: light (300) and lighter grey, as in the reference design; the current page keeps a little more weight. */
-.nav-submenu .nav-link, .nav-link { color: #5d6573 !important; font-weight: 300 !important; }
-.nav-group-toggle, .nav-group.is-open > .nav-group-toggle { font-weight: 300 !important; }
-.nav-group-toggle { color: #7a818c !important; }
-.nav-group.is-open > .nav-group-toggle, .nav-group.is-active > .nav-group-toggle { color: #4b5260 !important; }
-.nav-submenu .nav-link.active, .nav-link.active, .nav-link.active:hover { font-weight: 400 !important; }
+/* Menu text: regular weight (400) in a mid grey; the current page keeps a little more weight. */
+.nav-submenu .nav-link, .nav-link { color: #474e5b !important; font-weight: 400 !important; }
+.nav-group-toggle, .nav-group.is-open > .nav-group-toggle, .nav-link.nav-top { font-weight: 500 !important; }
+.nav-group-toggle { color: #5d6573 !important; }
+.nav-group.is-open > .nav-group-toggle, .nav-group.is-active > .nav-group-toggle { color: #343a46 !important; }
+/* The section holding the open page: darker icon and label than the other sections. */
+.nav-group.is-active > .nav-group-toggle, .nav-group.is-active > .nav-group-toggle svg { color: var(--text) !important; }
+.nav-group.is-active > .nav-group-toggle .nav-ico { opacity: 1; }
+.nav-group.is-active > .nav-group-toggle { font-weight: 500 !important; }
+.nav-submenu .nav-link.active, .nav-link.active, .nav-link.active:hover { font-weight: 500 !important; }
 .brand-mark { display: none; }
 .menu-toggle { flex: none; margin-right: 6px; }
 .menu-expand { display: none; }
@@ -171,7 +175,49 @@ select:not([multiple]):not([size]) {
 .save-bar[hidden] { display: none; }
 .save-bar-note { display: inline-flex; align-items: center; gap: 7px; margin-right: 10px; color: var(--muted); font-size: 13px; }
 .save-bar .btn { min-height: 28px; padding: 3px 12px; }
-.save-bar:not([hidden]) ~ .scan-box { margin-left: 0 !important; }
 
 /* Font chosen by the administrator under Administration → Display */
 body, button, input, select, textarea { font-family: var(--ui-font); }
+
+/* Phone top bar: the search box is an icon that opens over the bar, the date is hidden, the menu button is two lines. */
+.scan-open, .ico-hamburger { display: none; }
+@media (max-width: 768px) {
+    .topbar { position: relative; gap: 8px; }
+    .topbar-date { display: none; }
+    .breadcrumb { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .menu-toggle .ico-panel { display: none; }
+    .menu-toggle .ico-hamburger { display: inline-flex; }
+    .scan-box { margin: 0 0 0 auto !important; }
+    .scan-box .scan-open { display: inline-flex; }
+    .scan-box #scan-input, .scan-box .scan-hint { display: none; }
+    .scan-box.is-open { position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; padding: 0 12px; background: var(--surface); }
+    .scan-box.is-open .scan-open { display: none; }
+    .scan-box.is-open #scan-input { display: block; width: 100%; min-height: 36px; font-size: 16px; }
+}
+
+/* Search box results: matches appear under the box while typing; a chip shows when one type is picked. */
+.scan-type { position: absolute; left: 4px; top: 50%; z-index: 1; transform: translateY(-50%); padding: 2px 7px; border-radius: 5px; background: var(--accent); color: #fff; font-size: 11px; font-weight: 600; pointer-events: none; }
+.scan-type[hidden] { display: none; }
+.scan-results { position: absolute; top: calc(100% + 6px); right: 0; z-index: 70; width: 420px; max-width: calc(100vw - 24px); max-height: 60vh; overflow-y: auto; padding: 4px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); box-shadow: 0 12px 32px rgba(15, 23, 42, .16); }
+.scan-results[hidden] { display: none; }
+.scan-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 7px; color: var(--text); font-size: 13px; text-decoration: none; }
+.scan-row:hover, .scan-row.is-active { background: var(--hover); }
+.scan-row-code { font-weight: 600; white-space: nowrap; }
+.scan-row-main { grid-column: 1 / 3; font-weight: 500; }
+.scan-row-name { overflow: hidden; color: var(--muted); white-space: nowrap; text-overflow: ellipsis; }
+.scan-row-kind { padding: 1px 6px; border: 1px solid var(--border); border-radius: 4px; color: var(--muted); font-size: 11px; white-space: nowrap; }
+.scan-empty { padding: 10px; color: var(--muted); font-size: 13px; }
+@media (max-width: 768px) {
+    .scan-box.is-open .scan-results { left: 12px; right: 12px; width: auto; }
+    .scan-box.is-open .scan-type { left: 16px; }
+    .scan-box:not(.is-open) .scan-type { display: none; }
+}
+
+/* Desktop: the search box sits in the middle of the top bar, the breadcrumb and the date share the space either side. */
+@media (min-width: 769px) {
+    .topbar .breadcrumb, .topbar .topbar-date { flex: 1 1 0; min-width: 0; }
+    .topbar .breadcrumb { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .topbar .topbar-date { text-align: right; white-space: nowrap; }
+    .topbar .scan-box { flex: none; margin: 0 12px; }
+    .scan-results { right: auto; left: 50%; transform: translateX(-50%); }
+}
