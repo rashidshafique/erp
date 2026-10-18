@@ -16,5 +16,6 @@ return [
         'hr.approve_advance' => 'Approve an advance or loan',
         'hr.approve_settlement' => 'Approve a final settlement',
         'pattern.scrap_customer_pattern' => "Scrap a customer's pattern",
+        'pattern.approve_revision' => 'Approve a pattern revision',
     ],
 ];

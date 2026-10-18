@@ -76,6 +76,8 @@
     </div>
 </div>
 
+@include('patterns._tool-life', ['pattern' => $pattern, 'toolLife' => $toolLife])
+
 <div class="tab-marker" data-tab-start="Sand system"></div>
 <div class="panel"><div class="panel-header"><h2>Sand system</h2></div><div class="panel-body">
     <p class="muted small" style="margin-top:0">A pattern is made with the taper and allowances of one sand system. The work list warns when it is put on a line running a sand system that is not listed here.</p>
@@ -118,7 +120,14 @@
                                 @else<span class="status">Not current</span>@endif
                                 @if ($revision->legacy_baseline)<span class="status" title="Created from the imported data, not from a recorded change">Baseline</span>@endif
                             </td>
-                            <td>{{ $revision->status }}</td>
+                            <td>
+                                <form method="POST" action="{{ route('patterns.revisions.status', [$pattern, $revision]) }}" style="display:flex;gap:4px;align-items:center">
+                                    @csrf @method('PUT')
+                                    <select name="status" onchange="this.form.submit()" aria-label="Revision status">
+                                        @foreach (['DRAFT', 'APPROVED', 'OBSOLETE'] as $state)<option value="{{ $state }}" @selected($revision->status === $state)>{{ ucfirst(strtolower($state)) }}</option>@endforeach
+                                    </select>
+                                </form>
+                            </td>
                             <td>{{ $revision->drawing_revision ?: '—' }}</td>
                             <td class="mono">@if ($revision->modification_cost !== null){{ number_format((float) $revision->modification_cost) }}@elseif ($revision->legacy_baseline)<span class="muted">not recorded</span>@else — @endif</td>
                             <td class="mono small">@if ($revision->casting_weight_kg || $revision->pour_weight_kg){{ $revision->casting_weight_kg !== null ? rtrim(rtrim(number_format((float) $revision->casting_weight_kg, 3), '0'), '.') : '—' }} / {{ $revision->pour_weight_kg !== null ? rtrim(rtrim(number_format((float) $revision->pour_weight_kg, 3), '0'), '.') : '—' }}@if ($revision->yieldPercent() !== null)<div class="muted">yield {{ $revision->yieldPercent() }} %@if ($revision->pieces_per_mould) · {{ $revision->pieces_per_mould }} pcs/mould @endif</div>@endif @elseif ($revision->legacy_baseline)<span class="muted">not recorded</span>@else — @endif</td>

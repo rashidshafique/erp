@@ -14,13 +14,19 @@ use App\Models\PatternRevision;
 use App\Models\ProductRevision;
 use App\Models\Quotation;
 use App\Models\SandSystem;
+use App\Models\ToolingLifeLimit;
+use App\Models\ToolingMaintenanceRecord;
+use App\Services\Approvals\ApprovalGate;
 use App\Services\Audit\Audit;
 use App\Services\Codes\CodeGenerator;
 use App\Services\Patterns\PatternOwnership;
 use App\Services\Patterns\RevisionLayout;
+use App\Services\ToolingLifeStatusService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -164,6 +170,33 @@ class PatternController extends Controller
         ]);
     }
 
+    /**
+     * Service life, inspection and maintenance standing of the pattern and its revisions, from the tooling life limits
+     * and maintenance register.
+     *
+     * @return array{limits: Collection<int, array<string, mixed>>, lastDone: ?ToolingMaintenanceRecord, nextInspection: ?Carbon, openJobs: int}
+     */
+    private function toolLife(Pattern $pattern): array
+    {
+        $revisionIds = $pattern->revisions->pluck('id');
+        $ofThisPattern = fn ($query) => $query->where(fn ($q) => $q->where('pattern_id', $pattern->id)->orWhereIn('pattern_revision_id', $revisionIds));
+
+        $service = app(ToolingLifeStatusService::class);
+        $limits = $ofThisPattern(ToolingLifeLimit::query()->where('is_active', true)->with('patternRevision'))->get()
+            ->map(fn (ToolingLifeLimit $limit) => $service->calculate($limit));
+
+        $records = fn () => $ofThisPattern(ToolingMaintenanceRecord::query());
+        $nextDue = $records()->whereNotIn('status', ['COMPLETED', 'CANCELLED'])->whereNotNull('next_inspection_due_on')->min('next_inspection_due_on')
+            ?? $records()->where('status', 'COMPLETED')->whereNotNull('next_inspection_due_on')->max('next_inspection_due_on');
+
+        return [
+            'limits' => $limits,
+            'lastDone' => $records()->where('status', 'COMPLETED')->latest('completed_at')->first(),
+            'nextInspection' => $nextDue ? Carbon::parse($nextDue) : null,
+            'openJobs' => $records()->whereNotIn('status', ['COMPLETED', 'CANCELLED'])->count(),
+        ];
+    }
+
     /** Corrects the physical tooling record. Revisions, their codes and their layouts are not touched. */
     public function update(Request $request, Pattern $pattern): RedirectResponse
     {
@@ -297,13 +330,40 @@ class PatternController extends Controller
             'scrapRequest' => ApprovalRequest::where('action_key', 'pattern.scrap_customer_pattern')->where('subject_id', $pattern->id)->whereIn('status', ['PENDING', 'APPROVED'])->latest()->first(),
         ];
 
-        return view('patterns.show', compact('pattern', 'productRevisions', 'revisionPhotos', 'assembledRevisions', 'owner'));
+        $toolLife = $this->toolLife($pattern);
+
+        return view('patterns.show', compact('pattern', 'productRevisions', 'revisionPhotos', 'assembledRevisions', 'owner', 'toolLife'));
     }
 
     /**
      * Sets how a revision is moulded: its arrangement, flask sections, casting levels and shared metal. Once moulds have been
      * assembled from it, a correction needs a reason (audited) and the assembled moulds keep the castings they recorded.
      */
+    /**
+     * Moves a revision between DRAFT, APPROVED and OBSOLETE. Approving goes through the 'pattern.approve_revision' approval
+     * policy when one is switched on in the approval rules; otherwise it takes effect at once.
+     */
+    public function updateRevisionStatus(Request $request, Pattern $pattern, PatternRevision $revision): RedirectResponse
+    {
+        abort_unless($revision->pattern_id === $pattern->id, 404);
+        $data = $request->validate(['status' => ['required', Rule::in(['DRAFT', 'APPROVED', 'OBSOLETE'])]]);
+
+        if ($data['status'] === $revision->status) {
+            return back();
+        }
+        if ($data['status'] === 'APPROVED') {
+            $message = null;
+            $label = "{$pattern->code} revision ".($revision->code ?? $revision->revision);
+            if (! app(ApprovalGate::class)->passes('pattern.approve_revision', 'PatternRevision', (string) $revision->id, $label, $message)) {
+                return back()->with('warning', $message);
+            }
+        }
+        $from = $revision->status;
+        $revision->update(['status' => $data['status']]);
+
+        return back()->with('success', 'Revision '.($revision->code ?? $revision->revision)." is now {$data['status']} (was {$from}).");
+    }
+
     public function updateLayout(Request $request, Pattern $pattern, PatternRevision $revision): RedirectResponse
     {
         abort_unless($revision->pattern_id === $pattern->id, 404);
