@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\AttachableEntities;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
@@ -21,11 +22,11 @@ class Attachment extends Model
         return in_array($this->mime_type, ['image/png', 'image/jpeg', 'image/webp'], true);
     }
 
-    /** The main photo of a record: the one marked as main, else the newest photo, else the newest image of any category. */
+    /** The main photo of a record: the one marked as main, else the newest photo, else the newest image. ID documents and contracts are never used. */
     public static function coverFor(string $type, string $id): ?self
     {
         $q = fn () => static::where('attachable_type', $type)->where('attachable_id', $id)->whereNull('removed_at')
-            ->whereIn('mime_type', ['image/png', 'image/jpeg', 'image/webp']);
+            ->whereNotIn('category', AttachableEntities::SENSITIVE_CATEGORIES)->whereIn('mime_type', ['image/png', 'image/jpeg', 'image/webp']);
 
         return $q()->where('is_cover', true)->first()
             ?? $q()->where('category', 'PHOTO')->orderByDesc('created_at')->orderByDesc('id')->first()

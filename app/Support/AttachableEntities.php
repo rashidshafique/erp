@@ -28,6 +28,7 @@ use App\Models\Product;
 use App\Models\QualityInspection;
 use App\Models\SalesOrder;
 use App\Models\ThermalAnalysisTest;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 
 /** Records that can carry files. Key is stored with the attachment; class is used to check the record exists. */
@@ -50,6 +51,70 @@ class AttachableEntities
     ];
 
     public const CATEGORIES = ['CERTIFICATE' => 'Certificate', 'DRAWING' => 'Drawing', 'SPECIFICATION' => 'Specification', 'REPORT' => 'Test / inspection report', 'PHOTO' => 'Photo', 'CUSTOMER_DOCUMENT' => 'Customer document', 'ID_DOCUMENT' => 'ID / personal document', 'CONTRACT' => 'Contract / letter', 'OTHER' => 'Other'];
+
+    /**
+     * Who may touch each record's files: [permission to add/remove files, permission to read them or null when any
+     * signed-in user may]. Photos stay readable wherever the record is shown (staff directory, org chart).
+     *
+     * @var array<string, array{0: string, 1: string|null}>
+     */
+    public const ACCESS = [
+        'material' => ['stores.manage', null], 'furnace' => ['melting.operate', null], 'flask' => ['tooling.manage', null], 'equipment' => ['tooling.manage', null],
+        'heat' => ['melting.operate', null], 'pattern' => ['master.manage', null], 'pattern_revision' => ['master.manage', null], 'product' => ['master.manage', null],
+        'sales_order' => ['sales.manage', null], 'moulding_run' => ['moulding.operate', null], 'pour' => ['pouring.operate', null],
+        'casting_lot' => ['shopfloor.record', null], 'ncr' => ['quality.manage', null],
+        'inspection' => ['quality.inspect', null], 'thermal_test' => ['melting.operate', null],
+        'packing' => ['packing.operate', null], 'dispatch' => ['dispatch.operate', null], 'iron_grade' => ['quality.manage', null],
+        'core_box' => ['tooling.manage', null], 'core_definition' => ['tooling.manage', null],
+        'mould_configuration' => ['tooling.manage', null],
+        'enquiry' => ['sales.manage', null],
+        'employee' => ['hr.manage', 'hr.manage'],
+        'employee_document' => ['hr.manage', 'hr.manage'],
+        'leave_request' => ['hr.manage', 'hr.manage'],
+        'hr_policy' => ['hr.manage', null],
+    ];
+
+    /** Categories that need documents.sensitive on top of the record's own permission. */
+    public const SENSITIVE_CATEGORIES = ['ID_DOCUMENT', 'CONTRACT'];
+
+    public static function isSensitive(string $category): bool
+    {
+        return in_array($category, self::SENSITIVE_CATEGORIES, true);
+    }
+
+    /** Everything is open while login is off, as with the rest of the app. */
+    public static function canView(?User $user, string $key, string $category): bool
+    {
+        if (! config('foundry.require_login')) {
+            return true;
+        }
+        if (! $user) {
+            return false;
+        }
+        if (self::isSensitive($category)) {
+            return $user->hasPermission('documents.sensitive');
+        }
+        $permission = self::ACCESS[$key][1] ?? null;
+
+        return $permission === null || $category === 'PHOTO' || $user->hasPermission($permission);
+    }
+
+    /** Adding, removing or choosing the main photo. Needs attachments.manage and the record's own permission. Pass a category to check it too. */
+    public static function canEdit(?User $user, string $key, ?string $category = null): bool
+    {
+        if (! config('foundry.require_login')) {
+            return true;
+        }
+        if (! $user || ! $user->hasPermission('attachments.manage')) {
+            return false;
+        }
+        $permission = self::ACCESS[$key][0] ?? null;
+        if ($permission === null ? ! $user->isAdmin() : ! $user->hasPermission($permission)) {
+            return false;
+        }
+
+        return $category === null || ! self::isSensitive($category) || $user->hasPermission('documents.sensitive');
+    }
 
     public static function find(string $key, string $id): ?Model
     {

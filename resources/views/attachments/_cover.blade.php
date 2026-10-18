@@ -3,9 +3,10 @@
      $size (px, default 150); $upload (default true) shows the "Add photos" button. --}}
 @php
     $size ??= 150;
-    $upload ??= true;
+    $upload = ($upload ?? true) && \App\Support\AttachableEntities::canEdit(auth()->user(), $type, 'PHOTO');
     $photos = \App\Models\Attachment::where('attachable_type', $type)->where('attachable_id', (string) $id)->whereNull('removed_at')
-        ->whereIn('mime_type', ['image/png', 'image/jpeg', 'image/webp'])->orderByDesc('created_at')->orderByDesc('id')->get();
+        ->whereIn('mime_type', ['image/png', 'image/jpeg', 'image/webp'])->orderByDesc('created_at')->orderByDesc('id')->get()
+        ->filter(fn ($p) => \App\Support\AttachableEntities::canView(auth()->user(), $type, $p->category));
     $cover = \App\Models\Attachment::coverFor($type, (string) $id);
     $others = $cover ? $photos->reject(fn ($p) => $p->id === $cover->id)->values() : collect();
     $group = 'photos-'.$type.'-'.$id;

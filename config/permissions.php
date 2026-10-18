@@ -21,6 +21,7 @@ return [
         'master.manage' => 'Products and patterns',
         'tooling.manage' => 'Tooling maintenance and life',
         'attachments.manage' => 'Attach and remove files',
+        'documents.sensitive' => 'See and attach ID documents and contracts',
         'approvals.decide' => 'Decide approval requests',
         'approvals.configure' => 'Set which actions need approval',
         'settings.manage' => 'Settings and custom fields',
@@ -98,7 +99,7 @@ return [
         'QUALITY_INSPECTOR' => ['name' => 'Quality inspector', 'permissions' => ['quality.inspect', 'shopfloor.record', 'attachments.manage']],
         'QUALITY_MANAGER' => ['name' => 'Quality manager', 'permissions' => ['quality.inspect', 'quality.manage', 'shopfloor.record', 'attachments.manage', 'approvals.decide', 'approvals.configure', 'audit.view']],
         'STORES_DISPATCH' => ['name' => 'Stores and dispatch', 'permissions' => ['stores.manage', 'packing.operate', 'dispatch.operate', 'attachments.manage']],
-        'HR_MANAGER' => ['name' => 'HR manager', 'permissions' => ['hr.manage', 'hr.payroll', 'attachments.manage', 'approvals.decide', 'approvals.configure', 'audit.view']],
+        'HR_MANAGER' => ['name' => 'HR manager', 'permissions' => ['hr.manage', 'hr.payroll', 'attachments.manage', 'documents.sensitive', 'approvals.decide', 'approvals.configure', 'audit.view']],
         'VIEWER' => ['name' => 'View only', 'permissions' => []],
     ],
 ];

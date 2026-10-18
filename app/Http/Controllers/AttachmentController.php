@@ -7,6 +7,7 @@ use App\Support\AttachableEntities;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -17,6 +18,7 @@ class AttachmentController extends Controller
     public function store(Request $request, string $type, string $id): RedirectResponse
     {
         abort_unless(AttachableEntities::find($type, $id), 404);
+        abort_unless(AttachableEntities::canEdit(Auth::user(), $type, (string) $request->input('category')), 403);
         $exts = config('foundry.attachments.extensions');
         $max = config('foundry.attachments.max_kb');
         $request->validate([
@@ -63,6 +65,7 @@ class AttachmentController extends Controller
     public function download(Attachment $attachment): StreamedResponse
     {
         abort_if($attachment->removed_at !== null, 404);
+        abort_unless(AttachableEntities::canView(Auth::user(), $attachment->attachable_type, $attachment->category), 403);
         $disk = Storage::disk($attachment->disk);
         abort_unless($disk->exists($attachment->path), 404, 'The file is missing from storage.');
 
@@ -76,7 +79,8 @@ class AttachmentController extends Controller
     public function cover(Attachment $attachment): RedirectResponse
     {
         abort_if($attachment->removed_at !== null || ! $attachment->isImage(), 404);
-        \Illuminate\Support\Facades\DB::transaction(function () use ($attachment) {
+        abort_unless(AttachableEntities::canEdit(Auth::user(), $attachment->attachable_type, $attachment->category), 403);
+        DB::transaction(function () use ($attachment) {
             Attachment::where('attachable_type', $attachment->attachable_type)->where('attachable_id', $attachment->attachable_id)
                 ->where('is_cover', true)->update(['is_cover' => false]);
             $attachment->update(['is_cover' => true]);
@@ -90,6 +94,7 @@ class AttachmentController extends Controller
     {
         $d = $request->validate(['removal_reason' => ['required', 'string', 'max:300']]);
         abort_if($attachment->removed_at !== null, 404);
+        abort_unless(AttachableEntities::canEdit(Auth::user(), $attachment->attachable_type, $attachment->category), 403);
         $attachment->update(['removed_at' => now(), 'removed_by_name' => Auth::user()?->name, 'removal_reason' => $d['removal_reason']]);
 
         return back()->with('success', 'File removed from the record. A copy is kept for the audit trail.');
