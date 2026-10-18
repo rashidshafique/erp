@@ -221,3 +221,9 @@ body, button, input, select, textarea { font-family: var(--ui-font); }
     .topbar .scan-box { flex: none; margin: 0 12px; }
     .scan-results { right: auto; left: 50%; transform: translateX(-50%); }
 }
+
+.pager { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; font-size: 13px; }
+.pager-item { min-width: 28px; height: 28px; padding: 0 8px; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; color: var(--muted); }
+a.pager-item:hover { background: var(--page); color: var(--text); }
+.pager-item.current { background: var(--accent); color: #fff; font-weight: 600; }
+.pager-item.disabled { opacity: .4; }
