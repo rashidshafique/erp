@@ -2,6 +2,7 @@
 
 use App\Domains\Capa\CapaServiceProvider;
 use App\Domains\Dispatch\DispatchServiceProvider;
+use App\Domains\Documents\DocumentsServiceProvider;
 use App\Domains\Enquiry\EnquiryServiceProvider;
 use App\Domains\Hr\HrServiceProvider;
 use App\Domains\Licensing\LicensingServiceProvider;
@@ -14,6 +15,7 @@ return [
     LicensingServiceProvider::class,
     CapaServiceProvider::class,
     DispatchServiceProvider::class,
+    DocumentsServiceProvider::class,
     EnquiryServiceProvider::class,
     HrServiceProvider::class,
     MaintenanceServiceProvider::class,
