@@ -11,7 +11,7 @@
 </style>
 <script>
 (function () {
-    var main = document.querySelector('.page-content');
+    var main = document.querySelector('[data-tab-host]') || document.querySelector('.page-content');
     if (!main) return;
     var markers = main.querySelectorAll(':scope > .tab-marker');
     if (markers.length < 2) return;

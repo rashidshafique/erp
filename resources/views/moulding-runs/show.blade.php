@@ -23,6 +23,8 @@
         </div>
     </div>
 
+    <div class="run-show-split">
+    <div data-tab-host>
     <div class="metrics">
         <div class="metric">
             <div class="metric-label">Moulds made</div>
@@ -271,7 +273,14 @@
             </div>
         </section>
     @endif
-<div class="tab-marker" data-tab-start="Output"></div>
+<div class="tab-marker" data-tab-start="Sand"></div>
+@include('moulding-runs._sand', ['run' => $run])
+<div class="tab-marker" data-tab-start="Files & history"></div>
+@include('custom-fields._panel', ['entity' => 'moulding_run', 'id' => $run->id])
+@include('attachments._panel', ['type' => 'moulding_run', 'id' => $run->id])
+@include('audit._history', ['type' => 'MouldingRun', 'id' => $run->id])
+    </div>
+    <aside>
     @if (! in_array($run->status, ['COMPLETED', 'CANCELLED']))
     <section class="panel">
         <div class="panel-header"><h2>Record output</h2></div>
@@ -292,10 +301,10 @@
     </section>
     @endif
 
-<div class="tab-marker" data-tab-start="Sand"></div>
-@include('moulding-runs._sand', ['run' => $run])
-<div class="tab-marker" data-tab-start="Files & history"></div>
-@include('custom-fields._panel', ['entity' => 'moulding_run', 'id' => $run->id])
-@include('attachments._panel', ['type' => 'moulding_run', 'id' => $run->id])
-@include('audit._history', ['type' => 'MouldingRun', 'id' => $run->id])
+    </aside>
+    </div>
+    <style>
+        .run-show-split { display: grid; grid-template-columns: minmax(0, 65fr) minmax(0, 35fr); gap: 18px; align-items: start; }
+        @media (max-width: 900px) { .run-show-split { grid-template-columns: 1fr; } }
+    </style>
 @endsection
