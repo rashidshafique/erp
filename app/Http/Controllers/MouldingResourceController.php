@@ -74,6 +74,9 @@ class MouldingResourceController extends Controller
 
     private function teamData(Request $request, ?MouldingTeam $team = null): array
     {
+        if (is_string($request->input('code'))) {
+            $request->merge(['code' => strtoupper(trim($request->input('code')))]);   // "acme" and "ACME" are the same code
+        }
         $people = app(PeopleDirectory::class);
         $leadIdWasSubmitted = array_key_exists('lead_employee_id', $request->all());
         $membershipWasSubmitted = $request->boolean('employee_ids_sent');
@@ -156,6 +159,9 @@ class MouldingResourceController extends Controller
 
     private function stationData(Request $request, ?MouldingStation $station = null): array
     {
+        if (is_string($request->input('code'))) {
+            $request->merge(['code' => strtoupper(trim($request->input('code')))]);   // "acme" and "ACME" are the same code
+        }
         $d = $request->validate([
             'code' => ['required', 'string', 'max:30', 'regex:/^[A-Za-z0-9._-]+$/', Rule::unique('moulding_stations', 'code')->ignore($station?->id)],
             'name' => ['required', 'string', 'max:100'], 'station_type' => ['required', Rule::in(array_keys(MouldingStation::TYPES))],

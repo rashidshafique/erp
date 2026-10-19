@@ -25,6 +25,9 @@ class PayrollSetupController extends Controller
 
     public function componentStore(Request $request): RedirectResponse
     {
+        if (is_string($request->input('code'))) {
+            $request->merge(['code' => strtoupper(trim($request->input('code')))]);   // "acme" and "ACME" are the same code
+        }
         $d = $request->validate($this->rules());
         PayComponent::create(['code' => strtoupper($d['code']), 'name' => $d['name'], 'kind' => $d['kind'], 'calc' => $d['calc'], 'default_value' => $d['default_value'] ?? 0, 'sort' => $d['sort'] ?? 50, 'taxable' => $request->boolean('taxable'), 'prorate' => $request->boolean('prorate'), 'active' => true]);
 
@@ -33,6 +36,9 @@ class PayrollSetupController extends Controller
 
     public function componentUpdate(Request $request, PayComponent $component): RedirectResponse
     {
+        if (is_string($request->input('code'))) {
+            $request->merge(['code' => strtoupper(trim($request->input('code')))]);   // "acme" and "ACME" are the same code
+        }
         $d = $request->validate($this->rules($component->id));
         $component->update(['code' => $component->is_basic ? $component->code : strtoupper($d['code']), 'name' => $d['name'], 'kind' => $component->is_basic ? 'EARNING' : $d['kind'], 'calc' => $component->is_basic ? 'FIXED' : $d['calc'], 'default_value' => $d['default_value'] ?? 0, 'sort' => $d['sort'] ?? $component->sort, 'taxable' => $request->boolean('taxable'), 'prorate' => $request->boolean('prorate'), 'active' => $component->is_basic ? true : $request->boolean('active')]);
 

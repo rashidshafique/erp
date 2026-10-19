@@ -97,6 +97,11 @@ class SupplierController extends Controller
     /** @return array<string, mixed> */
     private function validated(Request $request, ?Supplier $supplier = null): array
     {
+        // Codes are kept in capitals, so "acme" and "ACME" count as the same code when checking for duplicates.
+        if (is_string($request->input('code'))) {
+            $request->merge(['code' => strtoupper(trim($request->input('code')))]);
+        }
+
         $data = $request->validate([
             'code' => ['nullable', 'string', 'max:40', Rule::unique('suppliers', 'code')->ignore($supplier?->id)],
             'name' => ['required', 'string', 'max:150'],

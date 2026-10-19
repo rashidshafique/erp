@@ -45,6 +45,9 @@ class HrLeaveController extends Controller
 
     public function typeStore(Request $request): RedirectResponse
     {
+        if (is_string($request->input('code'))) {
+            $request->merge(['code' => strtoupper(trim($request->input('code')))]);   // "acme" and "ACME" are the same code
+        }
         $d = $request->validate($this->rules());
         LeaveType::create(['code' => strtoupper($d['code']), 'name' => $d['name'], 'annual_days' => $d['annual_days'], 'accrual' => $d['accrual'], 'carry_forward_max' => $d['carry_forward_max'] ?? 0, 'gender' => ($d['gender'] ?? null) ?: null, 'active' => true] + $this->flags($request));
 
@@ -53,6 +56,9 @@ class HrLeaveController extends Controller
 
     public function typeUpdate(Request $request, LeaveType $type): RedirectResponse
     {
+        if (is_string($request->input('code'))) {
+            $request->merge(['code' => strtoupper(trim($request->input('code')))]);   // "acme" and "ACME" are the same code
+        }
         $d = $request->validate($this->rules($type->id));
         $type->update(['code' => strtoupper($d['code']), 'name' => $d['name'], 'annual_days' => $d['annual_days'], 'accrual' => $d['accrual'], 'carry_forward_max' => $d['carry_forward_max'] ?? 0, 'gender' => ($d['gender'] ?? null) ?: null, 'active' => $request->boolean('active')] + $this->flags($request));
 

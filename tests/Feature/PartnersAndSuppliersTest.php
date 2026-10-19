@@ -58,6 +58,7 @@ class PartnersAndSuppliersTest extends TestCase
 
         $other = Supplier::create(['name' => 'Beta', 'review_interval_days' => 365]);
         $this->put(route('suppliers.update', $other), ['name' => 'Beta', 'code' => 'ACME', 'review_interval_days' => 365])->assertSessionHasErrors('code');
+        $this->put(route('suppliers.update', $other), ['name' => 'Beta', 'code' => 'acme', 'review_interval_days' => 365])->assertSessionHasErrors('code');   // case does not make a new code
         $this->put(route('suppliers.update', $other), ['name' => 'Beta', 'review_interval_days' => 10])->assertSessionHasErrors('review_interval_days');
     }
 }
