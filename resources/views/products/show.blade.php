@@ -24,16 +24,98 @@
 </div>
 @if ($product->trashed())<div class="alert alert-warning">Archived on {{ $product->deleted_at->displayDate() }}. It is left out of the product list, its counts and every product picker, and stays on the orders and lots that used it. Restore it to use it again.</div>@endif
 
+
+
+<div class="tab-marker" data-tab-start="Specification"></div>
+<div class="panel">
+    <div class="panel-header">
+        <h2>Product specification</h2>
+        <span class="status {{ $product->active ? 'status-completed' : 'status-cancelled' }}">
+            {{ $product->active ? 'ACTIVE' : 'INACTIVE' }}
+        </span>
+    </div>
+    <div class="panel-body">
+        @include('attachments._cover', ['type' => 'product', 'id' => $product->id])
+        <div style="margin:6px 0 10px">{!! \App\Support\Code128::svg($product->code, 40, 2) !!} <a class="small" href="{{ route('labels.show', ['product', $product->id]) }}" target="_blank">Print label →</a></div>
+        <div class="detail-grid">
+            <div>
+                <div class="detail-label">Product code</div>
+                <div class="detail-value">{{ $product->code }}</div>
+            </div>
+            <div>
+                <div class="detail-label">Product name</div>
+                <div class="detail-value">{{ $product->name }}</div>
+            </div>
+            <div>
+                <div class="detail-label">Product type</div>
+                <div class="detail-value">{{ $product->product_type }}</div>
+            </div>
+            <div>
+                <div class="detail-label">Base unit</div>
+                <div class="detail-value">{{ $product->base_uom }}</div>
+            </div>
+            <div>
+                <div class="detail-label">Nominal weight</div>
+                <div class="detail-value">
+                    {{ $product->nominal_weight_kg !== null
+                        ? \App\Support\Formats::number((float) $product->nominal_weight_kg, 4).' kg'
+                        : 'Not specified' }}
+                </div>
+            </div>
+            <div>
+                <div class="detail-label">Revision count</div>
+                <div class="detail-value">{{ $product->revisions->count() }}</div>
+            </div>
+            @php
+                $currentPatterns = $product->revisions->flatMap->patternCavities->map->patternRevision
+                    ->filter(fn ($r) => $r->is_current && ! $r->pattern->trashed())->unique('pattern_id')->map->pattern->sortBy('name');
+            @endphp
+            <div>
+                <div class="detail-label">Patterns</div>
+                <div class="detail-value">
+                    @forelse ($currentPatterns as $p)<a href="{{ route('patterns.show', $p) }}">{{ $p->name }}</a> <span class="muted small mono">{{ $p->code }}</span>@if (! $loop->last)<br>@endif
+                    @empty<span class="muted">None linked yet</span>@endforelse
+                </div>
+            </div>
+        </div>
+
+        @if ($product->description)
+            <div style="margin-top:20px">
+                <div class="detail-label">Description</div>
+                <div>{{ $product->description }}</div>
+            </div>
+        @endif
+    </div>
+</div>
 <div class="tab-marker" data-tab-start="Iron grade"></div>
+@php
+    $planner = app(\App\Services\Planning\HeatPlanner::class);
+    $currentGrades = $product->revisions->mapWithKeys(fn ($r) => [$r->id => $planner->gradeFor($r)]);
+    $latest = $product->revisions->first();
+@endphp
 <div class="panel">
     <div class="panel-header"><h2>Iron grade</h2></div>
     <div class="panel-body">
-        <form method="POST" action="{{ route('products.grade', $product) }}" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap">@csrf
-            <div class="field"><label for="grade_revision">Revision</label><select id="grade_revision" name="product_revision_id">@foreach ($product->revisions as $revision)<option value="{{ $revision->id }}">{{ $revision->revision }} ({{ $revision->status }})</option>@endforeach</select></div>
-            <div class="field"><label for="grade_id">Iron grade</label><select id="grade_id" name="iron_grade_id">@foreach (\App\Models\IronGrade::orderBy('family')->orderBy('code')->get() as $g)<option value="{{ $g->id }}">{{ $g->code }}</option>@endforeach</select></div>
-            <button class="btn btn-primary" type="submit">Set grade</button>
-        </form>
-        <p class="muted small">Records an approved specification naming the grade. The contract review and the melting plan read it.</p>
+        @if ($product->revisions->isEmpty())
+            <p class="muted">Add a revision first.</p>
+        @else
+            <div class="table-wrap"><table>
+                <thead><tr><th>Revision</th><th>Current grade</th><th>Type</th></tr></thead>
+                <tbody>@foreach ($product->revisions as $revision)
+                    @php $current = $currentGrades[$revision->id]; @endphp
+                    <tr><td>{{ $revision->revision }} <span class="muted small">{{ $revision->status }}</span></td><td>{!! $current ? '<strong>'.e($current->code).'</strong>' : '<span class="muted">Not set</span>' !!}</td><td>{{ $current?->familyLabel() ?? '—' }}</td></tr>
+                @endforeach</tbody>
+            </table></div>
+            <form method="POST" action="{{ route('products.grade', $product) }}" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-top:12px">@csrf
+                <div class="field"><label for="grade_revision">Revision</label>
+                    <select id="grade_revision" name="product_revision_id" data-search-select>@foreach ($product->revisions as $revision)<option value="{{ $revision->id }}" data-sub="{{ $revision->status }}{{ $currentGrades[$revision->id] ? ' · '.$currentGrades[$revision->id]->code : '' }}" @selected($revision->id === $latest->id)>{{ $revision->revision }}</option>@endforeach</select></div>
+                <div class="field"><label for="grade_id">Iron grade</label>
+                    <select id="grade_id" name="iron_grade_id" data-search-select>@foreach (\App\Models\IronGrade::listed() as $g)<option value="{{ $g->id }}" data-sub="{{ $g->familyLabel() }}" @selected($currentGrades[$latest->id]?->id === $g->id)>{{ $g->code }}</option>@endforeach</select></div>
+                <button class="btn btn-primary" type="submit">Set grade</button>
+            </form>
+            @include('partials.search-select')
+            <p class="muted small">Records an approved specification naming the grade. The contract review and the melting plan read it.</p>
+        @endif
     </div>
 </div>
 
@@ -98,7 +180,18 @@
         @endif
     </div>
 </div>
-
+<div class="tab-marker" data-tab-start="Iron grade"></div>
+<div class="panel">
+    <div class="panel-header"><h2>Iron grade</h2></div>
+    <div class="panel-body">
+        <form method="POST" action="{{ route('products.grade', $product) }}" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap">@csrf
+            <div class="field"><label for="grade_revision">Revision</label><select id="grade_revision" name="product_revision_id">@foreach ($product->revisions as $revision)<option value="{{ $revision->id }}">{{ $revision->revision }} ({{ $revision->status }})</option>@endforeach</select></div>
+            <div class="field"><label for="grade_id">Iron grade</label><select id="grade_id" name="iron_grade_id">@foreach (\App\Models\IronGrade::orderBy('family')->orderBy('code')->get() as $g)<option value="{{ $g->id }}">{{ $g->code }}</option>@endforeach</select></div>
+            <button class="btn btn-primary" type="submit">Set grade</button>
+        </form>
+        <p class="muted small">Records an approved specification naming the grade. The contract review and the melting plan read it.</p>
+    </div>
+</div>
 <div class="tab-marker" data-tab-start="Revisions"></div>
 <div class="panel">
     <div class="panel-header">

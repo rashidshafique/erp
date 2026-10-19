@@ -16,7 +16,7 @@ class IronGradeController extends Controller
     public function index(): View
     {
         return view('iron-grades.index', [
-            'grades' => IronGrade::withCount('aliases')->orderBy('family')->orderBy('code')->get(),
+            'grades' => IronGrade::withCount('aliases')->get()->sortBy(fn ($g) => [array_search($g->family, array_keys(IronGrade::FAMILIES)) === false ? 99 : array_search($g->family, array_keys(IronGrade::FAMILIES)), $g->code])->values(),
             'windows' => ThermalWindow::pluck('iron_grade_id')->unique()->all(),
         ]);
     }

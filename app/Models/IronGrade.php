@@ -11,6 +11,25 @@ class IronGrade extends Model
 {
     use HasUuids;
 
+    /** family => label, in the order they are listed. */
+    public const FAMILIES = [
+        'GREY' => 'Grey iron', 'DUCTILE' => 'Ductile iron', 'MALLEABLE' => 'Malleable iron', 'CGI' => 'Compacted graphite iron',
+        'WHITE' => 'White iron', 'ALLOY' => 'Alloy iron',
+    ];
+
+    public function familyLabel(): string
+    {
+        return self::FAMILIES[$this->family] ?? ucfirst(strtolower((string) $this->family));
+    }
+
+    /** Grades in family order, then by code. */
+    public static function listed(): \Illuminate\Support\Collection
+    {
+        $order = array_flip(array_keys(self::FAMILIES));
+
+        return static::orderBy('code')->get()->sortBy(fn ($g) => [$order[$g->family] ?? 99, $g->code])->values();
+    }
+
     protected $fillable = [
         'code',
         'name',

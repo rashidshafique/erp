@@ -151,6 +151,7 @@ class QuickFlowTest extends TestCase
         $this->post(route('products.grade', $shop['product']), ['product_revision_id' => $revision->id, 'iron_grade_id' => $shop['grade']->id])->assertSessionHasNoErrors();
 
         $this->assertSame($shop['grade']->id, app(\App\Services\Planning\HeatPlanner::class)->gradeFor($revision)?->id);
-        $this->get(route('products.show', $shop['product']))->assertOk()->assertSee('Set grade');
+        $this->get(route('products.show', $shop['product']))->assertOk()->assertSee('Set grade')->assertSee('EN-GJS-500-7')->assertSee('Ductile iron');
+        $this->get(route('iron-grades.index'))->assertOk()->assertSeeInOrder(['Grey iron', 'Ductile iron']);
     }
 }

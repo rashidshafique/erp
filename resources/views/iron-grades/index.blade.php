@@ -8,12 +8,15 @@
 <div class="alert">Chemistry windows are starting values. Review each grade against your control plan and the customer's specification before relying on the gates.</div>
 
 <div class="panel"><div class="table-wrap"><table>
-    <thead><tr><th>Grade</th><th>Family</th><th>Min tensile</th><th>Min yield</th><th>Elong.</th><th>CE</th><th>Equivalents</th><th>Thermal window</th></tr></thead>
+    <thead><tr><th>Grade</th><th>Type</th><th>Min tensile</th><th>Min yield</th><th>Elong.</th><th>CE</th><th>Equivalents</th><th>Thermal window</th></tr></thead>
     <tbody>
     @foreach ($grades as $g)
+        @if ($loop->first || $grades[$loop->index - 1]->family !== $g->family)
+            <tr><th colspan="8" style="text-align:left;background:var(--surface-2, transparent)">{{ $g->familyLabel() }}</th></tr>
+        @endif
         <tr>
             <td><a href="{{ route('iron-grades.show', $g) }}"><strong>{{ $g->code }}</strong></a></td>
-            <td>{{ $g->family }}</td>
+            <td>{{ $g->familyLabel() }}</td>
             <td>{{ $g->min_tensile_mpa ? $g->min_tensile_mpa.' MPa' : '—' }}</td>
             <td>{{ $g->min_yield_mpa ? $g->min_yield_mpa.' MPa' : '—' }}</td>
             <td>{{ $g->min_elongation_pct !== null ? $g->min_elongation_pct.' %' : '—' }}</td>
