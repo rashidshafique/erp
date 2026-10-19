@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Gauge;
 use App\Models\Heat;
 use App\Models\MouldAssembly;
 use App\Models\Pour;
@@ -10,6 +11,7 @@ use App\Services\Production\Containment;
 use App\Services\Production\CupolaTimeline;
 use App\Services\Production\LotFactory;
 use App\Services\Production\PourAssembler;
+use App\Services\Quality\CalibrationStatus;
 use App\Services\QualityGates;
 use App\Support\PouringRules;
 use Illuminate\Http\RedirectResponse;
@@ -151,7 +153,9 @@ class PourController extends Controller
             'pour_temperature_c' => ['required', 'numeric', 'between:1000,1700'],
             'total_poured_weight_kg' => ['required', 'numeric', 'gt:0', 'max:999999'],
             'out_of_window_reason' => ['nullable', 'string', 'max:500'],
+            'gauge_id' => ['nullable', 'uuid', Rule::exists('gauges', 'id')],
         ]);
+        $calibrationWarning = app(CalibrationStatus::class)->check(filled($data['gauge_id'] ?? null) ? Gauge::find($data['gauge_id']) : null, 'complete');
 
         $grade = $pour->heat?->ironGrade;
         $temp = (float) $data['pour_temperature_c'];
@@ -164,7 +168,7 @@ class PourController extends Controller
         }
 
         $pour->update([
-            'status' => 'COMPLETED', 'completed_at' => now(), 'pour_temperature_c' => $temp,
+            'status' => 'COMPLETED', 'completed_at' => now(), 'pour_temperature_c' => $temp, 'gauge_id' => $data['gauge_id'] ?? null,
             'total_poured_weight_kg' => $data['total_poured_weight_kg'], 'notes' => $notes ?: null,
         ]);
 
@@ -176,7 +180,7 @@ class PourController extends Controller
             $msg .= ' '.implode(' ', $made['warnings']);
         }
 
-        return back()->with('success', trim($msg.' '.$held));
+        return back()->with('success', trim($msg.' '.$held))->with($calibrationWarning ? ['warning' => $calibrationWarning] : []);
     }
 
     public function attachAssemblies(Request $request, Pour $pour, PourAssembler $assembler): RedirectResponse

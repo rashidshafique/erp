@@ -33,7 +33,9 @@
             <form method="POST" action="{{ route('heats.tests.store', [$heat, $kind]) }}" class="form-grid">@csrf
                 <label>Sample reference<input name="sample_reference"></label>
                 <label>Sample type<select name="sample_type"><option value="">—</option>@foreach (\App\Services\Quality\Measurements::SAMPLE_TYPES as $k => $l)<option value="{{ $k }}">{{ $l }}</option>@endforeach</select></label>
-                <label>Tested by<input name="tested_by"></label><label>Machine / equipment<input name="equipment_reference"></label>
+                <label>Tested by<input name="tested_by"></label>
+                @include('gauges._select', ['plain' => true, 'id' => 'test_gauge_'.$kind, 'label' => 'Machine from the register', 'types' => $kind === 'MECHANICAL' ? ['TENSILE_MACHINE', 'HARDNESS_TESTER'] : null])
+                <label>Machine (if not in the register)<input name="equipment_reference"></label>
                 @foreach ($svc->formRows($kind, 'IRON_GRADE', $heat->iron_grade_id) as $r)
                     <label>{{ $r['name'] }}@if($r['unit']) ({{ $r['unit'] }})@endif
                         <input name="values[{{ $r['key'] }}]" @if($r['numeric']) type="number" step="any" @endif>

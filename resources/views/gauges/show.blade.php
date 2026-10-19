@@ -70,5 +70,29 @@
     @endif
 </div>
 
+<div class="panel"><div class="panel-header"><h2>Measured with this instrument</h2></div>
+    @if ($doubtfulSince)
+        @php $doubtful = $measured->filter(fn ($m) => $m['at']->gte($doubtfulSince)); @endphp
+        <div class="panel-body"><div class="alert alert-error" style="margin:0">The last calibration failed. {{ $doubtful->count() }} {{ $doubtful->count() === 1 ? 'result was' : 'results were' }} measured since the last good calibration on {{ $doubtfulSince->displayDate() }}; they are marked below. Check them and raise an NCR where a result decided a release.</div></div>
+    @endif
+    @if ($measured->isEmpty())
+        <div class="panel-body muted">No results have been recorded with this instrument.</div>
+    @else
+        <div class="table-wrap"><table>
+            <thead><tr><th>When</th><th>Result</th><th>Record</th><th>Value</th></tr></thead>
+            <tbody>
+            @foreach ($measured as $m)
+                <tr @if ($doubtfulSince && $m['at']->gte($doubtfulSince)) style="background:color-mix(in srgb, var(--danger) 8%, transparent)" @endif>
+                    <td>{{ $m['at']->displayShortDateTime() }}</td>
+                    <td>{{ $m['what'] }}</td>
+                    <td><a href="{{ $m['url'] }}">{{ $m['record'] }}</a></td>
+                    <td>{{ $m['value'] ?? '—' }}</td>
+                </tr>
+            @endforeach
+            </tbody>
+        </table></div>
+    @endif
+</div>
+
 @include('attachments._panel', ['type' => 'gauge', 'id' => $gauge->id])
 @endsection

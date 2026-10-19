@@ -8,6 +8,8 @@ use App\Models\Furnace;
 use App\Models\Gauge;
 use App\Models\Heat;
 use App\Models\HeatChemistryReading;
+use App\Models\HeatTreatment;
+use App\Models\MeasurementSet;
 use App\Models\MouldAssembly;
 use App\Models\MouldConfiguration;
 use App\Models\MouldingRun;
@@ -20,9 +22,11 @@ use App\Models\ProductionOrder;
 use App\Models\ProductRevision;
 use App\Models\QualityInspection;
 use App\Models\QualityInspectionResult;
+use App\Models\SandSystem;
 use App\Models\ThermalAnalysisTest;
 use App\Services\Dashboard\DashboardData;
 use App\Services\Quality\CalibrationStatus;
+use App\Services\Quality\GaugeUsage;
 use App\Support\CalibrationRules;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -216,6 +220,61 @@ class GaugeCalibrationTest extends TestCase
         CalibrationRules::set('overdue_use', 'BLOCK');
         $this->post(route('thermal.store'), $form)->assertSessionHasErrors('gauge_id');
         $this->assertSame(1, ThermalAnalysisTest::where('heat_id', $heat->id)->count());
+    }
+
+    public function test_a_pour_temperature_records_its_pyrometer_and_follows_the_same_rule(): void
+    {
+        $pyrometer = $this->gauge(['code' => 'PYR-1', 'instrument_type' => 'THERMOCOUPLE', 'next_due_on' => today()->subDays(2)]);
+        $form = ['pour_temperature_c' => 1400, 'total_poured_weight_kg' => 500, 'gauge_id' => $pyrometer->id];
+
+        $pour = Pour::create(['pour_number' => 'P-'.uniqid(), 'heat_id' => $this->heat()->id, 'status' => 'IN_PROGRESS']);
+        $this->post(route('pours.complete', $pour), $form)->assertSessionHas('warning');
+        $this->assertSame(['COMPLETED', $pyrometer->id], [$pour->fresh()->status, $pour->fresh()->gauge_id]);
+
+        CalibrationRules::set('overdue_use', 'BLOCK');
+        $blocked = Pour::create(['pour_number' => 'P-'.uniqid(), 'heat_id' => $this->heat()->id, 'status' => 'IN_PROGRESS']);
+        $this->post(route('pours.complete', $blocked), $form)->assertSessionHasErrors('complete');
+        $this->assertSame('IN_PROGRESS', $blocked->fresh()->status);
+    }
+
+    public function test_treatment_temperatures_and_lab_tests_record_their_instrument(): void
+    {
+        $heat = $this->heat();
+        $pyrometer = $this->gauge(['code' => 'PYR-2', 'instrument_type' => 'THERMOCOUPLE', 'next_due_on' => today()->addDays(100)]);
+        $tester = $this->gauge(['code' => 'HB-1', 'instrument_type' => 'HARDNESS_TESTER', 'next_due_on' => today()->addDays(100)]);
+        $sandRig = $this->gauge(['code' => 'SAND-1', 'instrument_type' => 'SAND_TEST', 'next_due_on' => today()->subDay()]);
+        $system = SandSystem::create(['code' => 'GREEN', 'name' => 'Green sand', 'system_type' => 'GREEN_SAND', 'status' => 'ACTIVE']);
+
+        $this->post(route('heats.treatments.store', $heat), ['treatment_type' => 'MG_TREATMENT', 'temperature_c' => 1490, 'gauge_id' => $pyrometer->id])->assertSessionHasNoErrors()->assertSessionMissing('warning');
+        $this->post(route('heats.tests.store', [$heat, 'MECHANICAL']), ['values' => ['hardness_hb' => '200'], 'gauge_id' => $tester->id])->assertSessionHasNoErrors();
+        $this->post(route('sand-tests.store'), ['sand_system_id' => $system->id, 'values' => ['moisture_pct' => '3.5'], 'gauge_id' => $sandRig->id])->assertSessionHas('warning');
+
+        $this->assertSame($pyrometer->id, HeatTreatment::where('heat_id', $heat->id)->value('gauge_id'));
+        $mechanical = MeasurementSet::where('heat_id', $heat->id)->firstOrFail();
+        $this->assertSame([$tester->id, 'HB-1'], [$mechanical->gauge_id, $mechanical->equipment_reference]);
+        $this->assertSame($sandRig->id, MeasurementSet::where('sand_system_id', $system->id)->value('gauge_id'));
+
+        CalibrationRules::set('overdue_use', 'BLOCK');
+        $this->post(route('sand-tests.store'), ['sand_system_id' => $system->id, 'values' => ['moisture_pct' => '3.6'], 'gauge_id' => $sandRig->id])->assertSessionHasErrors('sand');
+        $this->assertSame(1, MeasurementSet::where('sand_system_id', $system->id)->count());
+    }
+
+    public function test_the_instrument_page_lists_its_results_and_marks_those_in_doubt_after_a_failed_calibration(): void
+    {
+        $pyrometer = $this->gauge(['code' => 'PYR-3', 'instrument_type' => 'THERMOCOUPLE']);
+        $this->calibrate($pyrometer, ['calibrated_on' => today()->subDays(30)->toDateString()]);
+        Pour::create(['pour_number' => 'P-BEFORE', 'heat_id' => $this->heat()->id, 'status' => 'COMPLETED', 'completed_at' => now()->subDays(40), 'pour_temperature_c' => 1390, 'gauge_id' => $pyrometer->id]);
+        Pour::create(['pour_number' => 'P-AFTER', 'heat_id' => $this->heat()->id, 'status' => 'COMPLETED', 'completed_at' => now()->subDays(5), 'pour_temperature_c' => 1410, 'gauge_id' => $pyrometer->id]);
+
+        $this->get(route('gauges.show', $pyrometer))->assertSee('P-BEFORE')->assertSee('P-AFTER')->assertDontSee('The last calibration failed');
+
+        $this->calibrate($pyrometer, ['result' => 'FAIL']);
+        $usage = app(GaugeUsage::class);
+        $since = $usage->doubtfulSince($pyrometer->fresh());
+        $doubtful = $usage->results($pyrometer)->filter(fn ($m) => $m['at']->gte($since));
+
+        $this->assertSame(['P-AFTER'], $doubtful->pluck('record')->all());
+        $this->get(route('gauges.show', $pyrometer))->assertSee('1 result was measured since the last good calibration');
     }
 
     public function test_the_dashboard_flags_overdue_instruments_and_stays_quiet_when_all_are_in_date(): void

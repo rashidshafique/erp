@@ -27,6 +27,7 @@ class Pour extends Model
         'gate_note',
         'is_first_iron',
         'containment_note',
+        'gauge_id',
     ];
 
     protected function casts(): array
@@ -44,6 +45,12 @@ class Pour extends Model
     public function heat(): BelongsTo
     {
         return $this->belongsTo(Heat::class);
+    }
+
+    /** The pyrometer the pour temperature was read with. */
+    public function gauge(): BelongsTo
+    {
+        return $this->belongsTo(Gauge::class);
     }
 
     public function mouldAssemblies(): HasMany

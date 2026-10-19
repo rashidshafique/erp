@@ -15,6 +15,7 @@
 <label>Station<select name="moulding_station_id"><option value="">—</option>@foreach($stations as $st)<option value="{{ $st->id }}">{{ $st->code }}</option>@endforeach</select></label>
 <label>Shift<select name="shift"><option value="">—</option>@foreach(['Morning','Evening','Night','General'] as $x)<option>{{ $x }}</option>@endforeach</select></label>
 <label>Tested by<input name="tested_by"></label>
+@include('gauges._select', ['plain' => true, 'id' => 'sand_gauge', 'label' => 'Equipment from the register', 'types' => ['SAND_TEST', 'BALANCE']])
 @foreach($rows as $r)<label>{{ $r['name'] }}@if($r['unit']) ({{ $r['unit'] }})@endif<input type="number" step="any" name="values[{{ $r['key'] }}]">@if($r['min'] !== null || $r['max'] !== null)<span class="muted small">limit {{ $r['min'] ?? '' }}–{{ $r['max'] ?? '' }}</span>@endif</label>@endforeach
 <div><button class="btn btn-primary">Save test</button></div></form></div></div>
 

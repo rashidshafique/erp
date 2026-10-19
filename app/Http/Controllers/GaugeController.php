@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Gauge;
 use App\Models\GaugeCalibration;
 use App\Services\Quality\CalibrationStatus;
+use App\Services\Quality\GaugeUsage;
 use App\Support\CalibrationRules;
 use App\Support\Uploads;
 use Illuminate\Http\RedirectResponse;
@@ -59,11 +60,14 @@ class GaugeController extends Controller
         return redirect()->route('gauges.show', $gauge)->with('success', "{$gauge->code} added. Record its first calibration below.");
     }
 
-    public function show(Gauge $gauge): View
+    public function show(Gauge $gauge, GaugeUsage $usage): View
     {
         $gauge->load('calibrations');
 
-        return view('gauges.show', ['gauge' => $gauge, 'results' => GaugeCalibration::RESULTS, 'status' => app(CalibrationStatus::class)->of($gauge)]);
+        return view('gauges.show', [
+            'gauge' => $gauge, 'results' => GaugeCalibration::RESULTS, 'status' => app(CalibrationStatus::class)->of($gauge),
+            'measured' => $usage->results($gauge), 'doubtfulSince' => $usage->doubtfulSince($gauge),
+        ]);
     }
 
     public function edit(Gauge $gauge): View
