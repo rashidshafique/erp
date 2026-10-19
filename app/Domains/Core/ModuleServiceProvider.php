@@ -26,6 +26,46 @@ abstract class ModuleServiceProvider extends ServiceProvider
         return [];
     }
 
+    /**
+     * Links this module adds to the sidebar group of that name.
+     *
+     * @return list<array{group: string, label: string, route: string, icon: string, active: list<string>}>
+     */
+    protected function navItems(): array
+    {
+        return [];
+    }
+
+    /**
+     * Links this module adds to the Settings column, under a section heading.
+     *
+     * @return list<array{section: string, label: string, route: string, active: list<string>}>
+     */
+    protected function settingsLinks(): array
+    {
+        return [];
+    }
+
+    /**
+     * Records of this module that can carry files, keyed by the name stored with the attachment.
+     *
+     * @return array<string, array{label: string, model: class-string, edit: string, view?: string|null}>
+     */
+    protected function attachables(): array
+    {
+        return [];
+    }
+
+    /**
+     * Route-name patterns this module puts behind a permission, as in config/permissions.php.
+     *
+     * @return list<array{pattern: string, permission: string, reads?: bool}>
+     */
+    protected function permissionRoutes(): array
+    {
+        return [];
+    }
+
     public function register(): void
     {
         $aliases = $this->classAliases();
@@ -52,6 +92,20 @@ abstract class ModuleServiceProvider extends ServiceProvider
         }
         if (! $this->app->routesAreCached() && is_file($path.'/routes.php')) {
             $this->loadRoutesFrom($path.'/routes.php');
+        }
+
+        $registry = $this->app->make(ModuleRegistry::class);
+        foreach ($this->navItems() as $item) {
+            $registry->addNavItem($item['group'], $item);
+        }
+        foreach ($this->settingsLinks() as $link) {
+            $registry->addSettingsLink($link['section'], $link);
+        }
+        foreach ($this->attachables() as $key => $entity) {
+            $registry->addAttachable($key, $entity['label'], $entity['model'], $entity['edit'], $entity['view'] ?? null);
+        }
+        if ($this->permissionRoutes() !== []) {
+            config(['permissions.routes' => array_merge(config('permissions.routes', []), $this->permissionRoutes())]);
         }
     }
 }

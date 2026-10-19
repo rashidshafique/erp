@@ -18,7 +18,7 @@ class LabelController extends Controller
         // Tooling gets its mark on first print if it has none yet.
         $mark = null;
         if (in_array($type, CodedRecords::TOOLS, true)) {
-            $class = (new \ReflectionClass(AttachableEntities::class))->getConstant('MAP')[$type][1];
+            $class = AttachableEntities::map()[$type][1];
             $mark = $class::find($id)->ensureMark();
         }
 

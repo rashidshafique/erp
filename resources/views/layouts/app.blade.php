@@ -114,7 +114,7 @@
                 </div>
             </div>
 
-            <div class="nav-group {{ request()->routeIs('tooling-maintenance.*', 'tooling-life.*', 'flasks.*', 'flask-sizes.*', 'gauges.*') ? 'is-active' : '' }}">
+            <div class="nav-group {{ request()->routeIs('tooling-maintenance.*', 'tooling-life.*', 'flasks.*', 'flask-sizes.*', ...app(\App\Domains\Core\ModuleRegistry::class)->navPatterns('equipment')) ? 'is-active' : '' }}">
                 <button type="button" class="nav-group-toggle" aria-expanded="false">
                     <span class="nav-lab">{!! \App\Support\NavIcons::get('wrench') !!}<span>Equipment &amp; Tooling</span></span><span class="nav-chevron">›</span>
                 </button>
@@ -122,8 +122,10 @@
                     <a href="{{ route('flasks.index') }}" class="nav-link {{ request()->routeIs('flasks.*', 'flask-sizes.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('grid') !!}<span>Flasks</span></a>
                     <a href="{{ route('tooling-maintenance.dashboard') }}" class="nav-link {{ request()->routeIs('tooling-maintenance.dashboard') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('dashboard') !!}<span>Maintenance dashboard</span></a>
                     <a href="{{ route('tooling-maintenance.index') }}" class="nav-link {{ request()->routeIs('tooling-maintenance.index', 'tooling-maintenance.show', 'tooling-maintenance.edit') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('wrench') !!}<span>Maintenance records</span></a>
-                    <a href="{{ route('gauges.index') }}" class="nav-link {{ request()->routeIs('gauges.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('gauge') !!}<span>Gauges &amp; calibration</span></a>
                     <a href="{{ route('tooling-life.dashboard') }}" class="nav-link {{ request()->routeIs('tooling-life.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('gauge') !!}<span>Tooling life</span></a>
+                    @foreach (app(\App\Domains\Core\ModuleRegistry::class)->navItems('equipment') as $item)
+                        <a href="{{ route($item['route']) }}" class="nav-link {{ request()->routeIs(...$item['active']) ? 'active' : '' }}">{!! \App\Support\NavIcons::get($item['icon']) !!}<span>{{ $item['label'] }}</span></a>
+                    @endforeach
                 </div>
             </div>
             <div class="nav-group {{ request()->routeIs('hr.*', 'directory.*', 'leave.*') ? 'is-active' : '' }}">
@@ -313,7 +315,7 @@
                     <nav class="settings-nav" aria-label="Settings">
                         <div class="settings-nav-title">{!! \App\Support\NavIcons::get('settings', 15) !!}<span>Settings</span></div>
                         @php($settingsCurrent = \App\Support\SettingsNav::current())
-                        @foreach (\App\Support\SettingsNav::SECTIONS as $section => $links)
+                        @foreach (\App\Support\SettingsNav::sections() as $section => $links)
                             <div class="settings-nav-section">{{ $section }}</div>
                             @foreach ($links as $label => [$routeName])
                                 <a href="{{ route($routeName) }}" @class(['active' => $settingsCurrent === $label]) @if ($settingsCurrent === $label) aria-current="page" @endif><span>{{ $label }}</span>@if ($settingsCurrent === $label)<span aria-hidden="true">›</span>@endif</a>

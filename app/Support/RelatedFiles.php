@@ -44,7 +44,7 @@ class RelatedFiles
                 continue;
             }
             foreach (self::parents($t, $i) as [$pt, $pi]) {
-                if (isset($seen[$pt.':'.$pi]) || ! isset(AttachableEntities::MAP[$pt])) {
+                if (isset($seen[$pt.':'.$pi]) || ! isset(AttachableEntities::map()[$pt])) {
                     continue;
                 }
                 $seen[$pt.':'.$pi] = true;
@@ -170,7 +170,7 @@ class RelatedFiles
      */
     private static function parents(string $type, string $id): array
     {
-        $model = fn (string $key) => AttachableEntities::MAP[$key][1];
+        $model = fn (string $key) => AttachableEntities::map()[$key][1];
         $one = fn (string $key, string $parentType, string $column) => ($v = $model($key)::query()->whereKey($id)->value($column)) ? [[$parentType, (string) $v]] : [];
         $many = fn (Collection $ids, string $parentType) => $ids->filter()->unique()->map(fn ($v) => [$parentType, (string) $v])->values()->all();
 

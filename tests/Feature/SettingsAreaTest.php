@@ -33,7 +33,7 @@ class SettingsAreaTest extends TestCase
 
     public function test_every_settings_page_shows_the_settings_column_with_its_entry_current(): void
     {
-        foreach (SettingsNav::SECTIONS as $links) {
+        foreach (SettingsNav::sections() as $links) {
             foreach ($links as $label => [$routeName]) {
                 $html = $this->get(route($routeName))->assertOk()->assertSee('class="settings-nav"', false)->getContent();
                 $this->assertMatchesRegularExpression('#aria-current="page"\s*><span>'.preg_quote(e($label), '#').'</span>#', $html, "{$label} is the current entry");

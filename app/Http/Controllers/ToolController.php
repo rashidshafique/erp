@@ -13,7 +13,7 @@ class ToolController extends Controller
     private function tool(string $type, string $id)
     {
         abort_unless(in_array($type, CodedRecords::TOOLS, true), 404);
-        $class = AttachableEntities::MAP[$type][1];
+        $class = AttachableEntities::map()[$type][1];
 
         return $class::findOrFail($id);
     }

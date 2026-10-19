@@ -85,7 +85,6 @@ return [
         ['pattern' => 'pattern-revisions.*', 'permission' => 'master.manage'],
         ['pattern' => 'tooling-*', 'permission' => 'tooling.manage'],
         ['pattern' => 'tools.*', 'permission' => 'tooling.manage'],
-        ['pattern' => 'gauges.*', 'permission' => 'quality.manage'],
         ['pattern' => 'capa.*', 'permission' => 'quality.manage'],
         ['pattern' => 'flasks.*', 'permission' => 'tooling.manage'],
         ['pattern' => 'flask-sizes.*', 'permission' => 'tooling.manage'],

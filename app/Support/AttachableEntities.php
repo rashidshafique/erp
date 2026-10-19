@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use App\Domains\Core\ModuleRegistry;
+use App\Models\CapaAction;
 use App\Models\CastingLot;
 use App\Models\CoreBox;
 use App\Models\CoreDefinition;
@@ -35,8 +37,8 @@ use Illuminate\Database\Eloquent\Model;
 /** Records that can carry files. Key is stored with the attachment; class is used to check the record exists. */
 class AttachableEntities
 {
-    public const MAP = [
-        'material' => ['Material', Material::class], 'furnace' => ['Furnace', Furnace::class], 'flask' => ['Flask', Flask::class], 'equipment' => ['Equipment', Equipment::class], 'gauge' => ['Gauge', \App\Models\Gauge::class], 'capa' => ['Corrective action', \App\Models\CapaAction::class],
+    private const CORE_MAP = [
+        'material' => ['Material', Material::class], 'furnace' => ['Furnace', Furnace::class], 'flask' => ['Flask', Flask::class], 'equipment' => ['Equipment', Equipment::class], 'capa' => ['Corrective action', CapaAction::class],
         'heat' => ['Heat', Heat::class], 'pattern' => ['Pattern', Pattern::class], 'pattern_revision' => ['Pattern revision', PatternRevision::class], 'product' => ['Product', Product::class],
         'sales_order' => ['Sales order', SalesOrder::class], 'moulding_run' => ['Moulding run', MouldingRun::class], 'pour' => ['Pour', Pour::class],
         'casting_lot' => ['Casting lot', CastingLot::class], 'ncr' => ['Nonconformance report', NonconformanceReport::class],
@@ -60,8 +62,8 @@ class AttachableEntities
      *
      * @var array<string, array{0: string, 1: string|null}>
      */
-    public const ACCESS = [
-        'material' => ['stores.manage', null], 'furnace' => ['melting.operate', null], 'flask' => ['tooling.manage', null], 'equipment' => ['tooling.manage', null], 'gauge' => ['quality.manage', null], 'capa' => ['quality.manage', null],
+    private const CORE_ACCESS = [
+        'material' => ['stores.manage', null], 'furnace' => ['melting.operate', null], 'flask' => ['tooling.manage', null], 'equipment' => ['tooling.manage', null], 'capa' => ['quality.manage', null],
         'heat' => ['melting.operate', null], 'pattern' => ['master.manage', null], 'pattern_revision' => ['master.manage', null], 'product' => ['master.manage', null],
         'sales_order' => ['sales.manage', null], 'moulding_run' => ['moulding.operate', null], 'pour' => ['pouring.operate', null],
         'casting_lot' => ['shopfloor.record', null], 'ncr' => ['quality.manage', null],
@@ -80,6 +82,28 @@ class AttachableEntities
     /** Categories that need documents.sensitive on top of the record's own permission. */
     public const SENSITIVE_CATEGORIES = ['ID_DOCUMENT', 'CONTRACT'];
 
+    /**
+     * Every record that can carry files: the core ones plus those contributed by modules.
+     *
+     * @return array<string, array{0: string, 1: class-string}>
+     */
+    public static function map(): array
+    {
+        $fromModules = array_map(fn (array $e) => [$e[0], $e[1]], app(ModuleRegistry::class)->attachables());
+
+        return self::CORE_MAP + $fromModules;
+    }
+
+    /**
+     * @return array<string, array{0: string, 1: string|null}>
+     */
+    public static function access(): array
+    {
+        $fromModules = array_map(fn (array $e) => [$e[2], $e[3]], app(ModuleRegistry::class)->attachables());
+
+        return self::CORE_ACCESS + $fromModules;
+    }
+
     public static function isSensitive(string $category): bool
     {
         return in_array($category, self::SENSITIVE_CATEGORIES, true);
@@ -97,7 +121,7 @@ class AttachableEntities
         if (self::isSensitive($category)) {
             return $user->hasPermission('documents.sensitive');
         }
-        $permission = self::ACCESS[$key][1] ?? null;
+        $permission = self::access()[$key][1] ?? null;
 
         return $permission === null || $category === 'PHOTO' || $user->hasPermission($permission);
     }
@@ -111,7 +135,7 @@ class AttachableEntities
         if (! $user || ! $user->hasPermission('attachments.manage')) {
             return false;
         }
-        $permission = self::ACCESS[$key][0] ?? null;
+        $permission = self::access()[$key][0] ?? null;
         if ($permission === null ? ! $user->isAdmin() : ! $user->hasPermission($permission)) {
             return false;
         }
@@ -122,7 +146,7 @@ class AttachableEntities
     /** A record's name for lists: its code, or its name. */
     public static function describe(string $key, string $id): string
     {
-        $label = self::MAP[$key][0] ?? $key;
+        $label = self::map()[$key][0] ?? $key;
         $record = self::find($key, $id);
         $name = $record ? collect(['code', 'lot_number', 'heat_number', 'pour_number', 'order_number', 'name'])->map(fn ($c) => $record->getAttribute($c))->filter()->first() : null;
 
@@ -131,7 +155,7 @@ class AttachableEntities
 
     public static function find(string $key, string $id): ?Model
     {
-        $class = self::MAP[$key][1] ?? null;
+        $class = self::map()[$key][1] ?? null;
 
         return $class ? $class::find($id) : null;
     }

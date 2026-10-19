@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Domains\Core\ModuleRegistry;
 use App\Services\Audit\Audit;
+use App\Support\Formats;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Event;
@@ -16,6 +18,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(Audit::class);
+        $this->app->singleton(ModuleRegistry::class);
     }
 
     /**
@@ -24,7 +27,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Paginator::defaultView('vendor.pagination.minimal');
-        \App\Support\Formats::registerCarbonMacros();
+        Formats::registerCarbonMacros();
 
         // Every model change, anywhere in the app, is written to the audit log.
         foreach (['created' => 'CREATED', 'updated' => 'UPDATED', 'deleted' => 'DELETED'] as $event => $action) {

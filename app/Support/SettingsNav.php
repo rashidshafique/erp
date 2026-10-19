@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Domains\Core\ModuleRegistry;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -22,7 +23,6 @@ class SettingsNav
             'Custom fields' => ['custom-fields.index', ['custom-fields.*']],
             'Flask rules' => ['settings.flasks.edit', ['settings.flasks*']],
             'Pouring rules' => ['settings.pouring.edit', ['settings.pouring*']],
-            'Calibration rules' => ['settings.calibration.edit', ['settings.calibration*']],
             'Pattern ownership rules' => ['settings.pattern-ownership.edit', ['settings.pattern-ownership*']],
         ],
         'Access & data' => [
@@ -33,6 +33,23 @@ class SettingsNav
             'Import data' => ['imports.index', ['imports.*']],
         ],
     ];
+
+    /**
+     * The core sections plus the links modules add to them, or to sections of their own.
+     *
+     * @return array<string, array<string, array{0: string, 1: list<string>}>>
+     */
+    public static function sections(): array
+    {
+        $sections = self::SECTIONS;
+        foreach (app(ModuleRegistry::class)->settingsLinks() as $section => $links) {
+            foreach ($links as $link) {
+                $sections[$section][$link['label']] = [$link['route'], $link['active']];
+            }
+        }
+
+        return $sections;
+    }
 
     /** True on any page that belongs to the Settings area. */
     public static function isSettingsPage(): bool
@@ -47,7 +64,7 @@ class SettingsNav
         if (! $route) {
             return null;
         }
-        foreach (self::SECTIONS as $links) {
+        foreach (self::sections() as $links) {
             foreach ($links as $label => [, $patterns]) {
                 if ($route->named(...$patterns)) {
                     return $label;

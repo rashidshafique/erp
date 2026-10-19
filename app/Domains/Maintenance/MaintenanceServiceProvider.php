@@ -32,4 +32,32 @@ class MaintenanceServiceProvider extends ModuleServiceProvider
             'App\Support\CalibrationRules' => CalibrationRules::class,
         ];
     }
+
+    protected function navItems(): array
+    {
+        return [
+            ['group' => 'equipment', 'label' => 'Gauges & calibration', 'route' => 'gauges.index', 'icon' => 'gauge', 'active' => ['gauges.*']],
+        ];
+    }
+
+    protected function settingsLinks(): array
+    {
+        return [
+            ['section' => 'Foundry', 'label' => 'Calibration rules', 'route' => 'settings.calibration.edit', 'active' => ['settings.calibration*']],
+        ];
+    }
+
+    protected function attachables(): array
+    {
+        return [
+            'gauge' => ['label' => 'Gauge', 'model' => Gauge::class, 'edit' => 'quality.manage'],
+        ];
+    }
+
+    protected function permissionRoutes(): array
+    {
+        return [
+            ['pattern' => 'gauges.*', 'permission' => 'quality.manage'],
+        ];
+    }
 }
