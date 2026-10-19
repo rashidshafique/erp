@@ -31,7 +31,9 @@ return new class extends Migration
         Schema::table('suppliers', fn (Blueprint $table) => $table->foreignUuid('party_id')->nullable()->constrained('parties')->restrictOnDelete());
 
         $n = 0;
-        $code = fn () => 'BP'.str_pad((string) ++$n, 5, '0', STR_PAD_LEFT);
+        $code = function () use (&$n) {
+            return 'BP'.str_pad((string) ++$n, 5, '0', STR_PAD_LEFT);
+        };
         foreach (DB::table('customers')->orderBy('created_at')->get() as $c) {
             $id = (string) Str::uuid();
             DB::table('parties')->insert([
