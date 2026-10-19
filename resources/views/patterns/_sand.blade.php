@@ -1,12 +1,32 @@
 {{-- Sand system a pattern was made for, the others it works on, and a note on taper. $pattern may be new. --}}
+@php($stationList = \App\Models\MouldingStation::where('status', '!=', 'INACTIVE')->orderBy('code')->get())
+<div class="field" data-keep>
+    <label for="preferred_moulding_station_id">Preferred moulding station</label>
+    <select id="preferred_moulding_station_id" name="preferred_moulding_station_id" style="max-width:260px">
+        <option value="">None</option>
+        @foreach ($stationList as $st)<option value="{{ $st->id }}" data-sand="{{ $st->default_sand_system }}" @selected(old('preferred_moulding_station_id', $pattern->preferred_moulding_station_id) === $st->id)>{{ $st->code }} — {{ $st->name }}</option>@endforeach
+    </select>
+    <div class="help">A new run of this pattern starts on this station.</div>
+</div>
 <div class="field" data-keep>
     <label for="sand_system">Made for sand system <a href="{{ route('sand-systems.index') }}" class="qd-add" data-quick="qd-sand" data-quick-target="sand_system" data-quick-value="label">+ Add</a></label>
     @include('partials.quick-dialog', ['id' => 'qd-sand', 'title' => 'Add a sand system', 'action' => route('sand-systems.store'), 'submit' => 'Add sand system', 'fields' => 'sand-systems._quick-fields'])
     <select id="sand_system" name="sand_system" style="max-width:260px">
-        <option value="">Not recorded (suits any)</option>
+        <option value="" id="sand-follows-station">Not recorded (suits any)</option>
         @foreach ($sands as $sd)<option value="{{ $sd }}" @selected(old('sand_system', $pattern->sand_system) === $sd)>{{ $sd }}</option>@endforeach
     </select>
+    <div class="help">Left on the first option, the sand follows the preferred station's default. Choose a sand here to use that one instead.</div>
 </div>
+<script>
+(function () {
+    var station = document.getElementById('preferred_moulding_station_id'), first = document.getElementById('sand-follows-station');
+    function label() {
+        var sand = station.selectedOptions[0] ? station.selectedOptions[0].dataset.sand : '';
+        first.textContent = station.value ? (sand ? 'Station default (' + sand + ')' : 'Station default (no sand set)') : 'Not recorded (suits any)';
+    }
+    station.addEventListener('change', label); label();
+})();
+</script>
 <div class="field">
     <label>Also works on</label>
     <div style="display:flex;gap:14px;flex-wrap:wrap">

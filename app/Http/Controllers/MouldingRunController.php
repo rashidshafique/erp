@@ -88,7 +88,7 @@ class MouldingRunController extends Controller
             ->get();
 
         $patternRevisions = PatternRevision::query()
-            ->with('pattern')
+            ->with('pattern.preferredStation')
             ->orderByDesc('created_at')
             ->get();
 

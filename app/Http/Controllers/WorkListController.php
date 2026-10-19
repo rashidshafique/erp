@@ -50,7 +50,7 @@ class WorkListController extends Controller
         }
         $stations = MouldingStation::with('defaultTeam')->where('status', 'ACTIVE')->orderBy('code')->get();
         // Patterns that make each order's product, so the pattern choice can follow the order.
-        $patternSand = $patterns->mapWithKeys(fn ($p) => [$p->id => ['code' => $p->pattern->code, 'for' => $p->pattern->sand_system, 'also' => $p->pattern->compatible_sands ?? [], 'note' => $p->pattern->sand_note]])->all();
+        $patternSand = $patterns->mapWithKeys(fn ($p) => [$p->id => ['code' => $p->pattern->code, 'for' => $p->pattern->madeForSand(), 'also' => $p->pattern->compatible_sands ?? [], 'note' => $p->pattern->sand_note]])->all();
         $patternProducts = $patterns->mapWithKeys(fn ($p) => [$p->id => $p->cavityMap->map(fn ($c) => $c->productRevision?->product_id)->filter()->unique()->values()->all()])->all();
         // For each pattern: the open order it would link to if none is chosen.
         $autoOrder = $patterns->mapWithKeys(function ($p) use ($svc) {

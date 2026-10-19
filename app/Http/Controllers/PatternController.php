@@ -108,6 +108,7 @@ class PatternController extends Controller
             'description' => ['nullable', 'string'],
             'notes' => ['nullable', 'string'],
             'sand_system' => ['nullable', Rule::in(SandSystem::allNames())],
+            'preferred_moulding_station_id' => ['nullable', 'uuid', 'exists:moulding_stations,id'],
             'compatible_sands' => ['nullable', 'array'], 'compatible_sands.*' => [Rule::in(SandSystem::allNames())],
             'sand_note' => ['nullable', 'string', 'max:1000'],
 
@@ -143,6 +144,7 @@ class PatternController extends Controller
                 'description' => $data['description'] ?? null,
                 'notes' => $data['notes'] ?? null,
                 'sand_system' => $data['sand_system'] ?? null,
+                'preferred_moulding_station_id' => $data['preferred_moulding_station_id'] ?? null,
                 'compatible_sands' => $this->otherSands($data),
                 'sand_note' => $data['sand_note'] ?? null,
             ]);
@@ -318,10 +320,11 @@ class PatternController extends Controller
     {
         $data = $request->validate([
             'sand_system' => ['nullable', Rule::in(SandSystem::allNames())],
+            'preferred_moulding_station_id' => ['nullable', 'uuid', 'exists:moulding_stations,id'],
             'compatible_sands' => ['nullable', 'array'], 'compatible_sands.*' => [Rule::in(SandSystem::allNames())],
             'sand_note' => ['nullable', 'string', 'max:1000'],
         ]);
-        $pattern->update(['sand_system' => $data['sand_system'] ?? null, 'compatible_sands' => $this->otherSands($data), 'sand_note' => $data['sand_note'] ?? null]);
+        $pattern->update(['sand_system' => $data['sand_system'] ?? null, 'preferred_moulding_station_id' => $data['preferred_moulding_station_id'] ?? null, 'compatible_sands' => $this->otherSands($data), 'sand_note' => $data['sand_note'] ?? null]);
 
         return back()->with('success', 'Sand system saved for '.$pattern->code.'.');
     }

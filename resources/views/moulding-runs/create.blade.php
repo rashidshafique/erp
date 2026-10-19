@@ -12,7 +12,10 @@
         'type' => $r->pattern ? str_replace('_', ' ', $r->pattern->pattern_type) : null,
         'cavities' => $r->cavities_per_mould,
         'layers' => $r->layers_per_mould,
+        'station' => $r->pattern?->preferred_moulding_station_id,
+        'sand' => $r->pattern?->sand_system,
     ]]);
+    $stationSand = $stations->pluck('default_sand_system', 'id');
     $orderData = $productionOrders->mapWithKeys(fn ($o) => [$o->id => [
         'number' => $o->production_order_number,
         'status' => $o->status,
@@ -402,6 +405,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const revisionSelect = document.getElementById('pattern_revision_id');
     const orders = @json($orderData);
     const revisions = @json($revisionData);
+    const stationSand = @json($stationSand);
+    const stationSelect = document.getElementById('moulding_station_id'), sandSelect = document.getElementById('sand_system');
+    let autoStation = null;
     const activeRevisions = @json($activePatternRevisionIdsByProduct);
     const productRevisions = @json($patternRevisionIdsByProduct);
     const text = (id, value) => { document.getElementById(id).textContent = value; };
@@ -415,6 +421,20 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         if (revisionSelect.selectedOptions[0]?.disabled) revisionSelect.value = '';
     }
+
+    // The pattern's preferred station, unless one was chosen by hand; the sand is the pattern's own, else the station's default.
+    function applySandFor(r) {
+        const sand = (r && r.sand) || stationSand[stationSelect.value];
+        if (sand && Array.from(sandSelect.options).some(o => o.value === sand)) sandSelect.value = sand;
+    }
+    function followPattern(r) {
+        if (r && r.station && (!stationSelect.value || stationSelect.value === autoStation)) {
+            stationSelect.value = r.station;
+            autoStation = r.station;
+        }
+        applySandFor(r);
+    }
+    stationSelect.addEventListener('change', () => { autoStation = null; applySandFor(revisions[revisionSelect.value]); });
 
     function showRevision() {
         const r = revisions[revisionSelect.value];
@@ -446,10 +466,11 @@ document.addEventListener('DOMContentLoaded', function () {
         text('po-summary-uom', order.uom);
         summary.style.display = 'block';
         showRevision();
+        if (revisionSelect.value && !stationSelect.value) followPattern(revisions[revisionSelect.value]);
     }
 
     select.addEventListener('change', updateSummary);
-    revisionSelect.addEventListener('change', showRevision);
+    revisionSelect.addEventListener('change', () => { showRevision(); followPattern(revisions[revisionSelect.value]); });
     updateSummary();
 
     // Output tallies and the live yield bar.

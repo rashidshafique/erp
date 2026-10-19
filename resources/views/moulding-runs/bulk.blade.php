@@ -133,7 +133,7 @@
 <script>
 (function () {
     var body = document.getElementById('bulk-rows'), form = document.getElementById('bulk-form');
-    var revisions = @json($revisionInfo), currentOf = @json($currentOf), revisionsOf = @json($revisionsOf), orderProduct = @json($orderProduct), workListOf = @json($workListRevisions), lastRunOf = @json($lastRunRevisions), crewOf = @json($stationCrew), n = 0;
+    var revisions = @json($revisionInfo), currentOf = @json($currentOf), stationOf = @json($patterns->pluck('preferred_moulding_station_id', 'id')), revisionsOf = @json($revisionsOf), orderProduct = @json($orderProduct), workListOf = @json($workListRevisions), lastRunOf = @json($lastRunRevisions), crewOf = @json($stationCrew), n = 0;
     function field(tr, f) { return tr.querySelector('[name$="[' + f + ']"]'); }
     function rowsOf() { return [].slice.call(body.querySelectorAll('tr[data-bulk-row]')); }
 
@@ -221,6 +221,7 @@
     body.addEventListener('change', function (e) {
         var tr = e.target.closest('tr[data-bulk-row]'); if (!tr) return;
         if (e.target.matches('[data-pattern], [data-revision]')) syncRevision(tr);
+        if (e.target.matches('[data-pattern]')) { var st = field(tr, 'moulding_station_id'); if (st && !st.value && stationOf[e.target.value]) { st.value = stationOf[e.target.value]; syncCrew(tr); } }
         if (e.target.matches('[name$="[moulding_station_id]"]')) syncCrew(tr);
     });
     body.addEventListener('input', function (e) { if (e.target.matches('[data-made], [data-rejected]')) totals(); });

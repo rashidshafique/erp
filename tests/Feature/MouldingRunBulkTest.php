@@ -329,4 +329,31 @@ class MouldingRunBulkTest extends TestCase
 
         $this->assertSame($w['revision']->id, MouldingRun::sole()->pattern_revision_id);
     }
+
+    public function test_a_blank_station_is_the_patterns_preferred_one_and_its_sand_follows_unless_set_by_hand(): void
+    {
+        $w = $this->world();
+        $w['pattern']->update(['preferred_moulding_station_id' => $w['station']->id]);
+
+        $this->post(route('moulding-runs.bulk.save'), ['rows' => ['a' => $this->row($w, ['moulding_station_id' => ''])]])->assertSessionHasNoErrors();
+        $run = MouldingRun::sole();
+        $this->assertSame([$w['station']->id, 'Sheera'], [$run->moulding_station_id, $run->sand_system]);
+
+        $w['pattern']->update(['sand_system' => 'Alphaset']);
+        $this->assertSame('Alphaset', $w['pattern']->fresh()->madeForSand());
+        $this->post(route('moulding-runs.bulk.save'), ['rows' => ['b' => $this->row($w, ['moulding_station_id' => '', 'shift' => 'Evening'])]])->assertSessionHasNoErrors();
+        $this->assertSame('Alphaset', MouldingRun::where('shift', 'Evening')->sole()->sand_system);
+
+        $w['pattern']->update(['sand_system' => null]);
+        $this->assertSame('Sheera', $w['pattern']->fresh()->madeForSand());
+    }
+
+    public function test_a_pattern_saves_its_preferred_station_from_the_sand_form(): void
+    {
+        $w = $this->world();
+        $this->put(route('patterns.sand', $w['pattern']), ['preferred_moulding_station_id' => $w['station']->id, 'sand_system' => ''])->assertSessionHasNoErrors();
+        $this->assertSame($w['station']->id, $w['pattern']->fresh()->preferred_moulding_station_id);
+        $this->get(route('patterns.edit', $w['pattern']))->assertOk()->assertSee('Preferred moulding station');
+        $this->get(route('moulding-runs.create'))->assertOk()->assertSee('"station":"'.$w['station']->id.'"', false);
+    }
 }

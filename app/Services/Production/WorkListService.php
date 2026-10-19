@@ -151,7 +151,7 @@ class WorkListService
         $items = $list->items()->with('patternRevision.pattern')->where('moulding_station_id', $station->id)->where('status', 'PLANNED')->get();
         $unsuited = $items->filter(fn ($i) => ! $i->patternRevision->pattern->suitsSand($sand));
         if ($unsuited->isNotEmpty() && ! $force) {
-            $names = $unsuited->map(fn ($i) => $i->patternRevision->pattern->code.' (made for '.$i->patternRevision->pattern->sand_system.')')->implode(', ');
+            $names = $unsuited->map(fn ($i) => $i->patternRevision->pattern->code.' (made for '.$i->patternRevision->pattern->madeForSand().')')->implode(', ');
             throw new InvalidArgumentException("Not every plate suits {$sand}: {$names}. Tick \"Accept where a plate is not suited\" to change it anyway.");
         }
         foreach ($items as $i) {

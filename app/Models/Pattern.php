@@ -37,6 +37,7 @@ class Pattern extends Model
         'name',
         'pattern_type',
         'sand_system',
+        'preferred_moulding_station_id',
         'compatible_sands',
         'sand_note',
         'status',
@@ -82,14 +83,25 @@ class Pattern extends Model
         'height_mm' => 'decimal:2',
     ];
 
+    public function preferredStation(): BelongsTo
+    {
+        return $this->belongsTo(MouldingStation::class, 'preferred_moulding_station_id');
+    }
+
+    /** The sand the pattern was made for: the one chosen by hand, else the default of its preferred station. */
+    public function madeForSand(): ?string
+    {
+        return $this->sand_system ?: ($this->preferredStation?->default_sand_system ?: null);
+    }
+
     /** Whether the pattern suits a sand system: it was made for it, is listed as working on it, or no sand has been recorded for it. */
     public function suitsSand(?string $sand): bool
     {
-        if (! $sand || ! $this->sand_system) {
+        if (! $sand || ! $this->madeForSand()) {
             return true;
         }
 
-        return $sand === $this->sand_system || in_array($sand, $this->compatible_sands ?? [], true);
+        return $sand === $this->madeForSand() || in_array($sand, $this->compatible_sands ?? [], true);
     }
 
     /** A plain-words warning when the pattern is not suited to the sand, else null. */
@@ -99,7 +111,7 @@ class Pattern extends Model
             return null;
         }
 
-        return "Pattern {$this->code} was made for {$this->sand_system} and is not listed as suitable for {$sand}: another sand system usually needs a different taper allowance."
+        return "Pattern {$this->code} was made for {$this->madeForSand()} and is not listed as suitable for {$sand}: another sand system usually needs a different taper allowance."
             .($this->sand_note ? " Note: {$this->sand_note}" : '');
     }
 

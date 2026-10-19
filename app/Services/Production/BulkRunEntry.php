@@ -4,6 +4,7 @@ namespace App\Services\Production;
 
 use App\Models\MouldingRun;
 use App\Models\MouldingStation;
+use App\Models\Pattern;
 use App\Models\PatternRevision;
 use App\Models\ProductionOrder;
 use App\Models\SandSystem;
@@ -129,6 +130,9 @@ class BulkRunEntry
                 Str::isUuid($row['production_order_id'] ?? null) ? $row['production_order_id'] : null,
             );
         }
+        if (blank($row['moulding_station_id'] ?? null) && filled($row['pattern_id'] ?? null) && Str::isUuid($row['pattern_id'])) {
+            $row['moulding_station_id'] = Pattern::whereKey($row['pattern_id'])->value('preferred_moulding_station_id');
+        }
         $v = Validator::make($row, [
             'id' => ['nullable', 'uuid', Rule::exists('moulding_runs', 'id')],
             'run_date' => ['required', 'date'],
@@ -209,7 +213,7 @@ class BulkRunEntry
             'pattern_revision_id' => $revision->id,
             'cavity_numbers' => $cavities,
             'production_order_id' => $orderId,
-            'sand_system' => $sameStation ? $existing->sand_system : ($station?->defaultSand() ?? SandSystem::names()[0] ?? null),
+            'sand_system' => $sameStation ? $existing->sand_system : (Pattern::whereKey($d['pattern_id'])->value('sand_system') ?: ($station?->defaultSand() ?? SandSystem::names()[0] ?? null)),
             'moulds_made_qty' => $made,
             'damaged_mould_qty' => $rejected,
             'accepted_mould_qty' => max(0, $made - $rejected),
