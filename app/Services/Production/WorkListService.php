@@ -311,6 +311,7 @@ class WorkListService
                 'planned_mould_qty' => $item->planned_moulds, 'moulds_made_qty' => 0, 'accepted_mould_qty' => 0, 'damaged_mould_qty' => 0, 'status' => 'IN_PROGRESS',
             ]);
             $item->update(['status' => 'IN_PROGRESS', 'moulding_run_id' => $run->id]);
+            $order->markInProgress();
 
             return $run;
         });
@@ -332,6 +333,9 @@ class WorkListService
                 throw new InvalidArgumentException("{$assembled} mould(s) are already assembled from this run, so accepted cannot be lower.");
             }
             $run->update($d + ($complete ? ['status' => 'COMPLETED', 'completed_at' => now()] : []));
+            if ($complete) {
+                $run->productionOrder?->markInProgress();
+            }
             if ($complete && $run->moulding_work_list_item_id) {
                 $item = MouldingWorkListItem::find($run->moulding_work_list_item_id);
                 $item?->update(['status' => 'DONE']);
@@ -366,10 +370,10 @@ class WorkListService
         });
     }
 
-    /** Put a run on hold, resume it, or cancel it. A cancelled run frees its work list item (skipped) and cannot be undone. */
-    public function changeRunStatus(MouldingRun $run, string $to): MouldingRun
+    /** Put a run on hold, resume it, or cancel it. A cancelled run cannot be undone; its work list item is skipped only when asked for. */
+    public function changeRunStatus(MouldingRun $run, string $to, bool $skipWorkListItem = false): MouldingRun
     {
-        return DB::transaction(function () use ($run, $to) {
+        return DB::transaction(function () use ($run, $to, $skipWorkListItem) {
             $run = MouldingRun::whereKey($run->id)->lockForUpdate()->firstOrFail();
             $allowed = ['IN_PROGRESS' => ['ON_HOLD', 'CANCELLED'], 'ON_HOLD' => ['IN_PROGRESS', 'CANCELLED']];
             if (! in_array($to, $allowed[$run->status] ?? [], true)) {
@@ -379,7 +383,7 @@ class WorkListService
                 throw new InvalidArgumentException('Moulds are already assembled from this run, so it cannot be cancelled.');
             }
             $run->update(['status' => $to]);
-            $item = $to === 'CANCELLED' && $run->moulding_work_list_item_id ? MouldingWorkListItem::find($run->moulding_work_list_item_id) : null;
+            $item = $to === 'CANCELLED' && $skipWorkListItem && $run->moulding_work_list_item_id ? MouldingWorkListItem::find($run->moulding_work_list_item_id) : null;
             if ($item) {
                 $item->update(['status' => 'SKIPPED']);
                 $list = $item->workList;

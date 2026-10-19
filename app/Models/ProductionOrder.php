@@ -101,6 +101,14 @@ class ProductionOrder extends Model
         )->orderBy('sequence');
     }
 
+    /** A released order is in progress from the first moulding run; later runs and pours leave it as it is. */
+    public function markInProgress(): void
+    {
+        if ($this->status === 'RELEASED') {
+            $this->update(['status' => 'IN_PROGRESS', 'actual_started_at' => $this->actual_started_at ?? now()]);
+        }
+    }
+
     public function scopeOpen($query)
     {
         return $query->whereNotIn('status', [

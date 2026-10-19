@@ -220,7 +220,12 @@ class MouldingRunController extends Controller
                 $validated['completed_at'] = now();
             }
 
-            return MouldingRun::create($validated);
+            $run = MouldingRun::create($validated);
+            if (in_array($run->status, ['IN_PROGRESS', 'COMPLETED'], true)) {
+                $run->productionOrder?->markInProgress();
+            }
+
+            return $run;
         });
 
         return redirect()
@@ -368,7 +373,7 @@ class MouldingRunController extends Controller
     {
         $to = $request->validate(['status' => ['required', Rule::in(['IN_PROGRESS', 'ON_HOLD', 'CANCELLED'])]])['status'];
         try {
-            $svc->changeRunStatus($mouldingRun, $to);
+            $svc->changeRunStatus($mouldingRun, $to, $request->boolean('skip_work_list_item'));
         } catch (\InvalidArgumentException $e) {
             return back()->withErrors(['output' => $e->getMessage()]);
         }

@@ -18,8 +18,9 @@ class LotFactory
     {
         $warnings = [];
         $made = 0;
+        $touchedOrders = [];
 
-        DB::transaction(function () use ($pour, &$warnings, &$made) {
+        DB::transaction(function () use ($pour, &$warnings, &$made, &$touchedOrders) {
             $rows = PourMouldAssembly::with('mouldAssembly.mouldingRun.productionOrder', 'castingLots')->where('pour_id', $pour->id)->get();
 
             // Per-assembly net weight, to share the poured weight out by what each mould holds.
@@ -77,14 +78,28 @@ class LotFactory
                         $lot->update(['status' => 'ON_HOLD', 'notes' => trim($lot->notes."\n".now()->displayShortDateTime().' hold: first iron of heat '.$pour->heat?->heat_number.', held until QC passes')]);
                     }
                     RelatedFiles::pin('casting_lot', $lot->id);   // keeps the drawing versions the lot was made to, when versioning is on
-                    if ($order->status === 'RELEASED') {
-                        $order->update(['status' => 'IN_PROGRESS', 'actual_started_at' => $order->actual_started_at ?? now()]);
-                    }
+                    $order->markInProgress();
+                    $touchedOrders[$order->id] = $order;
                 }
                 $asm?->update(['status' => 'POURED']);
+            }
+
+            foreach ($touchedOrders as $order) {
+                $this->completeOrderWhenPoured($order->fresh());
             }
         });
 
         return ['lots' => $made, 'warnings' => $warnings];
+    }
+
+    /** An order is complete once the castings poured for it reach the planned quantity; moulding alone never completes it. */
+    private function completeOrderWhenPoured(ProductionOrder $order): void
+    {
+        if ($order->uom !== 'piece' || ! in_array($order->status, ['RELEASED', 'IN_PROGRESS'], true)) {
+            return;
+        }
+        if ((float) CastingLot::where('production_order_id', $order->id)->sum('quantity_poured') >= (float) $order->planned_qty) {
+            $order->update(['status' => 'COMPLETED', 'actual_completed_at' => now()]);
+        }
     }
 }

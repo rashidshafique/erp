@@ -69,9 +69,25 @@ class MouldingWorkListTest extends TestCase
         $this->post(route('moulding-runs.status', $run), ['status' => 'IN_PROGRESS'])->assertSessionHasNoErrors();
         $this->post(route('moulding-runs.status', $run), ['status' => 'CANCELLED'])->assertSessionHasNoErrors();
         $this->assertSame('CANCELLED', $run->fresh()->status);
+        $this->assertSame('IN_PROGRESS', $item->fresh()->status);                                                         // work list untouched without permission
+        $this->assertSame('ISSUED', $list->fresh()->status);
+        $this->post(route('moulding-runs.status', $run), ['status' => 'IN_PROGRESS'])->assertSessionHasErrors('output');
+    }
+
+    public function test_cancelling_a_run_can_also_skip_its_work_list_item_when_asked(): void
+    {
+        $w = $this->world();
+        $this->post(route('work-lists.store'), ['list_date' => today()->toDateString(), 'shift' => 'Morning']);
+        $list = MouldingWorkList::firstOrFail();
+        $this->post(route('work-lists.items.add', $list), $this->item($w));
+        $this->post(route('work-lists.issue', $list), ['issued_by' => 'Planner']);
+        $item = $list->items()->firstOrFail();
+        $this->post(route('work-lists.items.start', [$list, $item]));
+        $run = MouldingRun::firstOrFail();
+
+        $this->post(route('moulding-runs.status', $run), ['status' => 'CANCELLED', 'skip_work_list_item' => 1])->assertSessionHasNoErrors();
         $this->assertSame('SKIPPED', $item->fresh()->status);
         $this->assertSame('COMPLETED', $list->fresh()->status);
-        $this->post(route('moulding-runs.status', $run), ['status' => 'IN_PROGRESS'])->assertSessionHasErrors('output');
     }
 
     public function test_list_to_run_to_completion(): void
@@ -97,6 +113,7 @@ class MouldingWorkListTest extends TestCase
         $this->assertSame($w['st']->id, $run->moulding_station_id);
         $this->assertSame(30, (int) $run->planned_mould_qty);
         $this->assertSame('IN_PROGRESS', $item->fresh()->status);
+        $this->assertSame('IN_PROGRESS', $w['order']->fresh()->status);                                                   // starting a run starts the order
         $this->post(route('work-lists.items.start', [$list, $item]))->assertSessionHasErrors('item');                     // twice
         $this->get(route('moulding-runs.show', $run))->assertOk()->assertSee('Record output')->assertSee('MP-1');
 
@@ -105,6 +122,7 @@ class MouldingWorkListTest extends TestCase
         $this->assertSame('COMPLETED', $run->fresh()->status);
         $this->assertSame('DONE', $item->fresh()->status);
         $this->assertSame('COMPLETED', $list->fresh()->status);
+        $this->assertSame('IN_PROGRESS', $w['order']->fresh()->status);                                                   // moulds are not castings
         $this->post(route('moulding-runs.output', $run), ['moulds_made_qty' => 1, 'accepted_mould_qty' => 1, 'damaged_mould_qty' => 0])->assertSessionHasErrors('output');
 
         $this->get(route('moulding-runs.show', $run))->assertSee('Reopen run');

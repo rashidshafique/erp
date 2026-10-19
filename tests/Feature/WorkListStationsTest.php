@@ -205,7 +205,7 @@ class WorkListStationsTest extends TestCase
         $second = $list->items()->where('pattern_revision_id', $b['pr']->id)->firstOrFail();
         $this->post(route('work-lists.items.start', [$list, $second]))->assertSessionHasNoErrors();
         $stock = ProductionOrder::where('order_type', 'STOCK')->firstOrFail();
-        $this->assertSame('RELEASED', $stock->status);
+        $this->assertSame('IN_PROGRESS', $stock->status);
         $this->assertSame($b['product']->id, $stock->product_id);
         $this->assertSame(6.0, (float) $stock->planned_qty);                                      // 6 moulds x 1 casting
         $this->assertSame('STOCK', $second->fresh()->order_link);

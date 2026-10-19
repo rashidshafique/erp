@@ -144,7 +144,7 @@ class CupolaPouringTest extends TestCase
     }
 
     /** A completed pour with one mould of two castings, so lots are made. */
-    private function completedPour(bool $firstIron): array
+    private function completedPour(bool $firstIron, int $plannedQty = 100): array
     {
         $product = ProductRevision::create(['product_id' => Product::create(['code' => 'RING-'.uniqid(), 'name' => 'Ring'])->id, 'revision' => 'A', 'status' => 'APPROVED']);
         $pattern = Pattern::create(['code' => 'SP-'.uniqid(), 'name' => 'Plate', 'pattern_type' => 'MATCHPLATE']);
@@ -152,7 +152,7 @@ class CupolaPouringTest extends TestCase
         foreach ([1, 2] as $n) {
             $revision->cavityMap()->create(['cavity_number' => $n, 'product_revision_id' => $product->id, 'casting_weight_kg' => 0.5, 'poured_weight_kg' => 0.6]);
         }
-        $order = ProductionOrder::create(['production_order_number' => 'PO-'.uniqid(), 'product_id' => $product->product_id, 'product_revision_id' => $product->id, 'order_type' => 'STOCK', 'status' => 'RELEASED', 'planned_qty' => 100, 'uom' => 'piece']);
+        $order = ProductionOrder::create(['production_order_number' => 'PO-'.uniqid(), 'product_id' => $product->product_id, 'product_revision_id' => $product->id, 'order_type' => 'STOCK', 'status' => 'RELEASED', 'planned_qty' => $plannedQty, 'uom' => 'piece']);
         $run = MouldingRun::create(['run_number' => 'MR-'.uniqid(), 'production_order_id' => $order->id, 'pattern_revision_id' => $revision->id, 'run_date' => today(), 'status' => 'COMPLETED', 'moulds_made_qty' => 1, 'accepted_mould_qty' => 1]);
         $configuration = MouldConfiguration::create(['code' => 'MC-'.uniqid(), 'name' => 'Cfg', 'mould_type' => 'COPE_DRAG', 'nominal_layer_count' => 2]);
         $assembly = app(MouldAssembler::class)->assemble($run, 1, $configuration->id, 2)->first();
@@ -166,7 +166,20 @@ class CupolaPouringTest extends TestCase
         }
         $this->post(route('pours.complete', $pour), ['pour_temperature_c' => 1400, 'total_poured_weight_kg' => 1.2])->assertSessionHasNoErrors();
 
+        $this->order = $order;
+
         return [$pour->fresh(), CastingLot::where('production_order_id', $order->id)->get()];
+    }
+
+    private ProductionOrder $order;
+
+    public function test_the_order_completes_when_the_pour_covers_its_planned_quantity(): void
+    {
+        $this->completedPour(firstIron: false);
+        $this->assertSame('IN_PROGRESS', $this->order->fresh()->status);
+
+        $this->completedPour(firstIron: false, plannedQty: 2);
+        $this->assertSame('COMPLETED', $this->order->fresh()->status);
     }
 
     public function test_lots_from_first_iron_are_held_until_qc_passes(): void

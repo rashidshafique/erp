@@ -310,7 +310,7 @@
                 @else
                     <form method="POST" action="{{ route('moulding-runs.status', $run) }}">@csrf<input type="hidden" name="status" value="IN_PROGRESS"><button class="btn" type="submit">Resume run</button></form>
                 @endif
-                <form method="POST" action="{{ route('moulding-runs.status', $run) }}" onsubmit="return confirm('Cancel this run? This cannot be undone.')">@csrf<input type="hidden" name="status" value="CANCELLED"><button class="btn" type="submit">Cancel run</button></form>
+                <form method="POST" action="{{ route('moulding-runs.status', $run) }}" onsubmit="return confirm('Cancel this run? This cannot be undone.')">@csrf<input type="hidden" name="status" value="CANCELLED">@if ($run->moulding_work_list_item_id)<label class="small" style="display:block;margin-bottom:6px"><input type="checkbox" name="skip_work_list_item" value="1"> Also skip its work list item (closes the list if nothing else is open)</label>@endif<button class="btn" type="submit">Cancel run</button></form>
             </div>
         </div>
     </section>
