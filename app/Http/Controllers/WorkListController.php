@@ -185,6 +185,9 @@ class WorkListController extends Controller
 
     public function cancel(MouldingWorkList $list): RedirectResponse
     {
+        if (! in_array($list->status, ['DRAFT', 'ISSUED'], true)) {
+            return back()->withErrors(['item' => "A {$list->status} list cannot be cancelled."]);
+        }
         if ($list->items()->whereNotNull('moulding_run_id')->exists()) {
             return back()->withErrors(['item' => 'Runs have started from this list; it cannot be cancelled.']);
         }
