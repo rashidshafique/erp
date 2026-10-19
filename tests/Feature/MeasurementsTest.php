@@ -131,4 +131,35 @@ class MeasurementsTest extends TestCase
         $this->assertSame($station->id, $run->fresh()->moulding_station_id);
         $this->get(route('moulding-runs.show', $run))->assertOk()->assertSee('Start sand test')->assertSee('This run')->assertSee('Pattern');
     }
+
+    public function test_mould_hardness_is_recorded_per_run_from_cope_and_drag_spots_and_judged_on_lowest_and_average(): void
+    {
+        $sand = \App\Models\SandSystem::where('name', 'Sheera')->firstOrFail();
+        $product = \App\Models\Product::create(['code' => 'FLG-2', 'name' => 'Flange']);
+        $pattern = \App\Models\Pattern::create(['code' => 'MP-8', 'name' => 'Flange plate', 'pattern_type' => 'MATCHPLATE']);
+        $revision = \App\Models\PatternRevision::create(['pattern_id' => $pattern->id, 'status' => 'APPROVED']);
+        $productRevision = \App\Models\ProductRevision::create(['product_id' => $product->id, 'revision' => 'A', 'status' => 'APPROVED']);
+        $order = \App\Models\ProductionOrder::create(['production_order_number' => 'PO-H1', 'product_id' => $product->id, 'product_revision_id' => $productRevision->id, 'order_type' => 'STOCK', 'status' => 'RELEASED', 'planned_qty' => 10, 'uom' => 'piece']);
+        $run = \App\Models\MouldingRun::create(['run_number' => 'MR-H1', 'production_order_id' => $order->id, 'pattern_revision_id' => $revision->id, 'run_date' => '2026-10-17', 'sand_system' => 'Sheera', 'status' => 'IN_PROGRESS']);
+        $this->post(route('limits.store'), ['subject_type' => 'SAND_SYSTEM', 'subject_id' => $sand->id, 'test_group' => 'MOULD', 'name' => 'Mould hardness average', 'characteristic_key' => 'hardness_b_avg', 'min_value' => 85, 'max_value' => 95, 'unit' => 'B'])->assertSessionHasNoErrors();
+        $this->post(route('limits.store'), ['subject_type' => 'SAND_SYSTEM', 'subject_id' => $sand->id, 'test_group' => 'MOULD', 'name' => 'Mould hardness lowest', 'characteristic_key' => 'hardness_b_min', 'min_value' => 80, 'unit' => 'B'])->assertSessionHasNoErrors();
+
+        $this->post(route('moulding-runs.mould-tests.store', $run), ['cope' => ['90', '88', '', '', ''], 'drag' => ['92', '', '', '', '']])->assertSessionHasNoErrors()->assertRedirect(route('moulding-runs.show', $run));
+        $good = \App\Models\MeasurementSet::where('kind', 'MOULD')->sole();
+        $this->assertSame('PASS', $good->result);
+        $this->assertSame([$run->id, $pattern->id, $sand->id], [$good->moulding_run_id, $good->pattern_id, $good->sand_system_id]);
+        $by = $good->measurements->keyBy('characteristic_key');
+        $this->assertEquals([88, 90], [(float) $by['hardness_b_min']->value, (float) $by['hardness_b_avg']->value]);
+        $this->assertEquals([90, 88, 92], [(float) $by['cope_spot_1']->value, (float) $by['cope_spot_2']->value, (float) $by['drag_spot_1']->value]);
+
+        $this->post(route('moulding-runs.mould-tests.store', $run), ['cope' => ['90', '70'], 'drag' => ['92']])->assertSessionHasNoErrors();
+        $this->assertSame(1, \App\Models\MeasurementSet::where('kind', 'MOULD')->where('result', 'FAIL')->count());   // lowest spot 70 is under 80 and the average 84 under 85
+
+        $this->post(route('moulding-runs.mould-tests.store', $run), ['cope' => ['', ''], 'drag' => []])->assertSessionHasErrors('mould_test');
+        $this->post(route('moulding-runs.mould-tests.store', $run), ['mould_assembly_id' => (string) \Illuminate\Support\Str::uuid(), 'cope' => ['90']])->assertSessionHasErrors('mould_test');
+        $this->assertSame(2, \App\Models\MeasurementSet::where('kind', 'MOULD')->count());
+
+        $this->get(route('moulding-runs.show', $run))->assertOk()->assertSee('Mould hardness (B scale)')->assertSee('90 · 88');
+        $this->get(route('sand-tests.index'))->assertOk()->assertSee('Recent mould hardness tests')->assertSee('MR-H1');
+    }
 }

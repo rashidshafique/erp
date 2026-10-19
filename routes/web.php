@@ -382,6 +382,7 @@ Route::prefix('ncrs')->name('ncrs.')->controller(NcrController::class)->group(fu
 });
 
 // ---- Moulding teams, stations, daily work lists, mould readiness ----
+Route::post('/moulding-runs/{mouldingRun}/mould-tests', [\App\Http\Controllers\MouldTestController::class, 'store'])->name('moulding-runs.mould-tests.store');
 Route::post('/moulding-runs/{mouldingRun}/reopen', [MouldingRunController::class, 'reopen'])->name('moulding-runs.reopen');
 Route::post('/moulding-runs/{mouldingRun}/status', [MouldingRunController::class, 'changeStatus'])->name('moulding-runs.status');
 Route::post('/moulding-runs/{mouldingRun}/output', [MouldingRunController::class, 'recordOutput'])->name('moulding-runs.output');

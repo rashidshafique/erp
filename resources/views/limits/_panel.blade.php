@@ -1,6 +1,6 @@
 @php
     $rows = \App\Models\CharacteristicLimit::where('subject_type', $type)->where('subject_id', $id)->orderBy('test_group')->orderBy('sort_order')->get();
-    $groups = $type === 'SAND_SYSTEM' ? ['SAND' => 'Sand'] : ['MECHANICAL' => 'Mechanical', 'MICROSTRUCTURE' => 'Microstructure'];
+    $groups = $type === 'SAND_SYSTEM' ? ['SAND' => 'Sand', 'MOULD' => 'Mould hardness'] : ['MECHANICAL' => 'Mechanical', 'MICROSTRUCTURE' => 'Microstructure'];
 @endphp
 <div class="panel">
     <div class="panel-header"><h2>{{ $title ?? 'Test requirements' }}</h2></div>

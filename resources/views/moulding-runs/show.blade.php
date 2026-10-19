@@ -200,6 +200,8 @@
                     @php([$text, $range] = $reading($key))
                     <div class="run-sand-tile"><div class="rm-lbl">{{ $title }}</div><strong class="code">{{ $text }}</strong>@if ($range)<span class="code muted small"> ({{ $range }})</span>@endif</div>
                 @endforeach
+                @php($hardness = \App\Models\MeasurementSet::with('measurements')->where('kind', 'MOULD')->where('moulding_run_id', $run->id)->orderByDesc('taken_at')->first()?->measurements->firstWhere('characteristic_key', 'hardness_b_avg'))
+                <div class="run-sand-tile"><div class="rm-lbl">Mould hardness (B, avg)</div><strong class="code">{{ $hardness ? rtrim(rtrim(number_format((float) $hardness->value, 2, '.', ''), '0'), '.') : '—' }}</strong></div>
             </div>
         </div>
     </section>
@@ -305,6 +307,7 @@
             </div>
         </section>
     @endif
+@include('moulding-runs._mould-hardness', ['run' => $run])
 <div class="tab-marker" data-tab-start="Sand"></div>
 @include('moulding-runs._sand', ['run' => $run])
 <div class="tab-marker" data-tab-start="Files & history"></div>

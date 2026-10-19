@@ -18,7 +18,7 @@ use InvalidArgumentException;
  */
 class Measurements
 {
-    public const KINDS = ['MECHANICAL' => 'Mechanical tests', 'MICROSTRUCTURE' => 'Microstructure', 'SAND' => 'Sand tests'];
+    public const KINDS = ['MECHANICAL' => 'Mechanical tests', 'MICROSTRUCTURE' => 'Microstructure', 'SAND' => 'Sand tests', 'MOULD' => 'Mould tests'];
 
     /** Default characteristics offered on the entry form: key => [name, unit, numeric?] */
     public const CATALOG = [
@@ -34,6 +34,11 @@ class Measurements
             'moisture_pct' => ['Moisture', '%', true], 'compactability_pct' => ['Compactability', '%', true], 'green_strength_kpa' => ['Green compression strength', 'kPa', true],
             'permeability' => ['Permeability', null, true], 'active_clay_pct' => ['Active clay', '%', true], 'loi_pct' => ['Loss on ignition', '%', true],
             'molasses_pct' => ['Molasses (sheera) content', '%', true], 'dry_strength_kpa' => ['Dry strength', 'kPa', true], 'sand_temperature_c' => ['Sand temperature', '°C', true],
+        ],
+        'MOULD' => [
+            'hardness_b_min' => ['Mould hardness, lowest spot (B scale)', 'B', true], 'hardness_b_avg' => ['Mould hardness, average (B scale)', 'B', true],
+            'cope_spot_1' => ['Cope spot 1', 'B', true], 'cope_spot_2' => ['Cope spot 2', 'B', true], 'cope_spot_3' => ['Cope spot 3', 'B', true], 'cope_spot_4' => ['Cope spot 4', 'B', true], 'cope_spot_5' => ['Cope spot 5', 'B', true],
+            'drag_spot_1' => ['Drag spot 1', 'B', true], 'drag_spot_2' => ['Drag spot 2', 'B', true], 'drag_spot_3' => ['Drag spot 3', 'B', true], 'drag_spot_4' => ['Drag spot 4', 'B', true], 'drag_spot_5' => ['Drag spot 5', 'B', true],
         ],
     ];
 

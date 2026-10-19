@@ -33,6 +33,11 @@ class MeasurementSet extends Model
         return $this->belongsTo(MouldingRun::class);
     }
 
+    public function mouldAssembly(): BelongsTo
+    {
+        return $this->belongsTo(MouldAssembly::class);
+    }
+
     public function pattern(): BelongsTo
     {
         return $this->belongsTo(Pattern::class);

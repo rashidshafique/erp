@@ -27,6 +27,12 @@
 <td><span class="status {{ $s->result === 'PASS' ? 'status-completed' : ($s->result === 'FAIL' ? 'status-cancelled' : '') }}">{{ $s->result }}</span></td></tr>
 @empty<tr><td colspan="6" class="muted">No tests yet.</td></tr>@endforelse</tbody></table></div></div>
 
+<div class="panel"><div class="panel-header"><h2>Recent mould hardness tests</h2><span class="muted small">Recorded on each run's Moulds tab.</span></div><div class="table-wrap"><table><thead><tr><th>When</th><th>Run</th><th>Mould</th><th>Lowest</th><th>Average</th><th>Result</th></tr></thead><tbody>
+@forelse($mouldSets as $s)@php($by = $s->measurements->keyBy('characteristic_key'))<tr><td>{{ $s->taken_at->displayShortDateTime() }}</td><td>@if($s->mouldingRun)<a class="code" href="{{ route('moulding-runs.show', $s->mouldingRun) }}">{{ $s->mouldingRun->run_number }}</a>@endif</td><td class="code">{{ $s->mouldAssembly?->assembly_number ?? 'Whole run' }}</td>
+<td class="code">{{ $by->has('hardness_b_min') ? rtrim(rtrim(number_format((float) $by['hardness_b_min']->value, 2, '.', ''), '0'), '.') : '—' }}</td><td class="code">{{ $by->has('hardness_b_avg') ? rtrim(rtrim(number_format((float) $by['hardness_b_avg']->value, 2, '.', ''), '0'), '.') : '—' }}</td>
+<td><span class="status {{ $s->result === 'PASS' ? 'status-completed' : ($s->result === 'FAIL' ? 'status-cancelled' : '') }}">{{ $s->result }}</span></td></tr>
+@empty<tr><td colspan="6" class="muted">No mould hardness tests yet.</td></tr>@endforelse</tbody></table></div></div>
+
 @include('limits._panel', ['type' => 'SAND_SYSTEM', 'id' => $system->id, 'title' => 'Limits for '.$system->name.' sand'])
 @endif
 @endsection
