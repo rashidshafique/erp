@@ -138,7 +138,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 <option value="{{ $revision->id }}"
                                     @selected(old('pattern_revision_id') === $revision->id)>
                                     {{ $revision->pattern?->name ?? 'Pattern' }}
-                                    — Rev {{ $revision->revision }}
+                                    — {{ $revision->label() }}
                                 </option>
                             @endforeach
                         </select>
