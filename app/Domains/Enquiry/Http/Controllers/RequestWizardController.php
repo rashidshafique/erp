@@ -22,7 +22,7 @@ class RequestWizardController extends Controller
     public function create(Request $request)
     {
         return view('enquiry::enquiries.wizard', [
-            'customers' => Customer::where('active', true)->orderBy('name')->get(['id', 'code', 'name', 'contact_name', 'payment_terms']),
+            'customers' => Customer::active()->orderedByName()->get(),
             'products' => Product::with('revisions:id,product_id,revision,status')->orderBy('code')->get(['id', 'code', 'name', 'nominal_weight_kg']),
             'scenarios' => config('enquiry_scenarios'),
             'categories' => AttachableEntities::CATEGORIES,
@@ -77,7 +77,7 @@ class RequestWizardController extends Controller
         if ($has('drawing') && $src !== 'CHANGE' && blank($d['drawing_ref'] ?? null) && ! $filesGiven) {
             throw ValidationException::withMessages(['drawing_ref' => 'Give the drawing number, or attach the drawing or model.']);
         }
-        if ($d['customer_mode'] === 'NEW' && Customer::whereRaw('lower(name) = ?', [Str::lower(trim($d['new_name']))])->exists()) {
+        if ($d['customer_mode'] === 'NEW' && Customer::whereHas('party', fn ($q) => $q->whereRaw('lower(name) = ?', [Str::lower(trim($d['new_name']))]))->exists()) {
             throw ValidationException::withMessages(['new_name' => 'A customer with this name already exists. Choose it from the list instead.']);
         }
 

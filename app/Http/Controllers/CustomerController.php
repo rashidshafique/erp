@@ -12,7 +12,7 @@ class CustomerController extends Controller
     public function index(Request $request): View
     {
         $customers = Customer::query()->withCount(['salesOrders', 'ownedPatterns'])
-            ->when($request->filled('search'), fn ($q) => $q->where(fn ($w) => $w->where('code', 'ilike', '%'.trim($request->search).'%')->orWhere('name', 'ilike', '%'.trim($request->search).'%')))
+            ->when($request->filled('search'), fn ($q) => $q->matching($request->search))
             ->orderBy('code')->paginate(20)->withQueryString();
 
         return view('customers.index', compact('customers'));

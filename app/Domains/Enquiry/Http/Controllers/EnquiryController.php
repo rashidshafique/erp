@@ -16,7 +16,7 @@ class EnquiryController extends Controller
 {
     public function index(Request $request)
     {
-        $rows = Enquiry::query()->with('customer:id,code,name')->withCount('items')
+        $rows = Enquiry::query()->with('customer')->withCount('items')
             ->when($request->filled('search'), function ($q) use ($request) {
                 $s = '%'.trim($request->input('search')).'%';
                 $q->where(fn ($w) => $w->where('code', 'ilike', $s)->orWhere('title', 'ilike', $s)->orWhere('customer_reference', 'ilike', $s));
@@ -30,7 +30,7 @@ class EnquiryController extends Controller
 
     public function create()
     {
-        return view('enquiry::enquiries.create', ['customers' => Customer::where('active', true)->orderBy('name')->get(['id', 'code', 'name'])]);
+        return view('enquiry::enquiries.create', ['customers' => Customer::active()->orderedByName()->get()]);
     }
 
     public function store(Request $request)

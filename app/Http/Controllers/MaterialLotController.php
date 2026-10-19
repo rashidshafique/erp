@@ -21,7 +21,7 @@ class MaterialLotController extends Controller
     private function suppliersForLots(): \Illuminate\Support\Collection
     {
         return app(ModuleRegistry::class)->isEnabled('purchasing')
-            ? Supplier::whereNotIn('approval_status', Supplier::BLOCKED)->orderBy('name')->get()
+            ? Supplier::whereNotIn('approval_status', Supplier::BLOCKED)->orderedByName()->get()
             : collect();
     }
 

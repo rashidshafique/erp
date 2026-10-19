@@ -101,7 +101,7 @@ class RequestWizardTest extends TestCase
     {
         $d = ['customer_mode' => 'NEW', 'new_name' => 'Beta Valves (Pvt) Ltd', 'new_terms' => '45 days', 'source_type' => 'CONCEPT', 'description' => 'Manifold', 'concept_note' => 'Hydraulic, 200 bar'];
         $this->submit($d, ['customer_id' => null])->assertSessionHasNoErrors();
-        $c = Customer::where('name', 'Beta Valves (Pvt) Ltd')->firstOrFail();
+        $c = Customer::whereHas('party', fn ($q) => $q->where('name', 'Beta Valves (Pvt) Ltd'))->firstOrFail();
         $this->assertSame('BETA', $c->code);
         $this->assertSame('45 days', $c->payment_terms);
         $this->assertSame($c->id, Enquiry::firstOrFail()->customer_id);
@@ -109,7 +109,7 @@ class RequestWizardTest extends TestCase
         $this->submit(['new_name' => 'beta valves (pvt) ltd'] + $d, ['customer_id' => null])->assertSessionHasErrors('new_name');
         $this->assertSame(1, Customer::where('code', 'like', 'BETA%')->count());
         $this->submit(['new_name' => 'Beta Bearings'] + $d, ['customer_id' => null])->assertSessionHasNoErrors();
-        $this->assertSame('BETA01', Customer::where('name', 'Beta Bearings')->value('code'));
+        $this->assertSame('BETA01', Customer::whereHas('party', fn ($q) => $q->where('name', 'Beta Bearings'))->value('code'));
     }
 
     public function test_change_request_leads_into_a_new_revision_when_won(): void

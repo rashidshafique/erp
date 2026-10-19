@@ -16,13 +16,13 @@
 <div class="panel"><div class="panel-header"><h2>Supplier</h2></div>
 <div class="panel-body" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px">
     @foreach ([
-        'Supplies' => $supplier->supplies, 'Contact' => $supplier->contact_person, 'Phone' => $supplier->phone, 'Email' => $supplier->email,
+        'Supplies' => $supplier->supplies, 'Contact' => $supplier->contact_name, 'Phone' => $supplier->phone, 'Email' => $supplier->email,
         'Approved on' => $supplier->approved_on?->displayDate(), 'Next review' => $supplier->next_review_on?->displayDate(),
         'Latest score' => $supplier->latest_score, 'Review interval' => $supplier->review_interval_days.' days',
     ] as $label => $value)
         <div><div class="muted small">{{ $label }}</div><strong>{{ $value ?: '—' }}</strong></div>
     @endforeach
-    @if ($supplier->address)<div style="grid-column:1/-1"><div class="muted small">Address</div>{{ $supplier->address }}</div>@endif
+    @if ($supplier->billing_address)<div style="grid-column:1/-1"><div class="muted small">Address</div>{{ $supplier->billing_address }}</div>@endif
     @if ($supplier->notes)<div style="grid-column:1/-1"><div class="muted small">Notes</div>{{ $supplier->notes }}</div>@endif
 </div></div>
 

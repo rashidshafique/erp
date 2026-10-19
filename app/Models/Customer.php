@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Domains\Parties\Concerns\HasParty;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -9,7 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Customer extends Model
 {
-    use HasUuids, SoftDeletes;
+    use HasParty, HasUuids, SoftDeletes;
 
     protected $fillable = [
         'code',
@@ -24,11 +25,6 @@ class Customer extends Model
         'payment_terms',
         'active',
     ];
-
-    protected function casts(): array
-    {
-        return ['active' => 'boolean'];
-    }
 
     /** Patterns the customer owns or is paying off, held by the foundry. */
     public function ownedPatterns(): HasMany

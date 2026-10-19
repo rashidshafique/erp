@@ -68,7 +68,7 @@ class PatternController extends Controller
             'archivedPatterns' => Pattern::onlyTrashed()->count(),
             'archived' => $archived,
             'baselineOnly' => Pattern::whereHas('currentRevision', fn ($r) => $r->baselineWithoutDrawing())->count(),
-            'owningCustomers' => Customer::withTrashed()->whereIn('id', Pattern::whereNotNull('owner_customer_id')->select('owner_customer_id'))->orderBy('name')->get(),
+            'owningCustomers' => Customer::withTrashed()->whereIn('id', Pattern::whereNotNull('owner_customer_id')->select('owner_customer_id'))->orderedByName()->get(),
         ]);
     }
 
@@ -352,7 +352,7 @@ class PatternController extends Controller
         $pattern->load('ownerCustomer', 'ownershipQuotation', 'ownershipEvents');
         $ownership = app(PatternOwnership::class);
         $owner = [
-            'customers' => Customer::where('active', true)->orWhere('id', $pattern->owner_customer_id)->orderBy('name')->get(),
+            'customers' => Customer::where(fn ($q) => $q->active()->orWhere('id', $pattern->owner_customer_id))->orderedByName()->get(),
             'quotations' => Route::has('quotations.show') ? Quotation::orderByDesc('created_at')->limit(200)->get(['id', 'code', 'version']) : collect(),
             'payOff' => $ownership->payOffProgress($pattern),
             'custody' => $ownership->custodyLabel($pattern),

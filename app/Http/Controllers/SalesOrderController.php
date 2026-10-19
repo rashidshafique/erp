@@ -29,7 +29,7 @@ class SalesOrderController extends Controller
     public function create(): View
     {
         return view('sales-orders.create', [
-            'customers' => Customer::where('active', true)->orderBy('code')->get(),
+            'customers' => Customer::active()->orderBy('code')->get(),
             'revisions' => ProductRevision::with('product')->whereIn('status', ['APPROVED', 'ACTIVE'])->get()
                 ->sortBy(fn ($r) => $r->product?->code.' '.$r->revision)->values(),
         ]);

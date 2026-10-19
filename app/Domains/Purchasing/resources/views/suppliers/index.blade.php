@@ -29,7 +29,7 @@
         @forelse ($suppliers as $supplier)
             <tr>
                 <td class="mono"><a href="{{ route('suppliers.show', $supplier) }}">{{ $supplier->code }}</a></td>
-                <td>{{ $supplier->name }}<div class="muted small">{{ collect([$supplier->contact_person, $supplier->phone])->filter()->implode(' · ') }}</div></td>
+                <td>{{ $supplier->name }}<div class="muted small">{{ collect([$supplier->contact_name, $supplier->phone])->filter()->implode(' · ') }}</div></td>
                 <td>{{ $supplier->supplies ?: '—' }}</td>
                 <td>{{ $statuses[$supplier->approval_status] }}</td>
                 <td>{{ $supplier->latest_score ?? '—' }}</td>

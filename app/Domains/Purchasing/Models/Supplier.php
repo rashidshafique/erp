@@ -2,6 +2,7 @@
 
 namespace App\Domains\Purchasing\Models;
 
+use App\Domains\Parties\Concerns\HasParty;
 use App\Models\Concerns\GeneratesCodes;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 /** An approved vendor list entry: who supplies what, whether they may be bought from, and when they are next reviewed. */
 class Supplier extends Model
 {
-    use GeneratesCodes, HasUuids, SoftDeletes;
+    use GeneratesCodes, HasParty, HasUuids, SoftDeletes;
 
     public string $codeKind = 'supplier';
 

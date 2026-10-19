@@ -24,7 +24,7 @@ class PatternOwnershipController extends Controller
 
         return view('pattern-ownership.index', [
             'byOwner' => Pattern::selectRaw('owner_type, owner_customer_id, count(*) n, sum(insured_value) value')->groupBy('owner_type', 'owner_customer_id')->get(),
-            'customers' => Customer::withTrashed()->whereIn('id', Pattern::whereNotNull('owner_customer_id')->select('owner_customer_id'))->orderBy('name')->get()->keyBy('id'),
+            'customers' => Customer::withTrashed()->whereIn('id', Pattern::whereNotNull('owner_customer_id')->select('owner_customer_id'))->orderedByName()->get()->keyBy('id'),
             'idle' => $this->ownership->idle($customerId),
             'payingOff' => Pattern::with('ownerCustomer')->where('owner_type', 'PAYING_OFF')->orderBy('code')->get()->map(fn ($p) => ['pattern' => $p] + $this->ownership->payOffProgress($p)),
             'away' => Pattern::with('ownerCustomer')->whereIn('custody', ['PATTERN_SHOP', 'LENT'])->orderBy('code')->get(),

@@ -20,10 +20,10 @@ class SupplierController extends Controller
         $overdue = fn ($q) => $q->whereNotIn('approval_status', Supplier::BLOCKED)->whereDate('next_review_on', '<', today());
 
         $suppliers = Supplier::query()
-            ->when($request->filled('q'), fn ($q) => $q->where(fn ($w) => $w->where('code', 'ilike', '%'.$request->query('q').'%')->orWhere('name', 'ilike', '%'.$request->query('q').'%')->orWhere('supplies', 'ilike', '%'.$request->query('q').'%')))
+            ->when($request->filled('q'), fn ($q) => $q->where(fn ($w) => $w->matching($request->query('q'))->orWhere('supplies', 'ilike', '%'.$request->query('q').'%')))
             ->when($request->filled('status'), fn ($q) => $q->where('approval_status', $request->query('status')))
             ->when($state === 'review', $overdue)
-            ->orderByRaw("case approval_status when 'PENDING' then 0 when 'SUSPENDED' then 1 when 'CONDITIONAL' then 2 else 3 end")->orderBy('name')
+            ->orderByRaw("case approval_status when 'PENDING' then 0 when 'SUSPENDED' then 1 when 'CONDITIONAL' then 2 else 3 end")->orderedByName()
             ->paginate(25)->withQueryString();
 
         return view('purchasing::suppliers.index', [
@@ -101,10 +101,10 @@ class SupplierController extends Controller
             'code' => ['nullable', 'string', 'max:40', Rule::unique('suppliers', 'code')->ignore($supplier?->id)],
             'name' => ['required', 'string', 'max:150'],
             'supplies' => ['nullable', 'string', 'max:200'],
-            'contact_person' => ['nullable', 'string', 'max:150'],
+            'contact_name' => ['nullable', 'string', 'max:150'],
             'phone' => ['nullable', 'string', 'max:60'],
-            'email' => ['nullable', 'email', 'max:150'],
-            'address' => ['nullable', 'string', 'max:1000'],
+            'email' => ['nullable', 'email', 'max:160'],
+            'billing_address' => ['nullable', 'string', 'max:1000'],
             'review_interval_days' => ['required', 'integer', 'min:30', 'max:1825'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);

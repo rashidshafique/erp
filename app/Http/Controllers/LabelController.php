@@ -32,7 +32,7 @@ class LabelController extends Controller
     private function sub(string $type, object $row): ?string
     {
         if ($type === 'pattern' && ($row->owner_type ?? 'FOUNDRY') !== 'FOUNDRY') {
-            return 'Property of '.(DB::table('customers')->where('id', $row->owner_customer_id)->value('name') ?? 'the customer');
+            return 'Property of '.(DB::table('customers')->join('parties', 'parties.id', '=', 'customers.party_id')->where('customers.id', $row->owner_customer_id)->value('parties.name') ?? 'the customer');
         }
         if ($type === 'casting_lot') {
             $p = DB::table('products')->where('id', $row->product_id ?? null)->first();

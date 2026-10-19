@@ -24,7 +24,7 @@ class DispatchController extends Controller
         $items = PackingRecordItem::with(['lot.product', 'lot.productionOrder.salesOrderLine.salesOrder.customer', 'packing'])->get()
             ->map(function ($i) use ($ship) { $i->left = $ship->undispatched($i); return $i; })->filter(fn ($i) => $i->left > 0)->values();
 
-        return view('dispatch::dispatches.create', ['items' => $items, 'customers' => Customer::orderBy('name')->get()]);
+        return view('dispatch::dispatches.create', ['items' => $items, 'customers' => Customer::orderedByName()->get()]);
     }
 
     public function store(Request $request, ShipmentService $ship): RedirectResponse
