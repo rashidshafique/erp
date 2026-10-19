@@ -24,7 +24,7 @@ class OrderRulesController extends Controller
     {
         $rules = [];
         foreach (OrderRules::RULES as $key => [, , $options]) {
-            $rules[$key] = ['required', Rule::in(array_keys($options))];
+            $rules[$key] = ['sometimes', 'required', Rule::in(array_keys($options))];
         }
         foreach ($request->validate($rules) as $key => $value) {
             OrderRules::set($key, $value);

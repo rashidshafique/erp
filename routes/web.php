@@ -340,6 +340,8 @@ Route::prefix('flasks')->name('flasks.')->controller(FlaskController::class)->gr
 });
 Route::get('/settings/flasks', [FlaskController::class, 'editRules'])->name('settings.flasks.edit');
 Route::put('/settings/flasks', [FlaskController::class, 'rules'])->name('settings.flasks');
+Route::get('/settings/process-depth', [\App\Http\Controllers\ProcessDepthController::class, 'edit'])->name('settings.process-depth.edit');
+Route::put('/settings/process-depth', [\App\Http\Controllers\ProcessDepthController::class, 'update'])->name('settings.process-depth');
 Route::get('/settings/orders', [\App\Http\Controllers\OrderRulesController::class, 'edit'])->name('settings.orders.edit');
 Route::put('/settings/orders', [\App\Http\Controllers\OrderRulesController::class, 'update'])->name('settings.orders');
 Route::get('/settings/pouring', [\App\Http\Controllers\PouringRulesController::class, 'edit'])->name('settings.pouring.edit');

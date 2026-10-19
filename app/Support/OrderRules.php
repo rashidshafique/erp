@@ -13,6 +13,10 @@ class OrderRules
             'REQUIRED' => 'Required: an order goes live only after its contract review is approved',
             'SKIP' => 'Not required: an order can be made live straight from the order page',
         ], 'REQUIRED'],
+        'order_completion' => ['orders.completion', 'A production order is complete', [
+            'INSPECTION' => 'When enough good castings have passed final inspection',
+            'POUR' => 'When the castings poured reach the planned quantity (no inspection needed)',
+        ], 'INSPECTION'],
     ];
 
     public static function get(string $rule): string
@@ -34,6 +38,11 @@ class OrderRules
     {
         [$key, $label] = self::RULES[$rule];
         AppSetting::setValue($key, $value, $label);
+    }
+
+    public static function completesAtPour(): bool
+    {
+        return self::get('order_completion') === 'POUR';
     }
 
     public static function reviewRequired(): bool

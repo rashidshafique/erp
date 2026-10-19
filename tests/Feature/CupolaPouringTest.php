@@ -186,6 +186,17 @@ class CupolaPouringTest extends TestCase
         $this->post(route('production-orders.close', $order))->assertSessionHasErrors('order');
     }
 
+    public function test_under_the_pour_completion_rule_a_pour_that_covers_the_plan_completes_the_order(): void
+    {
+        \App\Support\OrderRules::set('order_completion', 'POUR');
+
+        $this->completedPour(firstIron: false);
+        $this->assertSame('IN_PROGRESS', $this->order->fresh()->status);      // 2 poured of 100 planned
+
+        $this->completedPour(firstIron: false, plannedQty: 2);
+        $this->assertSame('COMPLETED', $this->order->fresh()->status);
+    }
+
     public function test_lots_from_first_iron_are_held_until_qc_passes(): void
     {
         [$pour, $lots] = $this->completedPour(firstIron: true);
