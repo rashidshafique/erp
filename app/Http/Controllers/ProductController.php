@@ -51,6 +51,9 @@ class ProductController extends Controller
 
     public function store(Request $request)
     {
+        if (is_string($request->input('code'))) {
+            $request->merge(['code' => strtoupper(trim($request->input('code')))]);   // "flg-1" and "FLG-1" are the same code
+        }
         $data = $request->validate([
             'code' => ['nullable', 'string', 'max:40', 'unique:products,code'],   // blank = generated
             'name' => ['required', 'string', 'max:255'],
@@ -154,6 +157,9 @@ class ProductController extends Controller
 
     public function update(Request $request, Product $product)
     {
+        if (is_string($request->input('code'))) {
+            $request->merge(['code' => strtoupper(trim($request->input('code')))]);   // "flg-1" and "FLG-1" are the same code
+        }
         $data = $request->validate([
             'code' => [
                 'required', 'string', 'max:40',
