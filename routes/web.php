@@ -167,6 +167,8 @@ Route::prefix('production-orders')
             '/{productionOrder}/release',
             'release'
         )->name('release');
+
+        Route::post('/{productionOrder}/close', 'close')->name('close');
     });
 
 Route::prefix('pours')

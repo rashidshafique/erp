@@ -173,13 +173,17 @@ class CupolaPouringTest extends TestCase
 
     private ProductionOrder $order;
 
-    public function test_the_order_completes_when_the_pour_covers_its_planned_quantity(): void
+    public function test_a_completed_pour_leaves_the_order_in_progress_and_it_can_be_closed_short(): void
     {
-        $this->completedPour(firstIron: false);
+        $this->completedPour(firstIron: false, plannedQty: 2);
         $this->assertSame('IN_PROGRESS', $this->order->fresh()->status);
 
-        $this->completedPour(firstIron: false, plannedQty: 2);
-        $this->assertSame('COMPLETED', $this->order->fresh()->status);
+        $this->post(route('production-orders.close', $this->order))->assertSessionHasErrors('reason');
+        $this->post(route('production-orders.close', $this->order), ['reason' => 'Scrap, not remaking'])->assertSessionHasNoErrors();
+        $order = $this->order->fresh();
+        $this->assertSame('COMPLETED', $order->status);
+        $this->assertStringContainsString('Closed short', $order->notes);
+        $this->post(route('production-orders.close', $order))->assertSessionHasErrors('order');
     }
 
     public function test_lots_from_first_iron_are_held_until_qc_passes(): void

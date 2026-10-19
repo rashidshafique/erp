@@ -101,6 +101,9 @@ class LotService
         $released = $lots->filter(fn ($l) => DB::table('quality_inspections')->where('casting_lot_id', $l->id)->where('inspection_type', 'FINAL')->whereIn('status', ['COMPLETED', 'APPROVED', 'CLOSED'])->exists());
         $done = (int) $released->sum('quantity_good');
         $order->update(['completed_qty' => $done, 'rejected_qty' => (int) $lots->sum('quantity_rejected')]);
+        if ($order->uom === 'piece' && in_array($order->status, ['RELEASED', 'IN_PROGRESS'], true) && $done >= (float) $order->planned_qty) {
+            $order->update(['status' => 'COMPLETED', 'actual_completed_at' => now()]);
+        }
     }
 
     /** Cooling the pattern asks for between pouring and shakeout. @return array{minimum:int, elapsed:int, wait:int, ready_at:\Carbon\CarbonInterface}|null */

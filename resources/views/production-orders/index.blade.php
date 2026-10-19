@@ -114,6 +114,16 @@
                                 </a>
                             @endif
 
+                            @if($order->status === 'IN_PROGRESS')
+                                <form class="inline" method="POST"
+                                      action="{{ route('production-orders.close', $order) }}"
+                                      onsubmit="const short = {{ (float) $order->completed_qty < (float) $order->planned_qty ? 'true' : 'false' }}; const reason = prompt(short ? 'Good castings are below the planned quantity. Why is the rest not being made?' : 'Close this order?'); if (reason === null || (short && !reason.trim())) return false; this.reason.value = reason; return true;">
+                                    @csrf
+                                    <input type="hidden" name="reason">
+                                    <button type="submit">Close order</button>
+                                </form>
+                            @endif
+
                             @if($order->status === 'DRAFT')
                                 <form class="inline" method="POST"
                                       action="{{ route('production-orders.release', $order) }}"

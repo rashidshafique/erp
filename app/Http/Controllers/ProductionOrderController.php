@@ -210,4 +210,21 @@ class ProductionOrderController extends Controller
             ->route('production-orders.index')
             ->with('success', "Production order {$productionOrder->production_order_number} released.");
     }
+
+    /** Close an order by hand, for when scrap means the rest of the quantity will not be remade. A shortfall needs a reason. */
+    public function close(Request $request, ProductionOrder $productionOrder): RedirectResponse
+    {
+        if ($productionOrder->status !== 'IN_PROGRESS') {
+            return back()->withErrors(['order' => 'Only an order in progress can be closed.']);
+        }
+        $short = (float) $productionOrder->completed_qty < (float) $productionOrder->planned_qty;
+        $reason = $request->validate(['reason' => [$short ? 'required' : 'nullable', 'string', 'max:500']])['reason'] ?? null;
+        $note = $short ? 'Closed short at '.(float) $productionOrder->completed_qty.' of '.(float) $productionOrder->planned_qty.': '.$reason : null;
+        $productionOrder->update([
+            'status' => 'COMPLETED', 'actual_completed_at' => now(),
+            'notes' => trim($productionOrder->notes."\n".$note) ?: null,
+        ]);
+
+        return back()->with('success', "Production order {$productionOrder->production_order_number} closed.");
+    }
 }
