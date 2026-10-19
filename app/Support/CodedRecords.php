@@ -28,7 +28,7 @@ class CodedRecords
     {
         $route = self::TYPES[$type][3] ?? null;
         if ($type === 'production_order') {
-            return route('production-orders.index', ['search' => \DB::table('production_orders')->where('id', $id)->value('production_order_number')]);
+            return route('production-orders.show', $id);
         }
 
         return $route ? route($route, $id) : (Route::has('tools.show') ? route('tools.show', [$type, $id]) : route('dashboard'));

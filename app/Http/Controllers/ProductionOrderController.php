@@ -73,22 +73,13 @@ class ProductionOrderController extends Controller
         return view('production-orders.create', compact('products'));
     }
 
-    public function store(Request $request): RedirectResponse
+    /** @return array<string, array<int, mixed>> */
+    private function rules(): array
     {
-        $validated = $request->validate([
-            'product_revision_id' => [
-                'required',
-                'uuid',
-                'exists:product_revisions,id',
-            ],
-            'order_type' => [
-                'required',
-                Rule::in(['CUSTOMER', 'STOCK', 'REWORK']),
-            ],
-            'priority' => [
-                'required',
-                Rule::in(['LOW', 'NORMAL', 'HIGH', 'URGENT']),
-            ],
+        return [
+            'product_revision_id' => ['required', 'uuid', 'exists:product_revisions,id'],
+            'order_type' => ['required', Rule::in(['CUSTOMER', 'STOCK', 'REWORK'])],
+            'priority' => ['required', Rule::in(['LOW', 'NORMAL', 'HIGH', 'URGENT'])],
             'planned_qty' => ['required', 'numeric', 'gt:0', 'max:999999999'],
             'uom' => ['required', 'string', 'max:20'],
             'planned_start_date' => ['nullable', 'date'],
@@ -96,7 +87,73 @@ class ProductionOrderController extends Controller
             'required_date' => ['nullable', 'date'],
             'instructions' => ['nullable', 'string', 'max:10000'],
             'notes' => ['nullable', 'string', 'max:10000'],
+        ];
+    }
+
+    public function show(ProductionOrder $productionOrder): View
+    {
+        $productionOrder->load(['product', 'productRevision', 'salesOrderLine.salesOrder.customer']);
+        $runs = $productionOrder->mouldingRuns()->with('patternRevision.pattern')->orderBy('run_date')->orderBy('run_number')->get();
+        $lots = $productionOrder->castingLots()->with('pourMouldAssembly.pour')->orderBy('lot_number')->get();
+
+        return view('production-orders.show', [
+            'order' => $productionOrder,
+            'runs' => $runs,
+            'lots' => $lots,
+            'mouldsAccepted' => (int) $runs->where('status', '!=', 'CANCELLED')->sum('accepted_mould_qty'),
+            'poured' => (int) $lots->sum('quantity_poured'),
+            'openRuns' => $runs->whereIn('status', ['IN_PROGRESS', 'ON_HOLD'])->count(),
         ]);
+    }
+
+    public function edit(ProductionOrder $productionOrder): View|RedirectResponse
+    {
+        if ($productionOrder->status !== 'DRAFT') {
+            return redirect()->route('production-orders.show', $productionOrder)->withErrors(['order' => 'Only a draft order can be edited.']);
+        }
+
+        return view('production-orders.edit', ['order' => $productionOrder] + $this->create()->getData());
+    }
+
+    public function update(Request $request, ProductionOrder $productionOrder): RedirectResponse
+    {
+        if ($productionOrder->status !== 'DRAFT') {
+            return redirect()->route('production-orders.show', $productionOrder)->withErrors(['order' => 'Only a draft order can be edited.']);
+        }
+        $validated = $request->validate($this->rules());
+        $revision = ProductRevision::with('product')->findOrFail($validated['product_revision_id']);
+        if (! $revision->product?->active || ! in_array($revision->status, ['APPROVED', 'ACTIVE'], true)) {
+            return back()->withInput()->withErrors(['product_revision_id' => 'Choose an active revision belonging to an active product.']);
+        }
+        $productionOrder->update($validated + ['product_id' => $revision->product_id]);
+
+        return redirect()->route('production-orders.show', $productionOrder)->with('success', "{$productionOrder->production_order_number} updated.");
+    }
+
+    /** Cancel an order nobody will make. Refused once castings are poured or while a run is still open; a reason is kept on the order. */
+    public function cancel(Request $request, ProductionOrder $productionOrder): RedirectResponse
+    {
+        $reason = $request->validate(['reason' => ['required', 'string', 'max:500']])['reason'];
+        if (! in_array($productionOrder->status, ['DRAFT', 'RELEASED', 'IN_PROGRESS'], true)) {
+            return back()->withErrors(['order' => 'This order can no longer be cancelled.']);
+        }
+        if ($productionOrder->castingLots()->exists()) {
+            return back()->withErrors(['order' => 'Castings have already been poured for this order, so it cannot be cancelled. Close it instead.']);
+        }
+        if ($productionOrder->mouldingRuns()->whereIn('status', ['IN_PROGRESS', 'ON_HOLD'])->exists()) {
+            return back()->withErrors(['order' => 'A moulding run is still open on this order. Complete or cancel it first.']);
+        }
+        $productionOrder->update([
+            'status' => 'CANCELLED',
+            'notes' => trim($productionOrder->notes."\nCancelled: ".$reason),
+        ]);
+
+        return redirect()->route('production-orders.show', $productionOrder)->with('success', "{$productionOrder->production_order_number} cancelled.");
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $validated = $request->validate($this->rules());
 
         $revision = ProductRevision::query()
             ->with('product')
@@ -155,7 +212,7 @@ class ProductionOrderController extends Controller
         });
 
         return redirect()
-            ->route('production-orders.index')
+            ->route('production-orders.show', $order)
             ->with('success', "Production order {$order->production_order_number} created as a draft.");
     }
 

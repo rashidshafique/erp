@@ -28,7 +28,7 @@ class ProductionOrder extends Model
         'rejected_qty',
         'uom',
         'planned_start_date',
-        'planned_end_date',
+        'planned_finish_date',
         'required_date',
         'actual_started_at',
         'actual_completed_at',
@@ -44,7 +44,7 @@ class ProductionOrder extends Model
             'completed_qty' => 'decimal:3',
             'rejected_qty' => 'decimal:3',
             'planned_start_date' => 'date',
-            'planned_end_date' => 'date',
+            'planned_finish_date' => 'date',
             'required_date' => 'date',
             'actual_started_at' => 'datetime',
             'actual_completed_at' => 'datetime',
@@ -62,6 +62,11 @@ class ProductionOrder extends Model
         $c = $this->customer();
 
         return $c ? ($c->short_name ?: $c->name) : 'Stock';
+    }
+
+    public function castingLots(): HasMany
+    {
+        return $this->hasMany(CastingLot::class);
     }
 
     public function mouldingRuns(): HasMany

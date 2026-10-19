@@ -168,6 +168,10 @@ Route::prefix('production-orders')
             'release'
         )->name('release');
 
+        Route::get('/{productionOrder}', 'show')->name('show');
+        Route::get('/{productionOrder}/edit', 'edit')->name('edit');
+        Route::put('/{productionOrder}', 'update')->name('update');
+        Route::post('/{productionOrder}/cancel', 'cancel')->name('cancel');
         Route::post('/{productionOrder}/close', 'close')->name('close');
     });
 
