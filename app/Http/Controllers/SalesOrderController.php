@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Services\Orders\SalesOrderStatus;
 use App\Models\ProductRevision;
 use App\Models\SalesOrder;
 use App\Models\SalesOrderLine;
@@ -122,5 +123,17 @@ class SalesOrderController extends Controller
         $po = $factory->forSalesLine($line, isset($data['qty']) ? (float) $data['qty'] : null);
 
         return redirect()->route('sales-orders.show', $salesOrder)->with('success', "Production order {$po->production_order_number} created as a draft.");
+    }
+
+    public function changeStatus(Request $request, SalesOrder $salesOrder, SalesOrderStatus $status): RedirectResponse
+    {
+        $data = $request->validate([
+            'status' => ['required', 'string', 'in:'.implode(',', array_keys($status->allowedFrom($salesOrder)))],
+            'release_all' => ['nullable', 'boolean'],
+            'reason' => ['required_if:status,CANCELLED', 'nullable', 'string', 'max:300'],
+        ]);
+        $status->change($salesOrder, $data['status'], (bool) ($data['release_all'] ?? false), $data['reason'] ?? null);
+
+        return back()->with('success', 'Order status updated.');
     }
 }

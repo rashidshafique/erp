@@ -9,6 +9,26 @@
     <div class="actions">
         <a class="btn" href="{{ route('sales-orders.index') }}">All orders</a>
         <a class="btn" href="{{ route('sales-orders.trace', $order) }}">Trace to dispatch</a>
+        @php $changes = app(\App\Services\Orders\SalesOrderStatus::class)->allowedFrom($order); @endphp
+        @if ($changes)
+            <details style="display:inline-block"><summary class="btn">Change status</summary>
+                <form method="POST" action="{{ route('sales-orders.status', $order) }}" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px">@csrf
+                    <select name="status" id="status-change" aria-label="New status">@foreach ($changes as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select>
+                    <label id="release-all" hidden><input type="checkbox" name="release_all" value="1" checked> Create and release all production orders</label>
+                    <input name="reason" id="cancel-reason" maxlength="300" placeholder="Reason for cancelling" aria-label="Reason for cancelling" hidden>
+                    <button class="btn btn-primary" type="submit">Apply</button>
+                </form></details>
+            <script>
+                (function () {
+                    var select = document.getElementById('status-change');
+                    function sync() {
+                        document.getElementById('release-all').hidden = select.value !== 'IN_PRODUCTION';
+                        document.getElementById('cancel-reason').hidden = select.value !== 'CANCELLED';
+                    }
+                    select.addEventListener('change', sync); sync();
+                })();
+            </script>
+        @endif
         <form method="POST" action="{{ route('sales-orders.review', $order) }}" style="display:inline">@csrf
             <button class="btn btn-primary" type="submit">{{ $review ? 'Re-run contract review' : 'Run contract review' }}</button></form>
     </div>

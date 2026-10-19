@@ -16,7 +16,7 @@
         <div class="field"><label for="search">Order number</label><input id="search" name="search" value="{{ request('search') }}"></div>
         <div class="field"><label for="status">Status</label>
             <select id="status" name="status"><option value="">All</option>
-                @foreach (['DRAFT','UNDER_REVIEW','CONFIRMED','IN_PRODUCTION','DISPATCHED','CANCELLED'] as $s)
+                @foreach (['DRAFT','UNDER_REVIEW','CONFIRMED','IN_PRODUCTION','ON_HOLD','DISPATCHED','CANCELLED'] as $s)
                     <option value="{{ $s }}" @selected(request('status') === $s)>{{ str_replace('_', ' ', $s) }}</option>
                 @endforeach
             </select></div>

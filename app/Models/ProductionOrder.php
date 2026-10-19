@@ -64,6 +64,11 @@ class ProductionOrder extends Model
         return $c ? ($c->short_name ?: $c->name) : 'Stock';
     }
 
+    public function mouldingRuns(): HasMany
+    {
+        return $this->hasMany(MouldingRun::class);
+    }
+
     public function salesOrderLine(): BelongsTo
     {
         return $this->belongsTo(SalesOrderLine::class);

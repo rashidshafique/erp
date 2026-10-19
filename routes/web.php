@@ -263,6 +263,7 @@ Route::prefix('sales-orders')->name('sales-orders.')->controller(SalesOrderContr
     Route::get('/create', 'create')->name('create');
     Route::post('/', 'store')->name('store');
     Route::get('/{salesOrder}', 'show')->name('show');
+    Route::post('/{salesOrder}/status', 'changeStatus')->name('status');
     Route::post('/{salesOrder}/review', 'review')->name('review');
     Route::post('/{salesOrder}/review/acknowledge', 'acknowledge')->name('review.acknowledge');
     Route::post('/{salesOrder}/review/sign', 'sign')->name('review.sign');
@@ -332,6 +333,8 @@ Route::prefix('flasks')->name('flasks.')->controller(FlaskController::class)->gr
 });
 Route::get('/settings/flasks', [FlaskController::class, 'editRules'])->name('settings.flasks.edit');
 Route::put('/settings/flasks', [FlaskController::class, 'rules'])->name('settings.flasks');
+Route::get('/settings/orders', [\App\Http\Controllers\OrderRulesController::class, 'edit'])->name('settings.orders.edit');
+Route::put('/settings/orders', [\App\Http\Controllers\OrderRulesController::class, 'update'])->name('settings.orders');
 Route::get('/settings/pouring', [\App\Http\Controllers\PouringRulesController::class, 'edit'])->name('settings.pouring.edit');
 Route::put('/settings/pouring', [\App\Http\Controllers\PouringRulesController::class, 'update'])->name('settings.pouring');
 Route::prefix('flask-sizes')->name('flask-sizes.')->controller(FlaskSizeController::class)->group(function () {

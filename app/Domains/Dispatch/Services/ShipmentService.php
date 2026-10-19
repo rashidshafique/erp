@@ -7,6 +7,7 @@ use App\Domains\Dispatch\Models\Dispatch;
 use App\Domains\Dispatch\Models\DispatchItem;
 use App\Domains\Dispatch\Models\PackingRecord;
 use App\Domains\Dispatch\Models\PackingRecordItem;
+use App\Services\Orders\SalesOrderStatus;
 use App\Services\Patterns\PatternOwnership;
 use App\Services\QualityGates;
 use Illuminate\Support\Facades\DB;
@@ -105,6 +106,7 @@ class ShipmentService
             ]);
             $net = 0.0;
             $packs = [];
+            $orders = [];
             foreach ($qtyByItem as $itemId => $qty) {
                 $item = PackingRecordItem::with('lot.productionOrder.salesOrderLine.salesOrder')->whereKey($itemId)->lockForUpdate()->firstOrFail();
                 $lot = $item->lot;
@@ -128,10 +130,16 @@ class ShipmentService
                 DispatchItem::create(['dispatch_id' => $disp->id, 'packing_record_item_id' => $item->id, 'sales_order_line_id' => $line?->id,
                     'quantity_dispatched' => $qty, 'net_weight_kg' => $w, 'uom' => 'PCS']);
                 $packs[$item->packing_record_id] = true;
+                if ($line) {
+                    $orders[$line->sales_order_id] = $line->salesOrder;
+                }
                 $allGone = PackingRecordItem::where('casting_lot_id', $lot->id)->get()->every(fn ($i) => $this->undispatched($i) <= 0);
                 if ($allGone && $this->packable($lot) <= 0) {
                     $lot->update(['status' => 'DISPATCHED']);
                 }
+            }
+            foreach ($orders as $order) {
+                app(SalesOrderStatus::class)->dispatched($order->load('lines'));
             }
             $disp->update(['total_net_weight_kg' => round($net, 3), 'total_packages' => count($packs)]);
             // Patterns this customer is paying off by castings may now be theirs.

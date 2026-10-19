@@ -69,8 +69,7 @@ class QuickOrderController extends Controller
                     'product_id' => $revision->product_id, 'product_revision_id' => $revision->id, 'line_number' => $i + 1, 'ordered_qty' => $row['qty'],
                     'uom' => 'piece', 'requested_delivery_date' => $row['due_date'] ?? $data['due_date'] ?? null,
                 ]);
-                $production = $factory->forSalesLine($line, quick: true);
-                $production->update(['status' => 'RELEASED', 'released_qty' => $production->planned_qty]);
+                $factory->releaseForLine($line);
             }
 
             return $order;

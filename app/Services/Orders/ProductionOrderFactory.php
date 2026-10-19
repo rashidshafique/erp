@@ -16,7 +16,7 @@ class ProductionOrderFactory
         return DB::transaction(function () use ($line, $qty, $quick) {
             $line = SalesOrderLine::with(['salesOrder', 'productRevision'])->lockForUpdate()->findOrFail($line->id);
 
-            if (! $quick && config('foundry.require_contract_review') && ! $line->salesOrder->hasApprovedReview()) {
+            if (! $quick && \App\Support\OrderRules::reviewRequired() && ! $line->salesOrder->hasApprovedReview()) {
                 throw ValidationException::withMessages(['review' => 'The order has no approved contract review. Complete the review and both sign-offs first.']);
             }
             if (! $quick && ! in_array($line->productRevision?->status, ['APPROVED', 'ACTIVE'], true)) {
@@ -45,6 +45,19 @@ class ProductionOrderFactory
                 'notes' => 'Created from sales order '.$line->salesOrder->order_number.' line '.$line->line_number.'.',
             ]);
         });
+    }
+
+    /** Creates and releases a production order for whatever is still unscheduled on the line. Null when the line is fully scheduled. */
+    public function releaseForLine(SalesOrderLine $line): ?ProductionOrder
+    {
+        $scheduled = (float) ProductionOrder::where('sales_order_line_id', $line->id)->where('status', '!=', 'CANCELLED')->sum('planned_qty');
+        if ((float) $line->ordered_qty - $scheduled <= 0.0005) {
+            return null;
+        }
+        $order = $this->forSalesLine($line, null, quick: true);
+        $order->update(['status' => 'RELEASED', 'released_qty' => $order->planned_qty]);
+
+        return $order;
     }
 
     /** A draft stock order (no customer) for work started without an open order; the caller releases it. */

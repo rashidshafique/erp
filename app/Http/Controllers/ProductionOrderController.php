@@ -179,7 +179,7 @@ class ProductionOrderController extends Controller
                 return false;
             }
 
-            if (config('foundry.require_contract_review') && $order->sales_order_line_id) {
+            if (\App\Support\OrderRules::reviewRequired() && $order->sales_order_line_id) {
                 $so = \App\Models\SalesOrderLine::with('salesOrder')->find($order->sales_order_line_id)?->salesOrder;
                 if ($so && ! $so->hasApprovedReview()) {
                     $blocked = "Order {$so->order_number} has no approved contract review.";
@@ -199,6 +199,11 @@ class ProductionOrderController extends Controller
             return back()->withErrors([
                 'release' => $blocked ?? 'Only draft orders with a positive planned quantity can be released.',
             ]);
+        }
+
+        $order = $productionOrder->salesOrderLine?->salesOrder;
+        if ($order) {
+            app(\App\Services\Orders\SalesOrderStatus::class)->productionStarted($order);
         }
 
         return redirect()
