@@ -476,7 +476,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function sync() {
         var m = mode(), open = root.classList.contains('menu-open') || root.classList.contains('menu-peek');
         if (m === 'desktop') {
-            root.classList.remove('menu-open', 'menu-peek');
+            root.classList.remove('menu-open', 'menu-peek', 'menu-hover');
             var slim = false; try { slim = localStorage.getItem('erp.menuSlim') === '1'; } catch (e) {}
             root.classList.toggle('menu-slim', slim);
             btn.setAttribute('aria-pressed', String(slim)); btn.removeAttribute('aria-expanded');
@@ -500,6 +500,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function toggle() {
         var m = mode();
         if (m === 'desktop') {
+            if (root.classList.contains('menu-hover')) { root.classList.remove('menu-hover'); root.classList.add('menu-slim'); }
             var slim = !root.classList.contains('menu-slim');
             try { localStorage.setItem('erp.menuSlim', slim ? '1' : '0'); } catch (e) {}
         } else {
@@ -514,6 +515,19 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('main-sidebar').addEventListener('click', function (e) { if (e.target.closest('a[href]') && mode() !== 'desktop') { root.classList.remove('menu-open', 'menu-peek'); sync(); } });
     mobile.addEventListener('change', sync); tablet.addEventListener('change', sync);
     sync();
+
+    /* Slim menu on a wide screen: pointing at it widens it over the page to show the names, and it shrinks again when the pointer leaves. */
+    var side = document.getElementById('main-sidebar'), leaving = null;
+    side.addEventListener('mouseenter', function () {
+        clearTimeout(leaving);
+        if (mode() === 'desktop' && root.classList.contains('menu-slim')) { root.classList.remove('menu-slim'); root.classList.add('menu-hover'); names(false); }
+    });
+    side.addEventListener('mouseleave', function () {
+        leaving = setTimeout(function () {
+            if (!root.classList.contains('menu-hover')) return;
+            root.classList.remove('menu-hover'); root.classList.add('menu-slim'); names(true);
+        }, 150);
+    });
 })();
 </script>
 
