@@ -7,7 +7,6 @@
 <div class="page-heading">
     <div><h1>{{ $order->order_number }}</h1><p>{{ $order->customer?->code }} — {{ $order->customer?->name }}</p></div>
     <div class="actions">
-        <a class="btn" href="{{ route('sales-orders.index') }}">All orders</a>
         <a class="btn" href="{{ route('sales-orders.trace', $order) }}">Trace to dispatch</a>
         @php $changes = app(\App\Services\Orders\SalesOrderStatus::class)->allowedFrom($order); @endphp
         @if ($changes)
