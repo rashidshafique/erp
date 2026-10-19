@@ -116,7 +116,7 @@ select:not([multiple]):not([size]) {
     .menu-slim .sidebar-profile { flex-direction: column; gap: 4px; }
     .menu-slim .sp-link { justify-content: center; flex: none; }
     .menu-slim .sidebar-resizer { display: none; }
-    .menu-slim .menu-expand { display: flex; align-items: center; justify-content: center; width: 100%; margin: 0 0 10px; padding: 8px 0 !important; border: 0; background: transparent; cursor: pointer; }
+    .menu-slim .menu-expand, .menu-hover .menu-expand { display: flex; align-items: center; justify-content: center; width: 100%; margin: 0 0 10px; padding: 8px 0 !important; border: 0; background: transparent; cursor: pointer; }
     .menu-slim .topbar .menu-toggle { display: none; }
 }
 /* Slim menu being pointed at: the full menu floats over the page. --side-w stays 64px so nothing else on the page moves. */
