@@ -101,4 +101,27 @@ class MeasurementsTest extends TestCase
         $this->assertSame('NONE', app(Measurements::class)->sandStatus('Sheera', now()->addDays(2))['state']);   // older than 24 hours
         $this->post(route('sand-tests.store'), ['sand_system_id' => $sand->id, 'values' => ['moisture_pct' => '']])->assertSessionHasErrors('sand');
     }
+
+    public function test_a_sand_test_started_from_a_run_is_linked_to_the_run_or_only_to_its_pattern(): void
+    {
+        $sand = \App\Models\SandSystem::where('name', 'Sheera')->firstOrFail();
+        $product = \App\Models\Product::create(['code' => 'FLG-1', 'name' => 'Flange']);
+        $pattern = \App\Models\Pattern::create(['code' => 'MP-7', 'name' => 'Flange plate', 'pattern_type' => 'MATCHPLATE']);
+        $revision = \App\Models\PatternRevision::create(['pattern_id' => $pattern->id, 'status' => 'APPROVED']);
+        $productRevision = \App\Models\ProductRevision::create(['product_id' => $product->id, 'revision' => 'A', 'status' => 'APPROVED']);
+        $order = \App\Models\ProductionOrder::create(['production_order_number' => 'PO-S1', 'product_id' => $product->id, 'product_revision_id' => $productRevision->id, 'order_type' => 'STOCK', 'status' => 'RELEASED', 'planned_qty' => 10, 'uom' => 'piece']);
+        $run = \App\Models\MouldingRun::create(['run_number' => 'MR-S1', 'production_order_id' => $order->id, 'pattern_revision_id' => $revision->id, 'run_date' => '2026-10-17', 'sand_system' => 'Sheera', 'status' => 'IN_PROGRESS']);
+
+        $this->get(route('sand-tests.index', ['moulding_run_id' => $run->id]))->assertOk()->assertSee('MR-S1')->assertSee('name="moulding_run_id"', false);
+
+        $this->post(route('sand-tests.store'), ['sand_system_id' => $sand->id, 'moulding_run_id' => $run->id, 'link_to' => 'run', 'values' => ['moisture_pct' => '4.1']])
+            ->assertRedirect(route('moulding-runs.show', $run));
+        $this->post(route('sand-tests.store'), ['sand_system_id' => $sand->id, 'moulding_run_id' => $run->id, 'link_to' => 'pattern', 'values' => ['moisture_pct' => '4.2']])
+            ->assertRedirect(route('moulding-runs.show', $run));
+
+        $sets = \App\Models\MeasurementSet::where('kind', 'SAND')->orderBy('created_at')->get();
+        $this->assertSame([$run->id, null], $sets->pluck('moulding_run_id')->all());
+        $this->assertSame([$pattern->id, $pattern->id], $sets->pluck('pattern_id')->all());
+        $this->get(route('moulding-runs.show', $run))->assertOk()->assertSee('Start sand test')->assertSee('This run')->assertSee('Pattern');
+    }
 }

@@ -28,6 +28,16 @@ class MeasurementSet extends Model
         return $this->belongsTo(Heat::class);
     }
 
+    public function mouldingRun(): BelongsTo
+    {
+        return $this->belongsTo(MouldingRun::class);
+    }
+
+    public function pattern(): BelongsTo
+    {
+        return $this->belongsTo(Pattern::class);
+    }
+
     /** The machine or instrument the results were measured with. */
     public function gauge(): BelongsTo
     {
