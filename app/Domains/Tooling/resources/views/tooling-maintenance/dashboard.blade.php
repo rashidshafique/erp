@@ -75,7 +75,7 @@
                 @forelse ($recentActive as $record)
                     @php
                         $item = $record->pattern?->name
-                            ?? $record->patternRevision?->revision
+                            ?? $record->patternRevision?->shortCode()
                             ?? $record->coreDefinition?->name
                             ?? $record->coreBox?->name
                             ?? $record->mouldConfiguration?->name

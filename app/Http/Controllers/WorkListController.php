@@ -43,7 +43,7 @@ class WorkListController extends Controller
         $patterns = PatternRevision::with(['pattern', 'cavityMap.productRevision'])
             ->whereHas('pattern', fn ($q) => $q->whereNull('patterns.deleted_at'))   // archived plates leave the picker
             ->get()
-            ->sortBy(fn ($p) => mb_strtolower($p->pattern->name.' '.$p->revision), SORT_NATURAL)->values();
+            ->sortBy(fn ($p) => mb_strtolower($p->pattern->name.' '.$p->shortCode()), SORT_NATURAL)->values();
         $needed = [];
         foreach ($list->items as $i) {
             $needed[$i->id] = $svc->mouldsStillNeeded($i->productionOrder, $i->pattern_revision_id);

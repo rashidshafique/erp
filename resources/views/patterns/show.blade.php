@@ -118,7 +118,7 @@
                 <tbody>
                     @foreach ($pattern->revisions as $revision)
                         <tr>
-                            <td><strong class="mono">{{ $revision->code ?? $revision->revision }}</strong>@unless ($pattern->trashed())<div class="small"><a href="{{ route('patterns.revisions.edit', [$pattern, $revision]) }}">Edit details</a></div>@endunless</td>
+                            <td><strong class="mono">{{ $revision->shortCode() }}</strong>@unless ($pattern->trashed())<div class="small"><a href="{{ route('patterns.revisions.edit', [$pattern, $revision]) }}">Edit details</a></div>@endunless</td>
                             <td>
                                 @if ($revision->is_current)<span class="status status-completed">Current</span>
                                 @elseif ($revision->isSuperseded())<span class="status status-on-hold" title="Superseded {{ $revision->superseded_at->displayDate() }}">Superseded</span>

@@ -153,7 +153,7 @@ class PatternCavityRows implements ImportRowHandler
                 $poured = $parsed['poured_weight_kg'] ?? $found?->poured_weight_kg;
                 $limit = $patternRevision?->cavities_per_mould;
                 if ($limit !== null && $number > (int) $limit) {
-                    $errors[] = "Pattern {$pattern->code} revision {$patternRevision->revision} has $limit cavities per mould; cavity $number does not exist.";
+                    $errors[] = "Pattern revision {$patternRevision->shortCode()} has $limit cavities per mould; cavity $number does not exist.";
                 }
                 if ($role === 'PART' && blank($label)) {
                     $errors[] = 'Name the component this cavity makes: it makes a part, not a whole casting.';

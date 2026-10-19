@@ -183,6 +183,12 @@ class PatternRevision extends Model
         return ! $this->is_current && $this->superseded_at !== null;
     }
 
+    /** The revision as shown everywhere: its code ("P-0123-R1"), else its revision label. */
+    public function shortCode(): string
+    {
+        return $this->code ?: (string) $this->revision;
+    }
+
     /** Short label for pickers and headings: "P-0123-R1 (current)". */
     public function label(): string
     {

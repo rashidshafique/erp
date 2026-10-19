@@ -124,7 +124,7 @@ class WorkListStationsTest extends TestCase
         // the add form has no team field; it shows the line's team instead
         $this->get(route('work-lists.show', $list))->assertOk()->assertDontSee('name="moulding_team_id"', false)->assertDontSee('id="aw-team"', false)
             ->assertSee('data-team="T3 — Usual Lead"', false)->assertSee('data-products="'.$a['product']->id.'"', false)
-            ->assertSee('Pattern A3 — P-A3 rev A')->assertSee('class="aw-pattern" data-search-select', false);   // plates are named and the list is searchable
+            ->assertSee('Pattern A3 — P-A3-R0')->assertSee('class="aw-pattern" data-search-select', false);   // plates are named and the list is searchable
 
         // the run is made by the line's team; a line without one runs without a team name
         $this->post(route('work-lists.issue', $list), ['issued_by' => 'Planner']);
@@ -384,7 +384,7 @@ class WorkListStationsTest extends TestCase
         ]);
 
         $this->get(route('work-lists.show', $list))->assertOk()
-            ->assertSee('Pattern D9')->assertSee('P-D9 rev A')->assertSee('loose pattern')
+            ->assertSee('Pattern D9')->assertSee('P-D9-R0')->assertSee('loose pattern')
             ->assertSee(route('attachments.download', $photo), false);
     }
 }

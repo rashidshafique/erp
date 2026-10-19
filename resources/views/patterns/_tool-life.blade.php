@@ -25,7 +25,7 @@
                         @foreach ($toolLife['limits'] as $row)
                             @php $limit = $row['limit']; $unit = strtolower(str_replace('_', ' ', $limit->usage_unit)); @endphp
                             <tr>
-                                <td>{{ $limit->patternRevision ? 'Revision '.($limit->patternRevision->code ?? $limit->patternRevision->revision) : 'Whole pattern' }}</td>
+                                <td>{{ $limit->patternRevision ? 'Revision '.$limit->patternRevision->shortCode() : 'Whole pattern' }}</td>
                                 <td class="mono">{{ $qty($row['current_usage']) }} / {{ $limit->service_life_quantity !== null ? $qty($limit->service_life_quantity) : '—' }} {{ $unit }}@if ($row['life_percent'] !== null) <span class="muted">({{ round($row['life_percent']) }}%)</span>@endif</td>
                                 <td class="mono">{{ $qty($row['usage_since_inspection']) }}{{ $limit->inspection_interval_quantity !== null ? ' / '.$qty($limit->inspection_interval_quantity) : '' }}@if ($row['inspection_percent'] !== null) <span class="muted">({{ round($row['inspection_percent']) }}%)</span>@endif</td>
                                 <td><span class="status {{ $lifeClass[$row['status']] ?? 'status-cancelled' }}">{{ $row['status_label'] }}</span></td>

@@ -382,7 +382,7 @@ class PatternController extends Controller
         }
         if ($data['status'] === 'APPROVED') {
             $message = null;
-            $label = "{$pattern->code} revision ".($revision->code ?? $revision->revision);
+            $label = 'Revision '.$revision->shortCode();
             if (! app(ApprovalGate::class)->passes('pattern.approve_revision', 'PatternRevision', (string) $revision->id, $label, $message)) {
                 return back()->with('warning', $message);
             }
@@ -390,7 +390,7 @@ class PatternController extends Controller
         $from = $revision->status;
         $revision->update(['status' => $data['status']]);
 
-        return back()->with('success', 'Revision '.($revision->code ?? $revision->revision)." is now {$data['status']} (was {$from}).");
+        return back()->with('success', 'Revision '.$revision->shortCode()." is now {$data['status']} (was {$from}).");
     }
 
     public function editRevision(Pattern $pattern, PatternRevision $revision)

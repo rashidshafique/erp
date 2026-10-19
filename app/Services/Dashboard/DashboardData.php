@@ -226,7 +226,7 @@ class DashboardData
             if ($r) {
                 $plan = (int) $r->planned_mould_qty;
                 $rows[] = ['kind' => 'Moulding', 'code' => $s->code, 'state' => 'Running', 'tone' => 'blue',
-                    'job' => $r->run_number.($r->patternRevision ? ' · '.$r->patternRevision->pattern->code.' rev '.$r->patternRevision->revision : ''),
+                    'job' => $r->run_number.($r->patternRevision ? ' · '.$r->patternRevision->pattern->code.' · '.$r->patternRevision->shortCode() : ''),
                     'progress' => $plan > 0 ? min(100, (int) round(100 * $r->moulds_made_qty / $plan)) : null,
                     'meta' => $r->moulds_made_qty.'/'.($plan ?: '—').' moulds', 'url' => route('moulding-runs.show', $r)];
             } else {

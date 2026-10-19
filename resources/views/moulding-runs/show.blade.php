@@ -90,7 +90,7 @@
                 <div>
                     <div class="detail-label">Pattern revision</div>
                     <div class="detail-value">
-                        {{ $run->patternRevision?->revision ?? '—' }}
+                        {{ $run->patternRevision?->shortCode() ?? '—' }}
                     </div>
                 </div>
 

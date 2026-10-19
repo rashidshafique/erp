@@ -14,7 +14,7 @@
     @endif
     <div class="wl-plate-text">
         <a href="{{ route('patterns.show', $pattern) }}"><strong>{{ $pattern->name }}</strong></a>
-        <div class="muted small">{{ $pattern->code }} rev {{ $revision->revision }}</div>
+        <div class="muted small">{{ $revision->shortCode() }}</div>
         <div class="muted small">{{ str_replace('_', ' ', $pattern->pattern_type) }}</div>
     </div>
 </div>

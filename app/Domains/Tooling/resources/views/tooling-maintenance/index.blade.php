@@ -181,7 +181,7 @@
                 @forelse ($records as $record)
                     @php
                         $toolingItem = $record->pattern?->name
-                            ?? $record->patternRevision?->revision
+                            ?? $record->patternRevision?->shortCode()
                             ?? $record->coreBox?->name
                             ?? $record->coreDefinition?->name
                             ?? $record->mouldConfiguration?->name
