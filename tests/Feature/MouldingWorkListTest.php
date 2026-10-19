@@ -51,6 +51,29 @@ class MouldingWorkListTest extends TestCase
         $this->get(route('moulding-teams.index'))->assertOk()->assertSee('Imtiaz')->assertSee('Floor 1');
     }
 
+    public function test_a_run_can_be_held_resumed_and_cancelled(): void
+    {
+        $w = $this->world();
+        $this->post(route('work-lists.store'), ['list_date' => today()->toDateString(), 'shift' => 'Morning']);
+        $list = MouldingWorkList::firstOrFail();
+        $this->post(route('work-lists.items.add', $list), $this->item($w));
+        $this->post(route('work-lists.issue', $list), ['issued_by' => 'Planner']);
+        $item = $list->items()->firstOrFail();
+        $this->post(route('work-lists.items.start', [$list, $item]));
+        $run = MouldingRun::firstOrFail();
+
+        $this->get(route('moulding-runs.show', $run))->assertSee('Put on hold');
+        $this->post(route('moulding-runs.status', $run), ['status' => 'ON_HOLD'])->assertSessionHasNoErrors();
+        $this->assertSame('ON_HOLD', $run->fresh()->status);
+        $this->get(route('moulding-runs.show', $run))->assertSee('Resume run');
+        $this->post(route('moulding-runs.status', $run), ['status' => 'IN_PROGRESS'])->assertSessionHasNoErrors();
+        $this->post(route('moulding-runs.status', $run), ['status' => 'CANCELLED'])->assertSessionHasNoErrors();
+        $this->assertSame('CANCELLED', $run->fresh()->status);
+        $this->assertSame('SKIPPED', $item->fresh()->status);
+        $this->assertSame('COMPLETED', $list->fresh()->status);
+        $this->post(route('moulding-runs.status', $run), ['status' => 'IN_PROGRESS'])->assertSessionHasErrors('output');
+    }
+
     public function test_list_to_run_to_completion(): void
     {
         $w = $this->world();

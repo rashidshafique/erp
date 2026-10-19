@@ -300,6 +300,21 @@
         </div>
     </section>
     @endif
+    @if (in_array($run->status, ['IN_PROGRESS', 'ON_HOLD'], true))
+    <section class="panel">
+        <div class="panel-header"><h2>Run status</h2></div>
+        <div class="panel-body">
+            <div class="actions">
+                @if ($run->status === 'IN_PROGRESS')
+                    <form method="POST" action="{{ route('moulding-runs.status', $run) }}">@csrf<input type="hidden" name="status" value="ON_HOLD"><button class="btn" type="submit">Put on hold</button></form>
+                @else
+                    <form method="POST" action="{{ route('moulding-runs.status', $run) }}">@csrf<input type="hidden" name="status" value="IN_PROGRESS"><button class="btn" type="submit">Resume run</button></form>
+                @endif
+                <form method="POST" action="{{ route('moulding-runs.status', $run) }}" onsubmit="return confirm('Cancel this run? This cannot be undone.')">@csrf<input type="hidden" name="status" value="CANCELLED"><button class="btn" type="submit">Cancel run</button></form>
+            </div>
+        </div>
+    </section>
+    @endif
     @if ($run->status === 'COMPLETED')
     <section class="panel">
         <div class="panel-header"><h2>Run completed</h2></div>

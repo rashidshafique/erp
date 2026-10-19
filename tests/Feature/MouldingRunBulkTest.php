@@ -75,6 +75,8 @@ class MouldingRunBulkTest extends TestCase
 
         $response->assertOk()->assertViewHas('activePatternRevisionIdsByProduct', [
             $w['order']->product_id => [$w['revision']->id],
+        ])->assertViewHas('patternRevisionIdsByProduct', [
+            $w['order']->product_id => [$w['revision']->id],
         ]);
 
         $w['pattern']->update(['status' => 'INACTIVE']);
@@ -88,10 +90,10 @@ class MouldingRunBulkTest extends TestCase
 
         $this->post(route('moulding-runs.store'), [
             'production_order_id' => $w['order']->id, 'run_date' => '2026-10-19', 'status' => 'IN_PROGRESS',
-            'moulds_made_qty' => 10, 'accepted_mould_qty' => 9, 'damaged_mould_qty' => 1,
         ])->assertSessionHasNoErrors()->assertRedirect();
 
         $this->assertNull(MouldingRun::sole()->pattern_revision_id);
+        $this->assertSame(0, (int) MouldingRun::sole()->moulds_made_qty);
     }
 
     public function test_header_defaults_fill_blank_cells(): void

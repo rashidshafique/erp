@@ -365,4 +365,30 @@ class WorkListService
             return $run;
         });
     }
+
+    /** Put a run on hold, resume it, or cancel it. A cancelled run frees its work list item (skipped) and cannot be undone. */
+    public function changeRunStatus(MouldingRun $run, string $to): MouldingRun
+    {
+        return DB::transaction(function () use ($run, $to) {
+            $run = MouldingRun::whereKey($run->id)->lockForUpdate()->firstOrFail();
+            $allowed = ['IN_PROGRESS' => ['ON_HOLD', 'CANCELLED'], 'ON_HOLD' => ['IN_PROGRESS', 'CANCELLED']];
+            if (! in_array($to, $allowed[$run->status] ?? [], true)) {
+                throw new InvalidArgumentException('A run that is '.str_replace('_', ' ', $run->status).' cannot be changed to '.str_replace('_', ' ', $to).'.');
+            }
+            if ($to === 'CANCELLED' && $run->mouldAssemblies()->exists()) {
+                throw new InvalidArgumentException('Moulds are already assembled from this run, so it cannot be cancelled.');
+            }
+            $run->update(['status' => $to]);
+            $item = $to === 'CANCELLED' && $run->moulding_work_list_item_id ? MouldingWorkListItem::find($run->moulding_work_list_item_id) : null;
+            if ($item) {
+                $item->update(['status' => 'SKIPPED']);
+                $list = $item->workList;
+                if ($list && ! $list->items()->whereIn('status', ['PLANNED', 'IN_PROGRESS'])->exists()) {
+                    $list->update(['status' => 'COMPLETED']);
+                }
+            }
+
+            return $run;
+        });
+    }
 }

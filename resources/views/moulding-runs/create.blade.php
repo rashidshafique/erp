@@ -29,7 +29,23 @@ document.addEventListener('DOMContentLoaded', function () {
     const activeRevisions = @json($activePatternRevisionIdsByProduct);
     const revisionSelect = document.getElementById('pattern_revision_id');
 
+    const productRevisions = @json($patternRevisionIdsByProduct);
+
+    function filterPatternRevisions(order) {
+        if (!revisionSelect) return;
+        const ids = productRevisions[order ? order.productId : null];
+
+        Array.from(revisionSelect.options).forEach(option => {
+            const show = !option.value || !ids || ids.includes(option.value);
+            option.hidden = !show;
+            option.disabled = !show;
+        });
+
+        if (revisionSelect.selectedOptions[0]?.disabled) revisionSelect.value = '';
+    }
+
     function preselectPatternRevision(order) {
+        filterPatternRevisions(order);
         const ids = activeRevisions[order.productId] || [];
 
         if (revisionSelect && ids.length === 1 && !revisionSelect.value) {
@@ -41,6 +57,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const order = orders[select.value];
 
         if (!order) {
+            filterPatternRevisions(null);
             summary.style.display = 'none';
             return;
         }
@@ -244,23 +261,23 @@ document.addEventListener('DOMContentLoaded', function () {
                     </div>
 
                     <div class="field">
-                        <label for="moulds_made_qty">Total moulds made <span class="required">*</span></label>
+                        <label for="moulds_made_qty">Total moulds made</label>
                         <input id="moulds_made_qty" type="number" min="0"
-                               name="moulds_made_qty" value="{{ old('moulds_made_qty', $defaults['moulds_made_qty']) }}" required>
+                               name="moulds_made_qty" value="{{ old('moulds_made_qty', $defaults['moulds_made_qty']) }}">
                         @error('moulds_made_qty')<div class="error-text">{{ $message }}</div>@enderror
                     </div>
 
                     <div class="field">
-                        <label for="accepted_mould_qty">Accepted moulds <span class="required">*</span></label>
+                        <label for="accepted_mould_qty">Accepted moulds</label>
                         <input id="accepted_mould_qty" type="number" min="0"
-                               name="accepted_mould_qty" value="{{ old('accepted_mould_qty', $defaults['accepted_mould_qty']) }}" required>
+                               name="accepted_mould_qty" value="{{ old('accepted_mould_qty', $defaults['accepted_mould_qty']) }}">
                         @error('accepted_mould_qty')<div class="error-text">{{ $message }}</div>@enderror
                     </div>
 
                     <div class="field">
-                        <label for="damaged_mould_qty">Damaged moulds <span class="required">*</span></label>
+                        <label for="damaged_mould_qty">Damaged moulds</label>
                         <input id="damaged_mould_qty" type="number" min="0"
-                               name="damaged_mould_qty" value="{{ old('damaged_mould_qty', $defaults['damaged_mould_qty']) }}" required>
+                               name="damaged_mould_qty" value="{{ old('damaged_mould_qty', $defaults['damaged_mould_qty']) }}">
                         @error('damaged_mould_qty')<div class="error-text">{{ $message }}</div>@enderror
                     </div>
 

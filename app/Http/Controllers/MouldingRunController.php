@@ -91,6 +91,15 @@ class MouldingRunController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
+        $patternRevisionIdsByProduct = PatternRevisionCavity::query()
+            ->join('product_revisions', 'product_revisions.id', '=', 'pattern_revision_cavities.product_revision_id')
+            ->select('product_revisions.product_id', 'pattern_revision_cavities.pattern_revision_id')
+            ->distinct()
+            ->get()
+            ->groupBy('product_id')
+            ->map(fn ($rows) => $rows->pluck('pattern_revision_id')->values()->all())
+            ->all();
+
         $activePatternRevisionIdsByProduct = PatternRevisionCavity::query()
             ->join('pattern_revisions', 'pattern_revisions.id', '=', 'pattern_revision_cavities.pattern_revision_id')
             ->join('patterns', 'patterns.id', '=', 'pattern_revisions.pattern_id')
@@ -131,6 +140,7 @@ class MouldingRunController extends Controller
             'productionOrders',
             'patternRevisions',
             'activePatternRevisionIdsByProduct',
+            'patternRevisionIdsByProduct',
             'mouldConfigurations',
             'selectedProductionOrderId',
             'defaults'
@@ -166,9 +176,9 @@ class MouldingRunController extends Controller
             'operator_name' => ['nullable', 'string', 'max:150'],
             'team_name' => ['nullable', 'string', 'max:150'],
             'planned_mould_qty' => ['nullable', 'integer', 'min:0'],
-            'moulds_made_qty' => ['required', 'integer', 'min:0'],
-            'accepted_mould_qty' => ['required', 'integer', 'min:0'],
-            'damaged_mould_qty' => ['required', 'integer', 'min:0'],
+            'moulds_made_qty' => ['nullable', 'integer', 'min:0'],
+            'accepted_mould_qty' => ['nullable', 'integer', 'min:0'],
+            'damaged_mould_qty' => ['nullable', 'integer', 'min:0'],
             'downtime_minutes' => ['nullable', 'integer', 'min:0'],
             'downtime_reason' => ['nullable', 'string', 'max:2000'],
             'status' => [
@@ -177,6 +187,10 @@ class MouldingRunController extends Controller
             ],
             'notes' => ['nullable', 'string', 'max:5000'],
         ]);
+
+        foreach (['moulds_made_qty', 'accepted_mould_qty', 'damaged_mould_qty'] as $quantity) {
+            $validated[$quantity] = (int) ($validated[$quantity] ?? 0);
+        }
 
         app(PatternCavityMap::class)->assertPatternMakesOrderProduct(
             $validated['pattern_revision_id'] ?? null,
@@ -348,5 +362,17 @@ class MouldingRunController extends Controller
         }
 
         return back()->with('success', 'Run reopened.');
+    }
+
+    public function changeStatus(Request $request, MouldingRun $mouldingRun, WorkListService $svc): RedirectResponse
+    {
+        $to = $request->validate(['status' => ['required', Rule::in(['IN_PROGRESS', 'ON_HOLD', 'CANCELLED'])]])['status'];
+        try {
+            $svc->changeRunStatus($mouldingRun, $to);
+        } catch (\InvalidArgumentException $e) {
+            return back()->withErrors(['output' => $e->getMessage()]);
+        }
+
+        return back()->with('success', ['IN_PROGRESS' => 'Run resumed.', 'ON_HOLD' => 'Run put on hold.', 'CANCELLED' => 'Run cancelled.'][$to]);
     }
 }
