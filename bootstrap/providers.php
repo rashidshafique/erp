@@ -9,6 +9,7 @@ use App\Domains\Hr\HrServiceProvider;
 use App\Domains\Licensing\LicensingServiceProvider;
 use App\Domains\Maintenance\MaintenanceServiceProvider;
 use App\Domains\Parties\PartiesServiceProvider;
+use App\Domains\QuickFlow\QuickFlowServiceProvider;
 use App\Domains\Purchasing\PurchasingServiceProvider;
 use App\Domains\Tooling\ToolingServiceProvider;
 use App\Providers\AppServiceProvider;
@@ -24,6 +25,7 @@ return [
     HrServiceProvider::class,
     MaintenanceServiceProvider::class,
     PartiesServiceProvider::class,
+    QuickFlowServiceProvider::class,
     PurchasingServiceProvider::class,
     ToolingServiceProvider::class,
 ];

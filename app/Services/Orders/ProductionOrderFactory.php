@@ -10,15 +10,16 @@ use Illuminate\Validation\ValidationException;
 class ProductionOrderFactory
 {
     /** Create a draft production order for the unscheduled quantity of a sales line. */
-    public function forSalesLine(SalesOrderLine $line, ?float $qty = null): ProductionOrder
+    /** $quick skips the contract review and revision approval checks, for orders entered through the quick order page. */
+    public function forSalesLine(SalesOrderLine $line, ?float $qty = null, bool $quick = false): ProductionOrder
     {
-        return DB::transaction(function () use ($line, $qty) {
+        return DB::transaction(function () use ($line, $qty, $quick) {
             $line = SalesOrderLine::with(['salesOrder', 'productRevision'])->lockForUpdate()->findOrFail($line->id);
 
-            if (config('foundry.require_contract_review') && ! $line->salesOrder->hasApprovedReview()) {
+            if (! $quick && config('foundry.require_contract_review') && ! $line->salesOrder->hasApprovedReview()) {
                 throw ValidationException::withMessages(['review' => 'The order has no approved contract review. Complete the review and both sign-offs first.']);
             }
-            if (! in_array($line->productRevision?->status, ['APPROVED', 'ACTIVE'], true)) {
+            if (! $quick && ! in_array($line->productRevision?->status, ['APPROVED', 'ACTIVE'], true)) {
                 throw ValidationException::withMessages(['line' => 'The product revision on this line is not approved.']);
             }
 

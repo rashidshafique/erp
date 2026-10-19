@@ -174,26 +174,32 @@ class HeatPlanner
             if (! $this->furnaces->canMelt($furnace, $grade)) {
                 throw new InvalidArgumentException($this->furnaces->reason($furnace, $grade));
             }
-            $date = $planned->planned_date->format('Ymd');
-            DB::select('SELECT pg_advisory_xact_lock(hashtext(?))', ['heat-number-'.$date]);
-            $last = (int) Heat::where('heat_number', 'like', "H-{$date}-%")
-                ->selectRaw("COALESCE(MAX(CAST(SPLIT_PART(heat_number, '-', 3) AS INTEGER)), 0) AS m")->value('m');
-
-            $heat = Heat::create([
-                'heat_number' => "H-{$date}-".str_pad((string) ($last + 1), 3, '0', STR_PAD_LEFT),
-                'furnace_id' => $furnace->id,
-                'process_type' => $furnace->furnace_type,
-                'status' => 'PLANNED',
-                'iron_grade_id' => $grade->id,
-                'planned_start_at' => $planned->planned_date->copy()->setTime(6, 0),
-                'target_metal_weight_kg' => $planned->planned_metal_kg,
-                'operator_name' => $operator ?: 'Unassigned',
-                'notes' => "Released from plan {$planned->plan_number}.",
-            ]);
+            $heat = $this->startHeat($furnace, $grade, (float) $planned->planned_metal_kg, $planned->planned_date, $operator, "Released from plan {$planned->plan_number}.");
             $planned->update(['status' => 'RELEASED', 'heat_id' => $heat->id]);
 
             return $heat;
         });
+    }
+
+    /** Creates a melting heat for a grade on a furnace, numbered for the day it is planned. */
+    public function startHeat(Furnace $furnace, IronGrade $grade, float $kg, CarbonInterface $day, ?string $operator = null, ?string $note = null): Heat
+    {
+        $date = $day->format('Ymd');
+        DB::select('SELECT pg_advisory_xact_lock(hashtext(?))', ['heat-number-'.$date]);
+        $last = (int) Heat::where('heat_number', 'like', "H-{$date}-%")
+            ->selectRaw("COALESCE(MAX(CAST(SPLIT_PART(heat_number, '-', 3) AS INTEGER)), 0) AS m")->value('m');
+
+        return Heat::create([
+            'heat_number' => "H-{$date}-".str_pad((string) ($last + 1), 3, '0', STR_PAD_LEFT),
+            'furnace_id' => $furnace->id,
+            'process_type' => $furnace->furnace_type,
+            'status' => 'PLANNED',
+            'iron_grade_id' => $grade->id,
+            'planned_start_at' => $day->copy()->setTime(6, 0),
+            'target_metal_weight_kg' => $kg,
+            'operator_name' => $operator ?: 'Unassigned',
+            'notes' => $note,
+        ]);
     }
 
     private function clearOpenPlan(): void
