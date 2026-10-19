@@ -276,7 +276,16 @@
                             @error('team_name')<div class="error-text">{{ $message }}</div>@enderror
                         </div>
                     </div>
-                    <div class="rm-ph" style="margin-top:6px"><small>Assigned station</small>Not recorded on this screen yet</div>
+                    <div class="field" style="margin-top:6px">
+                        <label for="moulding_station_id">Assigned station</label>
+                        <select id="moulding_station_id" name="moulding_station_id">
+                            <option value="">Not specified</option>
+                            @foreach ($stations as $station)
+                                <option value="{{ $station->id }}" @selected(old('moulding_station_id') === $station->id)>{{ $station->code }} — {{ $station->name }}</option>
+                            @endforeach
+                        </select>
+                        @error('moulding_station_id')<div class="error-text">{{ $message }}</div>@enderror
+                    </div>
 
                     <div class="rm-label rm-sub">Assigned pouring heat allocation</div>
                     <div class="rm-ph"><small>Heat</small>No heat is linked to a moulding run yet</div>

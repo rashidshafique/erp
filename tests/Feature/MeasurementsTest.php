@@ -110,7 +110,8 @@ class MeasurementsTest extends TestCase
         $revision = \App\Models\PatternRevision::create(['pattern_id' => $pattern->id, 'status' => 'APPROVED']);
         $productRevision = \App\Models\ProductRevision::create(['product_id' => $product->id, 'revision' => 'A', 'status' => 'APPROVED']);
         $order = \App\Models\ProductionOrder::create(['production_order_number' => 'PO-S1', 'product_id' => $product->id, 'product_revision_id' => $productRevision->id, 'order_type' => 'STOCK', 'status' => 'RELEASED', 'planned_qty' => 10, 'uom' => 'piece']);
-        $run = \App\Models\MouldingRun::create(['run_number' => 'MR-S1', 'production_order_id' => $order->id, 'pattern_revision_id' => $revision->id, 'run_date' => '2026-10-17', 'sand_system' => 'Sheera', 'status' => 'IN_PROGRESS']);
+        $station = \App\Models\MouldingStation::create(['code' => 'MP-9', 'name' => 'Match plate machine 9', 'station_type' => 'MATCHPLATE_MACHINE', 'status' => 'ACTIVE']);
+        $run = \App\Models\MouldingRun::create(['moulding_station_id' => $station->id, 'run_number' => 'MR-S1', 'production_order_id' => $order->id, 'pattern_revision_id' => $revision->id, 'run_date' => '2026-10-17', 'sand_system' => 'Sheera', 'status' => 'IN_PROGRESS']);
 
         $this->get(route('sand-tests.index', ['moulding_run_id' => $run->id]))->assertOk()->assertSee('MR-S1')->assertSee('name="moulding_run_id"', false);
 
@@ -122,6 +123,12 @@ class MeasurementsTest extends TestCase
         $sets = \App\Models\MeasurementSet::where('kind', 'SAND')->orderBy('created_at')->get();
         $this->assertSame([$run->id, null], $sets->pluck('moulding_run_id')->all());
         $this->assertSame([$pattern->id, $pattern->id], $sets->pluck('pattern_id')->all());
+        $this->assertSame([$station->id, $station->id], $sets->pluck('moulding_station_id')->all());   // the run's station, though the form sent none
+        $this->get(route('moulding-runs.show', $run))->assertSee('MP-9 — Match plate machine 9');
+        $this->put(route('moulding-runs.crew', $run), ['moulding_station_id' => ''])->assertSessionHasNoErrors();
+        $this->assertNull($run->fresh()->moulding_station_id);
+        $this->put(route('moulding-runs.crew', $run), ['moulding_station_id' => $station->id])->assertSessionHasNoErrors();
+        $this->assertSame($station->id, $run->fresh()->moulding_station_id);
         $this->get(route('moulding-runs.show', $run))->assertOk()->assertSee('Start sand test')->assertSee('This run')->assertSee('Pattern');
     }
 }

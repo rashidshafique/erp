@@ -45,7 +45,7 @@ class SandTestController extends Controller
         $calibrationWarning = app(CalibrationStatus::class)->check($gauge, 'sand');
         try {
             $set = $svc->record('SAND', [
-                'sand_system_id' => $d['sand_system_id'], 'sample_point' => $d['sample_point'] ?? null, 'moulding_station_id' => $d['moulding_station_id'] ?? null,
+                'sand_system_id' => $d['sand_system_id'], 'sample_point' => $d['sample_point'] ?? null, 'moulding_station_id' => ($d['moulding_station_id'] ?? null) ?: $run?->moulding_station_id,
                 'shift' => $d['shift'] ?? null, 'taken_at' => $d['taken_at'] ?? now(), 'tested_by' => $d['tested_by'] ?? null, 'notes' => $d['notes'] ?? null,
                 'gauge_id' => $gauge?->id, 'equipment_reference' => $gauge?->code,
                 'moulding_run_id' => ($d['link_to'] ?? 'run') === 'run' ? $run?->id : null, 'pattern_id' => $run?->patternRevision?->pattern_id,

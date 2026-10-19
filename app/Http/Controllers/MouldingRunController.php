@@ -6,6 +6,7 @@ use App\Models\Flask;
 use App\Models\MouldAssembly;
 use App\Models\MouldConfiguration;
 use App\Models\MouldingRun;
+use App\Models\MouldingStation;
 use App\Models\MouldingTeam;
 use App\Models\MouldLayer;
 use App\Models\PatternRevision;
@@ -118,6 +119,8 @@ class MouldingRunController extends Controller
             ->orderBy('name')
             ->get();
 
+        $stations = MouldingStation::where('status', '!=', 'INACTIVE')->orderBy('code')->get();
+
         $selectedProductionOrderId = old(
             'production_order_id',
             $request->query('production_order_id', '')
@@ -142,6 +145,7 @@ class MouldingRunController extends Controller
             'activePatternRevisionIdsByProduct',
             'patternRevisionIdsByProduct',
             'mouldConfigurations',
+            'stations',
             'selectedProductionOrderId',
             'defaults'
         ));
@@ -167,6 +171,7 @@ class MouldingRunController extends Controller
                 Rule::exists('mould_configurations', 'id')
                     ->whereNull('deleted_at'),
             ],
+            'moulding_station_id' => ['nullable', 'uuid', Rule::exists('moulding_stations', 'id')],
             'run_date' => ['required', 'date'],
             'shift' => ['nullable', 'string', 'max:30'],
             'started_at' => ['nullable', 'date'],
@@ -273,6 +278,7 @@ class MouldingRunController extends Controller
             'flaskInfo' => $flaskInfo,
             'teams' => MouldingTeam::where('status', 'ACTIVE')->orWhere('id', $mouldingRun->moulding_team_id)->orderBy('code')->get(),
             'sands' => SandSystem::choices($mouldingRun->sand_system),
+            'stations' => MouldingStation::where('status', '!=', 'INACTIVE')->orWhere('id', $mouldingRun->moulding_station_id)->orderBy('code')->get(),
             'perMould' => $perMould,
             'configurations' => $configurations,
         ]);
@@ -313,13 +319,14 @@ class MouldingRunController extends Controller
     public function updateCrew(Request $request, MouldingRun $mouldingRun): RedirectResponse
     {
         $data = $request->validate([
+            'moulding_station_id' => ['nullable', 'uuid', Rule::exists('moulding_stations', 'id')],
             'moulding_team_id' => ['nullable', 'uuid', Rule::exists('moulding_teams', 'id')],
             'sand_system' => ['nullable', Rule::in(SandSystem::allNames())],
         ]);
         $team = filled($data['moulding_team_id'] ?? null) ? MouldingTeam::find($data['moulding_team_id']) : null;
-        $mouldingRun->update(['moulding_team_id' => $team?->id, 'team_name' => $team?->name, 'sand_system' => $data['sand_system'] ?? null]);
+        $mouldingRun->update(($request->has('moulding_station_id') ? ['moulding_station_id' => $data['moulding_station_id'] ?? null] : []) + ['moulding_team_id' => $team?->id, 'team_name' => $team?->name, 'sand_system' => $data['sand_system'] ?? null]);
 
-        return back()->with('success', "Team and sand saved for {$mouldingRun->run_number}.");
+        return back()->with('success', "Station, team and sand saved for {$mouldingRun->run_number}.");
     }
 
     public function assemble(Request $request, MouldingRun $mouldingRun, MouldAssembler $assembler): RedirectResponse
