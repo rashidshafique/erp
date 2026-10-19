@@ -128,6 +128,11 @@ class GaugeController extends Controller
     /** @return array<string, mixed> */
     private function validated(Request $request, ?Gauge $gauge = null): array
     {
+        // Codes are kept in capitals, so "cal-1" and "CAL-1" count as the same code when checking for duplicates.
+        if (is_string($request->input('code'))) {
+            $request->merge(['code' => strtoupper(trim($request->input('code')))]);
+        }
+
         $data = $request->validate([
             'code' => ['nullable', 'string', 'max:40', Rule::unique('gauges', 'code')->ignore($gauge?->id)],
             'name' => ['required', 'string', 'max:150'],
