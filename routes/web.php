@@ -399,6 +399,8 @@ Route::prefix('corrective-actions')->name('capa.')->controller(\App\Http\Control
     Route::post('/{capa}/verify', 'verify')->name('verify');
     Route::post('/{capa}/cancel', 'cancel')->name('cancel');
 });
+Route::get('/settings/modules', [\App\Http\Controllers\ModuleSettingsController::class, 'edit'])->name('settings.modules.edit');
+Route::put('/settings/modules', [\App\Http\Controllers\ModuleSettingsController::class, 'update'])->name('settings.modules');
 Route::get('/settings/pouring', [\App\Http\Controllers\PouringRulesController::class, 'edit'])->name('settings.pouring.edit');
 Route::put('/settings/pouring', [\App\Http\Controllers\PouringRulesController::class, 'update'])->name('settings.pouring');
 Route::prefix('flask-sizes')->name('flask-sizes.')->controller(FlaskSizeController::class)->group(function () {

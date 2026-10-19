@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -97,6 +98,9 @@ class GlobalSearch
                 })
                 ->limit($limit)
                 ->get();
+            if (! $type['route'] && ! Route::has('tools.show')) {
+                continue;
+            }
             foreach ($rows as $row) {
                 $results[] = [
                     'type' => $key, 'label' => $type['label'], 'code' => (string) $row->code, 'name' => $row->name ?? null,

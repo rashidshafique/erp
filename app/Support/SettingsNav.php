@@ -26,6 +26,7 @@ class SettingsNav
             'Pattern ownership rules' => ['settings.pattern-ownership.edit', ['settings.pattern-ownership*']],
         ],
         'Access & data' => [
+            'Modules' => ['settings.modules.edit', ['settings.modules*']],
             'Users' => ['users.index', ['users.*']],
             'Roles & permissions' => ['roles.index', ['roles.*']],
             'Approvals' => ['approvals.index', ['approvals.*', 'approval-policies.*']],

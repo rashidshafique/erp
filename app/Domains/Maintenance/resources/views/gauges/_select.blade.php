@@ -1,3 +1,4 @@
+@if (app(\App\Domains\Core\ModuleRegistry::class)->isEnabled('maintenance'))
 {{-- Instrument picker. $types narrows the list to the kinds that fit, falling back to every instrument in service when none of those kinds are registered. $plain renders the bare-label style some forms use instead of a .field block. --}}
 @php
     $inService = \App\Domains\Maintenance\Models\Gauge::where('status', 'IN_SERVICE')->orderBy('code')->get();
@@ -14,3 +15,4 @@
         @endforeach
     </select>
 @if (! empty($plain))</label>@else</div>@endif
+@endif

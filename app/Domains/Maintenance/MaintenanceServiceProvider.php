@@ -17,6 +17,16 @@ class MaintenanceServiceProvider extends ModuleServiceProvider
         return 'maintenance';
     }
 
+    protected function moduleLabel(): string
+    {
+        return 'Gauges & calibration';
+    }
+
+    protected function moduleDescription(): string
+    {
+        return 'The instrument register, calibration history and calibration rules. Results can no longer name an instrument from the register.';
+    }
+
     protected function modulePath(): string
     {
         return __DIR__;

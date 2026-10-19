@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use Illuminate\Support\Facades\Route;
+
 /** Everything that carries a scannable code: where it lives, what it is called, which page shows it. */
 class CodedRecords
 {
@@ -29,7 +31,7 @@ class CodedRecords
             return route('production-orders.index', ['search' => \DB::table('production_orders')->where('id', $id)->value('production_order_number')]);
         }
 
-        return $route ? route($route, $id) : route('tools.show', [$type, $id]);
+        return $route ? route($route, $id) : (Route::has('tools.show') ? route('tools.show', [$type, $id]) : route('dashboard'));
     }
 
     /** Find any record by a scanned or typed code, including engraved marks. @return array{0:string,1:string}|null [type, id] */

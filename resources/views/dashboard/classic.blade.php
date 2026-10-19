@@ -156,19 +156,23 @@
                     <div class="muted small">Record moulds made, damage, operators and downtime.</div>
                 </div>
 
+@if (Route::has('tooling-maintenance.dashboard'))
                 <div>
                     <div class="detail-value">
                         <a href="{{ route('tooling-maintenance.dashboard') }}">Maintenance</a>
                     </div>
                     <div class="muted small">Review tooling maintenance activity.</div>
                 </div>
+@endif
 
+@if (Route::has('tooling-life.dashboard'))
                 <div>
                     <div class="detail-value">
                         <a href="{{ route('tooling-life.dashboard') }}">Tooling life</a>
                     </div>
                     <div class="muted small">Review tooling life limits.</div>
                 </div>
+@endif
             </div>
         </div>
     </section>

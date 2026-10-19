@@ -16,8 +16,10 @@ use App\Models\ProductionOrder;
 use App\Models\Quotation;
 use App\Models\SandSystem;
 use App\Support\CalibrationRules;
+use App\Support\Formats;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 
 /** Everything the dashboard layouts show, worked out once so each layout only decides where things go. */
 class DashboardData
@@ -124,15 +126,17 @@ class DashboardData
         foreach ($late as $o) {
             $items[] = ['tag' => 'Overdue', 'tone' => 'amber', 'at' => $o->required_date, 'ref' => $o->production_order_number, 'text' => ($o->product?->name ?? 'Order').' was due '.$o->required_date->displayShortDate().' and is still open.', 'actions' => [['Open orders', route('production-orders.index'), false]]];
         }
-        $dueDays = (int) CalibrationRules::get('due_soon_days');
-        $dueBy = today()->addDays($dueDays);
-        $needsCalibration = Gauge::where('status', 'IN_SERVICE')->where('requires_calibration', true);
-        $overdue = (clone $needsCalibration)->where(fn ($q) => $q->whereNull('next_due_on')->orWhereDate('next_due_on', '<', today()));
-        $dueSoon = (clone $needsCalibration)->whereDate('next_due_on', '>=', today())->whereDate('next_due_on', '<=', $dueBy);
-        if (($count = $overdue->count()) > 0) {
-            $items[] = ['tag' => 'Calibration', 'tone' => 'red', 'at' => now(), 'ref' => null, 'text' => $count.' instrument'.($count === 1 ? ' is' : 's are').' overdue or never calibrated. Results measured with them will not stand up to an audit.', 'actions' => [['Open register', route('gauges.index', ['state' => 'overdue']), true]]];
-        } elseif (($count = $dueSoon->count()) > 0) {
-            $items[] = ['tag' => 'Calibration', 'tone' => 'amber', 'at' => now(), 'ref' => null, 'text' => $count.' instrument'.($count === 1 ? ' is' : 's are').' due for calibration within '.$dueDays.' days.', 'actions' => [['Open register', route('gauges.index', ['state' => 'soon']), false]]];
+        if (Route::has('gauges.index')) {
+            $dueDays = (int) CalibrationRules::get('due_soon_days');
+            $dueBy = today()->addDays($dueDays);
+            $needsCalibration = Gauge::where('status', 'IN_SERVICE')->where('requires_calibration', true);
+            $overdue = (clone $needsCalibration)->where(fn ($q) => $q->whereNull('next_due_on')->orWhereDate('next_due_on', '<', today()));
+            $dueSoon = (clone $needsCalibration)->whereDate('next_due_on', '>=', today())->whereDate('next_due_on', '<=', $dueBy);
+            if (($count = $overdue->count()) > 0) {
+                $items[] = ['tag' => 'Calibration', 'tone' => 'red', 'at' => now(), 'ref' => null, 'text' => $count.' instrument'.($count === 1 ? ' is' : 's are').' overdue or never calibrated. Results measured with them will not stand up to an audit.', 'actions' => [['Open register', route('gauges.index', ['state' => 'overdue']), true]]];
+            } elseif (($count = $dueSoon->count()) > 0) {
+                $items[] = ['tag' => 'Calibration', 'tone' => 'amber', 'at' => now(), 'ref' => null, 'text' => $count.' instrument'.($count === 1 ? ' is' : 's are').' due for calibration within '.$dueDays.' days.', 'actions' => [['Open register', route('gauges.index', ['state' => 'soon']), false]]];
+            }
         }
         usort($items, fn ($a, $b) => $b['at'] <=> $a['at']);
 
@@ -153,11 +157,11 @@ class DashboardData
         foreach ($heats as $h) {
             $busy[$h->furnace_id] = true;
             $cards[] = ['kind' => 'Furnace', 'name' => $h->furnace?->name ?? $h->furnace?->code ?? 'Furnace', 'sub' => 'Heat '.$h->heat_number, 'state' => 'Melting', 'tone' => 'amber',
-                'progress' => null, 'meta' => ($h->target_temperature_c ? 'Target '.\App\Support\Formats::number((float) $h->target_temperature_c).' °C' : '').($h->target_metal_weight_kg ? ' · '.\App\Support\Formats::number($h->target_metal_weight_kg / 1000, 1).' t' : ''), 'url' => route('heats.show', $h)];
+                'progress' => null, 'meta' => ($h->target_temperature_c ? 'Target '.Formats::number((float) $h->target_temperature_c).' °C' : '').($h->target_metal_weight_kg ? ' · '.Formats::number($h->target_metal_weight_kg / 1000, 1).' t' : ''), 'url' => route('heats.show', $h)];
         }
         foreach (Furnace::where('status', 'ACTIVE')->orderBy('code')->limit(6)->get() as $f) {
             if (! isset($busy[$f->id]) && count($cards) < 6) {
-                $cards[] = ['kind' => 'Furnace', 'name' => $f->name ?? $f->code, 'sub' => $f->furnace_type ?? '', 'state' => 'Idle', 'tone' => 'grey', 'progress' => null, 'meta' => $f->rated_capacity_kg ? \App\Support\Formats::number($f->rated_capacity_kg / 1000, 1).' t rated' : '', 'url' => route('furnaces.index')];
+                $cards[] = ['kind' => 'Furnace', 'name' => $f->name ?? $f->code, 'sub' => $f->furnace_type ?? '', 'state' => 'Idle', 'tone' => 'grey', 'progress' => null, 'meta' => $f->rated_capacity_kg ? Formats::number($f->rated_capacity_kg / 1000, 1).' t rated' : '', 'url' => route('furnaces.index')];
             }
         }
 

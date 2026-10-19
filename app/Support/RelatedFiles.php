@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 
 /**
  * Files that belong to the records a record comes from (a sales order shows its products' and patterns' drawings, a dispatch shows
@@ -162,7 +163,7 @@ class RelatedFiles
             return route($route, $id);
         }
 
-        return isset(GlobalSearch::TYPES[$type]) ? route('tools.show', [$type, $id]) : null;
+        return isset(GlobalSearch::TYPES[$type]) && Route::has('tools.show') ? route('tools.show', [$type, $id]) : null;
     }
 
     /**

@@ -16,6 +16,16 @@ class ToolingServiceProvider extends ModuleServiceProvider
         return 'tooling';
     }
 
+    protected function moduleLabel(): string
+    {
+        return 'Tooling maintenance & life';
+    }
+
+    protected function moduleDescription(): string
+    {
+        return 'Tooling maintenance records, service-life limits and tool pages. The pattern and flask pages stop showing life and maintenance.';
+    }
+
     protected function modulePath(): string
     {
         return __DIR__;

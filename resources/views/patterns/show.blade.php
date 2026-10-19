@@ -78,7 +78,9 @@
     </div>
 </div>
 
+@if (app(\App\Domains\Core\ModuleRegistry::class)->isEnabled('tooling'))
 @include('patterns._tool-life', ['pattern' => $pattern, 'toolLife' => $toolLife])
+@endif
 
 <div class="tab-marker" data-tab-start="Sand system"></div>
 <div class="panel"><div class="panel-header"><h2>Sand system</h2></div><div class="panel-body">

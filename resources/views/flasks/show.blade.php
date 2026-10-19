@@ -89,7 +89,7 @@
 
 <div class="tab-marker" data-tab-start="Maintenance"></div>
 <div class="panel">
-    <div class="panel-header"><h2>Maintenance</h2><a class="small" href="{{ route('tooling-life.dashboard') }}">Life limits</a></div>
+    <div class="panel-header"><h2>Maintenance</h2>@if (Route::has('tooling-life.dashboard'))<a class="small" href="{{ route('tooling-life.dashboard') }}">Life limits</a>@endif</div>
     @if ($maintenance->isEmpty())
         <div class="empty-state">No maintenance recorded.</div>
     @else
@@ -97,7 +97,7 @@
             <thead><tr><th>Record</th><th>Activity</th><th>Status</th><th>Reported</th><th>Problem</th></tr></thead>
             <tbody>
                 @foreach ($maintenance as $m)
-                    <tr><td><a href="{{ route('tooling-maintenance.show', $m) }}" class="mono">{{ $m->record_number }}</a></td><td>{{ $m->activity_type }}</td><td>{{ $m->status }}</td><td>{{ $m->reported_at?->displayDate() }}</td><td class="small">{{ \Illuminate\Support\Str::limit($m->problem_description, 120) }}</td></tr>
+                    <tr><td>@if (Route::has('tooling-maintenance.show'))<a href="{{ route('tooling-maintenance.show', $m) }}" class="mono">{{ $m->record_number }}</a>@else<span class="mono">{{ $m->record_number }}</span>@endif</td><td>{{ $m->activity_type }}</td><td>{{ $m->status }}</td><td>{{ $m->reported_at?->displayDate() }}</td><td class="small">{{ \Illuminate\Support\Str::limit($m->problem_description, 120) }}</td></tr>
                 @endforeach
             </tbody>
         </table></div>
