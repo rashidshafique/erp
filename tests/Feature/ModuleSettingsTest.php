@@ -19,8 +19,8 @@ class ModuleSettingsTest extends TestCase
     {
         $html = $this->get(route('settings.modules.edit'))->assertOk()->assertSee('Gauges &amp; calibration', false)->assertSee('Tooling maintenance &amp; life', false)->getContent();
 
-        $this->assertSame(2, substr_count($html, 'name="modules[]"'));
-        $this->assertSame(2, substr_count($html, ' checked'));
+        $this->assertSame(3, substr_count($html, 'name="modules[]"'));
+        $this->assertSame(3, substr_count($html, ' checked'));
     }
 
     public function test_unticked_modules_are_saved_as_off_and_ticked_ones_stay_on(): void
@@ -38,9 +38,9 @@ class ModuleSettingsTest extends TestCase
     public function test_saving_with_every_box_unticked_switches_every_module_off_and_back_on_again(): void
     {
         $this->put(route('settings.modules'))->assertSessionHasNoErrors();
-        $this->assertSame(['maintenance', 'tooling'], (new SettingsModuleAccess)->disabledModules());
+        $this->assertSame(['hr', 'maintenance', 'tooling'], (new SettingsModuleAccess)->disabledModules());
 
-        $this->put(route('settings.modules'), ['modules' => ['maintenance', 'tooling']]);
+        $this->put(route('settings.modules'), ['modules' => ['hr', 'maintenance', 'tooling']]);
         $this->assertSame([], (new SettingsModuleAccess)->disabledModules());
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Domains\Core\ModuleRegistry;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -19,7 +20,7 @@ class GlobalSearch
      *
      * @var array<string, array{label: string, table: string, code: string, name: string|null, route: string|null, permission: string|null, words: list<string>}>
      */
-    public const TYPES = [
+    private const CORE_TYPES = [
         'product' => ['label' => 'Product', 'table' => 'products', 'code' => 'code', 'name' => 'name', 'route' => 'products.show', 'permission' => null, 'words' => ['prd', 'pro', 'prod', 'product', 'products']],
         'pattern' => ['label' => 'Pattern', 'table' => 'patterns', 'code' => 'code', 'name' => 'name', 'route' => 'patterns.show', 'permission' => null, 'words' => ['pat', 'patt', 'pattern', 'patterns']],
         'material' => ['label' => 'Material', 'table' => 'materials', 'code' => 'code', 'name' => 'name', 'route' => 'materials.show', 'permission' => null, 'words' => ['mat', 'mtl', 'material', 'materials']],
@@ -32,8 +33,17 @@ class GlobalSearch
         'flask' => ['label' => 'Flask', 'table' => 'flasks', 'code' => 'code', 'name' => null, 'route' => 'flasks.show', 'permission' => null, 'words' => ['flk', 'flask', 'flasks']],
         'core_box' => ['label' => 'Core box', 'table' => 'core_boxes', 'code' => 'code', 'name' => 'name', 'route' => null, 'permission' => null, 'words' => ['cbx', 'corebox']],
         'core_definition' => ['label' => 'Core', 'table' => 'core_definitions', 'code' => 'code', 'name' => 'name', 'route' => null, 'permission' => null, 'words' => ['cor', 'core', 'cores']],
-        'employee' => ['label' => 'Employee', 'table' => 'employees', 'code' => 'code', 'name' => "first_name || ' ' || coalesce(last_name, '')", 'route' => 'hr.employees.show', 'permission' => 'hr.manage', 'words' => ['emp', 'employee', 'employees', 'staff']],
     ];
+
+    /**
+     * Every searchable record type: the core ones plus those modules add.
+     *
+     * @return array<string, array{label: string, table: string, code: string, name: string|null, route: string|null, permission: string|null, words: list<string>}>
+     */
+    public static function types(): array
+    {
+        return self::CORE_TYPES + app(ModuleRegistry::class)->searchTypes();
+    }
 
     /** A result this far ahead of the next one is opened directly on Enter. */
     private const CLEAR_LEAD = 25;
@@ -45,7 +55,7 @@ class GlobalSearch
         if (strlen($word) < 2) {
             return null;
         }
-        foreach (self::TYPES as $key => $type) {
+        foreach (self::types() as $key => $type) {
             if (in_array($word, $type['words'], true)) {
                 return $key;
             }
@@ -58,7 +68,7 @@ class GlobalSearch
     public static function typesFor(?User $user): array
     {
         $types = [];
-        foreach (self::TYPES as $key => $type) {
+        foreach (self::types() as $key => $type) {
             if (self::mayRead($user, $type['permission'])) {
                 $types[$key] = $type['label'];
             }
@@ -80,7 +90,7 @@ class GlobalSearch
         }
         $lower = mb_strtolower($query);
         $results = [];
-        foreach (self::TYPES as $key => $type) {
+        foreach (self::types() as $key => $type) {
             if (($onlyType !== null && $onlyType !== $key) || ! self::mayRead($user, $type['permission']) || ! Schema::hasTable($type['table'])) {
                 continue;
             }

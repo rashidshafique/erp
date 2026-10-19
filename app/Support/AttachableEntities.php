@@ -8,16 +8,12 @@ use App\Models\CastingLot;
 use App\Models\CoreBox;
 use App\Models\CoreDefinition;
 use App\Models\Dispatch;
-use App\Models\Employee;
-use App\Models\EmployeeDocument;
 use App\Models\Enquiry;
 use App\Models\Equipment;
 use App\Models\Flask;
 use App\Models\Furnace;
 use App\Models\Heat;
-use App\Models\HrPolicy;
 use App\Models\IronGrade;
-use App\Models\LeaveRequest;
 use App\Models\Material;
 use App\Models\MouldConfiguration;
 use App\Models\MouldingRun;
@@ -46,10 +42,6 @@ class AttachableEntities
         'core_box' => ['Core box', CoreBox::class], 'core_definition' => ['Core', CoreDefinition::class],
         'mould_configuration' => ['Mould configuration', MouldConfiguration::class],
         'enquiry' => ['Enquiry', Enquiry::class],
-        'employee' => ['Employee', Employee::class],
-        'employee_document' => ['Employee document', EmployeeDocument::class],
-        'leave_request' => ['Leave request', LeaveRequest::class],
-        'hr_policy' => ['HR policy', HrPolicy::class],
     ];
 
     public const CATEGORIES = ['CERTIFICATE' => 'Certificate', 'DRAWING' => 'Drawing', 'SPECIFICATION' => 'Specification', 'REPORT' => 'Test / inspection report', 'PHOTO' => 'Photo', 'CUSTOMER_DOCUMENT' => 'Customer document', 'ID_DOCUMENT' => 'ID / personal document', 'CONTRACT' => 'Contract / letter', 'OTHER' => 'Other'];
@@ -70,10 +62,6 @@ class AttachableEntities
         'core_box' => ['tooling.manage', null], 'core_definition' => ['tooling.manage', null],
         'mould_configuration' => ['tooling.manage', null],
         'enquiry' => ['sales.manage', null],
-        'employee' => ['hr.manage', 'hr.manage'],
-        'employee_document' => ['hr.manage', 'hr.manage'],
-        'leave_request' => ['hr.manage', 'hr.manage'],
-        'hr_policy' => ['hr.manage', null],
     ];
 
     /** Categories that need documents.sensitive on top of the record's own permission. */

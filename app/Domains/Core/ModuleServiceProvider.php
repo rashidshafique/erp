@@ -2,6 +2,7 @@
 
 namespace App\Domains\Core;
 
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -78,6 +79,90 @@ abstract class ModuleServiceProvider extends ServiceProvider
         return [];
     }
 
+    /**
+     * Whole sidebar groups this module adds. Each item may carry a `visible` closure.
+     *
+     * @return list<array{key: string, label: string, icon: string, active?: list<string>, items: list<array{label: string, route: string, icon: string, active: list<string>, visible?: \Closure|null}>}>
+     */
+    protected function navGroups(): array
+    {
+        return [];
+    }
+
+    /**
+     * Permissions this module adds to the Roles screen, as key => label.
+     *
+     * @return array<string, string>
+     */
+    protected function permissionCatalog(): array
+    {
+        return [];
+    }
+
+    /**
+     * Route-name patterns open to every signed-in user, as in config/permissions.php.
+     *
+     * @return list<string>
+     */
+    protected function openRoutes(): array
+    {
+        return [];
+    }
+
+    /**
+     * Starting roles this module adds, as code => [name, permissions]. Registered even when the module is off,
+     * because roles are written to the database by migrations.
+     *
+     * @return array<string, array{name: string, permissions: list<string>}>
+     */
+    protected function roleDefaults(): array
+    {
+        return [];
+    }
+
+    /**
+     * Actions this module lets an administrator put behind an approval, as key => label.
+     *
+     * @return array<string, string>
+     */
+    protected function approvalActions(): array
+    {
+        return [];
+    }
+
+    /**
+     * Artisan commands this module provides.
+     *
+     * @return list<class-string>
+     */
+    protected function consoleCommands(): array
+    {
+        return [];
+    }
+
+    /** Scheduled work this module needs. */
+    protected function schedule(Schedule $schedule): void {}
+
+    /**
+     * Record types the top-bar search finds, in the shape of GlobalSearch's core types.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    protected function searchTypes(): array
+    {
+        return [];
+    }
+
+    /**
+     * Item-code kinds this module issues, in the shape of CodeGenerator's core kinds.
+     *
+     * @return array<string, array{0: string, 1: string, 2: int, 3: string}>
+     */
+    protected function codeKinds(): array
+    {
+        return [];
+    }
+
     public function register(): void
     {
         $aliases = $this->classAliases();
@@ -95,6 +180,9 @@ abstract class ModuleServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $path = $this->modulePath();
+        if ($this->roleDefaults() !== []) {
+            config(['permissions.roles' => config('permissions.roles', []) + $this->roleDefaults()]);
+        }
         $registry = $this->app->make(ModuleRegistry::class);
         $registry->addModule($this->moduleName(), $this->moduleLabel(), $this->moduleDescription());
 
@@ -122,6 +210,28 @@ abstract class ModuleServiceProvider extends ServiceProvider
         }
         if ($this->permissionRoutes() !== []) {
             config(['permissions.routes' => array_merge(config('permissions.routes', []), $this->permissionRoutes())]);
+        }
+        foreach ($this->navGroups() as $group) {
+            $registry->addNavGroup($group);
+        }
+        if ($this->permissionCatalog() !== []) {
+            config(['permissions.catalog' => array_merge(config('permissions.catalog', []), $this->permissionCatalog())]);
+        }
+        if ($this->openRoutes() !== []) {
+            config(['permissions.open_routes' => array_merge(config('permissions.open_routes', []), $this->openRoutes())]);
+        }
+        if ($this->approvalActions() !== []) {
+            config(['approvals.actions' => array_merge(config('approvals.actions', []), $this->approvalActions())]);
+        }
+        if ($this->consoleCommands() !== []) {
+            $this->commands($this->consoleCommands());
+        }
+        $this->callAfterResolving(Schedule::class, fn (Schedule $schedule) => $this->schedule($schedule));
+        if ($this->searchTypes() !== []) {
+            $registry->addSearchTypes($this->searchTypes());
+        }
+        if ($this->codeKinds() !== []) {
+            $registry->addCodeKinds($this->codeKinds());
         }
     }
 }

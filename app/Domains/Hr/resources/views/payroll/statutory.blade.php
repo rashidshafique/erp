@@ -1,0 +1,16 @@
+@extends('layouts.app')
+@section('title', 'Statutory reports')
+@section('breadcrumb', 'Statutory reports')
+@section('content')
+@php $m = fn ($v) => \App\Support\Formats::number((float) $v); @endphp
+<div class="page-heading"><div><h1>Statutory reports</h1><p>Income tax withheld, EOBI and social security, from approved payrolls.</p></div><div class="actions"><a class="btn" href="{{ route('hr.payroll.index') }}">Payroll</a><a class="btn" href="{{ request()->fullUrlWithQuery(['csv' => 1]) }}">Download CSV</a></div></div>
+@include('hr::payroll._tabs_note')
+<div class="panel"><div class="panel-body"><form method="GET" class="filters">
+<div class="field"><label for="scope">Report for</label><select id="scope" name="scope" onchange="this.form.submit()"><option value="month" @selected($scope === 'month')>One month</option><option value="year" @selected($scope === 'year')>A tax year (July–June)</option></select></div>
+@if ($scope === 'month')<div class="field"><label for="month">Month</label><input id="month" type="month" name="month" value="{{ $month }}"></div>@else<div class="field"><label for="year">Tax year starting July</label><input id="year" type="number" name="year" value="{{ $year }}" min="2000" max="2100" style="width:110px"></div>@endif<button class="btn btn-primary">Show</button></form></div></div>
+@if ($missing)<div class="alert" style="background:#fff8e1;border:1px solid #e6c36a;color:#7a5b00">{{ $missing }} {{ $missing === 1 ? 'person has' : 'people have' }} tax or EOBI deducted but no NTN or EOBI number on file. Add them on the employee's Personal &amp; pay tab before filing.</div>@endif
+<div class="metrics"><div class="metric"><div class="metric-label">Income tax withheld</div><div class="metric-value">{{ $m($rows->sum('tax')) }}</div></div><div class="metric"><div class="metric-label">EOBI (employee + employer)</div><div class="metric-value">{{ $m($rows->sum('eobi_ee') + $rows->sum('eobi_er')) }}</div></div><div class="metric"><div class="metric-label">Social security (employer)</div><div class="metric-value">{{ $m($rows->sum('ss_er')) }}</div></div></div>
+<div class="panel"><div class="panel-header"><h2>{{ $label }}</h2></div>@if ($rows->isEmpty())<div class="empty-state">No approved payroll in this period.</div>@else<div class="table-wrap"><table><thead><tr><th>Employee</th><th>CNIC / NTN</th><th>EOBI no</th><th>Months</th><th>Gross pay</th><th>Tax withheld</th><th>EOBI (employee)</th><th>EOBI (employer)</th><th>Social security</th></tr></thead><tbody>
+@foreach ($rows as $r)<tr><td><strong>{{ $r['code'] }}</strong> {{ $r['name'] }}</td><td>{{ $r['cnic'] }}<div class="muted small">NTN {{ $r['ntn'] ?: '—' }}</div></td><td>{{ $r['eobi_no'] ?: '—' }}</td><td>{{ $r['months'] }}</td><td>{{ $m($r['gross']) }}</td><td>{{ $m($r['tax']) }}</td><td>{{ $m($r['eobi_ee']) }}</td><td>{{ $m($r['eobi_er']) }}</td><td>{{ $m($r['ss_er']) }}</td></tr>@endforeach
+<tr><td colspan="4"><strong>Total</strong></td><td><strong>{{ $m($rows->sum('gross')) }}</strong></td><td><strong>{{ $m($rows->sum('tax')) }}</strong></td><td>{{ $m($rows->sum('eobi_ee')) }}</td><td>{{ $m($rows->sum('eobi_er')) }}</td><td>{{ $m($rows->sum('ss_er')) }}</td></tr></tbody></table></div>@endif</div>
+@endsection

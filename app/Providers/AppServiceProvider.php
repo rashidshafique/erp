@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use App\Domains\Core\Contracts\ModuleAccess;
+use App\Domains\Core\Contracts\PeopleDirectory;
 use App\Domains\Core\ModuleRegistry;
+use App\Domains\Core\NoPeopleDirectory;
 use App\Domains\Core\OpenModuleAccess;
 use App\Services\Audit\Audit;
 use App\Support\Formats;
@@ -22,6 +24,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(Audit::class);
         $this->app->singletonIf(ModuleAccess::class, OpenModuleAccess::class);
         $this->app->singleton(ModuleRegistry::class);
+        $this->app->singletonIf(PeopleDirectory::class, NoPeopleDirectory::class);
     }
 
     /**

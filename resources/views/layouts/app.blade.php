@@ -125,26 +125,7 @@
                     @endforeach
                 </div>
             </div>
-            <div class="nav-group {{ request()->routeIs('hr.*', 'directory.*', 'leave.*') ? 'is-active' : '' }}">
-    <button type="button" class="nav-group-toggle" aria-expanded="false">
-        <span class="nav-lab">{!! \App\Support\NavIcons::get('users') !!}<span>People (HR)</span></span><span class="nav-chevron">›</span>
-    </button>
-    <div class="nav-submenu" hidden>
-        <a href="{{ route('hr.dashboard') }}" class="nav-link {{ request()->routeIs('hr.dashboard') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('users') !!}<span>People overview</span></a>
-        <a href="{{ route('hr.employees.index') }}" class="nav-link {{ request()->routeIs('hr.employees.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('id-card') !!}<span>Employees</span></a>
-        <a href="{{ route('hr.attendance') }}" class="nav-link {{ request()->routeIs('hr.attendance*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('clock') !!}<span>Attendance &amp; overtime</span></a>
-        <a href="{{ route('hr.roster') }}" class="nav-link {{ request()->routeIs('hr.roster*', 'hr.shifts.*', 'hr.holidays.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('calendar') !!}<span>Roster, shifts &amp; holidays</span></a>
-        <a href="{{ route('hr.leave') }}" class="nav-link {{ request()->routeIs('hr.leave*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('calendar-minus') !!}<span>Leave (HR)</span></a>
-        @if (\App\Support\HrAccess::isPayroll())<a href="{{ route('hr.payroll.index') }}" class="nav-link {{ request()->routeIs('hr.payroll.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('wallet') !!}<span>Payroll</span></a>@endif
-        <a href="{{ route('leave.my') }}" class="nav-link {{ request()->routeIs('leave.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('calendar-minus') !!}<span>My leave &amp; approvals</span></a>
-        <a href="{{ route('payslips.my') }}" class="nav-link {{ request()->routeIs('payslips.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('receipt') !!}<span>My payslips</span></a>
-        <a href="{{ route('hr.orgchart') }}" class="nav-link {{ request()->routeIs('hr.orgchart*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('network') !!}<span>Org chart</span></a>
-        <a href="{{ route('directory.index') }}" class="nav-link {{ request()->routeIs('directory.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('network') !!}<span>Directory &amp; reporting lines</span></a>
-        <a href="{{ route('hr.exits.index') }}" class="nav-link {{ request()->routeIs('hr.exits.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('log-out') !!}<span>Exits &amp; clearance</span></a>
-        <a href="{{ route('hr.policies.index') }}" class="nav-link {{ request()->routeIs('hr.policies.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('book') !!}<span>HR policies</span></a>
-        <a href="{{ route('hr.organisation') }}" class="nav-link {{ request()->routeIs('hr.organisation*', 'hr.checklist.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('building') !!}<span>Organisation setup</span></a>
-    </div>
-</div>
+            @include('layouts._module-nav-groups')
         </nav>
 
         @if (\App\Support\SettingsNav::canOpen())

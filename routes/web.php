@@ -1,11 +1,9 @@
 <?php
 
-use App\Http\Controllers\AdvanceController;
 use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\ApprovalPolicyController;
 use App\Http\Controllers\AppSettingController;
 use App\Http\Controllers\AttachmentController;
-use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AuditController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BaseSandController;
@@ -19,14 +17,9 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CustomFieldController;
 use App\Http\Controllers\DataImportController;
 use App\Http\Controllers\DefectController;
-use App\Http\Controllers\DirectoryController;
 use App\Http\Controllers\DispatchController;
 use App\Http\Controllers\DocumentSettingsController;
 use App\Http\Controllers\DisplaySettingsController;
-use App\Http\Controllers\EmployeeController;
-use App\Http\Controllers\EmployeeDocumentController;
-use App\Http\Controllers\EmployeeExitController;
-use App\Http\Controllers\EmployeeTaskController;
 use App\Http\Controllers\EnquiryController;
 use App\Http\Controllers\ErpDashboardController;
 use App\Http\Controllers\FlaskController;
@@ -37,14 +30,9 @@ use App\Http\Controllers\HeatMaterialConsumptionController;
 use App\Http\Controllers\HeatPlanController;
 use App\Http\Controllers\HeatReadingController;
 use App\Http\Controllers\HeatTreatmentController;
-use App\Http\Controllers\HrDashboardController;
-use App\Http\Controllers\HrLeaveController;
-use App\Http\Controllers\HrOrganisationController;
-use App\Http\Controllers\HrPolicyController;
 use App\Http\Controllers\InspectionController;
 use App\Http\Controllers\IronGradeController;
 use App\Http\Controllers\LabelController;
-use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\LotController;
 use App\Http\Controllers\LotQueueController;
 use App\Http\Controllers\MaterialController;
@@ -56,14 +44,10 @@ use App\Http\Controllers\MouldingRunController;
 use App\Http\Controllers\MouldReadinessController;
 use App\Http\Controllers\NcrController;
 use App\Http\Controllers\OrderTraceController;
-use App\Http\Controllers\OrgChartController;
 use App\Http\Controllers\PackingController;
 use App\Http\Controllers\PatternCavityController;
 use App\Http\Controllers\PatternController;
 use App\Http\Controllers\PatternOwnershipController;
-use App\Http\Controllers\PayrollController;
-use App\Http\Controllers\PayrollSetupController;
-use App\Http\Controllers\PayslipController;
 use App\Http\Controllers\PourController;
 use App\Http\Controllers\ProcessControlController;
 use App\Http\Controllers\ProductController;
@@ -72,14 +56,10 @@ use App\Http\Controllers\QuotationController;
 use App\Http\Controllers\QuotationSettingsController;
 use App\Http\Controllers\RequestWizardController;
 use App\Http\Controllers\RoleController;
-use App\Http\Controllers\RosterController;
-use App\Http\Controllers\SalaryController;
 use App\Http\Controllers\SalesOrderController;
 use App\Http\Controllers\SandSystemController;
 use App\Http\Controllers\SandTestController;
 use App\Http\Controllers\ScanController;
-use App\Http\Controllers\SettlementController;
-use App\Http\Controllers\StatutoryController;
 use App\Http\Controllers\StockMovementController;
 use App\Http\Controllers\StockReconciliationController;
 use App\Http\Controllers\StockReportController;
@@ -562,148 +542,3 @@ Route::put('/settings/display/font', [DisplaySettingsController::class, 'updateF
 Route::put('/settings/display/formats', [DisplaySettingsController::class, 'updateFormats'])->name('settings.display.formats');
 Route::get('/branding/logo', [BrandingController::class, 'logo'])->name('branding.logo');
 Route::put('/settings/branding', [BrandingController::class, 'update'])->name('settings.branding.update');
-
-// People (HR)
-Route::get('/directory', [DirectoryController::class, 'index'])->name('directory.index');
-Route::prefix('hr')->name('hr.')->group(function () {
-    Route::get('/', [HrDashboardController::class, 'index'])->name('dashboard');
-    Route::get('/org-chart', [OrgChartController::class, 'index'])->name('orgchart');
-    Route::post('/org-chart/people', [OrgChartController::class, 'store'])->name('orgchart.store');
-    Route::prefix('employees')->name('employees.')->controller(EmployeeController::class)->group(function () {
-        Route::get('/', 'index')->name('index');
-        Route::get('/new', 'create')->name('create');
-        Route::post('/', 'store')->name('store');
-        Route::get('/{employee}', 'show')->name('show');
-        Route::put('/{employee}', 'update')->name('update');
-        Route::post('/{employee}/start-work', 'startWork')->name('start-work');
-        Route::post('/{employee}/confirm', 'confirm')->name('confirm');
-        Route::post('/{employee}/transfer', 'transfer')->name('transfer');
-        Route::post('/{employee}/exit', 'startExit')->name('exit');
-        Route::post('/{employee}/documents', [EmployeeDocumentController::class, 'store'])->name('documents.store');
-        Route::post('/{employee}/tasks', [EmployeeTaskController::class, 'store'])->name('tasks.store');
-    });
-    Route::delete('/documents/{document}', [EmployeeDocumentController::class, 'destroy'])->name('documents.destroy');
-    Route::post('/tasks/{task}/toggle', [EmployeeTaskController::class, 'toggle'])->name('tasks.toggle');
-    Route::delete('/tasks/{task}', [EmployeeTaskController::class, 'destroy'])->name('tasks.destroy');
-    Route::prefix('exits')->name('exits.')->controller(EmployeeExitController::class)->group(function () {
-        Route::get('/', 'index')->name('index');
-        Route::get('/{exit}', 'show')->name('show');
-        Route::put('/{exit}', 'update')->name('update');
-        Route::post('/{exit}/complete', 'complete')->name('complete');
-        Route::post('/{exit}/cancel', 'cancel')->name('cancel');
-    });
-    Route::prefix('policies')->name('policies.')->controller(HrPolicyController::class)->group(function () {
-        Route::get('/', 'index')->name('index');
-        Route::get('/new', 'create')->name('create');
-        Route::post('/', 'store')->name('store');
-        Route::get('/{policy}', 'show')->name('show');
-        Route::put('/{policy}', 'update')->name('update');
-        Route::post('/{policy}/publish', 'publish')->name('publish');
-        Route::post('/{policy}/revise', 'revise')->name('revise');
-        Route::post('/{policy}/retire', 'retire')->name('retire');
-        Route::post('/{policy}/acknowledge', 'acknowledge')->name('acknowledge');
-    });
-    Route::prefix('organisation')->controller(HrOrganisationController::class)->group(function () {
-        Route::get('/', 'index')->name('organisation');
-        Route::post('/checklist', 'checklistStore')->name('checklist.store');
-        Route::put('/checklist/{item}', 'checklistUpdate')->name('checklist.update');
-        Route::delete('/checklist/{item}', 'checklistDestroy')->name('checklist.destroy');
-        Route::post('/{kind}', 'store')->name('organisation.store');
-        Route::put('/{kind}/{id}', 'update')->name('organisation.update');
-        Route::delete('/{kind}/{id}', 'destroy')->name('organisation.destroy');
-    });
-});
-
-// People: attendance, roster, leave
-Route::prefix('hr')->name('hr.')->group(function () {
-    Route::prefix('attendance')->controller(AttendanceController::class)->group(function () {
-        Route::get('/', 'daily')->name('attendance');
-        Route::post('/', 'save')->name('attendance.save');
-        Route::get('/person/{employee}', 'person')->name('attendance.person');
-        Route::post('/close-day', 'closeDay')->name('attendance.close');
-        Route::get('/exceptions', 'exceptions')->name('attendance.exceptions');
-        Route::post('/exceptions/{record}', 'resolve')->name('attendance.resolve');
-        Route::get('/overtime', 'overtime')->name('attendance.overtime');
-        Route::post('/overtime', 'overtimeDecide')->name('attendance.overtime.decide');
-        Route::get('/import', 'importForm')->name('attendance.import');
-        Route::post('/import', 'import')->name('attendance.import.run');
-    });
-    Route::prefix('roster')->controller(RosterController::class)->group(function () {
-        Route::get('/', 'index')->name('roster');
-        Route::post('/', 'save')->name('roster.save');
-        Route::post('/shifts', 'shiftStore')->name('shifts.store');
-        Route::put('/shifts/{shift}', 'shiftUpdate')->name('shifts.update');
-        Route::post('/holidays', 'holidayStore')->name('holidays.store');
-        Route::post('/holidays/fixed', 'holidayFixed')->name('holidays.fixed');
-        Route::delete('/holidays/{holiday}', 'holidayDestroy')->name('holidays.destroy');
-    });
-    Route::prefix('leave')->controller(HrLeaveController::class)->group(function () {
-        Route::get('/', 'index')->name('leave');
-        Route::post('/types', 'typeStore')->name('leave.types.store');
-        Route::put('/types/{type}', 'typeUpdate')->name('leave.types.update');
-        Route::post('/accrue', 'accrue')->name('leave.accrue');
-        Route::post('/close-year', 'closeYear')->name('leave.close-year');
-        Route::post('/employees/{employee}/adjust', 'adjust')->name('leave.adjust');
-    });
-});
-Route::prefix('leave')->name('leave.')->controller(LeaveController::class)->group(function () {
-    Route::get('/', 'my')->name('my');
-    Route::post('/', 'store')->name('store');
-    Route::post('/{leave}/decide', 'decide')->name('decide');
-    Route::post('/{leave}/cancel', 'cancel')->name('cancel');
-});
-
-// People: payroll (needs the hr.payroll permission), and a person's own payslips (login only)
-Route::prefix('hr/payroll')->name('hr.payroll.')->group(function () {
-    Route::controller(PayrollController::class)->group(function () {
-        Route::get('/', 'index')->name('index');
-        Route::post('/periods', 'store')->name('store');
-        Route::get('/periods/{period}', 'show')->name('show');
-        Route::post('/periods/{period}/calculate', 'calculate')->name('calculate');
-        Route::post('/periods/{period}/approve', 'approve')->name('approve');
-        Route::post('/periods/{period}/revert', 'revert')->name('revert');
-        Route::post('/periods/{period}/pay', 'pay')->name('pay');
-        Route::get('/periods/{period}/register.csv', 'register')->name('register');
-        Route::get('/periods/{period}/bank.csv', 'bankFile')->name('bank');
-        Route::get('/payslips/{payslip}', 'payslip')->name('payslip');
-        Route::post('/payslips/{payslip}/hold', 'hold')->name('hold');
-        Route::post('/payslips/{payslip}/release', 'release')->name('release');
-        Route::post('/adjustments', 'adjustmentStore')->name('adjustments.store');
-        Route::delete('/adjustments/{adjustment}', 'adjustmentDestroy')->name('adjustments.destroy');
-    });
-    Route::controller(PayrollSetupController::class)->group(function () {
-        Route::get('/setup', 'index')->name('setup');
-        Route::post('/components', 'componentStore')->name('components.store');
-        Route::put('/components/{component}', 'componentUpdate')->name('components.update');
-        Route::put('/rules', 'rulesUpdate')->name('rules');
-    });
-    Route::controller(SalaryController::class)->prefix('employees/{employee}')->group(function () {
-        Route::post('/salary', 'revise')->name('salary');
-        Route::put('/profile', 'profile')->name('profile');
-        Route::post('/benefits', 'benefitStore')->name('benefits.store');
-        Route::delete('/benefits/{benefit}', 'benefitDestroy')->name('benefits.destroy');
-    });
-    Route::controller(AdvanceController::class)->prefix('advances')->group(function () {
-        Route::get('/', 'index')->name('advances');
-        Route::post('/', 'store')->name('advances.store');
-        Route::get('/{advance}', 'show')->name('advances.show');
-        Route::post('/{advance}/decide', 'decide')->name('advances.decide');
-        Route::post('/{advance}/pause', 'pause')->name('advances.pause');
-        Route::post('/{advance}/adjust', 'adjust')->name('advances.adjust');
-    });
-    Route::controller(SettlementController::class)->group(function () {
-        Route::get('/settlements', 'index')->name('settlements');
-        Route::post('/exits/{exit}/settlement', 'open')->name('settlements.open');
-        Route::get('/settlements/{settlement}', 'show')->name('settlements.show');
-        Route::post('/settlements/{settlement}/calculate', 'calculate')->name('settlements.calculate');
-        Route::post('/settlements/{settlement}/lines', 'addLine')->name('settlements.lines.add');
-        Route::delete('/settlements/{settlement}/lines/{line}', 'removeLine')->name('settlements.lines.remove');
-        Route::post('/settlements/{settlement}/approve', 'approve')->name('settlements.approve');
-        Route::post('/settlements/{settlement}/pay', 'pay')->name('settlements.pay');
-    });
-    Route::get('/statutory', [StatutoryController::class, 'index'])->name('statutory');
-});
-Route::prefix('payslips')->name('payslips.')->controller(PayslipController::class)->group(function () {
-    Route::get('/', 'my')->name('my');
-    Route::get('/{payslip}', 'show')->name('show');
-});

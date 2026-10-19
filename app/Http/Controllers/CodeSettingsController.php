@@ -12,12 +12,12 @@ class CodeSettingsController extends Controller
     public function edit(CodeGenerator $gen)
     {
         $previews = [];
-        foreach (CodeGenerator::KINDS as $k => $meta) {
+        foreach (CodeGenerator::kinds() as $k => $meta) {
             $previews[$k] = $gen->preview($k);
         }
         $nextMark = $gen->toBase((int) (\DB::table('code_sequences')->where('key', 'mark')->value('next_value') ?? 1), CodeGenerator::markAlphabet(), CodeGenerator::markLength());
 
-        return view('settings.codes', ['kinds' => CodeGenerator::KINDS, 'styles' => CodeGenerator::STYLES, 'previews' => $previews, 'nextMark' => $nextMark]);
+        return view('settings.codes', ['kinds' => CodeGenerator::kinds(), 'styles' => CodeGenerator::STYLES, 'previews' => $previews, 'nextMark' => $nextMark]);
     }
 
     public function update(Request $request)
@@ -37,9 +37,9 @@ class CodeSettingsController extends Controller
         AppSetting::setValue('codes.mark_length', (string) $d['mark_length'], 'Length of engraving marks');
         AppSetting::setValue('codes.revision_suffix', $d['revision_suffix'] ?? '-R', 'Between a pattern code and its revision number (P-0123-R1)');
         AppSetting::setValue('codes.mark_avoid_lookalikes', $request->boolean('mark_avoid_lookalikes') ? '1' : '0', 'Leave out look-alike characters (0/O, 1/I, Q)');
-        foreach (array_keys(CodeGenerator::KINDS) as $k) {
+        foreach (array_keys(CodeGenerator::kinds()) as $k) {
             $p = $d['prefix'][$k] ?? null;
-            AppSetting::setValue("codes.prefix.$k", $p ? strtoupper($p) : CodeGenerator::KINDS[$k][1]);
+            AppSetting::setValue("codes.prefix.$k", $p ? strtoupper($p) : CodeGenerator::kinds()[$k][1]);
         }
 
         return back()->with('success', 'Code settings saved. They apply to codes created from now on; existing codes and marks never change.');

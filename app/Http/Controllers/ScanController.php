@@ -40,7 +40,7 @@ class ScanController extends Controller
 
         return response()->json([
             'results' => GlobalSearch::search($query, $type, Auth::user()),
-            'offer' => $offer && isset(GlobalSearch::typesFor(Auth::user())[$offer]) ? ['type' => $offer, 'label' => GlobalSearch::TYPES[$offer]['label']] : null,
+            'offer' => $offer && isset(GlobalSearch::typesFor(Auth::user())[$offer]) ? ['type' => $offer, 'label' => GlobalSearch::types()[$offer]['label']] : null,
         ]);
     }
 

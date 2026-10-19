@@ -22,6 +22,15 @@ class ModuleRegistry
     /** @var array<string, array{label: string, description: string}> */
     private array $modules = [];
 
+    /** @var array<string, array<string, mixed>> */
+    private array $navGroups = [];
+
+    /** @var array<string, array<string, mixed>> */
+    private array $searchTypes = [];
+
+    /** @var array<string, array{0: string, 1: string, 2: int, 3: string}> */
+    private array $codeKinds = [];
+
     public function __construct(private ModuleAccess $access) {}
 
     public function addModule(string $name, string $label, string $description): void
@@ -81,5 +90,48 @@ class ModuleRegistry
     public function attachables(): array
     {
         return $this->attachables;
+    }
+
+    /**
+     * A whole sidebar group of its own. Items may carry a `visible` closure, checked each time the menu is drawn.
+     *
+     * @param  array{key: string, label: string, icon: string, active?: list<string>, items: list<array{label: string, route: string, icon: string, active: list<string>, visible?: \Closure|null}>}  $group
+     */
+    public function addNavGroup(array $group): void
+    {
+        $this->navGroups[$group['key']] = $group;
+    }
+
+    /** @return list<array{key: string, label: string, icon: string, active: list<string>, items: list<array<string, mixed>>}> */
+    public function navGroups(): array
+    {
+        return array_values(array_map(
+            fn (array $g) => $g + ['active' => []],
+            $this->navGroups,
+        ));
+    }
+
+    /** @param array<string, array<string, mixed>> $types Same shape as the core GlobalSearch types. */
+    public function addSearchTypes(array $types): void
+    {
+        $this->searchTypes = $types + $this->searchTypes;
+    }
+
+    /** @return array<string, array<string, mixed>> */
+    public function searchTypes(): array
+    {
+        return $this->searchTypes;
+    }
+
+    /** @param array<string, array{0: string, 1: string, 2: int, 3: string}> $kinds Same shape as the core CodeGenerator kinds. */
+    public function addCodeKinds(array $kinds): void
+    {
+        $this->codeKinds = $kinds + $this->codeKinds;
+    }
+
+    /** @return array<string, array{0: string, 1: string, 2: int, 3: string}> */
+    public function codeKinds(): array
+    {
+        return $this->codeKinds;
     }
 }

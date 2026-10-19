@@ -2,6 +2,7 @@
 
 namespace App\Services\Codes;
 
+use App\Domains\Core\ModuleRegistry;
 use App\Models\AppSetting;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -16,29 +17,28 @@ class CodeGenerator
     public const STYLES = ['BOTH' => 'Letters and numbers', 'NUMBERS' => 'Numbers only', 'LETTERS' => 'Letters only'];
 
     /** kind => [table, default prefix, leading digit used in numbers-only codes, label] */
-    public const KINDS = [
+    private const CORE_KINDS = [
         'product' => ['products', 'PRD', 1, 'Product'],
         'pattern' => ['patterns', 'PAT', 2, 'Pattern'],
         'core_box' => ['core_boxes', 'CBX', 3, 'Core box'],
         'core_definition' => ['core_definitions', 'COR', 4, 'Core'],
         'mould_configuration' => ['mould_configurations', 'MCF', 5, 'Mould configuration'],
         'flask' => ['flasks', 'FLK', 6, 'Flask'],
-        'gauge' => ['gauges', 'GAU', 3, 'Gauge'],
         'capa' => ['capa_actions', 'CPA', 4, 'Corrective action'],
         'casting_analysis' => ['casting_analyses', 'CAN', 6, 'Casting analysis'],
         'enquiry' => ['enquiries', 'ENQ', 7, 'Enquiry'],
         'quotation' => ['quotations', 'QUO', 8, 'Quotation'],
-        'employee' => ['employees', 'EMP', 9, 'Employee'],
-        'hr_department' => ['hr_departments', 'DEP', 1, 'Department'],
-        'hr_designation' => ['hr_designations', 'DSG', 2, 'Designation'],
-        'hr_grade' => ['hr_grades', 'GRD', 3, 'Grade'],
-        'hr_location' => ['hr_locations', 'LOC', 4, 'Location'],
-        'hr_cost_centre' => ['hr_cost_centres', 'CC', 5, 'Cost centre'],
-        'hr_shift' => ['hr_shifts', 'SHF', 7, 'Shift'],
-        'leave_request' => ['leave_requests', 'LVR', 8, 'Leave request'],
-        'hr_policy' => ['hr_policies', 'POL', 6, 'HR policy'],
-        'hr_advance' => ['employee_advances', 'ADV', 9, 'Advance or loan'],
     ];
+
+    /**
+     * Every kind of coded record: the core ones plus those modules add.
+     *
+     * @return array<string, array{0: string, 1: string, 2: int, 3: string}>
+     */
+    public static function kinds(): array
+    {
+        return self::CORE_KINDS + app(ModuleRegistry::class)->codeKinds();
+    }
 
     public const TOOL_KINDS = ['pattern', 'core_box', 'core_definition', 'mould_configuration', 'flask'];
 
@@ -49,9 +49,9 @@ class CodeGenerator
 
     public static function prefix(string $kind): string
     {
-        $p = strtoupper(preg_replace('/[^A-Za-z]/', '', self::setting("prefix.$kind", self::KINDS[$kind][1])));
+        $p = strtoupper(preg_replace('/[^A-Za-z]/', '', self::setting("prefix.$kind", self::kinds()[$kind][1])));
 
-        return $p !== '' ? substr($p, 0, 5) : self::KINDS[$kind][1];
+        return $p !== '' ? substr($p, 0, 5) : self::kinds()[$kind][1];
     }
 
     public static function codeStyle(): string
@@ -93,7 +93,7 @@ class CodeGenerator
 
     public function code(string $kind): string
     {
-        [$table, , $typeDigit] = self::KINDS[$kind];
+        [$table, , $typeDigit] = self::kinds()[$kind];
         do {
             $n = $this->next("code:$kind");
             $code = $this->format($kind, $n, $typeDigit);
@@ -104,7 +104,7 @@ class CodeGenerator
 
     public function format(string $kind, int $n, ?int $typeDigit = null): string
     {
-        $typeDigit ??= self::KINDS[$kind][2];
+        $typeDigit ??= self::kinds()[$kind][2];
         $digits = self::codeDigits();
 
         return match (self::codeStyle()) {

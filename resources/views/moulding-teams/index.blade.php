@@ -50,13 +50,19 @@
 
 {{-- Edit dialogs keep the table display-only and expose controls only on an explicit Edit action. --}}
 <dialog id="edit-team-dialog" class="qd" aria-labelledby="edit-team-title">
-    <form method="POST" id="edit-team-form">@csrf @method('PUT')<input type="hidden" name="employee_ids_sent" value="1">
+    <form method="POST" id="edit-team-form">@csrf @method('PUT')@if ($hrAvailable)<input type="hidden" name="employee_ids_sent" value="1">@endif
         <div class="qd-head"><h2 id="edit-team-title">Edit team</h2><button type="button" class="qd-x" data-close aria-label="Close">&times;</button></div>
         <div class="qd-body"><div class="qd-fields">
             <div class="field"><label for="et-code">Code <span class="required">*</span></label><input id="et-code" name="code" required maxlength="30" pattern="[A-Za-z0-9._-]+" title="Use letters, numbers, dots, underscores or hyphens."></div>
             <div class="field"><label for="et-name">Team name <span class="required">*</span></label><input id="et-name" name="name" required maxlength="100"></div>
+            @if ($hrAvailable)
             <div class="field"><label for="et-lead-employee">Team lead <span class="required">*</span></label><select id="et-lead-employee" name="lead_employee_id" required data-team-lead-select><option value="">Select a linked member</option>@foreach($employees as $employee)<option value="{{ $employee->id }}" data-employee-option data-full-name="{{ $employee->full_name }}">{{ $employee->code }} — {{ $employee->full_name }}</option>@endforeach</select><div class="help">Only employees selected below can be team lead.</div></div>
+            @else
+            <div class="field"><label for="et-lead-name">Team lead <span class="required">*</span></label><input id="et-lead-name" name="lead_name" required maxlength="150"></div>
+            <div class="field"><label for="et-members">Members <span class="required">*</span></label><input id="et-members" name="member_count" type="number" min="1" max="200" required></div>
+            @endif
             <div class="field"><label for="et-phone">Lead phone</label><input id="et-phone" name="lead_phone" type="tel" maxlength="40" autocomplete="tel"></div>
+            @if ($hrAvailable)
             <div class="field field-full"><label>Team members from HR</label>
                 <input type="search" class="member-filter" data-member-filter placeholder="Filter by employee name, code, department…" aria-label="Filter HR employees">
                 <div class="qd-checklist member-options" data-member-list>
@@ -70,6 +76,7 @@
                 </div>
                 <div class="help"><span data-member-selected-count>0</span> selected. Member count is calculated from the selected HR records.</div>
             </div>
+            @endif
             <div class="field"><label for="et-status">Status <span class="required">*</span></label><select id="et-status" name="status" required><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option></select></div>
             <div class="field field-full"><label for="et-notes">Notes</label><textarea id="et-notes" name="notes" maxlength="1000" rows="3"></textarea></div>
         </div></div>
@@ -152,7 +159,7 @@
         if (teamButton) {
             var form = document.getElementById('edit-team-form'), d = teamButton.dataset;
             form.action = @json(url('/moulding-teams/teams')) + '/' + encodeURIComponent(d.id);
-            setValue(form, 'code', d.code); setValue(form, 'name', d.name); setValue(form, 'lead_phone', d.phone); setValue(form, 'status', d.status); setValue(form, 'notes', d.notes);
+            setValue(form, 'code', d.code); setValue(form, 'name', d.name); setValue(form, 'lead_phone', d.phone); setValue(form, 'lead_name', d.lead); setValue(form, 'member_count', d.members); setValue(form, 'status', d.status); setValue(form, 'notes', d.notes);
             var selectedEmployees = (d.employeeIds || '').split(',').filter(Boolean);
             form.querySelectorAll('[data-team-member-option]').forEach(function (box) { box.checked = selectedEmployees.includes(box.value); });
             form.querySelectorAll('[data-member-filter]').forEach(function (field) { field.value = ''; });

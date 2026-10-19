@@ -1,0 +1,24 @@
+<?php
+
+namespace App\Domains\Hr\Models;
+
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class PayrollAdjustment extends Model
+{
+    use HasUuids;
+
+    protected $guarded = [];
+
+    protected function casts(): array
+    {
+        return ['amount' => 'float', 'taxable' => 'boolean', 'month' => 'date'];
+    }
+
+    public function employee(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class);
+    }
+}

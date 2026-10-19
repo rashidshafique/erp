@@ -70,4 +70,11 @@ class MaintenanceServiceProvider extends ModuleServiceProvider
             ['pattern' => 'gauges.*', 'permission' => 'quality.manage'],
         ];
     }
+
+    protected function codeKinds(): array
+    {
+        return [
+            'gauge' => ['gauges', 'GAU', 3, 'Gauge'],
+        ];
+    }
 }

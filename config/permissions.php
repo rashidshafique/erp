@@ -27,12 +27,10 @@ return [
         'settings.manage' => 'Settings and custom fields',
         'users.manage' => 'Users and roles',
         'audit.view' => 'View the audit trail',
-        'hr.manage' => 'People: employees, organisation, policies, leave, attendance',
-        'hr.payroll' => 'People: salaries, payroll, loans and settlements',
     ],
 
     // Open to every signed-in user; the screens check who may do what (own leave, a team's leave).
-    'open_routes' => ['leave.*', 'payslips.*'],
+    'open_routes' => [],
 
     // First match wins. Patterns use * as a wildcard.
     'routes' => [
@@ -50,8 +48,6 @@ return [
         ['pattern' => 'approvals.*', 'permission' => 'attachments.manage'],
         ['pattern' => 'attachments.*', 'permission' => 'attachments.manage'],
         ['pattern' => 'imports.*', 'permission' => 'master.manage', 'reads' => true],
-        ['pattern' => 'hr.payroll.*', 'permission' => 'hr.payroll', 'reads' => true],
-        ['pattern' => 'hr.*', 'permission' => 'hr.manage', 'reads' => true],
         ['pattern' => 'enquiries.*', 'permission' => 'sales.manage'],
         ['pattern' => 'quotations.*', 'permission' => 'sales.manage'],
         ['pattern' => 'customers.*', 'permission' => 'sales.manage'],
@@ -98,7 +94,6 @@ return [
         'QUALITY_INSPECTOR' => ['name' => 'Quality inspector', 'permissions' => ['quality.inspect', 'shopfloor.record', 'attachments.manage']],
         'QUALITY_MANAGER' => ['name' => 'Quality manager', 'permissions' => ['quality.inspect', 'quality.manage', 'shopfloor.record', 'attachments.manage', 'approvals.decide', 'approvals.configure', 'audit.view']],
         'STORES_DISPATCH' => ['name' => 'Stores and dispatch', 'permissions' => ['stores.manage', 'packing.operate', 'dispatch.operate', 'attachments.manage']],
-        'HR_MANAGER' => ['name' => 'HR manager', 'permissions' => ['hr.manage', 'hr.payroll', 'attachments.manage', 'documents.sensitive', 'approvals.decide', 'approvals.configure', 'audit.view']],
         'VIEWER' => ['name' => 'View only', 'permissions' => []],
     ],
 ];

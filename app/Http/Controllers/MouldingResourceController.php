@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Employee;
+use App\Domains\Core\Contracts\PeopleDirectory;
 use App\Models\FlaskSize;
 use App\Models\MouldingRun;
 use App\Models\MouldingStation;
@@ -16,7 +16,7 @@ use Illuminate\View\View;
 
 class MouldingResourceController extends Controller
 {
-    public function index(): View
+    public function index(PeopleDirectory $people): View
     {
         $since = today()->subDays(30);
         $stats = fn (string $col) => MouldingRun::where('run_date', '>=', $since)->whereNotNull($col)->groupBy($col)
@@ -25,7 +25,7 @@ class MouldingResourceController extends Controller
 
         return view('moulding-teams.index', [
             'teams' => MouldingTeam::withCount('employees')->with(['employees', 'leadEmployee'])->orderBy('code')->get(), 'stations' => MouldingStation::with(['flaskSizes', 'defaultTeam'])->orderBy('code')->get(),
-            'employees' => Employee::current()->with(['department', 'designation'])->orderBy('first_name')->orderBy('last_name')->get(),
+            'employees' => $people->current(), 'hrAvailable' => $people->available(),
             'teamStats' => $stats('moulding_team_id'), 'stationStats' => $stats('moulding_station_id'),
             'stationTypes' => MouldingStation::TYPES, 'sands' => SandSystem::names(),
             'flaskSizes' => FlaskSize::ordered()->where('status', 'ACTIVE')->get(),
@@ -74,6 +74,7 @@ class MouldingResourceController extends Controller
 
     private function teamData(Request $request, ?MouldingTeam $team = null): array
     {
+        $people = app(PeopleDirectory::class);
         $leadIdWasSubmitted = array_key_exists('lead_employee_id', $request->all());
         $membershipWasSubmitted = $request->boolean('employee_ids_sent');
 
@@ -93,7 +94,7 @@ class MouldingResourceController extends Controller
 
         if ($membershipWasSubmitted) {
             $ids = array_values(array_unique($d['employee_ids'] ?? []));
-            $currentCount = Employee::query()->whereIn('id', $ids)->where('status', '!=', 'EXITED')->count();
+            $currentCount = $people->countCurrent($ids);
             if ($currentCount !== count($ids)) {
                 throw \Illuminate\Validation\ValidationException::withMessages([
                     'employee_ids' => 'Choose current HR employees only. Employees who have exited cannot be assigned to a moulding team.',
@@ -104,10 +105,7 @@ class MouldingResourceController extends Controller
             } else {
                 // Backwards compatibility for older form posts that submitted memberships before there was a lead selector.
                 $legacyLeadName = trim((string) ($d['lead_name'] ?? ''));
-                $matchingLead = Employee::query()->whereIn('id', $ids)->get()->first(
-                    fn (Employee $employee) => mb_strtolower($employee->full_name) === mb_strtolower($legacyLeadName)
-                );
-                $leadId = $matchingLead?->id ?? ($ids[0] ?? null);
+                $leadId = $people->idByName($ids, $legacyLeadName) ?? ($ids[0] ?? null);
             }
 
             if (! $leadId || ! in_array($leadId, $ids, true)) {
@@ -115,7 +113,7 @@ class MouldingResourceController extends Controller
                     'lead_employee_id' => 'Select the team lead from the employees linked to this team.',
                 ]);
             }
-            $lead = Employee::current()->whereKey($leadId)->first();
+            $lead = $people->findCurrent($leadId);
             if (! $lead) {
                 throw \Illuminate\Validation\ValidationException::withMessages([
                     'lead_employee_id' => 'The team lead must be a current HR employee.',
@@ -125,7 +123,7 @@ class MouldingResourceController extends Controller
             $d['lead_name'] = $lead->full_name;
             $d['member_count'] = count($ids);
         } elseif (! empty($d['lead_employee_id'])) {
-            $lead = Employee::current()->whereKey($d['lead_employee_id'])->first();
+            $lead = $people->findCurrent($d['lead_employee_id']);
             if (! $lead) {
                 throw \Illuminate\Validation\ValidationException::withMessages([
                     'lead_employee_id' => 'The team lead must be a current HR employee.',
