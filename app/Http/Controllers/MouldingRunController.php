@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Flask;
 use App\Models\MouldAssembly;
+use App\Models\MeasurementSet;
 use App\Models\MouldConfiguration;
 use App\Models\MouldingRun;
 use App\Models\MouldingStation;
@@ -273,7 +274,15 @@ class MouldingRunController extends Controller
             }
         }
 
+        $patternId = $mouldingRun->patternRevision?->pattern_id;
+        $sandSystemId = SandSystem::where('name', $mouldingRun->sand_system)->value('id');
+        $sandSet = MeasurementSet::with('measurements')->where('kind', 'SAND')
+            ->where(fn ($q) => $q->where('moulding_run_id', $mouldingRun->id)->when($patternId, fn ($q) => $q->orWhere('pattern_id', $patternId))->when($sandSystemId, fn ($q) => $q->orWhere('sand_system_id', $sandSystemId)))
+            ->orderByRaw('case when moulding_run_id = ? then 0 else 1 end', [$mouldingRun->id])->orderByDesc('taken_at')->first();
+
         return view('moulding-runs.show', [
+            'sandReadings' => $sandSet?->measurements->keyBy('characteristic_key') ?? collect(),
+            'sandSet' => $sandSet,
             'run' => $mouldingRun,
             'flaskInfo' => $flaskInfo,
             'teams' => MouldingTeam::where('status', 'ACTIVE')->orWhere('id', $mouldingRun->moulding_team_id)->orderBy('code')->get(),

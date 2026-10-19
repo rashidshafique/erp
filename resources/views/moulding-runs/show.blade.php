@@ -9,7 +9,8 @@
 @section('content')
     <div class="page-heading">
         <div>
-            <h1>{{ $run->run_number }}</h1>
+            <h1 style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><span class="code">{{ $run->run_number }}</span>
+                <span class="status status-{{ strtolower(str_replace('_', '-', $run->status)) }}" style="font-size:12px">{{ str_replace('_', ' ', $run->status) }}</span></h1>
             <p>
                 Run recorded for {{ $run->run_date?->format('d F Y') ?? 'an unspecified date' }}.
                 Review the production order, output and downtime below.
@@ -25,26 +26,30 @@
 
     <div class="run-show-split">
     <div data-tab-host>
-    <div class="metrics">
+    <div class="metrics run-metrics">
+        <div class="metric">
+            <div class="metric-label">Target / planned</div>
+            <div class="metric-value">{{ \App\Support\Formats::number($run->planned_mould_qty ?? 0) }}<span class="metric-note">Planned moulds</span></div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Total expected</div>
+            <div class="metric-value">{{ $perMould !== null ? rtrim(rtrim(\App\Support\Formats::number($perMould * ($run->planned_mould_qty ?? 0), 1), '0'), '.') : '—' }}<span class="metric-note">{{ $perMould !== null ? 'Castings @ '.rtrim(rtrim(\App\Support\Formats::number($perMould, 3), '0'), '.').'-cavity' : 'No cavity map' }}</span></div>
+        </div>
         <div class="metric">
             <div class="metric-label">Moulds made</div>
-            <div class="metric-value">{{ \App\Support\Formats::number($run->moulds_made_qty) }}</div>
-            <div class="metric-note">Recorded total output</div>
+            <div class="metric-value">{{ \App\Support\Formats::number($run->moulds_made_qty) }}<span class="metric-note">Recorded total output</span></div>
         </div>
         <div class="metric">
             <div class="metric-label">Accepted moulds</div>
-            <div class="metric-value">{{ \App\Support\Formats::number($run->accepted_mould_qty) }}</div>
-            <div class="metric-note">Accepted at moulding stage</div>
+            <div class="metric-value">{{ \App\Support\Formats::number($run->accepted_mould_qty) }}<span class="metric-note">Accepted at moulding stage</span></div>
         </div>
         <div class="metric">
             <div class="metric-label">Damaged moulds</div>
-            <div class="metric-value">{{ \App\Support\Formats::number($run->damaged_mould_qty) }}</div>
-            <div class="metric-note">Moulding damage only</div>
+            <div class="metric-value">{{ \App\Support\Formats::number($run->damaged_mould_qty) }}<span class="metric-note">Moulding damage only</span></div>
         </div>
         <div class="metric">
             <div class="metric-label">Downtime</div>
-            <div class="metric-value">{{ \App\Support\Formats::number($run->downtime_minutes) }}</div>
-            <div class="metric-note">Minutes recorded</div>
+            <div class="metric-value">{{ \App\Support\Formats::number($run->downtime_minutes) }}<span class="metric-note">Minutes recorded</span></div>
         </div>
     </div>
 
@@ -169,6 +174,32 @@
                         {{ $run->created_at?->displayDateTime() ?? '—' }}
                     </div>
                 </div>
+            </div>
+        </div>
+    </section>
+
+    @php
+        $reading = function (string $key) use ($sandReadings) {
+            $m = $sandReadings->get($key);
+            if (! $m || $m->value === null) {
+                return ['—', null];
+            }
+            $range = $m->min_value !== null || $m->max_value !== null ? 'Opt: '.rtrim(rtrim(number_format((float) $m->min_value, 2, '.', ''), '0'), '.').'–'.rtrim(rtrim(number_format((float) $m->max_value, 2, '.', ''), '0'), '.').($m->unit ? ' '.$m->unit : '') : null;
+
+            return [rtrim(rtrim(number_format((float) $m->value, 2, '.', ''), '0'), '.').($m->unit ? ' '.$m->unit : ''), $range];
+        };
+    @endphp
+    <section class="panel">
+        <div class="panel-header">
+            <h2>Sand loop readings</h2>
+            <span class="muted small">{{ $sandSet ? 'From the sand test of '.$sandSet->taken_at->displayShortDateTime() : 'No sand test yet' }} · <a href="{{ route('sand-tests.index', ['moulding_run_id' => $run->id]) }}">Sand lab</a></span>
+        </div>
+        <div class="panel-body">
+            <div class="run-sand-grid">
+                @foreach ([['moisture_pct', 'Moisture content'], ['green_strength_kpa', 'Green comp. strength'], ['sand_temperature_c', 'Sand temperature']] as [$key, $title])
+                    @php([$text, $range] = $reading($key))
+                    <div class="run-sand-tile"><div class="rm-lbl">{{ $title }}</div><strong class="code">{{ $text }}</strong>@if ($range)<span class="code muted small"> ({{ $range }})</span>@endif</div>
+                @endforeach
             </div>
         </div>
     </section>
@@ -330,6 +361,12 @@
     </aside>
     </div>
     <style>
+        .run-metrics { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+        .run-metrics .metric-value { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px; }
+        .run-metrics .metric-note { margin: 0; font-family: ui-monospace, Menlo, monospace; }
+        .run-sand-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+        .run-sand-tile { padding: 12px; border-radius: 8px; background: #eef3f9; }
+        .run-sand-tile .rm-lbl { margin-bottom: 4px; font-size: 12px; font-weight: 600; color: var(--muted); }
         .run-show-split { display: grid; grid-template-columns: minmax(0, 65fr) minmax(0, 35fr); gap: 18px; align-items: start; }
         @media (max-width: 900px) { .run-show-split { grid-template-columns: 1fr; } }
     </style>
