@@ -81,6 +81,10 @@
     @if (! $review)
         <div class="empty-state">No review yet. Run the contract review to check the order against specifications, customer requirements, grade, furnaces, thermal window, pattern and control plan.</div>
     @else
+        @php $blocks = $review->items->where('severity', 'BLOCK'); @endphp
+        @if ($blocks->isNotEmpty())
+            <div class="alert alert-error" style="margin:12px"><strong>Blocked. Fix these, then re-run the review:</strong><ul>@foreach ($blocks as $b)<li>{{ $b->message }}</li>@endforeach</ul></div>
+        @endif
         <div class="table-wrap"><table>
             <thead><tr><th>Line</th><th>Check</th><th>Result</th><th>Finding</th><th>Acknowledgement</th></tr></thead>
             <tbody>
