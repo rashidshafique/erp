@@ -116,11 +116,12 @@ class ContractReviewer
         }
 
         // Pattern with cavity map
-        $patterns = PatternRevisionCavity::query()
+        $patterns = PatternRevisionCavity::with('patternRevision.pattern')
             ->whereHas('productRevision', fn ($q) => $q->where('product_id', $line->product_id))
-            ->whereHas('patternRevision', fn ($q) => $q->whereIn('status', ['APPROVED']))->count();
-        $out[] = $patterns > 0
-            ? ['PATTERN', 'PASS', "{$patterns} cavity(ies) on approved pattern revisions make this product."]
+            ->whereHas('patternRevision', fn ($q) => $q->whereIn('status', ['APPROVED']))->get();
+        $names = $patterns->map(fn ($c) => $c->patternRevision?->pattern ? $c->patternRevision->pattern->code.' '.$c->patternRevision->pattern->name.' rev '.$c->patternRevision->revision : null)->filter()->unique()->implode(', ');
+        $out[] = $patterns->isNotEmpty()
+            ? ['PATTERN', 'PASS', "{$patterns->count()} cavity(ies) on approved pattern revisions make this product: {$names}."]
             : ['PATTERN', 'WARN', "No cavity of an approved pattern revision is linked to {$line->product?->code}. Link cavities on the pattern page."];
 
         // Control plan

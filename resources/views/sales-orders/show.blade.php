@@ -88,7 +88,7 @@
             <tbody>
             @foreach ($review->items->sortBy(fn ($i) => [$i->line?->line_number ?? 0, ['BLOCK' => 0, 'WARN' => 1, 'PASS' => 2][$i->severity]]) as $i)
                 <tr>
-                    <td>{{ $i->line?->line_number ?? '—' }}</td>
+                    <td>@if($i->line)<strong>{{ $i->line->product?->code }}</strong> — {{ $i->line->product?->name }}<div class="muted small">Line {{ $i->line->line_number }}</div>@else—@endif</td>
                     <td>{{ str_replace('_', ' ', $i->check_code) }}</td>
                     <td><span class="status {{ $i->severity === 'PASS' ? 'status-completed' : ($i->severity === 'WARN' ? 'status-on-hold' : 'status-cancelled') }}">{{ $i->severity }}</span></td>
                     <td style="white-space:normal;min-width:260px">{{ $i->message }}</td>
