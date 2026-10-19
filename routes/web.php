@@ -374,6 +374,7 @@ Route::prefix('ncrs')->name('ncrs.')->controller(NcrController::class)->group(fu
 });
 
 // ---- Moulding teams, stations, daily work lists, mould readiness ----
+Route::post('/moulding-runs/{mouldingRun}/reopen', [MouldingRunController::class, 'reopen'])->name('moulding-runs.reopen');
 Route::post('/moulding-runs/{mouldingRun}/output', [MouldingRunController::class, 'recordOutput'])->name('moulding-runs.output');
 Route::controller(MouldingResourceController::class)->prefix('moulding-teams')->name('moulding-teams.')->group(function () {
     Route::get('/', 'index')->name('index');

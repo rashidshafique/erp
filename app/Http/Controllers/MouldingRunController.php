@@ -338,4 +338,15 @@ class MouldingRunController extends Controller
 
         return back()->with('success', $request->boolean('complete') ? 'Run completed.' : 'Output saved.');
     }
+
+    public function reopen(MouldingRun $mouldingRun, WorkListService $svc): RedirectResponse
+    {
+        try {
+            $svc->reopenRun($mouldingRun);
+        } catch (\InvalidArgumentException $e) {
+            return back()->withErrors(['output' => $e->getMessage()]);
+        }
+
+        return back()->with('success', 'Run reopened.');
+    }
 }

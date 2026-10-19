@@ -344,4 +344,25 @@ class WorkListService
             return $run;
         });
     }
+
+    /** Undo a run marked completed by mistake: back in progress, with its work list item and list reopened. */
+    public function reopenRun(MouldingRun $run): MouldingRun
+    {
+        return DB::transaction(function () use ($run) {
+            $run = MouldingRun::whereKey($run->id)->lockForUpdate()->firstOrFail();
+            if ($run->status !== 'COMPLETED') {
+                throw new InvalidArgumentException('Only a completed run can be reopened.');
+            }
+            $run->update(['status' => 'IN_PROGRESS', 'completed_at' => null]);
+            $item = $run->moulding_work_list_item_id ? MouldingWorkListItem::find($run->moulding_work_list_item_id) : null;
+            if ($item?->status === 'DONE') {
+                $item->update(['status' => 'IN_PROGRESS']);
+                if ($item->workList?->status === 'COMPLETED') {
+                    $item->workList->update(['status' => 'ISSUED']);
+                }
+            }
+
+            return $run;
+        });
+    }
 }

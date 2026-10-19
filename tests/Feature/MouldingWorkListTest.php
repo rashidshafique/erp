@@ -84,6 +84,15 @@ class MouldingWorkListTest extends TestCase
         $this->assertSame('COMPLETED', $list->fresh()->status);
         $this->post(route('moulding-runs.output', $run), ['moulds_made_qty' => 1, 'accepted_mould_qty' => 1, 'damaged_mould_qty' => 0])->assertSessionHasErrors('output');
 
+        $this->get(route('moulding-runs.show', $run))->assertSee('Reopen run');
+        $this->post(route('moulding-runs.reopen', $run))->assertSessionHasNoErrors();
+        $this->assertSame('IN_PROGRESS', $run->fresh()->status);
+        $this->assertNull($run->fresh()->completed_at);
+        $this->assertSame('IN_PROGRESS', $item->fresh()->status);
+        $this->assertSame('ISSUED', $list->fresh()->status);
+        $this->post(route('moulding-runs.reopen', $run))->assertSessionHasErrors('output');                               // not completed any more
+        $this->post(route('moulding-runs.output', $run), ['moulds_made_qty' => 32, 'accepted_mould_qty' => 30, 'damaged_mould_qty' => 2, 'complete' => 1])->assertSessionHasNoErrors();
+
         $this->get(route('moulding-teams.index'))->assertOk()->assertSee('Team Alpha');
         $this->get(route('mould-readiness.index'))->assertOk()->assertSee('30');                                          // 30 accepted, none assembled yet
     }

@@ -300,6 +300,16 @@
         </div>
     </section>
     @endif
+    @if ($run->status === 'COMPLETED')
+    <section class="panel">
+        <div class="panel-header"><h2>Run completed</h2></div>
+        <div class="panel-body">
+            @if ($errors->has('output'))<div class="alert alert-error">{{ $errors->first('output') }}</div>@endif
+            <p class="small" style="margin-top:0">Marked completed by mistake? Reopen the run to correct its output.</p>
+            <form method="POST" action="{{ route('moulding-runs.reopen', $run) }}" onsubmit="return confirm('Reopen this run? It goes back to In progress.')">@csrf<button class="btn" type="submit">Reopen run</button></form>
+        </div>
+    </section>
+    @endif
 
     </aside>
     </div>
