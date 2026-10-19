@@ -520,7 +520,11 @@ document.addEventListener('DOMContentLoaded', () => {
     var side = document.getElementById('main-sidebar'), leaving = null;
     side.addEventListener('mouseenter', function () {
         clearTimeout(leaving);
-        if (mode() === 'desktop' && root.classList.contains('menu-slim')) { root.classList.remove('menu-slim'); root.classList.add('menu-hover'); names(false); }
+        if (mode() === 'desktop' && root.classList.contains('menu-slim')) {
+            root.classList.remove('menu-slim');
+            root.style.setProperty('--side-open-w', getComputedStyle(root).getPropertyValue('--side-w').trim());
+            root.classList.add('menu-hover'); names(false);
+        }
     });
     side.addEventListener('mouseleave', function () {
         leaving = setTimeout(function () {

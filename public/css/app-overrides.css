@@ -118,10 +118,11 @@ select:not([multiple]):not([size]) {
     .menu-slim .menu-expand { display: flex; align-items: center; justify-content: center; width: 100%; margin: 0 0 10px; padding: 8px 0 !important; border: 0; background: transparent; cursor: pointer; }
     .menu-slim .topbar .menu-toggle { display: none; }
 }
-/* Slim menu being pointed at: the full menu floats over the page while the page keeps its 64px margin. */
+/* Slim menu being pointed at: the full menu floats over the page. --side-w stays 64px so nothing else on the page moves. */
 @media (min-width: 1025px) {
-    html.menu-hover .sidebar { z-index: 60; box-shadow: 0 0 40px rgba(15, 23, 42, .2); }
-    html.menu-hover .main-area { margin-left: 64px !important; }
+    html.menu-hover { --side-w: 64px !important; }
+    html.menu-hover .sidebar { width: var(--side-open-w, 245px) !important; z-index: 60; box-shadow: 2px 0 10px rgba(15, 23, 42, .07); }
+    html.menu-hover .sidebar-resizer { display: none !important; }
 }
 /* Responsive menu. Desktop: fixed, optionally slim. Tablet: always an icon rail; the button opens the full menu over the page.
    Mobile: hidden off-canvas; the button slides it in over a dimmed backdrop. */
