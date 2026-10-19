@@ -10,7 +10,7 @@
         <p>Manage physical tooling, pattern revisions and moulding configurations.</p>
     </div>
     <div class="actions">
-        <a class="btn" href="{{ route('imports.create', ['entity' => 'pattern']) }}">Import</a> <a class="btn btn-primary" href="{{ route('patterns.create') }}">+ New pattern</a>
+        <a class="btn" href="{{ route('pattern-ownership.index') }}">Pattern ownership</a> <a class="btn" href="{{ route('imports.create', ['entity' => 'pattern']) }}">Import</a> <a class="btn btn-primary" href="{{ route('patterns.create') }}">+ New pattern</a>
     </div>
 </div>
 

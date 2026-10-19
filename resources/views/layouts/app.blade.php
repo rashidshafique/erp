@@ -48,8 +48,7 @@
                 </button>
                 <div class="nav-submenu" hidden>
                     <a href="{{ route('products.index') }}" class="nav-link {{ request()->routeIs('products.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('box') !!}<span>Products</span></a>
-                    <a href="{{ route('patterns.index') }}" class="nav-link {{ request()->routeIs('patterns.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('layers') !!}<span>Patterns</span></a>
-                    <a href="{{ route('pattern-ownership.index') }}" class="nav-link {{ request()->routeIs('pattern-ownership.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('users') !!}<span>Pattern ownership</span></a>
+                    <a href="{{ route('patterns.index') }}" class="nav-link {{ request()->routeIs('patterns.*', 'pattern-ownership.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('layers') !!}<span>Patterns</span></a>
                     <a href="{{ route('casting-analyses.index') }}" class="nav-link {{ request()->routeIs('casting-analyses.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('chart-line') !!}<span>Casting analysis</span></a>
                     <a href="{{ route('production-orders.index') }}" class="nav-link {{ request()->routeIs('production-orders.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('factory') !!}<span>Production orders</span></a>
                     <a href="{{ route('moulding-runs.index') }}" class="nav-link {{ request()->routeIs('moulding-runs.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('grid') !!}<span>Moulding runs</span></a>
