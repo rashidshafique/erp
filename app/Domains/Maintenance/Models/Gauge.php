@@ -1,8 +1,9 @@
 <?php
 
-namespace App\Models;
+namespace App\Domains\Maintenance\Models;
 
-use App\Services\Quality\CalibrationStatus;
+use App\Domains\Maintenance\Services\CalibrationStatus;
+use App\Models\Concerns\GeneratesCodes;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 /** One measuring instrument: a caliper, thermocouple, balance, spectrometer. It is calibrated on an interval and traced from the results it measured. */
 class Gauge extends Model
 {
-    use Concerns\GeneratesCodes, HasUuids, SoftDeletes;
+    use GeneratesCodes, HasUuids, SoftDeletes;
 
     public string $codeKind = 'gauge';
 

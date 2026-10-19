@@ -1,12 +1,14 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Domains\Maintenance\Http\Controllers;
 
-use App\Models\Gauge;
-use App\Models\GaugeCalibration;
-use App\Services\Quality\CalibrationStatus;
-use App\Services\Quality\GaugeUsage;
-use App\Support\CalibrationRules;
+use App\Domains\Maintenance\Models\Gauge;
+use App\Domains\Maintenance\Models\GaugeCalibration;
+use App\Domains\Maintenance\Services\CalibrationStatus;
+use App\Domains\Maintenance\Services\GaugeUsage;
+use App\Domains\Maintenance\Support\CalibrationRules;
+use App\Http\Controllers\AttachmentController;
+use App\Http\Controllers\Controller;
 use App\Support\Uploads;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -36,7 +38,7 @@ class GaugeController extends Controller
             ->orderBy('next_due_on')->orderBy('code')
             ->paginate(25)->withQueryString();
 
-        return view('gauges.index', [
+        return view('maintenance::gauges.index', [
             'gauges' => $gauges, 'types' => Gauge::TYPES,
             'counts' => [
                 'overdue' => $needsCal(Gauge::query())->whereNotNull('next_due_on')->whereDate('next_due_on', '<', today())->count(),
@@ -49,7 +51,7 @@ class GaugeController extends Controller
 
     public function create(): View
     {
-        return view('gauges.form', ['gauge' => new Gauge(['status' => 'IN_SERVICE', 'requires_calibration' => true, 'calibration_interval_days' => 365]), 'types' => Gauge::TYPES, 'statuses' => Gauge::STATUSES]);
+        return view('maintenance::gauges.form', ['gauge' => new Gauge(['status' => 'IN_SERVICE', 'requires_calibration' => true, 'calibration_interval_days' => 365]), 'types' => Gauge::TYPES, 'statuses' => Gauge::STATUSES]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -64,7 +66,7 @@ class GaugeController extends Controller
     {
         $gauge->load('calibrations');
 
-        return view('gauges.show', [
+        return view('maintenance::gauges.show', [
             'gauge' => $gauge, 'results' => GaugeCalibration::RESULTS, 'status' => app(CalibrationStatus::class)->of($gauge),
             'measured' => $usage->results($gauge), 'doubtfulSince' => $usage->doubtfulSince($gauge),
         ]);
@@ -72,7 +74,7 @@ class GaugeController extends Controller
 
     public function edit(Gauge $gauge): View
     {
-        return view('gauges.form', ['gauge' => $gauge, 'types' => Gauge::TYPES, 'statuses' => Gauge::STATUSES]);
+        return view('maintenance::gauges.form', ['gauge' => $gauge, 'types' => Gauge::TYPES, 'statuses' => Gauge::STATUSES]);
     }
 
     public function update(Request $request, Gauge $gauge): RedirectResponse

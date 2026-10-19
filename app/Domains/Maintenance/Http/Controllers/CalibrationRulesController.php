@@ -1,8 +1,9 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Domains\Maintenance\Http\Controllers;
 
-use App\Support\CalibrationRules;
+use App\Domains\Maintenance\Support\CalibrationRules;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;

@@ -7,7 +7,7 @@
 <div class="page-heading">
     <div>
         <h1>{{ $gauge->name }}</h1>
-        <p><span class="mono">{{ $gauge->code }}</span> · {{ \App\Models\Gauge::TYPES[$gauge->instrument_type] ?? $gauge->instrument_type }} · @include('gauges._status', ['state' => $status])</p>
+        <p><span class="mono">{{ $gauge->code }}</span> · {{ \App\Domains\Maintenance\Models\Gauge::TYPES[$gauge->instrument_type] ?? $gauge->instrument_type }} · @include('maintenance::gauges._status', ['state' => $status])</p>
     </div>
     <div class="actions"><a class="btn" href="{{ route('gauges.index') }}">All instruments</a><a class="btn" href="{{ route('gauges.edit', $gauge) }}">Edit</a></div>
 </div>

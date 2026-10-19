@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Services\Quality;
+namespace App\Domains\Maintenance\Services;
 
-use App\Models\Gauge;
+use App\Domains\Maintenance\Models\Gauge;
 use App\Models\HeatChemistryReading;
 use App\Models\HeatTreatment;
 use App\Models\MeasurementSet;

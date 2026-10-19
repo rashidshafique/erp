@@ -29,7 +29,7 @@
             <label>Metal treated (kg)<input type="number" step="any" name="metal_treated_kg"><span class="muted small">Gives the addition %</span></label>
             <label>Method<select name="method"><option value="">—</option>@foreach (\App\Models\HeatTreatment::METHODS as $k => $l)<option value="{{ $k }}">{{ $l }}</option>@endforeach</select></label>
             <label>Metal temperature °C<input type="number" step="any" name="temperature_c"></label>
-            @include('gauges._select', ['plain' => true, 'id' => 'treatment_gauge', 'label' => 'Pyrometer', 'types' => ['THERMOCOUPLE']])
+            @include('maintenance::gauges._select', ['plain' => true, 'id' => 'treatment_gauge', 'label' => 'Pyrometer', 'types' => ['THERMOCOUPLE']])
             <label>Ladle<input name="ladle_reference"></label>
             <label>Mg recovery %<input type="number" step="any" name="recovery_pct"></label>
             <label>Treated by<input name="treated_by"></label>

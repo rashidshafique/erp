@@ -470,17 +470,6 @@ Route::prefix('corrective-actions')->name('capa.')->controller(\App\Http\Control
     Route::post('/{capa}/verify', 'verify')->name('verify');
     Route::post('/{capa}/cancel', 'cancel')->name('cancel');
 });
-Route::get('/settings/calibration', [\App\Http\Controllers\CalibrationRulesController::class, 'edit'])->name('settings.calibration.edit');
-Route::put('/settings/calibration', [\App\Http\Controllers\CalibrationRulesController::class, 'update'])->name('settings.calibration');
-Route::prefix('gauges')->name('gauges.')->controller(\App\Http\Controllers\GaugeController::class)->group(function () {
-    Route::get('/', 'index')->name('index');
-    Route::get('/create', 'create')->name('create');
-    Route::post('/', 'store')->name('store');
-    Route::get('/{gauge}', 'show')->name('show');
-    Route::get('/{gauge}/edit', 'edit')->name('edit');
-    Route::put('/{gauge}', 'update')->name('update');
-    Route::post('/{gauge}/calibrations', 'calibrate')->name('calibrate');
-});
 Route::get('/settings/pouring', [\App\Http\Controllers\PouringRulesController::class, 'edit'])->name('settings.pouring.edit');
 Route::put('/settings/pouring', [\App\Http\Controllers\PouringRulesController::class, 'update'])->name('settings.pouring');
 Route::prefix('flask-sizes')->name('flask-sizes.')->controller(FlaskSizeController::class)->group(function () {

@@ -40,7 +40,7 @@
                 <td>{{ $gauge->location ?: '—' }}</td>
                 <td>{{ $gauge->last_calibrated_on?->displayDate() ?? '—' }}</td>
                 <td>{{ $gauge->next_due_on?->displayDate() ?? '—' }}</td>
-                <td>@include('gauges._status', ['state' => $gauge->calibrationStatus()])</td>
+                <td>@include('maintenance::gauges._status', ['state' => $gauge->calibrationStatus()])</td>
             </tr>
         @empty
             <tr><td colspan="7" class="muted">No instruments yet. Add the first one to start the register.</td></tr>

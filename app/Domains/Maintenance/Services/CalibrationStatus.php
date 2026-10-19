@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Services\Quality;
+namespace App\Domains\Maintenance\Services;
 
-use App\Models\Gauge;
-use App\Models\GaugeCalibration;
-use App\Support\CalibrationRules;
+use App\Domains\Maintenance\Models\Gauge;
+use App\Domains\Maintenance\Models\GaugeCalibration;
+use App\Domains\Maintenance\Support\CalibrationRules;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 
