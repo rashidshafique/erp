@@ -20,7 +20,9 @@
         }
     }
     $lists = compact('patterns', 'patternPhotos', 'stations', 'stationCrew', 'orders', 'defects', 'shifts');
-    $revisionInfo = $patterns->flatMap->revisions->mapWithKeys(fn ($r) => [$r->id => ['pattern' => $r->pattern_id, 'superseded' => $r->isSuperseded(), 'cavities' => $r->cavityMap->pluck('cavity_number')->implode(', ')]]);
+    $revisionInfo = $patterns->flatMap->revisions->mapWithKeys(fn ($r) => [$r->id => ['pattern' => $r->pattern_id, 'superseded' => $r->isSuperseded(), 'cavities' => $r->cavityMap->pluck('cavity_number')->implode(', '), 'products' => $r->cavityMap->pluck('productRevision.product_id')->filter()->unique()->values()]]);
+    $revisionsOf = $patterns->mapWithKeys(fn ($p) => [$p->id => $p->revisions->pluck('id')]);
+    $orderProduct = $orders->pluck('product_id', 'id');
     $currentOf = $patterns->mapWithKeys(fn ($p) => [$p->id => $p->revisions->firstWhere('is_current', true)?->id]);
     $made = collect($gridRows)->sum(fn ($r) => (int) ($r['moulds_made_qty'] ?? 0));
     $rejected = collect($gridRows)->sum(fn ($r) => (int) ($r['damaged_mould_qty'] ?? 0));
@@ -131,10 +133,19 @@
 <script>
 (function () {
     var body = document.getElementById('bulk-rows'), form = document.getElementById('bulk-form');
-    var revisions = @json($revisionInfo), currentOf = @json($currentOf), crewOf = @json($stationCrew), n = 0;
+    var revisions = @json($revisionInfo), currentOf = @json($currentOf), revisionsOf = @json($revisionsOf), orderProduct = @json($orderProduct), workListOf = @json($workListRevisions), lastRunOf = @json($lastRunRevisions), crewOf = @json($stationCrew), n = 0;
     function field(tr, f) { return tr.querySelector('[name$="[' + f + ']"]'); }
     function rowsOf() { return [].slice.call(body.querySelectorAll('tr[data-bulk-row]')); }
 
+    // The revision a row starts with: its work list, else the pattern's last completed run, else one that makes the order's product, else the current one.
+    function suggestRevision(tr, pat) {
+        var d = (field(tr, 'run_date') || {}).value, sh = ((field(tr, 'shift') || {}).value || '').toLowerCase(), st = (field(tr, 'moulding_station_id') || {}).value || '';
+        var found = workListOf[d + '|' + sh + '|' + st + '|' + pat] || workListOf[d + '|' + sh + '||' + pat] || lastRunOf[pat];
+        if (found) return found;
+        var product = orderProduct[(field(tr, 'production_order_id') || {}).value];
+        if (product) { found = (revisionsOf[pat] || []).filter(function (id) { return revisions[id] && revisions[id].products.indexOf(product) !== -1; })[0]; }
+        return found || currentOf[pat] || '';
+    }
     function syncRevision(tr) {
         var pat = field(tr, 'pattern_id'), rev = field(tr, 'pattern_revision_id');
         if (!pat || !rev) return;
@@ -142,7 +153,7 @@
         if (rev.disabled) rev.value = '';
         [].forEach.call(rev.querySelectorAll('optgroup'), function (g) { g.hidden = pat.value !== '' && g.dataset.patternId !== pat.value; g.disabled = g.hidden; });
         var info = revisions[rev.value];
-        if (pat.value && (!info || info.pattern !== pat.value)) { rev.value = currentOf[pat.value] || ''; info = revisions[rev.value]; }
+        if (pat.value && (!info || info.pattern !== pat.value)) { rev.value = suggestRevision(tr, pat.value); info = revisions[rev.value]; }
         var warn = tr.querySelector('.warn'); if (warn) warn.hidden = !(info && info.superseded);
         var cav = field(tr, 'cavity_numbers');
         if (cav) { cav.placeholder = info && info.cavities ? info.cavities : 'all'; cav.title = info && info.cavities ? 'Mapped cavities: ' + info.cavities : 'No cavity map'; }

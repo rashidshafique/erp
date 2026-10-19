@@ -295,4 +295,38 @@ class MouldingRunBulkTest extends TestCase
 
         $this->assertSame($current->id, MouldingRun::sole()->pattern_revision_id);
     }
+
+    public function test_a_blank_revision_follows_the_work_list_before_the_current_one(): void
+    {
+        $w = $this->world();
+        $w['pattern']->addRevision(['change_description' => 'New gating'], copyLayout: true);
+        $listId = (string) Str::uuid();
+        DB::table('moulding_work_lists')->insert(['id' => $listId, 'list_number' => 'WL-T2', 'list_date' => '2026-10-17', 'shift' => 'Morning', 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('moulding_work_list_items')->insert(['id' => (string) Str::uuid(), 'moulding_work_list_id' => $listId, 'moulding_station_id' => $w['station']->id, 'production_order_id' => $w['order']->id, 'pattern_revision_id' => $w['revision']->id, 'planned_moulds' => 10, 'created_at' => now(), 'updated_at' => now()]);
+
+        $this->post(route('moulding-runs.bulk.save'), ['rows' => ['a' => $this->row($w, ['pattern_revision_id' => ''])]])->assertSessionHasNoErrors();
+
+        $this->assertSame($w['revision']->id, MouldingRun::sole()->pattern_revision_id);
+    }
+
+    public function test_a_blank_revision_follows_the_last_completed_run_before_the_current_one(): void
+    {
+        $w = $this->world();
+        $w['pattern']->addRevision(['change_description' => 'New gating'], copyLayout: true);
+        MouldingRun::create(['run_number' => 'MR-OLD', 'production_order_id' => $w['order']->id, 'run_date' => '2026-10-10', 'pattern_revision_id' => $w['revision']->id, 'status' => 'COMPLETED']);
+
+        $this->post(route('moulding-runs.bulk.save'), ['rows' => ['a' => $this->row($w, ['pattern_revision_id' => ''])]])->assertSessionHasNoErrors();
+
+        $this->assertSame($w['revision']->id, MouldingRun::where('run_number', '!=', 'MR-OLD')->sole()->pattern_revision_id);
+    }
+
+    public function test_a_blank_revision_falls_back_to_the_one_that_makes_the_orders_product(): void
+    {
+        $w = $this->world();
+        $w['pattern']->addRevision(['change_description' => 'Unmapped'], copyLayout: false);
+
+        $this->post(route('moulding-runs.bulk.save'), ['rows' => ['a' => $this->row($w, ['pattern_revision_id' => '', 'production_order_id' => $w['order']->id])]])->assertSessionHasNoErrors();
+
+        $this->assertSame($w['revision']->id, MouldingRun::sole()->pattern_revision_id);
+    }
 }

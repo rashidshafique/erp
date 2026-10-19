@@ -93,12 +93,12 @@ class BulkRunPaste
             }
         }
 
-        // The revision is matched within the pattern; left blank it is the pattern's current revision.
+        // The revision is matched within the pattern; left blank it is worked out like a new grid row's.
         $row['pattern_revision_id'] = null;
         if ($row['pattern_id']) {
             $revisions = PatternRevision::where('pattern_id', $row['pattern_id']);
             $row['pattern_revision_id'] = $raw['revision'] === ''
-                ? (clone $revisions)->where('is_current', true)->value('id')
+                ? app(RunRevisionPrefill::class)->forRow($row['pattern_id'], $row['run_date'], $row['shift'], $row['moulding_station_id'], $row['production_order_id'])
                 : (clone $revisions)->where(fn ($q) => $q->whereRaw('upper(code) = ?', [mb_strtoupper($raw['revision'])])->orWhereRaw('upper(revision) = ?', [mb_strtoupper($raw['revision'])]))->value('id');
             if ($raw['revision'] !== '' && ! $row['pattern_revision_id']) {
                 $errors['pattern_revision_id'] = "Pattern {$raw['pattern']} has no revision “{$raw['revision']}”.";

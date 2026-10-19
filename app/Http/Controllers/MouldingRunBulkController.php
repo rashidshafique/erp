@@ -10,6 +10,7 @@ use App\Models\ProductionOrder;
 use App\Models\QualityDefect;
 use App\Services\Production\BulkRunEntry;
 use App\Services\Production\BulkRunPaste;
+use App\Services\Production\RunRevisionPrefill;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -19,7 +20,7 @@ use Illuminate\View\View;
 class MouldingRunBulkController extends Controller
 {
     /** The grid. With ?date= (and ?shift=) it opens that shift's saved runs for correction. */
-    public function edit(Request $request): View
+    public function edit(Request $request, RunRevisionPrefill $prefill): View
     {
         $opened = $request->filled('date');
         $runs = $opened
@@ -41,7 +42,7 @@ class MouldingRunBulkController extends Controller
         }
 
         $patterns = Pattern::where('status', 'ACTIVE')->orWhereIn('id', collect($rows)->pluck('pattern_id')->filter())->orderBy('name')->orderBy('code')
-            ->with(['revisions' => fn ($q) => $q->orderByDesc('is_current')->orderByDesc('sequence'), 'revisions.cavityMap'])->get();
+            ->with(['revisions' => fn ($q) => $q->orderByDesc('is_current')->orderByDesc('sequence'), 'revisions.cavityMap.productRevision'])->get();
 
         $stations = MouldingStation::with('defaultTeam')->where('status', '!=', 'INACTIVE')->orderBy('code')->get();
 
@@ -56,6 +57,8 @@ class MouldingRunBulkController extends Controller
             'patterns' => $patterns,
             'stations' => $stations,
             'stationCrew' => $stations->mapWithKeys(fn (MouldingStation $st) => [$st->id => trim(($st->defaultTeam?->code ?? 'no team').' · '.($st->defaultSand() ?? 'no sand'))]),
+            'workListRevisions' => $prefill->workListMap($request->input('date', today()->toDateString())),
+            'lastRunRevisions' => $prefill->lastRunMap($patterns->pluck('id')->all()),
             'patternPhotos' => $this->coverPhotos($patterns->pluck('id')->all()),
             'orders' => ProductionOrder::open()->with('product')->orderBy('production_order_number')->get(),
             'defects' => QualityDefect::where('is_active', true)->orderBy('code')->get(),

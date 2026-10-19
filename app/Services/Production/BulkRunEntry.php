@@ -25,7 +25,7 @@ class BulkRunEntry
     /** A new row with none of these filled is ignored. Team and sand are not entered: they come from the station. */
     private const CONTENT = ['pattern_id', 'pattern_revision_id', 'moulds_made_qty', 'damaged_mould_qty', 'cavity_numbers', 'notes'];
 
-    public function __construct(private PatternCavityMap $map, private WorkListService $workLists) {}
+    public function __construct(private PatternCavityMap $map, private WorkListService $workLists, private RunRevisionPrefill $prefill) {}
 
     /**
      * @param  array<string|int, array<string, mixed>>  $rows
@@ -122,9 +122,12 @@ class BulkRunEntry
      */
     private function check(array $row, int $position): array
     {
-        // The revision defaults to the pattern's current one.
         if (blank($row['pattern_revision_id'] ?? null) && filled($row['pattern_id'] ?? null) && Str::isUuid($row['pattern_id'])) {
-            $row['pattern_revision_id'] = PatternRevision::where('pattern_id', $row['pattern_id'])->where('is_current', true)->value('id');
+            $row['pattern_revision_id'] = $this->prefill->forRow(
+                $row['pattern_id'], $row['run_date'] ?? null, $row['shift'] ?? null,
+                Str::isUuid($row['moulding_station_id'] ?? null) ? $row['moulding_station_id'] : null,
+                Str::isUuid($row['production_order_id'] ?? null) ? $row['production_order_id'] : null,
+            );
         }
         $v = Validator::make($row, [
             'id' => ['nullable', 'uuid', Rule::exists('moulding_runs', 'id')],
