@@ -194,9 +194,9 @@ class MouldingRunController extends Controller
                 ->withInput();
         }
 
-        $ownershipWarning = app(PatternOwnership::class)->checkUse(
+        $ownershipWarning = empty($validated['pattern_revision_id']) ? null : app(PatternOwnership::class)->checkUse(
             PatternRevision::with('pattern')->findOrFail($validated['pattern_revision_id']),
-            ! empty($validated['production_order_id']) ? ProductionOrder::find($validated['production_order_id']) : null,
+            ProductionOrder::find($validated['production_order_id']),
         );
         $run = DB::transaction(function () use ($validated) {
             $validated['run_number'] = MouldingRun::nextRunNumber();

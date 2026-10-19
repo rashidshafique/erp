@@ -82,6 +82,18 @@ class MouldingRunBulkTest extends TestCase
         $this->get(route('moulding-runs.create'))->assertViewHas('activePatternRevisionIdsByProduct', []);
     }
 
+    public function test_a_run_can_be_created_without_a_pattern_revision(): void
+    {
+        $w = $this->world();
+
+        $this->post(route('moulding-runs.store'), [
+            'production_order_id' => $w['order']->id, 'run_date' => '2026-10-19', 'status' => 'IN_PROGRESS',
+            'moulds_made_qty' => 10, 'accepted_mould_qty' => 9, 'damaged_mould_qty' => 1,
+        ])->assertSessionHasNoErrors()->assertRedirect();
+
+        $this->assertNull(MouldingRun::sole()->pattern_revision_id);
+    }
+
     public function test_header_defaults_fill_blank_cells(): void
     {
         $w = $this->world();
