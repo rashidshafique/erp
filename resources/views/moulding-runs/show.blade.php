@@ -26,31 +26,17 @@
 
     <div class="run-show-split">
     <div data-tab-host>
-    <div class="metrics run-metrics">
-        <div class="metric">
-            <div class="metric-label">Target / planned</div>
-            <div class="metric-value">{{ \App\Support\Formats::number($run->planned_mould_qty ?? 0) }}<span class="metric-note">Planned moulds</span></div>
-        </div>
-        <div class="metric">
-            <div class="metric-label">Total expected</div>
-            <div class="metric-value">{{ $perMould !== null ? rtrim(rtrim(\App\Support\Formats::number($perMould * ($run->planned_mould_qty ?? 0), 1), '0'), '.') : '—' }}<span class="metric-note">{{ $perMould !== null ? 'Castings @ '.rtrim(rtrim(\App\Support\Formats::number($perMould, 3), '0'), '.').'-cavity' : 'No cavity map' }}</span></div>
-        </div>
-        <div class="metric">
-            <div class="metric-label">Moulds made</div>
-            <div class="metric-value">{{ \App\Support\Formats::number($run->moulds_made_qty) }}<span class="metric-note">Recorded total output</span></div>
-        </div>
-        <div class="metric">
-            <div class="metric-label">Accepted moulds</div>
-            <div class="metric-value">{{ \App\Support\Formats::number($run->accepted_mould_qty) }}<span class="metric-note">Accepted at moulding stage</span></div>
-        </div>
-        <div class="metric">
-            <div class="metric-label">Damaged moulds</div>
-            <div class="metric-value">{{ \App\Support\Formats::number($run->damaged_mould_qty) }}<span class="metric-note">Moulding damage only</span></div>
-        </div>
-        <div class="metric">
-            <div class="metric-label">Downtime</div>
-            <div class="metric-value">{{ \App\Support\Formats::number($run->downtime_minutes) }}<span class="metric-note">Minutes recorded</span></div>
-        </div>
+    @php
+        $expected = $perMould !== null ? rtrim(rtrim(\App\Support\Formats::number($perMould * ($run->planned_mould_qty ?? 0), 1), '0'), '.') : null;
+    @endphp
+    <div class="run-kpis">
+        <div class="run-kpi"><div class="run-kpi-label">Planned / target</div><div class="run-kpi-value">{{ \App\Support\Formats::number($run->planned_mould_qty ?? 0) }} moulds</div></div>
+        <div class="run-kpi"><div class="run-kpi-label">Total expected</div><div class="run-kpi-value" @if ($expected === null) title="The pattern has no cavity map" @endif>{{ $expected ?? '—' }} castings</div></div>
+        <div class="run-kpi"><div class="run-kpi-label">Moulds made</div><div class="run-kpi-value">{{ \App\Support\Formats::number($run->moulds_made_qty) }}</div></div>
+        <div class="run-kpi"><div class="run-kpi-label">Accepted</div><div class="run-kpi-value">{{ \App\Support\Formats::number($run->accepted_mould_qty) }}</div></div>
+        <div class="run-kpi"><div class="run-kpi-label">Damaged</div><div class="run-kpi-value">{{ \App\Support\Formats::number($run->damaged_mould_qty) }}</div></div>
+        <div class="run-kpi"><div class="run-kpi-label">Downtime</div><div class="run-kpi-value">{{ \App\Support\Formats::number($run->downtime_minutes) }} min</div></div>
+        <span class="run-kpi-chip code">Live metrics</span>
     </div>
 
 <div class="tab-marker" data-tab-start="Run"></div>
@@ -364,9 +350,12 @@
     </aside>
     </div>
     <style>
-        .run-metrics { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
-        .run-metrics .metric-value { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px; }
-        .run-metrics .metric-note { margin: 0; font-family: ui-monospace, Menlo, monospace; }
+        .run-kpis { display: flex; align-items: stretch; flex-wrap: wrap; gap: 0; margin-bottom: 16px; padding: 12px 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 1px 2px rgba(15, 23, 42, .04); }
+        .run-kpi { padding: 0 18px; border-left: 1px solid var(--border); }
+        .run-kpi:first-child { border-left: 0; }
+        .run-kpi-label { font-size: 11.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+        .run-kpi-value { margin-top: 2px; font-size: 20px; font-weight: 600; white-space: nowrap; }
+        .run-kpi-chip { align-self: center; margin: 0 8px 0 auto; padding: 4px 10px; border-radius: 6px; background: #e8eef5; color: #2b4a6b; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
         .run-sand-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
         .run-sand-tile { padding: 12px; border-radius: 8px; background: #eef3f9; }
         .run-sand-tile .rm-lbl { margin-bottom: 4px; font-size: 12px; font-weight: 600; color: var(--muted); }
