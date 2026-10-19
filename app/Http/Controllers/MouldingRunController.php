@@ -81,7 +81,7 @@ class MouldingRunController extends Controller
     public function create(Request $request): View
     {
         $productionOrders = ProductionOrder::query()
-            ->with(['product', 'productRevision'])
+            ->with(['product', 'productRevision', 'salesOrderLine.salesOrder.customer'])
             ->whereNotIn('status', ['COMPLETED', 'CANCELLED'])
             ->orderByDesc('created_at')
             ->get();
