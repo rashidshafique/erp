@@ -85,7 +85,7 @@
                 </div>
             </div>
 
-            <div class="nav-group {{ request()->routeIs('lots.*', 'inspections.*', 'ncrs.*', 'capa.*', 'packing.*', 'dispatches.*', 'finished-goods.*', 'reports.*', 'defects.*') ? 'is-active' : '' }}">
+            <div class="nav-group {{ request()->routeIs('lots.*', 'inspections.*', 'ncrs.*', 'packing.*', 'dispatches.*', 'finished-goods.*', 'reports.*', 'defects.*', ...app(\App\Domains\Core\ModuleRegistry::class)->navPatterns('quality')) ? 'is-active' : '' }}">
                 <button type="button" class="nav-group-toggle" aria-expanded="false">
                     <span class="nav-lab">{!! \App\Support\NavIcons::get('check-circle') !!}<span>Quality &amp; Dispatch</span></span><span class="nav-chevron">›</span>
                 </button>
@@ -95,7 +95,9 @@
                     <a href="{{ route('finished-goods.index') }}" class="nav-link {{ request()->routeIs('finished-goods.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('archive') !!}<span>Finished goods</span></a>
                     <a href="{{ route('inspections.index') }}" class="nav-link {{ request()->routeIs('inspections.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('search-check') !!}<span>Inspections</span></a>
                     <a href="{{ route('ncrs.index') }}" class="nav-link {{ request()->routeIs('ncrs.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('alert') !!}<span>Nonconformance</span></a>
-                    <a href="{{ route('capa.index') }}" class="nav-link {{ request()->routeIs('capa.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('check-circle') !!}<span>Corrective actions</span></a>
+                    @foreach (app(\App\Domains\Core\ModuleRegistry::class)->navItems('quality') as $item)
+                        <a href="{{ route($item['route']) }}" class="nav-link {{ request()->routeIs(...$item['active']) ? 'active' : '' }}">{!! \App\Support\NavIcons::get($item['icon']) !!}<span>{{ $item['label'] }}</span></a>
+                    @endforeach
                     <a href="{{ route('packing.index') }}" class="nav-link {{ request()->routeIs('packing.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('package') !!}<span>Packing</span></a>
                     <a href="{{ route('dispatches.index') }}" class="nav-link {{ request()->routeIs('dispatches.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('truck') !!}<span>Dispatch</span></a>
                     <a href="{{ route('reports.yield') }}" class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('bars') !!}<span>Yield &amp; scrap</span></a>

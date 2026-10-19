@@ -1,8 +1,9 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Domains\Capa\Http\Controllers;
 
-use App\Models\CapaAction;
+use App\Domains\Capa\Models\CapaAction;
+use App\Http\Controllers\Controller;
 use App\Models\NonconformanceReport;
 use App\Services\Approvals\ApprovalGate;
 use Illuminate\Http\RedirectResponse;
@@ -33,7 +34,7 @@ class CapaController extends Controller
             ->orderByRaw("case when status in ('CLOSED','CANCELLED') then 1 else 0 end")->orderByRaw('coalesce(case when status = \'AWAITING_VERIFICATION\' then verification_due_on else due_on end, \'9999-12-31\')')->orderBy('code')
             ->paginate(25)->withQueryString();
 
-        return view('capa.index', [
+        return view('capa::index', [
             'actions' => $actions, 'state' => $state,
             'counts' => ['open' => $open(CapaAction::query())->count(), 'overdue' => $overdue(CapaAction::query())->count(), 'verify' => CapaAction::where('status', 'AWAITING_VERIFICATION')->count(), 'closed' => CapaAction::where('status', 'CLOSED')->count()],
         ]);
@@ -41,7 +42,7 @@ class CapaController extends Controller
 
     public function create(Request $request): View
     {
-        return view('capa.create', ['action' => new CapaAction(['source_type' => $request->query('source', 'OTHER'), 'severity' => 'MINOR'])]);
+        return view('capa::create', ['action' => new CapaAction(['source_type' => $request->query('source', 'OTHER'), 'severity' => 'MINOR'])]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -82,7 +83,7 @@ class CapaController extends Controller
     {
         $ncr = $capa->source_type === 'NCR' && $capa->source_id ? NonconformanceReport::find($capa->source_id) : null;
 
-        return view('capa.show', ['capa' => $capa, 'ncr' => $ncr]);
+        return view('capa::show', ['capa' => $capa, 'ncr' => $ncr]);
     }
 
     /** Saves the investigation and the plan. Status moves to "action in progress" once the action, owner and due date are all there. */

@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Models;
+namespace App\Domains\Capa\Models;
 
+use App\Models\Concerns\GeneratesCodes;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class CapaAction extends Model
 {
-    use Concerns\GeneratesCodes, HasUuids;
+    use GeneratesCodes, HasUuids;
 
     public string $codeKind = 'capa';
 

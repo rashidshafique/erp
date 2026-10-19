@@ -5,7 +5,6 @@ return [
     'actions' => [
         'production_order.release' => 'Release a production order',
         'ncr.close' => 'Close a nonconformance report',
-        'capa.close' => 'Close a corrective action',
         'lot.release_hold' => 'Release a lot from hold',
         'dispatch.create' => 'Dispatch castings to a customer',
         'limits.change' => 'Add, change or remove a test limit',

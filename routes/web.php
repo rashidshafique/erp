@@ -368,17 +368,6 @@ Route::prefix('flasks')->name('flasks.')->controller(FlaskController::class)->gr
 });
 Route::get('/settings/flasks', [FlaskController::class, 'editRules'])->name('settings.flasks.edit');
 Route::put('/settings/flasks', [FlaskController::class, 'rules'])->name('settings.flasks');
-Route::prefix('corrective-actions')->name('capa.')->controller(\App\Http\Controllers\CapaController::class)->group(function () {
-    Route::get('/', 'index')->name('index');
-    Route::get('/create', 'create')->name('create');
-    Route::post('/', 'store')->name('store');
-    Route::post('/from-ncr/{ncr}', 'fromNcr')->name('from-ncr');
-    Route::get('/{capa}', 'show')->name('show');
-    Route::put('/{capa}', 'update')->name('update');
-    Route::post('/{capa}/complete', 'complete')->name('complete');
-    Route::post('/{capa}/verify', 'verify')->name('verify');
-    Route::post('/{capa}/cancel', 'cancel')->name('cancel');
-});
 Route::get('/settings/pouring', [\App\Http\Controllers\PouringRulesController::class, 'edit'])->name('settings.pouring.edit');
 Route::put('/settings/pouring', [\App\Http\Controllers\PouringRulesController::class, 'update'])->name('settings.pouring');
 Route::prefix('flask-sizes')->name('flask-sizes.')->controller(FlaskSizeController::class)->group(function () {

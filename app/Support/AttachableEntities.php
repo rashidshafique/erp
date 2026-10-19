@@ -3,7 +3,6 @@
 namespace App\Support;
 
 use App\Domains\Core\ModuleRegistry;
-use App\Models\CapaAction;
 use App\Models\CastingLot;
 use App\Models\CoreBox;
 use App\Models\CoreDefinition;
@@ -53,7 +52,7 @@ class AttachableEntities
      * @var array<string, array{0: string, 1: string|null}>
      */
     private const CORE_ACCESS = [
-        'material' => ['stores.manage', null], 'furnace' => ['melting.operate', null], 'flask' => ['tooling.manage', null], 'equipment' => ['tooling.manage', null], 'capa' => ['quality.manage', null],
+        'material' => ['stores.manage', null], 'furnace' => ['melting.operate', null], 'flask' => ['tooling.manage', null], 'equipment' => ['tooling.manage', null],
         'heat' => ['melting.operate', null], 'pattern' => ['master.manage', null], 'pattern_revision' => ['master.manage', null], 'product' => ['master.manage', null],
         'sales_order' => ['sales.manage', null], 'moulding_run' => ['moulding.operate', null], 'pour' => ['pouring.operate', null],
         'casting_lot' => ['shopfloor.record', null], 'ncr' => ['quality.manage', null],

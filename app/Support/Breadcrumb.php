@@ -32,7 +32,7 @@ class Breadcrumb
         if ($trail !== '' && ! str_contains($trail, '<a ')) {
             $parts = explode(' / ', $trail, 2);
             $route = self::ROOTS[html_entity_decode($parts[0])] ?? null;
-            if ($route && count($parts) === 2) {
+            if ($route && count($parts) === 2 && \Illuminate\Support\Facades\Route::has($route)) {
                 $trail = '<a href="'.e(route($route)).'">'.$parts[0].'</a> / '.$parts[1];
             }
         }

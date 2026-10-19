@@ -20,8 +20,8 @@
         <form method="GET" class="form-grid" style="align-items:end">
             <div class="field"><label for="q">Search code, title or owner</label><input id="q" name="q" value="{{ request('q') }}"></div>
             <div class="field"><label for="state">Show</label><select id="state" name="state">@foreach (['open' => 'Open', 'overdue' => 'Overdue', 'verify' => 'Awaiting effectiveness check', 'closed' => 'Closed or cancelled', 'all' => 'All'] as $k => $l)<option value="{{ $k }}" @selected($state === $k)>{{ $l }}</option>@endforeach</select></div>
-            <div class="field"><label for="source">Source</label><select id="source" name="source"><option value="">All</option>@foreach (\App\Models\CapaAction::SOURCES as $k => $l)<option value="{{ $k }}" @selected(request('source') === $k)>{{ $l }}</option>@endforeach</select></div>
-            <div class="field"><label for="severity">Severity</label><select id="severity" name="severity"><option value="">All</option>@foreach (\App\Models\CapaAction::SEVERITIES as $k => $l)<option value="{{ $k }}" @selected(request('severity') === $k)>{{ $l }}</option>@endforeach</select></div>
+            <div class="field"><label for="source">Source</label><select id="source" name="source"><option value="">All</option>@foreach (\App\Domains\Capa\Models\CapaAction::SOURCES as $k => $l)<option value="{{ $k }}" @selected(request('source') === $k)>{{ $l }}</option>@endforeach</select></div>
+            <div class="field"><label for="severity">Severity</label><select id="severity" name="severity"><option value="">All</option>@foreach (\App\Domains\Capa\Models\CapaAction::SEVERITIES as $k => $l)<option value="{{ $k }}" @selected(request('severity') === $k)>{{ $l }}</option>@endforeach</select></div>
             <div><button class="btn btn-primary" type="submit">Filter</button> <a class="btn" href="{{ route('capa.index') }}">Clear</a></div>
         </form>
     </div>
@@ -32,11 +32,11 @@
             <tr>
                 <td class="mono"><a href="{{ route('capa.show', $capa) }}">{{ $capa->code }}</a></td>
                 <td>{{ $capa->title }}</td>
-                <td>{{ \App\Models\CapaAction::SOURCES[$capa->source_type] ?? $capa->source_type }}<div class="muted small">{{ $capa->source_label }}</div></td>
-                <td>{{ \App\Models\CapaAction::SEVERITIES[$capa->severity] ?? $capa->severity }}</td>
+                <td>{{ \App\Domains\Capa\Models\CapaAction::SOURCES[$capa->source_type] ?? $capa->source_type }}<div class="muted small">{{ $capa->source_label }}</div></td>
+                <td>{{ \App\Domains\Capa\Models\CapaAction::SEVERITIES[$capa->severity] ?? $capa->severity }}</td>
                 <td>{{ $capa->owner ?: '—' }}</td>
                 <td>@if ($capa->status === 'AWAITING_VERIFICATION'){{ $capa->verification_due_on?->displayDate() ?? '—' }}<div class="muted small">check</div>@else{{ $capa->due_on?->displayDate() ?? '—' }}@endif</td>
-                <td>@include('capa._status', ['capa' => $capa])</td>
+                <td>@include('capa::_status', ['capa' => $capa])</td>
             </tr>
         @empty
             <tr><td colspan="7" class="muted">Nothing here.</td></tr>

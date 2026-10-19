@@ -8,7 +8,7 @@
 <div class="page-heading">
     <div>
         <h1>{{ $capa->title }}</h1>
-        <p><span class="mono">{{ $capa->code }}</span> · {{ \App\Models\CapaAction::SOURCES[$capa->source_type] ?? $capa->source_type }}@if ($capa->source_label) · @if ($ncr)<a href="{{ route('ncrs.show', $ncr) }}">{{ $capa->source_label }}</a>@else{{ $capa->source_label }}@endif @endif · {{ \App\Models\CapaAction::SEVERITIES[$capa->severity] ?? $capa->severity }} · @include('capa._status', ['capa' => $capa])</p>
+        <p><span class="mono">{{ $capa->code }}</span> · {{ \App\Domains\Capa\Models\CapaAction::SOURCES[$capa->source_type] ?? $capa->source_type }}@if ($capa->source_label) · @if ($ncr)<a href="{{ route('ncrs.show', $ncr) }}">{{ $capa->source_label }}</a>@else{{ $capa->source_label }}@endif @endif · {{ \App\Domains\Capa\Models\CapaAction::SEVERITIES[$capa->severity] ?? $capa->severity }} · @include('capa::_status', ['capa' => $capa])</p>
     </div>
     <div class="actions"><a class="btn" href="{{ route('capa.index') }}">All actions</a></div>
 </div>
@@ -22,7 +22,7 @@
         <div class="form-grid">
             <div class="field field-full"><label for="title">What went wrong</label><input id="title" name="title" maxlength="200" required value="{{ old('title', $capa->title) }}" @disabled(! $editable)></div>
             <div class="field field-full"><label for="description">Details</label><textarea id="description" name="description" rows="3" maxlength="4000" @disabled(! $editable)>{{ old('description', $capa->description) }}</textarea></div>
-            <div class="field"><label for="severity">Severity</label><select id="severity" name="severity" @disabled(! $editable)>@foreach (\App\Models\CapaAction::SEVERITIES as $k => $l)<option value="{{ $k }}" @selected(old('severity', $capa->severity) === $k)>{{ $l }}</option>@endforeach</select></div>
+            <div class="field"><label for="severity">Severity</label><select id="severity" name="severity" @disabled(! $editable)>@foreach (\App\Domains\Capa\Models\CapaAction::SEVERITIES as $k => $l)<option value="{{ $k }}" @selected(old('severity', $capa->severity) === $k)>{{ $l }}</option>@endforeach</select></div>
             <div class="field"><label for="owner">Owner</label><input id="owner" name="owner" maxlength="150" value="{{ old('owner', $capa->owner) }}" @disabled(! $editable)></div>
             <div class="field"><label for="due_on">Action due</label><input id="due_on" type="date" name="due_on" value="{{ old('due_on', $capa->due_on?->toDateString()) }}" @disabled(! $editable)></div>
             <div class="field field-full"><label for="containment_action">Containment (what was done at once)</label><textarea id="containment_action" name="containment_action" rows="2" maxlength="2000" @disabled(! $editable)>{{ old('containment_action', $capa->containment_action) }}</textarea></div>

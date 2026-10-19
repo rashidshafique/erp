@@ -79,7 +79,6 @@ return [
         ['pattern' => 'patterns.*', 'permission' => 'master.manage'],
         ['pattern' => 'pattern-ownership.*', 'permission' => 'master.manage'],
         ['pattern' => 'pattern-revisions.*', 'permission' => 'master.manage'],
-        ['pattern' => 'capa.*', 'permission' => 'quality.manage'],
         ['pattern' => 'flasks.*', 'permission' => 'tooling.manage'],
         ['pattern' => 'flask-sizes.*', 'permission' => 'tooling.manage'],
     ],
