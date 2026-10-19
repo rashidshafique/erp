@@ -6,7 +6,6 @@ use App\Domains\Core\ModuleRegistry;
 use App\Models\CastingLot;
 use App\Models\CoreBox;
 use App\Models\CoreDefinition;
-use App\Models\Enquiry;
 use App\Models\Equipment;
 use App\Models\Flask;
 use App\Models\Furnace;
@@ -38,7 +37,6 @@ class AttachableEntities
         'iron_grade' => ['Iron grade', IronGrade::class],
         'core_box' => ['Core box', CoreBox::class], 'core_definition' => ['Core', CoreDefinition::class],
         'mould_configuration' => ['Mould configuration', MouldConfiguration::class],
-        'enquiry' => ['Enquiry', Enquiry::class],
     ];
 
     public const CATEGORIES = ['CERTIFICATE' => 'Certificate', 'DRAWING' => 'Drawing', 'SPECIFICATION' => 'Specification', 'REPORT' => 'Test / inspection report', 'PHOTO' => 'Photo', 'CUSTOMER_DOCUMENT' => 'Customer document', 'ID_DOCUMENT' => 'ID / personal document', 'CONTRACT' => 'Contract / letter', 'OTHER' => 'Other'];
@@ -58,7 +56,6 @@ class AttachableEntities
         'iron_grade' => ['quality.manage', null],
         'core_box' => ['tooling.manage', null], 'core_definition' => ['tooling.manage', null],
         'mould_configuration' => ['tooling.manage', null],
-        'enquiry' => ['sales.manage', null],
     ];
 
     /** Categories that need documents.sensitive on top of the record's own permission. */

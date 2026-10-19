@@ -11,7 +11,7 @@
     <form method="GET" action="{{ route('enquiries.index') }}" class="filters">
         <div class="field"><label for="search">Search</label><input id="search" name="search" value="{{ request('search') }}" placeholder="Code, title or customer reference"></div>
         <div class="field"><label for="status">Status</label><select id="status" name="status"><option value="">All</option>@foreach (['NEW', 'FEASIBILITY', 'QUOTED', 'WON', 'LOST', 'CANCELLED'] as $s)<option value="{{ $s }}" @selected(request('status') === $s)>{{ ucfirst(strtolower($s)) }}</option>@endforeach</select></div>
-        <div class="field"><label for="source">Kind</label><select id="source" name="source"><option value="">All</option>@foreach (\App\Models\Enquiry::SOURCES as $k => $l)<option value="{{ $k }}" @selected(request('source') === $k)>{{ $l }}</option>@endforeach</select></div>
+        <div class="field"><label for="source">Kind</label><select id="source" name="source"><option value="">All</option>@foreach (\App\Domains\Enquiry\Models\Enquiry::SOURCES as $k => $l)<option value="{{ $k }}" @selected(request('source') === $k)>{{ $l }}</option>@endforeach</select></div>
         <button class="btn btn-primary" type="submit">Filter</button><a class="btn" href="{{ route('enquiries.index') }}">Reset</a>
     </form>
 </div></div>
@@ -27,7 +27,7 @@
                 <tr>
                     <td><strong>{{ $r->code }}</strong></td><td>{{ $r->customer?->name }}</td>
                     <td>{{ $r->title }}@if ($r->customer_reference)<div class="muted small">Their ref {{ $r->customer_reference }}</div>@endif</td>
-                    <td class="small">{{ \App\Models\Enquiry::SOURCES[$r->source_type] ?? $r->source_type }}</td>
+                    <td class="small">{{ \App\Domains\Enquiry\Models\Enquiry::SOURCES[$r->source_type] ?? $r->source_type }}</td>
                     <td>{{ $r->items_count }}</td>
                     <td class="small">{{ $r->due_on?->displayDate() ?? '—' }}</td>
                     <td><span class="status {{ $cls[$r->status] ?? '' }}">{{ $r->status }}</span></td>

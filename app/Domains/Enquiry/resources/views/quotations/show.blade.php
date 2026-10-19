@@ -8,7 +8,7 @@
     $draft = $q->status === 'DRAFT';
     $n = fn ($v, $d = 2) => \App\Support\Formats::number((float) $v, $d);
     $total = $q->lines->sum(fn ($l) => $l->unit_price * $l->qty);
-    $min = \App\Services\Quotation\Rates::get()['min_margin_pct'];
+    $min = \App\Domains\Enquiry\Services\Rates::get()['min_margin_pct'];
     $low = $q->lines->min('effective_margin_pct');
 @endphp
 <div class="page-heading">

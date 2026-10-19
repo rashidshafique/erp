@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Quotation;
+namespace App\Domains\Enquiry\Services;
 
 /**
  * Cost build-up for one casting. Every step is kept so the sales team can see where the price comes from.

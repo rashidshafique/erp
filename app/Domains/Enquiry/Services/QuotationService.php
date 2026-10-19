@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Services\Quotation;
+namespace App\Domains\Enquiry\Services;
 
-use App\Models\Enquiry;
-use App\Models\EnquiryItem;
+use App\Domains\Enquiry\Models\Enquiry;
+use App\Domains\Enquiry\Models\EnquiryItem;
 use App\Models\PatternRevision;
 use App\Models\Product;
 use App\Models\ProductRevision;
-use App\Models\Quotation;
+use App\Domains\Enquiry\Models\Quotation;
 use App\Models\SalesOrder;
 use App\Services\Approvals\ApprovalGate;
 use App\Services\Patterns\PatternOwnership;

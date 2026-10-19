@@ -1,11 +1,13 @@
 @php $k = $d['kpis']; $fmt = fn ($n, $dp = 0) => \App\Support\Formats::number((float) $n, $dp); @endphp
 <div class="kpis">
+    @if (Route::has('enquiries.index'))
     <a class="kpi" href="{{ route('enquiries.index') }}">
         <div class="top"><span class="cap">Open enquiries</span><span class="pill blue">Active</span></div>
         <div class="val mono">{{ $fmt($k['enquiries']['open']) }}</div>
         <div class="note">{{ $k['enquiries']['quotes'] }} quotation{{ $k['enquiries']['quotes'] === 1 ? '' : 's' }} issued</div>
         <div class="foot"><span>+{{ $k['enquiries']['today'] }} today</span>@include('dashboard._spark', ['vals' => $k['enquiries']['spark']])</div>
     </a>
+    @endif
     <a class="kpi" href="{{ route('production-orders.index') }}">
         <div class="top"><span class="cap">Orders due (7 days)</span>@if ($k['due']['overdue'])<span class="pill red">{{ $k['due']['overdue'] }} late</span>@else<span class="pill green">On track</span>@endif</div>
         <div class="val mono">{{ $fmt($k['due']['count']) }} <small>orders</small></div>

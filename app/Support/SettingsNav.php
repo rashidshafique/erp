@@ -19,7 +19,6 @@ class SettingsNav
             'Display & branding' => ['settings.display', ['settings.display*', 'settings.branding*']],
             'Codes & marking' => ['settings.codes', ['settings.codes*']],
             'Documents' => ['settings.documents', ['settings.documents*']],
-            'Quotation rates' => ['settings.quotation', ['settings.quotation*']],
             'Custom fields' => ['custom-fields.index', ['custom-fields.*']],
             'Flask rules' => ['settings.flasks.edit', ['settings.flasks*']],
             'Pouring rules' => ['settings.pouring.edit', ['settings.pouring*']],

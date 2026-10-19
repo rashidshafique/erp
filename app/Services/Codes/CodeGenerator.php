@@ -25,8 +25,6 @@ class CodeGenerator
         'mould_configuration' => ['mould_configurations', 'MCF', 5, 'Mould configuration'],
         'flask' => ['flasks', 'FLK', 6, 'Flask'],
         'casting_analysis' => ['casting_analyses', 'CAN', 6, 'Casting analysis'],
-        'enquiry' => ['enquiries', 'ENQ', 7, 'Enquiry'],
-        'quotation' => ['quotations', 'QUO', 8, 'Quotation'],
     ];
 
     /**

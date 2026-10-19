@@ -1,9 +1,11 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Domains\Enquiry\Http\Controllers;
 
+use App\Http\Controllers\Controller;
+use App\Http\Controllers\AttachmentController;
 use App\Models\Customer;
-use App\Models\Enquiry;
+use App\Domains\Enquiry\Models\Enquiry;
 use App\Models\Product;
 use App\Support\AttachableEntities;
 use App\Support\Uploads;
@@ -19,7 +21,7 @@ class RequestWizardController extends Controller
 {
     public function create(Request $request)
     {
-        return view('enquiries.wizard', [
+        return view('enquiry::enquiries.wizard', [
             'customers' => Customer::where('active', true)->orderBy('name')->get(['id', 'code', 'name', 'contact_name', 'payment_terms']),
             'products' => Product::with('revisions:id,product_id,revision,status')->orderBy('code')->get(['id', 'code', 'name', 'nominal_weight_kg']),
             'scenarios' => config('enquiry_scenarios'),

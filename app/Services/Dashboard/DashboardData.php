@@ -67,8 +67,9 @@ class DashboardData
 
     public function kpis(array $daily): array
     {
-        $enqOpen = Enquiry::whereNotIn('status', ['WON', 'LOST', 'CANCELLED', 'CLOSED'])->count();
-        $enqSpark = $this->perDay(Enquiry::class, 'created_at');
+        $hasEnquiries = Route::has('enquiries.index');
+        $enqOpen = $hasEnquiries ? Enquiry::whereNotIn('status', ['WON', 'LOST', 'CANCELLED', 'CLOSED'])->count() : 0;
+        $enqSpark = $hasEnquiries ? $this->perDay(Enquiry::class, 'created_at') : [];
         $week = now()->addDays(7)->toDateString();
         $due = ProductionOrder::open()->whereNotNull('required_date')->whereDate('required_date', '<=', $week)->whereDate('required_date', '>=', today()->subDays(0));
         $overdue = ProductionOrder::open()->whereDate('required_date', '<', today())->count();
@@ -87,7 +88,7 @@ class DashboardData
         $ncrOpen = NonconformanceReport::where('status', '!=', 'CLOSED');
 
         return [
-            'enquiries' => ['open' => $enqOpen, 'today' => Enquiry::whereDate('created_at', today())->count(), 'spark' => $enqSpark, 'quotes' => Quotation::where('status', 'ISSUED')->count()],
+            'enquiries' => ['open' => $enqOpen, 'today' => $hasEnquiries ? Enquiry::whereDate('created_at', today())->count() : 0, 'spark' => $enqSpark, 'quotes' => $hasEnquiries ? Quotation::where('status', 'ISSUED')->count() : 0],
             'due' => ['count' => $due->count(), 'qty' => (float) (clone $due)->sum('planned_qty'), 'overdue' => $overdue],
             'heats' => ['total' => $heatsToday->count(), 'done' => $heatsDone, 'tonnes' => $tapped / 1000, 'running' => Heat::where('status', 'IN_PROGRESS')->count()],
             'scrap' => ['rate' => $scrap, 'delta' => $scrap !== null && $scrapPrev !== null ? $scrap - $scrapPrev : null, 'spark' => array_map(fn ($d) => $d['scrap'] ?? 0, $daily)],

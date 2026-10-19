@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Quotation;
+namespace App\Domains\Enquiry\Services;
 
 use App\Models\AppSetting;
 

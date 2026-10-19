@@ -90,7 +90,7 @@
 </div>
 
 <div class="tm-kpis">
-    <a class="tm-k" href="{{ route('enquiries.index') }}"><span class="cap">Open enquiries</span><span class="v mono">{{ $fmt($k['enquiries']['open']) }}</span><span class="n"><span>+{{ $k['enquiries']['today'] }} today</span>@include('dashboard._spark', ['vals' => $k['enquiries']['spark'], 'width' => 48, 'height' => 16])</span></a>
+    @if (Route::has('enquiries.index'))<a class="tm-k" href="{{ route('enquiries.index') }}"><span class="cap">Open enquiries</span><span class="v mono">{{ $fmt($k['enquiries']['open']) }}</span><span class="n"><span>+{{ $k['enquiries']['today'] }} today</span>@include('dashboard._spark', ['vals' => $k['enquiries']['spark'], 'width' => 48, 'height' => 16])</span></a>@endif
     <a class="tm-k" href="{{ route('production-orders.index') }}"><span class="cap">Due in 7 days</span><span class="v mono">{{ $fmt($k['due']['count']) }} <small>orders</small></span><span class="n {{ $k['due']['overdue'] ? 'bad' : '' }}">{{ $k['due']['overdue'] ? $k['due']['overdue'].' late' : 'none late' }}</span></a>
     <a class="tm-k" href="{{ route('heats.index') }}"><span class="cap">Heats today</span><span class="v mono">{{ $k['heats']['done'] }} <small>/ {{ $k['heats']['total'] }}</small></span><span class="n"><span class="bar" style="width:100%"><i style="width:{{ $k['heats']['total'] > 0 ? min(100, round(100 * $k['heats']['done'] / $k['heats']['total'])) : 0 }}%"></i></span></span></a>
     <a class="tm-k" href="{{ route('heats.index') }}"><span class="cap">Tapped today</span><span class="v mono">{{ $fmt($k['heats']['tonnes'], 1) }} <small>t</small></span><span class="n">{{ $k['heats']['running'] }} melting</span></a>

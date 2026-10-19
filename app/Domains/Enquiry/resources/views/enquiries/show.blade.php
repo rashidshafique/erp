@@ -10,13 +10,13 @@
     $open = $e->isOpen();
 @endphp
 <div class="page-heading">
-    <div><h1>{{ $e->title }}</h1><p>{{ $e->code }} · {{ $e->customer?->name }} · {{ \App\Models\Enquiry::SOURCES[$e->source_type] }} · <span class="status {{ $cls[$e->status] ?? '' }}">{{ $e->status }}</span></p></div>
+    <div><h1>{{ $e->title }}</h1><p>{{ $e->code }} · {{ $e->customer?->name }} · {{ \App\Domains\Enquiry\Models\Enquiry::SOURCES[$e->source_type] }} · <span class="status {{ $cls[$e->status] ?? '' }}">{{ $e->status }}</span></p></div>
     <div class="actions"><a class="btn" href="{{ route('enquiries.index') }}">All enquiries</a></div>
 </div>
 @if (session('error'))<div class="alert alert-error">{{ session('error') }}</div>@endif
 
 <div class="tab-marker" data-tab-start="Summary"></div>
-@php $guide = \App\Services\Quotation\EnquiryGuide::steps($e); @endphp
+@php $guide = \App\Domains\Enquiry\Services\EnquiryGuide::steps($e); @endphp
 <div class="panel"><div class="panel-header"><h2>What happens next</h2><span class="muted small">{{ config('enquiry_scenarios.'.$e->source_type.'.label') }}</span></div><div class="panel-body">
 <ul style="list-style:none;margin:0;padding:0">
 @foreach ($guide as $g)<li style="padding:3px 0">@if ($g['done'] === true)<span style="color:var(--accent)">&#10003;</span> {{ $g['label'] }}@elseif ($g['done'] === false)<span class="muted">&#9675;</span> {{ $g['label'] }}@else<span class="muted">&rarr;</span> <span class="muted">{{ $g['label'] }}</span>@endif</li>@endforeach
@@ -26,7 +26,7 @@
 <form method="POST" action="{{ route('enquiries.update', $e) }}">@csrf @method('PUT')
 <div class="form-grid">
     <div class="field"><label>Title</label><input name="title" value="{{ old('title', $e->title) }}" required></div>
-    <div class="field"><label>Kind</label><select name="source_type">@foreach (\App\Models\Enquiry::SOURCES as $k => $l)<option value="{{ $k }}" @selected(old('source_type', $e->source_type) === $k)>{{ $l }}</option>@endforeach</select></div>
+    <div class="field"><label>Kind</label><select name="source_type">@foreach (\App\Domains\Enquiry\Models\Enquiry::SOURCES as $k => $l)<option value="{{ $k }}" @selected(old('source_type', $e->source_type) === $k)>{{ $l }}</option>@endforeach</select></div>
     <div class="field"><label>Quote needed by</label><input type="date" name="due_on" value="{{ old('due_on', $e->due_on?->toDateString()) }}"></div>
     <div class="field"><label>Their reference</label><input name="customer_reference" value="{{ old('customer_reference', $e->customer_reference) }}"></div>
     <div class="field"><label>Contact</label><input name="contact_name" value="{{ old('contact_name', $e->contact_name) }}"></div>
@@ -52,7 +52,7 @@
 <div class="ca-wrap">
 @forelse ($e->items as $it)
 @php $a = $it->analysis; $severe = $a && collect($a->result['hotspots'] ?? [])->contains('role', 'ISOLATED_SEVERE'); @endphp
-<div class="panel item-card"><div class="panel-header"><h2>{{ $it->line_no }}. {{ $it->description }}</h2><span class="status {{ $fcls[$it->feasibility_status] ?? '' }}">{{ \App\Models\EnquiryItem::FEASIBILITY[$it->feasibility_status] }}</span></div>
+<div class="panel item-card"><div class="panel-header"><h2>{{ $it->line_no }}. {{ $it->description }}</h2><span class="status {{ $fcls[$it->feasibility_status] ?? '' }}">{{ \App\Domains\Enquiry\Models\EnquiryItem::FEASIBILITY[$it->feasibility_status] }}</span></div>
 <div class="panel-body">
     <p class="small muted">
         @if ($it->product)Product <a href="{{ route('products.show', $it->product) }}">{{ $it->product->code }}</a> · @endif
@@ -78,14 +78,14 @@
     <hr style="border:0;border-top:1px solid var(--border);margin:12px 0">
     <form method="POST" action="{{ route('enquiries.items.feasibility', [$e, $it]) }}">@csrf
         <div class="form-grid">
-            <div class="field"><label>Feasibility decision</label><select name="feasibility_status">@foreach (['OK', 'CONDITIONAL', 'NOT_FEASIBLE'] as $s)<option value="{{ $s }}" @selected($it->feasibility_status === $s)>{{ \App\Models\EnquiryItem::FEASIBILITY[$s] }}</option>@endforeach</select></div>
+            <div class="field"><label>Feasibility decision</label><select name="feasibility_status">@foreach (['OK', 'CONDITIONAL', 'NOT_FEASIBLE'] as $s)<option value="{{ $s }}" @selected($it->feasibility_status === $s)>{{ \App\Domains\Enquiry\Models\EnquiryItem::FEASIBILITY[$s] }}</option>@endforeach</select></div>
             <div class="field field-full"><label>Conditions or reason</label><textarea name="feasibility_notes" rows="2" placeholder="Required unless plainly feasible. e.g. chill the boss, customer to relax wall to 6 mm">{{ $it->feasibility_notes }}</textarea></div>
         </div>
         <p><button class="btn btn-primary" type="submit">Record decision</button></p>
     </form>
     <details><summary>Edit part details</summary>
         <form method="POST" action="{{ route('enquiries.items.update', [$e, $it]) }}">@csrf @method('PUT')
-            @include('enquiries._item_fields', ['item' => $it, 'products' => $products])
+            @include('enquiry::enquiries._item_fields', ['item' => $it, 'products' => $products])
             <p><button class="btn btn-primary" type="submit">Save part</button></p>
         </form>
         <form method="POST" action="{{ route('enquiries.items.destroy', [$e, $it]) }}" onsubmit="return confirm('Remove this part?')">@csrf @method('DELETE')<button class="btn btn-danger" type="submit">Remove part</button></form>
@@ -100,7 +100,7 @@
 @if ($open)
 <div class="panel"><div class="panel-header"><h2>Add a part</h2></div><div class="panel-body"><details @if ($e->items->isEmpty()) open @endif><summary>{{ $e->items->isEmpty() ? 'Part details' : 'Add another part' }}</summary>
     <form method="POST" action="{{ route('enquiries.items.store', $e) }}">@csrf
-        @include('enquiries._item_fields', ['item' => null, 'products' => $products])
+        @include('enquiry::enquiries._item_fields', ['item' => null, 'products' => $products])
         <p><button class="btn btn-primary" type="submit">Add part</button></p>
     </form></details>
 </div></div>

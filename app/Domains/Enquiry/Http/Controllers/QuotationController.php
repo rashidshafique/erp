@@ -1,12 +1,13 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Domains\Enquiry\Http\Controllers;
 
-use App\Models\Enquiry;
-use App\Models\Quotation;
-use App\Models\QuotationLine;
+use App\Http\Controllers\Controller;
+use App\Domains\Enquiry\Models\Enquiry;
+use App\Domains\Enquiry\Models\Quotation;
+use App\Domains\Enquiry\Models\QuotationLine;
 use App\Services\Patterns\PatternOwnership;
-use App\Services\Quotation\QuotationService;
+use App\Domains\Enquiry\Services\QuotationService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -39,7 +40,7 @@ class QuotationController extends Controller
     {
         $quotation = $this->load($quotation);
 
-        return view('quotations.show', [
+        return view('enquiry::quotations.show', [
             'q' => $quotation, 'blockers' => $quotation->status === 'DRAFT' ? $this->svc->issueBlockers($quotation) : [],
             'versions' => $quotation->enquiry->quotations()->get(['id', 'code', 'version', 'status']),
             'toolingNotes' => $quotation->lines->mapWithKeys(fn ($l) => [$l->id => app(PatternOwnership::class)->toolingFor($quotation->enquiry->customer_id, $l->item?->product_id)]),
@@ -50,7 +51,7 @@ class QuotationController extends Controller
     {
         abort_unless(in_array($quotation->status, ['ISSUED', 'ACCEPTED', 'EXPIRED', 'SUPERSEDED', 'REJECTED'], true), 404, 'Issue the quotation before printing it for the customer.');
 
-        return view('quotations.print', ['q' => $this->load($quotation)]);
+        return view('enquiry::quotations.print', ['q' => $this->load($quotation)]);
     }
 
     public function update(Request $request, Quotation $quotation)

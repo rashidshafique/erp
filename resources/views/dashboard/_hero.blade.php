@@ -13,7 +13,7 @@
             <div class="acts">
                 <a class="btnx" href="{{ route('scan') }}">Scan code</a>
                 <a class="btnx" href="{{ route('heats.create') }}">Plan a heat</a>
-                <a class="btnx primary" href="{{ route('enquiries.create') }}">+ New enquiry</a>
+                @if (Route::has('enquiries.create'))<a class="btnx primary" href="{{ route('enquiries.create') }}">+ New enquiry</a>@endif
             </div>
         </div>
     </div>

@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Models;
+namespace App\Domains\Enquiry\Models;
 
+use App\Models\SalesOrder;
 use App\Models\Concerns\GeneratesCodes;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -52,7 +53,7 @@ class Quotation extends Model
         if ($this->tooling_mode !== 'UPFRONT') {
             return 0.0;
         }
-        $markup = (float) \App\Services\Quotation\Rates::get()['tooling_markup_pct'];
+        $markup = (float) \App\Domains\Enquiry\Services\Rates::get()['tooling_markup_pct'];
 
         return round($this->lines->sum('tooling_cost') * (1 + $markup / 100), 2);
     }

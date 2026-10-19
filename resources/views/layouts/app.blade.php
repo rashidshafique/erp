@@ -73,13 +73,15 @@
                 </div>
             </div>
 
-            <div class="nav-group {{ request()->routeIs('customers.*', 'enquiries.*', 'quotations.*', 'sales-orders.*', 'heat-plan.*') ? 'is-active' : '' }}">
+            <div class="nav-group {{ request()->routeIs('customers.*', 'sales-orders.*', 'heat-plan.*', ...app(\App\Domains\Core\ModuleRegistry::class)->navPatterns('sales')) ? 'is-active' : '' }}">
                 <button type="button" class="nav-group-toggle" aria-expanded="false">
                     <span class="nav-lab">{!! \App\Support\NavIcons::get('briefcase') !!}<span>Sales &amp; Planning</span></span><span class="nav-chevron">›</span>
                 </button>
                 <div class="nav-submenu" hidden>
                     <a href="{{ route('customers.index') }}" class="nav-link {{ request()->routeIs('customers.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('building') !!}<span>Customers</span></a>
-                    <a href="{{ route('enquiries.index') }}" class="nav-link {{ request()->routeIs('enquiries.*', 'quotations.*') && ! request()->routeIs('enquiries.wizard') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('file-text') !!}<span>Enquiries &amp; quotes</span></a>
+                    @foreach (app(\App\Domains\Core\ModuleRegistry::class)->navItems('sales') as $item)
+                        <a href="{{ route($item['route']) }}" class="nav-link {{ request()->routeIs(...$item['active']) ? 'active' : '' }}">{!! \App\Support\NavIcons::get($item['icon']) !!}<span>{{ $item['label'] }}</span></a>
+                    @endforeach
                     <a href="{{ route('sales-orders.index') }}" class="nav-link {{ request()->routeIs('sales-orders.index', 'sales-orders.show', 'sales-orders.trace') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('receipt') !!}<span>Sales orders</span></a>
                     <a href="{{ route('heat-plan.index') }}" class="nav-link {{ request()->routeIs('heat-plan.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('calendar') !!}<span>Melting plan</span></a>
                 </div>

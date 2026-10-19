@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Services\Quotation;
+namespace App\Domains\Enquiry\Services;
 
-use App\Models\Enquiry;
+use App\Domains\Enquiry\Models\Enquiry;
 
 /** The checklist shown on an enquiry: what usually happens next for this kind of request, and what is already done. */
 class EnquiryGuide

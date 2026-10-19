@@ -1,11 +1,12 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Domains\Enquiry\Http\Controllers;
 
+use App\Http\Controllers\Controller;
 use App\Models\CastingAnalysis;
 use App\Models\Customer;
-use App\Models\Enquiry;
-use App\Models\EnquiryItem;
+use App\Domains\Enquiry\Models\Enquiry;
+use App\Domains\Enquiry\Models\EnquiryItem;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -24,12 +25,12 @@ class EnquiryController extends Controller
             ->when($request->filled('source'), fn ($q) => $q->where('source_type', $request->input('source')))
             ->orderByDesc('created_at')->paginate(20)->withQueryString();
 
-        return view('enquiries.index', ['rows' => $rows]);
+        return view('enquiry::enquiries.index', ['rows' => $rows]);
     }
 
     public function create()
     {
-        return view('enquiries.create', ['customers' => Customer::where('active', true)->orderBy('name')->get(['id', 'code', 'name'])]);
+        return view('enquiry::enquiries.create', ['customers' => Customer::where('active', true)->orderBy('name')->get(['id', 'code', 'name'])]);
     }
 
     public function store(Request $request)
@@ -63,7 +64,7 @@ class EnquiryController extends Controller
             }
         }
 
-        return view('enquiries.show', [
+        return view('enquiry::enquiries.show', [
             'e' => $enquiry,
             'products' => Product::orderBy('code')->get(['id', 'code', 'name', 'nominal_weight_kg']),
             'analyses' => CastingAnalysis::where('status', 'COMPLETE')->orderByDesc('created_at')->limit(100)->get(['id', 'code', 'name', 'score']),

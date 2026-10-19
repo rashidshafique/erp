@@ -1,9 +1,10 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Domains\Enquiry\Http\Controllers;
 
+use App\Http\Controllers\Controller;
 use App\Models\AppSetting;
-use App\Services\Quotation\Rates;
+use App\Domains\Enquiry\Services\Rates;
 use Illuminate\Http\Request;
 
 class QuotationSettingsController extends Controller
@@ -28,7 +29,7 @@ class QuotationSettingsController extends Controller
 
     public function edit()
     {
-        return view('settings.quotation', ['rates' => Rates::get(), 'defaults' => config('quotation.rates'), 'labels' => self::LABELS, 'currency' => config('quotation.currency')]);
+        return view('enquiry::rates', ['rates' => Rates::get(), 'defaults' => config('quotation.rates'), 'labels' => self::LABELS, 'currency' => config('quotation.currency')]);
     }
 
     public function update(Request $request)

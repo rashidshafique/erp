@@ -29,6 +29,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -352,7 +353,7 @@ class PatternController extends Controller
         $ownership = app(PatternOwnership::class);
         $owner = [
             'customers' => Customer::where('active', true)->orWhere('id', $pattern->owner_customer_id)->orderBy('name')->get(),
-            'quotations' => Quotation::orderByDesc('created_at')->limit(200)->get(['id', 'code', 'version']),
+            'quotations' => Route::has('quotations.show') ? Quotation::orderByDesc('created_at')->limit(200)->get(['id', 'code', 'version']) : collect(),
             'payOff' => $ownership->payOffProgress($pattern),
             'custody' => $ownership->custodyLabel($pattern),
             'scrapRequest' => ApprovalRequest::where('action_key', 'pattern.scrap_customer_pattern')->where('subject_id', $pattern->id)->whereIn('status', ['PENDING', 'APPROVED'])->latest()->first(),

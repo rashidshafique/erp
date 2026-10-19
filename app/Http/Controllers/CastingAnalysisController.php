@@ -11,6 +11,7 @@ use App\Services\Casting\CastingAnalysisService;
 use App\Services\Casting\MeshLoader;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -29,7 +30,7 @@ class CastingAnalysisController extends Controller
 
     public function create(Request $request)
     {
-        $item = $request->filled('enquiry_item') ? \App\Models\EnquiryItem::with('enquiry')->find($request->input('enquiry_item')) : null;
+        $item = $request->filled('enquiry_item') && Route::has('enquiries.show') ? \App\Models\EnquiryItem::with('enquiry')->find($request->input('enquiry_item')) : null;
         $product = $request->filled('product') ? Product::find($request->input('product')) : ($item?->product_id ? Product::find($item->product_id) : null);
         $cad = $product ? Attachment::where('attachable_type', 'product')->where('attachable_id', $product->id)->whereNull('removed_at')
             ->get()->filter(fn ($a) => in_array(strtolower(pathinfo($a->original_name, PATHINFO_EXTENSION)), ['stl', 'stp', 'step'], true))->values() : collect();
@@ -116,7 +117,7 @@ class CastingAnalysisController extends Controller
         $analysis->save();
         $service->run($analysis);
 
-        if (! empty($d['enquiry_item_id']) && $analysis->status === 'COMPLETE') {
+        if (! empty($d['enquiry_item_id']) && Route::has('enquiries.show') && $analysis->status === 'COMPLETE') {
             $item = \App\Models\EnquiryItem::with('enquiry')->find($d['enquiry_item_id']);
             $item->update(['casting_analysis_id' => $analysis->id]);
 

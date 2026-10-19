@@ -19,7 +19,6 @@ use App\Http\Controllers\DataImportController;
 use App\Http\Controllers\DefectController;
 use App\Http\Controllers\DocumentSettingsController;
 use App\Http\Controllers\DisplaySettingsController;
-use App\Http\Controllers\EnquiryController;
 use App\Http\Controllers\ErpDashboardController;
 use App\Http\Controllers\FlaskController;
 use App\Http\Controllers\FlaskSizeController;
@@ -50,9 +49,6 @@ use App\Http\Controllers\PourController;
 use App\Http\Controllers\ProcessControlController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductionOrderController;
-use App\Http\Controllers\QuotationController;
-use App\Http\Controllers\QuotationSettingsController;
-use App\Http\Controllers\RequestWizardController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SalesOrderController;
 use App\Http\Controllers\SandSystemController;
@@ -141,36 +137,6 @@ Route::prefix('imports')->name('imports.')->controller(DataImportController::cla
     Route::get('/{batch}/report', 'report')->name('report');
     Route::delete('/{batch}', 'destroy')->name('destroy');
 });
-
-Route::prefix('enquiries')->name('enquiries.')->controller(EnquiryController::class)->group(function () {
-    Route::get('/', 'index')->name('index');
-    Route::get('/create', 'create')->name('create');
-    Route::get('/wizard', [RequestWizardController::class, 'create'])->name('wizard');
-    Route::post('/wizard', [RequestWizardController::class, 'store'])->name('wizard.store');
-    Route::post('/', 'store')->name('store');
-    Route::get('/{enquiry}', 'show')->name('show');
-    Route::put('/{enquiry}', 'update')->name('update');
-    Route::post('/{enquiry}/lost', 'lost')->name('lost');
-    Route::post('/{enquiry}/items', 'itemStore')->name('items.store');
-    Route::put('/{enquiry}/items/{item}', 'itemUpdate')->name('items.update');
-    Route::delete('/{enquiry}/items/{item}', 'itemDestroy')->name('items.destroy');
-    Route::post('/{enquiry}/items/{item}/feasibility', 'feasibility')->name('items.feasibility');
-    Route::post('/{enquiry}/items/{item}/analysis', 'attachAnalysis')->name('items.analysis');
-    Route::post('/{enquiry}/quotations', [QuotationController::class, 'store'])->name('quotations.store');
-});
-
-Route::prefix('quotations')->name('quotations.')->controller(QuotationController::class)->group(function () {
-    Route::get('/{quotation}', 'show')->name('show');
-    Route::get('/{quotation}/print', 'print')->name('print');
-    Route::put('/{quotation}', 'update')->name('update');
-    Route::post('/{quotation}/refresh', 'refresh')->name('refresh');
-    Route::post('/{quotation}/issue', 'issue')->name('issue');
-    Route::post('/{quotation}/reject', 'reject')->name('reject');
-    Route::post('/{quotation}/accept', 'accept')->name('accept');
-});
-
-Route::get('/settings/quotation', [QuotationSettingsController::class, 'edit'])->name('settings.quotation');
-Route::put('/settings/quotation', [QuotationSettingsController::class, 'update'])->name('settings.quotation.update');
 
 Route::prefix('products')
     ->name('products.')

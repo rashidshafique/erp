@@ -46,8 +46,6 @@ return [
         ['pattern' => 'approvals.*', 'permission' => 'attachments.manage'],
         ['pattern' => 'attachments.*', 'permission' => 'attachments.manage'],
         ['pattern' => 'imports.*', 'permission' => 'master.manage', 'reads' => true],
-        ['pattern' => 'enquiries.*', 'permission' => 'sales.manage'],
-        ['pattern' => 'quotations.*', 'permission' => 'sales.manage'],
         ['pattern' => 'customers.*', 'permission' => 'sales.manage'],
         ['pattern' => 'sales-orders.*', 'permission' => 'sales.manage'],
         ['pattern' => 'heat-plan.*', 'permission' => 'planning.manage'],
