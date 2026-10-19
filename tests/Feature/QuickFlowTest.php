@@ -142,4 +142,15 @@ class QuickFlowTest extends TestCase
         $this->get(route('quick.floor.index'))->assertOk();
         $this->get(route('quick.heat.index'))->assertOk()->assertSee('Next heat')->assertSee('Start this heat');
     }
+
+    public function test_the_grade_set_on_a_product_page_clears_the_review_spec_and_grade_blocks(): void
+    {
+        $shop = $this->shop();
+        $revision = \App\Models\ProductRevision::create(['product_id' => $shop['product']->id, 'revision' => 'A', 'status' => 'APPROVED', 'net_weight_kg' => 5]);
+
+        $this->post(route('products.grade', $shop['product']), ['product_revision_id' => $revision->id, 'iron_grade_id' => $shop['grade']->id])->assertSessionHasNoErrors();
+
+        $this->assertSame($shop['grade']->id, app(\App\Services\Planning\HeatPlanner::class)->gradeFor($revision)?->id);
+        $this->get(route('products.show', $shop['product']))->assertOk()->assertSee('Set grade');
+    }
 }

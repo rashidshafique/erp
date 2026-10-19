@@ -24,6 +24,19 @@
 </div>
 @if ($product->trashed())<div class="alert alert-warning">Archived on {{ $product->deleted_at->displayDate() }}. It is left out of the product list, its counts and every product picker, and stays on the orders and lots that used it. Restore it to use it again.</div>@endif
 
+<div class="tab-marker" data-tab-start="Iron grade"></div>
+<div class="panel">
+    <div class="panel-header"><h2>Iron grade</h2></div>
+    <div class="panel-body">
+        <form method="POST" action="{{ route('products.grade', $product) }}" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap">@csrf
+            <div class="field"><label for="grade_revision">Revision</label><select id="grade_revision" name="product_revision_id">@foreach ($product->revisions as $revision)<option value="{{ $revision->id }}">{{ $revision->revision }} ({{ $revision->status }})</option>@endforeach</select></div>
+            <div class="field"><label for="grade_id">Iron grade</label><select id="grade_id" name="iron_grade_id">@foreach (\App\Models\IronGrade::orderBy('family')->orderBy('code')->get() as $g)<option value="{{ $g->id }}">{{ $g->code }}</option>@endforeach</select></div>
+            <button class="btn btn-primary" type="submit">Set grade</button>
+        </form>
+        <p class="muted small">Records an approved specification naming the grade. The contract review and the melting plan read it.</p>
+    </div>
+</div>
+
 <div class="tab-marker" data-tab-start="Specification"></div>
 <div class="panel">
     <div class="panel-header">

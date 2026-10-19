@@ -96,6 +96,23 @@ class ProductController extends Controller
             ->with('success', 'Product and initial revision created successfully.');
     }
 
+    /** Names the iron grade on an approved specification for a revision, which is what the contract review and the melting plan read. */
+    public function setGrade(Request $request, Product $product): RedirectResponse
+    {
+        $data = $request->validate([
+            'product_revision_id' => ['required', 'uuid', Rule::exists('product_revisions', 'id')->where('product_id', $product->id)],
+            'iron_grade_id' => ['required', 'uuid', 'exists:iron_grades,id'],
+        ]);
+        $revision = \App\Models\ProductRevision::findOrFail($data['product_revision_id']);
+        $grade = \App\Models\IronGrade::findOrFail($data['iron_grade_id']);
+        \App\Models\ProductSpecification::updateOrCreate(
+            ['product_revision_id' => $revision->id, 'specification_code' => 'SPEC-'.$product->code.'-'.$revision->revision],
+            ['title' => 'Iron grade', 'status' => 'APPROVED', 'material_grade' => $grade->code, 'approved_at' => now(), 'effective_at' => now(), 'superseded_at' => null],
+        );
+
+        return back()->with('success', "{$grade->code} set on {$product->code} rev {$revision->revision}.");
+    }
+
     public function show(Product $product)
     {
         $product->load([
