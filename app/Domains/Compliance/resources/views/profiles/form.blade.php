@@ -5,7 +5,6 @@
 
 @section('content')
 <div class="page-heading"><div><h1>{{ $profile->exists ? 'Edit '.$profile->name : 'Add profile' }}</h1></div><div class="actions"><a class="btn" href="{{ route('requirements.index') }}">Cancel</a></div></div>
-@if ($errors->any())<div class="alert alert-error"><ul>@foreach ($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>@endif
 <form method="POST" action="{{ $profile->exists ? route('requirements.update', $profile) : route('requirements.store') }}">
     @csrf @if ($profile->exists) @method('PUT') @endif
     <div class="panel"><div class="panel-body"><div class="form-grid">

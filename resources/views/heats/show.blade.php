@@ -26,15 +26,6 @@
     </div>
 @endif
 
-@if($errors->any())
-    <div class="panel">
-        <div class="panel-body" style="color:var(--danger)">
-            @foreach($errors->all() as $error)
-                <div>{{ $error }}</div>
-            @endforeach
-        </div>
-    </div>
-@endif
 
 <div class="tab-marker" data-tab-start="Overview"></div>
 <div class="panel">

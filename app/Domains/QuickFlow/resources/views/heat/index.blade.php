@@ -8,7 +8,6 @@
     <div><h1>Next heat</h1><p>What to melt next, from open orders. Metal for moulds already made comes first, then moulds still to make, by due date. A heat holds no more than its furnace's working capacity.</p></div>
     <div class="actions"><a class="btn" href="{{ route('quick.floor.index') }}">Moulds made / poured</a><a class="btn btn-primary" href="{{ route('quick.orders.create') }}">+ New order</a></div>
 </div>
-@if ($errors->any())<div class="alert alert-error"><ul>@foreach ($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>@endif
 @if ($warnings)<div class="alert alert-warning"><strong>Not planned:</strong><ul>@foreach (array_unique($warnings) as $w)<li>{{ $w }}</li>@endforeach</ul></div>@endif
 
 @forelse ($heats as $i => $heat)

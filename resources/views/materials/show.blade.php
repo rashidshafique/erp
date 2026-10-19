@@ -13,9 +13,6 @@
     </div>
 </div>
 
-@if(session('success'))
-    <div class="alert alert-success">{{ session('success') }}</div>
-@endif
 
 <div class="card" style="padding:18px;margin-bottom:20px;display:flow-root">
     @include('attachments._cover', ['type' => 'material', 'id' => $material->id, 'size' => 140])

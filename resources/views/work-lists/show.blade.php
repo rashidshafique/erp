@@ -8,7 +8,6 @@
 <div class="page-heading"><div><h1>{{ $list->list_number }}</h1><p>{{ $list->list_date->format('l d M Y') }} · {{ $list->shift }} shift · <span class="status">{{ $list->status }}</span>@if($list->issued_by) · issued by {{ $list->issued_by }}@endif</p></div>
 <div class="actions"><a class="btn" href="{{ route('work-lists.print', $list) }}" target="_blank">Print for teams</a></div></div>
 @if(session("success"))<div class="alert alert-success">{{ session("success") }}</div>@endif
-@if($errors->any())<div class="alert alert-error">@foreach($errors->all() as $e)<div>{{ $e }}</div>@endforeach</div>@endif
 
 @forelse($groups as $stationId => $items)
 @php

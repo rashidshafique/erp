@@ -17,7 +17,6 @@
     <div><h1>Thermal test — heat {{ $test->heat?->heat_number }}</h1><p>{{ $test->ironGrade?->code ?? 'No grade' }} · {{ $test->taken_at->displayDateTime() }} · {{ $test->cup_type === 'TELLURIUM' ? 'white (tellurium)' : 'grey (stable)' }} cup · {{ str_replace('_', ' ', $test->stage) }}@if ($test->gauge) · measured with <a href="{{ route('gauges.show', $test->gauge) }}">{{ $test->gauge->code }}</a>@endif</p></div>
     <div class="actions"><a class="btn" href="{{ route('thermal.index') }}">All tests</a><a class="btn" href="{{ route('thermal.create', ['heat_id' => $test->heat_id]) }}">New test on this heat</a></div>
 </div>
-@if (session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
 @foreach ($test->siblings as $other)
     <div class="alert">Other cup from this sample: <a href="{{ route('thermal.show', $other) }}">{{ $other->cup_type === 'TELLURIUM' ? 'White (tellurium)' : 'Grey (stable)' }} cup</a> — {{ str_replace('_', ' ', $other->result) }}.</div>
 @endforeach

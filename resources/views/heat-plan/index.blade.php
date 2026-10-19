@@ -12,8 +12,6 @@
             <button class="btn btn-primary" type="submit">Rebuild plan</button></form>
     </div>
 </div>
-@if (session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
-@if ($errors->any())<div class="alert alert-error"><ul>@foreach ($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>@endif
 @if (! empty($skipped))
     <div class="alert alert-error"><strong>Not planned:</strong><ul>@foreach ($skipped as $s)<li>{{ $s }}</li>@endforeach</ul></div>
 @endif

@@ -4,7 +4,6 @@
 @php $closed = $ncr->status === 'CLOSED'; @endphp
 <div class="page-heading"><div><h1>{{ $ncr->ncr_number }}</h1><p>{{ $ncr->title }} · {{ $ncr->severity }} · <span class="status">{{ $ncr->status }}</span></p></div></div>
 @if(session("success"))<div class="alert alert-success">{{ session("success") }}</div>@endif
-@if($errors->any())<div class="alert alert-error">@foreach($errors->all() as $e)<div>{{ $e }}</div>@endforeach</div>@endif
 <div class="tab-marker" data-tab-start="Investigation"></div>
 @if (Route::has('capa.index'))
 @php $capa = \App\Models\CapaAction::where('source_type', 'NCR')->where('source_id', $ncr->id)->orderByDesc('created_at')->first(); @endphp

@@ -6,9 +6,6 @@
 @section('content')
 <div class="page-heading"><div><h1>New sales order</h1><p>Enter the customer's order. The contract review checks it against specifications, grades, furnaces and patterns.</p></div></div>
 
-@if ($errors->any())
-    <div class="alert alert-error"><ul>@foreach ($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>
-@endif
 
 @if ($customers->isEmpty())
     <div class="alert alert-error">Create a customer first. <a href="{{ route('customers.create') }}">New customer</a></div>

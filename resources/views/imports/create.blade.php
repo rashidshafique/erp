@@ -5,7 +5,6 @@
 <style>.src-tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; } .src-tabs label { border: 1px solid var(--border); border-radius: 999px; padding: 6px 14px; cursor: pointer; background: #fff; } .src-tabs input { position: absolute; opacity: 0; pointer-events: none; } .src-tabs label:focus-within { outline: 2px solid var(--accent); } .src-tabs label.on { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; } .src { display: none; } .src.on { display: block; } textarea.paste { width: 100%; min-height: 180px; font-family: ui-monospace, monospace; font-size: 12px; }</style>
 <div class="page-heading"><div><h1>Import {{ strtolower($def['label']) }}</h1><p>{{ $def['blurb'] }}</p></div>
 <div class="actions"><a class="btn" href="{{ route('imports.template', $entity) }}">Download a blank template (CSV)</a></div></div>
-@if ($errors->any())<div class="alert alert-error">{{ $errors->first() }}</div>@endif
 <form method="POST" action="{{ route('imports.store') }}" enctype="multipart/form-data" id="impForm">@csrf
 <input type="hidden" name="entity" value="{{ $entity }}">
 <div class="panel"><div class="panel-header"><h2>Where is the data?</h2></div><div class="panel-body">

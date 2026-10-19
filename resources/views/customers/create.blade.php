@@ -6,9 +6,6 @@
 @section('content')
 <div class="page-heading"><div><h1>New customer</h1><p>Create the account before entering the first order.</p></div></div>
 
-@if ($errors->any())
-    <div class="alert alert-error"><ul>@foreach ($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>
-@endif
 
 <form method="POST" action="{{ route('customers.store') }}">
 @csrf

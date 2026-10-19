@@ -8,8 +8,6 @@
     <div><h1>Thermal analysis</h1><p>Cooling-curve tests that verify iron before it is poured.</p></div>
     <div class="actions"><a class="btn btn-primary" href="{{ route('thermal.create') }}">+ Record test</a></div>
 </div>
-@if (session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
-@if ($errors->any())<div class="alert alert-error">{{ $errors->first() }}</div>@endif
 
 <div class="panel">
     <div class="panel-header"><h2>TL to CE relation</h2></div>

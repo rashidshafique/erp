@@ -13,9 +13,6 @@
     </div>
 </div>
 
-@if ($errors->any())
-    <div class="alert alert-error">{{ $errors->first() }}</div>
-@endif
 
 <form method="POST" action="{{ route('casting-analyses.store') }}" enctype="multipart/form-data" onsubmit="this.querySelector('button[type=submit]').disabled=true;this.querySelector('button[type=submit]').textContent='Analysing…'">
     @csrf

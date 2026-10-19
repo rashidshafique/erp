@@ -45,16 +45,6 @@
     </div>
 
     <section class="panel">
-        @if ($errors->any())
-            <div class="notice">
-                <strong>Please correct the following:</strong>
-                <ul>
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
 
         <form method="POST"
               action="{{ $editing ? route('tooling-life.update', $limit) : route('tooling-life.store') }}">

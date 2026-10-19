@@ -28,7 +28,6 @@
 
 <div class="tab-marker" data-tab-start="Rules"></div>
 <form method="POST" action="{{ route('hr.payroll.rules') }}">@csrf @method('PUT')
-@if ($errors->any())<div class="alert alert-error">@foreach ($errors->all() as $e)<div>{{ $e }}</div>@endforeach</div>@endif
 <div class="panel"><div class="panel-header"><h2>Days, attendance and overtime</h2></div><div class="panel-body"><div class="form-grid">
 @include('hr::_sel', ['blank' => false, 'name' => 'days_basis', 'label' => 'A month is worth', 'items' => ['CALENDAR' => 'Calendar days in the month', '26' => '26 days', '30' => '30 days'], 'sel' => (string) old('days_basis', $R['days_basis']), 'required' => true, 'keep' => true, 'help' => 'Pay for a day = salary ÷ this.'])
 @include('hr::_sel', ['blank' => false, 'name' => 'missing_attendance', 'label' => 'A working day nobody closed is', 'items' => ['PRESENT' => 'Paid', 'ABSENT' => 'Unpaid'], 'sel' => old('missing_attendance', $R['missing_attendance']), 'required' => true, 'keep' => true])

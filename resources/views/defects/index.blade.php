@@ -4,8 +4,6 @@
 <div class="page-heading"><div><h1>Defect list</h1><p>Defects offered on inspections and NCRs. The ICF group follows the international casting-defect classification; check it against the atlas for your customers' wording.</p></div>
 <div class="actions"><button type="button" class="btn btn-primary" data-quick="qd-defect">+ Add defect</button></div></div>
 @include('partials.quick-dialog', ['id' => 'qd-defect', 'title' => 'Add a defect', 'action' => route('defects.store'), 'submit' => 'Add defect', 'fields' => 'defects._quick-fields'])
-@if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
-@if($errors->any())<div class="alert alert-error">@foreach($errors->all() as $e)<div>{{ $e }}</div>@endforeach</div>@endif
 <div class="panel"><div class="table-wrap"><table><thead><tr><th>Code</th><th>Name</th><th>Category</th><th>ICF group</th><th>Severity</th><th>Active</th><th></th></tr></thead><tbody>
 @foreach($defects as $d)
 <form method="POST" action="{{ route('defects.update', $d) }}">@csrf @method('PUT')<input type="hidden" name="inspection_guidance" value="{{ $d->inspection_guidance }}">

@@ -10,7 +10,6 @@
 @endphp
 <div class="page-heading"><div><h1>Check before importing</h1><p>{{ $b->source_label }}. This is a dry run: nothing has been saved.</p></div>
 <div class="actions"><a class="btn" href="{{ route('imports.map', $b) }}">Change the mapping</a></div></div>
-@if ($errors->any())<div class="alert alert-error">{{ $errors->first() }}</div>@endif
 <div class="cnt">
     <a href="{{ route('imports.preview', $b) }}" class="{{ $show === 'ALL' ? 'on' : '' }}"><b>{{ $counts['TOTAL'] }}</b>All rows</a>
     @foreach ($lab as $k => $l)<a href="{{ route('imports.preview', [$b, 'show' => $k]) }}" class="{{ $show === $k ? 'on' : '' }}"><b>{{ $counts[$k] }}</b>{{ $l }}</a>@endforeach

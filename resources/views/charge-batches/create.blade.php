@@ -5,12 +5,6 @@
     <div><h1>New charge recipe</h1><p>Choose one calculation method: fixed quantities or percentages.</p></div>
 </div>
 
-@if($errors->any())
-    <div class="alert alert-danger">
-        <strong>Please correct the following:</strong>
-        <ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
-    </div>
-@endif
 
 @if($materials->isEmpty())
     <div class="alert alert-warning">

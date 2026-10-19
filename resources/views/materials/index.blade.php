@@ -9,9 +9,6 @@
     <a class="btn btn-primary" href="{{ route('materials.create') }}">+ New material</a>
 </div>
 
-@if(session('success'))
-    <div class="alert alert-success">{{ session('success') }}</div>
-@endif
 
 <div class="table-responsive">
 <table class="table">

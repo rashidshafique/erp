@@ -33,8 +33,6 @@
     </div>
 </div>
 
-@if (session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
-@if ($errors->any())<div class="alert alert-error"><ul>@foreach ($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>@endif
 
 <div class="metrics">
     <div class="metric"><div class="metric-label">Status</div><div class="metric-value" style="font-size:21px">{{ str_replace('_', ' ', $order->status) }}</div></div>

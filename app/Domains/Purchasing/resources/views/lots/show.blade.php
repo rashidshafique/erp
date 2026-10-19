@@ -9,7 +9,6 @@
     <div class="actions"><a class="btn" href="{{ route('incoming.plan.edit', $material) }}">Inspection plan</a><a class="btn" href="{{ route('materials.show', $material) }}">Back</a></div>
 </div>
 
-@if ($errors->any())<div class="alert alert-error">@foreach ($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif
 
 @if ($lot->status === 'QUARANTINE')
     <div class="panel"><div class="panel-header"><h2>Acceptance</h2></div><div class="panel-body">

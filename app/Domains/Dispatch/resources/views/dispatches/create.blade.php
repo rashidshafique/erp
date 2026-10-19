@@ -3,7 +3,6 @@
 @section('content')
 <div class="page-heading"><div><h1>New dispatch</h1><p>Lots from another customer's order, with an open NCR, or not cleared are refused.</p></div></div>
 @if(session("success"))<div class="alert alert-success">{{ session("success") }}</div>@endif
-@if($errors->any())<div class="alert alert-error">@foreach($errors->all() as $e)<div>{{ $e }}</div>@endforeach</div>@endif
 <form method="POST" action="{{ route('dispatches.store') }}">@csrf
 <div class="panel"><div class="panel-body form-grid"><label>Customer<select name="customer_id" required><option value="">—</option>@foreach($customers as $c)<option value="{{ $c->id }}" @selected(old('customer_id') === $c->id)>{{ $c->name }}</option>@endforeach</select></label>
 <label>Challan no.<input name="delivery_challan_number"></label><label>Carrier<input name="carrier_name"></label><label>Vehicle<input name="vehicle_number"></label><label>Driver<input name="driver_name"></label><label>Dispatched by<input name="dispatched_by"></label><label>Delivery address<input name="delivery_address"></label></div></div>

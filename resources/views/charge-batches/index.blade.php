@@ -6,9 +6,6 @@
     <a class="btn btn-primary" href="{{ route('charge-batches.create') }}">+ New recipe</a>
 </div>
 
-@if(session('success'))
-    <div class="alert alert-success">{{ session('success') }}</div>
-@endif
 
 <div class="table-responsive">
 <table class="table">

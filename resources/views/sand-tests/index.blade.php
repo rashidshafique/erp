@@ -2,7 +2,6 @@
 @section('title', 'Sand lab')
 @section('content')
 <div class="page-heading"><div><h1>Sand lab</h1><p>Test the sand each shift. A failed or missing test is shown on the moulding run and when a run is started.</p></div></div>
-@if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
 @if($errors->has('sand'))<div class="alert alert-error">{{ $errors->first('sand') }}</div>@endif
 @if($system)
 <div class="panel"><div class="panel-body"><form method="GET" style="display:flex;gap:10px;align-items:center">Sand system

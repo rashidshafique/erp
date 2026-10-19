@@ -14,15 +14,6 @@
     </div>
 </div>
 
-@if($errors->any())
-    <div class="panel">
-        <div class="panel-body" style="color:var(--danger)">
-            @foreach($errors->all() as $error)
-                <div>{{ $error }}</div>
-            @endforeach
-        </div>
-    </div>
-@endif
 
 <div class="panel">
     <div class="panel-header"><h2>Furnace details</h2></div>

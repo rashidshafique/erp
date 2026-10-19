@@ -12,7 +12,6 @@
     <div><h1>Moulds made and poured</h1><p>Type in what the floor did. Each entry also writes the moulding run or pour record.</p></div>
     <div class="actions"><a class="btn" href="{{ route('quick.heat.index') }}">Next heat</a></div>
 </div>
-@if ($errors->any())<div class="alert alert-error"><ul>@foreach ($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>@endif
 
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px">
 <div class="panel"><div class="panel-header"><h2>Moulds made</h2></div><div class="panel-body">

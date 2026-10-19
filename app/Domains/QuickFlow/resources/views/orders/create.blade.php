@@ -8,7 +8,6 @@
     <div><h1>New order</h1><p>Customer, products, quantities and due date. The order goes straight into the next heat plan: no contract review, no separate production order.</p></div>
     <div class="actions"><a class="btn" href="{{ route('quick.heat.index') }}">Next heat</a></div>
 </div>
-@if ($errors->any())<div class="alert alert-error"><ul>@foreach ($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>@endif
 <form method="POST" action="{{ route('quick.orders.store') }}">@csrf
     <div class="panel"><div class="panel-body form-grid">
         <div class="field"><label for="customer_id">Customer</label>

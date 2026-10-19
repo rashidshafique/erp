@@ -3,7 +3,6 @@
 @section('content')
 <div class="page-heading"><div><h1>Casting lots</h1><p>Every casting traced from pour to dispatch.</p></div></div>
 @if(session("success"))<div class="alert alert-success">{{ session("success") }}</div>@endif
-@if($errors->any())<div class="alert alert-error">@foreach($errors->all() as $e)<div>{{ $e }}</div>@endforeach</div>@endif
 <div class="panel"><div class="panel-body">
 <form method="GET" style="display:flex;gap:10px;flex-wrap:wrap">
 <input name="search" value="{{ request('search') }}" placeholder="Lot number">

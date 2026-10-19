@@ -8,7 +8,6 @@
     <div><h1>{{ $party->exists ? 'Edit '.$party->code : 'Add partner' }}</h1><p>General data shared by every role. Role details (payment terms, approval) are kept on the customer and supplier pages.</p></div>
     <div class="actions"><a class="btn" href="{{ $party->exists ? route('parties.show', $party) : route('parties.index') }}">Cancel</a></div>
 </div>
-@if ($errors->any())<div class="alert alert-error"><ul>@foreach ($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>@endif
 @php $v = fn ($f) => old($f, $party->{$f}); @endphp
 <form method="POST" action="{{ $party->exists ? route('parties.update', $party) : route('parties.store') }}">
     @csrf @if ($party->exists) @method('PUT') @endif

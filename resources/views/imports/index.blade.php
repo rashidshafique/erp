@@ -5,7 +5,6 @@
 <style>.im-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; } .im-card { display: block; border: 1px solid var(--border); border-radius: 10px; padding: 12px; background: #fff; color: inherit; text-decoration: none; } .im-card:hover { border-color: var(--accent); } .im-card strong { display: block; margin-bottom: 3px; } .im-card span { font-size: 12.5px; color: var(--muted); }</style>
 @php $cls = ['UPLOADED' => 'status-on-hold', 'MAPPED' => 'status-in-progress', 'RUNNING' => 'status-in-progress', 'COMMITTED' => 'status-completed', 'DISCARDED' => 'status-cancelled']; @endphp
 <div class="page-heading"><div><h1>Import data</h1><p>Bring in products, patterns and tooling from a spreadsheet: Excel, CSV or a Google Sheet.</p></div></div>
-@if ($errors->any())<div class="alert alert-error">{{ $errors->first() }}</div>@endif
 <div class="panel"><div class="panel-header"><h2>What do you want to import?</h2></div><div class="panel-body">
 <div class="im-cards">
 @foreach ($entities as $k => $e)

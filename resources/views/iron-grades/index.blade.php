@@ -5,7 +5,6 @@
 
 @section('content')
 <div class="page-heading"><div><h1>Iron grades</h1><p>Chemistry windows, standards equivalents, furnace capability and thermal acceptance windows.</p></div></div>
-@if (session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
 <div class="alert">Chemistry windows are starting values. Review each grade against your control plan and the customer's specification before relying on the gates.</div>
 
 <div class="panel"><div class="table-wrap"><table>

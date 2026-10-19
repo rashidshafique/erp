@@ -202,8 +202,6 @@
     </section>
 
 <div class="tab-marker" data-tab-start="Moulds"></div>
-    @if (session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
-    @if ($errors->any())<div class="alert alert-error">@foreach ($errors->all() as $e)<div>{{ $e }}</div>@endforeach</div>@endif
 
     <section class="panel" id="assemblies">
         <div class="panel-header">

@@ -10,7 +10,6 @@
 @include('partials.quick-dialog', ['id' => 'qd-station', 'title' => 'Add a station', 'action' => route('moulding-teams.stations.store'), 'submit' => 'Add station', 'fields' => 'moulding-teams._quick-station'])
 @include('partials.quick-dialog', ['id' => 'qd-sand', 'title' => 'Add a sand system', 'action' => route('sand-systems.store'), 'submit' => 'Add sand system', 'fields' => 'sand-systems._quick-fields'])
 
-@if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
 @if($errors->any() && !old('_quick'))<div class="alert alert-error">@foreach($errors->all() as $e)<div>{{ $e }}</div>@endforeach</div>@endif
 
 <div class="panel">

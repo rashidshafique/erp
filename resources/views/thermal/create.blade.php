@@ -9,7 +9,6 @@
 
 @section('content')
 <div class="page-heading"><div><h1>Record thermal test</h1><p>Key in the readings from the thermal analysis unit for the white and/or grey cup. Add the full cooling curve when you have it.</p></div></div>
-@if ($errors->any())<div class="alert alert-error"><ul>@foreach ($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>@endif
 
 <form method="POST" action="{{ route('thermal.store') }}" enctype="multipart/form-data">@csrf
 <div class="panel"><div class="panel-header"><h2>Sample</h2></div><div class="panel-body"><div class="form-grid" data-progressive="3">

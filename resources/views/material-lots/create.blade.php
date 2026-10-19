@@ -11,11 +11,6 @@
 <form method="POST" action="{{ route('materials.lots.store', $material) }}">
     @csrf
 
-    @if($errors->any())
-        <div class="alert alert-danger">
-            <ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
-        </div>
-    @endif
 
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px">
         <div>

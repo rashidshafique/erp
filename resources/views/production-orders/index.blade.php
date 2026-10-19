@@ -48,13 +48,6 @@
         <div class="success">{{ session('success') }}</div>
     @endif
 
-    @if($errors->any())
-        <div class="error">
-            @foreach($errors->all() as $error)
-                <div>{{ $error }}</div>
-            @endforeach
-        </div>
-    @endif
 
     <section class="metrics">
         <div class="metric"><span class="muted">Draft</span><span class="number">{{ $counts['draft'] }}</span></div>

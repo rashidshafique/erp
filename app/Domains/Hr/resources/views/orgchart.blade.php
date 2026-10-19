@@ -56,7 +56,6 @@
                     <div class="field"><label for="oc-em">Work email</label><input id="oc-em" type="email" name="work_email" maxlength="160"></div>
                     <div class="field"><label for="oc-ph">Phone</label><input id="oc-ph" name="phone" maxlength="40"></div>
                 </div></details>
-            @if ($errors->any())<div class="alert alert-error" style="margin:12px 0 0">{{ $errors->first() }}</div>@endif
             <p class="muted small" style="margin:12px 0 0">The rest (CNIC, pay, bank, documents) is filled in later on the employee's own page.</p>
         </div>
         <div class="oc-df"><button type="button" class="btn" data-close>Cancel</button><button class="btn btn-primary" type="submit">Add person</button></div>

@@ -2,8 +2,6 @@
 @section('title', $tool->code)
 @section('content')
 <div class="page-heading"><div><h1>{{ $tool->name }}</h1><p>{{ $label }} · {{ $tool->code }}</p></div><a class="btn" href="{{ route('labels.show', [$type, $tool->id]) }}" target="_blank">Print label</a></div>
-@if (session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
-@if ($errors->any())<div class="alert alert-error">{{ $errors->first() }}</div>@endif
 <div class="tab-marker" data-tab-start="Tool"></div>
 <div class="panel"><div class="panel-header"><h2>{{ $label }}</h2></div><div class="panel-body">
 @include('attachments._cover', ['type' => $type, 'id' => $tool->id])

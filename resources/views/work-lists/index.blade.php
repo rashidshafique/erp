@@ -3,7 +3,6 @@
 @section('content')
 <div class="page-heading"><div><h1>Moulding work lists</h1><p>The list given to the moulding teams each shift.</p></div></div>
 @if(session("success"))<div class="alert alert-success">{{ session("success") }}</div>@endif
-@if($errors->any())<div class="alert alert-error">@foreach($errors->all() as $e)<div>{{ $e }}</div>@endforeach</div>@endif
 <div class="panel"><div class="panel-header"><h2>New list</h2></div><div class="panel-body"><form method="POST" action="{{ route('work-lists.store') }}" class="form-grid">@csrf
 <label>Date<input type="date" name="list_date" value="{{ today()->toDateString() }}" required></label>
 <label>Shift<select name="shift">@foreach($shifts as $s)<option>{{ $s }}</option>@endforeach</select></label><label>Notes<input name="notes"></label>

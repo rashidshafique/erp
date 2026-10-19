@@ -15,9 +15,6 @@
     <a class="btn btn-secondary" href="{{ route('charge-batches.index') }}">All recipes</a>
 </div>
 
-@if(session('success'))
-    <div class="alert alert-success">{{ session('success') }}</div>
-@endif
 
 <div class="card" style="padding:18px;margin-bottom:20px">
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px">

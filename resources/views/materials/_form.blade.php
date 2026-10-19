@@ -97,12 +97,6 @@
     <textarea id="notes" name="notes" class="form-control" rows="3">{{ old('notes', $material->notes) }}</textarea>
 </div>
 
-@if($errors->any())
-    <div class="alert alert-danger">
-        <strong>Please correct the following:</strong>
-        <ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
-    </div>
-@endif
 
 <div style="display:flex;gap:10px">
     <button class="btn btn-primary" type="submit">Save material</button>

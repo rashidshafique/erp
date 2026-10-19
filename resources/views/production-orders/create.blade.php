@@ -31,13 +31,6 @@
     <h1>New production order</h1>
     <p>Create a draft first. Release it only when it is ready for the shop floor.</p>
 
-    @if($errors->any())
-        <div class="error">
-            @foreach($errors->all() as $error)
-                <div>{{ $error }}</div>
-            @endforeach
-        </div>
-    @endif
 
     <form method="POST" action="{{ route('production-orders.store') }}">
         @csrf

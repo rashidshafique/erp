@@ -8,8 +8,6 @@
     <div><h1>{{ $grade->code }}</h1><p>{{ $grade->name }} · {{ $grade->family }}{{ $grade->standard_code ? ' · '.$grade->standard_code : '' }}</p></div>
     <div class="actions"><a class="btn" href="{{ route('iron-grades.index') }}">All grades</a></div>
 </div>
-@if (session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
-@if ($errors->any())<div class="alert alert-error"><ul>@foreach ($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>@endif
 
 <div class="tab-marker" data-tab-start="Chemistry"></div>
 <div class="panel">

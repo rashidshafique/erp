@@ -10,7 +10,6 @@
 @endphp
 <div class="page-heading"><div><h1>Match columns to fields</h1><p>{{ $b->source_label }} · {{ $rowCount }} data rows. Choose which column feeds each field; anything you leave out is simply not imported.</p></div>
 <div class="actions"><form method="POST" action="{{ route('imports.destroy', $b) }}" onsubmit="return confirm('Discard this import?')">@csrf @method('DELETE')<button class="btn btn-danger" type="submit">Discard</button></form></div></div>
-@if ($errors->any())<div class="alert alert-error">{{ $errors->first() }}</div>@endif
 
 <div class="panel"><div class="panel-body">
 <form method="GET" action="{{ route('imports.map', $b) }}" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">

@@ -8,7 +8,6 @@
 @include('partials.quick-dialog', ['id' => 'qd-sand', 'title' => 'Add a sand system', 'action' => route('sand-systems.store'), 'submit' => 'Add sand system', 'fields' => 'sand-systems._quick-fields'])
 @include('partials.quick-dialog', ['id' => 'qd-base', 'title' => 'Add a sand', 'action' => route('sand-systems.base.store'), 'submit' => 'Add sand', 'fields' => 'sand-systems._quick-base-fields'])
 @if(session("success"))<div class="alert alert-success">{{ session("success") }}</div>@endif
-@if($errors->any())<div class="alert alert-error">@foreach($errors->all() as $e)<div>{{ $e }}</div>@endforeach</div>@endif
 @php
     // A sand system can keep an inactive sand it already uses; new choices are active sands only.
     $sandChoices = fn ($sd) => $baseSands->filter(fn ($b) => $b->status === 'ACTIVE' || $sd?->sands->contains('id', $b->id));

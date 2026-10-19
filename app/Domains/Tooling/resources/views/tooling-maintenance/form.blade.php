@@ -46,12 +46,6 @@ $oldValues = [
 <div class="legacy-main">
     <p><a href="{{ route('tooling-maintenance.index') }}">← Back to register</a></p>
     <section class="panel">
-        @if ($errors->any())
-            <div class="alert">
-                <strong>Please correct the following:</strong>
-                <ul>@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
-            </div>
-        @endif
 
         <form method="POST" action="{{ $editing ? route('tooling-maintenance.update', $record) : route('tooling-maintenance.store') }}">
             @csrf

@@ -9,7 +9,6 @@
     <div class="actions"><a class="btn btn-primary" href="{{ route('customers.create') }}">+ New customer</a></div>
 </div>
 
-@if (session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
 
 <div class="panel"><div class="panel-body">
     <form method="GET" class="filters">

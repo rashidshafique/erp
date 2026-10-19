@@ -29,7 +29,6 @@
 <div class="legacy-main">
     <p><a href="{{ route('tooling-maintenance.index') }}">← Back to register</a></p>
 
-    @if (session('success')) <div class="success">{{ session('success') }}</div> @endif
 <a href="{{ route('tooling-maintenance.history', $record) }}">
     View complete tooling history →
 </a>

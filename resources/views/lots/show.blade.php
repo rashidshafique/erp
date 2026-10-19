@@ -5,7 +5,6 @@
 <div class="actions"><a class="btn" href="{{ route('lots.certificate', $lot) }}">Certificate</a>
 <a class="btn btn-primary" href="{{ route('lots.inspections.create', $lot) }}">+ Inspection</a></div></div>
 @if(session("success"))<div class="alert alert-success">{{ session("success") }}</div>@endif
-@if($errors->any())<div class="alert alert-error">@foreach($errors->all() as $e)<div>{{ $e }}</div>@endforeach</div>@endif
 <div class="tab-marker" data-tab-start="Summary"></div>
 <div class="panel"><div class="panel-header"><h2>Summary</h2></div><div class="panel-body" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:16px">
 <div><div class="muted small">Heat</div>@if($heat)<a href="{{ route('heats.show', $heat) }}">{{ $heat->heat_number }}</a> ({{ $heat->ironGrade?->code ?? 'no grade' }})@else — @endif</div>

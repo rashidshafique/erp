@@ -2,8 +2,6 @@
 @section('title', 'Custom fields')
 @section('content')
 <div class="page-heading"><div><h1>Custom fields</h1><p>Extra descriptive information for your records: drawing references, box sizes, special notes. Measured quality data (chemistry, tests) is not stored here.</p></div></div>
-@if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
-@if($errors->any())<div class="alert alert-error">@foreach($errors->all() as $e)<div>{{ $e }}</div>@endforeach</div>@endif
 <div class="panel"><div class="panel-header"><h2>Add a field</h2></div><div class="panel-body"><form method="POST" action="{{ route('custom-fields.store') }}" class="form-grid">@csrf
 <label>Applies to<select name="entity_type">@foreach($entities as $k => $e)<option value="{{ $k }}" @selected(old('entity_type')===$k)>{{ $e[0] }}</option>@endforeach</select></label>
 <label>Label<input name="label" value="{{ old('label') }}" required></label>
