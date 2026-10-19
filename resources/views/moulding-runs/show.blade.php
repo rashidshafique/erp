@@ -353,7 +353,7 @@
         .run-kpis { display: flex; align-items: stretch; flex-wrap: wrap; gap: 0; margin-bottom: 16px; padding: 12px 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 1px 2px rgba(15, 23, 42, .04); }
         .run-kpi { padding: 0 18px; border-left: 1px solid var(--border); }
         .run-kpi:first-child { border-left: 0; }
-        .run-kpi-label { font-size: 11.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+        .run-kpi-label { font-size: 11.5px; font-weight: 400; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
         .run-kpi-value { margin-top: 2px; font-size: 20px; font-weight: 600; white-space: nowrap; }
         .run-kpi-chip { align-self: center; margin: 0 8px 0 auto; padding: 4px 10px; border-radius: 6px; background: #e8eef5; color: #2b4a6b; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
         .run-sand-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
