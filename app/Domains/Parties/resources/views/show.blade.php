@@ -21,7 +21,7 @@
 <div class="panel"><div class="panel-header"><h2>Roles</h2></div>
 <div class="panel-body">
     <p>
-        @if ($party->customer)<strong>Customer</strong> <span class="mono">{{ $party->customer->code }}</span> · {{ $party->customer->payment_terms ?: 'no payment terms' }}@else <span class="muted">Not a customer.</span> @endif
+        @if ($party->customer)<strong>Customer</strong> <span class="mono">{{ $party->customer->code }}</span> · {{ $party->customer->payment_terms ?: 'no payment terms' }} @if (Route::has('customer-requirements.edit')) · <a href="{{ route('customer-requirements.edit', $party->customer) }}">Requirements</a>@endif@else <span class="muted">Not a customer.</span> @endif
         @unless ($party->customer)<form method="POST" action="{{ route('parties.roles.add', [$party, 'customer']) }}" style="display:inline">@csrf<button class="btn" type="submit">Make a customer</button></form>@endunless
     </p>
     <p>

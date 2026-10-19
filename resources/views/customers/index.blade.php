@@ -33,7 +33,7 @@
                     <td>{{ $c->payment_terms ?: '—' }}</td>
                     <td><a href="{{ route('sales-orders.index', ['search' => '']) }}">{{ $c->sales_orders_count }}</a></td>
                     <td>@if ($c->owned_patterns_count)<a href="{{ route('patterns.index', ['owner' => $c->id]) }}">{{ $c->owned_patterns_count }}</a>@else — @endif</td>
-                    <td>{{ $c->active ? 'Active' : 'Inactive' }}</td>
+                    <td>{{ $c->active ? 'Active' : 'Inactive' }} · <a href="{{ route('customer-requirements.edit', $c) }}">Requirements</a></td>
                 </tr>
             @endforeach
             </tbody>

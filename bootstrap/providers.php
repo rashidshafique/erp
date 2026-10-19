@@ -1,6 +1,7 @@
 <?php
 
 use App\Domains\Capa\CapaServiceProvider;
+use App\Domains\Compliance\ComplianceServiceProvider;
 use App\Domains\Dispatch\DispatchServiceProvider;
 use App\Domains\Documents\DocumentsServiceProvider;
 use App\Domains\Enquiry\EnquiryServiceProvider;
@@ -16,6 +17,7 @@ return [
     AppServiceProvider::class,
     LicensingServiceProvider::class,
     CapaServiceProvider::class,
+    ComplianceServiceProvider::class,
     DispatchServiceProvider::class,
     DocumentsServiceProvider::class,
     EnquiryServiceProvider::class,

@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Domains\Parties\Concerns\HasParty;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -30,6 +31,11 @@ class Customer extends Model
     public function ownedPatterns(): HasMany
     {
         return $this->hasMany(Pattern::class, 'owner_customer_id');
+    }
+
+    public function requirementProfiles(): BelongsToMany
+    {
+        return $this->belongsToMany(\App\Domains\Compliance\Models\RequirementProfile::class, 'customer_requirement_profiles', 'customer_id', 'requirement_profile_id')->withTimestamps();
     }
 
     public function salesOrders(): HasMany
