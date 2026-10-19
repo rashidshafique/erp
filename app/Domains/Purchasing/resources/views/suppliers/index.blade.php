@@ -6,7 +6,7 @@
 @section('content')
 <div class="page-heading">
     <div><h1>Suppliers</h1><p>The approved supplier list. Material lots can name the supplier they came from; suspended suppliers cannot be received from.</p></div>
-    <div class="actions"><a class="btn btn-primary" href="{{ route('suppliers.create') }}">+ Add supplier</a></div>
+    <div class="actions"><a class="btn" href="{{ route('incoming.settings.edit') }}">Incoming rules</a><a class="btn btn-primary" href="{{ route('suppliers.create') }}">+ Add supplier</a></div>
 </div>
 
 <div class="panel"><div class="panel-body" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px">

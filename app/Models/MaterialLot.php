@@ -15,6 +15,7 @@ class MaterialLot extends Model
         'lot_number',
         'material_id',
         'supplier_id',
+        'certificate_type',
         'supplier_lot_number',
         'supplier_name_snapshot',
         'received_date',
@@ -49,6 +50,11 @@ class MaterialLot extends Model
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(\App\Domains\Purchasing\Models\Supplier::class);
+    }
+
+    public function inspections(): HasMany
+    {
+        return $this->hasMany(\App\Domains\Purchasing\Models\IncomingInspection::class)->orderByDesc('inspected_on')->orderByDesc('created_at');
     }
 
     public function costLayers(): \Illuminate\Database\Eloquent\Relations\HasMany

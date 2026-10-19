@@ -42,6 +42,11 @@ class Material extends Model
         return $this->hasMany(MaterialLot::class);
     }
 
+    public function inspectionItems(): HasMany
+    {
+        return $this->hasMany(\App\Domains\Purchasing\Models\MaterialInspectionItem::class)->orderBy('sort');
+    }
+
     public function chargeBatchItems(): HasMany
     {
         return $this->hasMany(ChargeBatchItem::class);

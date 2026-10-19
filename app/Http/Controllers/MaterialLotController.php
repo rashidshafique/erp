@@ -74,6 +74,11 @@ class MaterialLotController extends Controller
             $validated['supplier_name_snapshot'] = $supplier->name;
         }
 
+        if ($validated['status'] === 'ACCEPTED' && app(ModuleRegistry::class)->isEnabled('purchasing')
+            && $blockers = app(\App\Domains\Purchasing\Services\IncomingGate::class)->blockers(new MaterialLot($validated))) {
+            return back()->withInput()->withErrors(['status' => implode(' ', $blockers).' Record the lot in quarantine and accept it from the lot page.']);
+        }
+
         $validated['material_id'] = $material->id;
 
         $lot = $material->lots()->create($validated);

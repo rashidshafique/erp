@@ -15,6 +15,12 @@ class RequirementResolver
         return $this->merge(RequirementProfile::where('active', true)->whereHas('customers', fn ($q) => $q->whereKey($customer->id))->get());
     }
 
+    /** The strictest requirements across every customer that holds a profile: a guide to how strict the foundry's own rules should be. */
+    public function strictestAcrossCustomers(): array
+    {
+        return $this->merge(RequirementProfile::where('active', true)->whereHas('customers')->get());
+    }
+
     /**
      * @param  Collection<int, RequirementProfile>  $profiles
      * @return array<string, mixed>

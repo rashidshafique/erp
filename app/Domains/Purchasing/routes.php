@@ -1,5 +1,6 @@
 <?php
 
+use App\Domains\Purchasing\Http\Controllers\IncomingController;
 use App\Domains\Purchasing\Http\Controllers\SupplierController;
 use Illuminate\Support\Facades\Route;
 
@@ -12,5 +13,16 @@ Route::middleware('web')->group(function () {
         Route::get('/{supplier}/edit', 'edit')->name('edit');
         Route::put('/{supplier}', 'update')->name('update');
         Route::post('/{supplier}/evaluations', 'evaluate')->name('evaluate');
+    });
+
+    Route::prefix('incoming')->name('incoming.')->controller(IncomingController::class)->group(function () {
+        Route::get('/settings', 'editSettings')->name('settings.edit');
+        Route::put('/settings', 'updateSettings')->name('settings.update');
+        Route::get('/materials/{material}/plan', 'editPlan')->name('plan.edit');
+        Route::put('/materials/{material}/plan', 'updatePlan')->name('plan.update');
+        Route::get('/lots/{lot}', 'showLot')->name('lots.show');
+        Route::put('/lots/{lot}/certificate-type', 'updateCertificateType')->name('lots.certificate-type');
+        Route::post('/lots/{lot}/inspections', 'storeInspection')->name('inspections.store');
+        Route::post('/lots/{lot}/accept', 'acceptLot')->name('lots.accept');
     });
 });

@@ -4,6 +4,7 @@ namespace App\Domains\Purchasing;
 
 use App\Domains\Core\ModuleServiceProvider;
 use App\Domains\Purchasing\Models\Supplier;
+use App\Models\MaterialLot;
 
 /** The supplier register: approval status, scored evaluations and review dates. Material lots can name the supplier they came from. */
 class PurchasingServiceProvider extends ModuleServiceProvider
@@ -39,6 +40,7 @@ class PurchasingServiceProvider extends ModuleServiceProvider
     {
         return [
             'supplier' => ['label' => 'Supplier', 'model' => Supplier::class, 'edit' => 'quality.manage'],
+            'material_lot' => ['label' => 'Material lot', 'model' => MaterialLot::class, 'edit' => 'quality.manage'],
         ];
     }
 
@@ -46,6 +48,7 @@ class PurchasingServiceProvider extends ModuleServiceProvider
     {
         return [
             ['pattern' => 'suppliers.*', 'permission' => 'quality.manage'],
+            ['pattern' => 'incoming.*', 'permission' => 'quality.manage'],
         ];
     }
 

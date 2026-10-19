@@ -8,6 +8,7 @@
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
         <a class="btn btn-secondary" href="{{ route('materials.edit', $material) }}">Edit material</a>
+        @if(app(\App\Domains\Core\ModuleRegistry::class)->isEnabled('purchasing'))<a class="btn btn-secondary" href="{{ route('incoming.plan.edit', $material) }}">Inspection plan</a>@endif
         <a class="btn btn-primary" href="{{ route('materials.lots.create', $material) }}">+ Record lot</a>
     </div>
 </div>
@@ -55,7 +56,7 @@
             @endphp
 
             <tr>
-                <td>{{ $lot->lot_number }}</td>
+                <td>@if(app(\App\Domains\Core\ModuleRegistry::class)->isEnabled('purchasing'))<a href="{{ route('incoming.lots.show', $lot) }}">{{ $lot->lot_number }}</a>@else{{ $lot->lot_number }}@endif</td>
                 <td>{{ $lot->supplier_name_snapshot ?: '—' }}</td>
                 <td>{{ \App\Support\Formats::number((float) $lot->received_qty, 3) }}</td>
                 <td>{{ \App\Support\Formats::number((float) $lot->accepted_qty, 3) }}</td>
