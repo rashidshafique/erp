@@ -159,7 +159,7 @@ class RelatedFiles
     public static function url(string $type, string $id): ?string
     {
         $route = GlobalSearch::types()[$type]['route'] ?? self::ROUTES[$type] ?? null;
-        if ($route) {
+        if ($route && Route::has($route)) {
             return route($route, $id);
         }
 

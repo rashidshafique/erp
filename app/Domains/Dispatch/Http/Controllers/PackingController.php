@@ -1,10 +1,11 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Domains\Dispatch\Http\Controllers;
 
+use App\Http\Controllers\Controller;
 use App\Models\CastingLot;
-use App\Models\PackingRecord;
-use App\Services\Production\ShipmentService;
+use App\Domains\Dispatch\Models\PackingRecord;
+use App\Domains\Dispatch\Services\ShipmentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -14,7 +15,7 @@ class PackingController extends Controller
 {
     public function index(): View
     {
-        return view('packing.index', ['records' => PackingRecord::withCount('items')->orderByDesc('created_at')->paginate(25)]);
+        return view('dispatch::packing.index', ['records' => PackingRecord::withCount('items')->orderByDesc('created_at')->paginate(25)]);
     }
 
     public function create(ShipmentService $ship): View
@@ -22,7 +23,7 @@ class PackingController extends Controller
         $lots = CastingLot::with('product')->whereIn('status', ['READY', 'PACKED'])->orderBy('lot_number')->get()
             ->map(function ($l) use ($ship) { $l->packable = $ship->packable($l); return $l; })->filter(fn ($l) => $l->packable > 0)->values();
 
-        return view('packing.create', ['lots' => $lots]);
+        return view('dispatch::packing.create', ['lots' => $lots]);
     }
 
     public function store(Request $request, ShipmentService $ship): RedirectResponse
@@ -46,6 +47,6 @@ class PackingController extends Controller
     {
         $packing->load('items.lot.product');
 
-        return view('packing.show', ['packing' => $packing, 'ship' => $ship]);
+        return view('dispatch::packing.show', ['packing' => $packing, 'ship' => $ship]);
     }
 }

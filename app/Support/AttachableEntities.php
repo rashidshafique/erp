@@ -6,7 +6,6 @@ use App\Domains\Core\ModuleRegistry;
 use App\Models\CastingLot;
 use App\Models\CoreBox;
 use App\Models\CoreDefinition;
-use App\Models\Dispatch;
 use App\Models\Enquiry;
 use App\Models\Equipment;
 use App\Models\Flask;
@@ -17,7 +16,6 @@ use App\Models\Material;
 use App\Models\MouldConfiguration;
 use App\Models\MouldingRun;
 use App\Models\NonconformanceReport;
-use App\Models\PackingRecord;
 use App\Models\Pattern;
 use App\Models\PatternRevision;
 use App\Models\Pour;
@@ -37,7 +35,7 @@ class AttachableEntities
         'sales_order' => ['Sales order', SalesOrder::class], 'moulding_run' => ['Moulding run', MouldingRun::class], 'pour' => ['Pour', Pour::class],
         'casting_lot' => ['Casting lot', CastingLot::class], 'ncr' => ['Nonconformance report', NonconformanceReport::class],
         'inspection' => ['Inspection', QualityInspection::class], 'thermal_test' => ['Thermal test', ThermalAnalysisTest::class],
-        'packing' => ['Packing record', PackingRecord::class], 'dispatch' => ['Dispatch', Dispatch::class], 'iron_grade' => ['Iron grade', IronGrade::class],
+        'iron_grade' => ['Iron grade', IronGrade::class],
         'core_box' => ['Core box', CoreBox::class], 'core_definition' => ['Core', CoreDefinition::class],
         'mould_configuration' => ['Mould configuration', MouldConfiguration::class],
         'enquiry' => ['Enquiry', Enquiry::class],
@@ -57,7 +55,7 @@ class AttachableEntities
         'sales_order' => ['sales.manage', null], 'moulding_run' => ['moulding.operate', null], 'pour' => ['pouring.operate', null],
         'casting_lot' => ['shopfloor.record', null], 'ncr' => ['quality.manage', null],
         'inspection' => ['quality.inspect', null], 'thermal_test' => ['melting.operate', null],
-        'packing' => ['packing.operate', null], 'dispatch' => ['dispatch.operate', null], 'iron_grade' => ['quality.manage', null],
+        'iron_grade' => ['quality.manage', null],
         'core_box' => ['tooling.manage', null], 'core_definition' => ['tooling.manage', null],
         'mould_configuration' => ['tooling.manage', null],
         'enquiry' => ['sales.manage', null],

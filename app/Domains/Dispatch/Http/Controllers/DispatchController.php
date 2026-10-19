@@ -1,11 +1,12 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Domains\Dispatch\Http\Controllers;
 
+use App\Http\Controllers\Controller;
 use App\Models\Customer;
-use App\Models\Dispatch;
-use App\Models\PackingRecordItem;
-use App\Services\Production\ShipmentService;
+use App\Domains\Dispatch\Models\Dispatch;
+use App\Domains\Dispatch\Models\PackingRecordItem;
+use App\Domains\Dispatch\Services\ShipmentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -15,7 +16,7 @@ class DispatchController extends Controller
 {
     public function index(): View
     {
-        return view('dispatches.index', ['dispatches' => Dispatch::with('customer')->withCount('items')->orderByDesc('created_at')->paginate(25)]);
+        return view('dispatch::dispatches.index', ['dispatches' => Dispatch::with('customer')->withCount('items')->orderByDesc('created_at')->paginate(25)]);
     }
 
     public function create(ShipmentService $ship): View
@@ -23,7 +24,7 @@ class DispatchController extends Controller
         $items = PackingRecordItem::with(['lot.product', 'lot.productionOrder.salesOrderLine.salesOrder.customer', 'packing'])->get()
             ->map(function ($i) use ($ship) { $i->left = $ship->undispatched($i); return $i; })->filter(fn ($i) => $i->left > 0)->values();
 
-        return view('dispatches.create', ['items' => $items, 'customers' => Customer::orderBy('name')->get()]);
+        return view('dispatch::dispatches.create', ['items' => $items, 'customers' => Customer::orderBy('name')->get()]);
     }
 
     public function store(Request $request, ShipmentService $ship): RedirectResponse
@@ -57,6 +58,6 @@ class DispatchController extends Controller
     {
         $dispatch->load(['customer', 'items.packingItem.lot.product', 'items.salesOrderLine.salesOrder']);
 
-        return view('dispatches.show', ['dispatch' => $dispatch]);
+        return view('dispatch::dispatches.show', ['dispatch' => $dispatch]);
     }
 }

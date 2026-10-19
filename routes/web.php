@@ -17,7 +17,6 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CustomFieldController;
 use App\Http\Controllers\DataImportController;
 use App\Http\Controllers\DefectController;
-use App\Http\Controllers\DispatchController;
 use App\Http\Controllers\DocumentSettingsController;
 use App\Http\Controllers\DisplaySettingsController;
 use App\Http\Controllers\EnquiryController;
@@ -44,7 +43,6 @@ use App\Http\Controllers\MouldingRunController;
 use App\Http\Controllers\MouldReadinessController;
 use App\Http\Controllers\NcrController;
 use App\Http\Controllers\OrderTraceController;
-use App\Http\Controllers\PackingController;
 use App\Http\Controllers\PatternCavityController;
 use App\Http\Controllers\PatternController;
 use App\Http\Controllers\PatternOwnershipController;
@@ -404,18 +402,6 @@ Route::prefix('ncrs')->name('ncrs.')->controller(NcrController::class)->group(fu
     Route::put('/{ncr}', 'update')->name('update');
     Route::post('/{ncr}/close', 'close')->name('close');
 });
-Route::prefix('packing')->name('packing.')->controller(PackingController::class)->group(function () {
-    Route::get('/', 'index')->name('index');
-    Route::get('/create', 'create')->name('create');
-    Route::post('/', 'store')->name('store');
-    Route::get('/{packing}', 'show')->name('show');
-});
-Route::prefix('dispatches')->name('dispatches.')->controller(DispatchController::class)->group(function () {
-    Route::get('/', 'index')->name('index');
-    Route::get('/create', 'create')->name('create');
-    Route::post('/', 'store')->name('store');
-    Route::get('/{dispatch}', 'show')->name('show');
-});
 
 // ---- Moulding teams, stations, daily work lists, mould readiness ----
 Route::post('/moulding-runs/{mouldingRun}/output', [MouldingRunController::class, 'recordOutput'])->name('moulding-runs.output');
@@ -479,7 +465,6 @@ Route::get('/reports/yield', [YieldReportController::class, 'index'])->name('rep
 Route::get('/defects', [DefectController::class, 'index'])->name('defects.index');
 Route::post('/defects', [DefectController::class, 'store'])->name('defects.store');
 Route::put('/defects/{defect}', [DefectController::class, 'update'])->name('defects.update');
-Route::get('/finished-goods', [LotQueueController::class, 'finishedGoods'])->name('finished-goods.index');
 
 // ---- Audit trail ----
 Route::get('/audit', [AuditController::class, 'index'])->name('audit.index');

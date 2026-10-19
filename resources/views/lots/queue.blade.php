@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Production queue')
 @section('content')
-<div class="page-heading"><div><h1>Production queue</h1><p>Where each open lot stands after the pour. Oldest first within each step.</p></div><div class="actions"><a class="btn" href="{{ route('finished-goods.index') }}">Finished goods ({{ $awaitingDispatch }} packed lines)</a></div></div>
+<div class="page-heading"><div><h1>Production queue</h1><p>Where each open lot stands after the pour. Oldest first within each step.</p></div><div class="actions">@if (Route::has('finished-goods.index'))<a class="btn" href="{{ route('finished-goods.index') }}">Finished goods ({{ $awaitingDispatch }} packed lines)</a>@endif</div></div>
 @forelse($buckets as $b)
 <div class="panel"><div class="panel-header"><h2>{{ $b['label'] }}</h2><span class="muted">{{ count($b['lots']) }} lot(s)</span></div>
 <div class="table-wrap"><table><thead><tr><th>Lot</th><th>Product</th><th>Order</th><th>Pieces</th><th>Poured</th><th>Age</th><th>Cooling</th><th>Status</th></tr></thead><tbody>

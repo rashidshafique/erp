@@ -15,12 +15,18 @@ class ModuleSettingsTest extends TestCase
 {
     use RefreshDatabase;
 
+    /** @return list<string> */
+    private function moduleNames(): array
+    {
+        return array_keys($this->app->make(ModuleRegistry::class)->modules());
+    }
+
     public function test_the_modules_page_lists_every_module_as_on_by_default(): void
     {
         $html = $this->get(route('settings.modules.edit'))->assertOk()->assertSee('Gauges &amp; calibration', false)->assertSee('Tooling maintenance &amp; life', false)->getContent();
 
-        $this->assertSame(4, substr_count($html, 'name="modules[]"'));
-        $this->assertSame(4, substr_count($html, ' checked'));
+        $this->assertSame(count($this->moduleNames()), substr_count($html, 'name="modules[]"'));
+        $this->assertSame(count($this->moduleNames()), substr_count($html, ' checked'));
     }
 
     public function test_unticked_modules_are_saved_as_off_and_ticked_ones_stay_on(): void
@@ -38,9 +44,9 @@ class ModuleSettingsTest extends TestCase
     public function test_saving_with_every_box_unticked_switches_every_module_off_and_back_on_again(): void
     {
         $this->put(route('settings.modules'))->assertSessionHasNoErrors();
-        $this->assertSame(['capa', 'hr', 'maintenance', 'tooling'], (new SettingsModuleAccess)->disabledModules());
+        $this->assertEqualsCanonicalizing($this->moduleNames(), (new SettingsModuleAccess)->disabledModules());
 
-        $this->put(route('settings.modules'), ['modules' => ['capa', 'hr', 'maintenance', 'tooling']]);
+        $this->put(route('settings.modules'), ['modules' => $this->moduleNames()]);
         $this->assertSame([], (new SettingsModuleAccess)->disabledModules());
     }
 

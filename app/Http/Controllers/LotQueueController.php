@@ -6,6 +6,7 @@ use App\Models\CastingLot;
 use App\Models\PackingRecordItem;
 use App\Services\Production\LotService;
 use App\Services\Production\ShipmentService;
+use Illuminate\Support\Facades\Route;
 use Illuminate\View\View;
 
 class LotQueueController extends Controller
@@ -42,21 +43,10 @@ class LotQueueController extends Controller
             usort($b['lots'], fn ($x, $y) => ($y['age_h'] ?? -1) <=> ($x['age_h'] ?? -1));
         }
 
-        $packed = PackingRecordItem::with(['lot.product', 'packing'])->get()->filter(fn ($i) => app(ShipmentService::class)->undispatched($i) > 0);
+        $awaitingDispatch = Route::has('finished-goods.index')
+            ? PackingRecordItem::with(['lot.product', 'packing'])->get()->filter(fn ($i) => app(ShipmentService::class)->undispatched($i) > 0)->count()
+            : 0;
 
-        return view('lots.queue', ['buckets' => $buckets, 'awaitingDispatch' => $packed->count(), 'ship' => app(ShipmentService::class)]);
-    }
-
-    /** Packed castings not yet dispatched, whether made for an order or for stock. */
-    public function finishedGoods(ShipmentService $ship): View
-    {
-        $items = PackingRecordItem::with(['lot.product', 'lot.productionOrder.salesOrderLine.salesOrder.customer', 'packing'])->get()
-            ->map(function ($i) use ($ship) { $i->left = $ship->undispatched($i); return $i; })->filter(fn ($i) => $i->left > 0)->values();
-        $byProduct = $items->groupBy(fn ($i) => $i->lot->product?->code ?? '—')->map(fn ($g) => [
-            'name' => $g->first()->lot->product?->name, 'qty' => $g->sum('left'), 'rows' => $g,
-            'stock_qty' => $g->filter(fn ($i) => ! $i->lot->productionOrder?->salesOrderLine)->sum('left'),
-        ])->sortKeys();
-
-        return view('lots.finished-goods', ['byProduct' => $byProduct]);
+        return view('lots.queue', ['buckets' => $buckets, 'awaitingDispatch' => $awaitingDispatch]);
     }
 }

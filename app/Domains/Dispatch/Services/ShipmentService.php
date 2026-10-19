@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Services\Production;
+namespace App\Domains\Dispatch\Services;
 
 use App\Models\CastingLot;
-use App\Models\Dispatch;
-use App\Models\DispatchItem;
-use App\Models\PackingRecord;
-use App\Models\PackingRecordItem;
+use App\Domains\Dispatch\Models\Dispatch;
+use App\Domains\Dispatch\Models\DispatchItem;
+use App\Domains\Dispatch\Models\PackingRecord;
+use App\Domains\Dispatch\Models\PackingRecordItem;
 use App\Services\Patterns\PatternOwnership;
 use App\Services\QualityGates;
 use Illuminate\Support\Facades\DB;
