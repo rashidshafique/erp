@@ -44,6 +44,10 @@
     .rm-step i { font:600 10px ui-monospace, Menlo, monospace; font-style:normal; text-transform:uppercase; background:#24313a; color:#fff; padding:3px 7px; border-radius:5px; white-space:nowrap; }
     .rm-ph { border:1px dashed var(--border); border-radius:8px; padding:8px 10px; color:var(--muted); background:#fafbfb; font-size:12.5px; }
     .rm-ph small { display:block; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; }
+    .rm-block { border:1px solid var(--border); border-radius:10px; padding:12px; margin-top:14px; }
+    .rm-block-title { margin-bottom:8px; }
+    .rm-block .rm-order { margin-top:0; }
+    .rm-block .rm-facts { margin:10px 0 0; }
     .rm-facts { display:grid; grid-template-columns:1fr 1fr; gap:10px 14px; padding:12px; background:#f6f8f9; border-radius:8px; margin:12px 0; }
     .rm-facts dt, .rm-label { font:600 10.5px ui-monospace, Menlo, monospace; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin:0; }
     .rm-facts dd { margin:2px 0 0; font-weight:600; }
@@ -126,7 +130,9 @@
                         @error('production_order_id')<div class="error-text">{{ $message }}</div>@enderror
                     </div>
 
-                    <div id="production-order-summary" class="rm-order" style="display:none">
+                    <div class="rm-block">
+                        <div class="rm-label rm-block-title">Product</div>
+                        <div id="production-order-summary" class="rm-order" style="display:none">
                         <div style="display:flex;justify-content:space-between;gap:8px">
                             <div>
                                 <strong id="po-summary-number" class="code"></strong> <span id="po-summary-status" class="status"></span>
@@ -137,23 +143,16 @@
                             <div style="text-align:right"><div class="rm-label">Target qty</div><strong style="font-size:18px" id="po-summary-qty">—</strong> <span class="muted small" id="po-summary-uom"></span></div>
                         </div>
                     </div>
+                        <dl class="rm-facts">
+                            <div><dt>Revision</dt><dd id="po-summary-revision" class="code">—</dd></div>
+                            <div><dt>Material grade</dt><dd class="muted">Not recorded yet</dd></div>
+                            <div><dt>Target pour temp</dt><dd class="muted">Not recorded yet</dd></div>
+                        </dl>
+                    </div>
 
-                    <dl class="rm-facts">
-                        <div><dt>Revision</dt><dd id="po-summary-revision" class="code">—</dd></div>
-                        <div><dt>Material grade</dt><dd class="muted">Not recorded yet</dd></div>
-                        <div><dt>Target pour temp</dt><dd class="muted">Not recorded yet</dd></div>
-                        <div><dt>Cores per mould</dt><dd class="muted">Not recorded yet</dd></div>
-                    </dl>
-
-                    <dl class="rm-tool">
-                        <dt>Pattern tooling</dt><dd><span id="rm-pattern">—</span><div class="code muted small" id="rm-pattern-code"></div></dd>
-                        <dt>Cavities / layers</dt><dd id="rm-cavities">—</dd>
-                        <dt>Tooling bay / rack</dt><dd class="muted">Not recorded yet</dd>
-                        <dt>Core box tool</dt><dd class="muted">Not recorded yet</dd>
-                        <dt>Flask box dimension</dt><dd class="muted">Not recorded yet</dd>
-                    </dl>
-
-                    <div class="form-grid" data-progressive="3">
+                    <div class="rm-block">
+                        <div class="rm-label rm-block-title">Pattern &amp; tooling</div>
+                        <div class="form-grid" data-progressive="3">
                         <div class="field">
                             <label for="pattern_revision_id">Pattern revision</label>
                             <select id="pattern_revision_id" name="pattern_revision_id">
@@ -178,6 +177,15 @@
                             </select>
                             @error('mould_configuration_id')<div class="error-text">{{ $message }}</div>@enderror
                         </div>
+                    </div>
+                        <dl class="rm-tool">
+                            <dt>Pattern tooling</dt><dd><span id="rm-pattern">—</span><div class="code muted small" id="rm-pattern-code"></div></dd>
+                            <dt>Cavities / layers</dt><dd id="rm-cavities">—</dd>
+                            <dt>Cores per mould</dt><dd class="muted">Not recorded yet</dd>
+                            <dt>Tooling bay / rack</dt><dd class="muted">Not recorded yet</dd>
+                            <dt>Core box tool</dt><dd class="muted">Not recorded yet</dd>
+                            <dt>Flask box dimension</dt><dd class="muted">Not recorded yet</dd>
+                        </dl>
                     </div>
 
                     <div class="rm-label rm-sub">Mould sand control spec</div>
