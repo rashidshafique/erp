@@ -23,6 +23,17 @@
             <input id="lot_number" name="lot_number" class="form-control" required
                    value="{{ old('lot_number') }}">
         </div>
+        @if($suppliers->isNotEmpty())
+        <div>
+            <label for="supplier_id">Approved supplier</label>
+            <select id="supplier_id" name="supplier_id" class="form-control">
+                <option value="">— none —</option>
+                @foreach($suppliers as $supplier)
+                    <option value="{{ $supplier->id }}" @selected(old('supplier_id') === $supplier->id)>{{ $supplier->code }} — {{ $supplier->name }}@if($supplier->approval_status !== 'APPROVED') ({{ \App\Domains\Purchasing\Models\Supplier::STATUSES[$supplier->approval_status] }})@endif</option>
+                @endforeach
+            </select>
+        </div>
+        @endif
         <div>
             <label for="supplier_lot_number">Supplier lot / batch number</label>
             <input id="supplier_lot_number" name="supplier_lot_number" class="form-control"

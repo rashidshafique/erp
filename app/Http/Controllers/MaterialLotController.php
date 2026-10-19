@@ -5,6 +5,8 @@ use App\Models\StockLotCostLayer;
 use App\Models\StockMovement;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use App\Domains\Core\ModuleRegistry;
+use App\Domains\Purchasing\Models\Supplier;
 use App\Models\Material;
 use App\Models\MaterialLot;
 use Illuminate\Http\RedirectResponse;
@@ -15,11 +17,20 @@ use Illuminate\Database\QueryException;
 
 class MaterialLotController extends Controller
 {
+    /** @return \Illuminate\Support\Collection<int, Supplier> Empty when the Suppliers module is switched off. */
+    private function suppliersForLots(): \Illuminate\Support\Collection
+    {
+        return app(ModuleRegistry::class)->isEnabled('purchasing')
+            ? Supplier::whereNotIn('approval_status', Supplier::BLOCKED)->orderBy('name')->get()
+            : collect();
+    }
+
     public function create(Material $material): View
     {
         return view('material-lots.create', [
             'material' => $material,
             'lot' => new MaterialLot(),
+            'suppliers' => $this->suppliersForLots(),
         ]);
     }
 
@@ -30,6 +41,7 @@ class MaterialLotController extends Controller
                 'required', 'string', 'max:80',
                 Rule::unique('material_lots', 'lot_number'),
             ],
+            'supplier_id' => ['nullable', 'uuid', Rule::exists('suppliers', 'id')->whereNull('deleted_at')],
             'supplier_lot_number' => ['nullable', 'string', 'max:100'],
             'supplier_name_snapshot' => ['nullable', 'string', 'max:150'],
             'received_date' => ['nullable', 'date'],
@@ -52,6 +64,14 @@ class MaterialLotController extends Controller
             return back()
                 ->withInput()
                 ->withErrors(['accepted_qty' => 'An accepted lot must have a positive accepted quantity.']);
+        }
+
+        if (filled($validated['supplier_id'] ?? null)) {
+            $supplier = Supplier::findOrFail($validated['supplier_id']);
+            if ($supplier->isBlocked()) {
+                return back()->withInput()->withErrors(['supplier_id' => "{$supplier->name} is ".strtolower(Supplier::STATUSES[$supplier->approval_status]).' and cannot be received from.']);
+            }
+            $validated['supplier_name_snapshot'] = $supplier->name;
         }
 
         $validated['material_id'] = $material->id;

@@ -14,6 +14,7 @@ class MaterialLot extends Model
     protected $fillable = [
         'lot_number',
         'material_id',
+        'supplier_id',
         'supplier_lot_number',
         'supplier_name_snapshot',
         'received_date',
@@ -45,6 +46,11 @@ class MaterialLot extends Model
     {
         return $this->belongsTo(Material::class);
     }
+    public function supplier(): BelongsTo
+    {
+        return $this->belongsTo(\App\Domains\Purchasing\Models\Supplier::class);
+    }
+
     public function costLayers(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(
