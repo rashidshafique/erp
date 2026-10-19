@@ -28,11 +28,11 @@
     <div data-tab-host>
     @php
         $expected = $perMould !== null ? rtrim(rtrim(\App\Support\Formats::number($perMould * ($run->planned_mould_qty ?? 0), 1), '0'), '.') : null;
+        $expectedMade = $perMould !== null ? rtrim(rtrim(\App\Support\Formats::number($perMould * ($run->moulds_made_qty ?? 0), 1), '0'), '.') : null;
     @endphp
     <div class="run-kpis">
-        <div class="run-kpi"><div class="run-kpi-label">Planned / target</div><div class="run-kpi-value">{{ \App\Support\Formats::number($run->planned_mould_qty ?? 0) }} moulds</div></div>
-        <div class="run-kpi"><div class="run-kpi-label">Total expected</div><div class="run-kpi-value" @if ($expected === null) title="The pattern has no cavity map" @endif>{{ $expected ?? '—' }} castings</div></div>
-        <div class="run-kpi"><div class="run-kpi-label">Moulds made</div><div class="run-kpi-value">{{ \App\Support\Formats::number($run->moulds_made_qty) }}</div></div>
+        <div class="run-kpi"><div class="run-kpi-label">Planned / target</div><div class="run-kpi-value">{{ \App\Support\Formats::number($run->planned_mould_qty ?? 0) }} moulds <span class="muted small" @if ($expected === null) title="The pattern has no cavity map" @endif>· {{ $expected ?? '—' }} castings</span></div></div>
+        <div class="run-kpi"><div class="run-kpi-label">Moulds made</div><div class="run-kpi-value">{{ \App\Support\Formats::number($run->moulds_made_qty) }} <span class="muted small" @if ($expectedMade === null) title="The pattern has no cavity map" @endif>· {{ $expectedMade ?? '—' }} castings</span></div></div>
         <div class="run-kpi"><div class="run-kpi-label">Accepted</div><div class="run-kpi-value">{{ \App\Support\Formats::number($run->accepted_mould_qty) }}</div></div>
         <div class="run-kpi"><div class="run-kpi-label">Damaged</div><div class="run-kpi-value">{{ \App\Support\Formats::number($run->damaged_mould_qty) }}</div></div>
         <div class="run-kpi"><div class="run-kpi-label">Downtime</div><div class="run-kpi-value">{{ \App\Support\Formats::number($run->downtime_minutes) }} min</div></div>
