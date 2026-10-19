@@ -67,6 +67,21 @@ class MouldingRunBulkTest extends TestCase
         $this->assertSame([44, 2, 42, [1, 2], $w['order']->id, 'COMPLETED', $w['team']->id, 'Team Alpha', 'Sheera'], [$run->moulds_made_qty, $run->damaged_mould_qty, $run->accepted_mould_qty, $run->cavity_numbers, $run->production_order_id, $run->status, $run->moulding_team_id, $run->team_name, $run->sand_system]);
     }
 
+    public function test_create_page_maps_each_product_to_its_active_pattern_revisions(): void
+    {
+        $w = $this->world();
+
+        $response = $this->get(route('moulding-runs.create'));
+
+        $response->assertOk()->assertViewHas('activePatternRevisionIdsByProduct', [
+            $w['order']->product_id => [$w['revision']->id],
+        ]);
+
+        $w['pattern']->update(['status' => 'INACTIVE']);
+
+        $this->get(route('moulding-runs.create'))->assertViewHas('activePatternRevisionIdsByProduct', []);
+    }
+
     public function test_header_defaults_fill_blank_cells(): void
     {
         $w = $this->world();

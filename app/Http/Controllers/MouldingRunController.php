@@ -9,6 +9,7 @@ use App\Models\MouldingRun;
 use App\Models\MouldingTeam;
 use App\Models\MouldLayer;
 use App\Models\PatternRevision;
+use App\Models\PatternRevisionCavity;
 use App\Models\ProductionOrder;
 use App\Models\SandSystem;
 use App\Services\PatternCavityMap;
@@ -90,6 +91,19 @@ class MouldingRunController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
+        $activePatternRevisionIdsByProduct = PatternRevisionCavity::query()
+            ->join('pattern_revisions', 'pattern_revisions.id', '=', 'pattern_revision_cavities.pattern_revision_id')
+            ->join('patterns', 'patterns.id', '=', 'pattern_revisions.pattern_id')
+            ->join('product_revisions', 'product_revisions.id', '=', 'pattern_revision_cavities.product_revision_id')
+            ->where('pattern_revisions.is_current', true)
+            ->where('patterns.status', 'ACTIVE')
+            ->select('product_revisions.product_id', 'pattern_revisions.id as pattern_revision_id')
+            ->distinct()
+            ->get()
+            ->groupBy('product_id')
+            ->map(fn ($rows) => $rows->pluck('pattern_revision_id')->values()->all())
+            ->all();
+
         $mouldConfigurations = MouldConfiguration::query()
             ->where('is_active', true)
             ->orderBy('name')
@@ -116,6 +130,7 @@ class MouldingRunController extends Controller
         return view('moulding-runs.create', compact(
             'productionOrders',
             'patternRevisions',
+            'activePatternRevisionIdsByProduct',
             'mouldConfigurations',
             'selectedProductionOrderId',
             'defaults'

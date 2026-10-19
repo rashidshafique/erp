@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', function () {
             @json($order->id): {
                 number: @json($order->production_order_number),
                 status: @json($order->status),
+                productId: @json($order->product_id),
                 code: @json($order->product?->code ?? '—'),
                 product: @json($order->product?->name ?? 'Product unavailable'),
                 revision: @json($order->productRevision?->revision ?? '—'),
@@ -25,6 +26,17 @@ document.addEventListener('DOMContentLoaded', function () {
         @endforeach
     };
 
+    const activeRevisions = @json($activePatternRevisionIdsByProduct);
+    const revisionSelect = document.getElementById('pattern_revision_id');
+
+    function preselectPatternRevision(order) {
+        const ids = activeRevisions[order.productId] || [];
+
+        if (revisionSelect && ids.length === 1 && !revisionSelect.value) {
+            revisionSelect.value = ids[0];
+        }
+    }
+
     function updateSummary() {
         const order = orders[select.value];
 
@@ -32,6 +44,8 @@ document.addEventListener('DOMContentLoaded', function () {
             summary.style.display = 'none';
             return;
         }
+
+        preselectPatternRevision(order);
 
         document.getElementById('po-summary-number').textContent = order.number;
         document.getElementById('po-summary-status').textContent = order.status;
@@ -57,6 +71,8 @@ document.addEventListener('DOMContentLoaded', function () {
     <form method="POST" action="{{ route('moulding-runs.store') }}">
         @csrf
 
+        <div style="display:grid; grid-template-columns:minmax(0,65fr) minmax(0,35fr); gap:18px; align-items:start" class="run-split">
+        <div>
         <section class="panel">
             <div class="panel-header">
                 <h2>Production and tooling</h2>
@@ -86,7 +102,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             <strong id="po-summary-number"></strong>
                             <span id="po-summary-status" class="status" style="margin-left:8px"></span>
                             <div style="margin-top:8px">
-                                <span id="po-summary-product"></span>
+                                <strong id="po-summary-product"></strong>
                             </div>
                             <div class="muted" style="margin-top:4px">
                                 Revision: <span id="po-summary-revision">—</span>
@@ -212,6 +228,8 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>
         </section>
 
+        </div>
+        <div>
         <section class="panel">
             <div class="panel-header">
                 <h2>Output and downtime</h2>
@@ -283,12 +301,7 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>
         </section>
 
-        <div class="actions" style="justify-content:flex-end;margin-bottom:25px">
-            <a href="{{ route('moulding-runs.index') }}" class="btn">Cancel</a>
-            <button type="submit" class="btn btn-primary">Save moulding run</button>
-        </div>
-
-        <section class="panel" id="mould-yield-panel" style="margin-top:16px">
+        <section class="panel" id="mould-yield-panel">
             <div class="panel-header"><h2>Live mould yield</h2></div>
             <div class="panel-body">
                 <div class="form-grid">
@@ -299,6 +312,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 <p id="mould-validation" role="status" aria-live="polite" style="margin-top:12px"></p>
             </div>
         </section>
+
+        </div>
+        </div>
+
+        <div class="actions" style="justify-content:flex-end;margin-bottom:25px">
+            <a href="{{ route('moulding-runs.index') }}" class="btn">Cancel</a>
+            <button type="submit" class="btn btn-primary">Save moulding run</button>
+        </div>
 
         <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -355,4 +376,5 @@ document.addEventListener('DOMContentLoaded', function () {
         </script>
 
     </form>
+    <style>@media (max-width: 900px) { .run-split { grid-template-columns: 1fr !important; } }</style>
 @endsection
