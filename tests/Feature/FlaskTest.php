@@ -160,6 +160,60 @@ class FlaskTest extends TestCase
         $this->assemble($run, 1);   // drag B has no partner
     }
 
+    public function test_mixed_pairing_keeps_partners_together_and_pools_the_flasks_without_one(): void
+    {
+        FlaskRules::set('pairing', 'MIXED');
+        $size = $this->makeSize('600 × 500');
+        [$dragA, $dragC] = $this->flasks($size, 'DRAG', 2)->all();
+        [$copeB, $copeD] = $this->flasks($size, 'COPE', 2)->all();
+        $dragA->update(['partner_flask_id' => $copeB->id]);
+        $copeB->update(['partner_flask_id' => $dragA->id]);
+        $run = $this->makeRun([$size], accepted: 3);
+
+        $moulds = $this->assemble($run, 2);
+
+        $pairs = $moulds->map(fn ($m) => MouldLayer::where('mould_assembly_id', $m->id)->orderBy('layer_number')->pluck('flask_id')->all())->sort()->values()->all();
+        $expected = collect([[$dragA->id, $copeB->id], [$dragC->id, $copeD->id]])->sort()->values()->all();
+        $this->assertSame($expected, $pairs);
+        $this->expectException(\InvalidArgumentException::class);
+        $this->assemble($run, 1);   // nothing left, and a loose flask never closes a paired one
+    }
+
+    public function test_mixed_pairing_never_uses_a_paired_flask_without_its_partner(): void
+    {
+        FlaskRules::set('pairing', 'MIXED');
+        $size = $this->makeSize('600 × 500');
+        $dragA = $this->flasks($size, 'DRAG', 1)->first();
+        $copeB = $this->flasks($size, 'COPE', 1)->first();
+        $dragC = $this->flasks($size, 'DRAG', 1)->first();
+        $copeD = $this->flasks($size, 'COPE', 1)->first();
+        $dragA->update(['partner_flask_id' => $copeB->id]);
+        $copeB->update(['partner_flask_id' => $dragA->id, 'status' => 'REPAIR']);
+        $run = $this->makeRun([$size], accepted: 2);
+
+        $mould = $this->assemble($run, 1)->first();
+
+        $this->assertSame([$dragC->id, $copeD->id], MouldLayer::where('mould_assembly_id', $mould->id)->orderBy('layer_number')->pluck('flask_id')->all());
+        $this->assertSame('AVAILABLE', $dragA->fresh()->status);
+    }
+
+    public function test_mixed_pairing_refuses_to_swap_in_a_flask_that_is_not_the_partner_of_a_paired_one(): void
+    {
+        FlaskRules::set('pairing', 'MIXED');
+        $size = $this->makeSize('600 × 500');
+        $dragA = $this->flasks($size, 'DRAG', 1)->first();
+        $copeB = $this->flasks($size, 'COPE', 1)->first();
+        $copeD = $this->flasks($size, 'COPE', 1)->first();
+        $dragA->update(['partner_flask_id' => $copeB->id]);
+        $copeB->update(['partner_flask_id' => $dragA->id]);
+        $run = $this->makeRun([$size], accepted: 1);
+        $mould = $this->assemble($run, 1)->first();
+        $copeLayer = MouldLayer::where('mould_assembly_id', $mould->id)->where('layer_type', 'COPE')->firstOrFail();
+
+        $this->put(route('moulding-runs.layers.flask', [$run, $copeLayer]), ['flask' => $copeD->code])->assertSessionHasErrors('flask');
+        $this->assertSame($copeB->id, $copeLayer->fresh()->flask_id);
+    }
+
     public function test_flaskless_stations_and_vertical_patterns_use_no_flasks(): void
     {
         $size = $this->makeSize('600 × 500');

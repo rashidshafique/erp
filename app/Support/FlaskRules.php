@@ -16,6 +16,7 @@ class FlaskRules
         'pairing' => ['flasks.pairing', 'Cope and drag pairing', [
             'ANY' => 'Any cope closes any drag of the same size',
             'FIXED' => 'Fixed pairs only: a flask goes only with its partner',
+            'MIXED' => 'Pairs where a partner is set, otherwise any: a flask with a partner goes only with it; flasks without one go with any other flask without one',
         ], 'ANY'],
         'release' => ['flasks.release', 'When flasks are freed', [
             'SHAKEOUT' => 'At shakeout of the castings',

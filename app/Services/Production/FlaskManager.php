@@ -96,6 +96,9 @@ class FlaskManager
         $free = fn (string $type, array $taken) => $pool
             ->filter(fn (Flask $f) => ! isset($used[$f->id]) && ! isset($taken[$f->id]) && $f->fits($type))
             ->sortBy(fn (Flask $f) => $f->position === $type ? 0 : 1)->values();
+        if (FlaskRules::get('pairing') === 'MIXED' && count($types) > 1) {
+            return $this->pickMixedSet($pool, $types, $used, $free);
+        }
         $set = [];
         $taken = [];
         $last = count($types) - 1;
@@ -124,6 +127,48 @@ class FlaskManager
         }
 
         return $set;
+    }
+
+    /**
+     * A set when pairs and interchangeable flasks live side by side: a drag with a partner is closed by that partner,
+     * a drag without one by a cope that has none. The cope is chosen before any sections in between, so a section
+     * cannot take the flask a pair is waiting for, and sections prefer flasks that have no partner.
+     *
+     * @param  \Closure(string, array<string, bool>): Collection<int, Flask>  $free
+     * @return array<int, Flask>|null
+     */
+    private function pickMixedSet(Collection $pool, array $types, array $used, \Closure $free): ?array
+    {
+        $last = count($types) - 1;
+        foreach ($free($types[0], []) as $drag) {
+            $taken = [$drag->id => true];
+            if ($drag->partner_flask_id) {
+                $cope = $pool->firstWhere('id', $drag->partner_flask_id);
+                if (! $cope || isset($used[$cope->id]) || ! $cope->fits($types[$last])) {
+                    continue;
+                }
+            } else {
+                $cope = $free($types[$last], $taken)->first(fn (Flask $f) => ! $f->partner_flask_id);
+                if (! $cope) {
+                    continue;
+                }
+            }
+            $set = [0 => $drag, $last => $cope];
+            $taken[$cope->id] = true;
+            for ($i = 1; $i < $last; $i++) {
+                $section = $free($types[$i], $taken)->sortBy(fn (Flask $f) => $f->partner_flask_id ? 1 : 0)->first();
+                if (! $section) {
+                    continue 2;
+                }
+                $set[$i] = $section;
+                $taken[$section->id] = true;
+            }
+            ksort($set);
+
+            return $set;
+        }
+
+        return null;
     }
 
     /**
@@ -245,10 +290,16 @@ class FlaskManager
         if (! $flask->fits($layer->layer_type)) {
             throw ValidationException::withMessages(['flask' => "{$flask->label()} is a ".strtolower(Flask::POSITIONS[$flask->position]).' flask and cannot be the '.strtolower($layer->layer_type).' of this mould.']);
         }
-        if (FlaskRules::get('pairing') === 'FIXED' && in_array($layer->layer_type, ['DRAG', 'COPE'], true)) {
+        $pairing = FlaskRules::get('pairing');
+        if (in_array($pairing, ['FIXED', 'MIXED'], true) && in_array($layer->layer_type, ['DRAG', 'COPE'], true)) {
             $other = MouldLayer::where('mould_assembly_id', $mould->id)->where('layer_type', $layer->layer_type === 'DRAG' ? 'COPE' : 'DRAG')->value('flask_id');
             if ($other && $flask->partner_flask_id !== $other) {
-                throw ValidationException::withMessages(['flask' => "Flasks go in fixed pairs: {$flask->label()} is not the partner of the other flask in this mould."]);
+                if ($pairing === 'FIXED') {
+                    throw ValidationException::withMessages(['flask' => "Flasks go in fixed pairs: {$flask->label()} is not the partner of the other flask in this mould."]);
+                }
+                if ($flask->partner_flask_id || Flask::whereKey($other)->value('partner_flask_id')) {
+                    throw ValidationException::withMessages(['flask' => "A flask with a partner goes only with it: {$flask->label()} is not the partner of the other flask in this mould."]);
+                }
             }
         }
         $old = $layer->flask_id ? Flask::find($layer->flask_id) : null;
