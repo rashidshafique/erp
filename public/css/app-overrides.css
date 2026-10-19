@@ -104,6 +104,7 @@ select:not([multiple]):not([size]) {
     html.menu-slim { --side-w: 64px !important; }
     .menu-slim .sidebar { padding-left: 8px !important; padding-right: 8px !important; }
     .menu-slim .brand { padding: 0 0 14px !important; text-align: center; }
+    .menu-slim .brand { display: none !important; }
     .menu-slim .brand-name, .menu-slim .brand small, .menu-slim .brand img { display: none !important; }
     .menu-slim .brand-mark { display: inline-flex; width: 32px; height: 32px; align-items: center; justify-content: center; border-radius: 9px; background: var(--text); color: var(--surface); font-size: 15px; font-weight: 600; }
     .menu-slim .nav-link > span, .menu-slim .nav-lab > span, .menu-slim .nav-chevron, .menu-slim .sp-text, .menu-slim .sidebar-footer { display: none !important; }
@@ -123,6 +124,7 @@ select:not([multiple]):not([size]) {
     html.menu-hover { --side-w: 64px !important; }
     html.menu-hover .sidebar { width: var(--side-open-w, 245px) !important; z-index: 60; box-shadow: 2px 0 10px rgba(15, 23, 42, .07); }
     html.menu-hover .sidebar-resizer { display: none !important; }
+    html.menu-hover .brand { display: none !important; }   /* no logo in the collapsed menu, widened or not, so the links do not jump */
     html.menu-hover .topbar .menu-toggle { display: none; }   /* the slim menu hides it; without this the top bar shifts */
 }
 /* Responsive menu. Desktop: fixed, optionally slim. Tablet: always an icon rail; the button opens the full menu over the page.
