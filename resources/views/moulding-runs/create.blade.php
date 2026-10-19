@@ -8,7 +8,7 @@
 @php
     $revisionData = $patternRevisions->mapWithKeys(fn ($r) => [$r->id => [
         'code' => $r->shortCode(),
-        'pattern' => trim(($r->pattern?->code ?? '').' '.($r->pattern?->name ?? '')),
+        'name' => $r->pattern?->name ?? 'Pattern',
         'type' => $r->pattern ? str_replace('_', ' ', $r->pattern->pattern_type) : null,
         'cavities' => $r->cavities_per_mould,
         'layers' => $r->layers_per_mould,
@@ -129,8 +129,9 @@
                     <div id="production-order-summary" class="rm-order" style="display:none">
                         <div style="display:flex;justify-content:space-between;gap:8px">
                             <div>
-                                <strong id="po-summary-number"></strong> <span id="po-summary-status" class="status"></span>
+                                <strong id="po-summary-number" class="code"></strong> <span id="po-summary-status" class="status"></span>
                                 <div class="big" id="po-summary-product"></div>
+                                <div class="code muted small" id="po-summary-code"></div>
                                 <div class="muted small">Customer: <span id="po-summary-customer">—</span></div>
                             </div>
                             <div style="text-align:right"><div class="rm-label">Target qty</div><strong style="font-size:18px" id="po-summary-qty">—</strong> <span class="muted small" id="po-summary-uom"></span></div>
@@ -138,14 +139,14 @@
                     </div>
 
                     <dl class="rm-facts">
-                        <div><dt>Revision</dt><dd id="po-summary-revision">—</dd></div>
+                        <div><dt>Revision</dt><dd id="po-summary-revision" class="code">—</dd></div>
                         <div><dt>Material grade</dt><dd class="muted">Not recorded yet</dd></div>
                         <div><dt>Target pour temp</dt><dd class="muted">Not recorded yet</dd></div>
                         <div><dt>Cores per mould</dt><dd class="muted">Not recorded yet</dd></div>
                     </dl>
 
                     <dl class="rm-tool">
-                        <dt>Pattern tooling</dt><dd id="rm-pattern">—</dd>
+                        <dt>Pattern tooling</dt><dd><span id="rm-pattern">—</span><div class="code muted small" id="rm-pattern-code"></div></dd>
                         <dt>Cavities / layers</dt><dd id="rm-cavities">—</dd>
                         <dt>Tooling bay / rack</dt><dd class="muted">Not recorded yet</dd>
                         <dt>Core box tool</dt><dd class="muted">Not recorded yet</dd>
@@ -400,7 +401,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function showRevision() {
         const r = revisions[revisionSelect.value];
-        text('rm-pattern', r ? r.pattern + ' · ' + r.code : '—');
+        text('rm-pattern', r ? r.name : '—');
+        text('rm-pattern-code', r ? r.code : '');
         text('rm-cavities', r && (r.cavities || r.layers) ? (r.cavities ?? '—') + ' cavities · ' + (r.layers ?? '—') + ' layers' : '—');
     }
 
@@ -419,7 +421,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
         text('po-summary-number', order.number);
         text('po-summary-status', order.status);
-        text('po-summary-product', order.code + ' — ' + order.product);
+        text('po-summary-product', order.product);
+        text('po-summary-code', order.code + (order.revision !== '—' ? ' · rev ' + order.revision : ''));
         text('po-summary-customer', order.customer);
         text('po-summary-revision', order.revision);
         text('po-summary-qty', order.qty);

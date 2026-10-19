@@ -64,12 +64,11 @@
                 @forelse ($orders as $order)
                     <tr>
                         <td>
-                            <a href="{{ route('production-orders.show', $order) }}"><strong>{{ $order->production_order_number }}</strong></a>
+                            <a href="{{ route('production-orders.show', $order) }}"><strong class="code">{{ $order->production_order_number }}</strong></a>
                             <div class="muted small">{{ $order->order_type }}</div>
                         </td>
                         <td>
-                            <strong>{{ $order->product->code ?? '—' }}</strong> {{ $order->product->name ?? 'Product unavailable' }}
-                            <div class="muted small">Revision {{ $order->productRevision->revision ?? '—' }}</div>
+                            <x-item :name="$order->product->name ?? 'Product unavailable'" :code="$order->product->code ?? null" :revision="$order->productRevision?->revision ? 'rev '.$order->productRevision->revision : null" />
                         </td>
                         <td>{{ \App\Support\Formats::number((float) $order->planned_qty, 0) }} {{ $order->uom }}</td>
                         <td>{{ \App\Support\Formats::number((float) $order->completed_qty, 0) }}</td>

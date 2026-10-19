@@ -74,8 +74,7 @@
             <table>
                 <thead>
                     <tr>
-                        <th>Product code</th>
-                        <th>Name</th>
+                        <th>Product</th>
                         <th>Type</th>
                         <th>Nominal weight</th>
                         <th>Revisions</th>
@@ -86,8 +85,7 @@
                 <tbody>
                     @foreach ($products as $product)
                         <tr>
-                            <td><strong>{{ $product->code }}</strong></td>
-                            <td>{{ $product->name }}</td>
+                            <td><x-item :name="$product->name" :code="$product->code" /></td>
                             <td>{{ $product->product_type }}</td>
                             <td>
                                 {{ $product->nominal_weight_kg !== null

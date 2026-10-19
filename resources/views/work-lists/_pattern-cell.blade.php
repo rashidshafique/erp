@@ -13,8 +13,7 @@
         <span class="wl-plate-none" title="No photo of this plate yet">{!! \App\Support\NavIcons::get('layers', 18) !!}</span>
     @endif
     <div class="wl-plate-text">
-        <a href="{{ route('patterns.show', $pattern) }}"><strong>{{ $pattern->name }}</strong></a>
-        <div class="muted small">{{ $revision->shortCode() }}</div>
+        <x-item :name="$pattern->name" :code="$revision->shortCode()" :href="route('patterns.show', $pattern)" />
         <div class="muted small">{{ str_replace('_', ' ', $pattern->pattern_type) }}</div>
     </div>
 </div>

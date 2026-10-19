@@ -118,13 +118,11 @@
                                 <div class="muted small">{{ $run->shift ?: 'No shift' }}</div>
                             </td>
                             <td>
-                                {{ $run->productionOrder?->production_order_number ?? '—' }}
-                                <div class="muted small">
-                                    {{ $run->productionOrder?->product?->name ?? 'Product not set' }}
-                                </div>
+                                <span class="code">{{ $run->productionOrder?->production_order_number ?? '—' }}</span>
+                                <div><x-item :name="$run->productionOrder?->product?->name ?? 'Product not set'" :code="$run->productionOrder?->product?->code" /></div>
                             </td>
                             <td>
-                                {{ $run->patternRevision?->pattern?->name ?? '—' }}
+                                @if ($run->patternRevision)<x-item :name="$run->patternRevision->pattern?->name" :code="$run->patternRevision->pattern?->code" :revision="$run->patternRevision->shortCode()" />@else—@endif
                                 @if ($run->mouldConfiguration)
                                     <div class="muted small">{{ $run->mouldConfiguration->name }}</div>
                                 @endif

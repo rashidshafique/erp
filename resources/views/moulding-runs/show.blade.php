@@ -62,14 +62,14 @@
                 <div>
                     <div class="detail-label">Production order</div>
                     <div class="detail-value">
-                        {{ $run->productionOrder?->production_order_number ?? '—' }}
+                        <span class="code">{{ $run->productionOrder?->production_order_number ?? '—' }}</span>
                     </div>
                 </div>
 
                 <div>
                     <div class="detail-label">Product</div>
                     <div class="detail-value">
-                        {{ $run->productionOrder?->product?->name ?? '—' }}
+                        @if ($run->productionOrder?->product)<x-item :name="$run->productionOrder->product->name" :code="$run->productionOrder->product->code" :revision="$run->productionOrder->productRevision?->revision" />@else—@endif
                     </div>
                 </div>
 
@@ -83,14 +83,14 @@
                 <div>
                     <div class="detail-label">Pattern</div>
                     <div class="detail-value">
-                        {{ $run->patternRevision?->pattern?->name ?? 'Not specified' }}
+                        @if ($run->patternRevision)<x-item :name="$run->patternRevision->pattern?->name" :code="$run->patternRevision->pattern?->code" />@else Not specified @endif
                     </div>
                 </div>
 
                 <div>
                     <div class="detail-label">Pattern revision</div>
                     <div class="detail-value">
-                        {{ $run->patternRevision?->shortCode() ?? '—' }}
+                        <span class="code">{{ $run->patternRevision?->shortCode() ?? '—' }}</span>
                     </div>
                 </div>
 

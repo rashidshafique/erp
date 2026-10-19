@@ -90,8 +90,7 @@
             <table>
                 <thead>
                     <tr>
-                        <th>Code</th>
-                        <th>Name</th>
+                        <th>Pattern</th>
                         <th>Type</th>
                         <th>Material</th>
                         <th>Current revision</th>
@@ -105,8 +104,7 @@
                     @foreach ($patterns as $pattern)
                         @php($latestRevision = $pattern->currentRevision)
                         <tr>
-                            <td><strong>{{ $pattern->code }}</strong></td>
-                            <td>{{ $pattern->name }}</td>
+                            <td><x-item :name="$pattern->name" :code="$pattern->code" /></td>
                             <td>{{ $pattern->pattern_type }}</td>
                             <td>{{ $pattern->material ?: '—' }}</td>
                             <td>@if ($latestRevision)<span class="mono">{{ $latestRevision->code }}</span>@if ($latestRevision->legacy_baseline) <span class="status" title="As-imported baseline">Baseline</span>@endif @if ($latestRevision->drawing_revision)<div class="muted small">Drawing rev {{ $latestRevision->drawing_revision }}</div>@endif @else — @endif</td>
