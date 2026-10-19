@@ -1,7 +1,9 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Domains\Tooling\Http\Controllers;
 
+use App\Domains\Tooling\Models\ToolingMaintenanceRecord;
+use App\Http\Controllers\Controller;
 use App\Models\CoreBox;
 use App\Models\CoreDefinition;
 use App\Models\Flask;
@@ -9,7 +11,6 @@ use App\Models\MouldAssembly;
 use App\Models\MouldConfiguration;
 use App\Models\Pattern;
 use App\Models\PatternRevision;
-use App\Models\ToolingMaintenanceRecord;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -168,7 +169,7 @@ class ToolingMaintenanceRecordController extends Controller
             }
         }
 
-        return view('tooling-maintenance.index', [
+        return view('tooling::tooling-maintenance.index', [
             'records' => $query->paginate(20)->withQueryString(),
             'filters' => $filters,
         ]);
@@ -176,7 +177,7 @@ class ToolingMaintenanceRecordController extends Controller
 
     public function create(): View
     {
-        return view('tooling-maintenance.form', [
+        return view('tooling::tooling-maintenance.form', [
             'record' => new ToolingMaintenanceRecord,
             'toolingOptions' => $this->toolingOptions(),
             'activities' => self::ACTIVITIES,
@@ -208,14 +209,14 @@ class ToolingMaintenanceRecordController extends Controller
 
     public function show(ToolingMaintenanceRecord $toolingMaintenance): View
     {
-        return view('tooling-maintenance.show', [
+        return view('tooling::tooling-maintenance.show', [
             'record' => $this->withTooling($toolingMaintenance)->load('attachments'),
         ]);
     }
 
     public function edit(ToolingMaintenanceRecord $toolingMaintenance): View
     {
-        return view('tooling-maintenance.form', [
+        return view('tooling::tooling-maintenance.form', [
             'record' => $this->withTooling($toolingMaintenance),
             'toolingOptions' => $this->toolingOptions(),
             'activities' => self::ACTIVITIES,

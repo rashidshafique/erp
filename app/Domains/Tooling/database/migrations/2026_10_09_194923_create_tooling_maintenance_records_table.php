@@ -2,8 +2,8 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -44,7 +44,6 @@ return new class extends Migration
                 ->constrained('mould_assemblies')
                 ->restrictOnDelete();
 
-            
             // Maintenance record details.
             $table->string('record_number', 50)->unique();
             $table->string('activity_type', 30);
@@ -80,7 +79,7 @@ return new class extends Migration
             $table->index('completed_at');
             $table->index('next_inspection_due_on');
         });
-        DB::statement("
+        DB::statement('
             ALTER TABLE tooling_maintenance_records
             ADD CONSTRAINT tooling_maintenance_records_exactly_one_tooling_check
             CHECK (
@@ -92,7 +91,7 @@ return new class extends Migration
                 (CASE WHEN mould_assembly_id IS NOT NULL THEN 1 ELSE 0 END)
                 = 1
             )
-        ");
+        ');
     }
 
     public function down(): void

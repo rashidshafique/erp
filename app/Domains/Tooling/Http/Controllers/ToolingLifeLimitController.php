@@ -1,7 +1,9 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Domains\Tooling\Http\Controllers;
 
+use App\Domains\Tooling\Models\ToolingLifeLimit;
+use App\Http\Controllers\Controller;
 use App\Models\CoreBox;
 use App\Models\CoreDefinition;
 use App\Models\Flask;
@@ -9,7 +11,6 @@ use App\Models\MouldAssembly;
 use App\Models\MouldConfiguration;
 use App\Models\Pattern;
 use App\Models\PatternRevision;
-use App\Models\ToolingLifeLimit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -61,7 +62,7 @@ class ToolingLifeLimitController extends Controller
 
     public function create(): View
     {
-        return view('tooling-life.form', [
+        return view('tooling::tooling-life.form', [
             'limit' => new ToolingLifeLimit,
             'toolingOptions' => $this->toolingOptions(),
             'editing' => false,
@@ -70,7 +71,7 @@ class ToolingLifeLimitController extends Controller
 
     public function edit(ToolingLifeLimit $toolingLifeLimit): View
     {
-        return view('tooling-life.form', [
+        return view('tooling::tooling-life.form', [
             'limit' => $toolingLifeLimit,
             'toolingOptions' => $this->toolingOptions(),
             'editing' => true,

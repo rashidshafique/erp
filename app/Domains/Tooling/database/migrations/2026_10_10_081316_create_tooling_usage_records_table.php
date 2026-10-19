@@ -46,7 +46,7 @@ return new class extends Migration
             $table->index(['reference_type', 'reference_id']);
         });
 
-        DB::statement("
+        DB::statement('
             ALTER TABLE tooling_usage_records
             ADD CONSTRAINT tooling_usage_records_exactly_one_tooling_check
             CHECK (
@@ -59,13 +59,13 @@ return new class extends Migration
                     mould_assembly_id
                 ) = 1
             )
-        ");
+        ');
 
-        DB::statement("
+        DB::statement('
             ALTER TABLE tooling_usage_records
             ADD CONSTRAINT tooling_usage_records_positive_quantity_check
             CHECK (usage_quantity > 0)
-        ");
+        ');
     }
 
     public function down(): void

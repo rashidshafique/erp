@@ -84,12 +84,6 @@ use App\Http\Controllers\StockMovementController;
 use App\Http\Controllers\StockReconciliationController;
 use App\Http\Controllers\StockReportController;
 use App\Http\Controllers\ThermalTestController;
-use App\Http\Controllers\ToolController;
-use App\Http\Controllers\ToolingLifeDashboardController;
-use App\Http\Controllers\ToolingLifeLimitController;
-use App\Http\Controllers\ToolingMaintenanceDashboardController;
-use App\Http\Controllers\ToolingMaintenanceHistoryController;
-use App\Http\Controllers\ToolingMaintenanceRecordController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WorkListController;
 use App\Http\Controllers\YieldReportController;
@@ -215,71 +209,6 @@ Route::prefix('products')
         Route::delete('/{product}', 'archive')->name('archive');
         Route::post('/{product}/restore', 'restore')->name('restore')->withTrashed();
     });
-
-Route::get(
-    '/tooling-maintenance/dashboard',
-    ToolingMaintenanceDashboardController::class
-)->name('tooling-maintenance.dashboard');
-
-Route::get(
-    '/tooling-maintenance',
-    [ToolingMaintenanceRecordController::class, 'index']
-)->name('tooling-maintenance.index');
-
-Route::get(
-    '/tooling-maintenance/create',
-    [ToolingMaintenanceRecordController::class, 'create']
-)->name('tooling-maintenance.create');
-
-Route::post(
-    '/tooling-maintenance',
-    [ToolingMaintenanceRecordController::class, 'store']
-)->name('tooling-maintenance.store');
-
-Route::get(
-    '/tooling-maintenance/{toolingMaintenance}',
-    [ToolingMaintenanceRecordController::class, 'show']
-)->name('tooling-maintenance.show');
-
-Route::get(
-    '/tooling-maintenance/{toolingMaintenance}/edit',
-    [ToolingMaintenanceRecordController::class, 'edit']
-)->name('tooling-maintenance.edit');
-
-Route::put(
-    '/tooling-maintenance/{toolingMaintenance}',
-    [ToolingMaintenanceRecordController::class, 'update']
-)->name('tooling-maintenance.update');
-
-Route::get(
-    '/tooling-maintenance/{toolingMaintenance}/history',
-    ToolingMaintenanceHistoryController::class
-)->name('tooling-maintenance.history');
-
-Route::get(
-    '/tooling-life',
-    ToolingLifeDashboardController::class
-)->name('tooling-life.dashboard');
-
-Route::get(
-    '/tooling-life/create',
-    [ToolingLifeLimitController::class, 'create']
-)->name('tooling-life.create');
-
-Route::post(
-    '/tooling-life',
-    [ToolingLifeLimitController::class, 'store']
-)->name('tooling-life.store');
-
-Route::get(
-    '/tooling-life/{toolingLifeLimit}/edit',
-    [ToolingLifeLimitController::class, 'edit']
-)->name('tooling-life.edit');
-
-Route::put(
-    '/tooling-life/{toolingLifeLimit}',
-    [ToolingLifeLimitController::class, 'update']
-)->name('tooling-life.update');
 
 Route::prefix('production-orders')
     ->name('production-orders.')
@@ -626,8 +555,6 @@ Route::put('/settings/documents', [DocumentSettingsController::class, 'update'])
 Route::get('/scan', [ScanController::class, 'find'])->name('scan');
 Route::get('/scan/suggest', [ScanController::class, 'suggest'])->name('scan.suggest');
 Route::get('/labels/{type}/{id}', [LabelController::class, 'show'])->where('type', '[a-z_]+')->name('labels.show');
-Route::get('/tools/{type}/{id}', [ToolController::class, 'show'])->where('type', '[a-z_]+')->name('tools.show');
-Route::put('/tools/{type}/{id}/mark', [ToolController::class, 'updateMark'])->where('type', '[a-z_]+')->name('tools.mark');
 Route::put('/settings/interface', [AppSettingController::class, 'updateInterface'])->name('settings.interface.update');
 Route::get('/settings/display', [DisplaySettingsController::class, 'edit'])->name('settings.display');
 Route::put('/settings/display', [DisplaySettingsController::class, 'update'])->name('settings.display.update');

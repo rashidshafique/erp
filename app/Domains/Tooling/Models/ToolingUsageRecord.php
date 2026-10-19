@@ -1,17 +1,23 @@
 <?php
 
-namespace App\Models;
+namespace App\Domains\Tooling\Models;
 
+use App\Models\CoreBox;
+use App\Models\CoreDefinition;
+use App\Models\Flask;
+use App\Models\MouldAssembly;
+use App\Models\MouldConfiguration;
+use App\Models\Pattern;
+use App\Models\PatternRevision;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class ToolingLifeLimit extends Model
+class ToolingUsageRecord extends Model
 {
     use HasUuids;
 
     protected $fillable = [
-        'tooling_type',
         'pattern_id',
         'pattern_revision_id',
         'core_definition_id',
@@ -19,25 +25,21 @@ class ToolingLifeLimit extends Model
         'mould_configuration_id',
         'flask_id',
         'mould_assembly_id',
+        'tooling_type',
+        'usage_quantity',
         'usage_unit',
-        'service_life_quantity',
-        'inspection_interval_quantity',
-        'usage_at_last_inspection',
-        'last_inspected_at',
-        'warning_threshold_percent',
-        'is_active',
+        'used_at',
+        'reference_type',
+        'reference_id',
+        'recorded_by',
         'notes',
     ];
 
     protected function casts(): array
     {
         return [
-            'service_life_quantity' => 'decimal:3',
-            'inspection_interval_quantity' => 'decimal:3',
-            'usage_at_last_inspection' => 'decimal:3',
-            'last_inspected_at' => 'datetime',
-            'warning_threshold_percent' => 'integer',
-            'is_active' => 'boolean',
+            'usage_quantity' => 'decimal:3',
+            'used_at' => 'datetime',
         ];
     }
 

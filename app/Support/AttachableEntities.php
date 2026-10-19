@@ -30,7 +30,6 @@ use App\Models\Product;
 use App\Models\QualityInspection;
 use App\Models\SalesOrder;
 use App\Models\ThermalAnalysisTest;
-use App\Models\ToolingMaintenanceRecord;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 
@@ -46,7 +45,6 @@ class AttachableEntities
         'packing' => ['Packing record', PackingRecord::class], 'dispatch' => ['Dispatch', Dispatch::class], 'iron_grade' => ['Iron grade', IronGrade::class],
         'core_box' => ['Core box', CoreBox::class], 'core_definition' => ['Core', CoreDefinition::class],
         'mould_configuration' => ['Mould configuration', MouldConfiguration::class],
-        'tooling_maintenance' => ['Tooling maintenance', ToolingMaintenanceRecord::class],
         'enquiry' => ['Enquiry', Enquiry::class],
         'employee' => ['Employee', Employee::class],
         'employee_document' => ['Employee document', EmployeeDocument::class],
@@ -71,7 +69,6 @@ class AttachableEntities
         'packing' => ['packing.operate', null], 'dispatch' => ['dispatch.operate', null], 'iron_grade' => ['quality.manage', null],
         'core_box' => ['tooling.manage', null], 'core_definition' => ['tooling.manage', null],
         'mould_configuration' => ['tooling.manage', null],
-        'tooling_maintenance' => ['tooling.manage', null],
         'enquiry' => ['sales.manage', null],
         'employee' => ['hr.manage', 'hr.manage'],
         'employee_document' => ['hr.manage', 'hr.manage'],

@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Services;
+namespace App\Domains\Tooling\Services;
 
-use App\Models\ToolingLifeLimit;
-use App\Models\ToolingUsageRecord;
+use App\Domains\Tooling\Models\ToolingLifeLimit;
+use App\Domains\Tooling\Models\ToolingUsageRecord;
 use Illuminate\Support\Collection;
 
 class ToolingLifeStatusService

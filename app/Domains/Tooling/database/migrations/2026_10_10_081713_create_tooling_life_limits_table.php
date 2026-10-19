@@ -51,7 +51,7 @@ return new class extends Migration
             $table->index(['tooling_type', 'is_active']);
         });
 
-        DB::statement("
+        DB::statement('
             ALTER TABLE tooling_life_limits
             ADD CONSTRAINT tooling_life_limits_exactly_one_tooling_check
             CHECK (
@@ -64,9 +64,9 @@ return new class extends Migration
                     mould_assembly_id
                 ) = 1
             )
-        ");
+        ');
 
-        DB::statement("
+        DB::statement('
             ALTER TABLE tooling_life_limits
             ADD CONSTRAINT tooling_life_limits_positive_quantities_check
             CHECK (
@@ -78,7 +78,7 @@ return new class extends Migration
                 AND
                 warning_threshold_percent BETWEEN 1 AND 100
             )
-        ");
+        ');
 
         // A tooling item can have at most one active configuration row.
         foreach ([

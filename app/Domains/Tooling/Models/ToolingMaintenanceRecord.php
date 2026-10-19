@@ -1,7 +1,15 @@
 <?php
 
-namespace App\Models;
+namespace App\Domains\Tooling\Models;
 
+use App\Models\Attachment;
+use App\Models\CoreBox;
+use App\Models\CoreDefinition;
+use App\Models\Flask;
+use App\Models\MouldAssembly;
+use App\Models\MouldConfiguration;
+use App\Models\Pattern;
+use App\Models\PatternRevision;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

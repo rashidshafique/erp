@@ -1,9 +1,10 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Domains\Tooling\Http\Controllers;
 
+use App\Domains\Tooling\Models\ToolingMaintenanceRecord;
+use App\Http\Controllers\Controller;
 use App\Models\Attachment;
-use App\Models\ToolingMaintenanceRecord;
 use Illuminate\Contracts\View\View;
 
 class ToolingMaintenanceHistoryController extends Controller
@@ -73,7 +74,7 @@ class ToolingMaintenanceHistoryController extends Controller
             'other_cost' => (clone $summaryQuery)->sum('other_cost'),
         ];
 
-        return view('tooling-maintenance.history', [
+        return view('tooling::tooling-maintenance.history', [
             'toolingMaintenance' => $toolingMaintenance,
             'records' => $records,
             'summary' => $summary,

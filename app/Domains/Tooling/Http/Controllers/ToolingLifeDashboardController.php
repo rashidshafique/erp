@@ -1,8 +1,9 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Domains\Tooling\Http\Controllers;
 
-use App\Services\ToolingLifeStatusService;
+use App\Domains\Tooling\Services\ToolingLifeStatusService;
+use App\Http\Controllers\Controller;
 use Illuminate\View\View;
 
 class ToolingLifeDashboardController extends Controller
@@ -12,7 +13,7 @@ class ToolingLifeDashboardController extends Controller
     ): View {
         $items = $service->dashboard();
 
-        return view('tooling-life.dashboard', [
+        return view('tooling::tooling-life.dashboard', [
             'items' => $items,
             'inspectionDueCount' => $items->where(
                 'status',

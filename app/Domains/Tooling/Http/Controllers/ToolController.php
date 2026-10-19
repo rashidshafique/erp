@@ -1,8 +1,9 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Domains\Tooling\Http\Controllers;
 
-use App\Models\ToolingMaintenanceRecord;
+use App\Domains\Tooling\Models\ToolingMaintenanceRecord;
+use App\Http\Controllers\Controller;
 use App\Services\Codes\CodeGenerator;
 use App\Support\AttachableEntities;
 use App\Support\CodedRecords;
@@ -28,7 +29,7 @@ class ToolController extends Controller
         $fk = ['core_box' => 'core_box_id', 'core_definition' => 'core_definition_id', 'mould_configuration' => 'mould_configuration_id'][$type];
         $records = ToolingMaintenanceRecord::where($fk, $id)->orderByDesc('reported_at')->limit(20)->get();
 
-        return view('tools.show', ['tool' => $tool, 'type' => $type, 'label' => CodedRecords::TYPES[$type][2], 'records' => $records]);
+        return view('tooling::tools.show', ['tool' => $tool, 'type' => $type, 'label' => CodedRecords::TYPES[$type][2], 'records' => $records]);
     }
 
     /** Record a mark that is already engraved on an old tool, or fix a typing mistake. Marks stay unique across all tooling. */

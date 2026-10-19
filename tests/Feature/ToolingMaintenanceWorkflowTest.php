@@ -85,7 +85,7 @@ class ToolingMaintenanceWorkflowTest extends TestCase
             'created_at' => now(), 'updated_at' => now(),
         ]);
 
-        $migration = require database_path('migrations/2026_10_22_100000_move_tooling_maintenance_photos_to_attachments.php');
+        $migration = require app_path('Domains/Tooling/database/migrations/2026_10_22_100000_move_tooling_maintenance_photos_to_attachments.php');
         $migration->up();
         $migration->up();   // running again does not copy twice
 

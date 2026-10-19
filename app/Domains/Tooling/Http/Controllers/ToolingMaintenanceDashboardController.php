@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Domains\Tooling\Http\Controllers;
 
-use App\Models\ToolingMaintenanceRecord;
-use Illuminate\Support\Facades\DB;
+use App\Domains\Tooling\Models\ToolingMaintenanceRecord;
+use App\Http\Controllers\Controller;
 use Illuminate\View\View;
 
 class ToolingMaintenanceDashboardController extends Controller
@@ -57,7 +57,7 @@ class ToolingMaintenanceDashboardController extends Controller
             ->limit(15)
             ->get();
 
-        return view('tooling-maintenance.dashboard', [
+        return view('tooling::tooling-maintenance.dashboard', [
             'openCount' => $openCount,
             'urgentCount' => $urgent,
             'breakdownCount' => $breakdowns,
