@@ -14,7 +14,8 @@
             @foreach ($modules as $name => $module)
                 <fieldset>
                     <legend>{{ $module['label'] }}</legend>
-                    <label><input type="checkbox" name="modules[]" value="{{ $name }}" @checked(! in_array($name, $disabled, true))> On</label>
+                    <label><input type="checkbox" name="modules[]" value="{{ $name }}" @checked($module['enabled']) @disabled(! $module['licensed'])> On</label>
+                    @if (! $module['licensed'])<p class="muted small" style="margin:8px 0 0">Not licensed for this installation.</p>@endif
                     @if ($module['description'])<p class="muted small" style="margin:8px 0 0">{{ $module['description'] }}</p>@endif
                 </fieldset>
             @endforeach

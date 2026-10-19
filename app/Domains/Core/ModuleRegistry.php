@@ -2,7 +2,7 @@
 
 namespace App\Domains\Core;
 
-use App\Models\AppSetting;
+use App\Domains\Core\Contracts\ModuleAccess;
 
 /**
  * What the installed modules contribute to the shared screens: sidebar links, Settings links and attachable records.
@@ -10,8 +10,6 @@ use App\Models\AppSetting;
  */
 class ModuleRegistry
 {
-    public const DISABLED_SETTING = 'modules.disabled';
-
     /** @var array<string, list<array{label: string, route: string, icon: string, active: list<string>}>> */
     private array $navItems = [];
 
@@ -24,8 +22,7 @@ class ModuleRegistry
     /** @var array<string, array{label: string, description: string}> */
     private array $modules = [];
 
-    /** @var list<string>|null */
-    private ?array $disabled = null;
+    public function __construct(private ModuleAccess $access) {}
 
     public function addModule(string $name, string $label, string $description): void
     {
@@ -38,32 +35,10 @@ class ModuleRegistry
         return $this->modules;
     }
 
-    /** A module is on unless an administrator switched it off under Settings. */
+    /** Whether the module is switched on for this installation. The answer comes from whatever is bound as ModuleAccess. */
     public function isEnabled(string $name): bool
     {
-        return ! in_array($name, $this->disabledModules(), true);
-    }
-
-    /** @return list<string> */
-    public function disabledModules(): array
-    {
-        if ($this->disabled === null) {
-            try {
-                $stored = json_decode((string) AppSetting::getValue(self::DISABLED_SETTING, '[]'), true);
-            } catch (\Throwable) {
-                return [];
-            }
-            $this->disabled = is_array($stored) ? array_values(array_filter($stored, 'is_string')) : [];
-        }
-
-        return $this->disabled;
-    }
-
-    /** @param list<string> $names */
-    public function saveDisabled(array $names): void
-    {
-        $this->disabled = array_values(array_unique($names));
-        AppSetting::setValue(self::DISABLED_SETTING, json_encode($this->disabled), 'Modules switched off');
+        return $this->access->isEnabled($name);
     }
 
     /** @param array{label: string, route: string, icon: string, active: list<string>} $item */

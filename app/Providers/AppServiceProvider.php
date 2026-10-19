@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Domains\Core\Contracts\ModuleAccess;
 use App\Domains\Core\ModuleRegistry;
+use App\Domains\Core\OpenModuleAccess;
 use App\Services\Audit\Audit;
 use App\Support\Formats;
 use Illuminate\Database\Eloquent\Model;
@@ -18,6 +20,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(Audit::class);
+        $this->app->singletonIf(ModuleAccess::class, OpenModuleAccess::class);
         $this->app->singleton(ModuleRegistry::class);
     }
 
