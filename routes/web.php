@@ -83,6 +83,7 @@ Route::prefix('moulding-runs')
         Route::post('/bulk', [MouldingRunBulkController::class, 'save'])->name('bulk.save');
         Route::get('/{mouldingRun}', 'show')->name('show');
         Route::put('/{mouldingRun}/crew', 'updateCrew')->name('crew');
+        Route::put('/{mouldingRun}/started-at', 'updateStartedAt')->name('started-at');
     });
 
 Route::prefix('patterns')->name('patterns.')->controller(PatternController::class)->group(function () {

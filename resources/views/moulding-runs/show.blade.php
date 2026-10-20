@@ -13,9 +13,16 @@
                 <span class="status status-{{ strtolower(str_replace('_', '-', $run->status)) }}" style="font-size:12px">{{ str_replace('_', ' ', $run->status) }}</span></h1>
             <div class="run-meta">
                 <span class="run-meta-date"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> {{ $run->run_date?->displayDate() ?? __('No date') }}</span>
-                @if ($run->started_at)
-                    <span class="run-meta-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> {{ __('Started') }}: {{ $run->started_at->displayDateTime() }}</span>
-                @endif
+                <span class="run-meta-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> {{ __('Started') }}:
+                    <details style="display:inline-block;position:relative">
+                        <summary style="cursor:pointer;display:inline;text-decoration:underline dotted" title="Click to edit">{{ $run->started_at?->displayDateTime() ?? '—' }}</summary>
+                        <form method="POST" action="{{ route('moulding-runs.started-at', $run) }}" style="position:absolute;z-index:10;left:0;top:100%;margin-top:6px;padding:10px;background:#fff;border:1px solid #ddd;border-radius:6px;display:flex;gap:8px;white-space:nowrap">
+                            @csrf @method('PUT')
+                            <input type="datetime-local" name="started_at" value="{{ old('started_at', $run->started_at?->format('Y-m-d\TH:i')) }}" required>
+                            <button class="btn btn-primary" type="submit">Save</button>
+                        </form>
+                    </details>
+                </span>
                 @if ($run->completed_at)
                     <span class="run-meta-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg> {{ __('Completed') }}: {{ $run->completed_at->displayDateTime() }}</span>
                 @endif

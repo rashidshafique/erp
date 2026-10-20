@@ -265,6 +265,18 @@ class MouldingRunBulkTest extends TestCase
         $this->assertSame([$teamB->id, 'Greensand'], [$run->fresh()->moulding_team_id, $run->fresh()->sand_system], 'a new station brings its own team and sand');
     }
 
+    public function test_the_start_time_can_be_edited_on_the_run_page(): void
+    {
+        $w = $this->world();
+        $this->post(route('moulding-runs.bulk.save'), ['rows' => ['a' => $this->row($w)]])->assertSessionHasNoErrors();
+        $run = MouldingRun::sole();
+
+        $this->put(route('moulding-runs.started-at', $run), ['started_at' => '2026-03-04T07:45'])->assertSessionHasNoErrors();
+        $this->assertSame('2026-03-04 07:45', $run->fresh()->started_at->format('Y-m-d H:i'));
+        $this->put(route('moulding-runs.started-at', $run), ['started_at' => ''])->assertSessionHasErrors('started_at');
+        $this->get(route('moulding-runs.show', $run))->assertOk()->assertSee(route('moulding-runs.started-at', $run), false);
+    }
+
     public function test_the_grid_has_no_team_or_sand_inputs_and_a_searchable_pattern_with_its_name_and_photo(): void
     {
         Storage::fake(config('foundry.attachments.disk'));

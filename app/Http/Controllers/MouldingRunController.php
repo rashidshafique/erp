@@ -338,6 +338,14 @@ class MouldingRunController extends Controller
         return back()->with('success', "Station, team and sand saved for {$mouldingRun->run_number}.");
     }
 
+    public function updateStartedAt(Request $request, MouldingRun $mouldingRun): RedirectResponse
+    {
+        $data = $request->validate(['started_at' => ['required', 'date']]);
+        $mouldingRun->update(['started_at' => $data['started_at']]);
+
+        return back()->with('success', "Start time saved for {$mouldingRun->run_number}.");
+    }
+
     public function assemble(Request $request, MouldingRun $mouldingRun, MouldAssembler $assembler): RedirectResponse
     {
         $data = $request->validate([
