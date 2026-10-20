@@ -50,18 +50,12 @@
         </div>
 
         <div class="panel-body">
+            <div class="detail-label" style="margin:0 0 8px;font-weight:600;text-transform:uppercase;letter-spacing:.04em">Production order</div>
             <div class="detail-grid">
                 <div>
                     <div class="detail-label">Production order</div>
                     <div class="detail-value">
                         <span class="code">{{ $run->productionOrder?->production_order_number ?? '—' }}</span>
-                    </div>
-                </div>
-
-                <div>
-                    <div class="detail-label">Product</div>
-                    <div class="detail-value">
-                        @if ($run->productionOrder?->product)<x-item :name="$run->productionOrder->product->name" :code="$run->productionOrder->product->code" :revision="$run->productionOrder->productRevision?->revision" />@else—@endif
                     </div>
                 </div>
 
@@ -72,6 +66,26 @@
                     </div>
                 </div>
 
+                <div>
+                    <div class="detail-label">Planned moulds</div>
+                    <div class="detail-value">
+                        {{ \App\Support\Formats::number($run->planned_mould_qty ?? 0) }}
+                    </div>
+                </div>
+            </div>
+            <div style="height:20px"></div>
+            <div class="detail-label" style="margin:0 0 8px;font-weight:600;text-transform:uppercase;letter-spacing:.04em">Product</div>
+            <div class="detail-grid">
+                <div>
+                    <div class="detail-label">Product</div>
+                    <div class="detail-value">
+                        @if ($run->productionOrder?->product)<x-item :name="$run->productionOrder->product->name" :code="$run->productionOrder->product->code" :revision="$run->productionOrder->productRevision?->revision" />@else—@endif
+                    </div>
+                </div>
+            </div>
+            <div style="height:20px"></div>
+            <div class="detail-label" style="margin:0 0 8px;font-weight:600;text-transform:uppercase;letter-spacing:.04em">Pattern</div>
+            <div class="detail-grid">
                 <div>
                     <div class="detail-label">Pattern</div>
                     <div class="detail-value">
@@ -86,6 +100,13 @@
                     </div>
                 </div>
 
+                <div>
+                    <div class="detail-label">Mould configuration</div>
+                    <div class="detail-value">
+                        {{ $run->mouldConfiguration?->name ?? 'Not specified' }}
+                    </div>
+                </div>
+
                 @if ($perMould !== null)
                 <div>
                     <div class="detail-label">Expected products per mould (cavity map)</div>
@@ -96,14 +117,10 @@
                     </div>
                 </div>
                 @endif
-
-                <div>
-                    <div class="detail-label">Mould configuration</div>
-                    <div class="detail-value">
-                        {{ $run->mouldConfiguration?->name ?? 'Not specified' }}
-                    </div>
-                </div>
-
+            </div>
+            <div style="height:20px"></div>
+            <div class="detail-label" style="margin:0 0 8px;font-weight:600;text-transform:uppercase;letter-spacing:.04em">Run</div>
+            <div class="detail-grid">
                 <div>
                     <div class="detail-label">Shift</div>
                     <div class="detail-value">{{ $run->shift ?: '—' }}</div>
@@ -132,13 +149,6 @@
                 <div>
                     <div class="detail-label">Station</div>
                     <div class="detail-value">{{ $run->station?->code ?? '—' }}@if($run->workListItem) · <a href="{{ route('work-lists.show', $run->workListItem->moulding_work_list_id) }}">work list</a>@endif</div>
-                </div>
-
-                <div>
-                    <div class="detail-label">Planned moulds</div>
-                    <div class="detail-value">
-                        {{ \App\Support\Formats::number($run->planned_mould_qty ?? 0) }}
-                    </div>
                 </div>
 
                 <div>
