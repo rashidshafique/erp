@@ -24,8 +24,6 @@
         </div>
     </div>
 
-    <div class="run-show-split">
-    <div data-tab-host>
     @php
         $expected = $perMould !== null ? rtrim(rtrim(\App\Support\Formats::number($perMould * ($run->planned_mould_qty ?? 0), 1), '0'), '.') : null;
         $expectedMade = $perMould !== null ? rtrim(rtrim(\App\Support\Formats::number($perMould * ($run->moulds_made_qty ?? 0), 1), '0'), '.') : null;
@@ -39,6 +37,8 @@
         <div class="run-kpi"><div class="run-kpi-label">Downtime</div><div class="run-kpi-value">{{ \App\Support\Formats::number($run->downtime_minutes) }} min</div></div>
         <span class="run-kpi-chip code">Live metrics</span>
     </div>
+    <div class="run-show-split">
+    <div data-tab-host>
 
 <div class="tab-marker" data-tab-start="Run"></div>
     <section class="panel">
