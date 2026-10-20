@@ -25,7 +25,7 @@
 <div class="panel"><div class="panel-header"><h2>Recent tests &amp; measurements</h2><span class="muted small">Showing last {{ $recent->count() }} entries</span></div><div class="table-wrap"><table data-col-filter><thead><tr><th>When</th><th>Type</th><th>Sand system</th><th>Point / Mould</th><th>Shift / Run</th><th>Tested by</th><th style="text-align:right">Results</th></tr></thead><tbody>
 @forelse($recent as $s)
 @php($isMould = $s->kind === 'MOULD')
-<tr><td>{{ $s->taken_at->displayShortDateTime() }}</td>
+<tr><td data-sort="{{ $s->taken_at->timestamp }}">{{ $s->taken_at->displayShortDateTime() }}</td>
 <td><span class="status {{ $isMould ? 'status-completed' : '' }}">{{ $isMould ? 'HARDNESS TEST' : 'SAND TEST' }}</span></td>
 <td>{{ $systemNames[$s->sand_system_id] ?? '—' }}</td>
 <td class="code">{{ $isMould ? ($s->mouldAssembly?->assembly_number ?? '—') : ($points[$s->sample_point] ?? $s->sample_point ?? '—') }}</td>
@@ -40,15 +40,47 @@
 @include('sand-tests._limits')
 <script>
 (function () {
+    var funnel = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h18l-7 8.5V19l-4 2v-8.5z"/></svg>';
     document.querySelectorAll('table[data-col-filter]').forEach(function (t) {
-        var head = t.tHead.rows[0], bar = document.createElement('tr'), inputs = [];
-        Array.prototype.forEach.call(head.cells, function (th) {
-            var c = document.createElement('th'), i = null;
-            if (th.textContent.trim()) { i = document.createElement('input'); i.type = 'search'; i.placeholder = 'Filter'; i.style.width = '100%'; i.setAttribute('aria-label', 'Filter ' + th.textContent.trim()); c.appendChild(i); }
+        var head = t.tHead.rows[0], bar = document.createElement('tr'), inputs = [], sortCol = -1, sortDir = 1;
+        bar.hidden = true;
+        Array.prototype.forEach.call(head.cells, function (th, k) {
+            var c = document.createElement('th'), i = null, label = th.textContent.trim();
+            if (label) {
+                i = document.createElement('input'); i.type = 'search'; i.placeholder = 'Filter'; i.style.width = '100%'; i.hidden = true; i.setAttribute('aria-label', 'Filter ' + label); c.appendChild(i);
+                var arrow = document.createElement('span'); arrow.className = 'sort-arrow'; arrow.style.cssText = 'margin-left:4px;opacity:.6'; th.appendChild(arrow);
+                var f = document.createElement('button'); f.type = 'button'; f.innerHTML = funnel; f.title = 'Filter ' + label; f.setAttribute('aria-label', 'Filter ' + label);
+                f.style.cssText = 'margin-left:6px;padding:0 2px;border:0;background:none;cursor:pointer;color:inherit;opacity:.6;vertical-align:middle';
+                f.addEventListener('click', function (e) {
+                    e.stopPropagation(); i.hidden = !i.hidden;
+                    if (i.hidden) { i.value = ''; apply(); } else { i.focus(); }
+                    bar.hidden = inputs.every(function (x) { return !x || x.hidden; });
+                });
+                th.appendChild(f); th.style.cursor = 'pointer'; th.title = 'Click to sort';
+                th.addEventListener('click', function () {
+                    sortDir = sortCol === k ? -sortDir : 1; sortCol = k;
+                    t.querySelectorAll('.sort-arrow').forEach(function (a) { a.textContent = ''; });
+                    arrow.textContent = sortDir === 1 ? '▲' : '▼';
+                    sortRows(k);
+                });
+            }
             inputs.push(i); bar.appendChild(c);
         });
         t.tHead.appendChild(bar);
         function text(cell) { var v = cell.textContent; cell.querySelectorAll('input:not([type=checkbox]),select').forEach(function (f) { v += ' ' + f.value; }); return v.toLowerCase(); }
+        function key(cell) {
+            if (cell.dataset.sort !== undefined) { return parseFloat(cell.dataset.sort); }
+            var box = cell.querySelector('input'), v = (box ? (box.type === 'checkbox' ? (box.checked ? '1' : '0') : box.value) : cell.textContent).trim();
+            return v !== '' && !isNaN(v) ? parseFloat(v) : v.toLowerCase();
+        }
+        function sortRows(k) {
+            var body = t.tBodies[0], rows = Array.prototype.filter.call(body.rows, function (r) { return r.cells.length === inputs.length; });
+            rows.sort(function (x, y) {
+                var a = key(x.cells[k]), b = key(y.cells[k]);
+                if (typeof a === 'number' && typeof b === 'number') { return (a - b) * sortDir; }
+                return String(a).localeCompare(String(b), undefined, { numeric: true }) * sortDir;
+            }).forEach(function (r) { body.appendChild(r); });
+        }
         function apply() {
             Array.prototype.forEach.call(t.tBodies[0].rows, function (r) {
                 if (r.cells.length !== inputs.length) return;
