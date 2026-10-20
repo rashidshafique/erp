@@ -153,19 +153,19 @@
                     <div class="detail-value">{{ $run->station?->code ?? '—' }}@if($run->workListItem) · <a href="{{ route('work-lists.show', $run->workListItem->moulding_work_list_id) }}">work list</a>@endif</div>
                 </div>
 
-                <div>
+                <!-- <div>
                     <div class="detail-label">Started at</div>
                     <div class="detail-value">
                         {{ $run->started_at?->displayDateTime() ?? '—' }}
                     </div>
-                </div>
+                </div> -->
 
-                <div>
+                <!-- <div>
                     <div class="detail-label">Completed at</div>
                     <div class="detail-value">
                         {{ $run->completed_at?->displayDateTime() ?? '—' }}
                     </div>
-                </div>
+                </div> -->
 
                 <div>
                     <div class="detail-label">Record created</div>
