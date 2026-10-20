@@ -207,6 +207,41 @@ class WorkListService
             ->values();
     }
 
+    /** Runs the moulder started without a list item that fit a planned one: same plate and station, on the list's date and shift. */
+    public function matchingRuns(MouldingWorkListItem $item): Collection
+    {
+        if ($item->status !== 'PLANNED' || $item->moulding_run_id) {
+            return collect();
+        }
+        $list = $item->workList;
+
+        return MouldingRun::whereNull('moulding_work_list_item_id')->whereIn('status', ['IN_PROGRESS', 'ON_HOLD', 'COMPLETED'])
+            ->where('pattern_revision_id', $item->pattern_revision_id)->where('moulding_station_id', $item->moulding_station_id)
+            ->whereDate('run_date', $list->list_date)->when($list->shift, fn ($q) => $q->where('shift', $list->shift))
+            ->orderBy('started_at')->get();
+    }
+
+    /** Attach a run that started ahead of the list to the item that planned it; the item takes on the run's order and progress. */
+    public function adoptRun(MouldingWorkListItem $item, MouldingRun $run): void
+    {
+        DB::transaction(function () use ($item, $run) {
+            $item = MouldingWorkListItem::with('workList')->whereKey($item->id)->lockForUpdate()->firstOrFail();
+            $run = MouldingRun::whereKey($run->id)->lockForUpdate()->firstOrFail();
+            if (! $this->matchingRuns($item)->contains('id', $run->id)) {
+                throw new InvalidArgumentException('That run does not match this item, or is already on a list.');
+            }
+            $run->update(['moulding_work_list_item_id' => $item->id]);
+            $item->update([
+                'moulding_run_id' => $run->id, 'status' => $run->status === 'COMPLETED' ? 'DONE' : 'IN_PROGRESS',
+                'production_order_id' => $run->production_order_id, 'moulding_team_id' => $run->moulding_team_id ?? $item->moulding_team_id,
+            ]);
+            $list = $item->workList;
+            if ($run->status === 'COMPLETED' && $list->status === 'ISSUED' && ! $list->items()->whereIn('status', ['PLANNED', 'IN_PROGRESS'])->exists()) {
+                $list->update(['status' => 'COMPLETED']);
+            }
+        });
+    }
+
     /** Link a list item that has no order to the best open order now. Returns the order or null. */
     public function relink(MouldingWorkListItem $item): ?ProductionOrder
     {

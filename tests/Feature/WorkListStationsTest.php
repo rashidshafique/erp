@@ -409,4 +409,37 @@ class WorkListStationsTest extends TestCase
         $run = new MouldingRun;
         $this->assertSame('Unplanned', $run->planningNote());
     }
+
+    public function test_a_run_started_before_the_list_can_be_linked_to_its_planned_item(): void
+    {
+        $this->team('T1', 'Rashid');
+        $bench = MouldingStation::create(['code' => 'MAN-1', 'name' => 'Bench', 'station_type' => 'MANUAL', 'status' => 'ACTIVE', 'max_patterns' => 2]);
+        $job = $this->job('E1', 'Echo Pumps');
+        $run = MouldingRun::create([
+            'run_number' => 'MR-X-001', 'production_order_id' => $job['order']->id, 'pattern_revision_id' => $job['pr']->id, 'moulding_station_id' => $bench->id,
+            'run_date' => today(), 'shift' => 'Morning', 'started_at' => now(), 'planned_mould_qty' => 5, 'moulds_made_qty' => 0, 'accepted_mould_qty' => 0, 'damaged_mould_qty' => 0, 'status' => 'IN_PROGRESS',
+        ]);
+        $list = $this->issued();
+        $this->post(route('work-lists.items.add', $list), $this->row($bench, $job))->assertSessionHasNoErrors();
+        $item = $list->items()->firstOrFail();
+
+        $this->get(route('work-lists.show', $list))->assertSee('Link MR-X-001');
+        $this->post(route('work-lists.items.adopt', [$list, $item]), ['moulding_run_id' => $run->id])->assertSessionHasNoErrors();
+
+        $this->assertSame($item->id, $run->fresh()->moulding_work_list_item_id);
+        $this->assertSame('IN_PROGRESS', $item->fresh()->status);
+        $this->post(route('work-lists.items.adopt', [$list, $item]), ['moulding_run_id' => $run->id])->assertSessionHasErrors('item');   // already on a list
+    }
+
+    public function test_the_create_page_offers_the_last_run_on_a_station(): void
+    {
+        $bench = MouldingStation::create(['code' => 'MAN-1', 'name' => 'Bench', 'station_type' => 'MANUAL', 'status' => 'ACTIVE', 'max_patterns' => 2]);
+        $job = $this->job('F1', 'Foxtrot Pumps');
+        MouldingRun::create([
+            'run_number' => 'MR-X-002', 'production_order_id' => $job['order']->id, 'pattern_revision_id' => $job['pr']->id, 'moulding_station_id' => $bench->id,
+            'run_date' => today(), 'started_at' => now(), 'operator_name' => 'Imran', 'team_name' => 'Night crew', 'moulds_made_qty' => 0, 'accepted_mould_qty' => 0, 'damaged_mould_qty' => 0, 'status' => 'COMPLETED',
+        ]);
+
+        $this->get(route('moulding-runs.create'))->assertOk()->assertSee('MR-X-002')->assertSee('Imran')->assertSee('id="same-as-last"', false);
+    }
 }

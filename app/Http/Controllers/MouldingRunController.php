@@ -128,6 +128,16 @@ class MouldingRunController extends Controller
             $request->query('production_order_id', '')
         );
 
+        $stationLastRun = MouldingStation::with('defaultTeam')->whereIn('id', $stations->pluck('id'))->get()->mapWithKeys(function ($station) {
+            $last = MouldingRun::where('moulding_station_id', $station->id)->latest('started_at')->latest('created_at')->first();
+
+            return [$station->id => [
+                'run' => $last?->run_number, 'order' => $last?->production_order_id, 'revision' => $last?->pattern_revision_id,
+                'sand' => $last?->sand_system, 'operator' => $last?->operator_name ?? $station->defaultTeam?->lead_name,
+                'team' => $last?->team_name ?? $station->defaultTeam?->name,
+            ]];
+        });
+
         $defaults = [
             'run_date' => today()->toDateString(),
             'shift' => 'General',
@@ -148,6 +158,7 @@ class MouldingRunController extends Controller
             'patternRevisionIdsByProduct',
             'mouldConfigurations',
             'stations',
+            'stationLastRun',
             'selectedProductionOrderId',
             'defaults'
         ));

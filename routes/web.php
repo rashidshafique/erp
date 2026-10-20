@@ -417,6 +417,7 @@ Route::prefix('work-lists')->name('work-lists.')->controller(WorkListController:
     Route::post('/{list}/issue', 'issue')->name('issue');
     Route::post('/{list}/items/{item}/start', 'startRun')->name('items.start');
     Route::post('/{list}/items/{item}/link', 'linkItem')->name('items.link');
+    Route::post('/{list}/items/{item}/adopt', 'adoptRun')->name('items.adopt');
     Route::post('/{list}/stations/{station}/start', 'startStation')->name('stations.start');
     Route::post('/{list}/cancel', 'cancel')->name('cancel');
 });

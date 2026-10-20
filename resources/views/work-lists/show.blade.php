@@ -47,7 +47,7 @@
         <td>{{ $i->sand_system }}@if($i->sand_override)<div><span class="status" style="color:var(--danger,#b42318)" title="This plate is not listed as suited to this sand system; someone chose to run it anyway">sand mismatch accepted</span></div>@endif</td>
         <td>{{ $i->planned_moulds }}@if(($needed[$i->id] ?? null) !== null)<div class="muted small">order still needs ≈{{ $needed[$i->id] }}</div>@endif</td>
         <td>@if($i->run)<a href="{{ route('moulding-runs.show', $i->run) }}">{{ $i->run->accepted_mould_qty }} ok / {{ $i->run->damaged_mould_qty }} dmg</a>@else—@endif</td>
-        <td>{{ $i->status }}</td>
+        <td>{{ $i->status }}@if($editable && $i->status === 'PLANNED')@foreach(app(\App\Services\Production\WorkListService::class)->matchingRuns($i) as $r)<form method="POST" action="{{ route('work-lists.items.adopt', [$list, $i]) }}" style="margin-top:4px">@csrf<input type="hidden" name="moulding_run_id" value="{{ $r->id }}"><button class="btn btn-small" title="Started before this list covered it">Link {{ $r->run_number }}</button></form>@endforeach @endif</td>
         <td>@if(app(\App\Services\Production\WorkListService::class)->listAllowsStart($list) && $i->status === 'PLANNED')<form method="POST" action="{{ route('work-lists.items.start', [$list, $i]) }}">@csrf<button class="btn btn-primary">Start run</button></form>
         @elseif($editable && $i->status === 'PLANNED')<form method="POST" action="{{ route('work-lists.items.remove', [$list, $i]) }}">@csrf @method('DELETE')@include('partials.icon-button', ['type' => 'delete', 'word' => 'Remove', 'name' => $i->patternRevision->pattern->code])</form>@endif</td></tr>
     @endforeach</tbody></table></div>

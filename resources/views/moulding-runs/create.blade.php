@@ -287,6 +287,7 @@
                                 <option value="{{ $station->id }}" @selected(old('moulding_station_id') === $station->id)>{{ $station->code }} — {{ $station->name }}</option>
                             @endforeach
                         </select>
+                        <button type="button" class="btn btn-small" id="same-as-last" style="display:none;margin-top:6px"></button>
                         @error('moulding_station_id')<div class="error-text">{{ $message }}</div>@enderror
                     </div>
 
@@ -434,7 +435,24 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         applySandFor(r);
     }
-    stationSelect.addEventListener('change', () => { autoStation = null; applySandFor(revisions[revisionSelect.value]); });
+    stationSelect.addEventListener('change', () => { autoStation = null; applySandFor(revisions[revisionSelect.value]); offerLastRun(); });
+
+    // A moulder starting without a list can repeat what the station last ran, or at least take its usual team.
+    const stationLast = @json($stationLastRun), sameAsLast = document.getElementById('same-as-last');
+    function offerLastRun() {
+        const last = stationLast[stationSelect.value];
+        sameAsLast.style.display = last && (last.run || last.team) ? 'inline-block' : 'none';
+        if (last) sameAsLast.textContent = last.run ? 'Same as last run here (' + last.run + ')' : 'Use this station\'s team';
+    }
+    sameAsLast.addEventListener('click', () => {
+        const last = stationLast[stationSelect.value];
+        if (!last) return;
+        if (last.order && orders[last.order]) { select.value = last.order; updateSummary(); }
+        if (last.revision && Array.from(revisionSelect.options).some(o => o.value === last.revision && !o.disabled)) { revisionSelect.value = last.revision; showRevision(); }
+        if (last.sand && Array.from(sandSelect.options).some(o => o.value === last.sand)) sandSelect.value = last.sand;
+        if (last.operator) field('operator_name').value = last.operator;
+        if (last.team) field('team_name').value = last.team;
+    });
 
     function showRevision() {
         const r = revisions[revisionSelect.value];
@@ -472,6 +490,7 @@ document.addEventListener('DOMContentLoaded', function () {
     select.addEventListener('change', updateSummary);
     revisionSelect.addEventListener('change', () => { showRevision(); followPattern(revisions[revisionSelect.value]); });
     updateSummary();
+    offerLastRun();
 
     // Output tallies and the live yield bar.
     const made = field('moulds_made_qty'), accepted = field('accepted_mould_qty'), damaged = field('damaged_mould_qty');

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Attachment;
 use App\Models\FlaskSize;
+use App\Models\MouldingRun;
 use App\Models\MouldingStation;
 use App\Models\MouldingWorkList;
 use App\Models\MouldingWorkListItem;
@@ -170,6 +171,19 @@ class WorkListController extends Controller
 
         return $order ? back()->with('success', "Linked to {$order->production_order_number} ({$order->customerLabel()}).")
             : back()->withErrors(['item' => 'No open order needs this pattern right now. A stock order is raised when the run starts.']);
+    }
+
+    public function adoptRun(Request $request, MouldingWorkList $list, MouldingWorkListItem $item, WorkListService $svc): RedirectResponse
+    {
+        abort_unless($item->moulding_work_list_id === $list->id, 404);
+        $run = MouldingRun::findOrFail($request->validate(['moulding_run_id' => ['required', 'uuid']])['moulding_run_id']);
+        try {
+            $svc->adoptRun($item, $run);
+        } catch (InvalidArgumentException $e) {
+            return back()->withErrors(['item' => $e->getMessage()]);
+        }
+
+        return back()->with('success', "Run {$run->run_number} is now part of this list.");
     }
 
     public function startStation(MouldingWorkList $list, MouldingStation $station, WorkListService $svc): RedirectResponse
