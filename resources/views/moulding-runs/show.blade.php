@@ -321,13 +321,13 @@
         <div class="panel-body">
             @if ($errors->has('output'))<div class="alert alert-error">{{ $errors->first('output') }}</div>@endif
             <form method="POST" action="{{ route('moulding-runs.output', $run) }}">@csrf
-                <div class="form-grid">
-                    <div class="field"><label>Moulds made</label><input type="number" name="moulds_made_qty" min="0" value="{{ old('moulds_made_qty', $run->moulds_made_qty) }}" required></div>
-                    <div class="field"><label>Accepted</label><input type="number" name="accepted_mould_qty" min="0" value="{{ old('accepted_mould_qty', $run->accepted_mould_qty) }}" required></div>
-                    <div class="field"><label>Damaged</label><input type="number" name="damaged_mould_qty" min="0" value="{{ old('damaged_mould_qty', $run->damaged_mould_qty) }}" required></div>
-                    <div class="field"><label>Downtime (min)</label><input type="number" name="downtime_minutes" min="0" value="{{ old('downtime_minutes', $run->downtime_minutes) }}"></div>
-                    <div class="field"><label>Downtime reason</label><input name="downtime_reason" value="{{ old('downtime_reason', $run->downtime_reason) }}"></div>
+                <div class="rm-tiles">
+                    <div class="rm-tile"><div class="rm-label">Total moulds made</div><input type="number" name="moulds_made_qty" min="0" value="{{ old('moulds_made_qty', $run->moulds_made_qty) }}" required></div>
+                    <div class="rm-tile ok"><div class="rm-label">Sound accepted</div><input type="number" name="accepted_mould_qty" min="0" value="{{ old('accepted_mould_qty', $run->accepted_mould_qty) }}" required><small>Ready for pour</small></div>
+                    <div class="rm-tile bad"><div class="rm-label">Scrap / damaged</div><input type="number" name="damaged_mould_qty" min="0" value="{{ old('damaged_mould_qty', $run->damaged_mould_qty) }}" required></div>
+                    <div class="rm-tile"><div class="rm-label">Downtime (min)</div><input type="number" name="downtime_minutes" min="0" value="{{ old('downtime_minutes', $run->downtime_minutes) }}"></div>
                 </div>
+                <div class="field"><label>Downtime reason</label><input name="downtime_reason" value="{{ old('downtime_reason', $run->downtime_reason) }}"></div>
                 <button class="btn" type="submit">Save output</button>
                 <button class="btn btn-primary" type="submit" name="complete" value="1">Save and complete run</button>
             </form>
@@ -366,6 +366,11 @@
         .run-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin-top: 8px; font-size: 14px; color: var(--muted); }
         .run-meta span { display: inline-flex; align-items: center; gap: 7px; }
         .run-meta-date { padding: 6px 12px; border-radius: 6px; background: #e8eef5; color: #1f3a5a; font-weight: 600; }
+        .rm-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+        .rm-tile { padding: 10px; border-radius: 8px; background: #eaf1f8; }
+        .rm-tile.ok { background: #e6f4ec; } .rm-tile.bad { background: #fbe9e7; }
+        .rm-label { margin-bottom: 6px; font: 600 10.5px ui-monospace, Menlo, monospace; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+        .rm-tile small { display: block; margin-top: 4px; font-size: 11px; color: var(--muted); }
         .run-kpis { display: flex; align-items: stretch; flex-wrap: wrap; gap: 0; margin-bottom: 16px; padding: 12px 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 1px 2px rgba(15, 23, 42, .04); }
         .run-kpi { padding: 0 18px; border-left: 1px solid var(--border); }
         .run-kpi:first-child { border-left: 0; }
