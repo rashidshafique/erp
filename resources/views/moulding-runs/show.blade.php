@@ -38,13 +38,13 @@
 
     @php
         $expected = $perMould !== null ? rtrim(rtrim(\App\Support\Formats::number($perMould * ($run->planned_mould_qty ?? 0), 1), '0'), '.') : null;
-        $expectedMade = $perMould !== null ? rtrim(rtrim(\App\Support\Formats::number($perMould * ($run->moulds_made_qty ?? 0), 1), '0'), '.') : null;
+        $expectedAccepted = $perMould !== null ? rtrim(rtrim(\App\Support\Formats::number($perMould * ($run->accepted_mould_qty ?? 0), 1), '0'), '.') : null;
         $madeVsPlanned = ($perMould !== null && ($run->planned_mould_qty ?? 0) > 0) ? $run->moulds_made_qty / $run->planned_mould_qty : null;
     @endphp
     <div class="run-kpis">
         <div class="run-kpi"><div class="run-kpi-label">Planned / target</div><div class="run-kpi-value">{{ \App\Support\Formats::number($run->planned_mould_qty ?? 0) }} moulds <span class="small" style="display:block;font-weight:400" @if ($expected === null) title="The pattern has no cavity map" @endif>{{ $expected ?? '—' }} castings</span></div></div>
-        <div class="run-kpi"><div class="run-kpi-label">Moulds made</div><div class="run-kpi-value">{{ \App\Support\Formats::number($run->moulds_made_qty) }} <span class="small" style="display:block;font-weight:400;{{ $madeVsPlanned !== null && $madeVsPlanned > 0.9 ? 'color:var(--success)' : '' }}" @if ($expectedMade === null) title="The pattern has no cavity map" @endif>{{ $expectedMade ?? '—' }} castings @if ($madeVsPlanned !== null) · {{ \App\Support\Formats::number($madeVsPlanned * 100, 0) }}% of planned @endif</span></div></div>
-        <div class="run-kpi"><div class="run-kpi-label">Accepted</div><div class="run-kpi-value">{{ \App\Support\Formats::number($run->accepted_mould_qty) }}</div></div>
+        <div class="run-kpi"><div class="run-kpi-label">Moulds made</div><div class="run-kpi-value">{{ \App\Support\Formats::number($run->moulds_made_qty) }} <span class="small" style="display:block;font-weight:400;{{ $madeVsPlanned !== null && $madeVsPlanned > 0.9 ? 'color:var(--success)' : '' }}" @if ($madeVsPlanned === null) title="Needs a planned quantity and a pattern cavity map" @endif>@if ($madeVsPlanned !== null){{ \App\Support\Formats::number($madeVsPlanned * 100, 0) }}% of planned @else — @endif</span></div></div>
+        <div class="run-kpi"><div class="run-kpi-label">Accepted</div><div class="run-kpi-value">{{ \App\Support\Formats::number($run->accepted_mould_qty) }} <span class="small" style="display:block;font-weight:400" @if ($expectedAccepted === null) title="The pattern has no cavity map" @endif>{{ $expectedAccepted ?? '—' }} castings</span></div></div>
         <div class="run-kpi"><div class="run-kpi-label">Damaged</div><div class="run-kpi-value">{{ \App\Support\Formats::number($run->damaged_mould_qty) }}</div></div>
         <div class="run-kpi"><div class="run-kpi-label">Downtime</div><div class="run-kpi-value">{{ \App\Support\Formats::number($run->downtime_minutes) }} min</div></div>
         <span class="run-kpi-chip code">Live metrics</span>
