@@ -55,7 +55,7 @@ class MouldingStation extends Model
     /** Items being moulded on this station right now, across every list. */
     public function runningCount(?string $exceptItemId = null): int
     {
-        return $this->items()->where('status', 'IN_PROGRESS')->when($exceptItemId, fn ($q) => $q->where('id', '!=', $exceptItemId))->count();
+        return $this->items()->where('status', 'IN_PROGRESS')->where(fn ($q) => $q->whereNull('moulding_run_id')->orWhereHas('run', fn ($r) => $r->where('status', '!=', 'CANCELLED')))->when($exceptItemId, fn ($q) => $q->where('id', '!=', $exceptItemId))->count();
     }
 
     public function runs(): HasMany

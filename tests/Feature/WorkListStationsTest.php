@@ -442,4 +442,22 @@ class WorkListStationsTest extends TestCase
 
         $this->get(route('moulding-runs.create'))->assertOk()->assertSee('MR-X-002')->assertSee('Imran')->assertSee('id="same-as-last"', false);
     }
+
+    public function test_a_cancelled_run_does_not_keep_its_station_busy(): void
+    {
+        $this->team('T1', 'Rashid');
+        $line = MouldingStation::create(['code' => 'AUTO-1', 'name' => 'Line', 'station_type' => 'AUTOMATED_LINE', 'status' => 'ACTIVE', 'max_patterns' => 1]);
+        $list = $this->issued();
+        $this->post(route('work-lists.items.add', $list), $this->row($line, $this->job('G1', 'Golf Pumps')))->assertSessionHasNoErrors();
+        $this->post(route('work-lists.items.add', $list), $this->row($line, $this->job('G2', 'Gulf Valves')))->assertSessionHasNoErrors();
+        $this->post(route('work-lists.issue', $list), ['issued_by' => 'Planner']);
+        [$first, $second] = $list->items()->get()->all();
+        $this->post(route('work-lists.items.start', [$list, $first]))->assertSessionHasNoErrors();
+        $this->post(route('work-lists.items.start', [$list, $second]))->assertSessionHasErrors('item');
+
+        $this->post(route('moulding-runs.status', $first->fresh()->run), ['status' => 'CANCELLED'])->assertSessionHasNoErrors();
+
+        $this->assertSame(0, $line->runningCount());
+        $this->post(route('work-lists.items.start', [$list, $second]))->assertSessionHasNoErrors();
+    }
 }
