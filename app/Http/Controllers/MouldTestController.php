@@ -20,14 +20,14 @@ class MouldTestController extends Controller
     public function store(Request $request, MouldingRun $mouldingRun, Measurements $svc): RedirectResponse
     {
         $d = $request->validate([
-            'mould_assembly_id' => ['nullable', 'uuid'],
+            'mould_assembly_id' => ['required', 'uuid'],
             'cope' => ['nullable', 'array', 'max:'.self::SPOTS], 'cope.*' => ['nullable', 'numeric', 'min:0', 'max:150'],
             'drag' => ['nullable', 'array', 'max:'.self::SPOTS], 'drag.*' => ['nullable', 'numeric', 'min:0', 'max:150'],
             'gauge_id' => ['nullable', 'uuid', 'exists:gauges,id'], 'tested_by' => ['nullable', 'string', 'max:100'],
             'taken_at' => ['nullable', 'date'], 'notes' => ['nullable', 'string', 'max:1000'],
         ]);
-        $mould = filled($d['mould_assembly_id'] ?? null) ? MouldAssembly::where('moulding_run_id', $mouldingRun->id)->find($d['mould_assembly_id']) : null;
-        if (filled($d['mould_assembly_id'] ?? null) && ! $mould) {
+        $mould = MouldAssembly::where('moulding_run_id', $mouldingRun->id)->find($d['mould_assembly_id']);
+        if (! $mould) {
             return back()->withErrors(['mould_test' => 'That mould does not belong to this run.'])->withInput();
         }
 
@@ -50,7 +50,7 @@ class MouldTestController extends Controller
         $sandSystemId = SandSystem::where('name', $mouldingRun->sand_system)->value('id');
         try {
             $set = $svc->record('MOULD', [
-                'moulding_run_id' => $mouldingRun->id, 'mould_assembly_id' => $mould?->id, 'pattern_id' => $mouldingRun->patternRevision?->pattern_id,
+                'moulding_run_id' => $mouldingRun->id, 'mould_assembly_id' => $mould->id, 'pattern_id' => $mouldingRun->patternRevision?->pattern_id,
                 'moulding_station_id' => $mouldingRun->moulding_station_id, 'sand_system_id' => $sandSystemId, 'shift' => $mouldingRun->shift,
                 'taken_at' => $d['taken_at'] ?? now(), 'tested_by' => $d['tested_by'] ?? null, 'notes' => $d['notes'] ?? null,
                 'gauge_id' => $gauge?->id, 'equipment_reference' => $gauge?->code,

@@ -12,7 +12,7 @@
         @if ($mouldTests->first()?->result === 'FAIL')<div class="alert alert-error">The latest mould hardness test failed: {{ implode('; ', $mouldTests->first()->findings ?? []) }}</div>@endif
         <form method="POST" action="{{ route('moulding-runs.mould-tests.store', $run) }}" class="form-grid">@csrf
             <div class="field"><label for="mt-mould">Mould tested</label>
-                <select id="mt-mould" name="mould_assembly_id"><option value="">Whole run</option>@foreach ($run->mouldAssemblies as $a)<option value="{{ $a->id }}" @selected(old('mould_assembly_id') === $a->id)>{{ $a->assembly_number }}</option>@endforeach</select></div>
+                <select id="mt-mould" name="mould_assembly_id" required><option value="">Choose a mould</option>@foreach ($run->mouldAssemblies as $a)<option value="{{ $a->id }}" @selected(old('mould_assembly_id') === $a->id)>{{ $a->assembly_number }}</option>@endforeach</select></div>
             @foreach (['cope' => 'Cope', 'drag' => 'Drag'] as $half => $title)
                 <div class="field field-full"><label>{{ $title }} spots</label>
                     <div style="display:flex;gap:8px;flex-wrap:wrap">@for ($i = 0; $i < $spots; $i++)<input type="number" step="any" min="0" name="{{ $half }}[]" value="{{ old($half.'.'.$i) }}" style="width:84px" aria-label="{{ $title }} spot {{ $i + 1 }}">@endfor</div></div>
@@ -25,7 +25,7 @@
     <div class="table-wrap"><table><thead><tr><th>When</th><th>Mould</th><th>Cope</th><th>Drag</th><th>Lowest</th><th>Average</th><th>Result</th></tr></thead><tbody>
     @forelse ($mouldTests as $t)
         @php($by = $t->measurements->keyBy('characteristic_key'))
-        <tr><td>{{ $t->taken_at->displayShortDateTime() }}</td><td class="code">{{ $t->mouldAssembly?->assembly_number ?? 'Whole run' }}</td>
+        <tr><td>{{ $t->taken_at->displayShortDateTime() }}</td><td class="code">{{ $t->mouldAssembly?->assembly_number ?? '—' }}</td>
             <td class="code">{{ $t->measurements->filter(fn ($m) => str_starts_with($m->characteristic_key, 'cope_spot_'))->map(fn ($m) => $fmt($m->value))->implode(' · ') ?: '—' }}</td>
             <td class="code">{{ $t->measurements->filter(fn ($m) => str_starts_with($m->characteristic_key, 'drag_spot_'))->map(fn ($m) => $fmt($m->value))->implode(' · ') ?: '—' }}</td>
             <td class="code">{{ $by->has('hardness_b_min') ? $fmt($by['hardness_b_min']->value) : '—' }}</td><td class="code">{{ $by->has('hardness_b_avg') ? $fmt($by['hardness_b_avg']->value) : '—' }}</td>

@@ -27,6 +27,7 @@ class SandTestController extends Controller
             'rows' => $system ? $svc->formRows('SAND', 'SAND_SYSTEM', $system->id) : collect(),
             'sets' => $system ? MeasurementSet::with('measurements', 'mouldingRun', 'pattern')->where('kind', 'SAND')->where('sand_system_id', $system->id)->orderByDesc('taken_at')->limit(30)->get() : collect(),
             'mouldSets' => MeasurementSet::with('measurements', 'mouldingRun', 'mouldAssembly')->where('kind', 'MOULD')->orderByDesc('taken_at')->limit(15)->get(),
+            'systemNames' => $systems->pluck('name', 'id'),
             'points' => ['MIXER_OUTPUT' => 'Mixer output', 'MOULDING_STATION' => 'At moulding station', 'RETURN_SAND' => 'Return / system sand'],
         ]);
     }

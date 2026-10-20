@@ -26,19 +26,20 @@
     $fmt = fn ($v, $d = 4) => rtrim(rtrim(number_format((float) $v, $d, '.', ''), '0'), '.');
     $recent = $sets->concat($mouldSets)->sortByDesc('taken_at')->take(30);
 @endphp
-<div class="panel"><div class="panel-header"><h2>Recent tests &amp; measurements</h2><span class="muted small">Showing last {{ $recent->count() }} entries</span></div><div class="table-wrap"><table><thead><tr><th>When</th><th>Type</th><th>Point / Mould</th><th>Shift / Run</th><th>Tested by</th><th style="text-align:right">Results</th></tr></thead><tbody>
+<div class="panel"><div class="panel-header"><h2>Recent tests &amp; measurements</h2><span class="muted small">Showing last {{ $recent->count() }} entries</span></div><div class="table-wrap"><table><thead><tr><th>When</th><th>Type</th><th>Sand system</th><th>Point / Mould</th><th>Shift / Run</th><th>Tested by</th><th style="text-align:right">Results</th></tr></thead><tbody>
 @forelse($recent as $s)
 @php($isMould = $s->kind === 'MOULD')
 <tr><td>{{ $s->taken_at->displayShortDateTime() }}</td>
 <td><span class="status {{ $isMould ? 'status-completed' : '' }}">{{ $isMould ? 'HARDNESS TEST' : 'SAND TEST' }}</span></td>
-<td class="code">{{ $isMould ? ($s->mouldAssembly?->assembly_number ?? 'Whole run') : ($points[$s->sample_point] ?? $s->sample_point ?? '—') }}</td>
+<td>{{ $systemNames[$s->sand_system_id] ?? '—' }}</td>
+<td class="code">{{ $isMould ? ($s->mouldAssembly?->assembly_number ?? '—') : ($points[$s->sample_point] ?? $s->sample_point ?? '—') }}</td>
 <td>@if($s->shift)<div>{{ $s->shift }}</div>@endif @if($s->mouldingRun)<a class="code" href="{{ route('moulding-runs.show', $s->mouldingRun) }}">{{ $s->mouldingRun->run_number }}</a>@endif @if($s->pattern)<div class="small">{{ $s->pattern->name }} <span class="code muted">{{ $s->pattern->code }}</span></div>@endif</td>
 <td>{{ $s->tested_by ?: 'System' }}</td>
 <td style="text-align:right">
 @if($isMould)@php($by = $s->measurements->keyBy('characteristic_key'))<div class="code">Lowest: {{ $by->has('hardness_b_min') ? $fmt($by['hardness_b_min']->value, 2) : '—' }}, Avg: {{ $by->has('hardness_b_avg') ? $fmt($by['hardness_b_avg']->value, 2) : '—' }}</div>
 @else @foreach($s->measurements as $m)<div class="code">{{ $m->name }}: <strong>{{ $fmt($m->value) }}</strong> {{ $m->unit }}@if($m->passed === false) <span style="color:var(--danger)">✘</span>@endif</div>@endforeach @endif
 <span class="status {{ $s->result === 'PASS' ? 'status-completed' : ($s->result === 'FAIL' ? 'status-cancelled' : '') }}">{{ $s->result }}</span></td></tr>
-@empty<tr><td colspan="6" class="muted">No tests yet.</td></tr>@endforelse</tbody></table></div></div>
+@empty<tr><td colspan="7" class="muted">No tests yet.</td></tr>@endforelse</tbody></table></div></div>
 
 @include('limits._panel', ['type' => 'SAND_SYSTEM', 'id' => $system->id, 'title' => 'Limits for '.$system->name.' sand'])
 @endif
