@@ -57,6 +57,12 @@
             });
         }
         inputs.forEach(function (i) { if (i) i.addEventListener('input', apply); });
+        var total = t.offsetWidth;
+        if (total) {
+            Array.prototype.forEach.call(head.cells, function (th) { th.style.width = (th.offsetWidth / total * 100) + '%'; });
+            t.style.tableLayout = 'fixed'; t.style.width = '100%';
+            t.querySelectorAll('td').forEach(function (td) { td.style.overflowWrap = 'anywhere'; });
+        }
     });
 })();
 </script>
