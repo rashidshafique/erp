@@ -12,12 +12,12 @@
             <h1 style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><span class="code">{{ $run->run_number }}</span>
                 <span class="status status-{{ strtolower(str_replace('_', '-', $run->status)) }}" style="font-size:12px">{{ str_replace('_', ' ', $run->status) }}</span></h1>
             <div class="run-meta">
-                <span class="run-meta-date"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> {{ $run->run_date?->format('d F Y') ?? 'No date' }}</span>
+                <span class="run-meta-date"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> {{ $run->run_date?->displayDate() ?? __('No date') }}</span>
                 @if ($run->started_at)
-                    <span class="run-meta-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Started: {{ $run->started_at->format('d M Y h:i A') }}</span>
+                    <span class="run-meta-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> {{ __('Started') }}: {{ $run->started_at->displayDateTime() }}</span>
                 @endif
                 @if ($run->completed_at)
-                    <span class="run-meta-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg> Completed: {{ $run->completed_at->format('d M Y h:i A') }}</span>
+                    <span class="run-meta-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg> {{ __('Completed') }}: {{ $run->completed_at->displayDateTime() }}</span>
                 @endif
             </div>
         </div>
