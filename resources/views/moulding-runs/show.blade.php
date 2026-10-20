@@ -344,6 +344,29 @@
         </div>
     </section>
     @endif
+    <script>
+    (function () {
+        const form = document.getElementById('record-output-form');
+        if (!form) { return; }
+        // Sound and scrap move opposite each other once total moulds made is given; sound is capped at the total.
+        const made = form.querySelector('[name="moulds_made_qty"]'), accepted = form.querySelector('[name="accepted_mould_qty"]'), damaged = form.querySelector('[name="damaged_mould_qty"]');
+        if (!made || !accepted || !damaged) { return; }
+        const value = input => { const n = parseInt(input.value, 10); return Number.isFinite(n) && n >= 0 ? n : 0; };
+        const totalGiven = () => made.value.trim() !== '' && value(made) > 0;
+        let syncing = false;
+        const balance = (changed, other) => {
+            if (syncing || !totalGiven()) { return; }
+            const total = value(made);
+            if (changed === accepted && value(accepted) > total) { accepted.value = total; }
+            if (changed === damaged && value(damaged) > total) { damaged.value = total; }
+            other.value = total - value(changed);
+            syncing = true; other.dispatchEvent(new Event('input')); syncing = false;
+        };
+        accepted.addEventListener('input', () => balance(accepted, damaged));
+        damaged.addEventListener('input', () => balance(damaged, accepted));
+        made.addEventListener('input', () => { if (totalGiven()) { accepted.max = value(made); damaged.max = value(made); } else { accepted.removeAttribute('max'); damaged.removeAttribute('max'); } });
+    })();
+    </script>
     <section class="panel" id="crew">
         <div class="panel-header"><h2>Station, team and sand</h2><span class="muted small">The bulk editor takes team and sand from the station; correct them here. A sand test started from this run uses the station.</span></div>
         <div class="panel-body">
