@@ -231,7 +231,7 @@
                         data = { offer: data.offer, results: menu.concat(data.results || []) };
                         list.innerHTML = ''; rows = []; active = -1; offer = data.offer;
                         if (offer) {
-                            row([span('scan-row-main', 'Search ' + offer.label.toLowerCase() + 's only'), span('scan-row-kind', 'Enter')], { run: pickOffer });
+                            row([span('scan-row-main', 'Search ' + offer.label.toLowerCase() + 's only'), span('scan-row-kind', 'Tab')], { run: pickOffer });
                         }
                         data.results.forEach(function (r) {
                             row([span('scan-row-code', r.code), span('scan-row-name', r.name || ''), span('scan-row-kind', r.label)], { url: r.url });
@@ -253,7 +253,7 @@
                     i.addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(fetchNow, 150); });
                     i.addEventListener('focus', function () { if (rows.length) open(true); });
                     i.addEventListener('keydown', function (e) {
-                        if (e.key === 'Tab' && rows.length && !list.hidden) { e.preventDefault(); highlight(e.shiftKey ? (active <= 0 ? rows.length - 1 : active - 1) : (active + 1) % rows.length); }
+                        if (e.key === 'Tab' && !e.shiftKey && offer && !type) { e.preventDefault(); pickOffer(); }
                         else if (e.key === 'Backspace' && type && i.value === '') { setType(null); fetchNow(); }
                         else if (e.key === 'ArrowDown' && rows.length) { e.preventDefault(); open(true); highlight((active + 1) % rows.length); }
                         else if (e.key === 'ArrowUp' && rows.length) { e.preventDefault(); highlight(active <= 0 ? rows.length - 1 : active - 1); }
