@@ -303,6 +303,18 @@
 @include('audit._history', ['type' => 'MouldingRun', 'id' => $run->id])
     </div>
     <aside>
+    @if (in_array($run->status, ['IN_PROGRESS', 'ON_HOLD'], true))
+    <div style="margin-bottom:16px">
+            <div class="actions">
+                @if ($run->status === 'IN_PROGRESS')
+                    <form method="POST" action="{{ route('moulding-runs.status', $run) }}">@csrf<input type="hidden" name="status" value="ON_HOLD"><button class="btn" type="submit">Put on hold</button></form>
+                @else
+                    <form method="POST" action="{{ route('moulding-runs.status', $run) }}">@csrf<input type="hidden" name="status" value="IN_PROGRESS"><button class="btn" type="submit">Resume run</button></form>
+                @endif
+                <form method="POST" action="{{ route('moulding-runs.status', $run) }}" onsubmit="return confirm('Cancel this run? This cannot be undone.')">@csrf<input type="hidden" name="status" value="CANCELLED">@if ($run->moulding_work_list_item_id)<label class="small" style="display:block;margin-bottom:6px"><input type="checkbox" name="skip_work_list_item" value="1"> Also skip its work list item (closes the list if nothing else is open)</label>@endif<button class="btn" type="submit">Cancel run</button></form>
+            </div>
+    </div>
+    @endif
     @if (! in_array($run->status, ['COMPLETED', 'CANCELLED']))
     <section class="panel">
         <div class="panel-header"><h2>Record output</h2></div>
@@ -334,21 +346,6 @@
             </form>
         </div>
     </section>
-    @if (in_array($run->status, ['IN_PROGRESS', 'ON_HOLD'], true))
-    <section class="panel">
-        <div class="panel-header"><h2>Run status</h2></div>
-        <div class="panel-body">
-            <div class="actions">
-                @if ($run->status === 'IN_PROGRESS')
-                    <form method="POST" action="{{ route('moulding-runs.status', $run) }}">@csrf<input type="hidden" name="status" value="ON_HOLD"><button class="btn" type="submit">Put on hold</button></form>
-                @else
-                    <form method="POST" action="{{ route('moulding-runs.status', $run) }}">@csrf<input type="hidden" name="status" value="IN_PROGRESS"><button class="btn" type="submit">Resume run</button></form>
-                @endif
-                <form method="POST" action="{{ route('moulding-runs.status', $run) }}" onsubmit="return confirm('Cancel this run? This cannot be undone.')">@csrf<input type="hidden" name="status" value="CANCELLED">@if ($run->moulding_work_list_item_id)<label class="small" style="display:block;margin-bottom:6px"><input type="checkbox" name="skip_work_list_item" value="1"> Also skip its work list item (closes the list if nothing else is open)</label>@endif<button class="btn" type="submit">Cancel run</button></form>
-            </div>
-        </div>
-    </section>
-    @endif
     @if ($run->status === 'COMPLETED')
     <section class="panel">
         <div class="panel-header"><h2>Run completed</h2></div>
