@@ -30,7 +30,7 @@
                     <label style="font-weight:400;display:flex;gap:5px;align-items:center"><input type="checkbox" name="accept_unsuited" value="1"> Accept where a plate is not suited</label>
                     <button class="btn btn-small">Apply to planned rows</button></form></details>
         @endif
-        @if($list->status === 'ISSUED' && $planned > 0)
+        @if(app(\App\Services\Production\WorkListService::class)->listAllowsStart($list) && $planned > 0)
             <form method="POST" action="{{ route('work-lists.stations.start', [$list, $st]) }}" style="margin-left:auto">@csrf
                 <button class="btn btn-primary" @disabled($now >= $cap)>{{ $st->isAutomated() ? 'Start next' : 'Start all planned' }}</button></form>
         @endif
@@ -48,7 +48,7 @@
         <td>{{ $i->planned_moulds }}@if(($needed[$i->id] ?? null) !== null)<div class="muted small">order still needs ≈{{ $needed[$i->id] }}</div>@endif</td>
         <td>@if($i->run)<a href="{{ route('moulding-runs.show', $i->run) }}">{{ $i->run->accepted_mould_qty }} ok / {{ $i->run->damaged_mould_qty }} dmg</a>@else—@endif</td>
         <td>{{ $i->status }}</td>
-        <td>@if($list->status === 'ISSUED' && $i->status === 'PLANNED')<form method="POST" action="{{ route('work-lists.items.start', [$list, $i]) }}">@csrf<button class="btn btn-primary">Start run</button></form>
+        <td>@if(app(\App\Services\Production\WorkListService::class)->listAllowsStart($list) && $i->status === 'PLANNED')<form method="POST" action="{{ route('work-lists.items.start', [$list, $i]) }}">@csrf<button class="btn btn-primary">Start run</button></form>
         @elseif($editable && $i->status === 'PLANNED')<form method="POST" action="{{ route('work-lists.items.remove', [$list, $i]) }}">@csrf @method('DELETE')@include('partials.icon-button', ['type' => 'delete', 'word' => 'Remove', 'name' => $i->patternRevision->pattern->code])</form>@endif</td></tr>
     @endforeach</tbody></table></div>
 </div>

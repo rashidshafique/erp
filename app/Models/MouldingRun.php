@@ -13,6 +13,21 @@ class MouldingRun extends Model
 {
     use HasUuids;
 
+    /** Null when the run followed an issued list; otherwise says how it got ahead of planning. */
+    public function planningNote(): ?string
+    {
+        $item = $this->workListItem;
+        if (! $item) {
+            return 'Unplanned';
+        }
+        $list = $item->workList;
+        if ($list && ($list->status === 'DRAFT' || ($list->issued_at && $this->started_at && $list->issued_at->gt($this->started_at)))) {
+            return 'Started ahead of list';
+        }
+
+        return null;
+    }
+
     protected $fillable = [
         'run_number',
         'production_order_id',

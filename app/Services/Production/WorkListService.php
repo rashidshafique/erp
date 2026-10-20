@@ -15,6 +15,7 @@ use App\Services\Approvals\ApprovalGate;
 use App\Services\Orders\ProductionOrderFactory;
 use App\Services\PatternCavityMap;
 use App\Services\Patterns\PatternOwnership;
+use App\Support\WorkListRules;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -270,16 +271,22 @@ class WorkListService
         $list->update(['status' => 'ISSUED', 'issued_by' => $by, 'issued_at' => now()]);
     }
 
+    /** An issued list always allows starts; a draft one only when the work list rules say moulders may go ahead. */
+    public function listAllowsStart(MouldingWorkList $list): bool
+    {
+        return $list->status === 'ISSUED' || ($list->status === 'DRAFT' && WorkListRules::mayStartFromDraft());
+    }
+
     public function startRun(MouldingWorkListItem $item): MouldingRun
     {
         $item = MouldingWorkListItem::with('workList')->findOrFail($item->id);
-        if ($item->workList->status === 'ISSUED' && $item->status === 'PLANNED') {
+        if ($this->listAllowsStart($item->workList) && $item->status === 'PLANNED') {
             $this->ensureOrder($item);
         }
 
         return DB::transaction(function () use ($item) {
             $item = MouldingWorkListItem::with(['workList', 'team', 'station'])->whereKey($item->id)->lockForUpdate()->firstOrFail();
-            if ($item->workList->status !== 'ISSUED') {
+            if (! $this->listAllowsStart($item->workList)) {
                 throw new InvalidArgumentException('Issue the list before starting its runs.');
             }
             if ($item->status !== 'PLANNED' || $item->moulding_run_id) {

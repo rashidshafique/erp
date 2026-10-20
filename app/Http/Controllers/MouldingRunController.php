@@ -34,6 +34,7 @@ class MouldingRunController extends Controller
                 'productionOrder.product',
                 'patternRevision.pattern',
                 'mouldConfiguration',
+                'workListItem.workList',
             ])
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = trim($request->string('search')->toString());

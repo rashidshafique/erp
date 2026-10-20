@@ -112,6 +112,7 @@
                                 <a href="{{ route('moulding-runs.show', $run) }}">
                                     <strong>{{ $run->run_number }}</strong>
                                 </a>
+                                @if ($note = $run->planningNote())<div class="muted small">{{ $note }}</div>@endif
                             </td>
                             <td>
                                 {{ $run->run_date?->displayDate() ?? '—' }}

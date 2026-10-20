@@ -387,4 +387,26 @@ class WorkListStationsTest extends TestCase
             ->assertSee('Pattern D9')->assertSee('P-D9-R0')->assertSee('loose pattern')
             ->assertSee(route('attachments.download', $photo), false);
     }
+
+    public function test_a_draft_list_starts_runs_only_when_the_work_list_rules_allow_it_and_the_run_is_marked(): void
+    {
+        $this->team('T1', 'Rashid');
+        $bench = MouldingStation::create(['code' => 'MAN-1', 'name' => 'Bench', 'station_type' => 'MANUAL', 'status' => 'ACTIVE', 'max_patterns' => 2]);
+        $list = $this->issued();
+        $this->post(route('work-lists.items.add', $list), $this->row($bench, $this->job('D1', 'Delta Pumps')))->assertSessionHasNoErrors();
+        $item = $list->items()->firstOrFail();
+
+        $this->post(route('work-lists.items.start', [$list, $item]))->assertSessionHasErrors('item');            // default: issue first
+
+        $this->put(route('settings.work-lists'), ['start_before_issue' => 'ALLOW'])->assertSessionHasNoErrors();
+        $this->post(route('work-lists.items.start', [$list, $item]))->assertSessionHasNoErrors();
+        $this->assertSame('DRAFT', $list->fresh()->status);
+        $this->assertSame('Started ahead of list', $item->fresh()->run->planningNote());
+    }
+
+    public function test_a_run_with_no_list_is_marked_unplanned(): void
+    {
+        $run = new MouldingRun;
+        $this->assertSame('Unplanned', $run->planningNote());
+    }
 }

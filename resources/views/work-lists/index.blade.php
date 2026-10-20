@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Moulding work lists')
 @section('content')
-<div class="page-heading"><div><h1>Moulding work lists</h1><p>The list given to the moulding teams each shift.</p></div></div>
+<div class="page-heading"><div><h1>Moulding work lists</h1><p>The list given to the moulding teams each shift. <a href="{{ route('settings.work-lists.edit') }}">Rules</a></p></div></div>
 @if(session("success"))<div class="alert alert-success">{{ session("success") }}</div>@endif
 <div class="panel"><div class="panel-header"><h2>New list</h2></div><div class="panel-body"><form method="POST" action="{{ route('work-lists.store') }}" class="form-grid">@csrf
 <label>Date<input type="date" name="list_date" value="{{ today()->toDateString() }}" required></label>
