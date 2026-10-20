@@ -50,7 +50,7 @@
         </div>
 
         <div class="panel-body">
-            <div class="detail-label" style="margin:0 0 8px;font-weight:600;text-transform:uppercase;letter-spacing:.04em">Production order</div>
+            <div class="detail-label" style="margin:0 0 8px;font-weight:600;text-transform:uppercase;letter-spacing:.04em">Production order and product</div>
             <div class="detail-grid">
                 <div>
                     <div class="detail-label">Production order</div>
@@ -72,10 +72,7 @@
                         {{ \App\Support\Formats::number($run->planned_mould_qty ?? 0) }}
                     </div>
                 </div>
-            </div>
-            <div style="height:20px"></div>
-            <div class="detail-label" style="margin:0 0 8px;font-weight:600;text-transform:uppercase;letter-spacing:.04em">Product</div>
-            <div class="detail-grid">
+
                 <div>
                     <div class="detail-label">Product</div>
                     <div class="detail-value">
