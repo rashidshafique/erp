@@ -460,4 +460,29 @@ class WorkListStationsTest extends TestCase
         $this->assertSame(0, $line->runningCount());
         $this->post(route('work-lists.items.start', [$list, $second]))->assertSessionHasNoErrors();
     }
+
+    public function test_a_short_run_is_listed_for_remake_and_can_be_remade_once(): void
+    {
+        $this->team('T1', 'Rashid');
+        $bench = MouldingStation::create(['code' => 'MAN-1', 'name' => 'Bench', 'station_type' => 'MANUAL', 'status' => 'ACTIVE', 'max_patterns' => 2]);
+        $job = $this->job('H1', 'Hotel Pumps');
+        $first = $this->issued();
+        $this->post(route('work-lists.items.add', $first), $this->row($bench, $job, ['planned_moulds' => 10]))->assertSessionHasNoErrors();
+        $this->post(route('work-lists.issue', $first), ['issued_by' => 'Planner']);
+        $this->post(route('work-lists.items.start', [$first, $first->items()->firstOrFail()]))->assertSessionHasNoErrors();
+        $run = MouldingRun::firstOrFail();
+        $this->post(route('moulding-runs.output', $run), ['moulds_made_qty' => 10, 'accepted_mould_qty' => 7, 'damaged_mould_qty' => 3, 'complete' => 1])->assertSessionHasNoErrors();
+
+        $this->get(route('work-lists.index'))->assertSee('Remake needed')->assertSee($run->run_number);
+        $this->get(route('moulding-runs.show', $run))->assertSee('Remake 3 moulds');
+
+        $second = app(WorkListService::class)->create(today()->addDay()->toDateString(), 'Morning');
+        $this->post(route('work-lists.remake', $run), ['moulding_work_list_id' => $second->id])->assertSessionHasNoErrors();
+        $item = $second->items()->firstOrFail();
+        $this->assertSame(3, $item->planned_moulds);
+        $this->assertSame($run->id, $item->remake_of_run_id);
+
+        $this->post(route('work-lists.remake', $run), ['moulding_work_list_id' => $second->id])->assertSessionHasErrors('item');   // once only
+        $this->get(route('work-lists.index'))->assertDontSee('Remake needed');
+    }
 }

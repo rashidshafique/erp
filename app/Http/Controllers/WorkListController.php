@@ -26,7 +26,11 @@ class WorkListController extends Controller
 
     public function index(): View
     {
-        return view('work-lists.index', ['lists' => MouldingWorkList::withCount('items')->orderByDesc('list_date')->orderByDesc('created_at')->paginate(25), 'shifts' => self::SHIFTS]);
+        return view('work-lists.index', [
+            'lists' => MouldingWorkList::withCount('items')->orderByDesc('list_date')->orderByDesc('created_at')->paginate(25), 'shifts' => self::SHIFTS,
+            'rework' => app(WorkListService::class)->runsNeedingRemake(),
+            'openLists' => MouldingWorkList::whereIn('status', ['DRAFT', 'ISSUED'])->orderByDesc('list_date')->orderByDesc('created_at')->get(),
+        ]);
     }
 
     public function store(Request $request, WorkListService $svc): RedirectResponse
@@ -184,6 +188,18 @@ class WorkListController extends Controller
         }
 
         return back()->with('success', "Run {$run->run_number} is now part of this list.");
+    }
+
+    public function remake(Request $request, MouldingRun $run, WorkListService $svc): RedirectResponse
+    {
+        $list = MouldingWorkList::findOrFail($request->validate(['moulding_work_list_id' => ['required', 'uuid']])['moulding_work_list_id']);
+        try {
+            $svc->remake($run, $list);
+        } catch (InvalidArgumentException $e) {
+            return back()->withErrors(['item' => $e->getMessage()]);
+        }
+
+        return redirect()->route('work-lists.show', $list)->with('success', "Remake of {$run->run_number} added to {$list->list_number}.");
     }
 
     public function startStation(MouldingWorkList $list, MouldingStation $station, WorkListService $svc): RedirectResponse

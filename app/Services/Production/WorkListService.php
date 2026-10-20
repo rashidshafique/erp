@@ -207,6 +207,46 @@ class WorkListService
             ->values();
     }
 
+    /** Moulds a completed run fell short of its plan by, because of damaged or unaccepted moulds. */
+    public function shortfall(MouldingRun $run): int
+    {
+        return $run->status === 'COMPLETED' ? max(0, (int) $run->planned_mould_qty - (int) $run->accepted_mould_qty) : 0;
+    }
+
+    /** Completed runs that fell short and have not been remade yet, oldest first. */
+    public function runsNeedingRemake(): Collection
+    {
+        $remade = MouldingWorkListItem::whereNotNull('remake_of_run_id')->pluck('remake_of_run_id');
+
+        return MouldingRun::with(['productionOrder.product', 'patternRevision.pattern', 'station'])->where('status', 'COMPLETED')
+            ->whereColumn('planned_mould_qty', '>', 'accepted_mould_qty')->whereNotIn('id', $remade)->orderBy('completed_at')->get();
+    }
+
+    /** Put a run's shortfall on an open list as a new item with the same plate, station and order. */
+    public function remake(MouldingRun $run, MouldingWorkList $list): MouldingWorkListItem
+    {
+        return DB::transaction(function () use ($run, $list) {
+            $run = MouldingRun::whereKey($run->id)->lockForUpdate()->firstOrFail();
+            $short = $this->shortfall($run);
+            if ($short <= 0) {
+                throw new InvalidArgumentException("Run {$run->run_number} has no shortfall to remake.");
+            }
+            if (MouldingWorkListItem::where('remake_of_run_id', $run->id)->exists()) {
+                throw new InvalidArgumentException("Run {$run->run_number} has already been remade.");
+            }
+            if (! $run->moulding_station_id || ! $run->pattern_revision_id) {
+                throw new InvalidArgumentException("Run {$run->run_number} needs a station and a pattern before it can be remade.");
+            }
+            $item = $this->addItem($list, [
+                'moulding_station_id' => $run->moulding_station_id, 'pattern_revision_id' => $run->pattern_revision_id, 'production_order_id' => $run->production_order_id,
+                'sand_system' => $run->sand_system, 'planned_moulds' => $short, 'instructions' => "Remake of {$run->run_number}",
+            ]);
+            $item->update(['remake_of_run_id' => $run->id]);
+
+            return $item;
+        });
+    }
+
     /** Runs the moulder started without a list item that fit a planned one: same plate on the list's date, at that station or none, in that shift or the general one. */
     public function matchingRuns(MouldingWorkListItem $item): Collection
     {

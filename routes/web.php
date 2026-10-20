@@ -408,6 +408,7 @@ Route::prefix('sand-systems')->name('sand-systems.')->controller(SandSystemContr
 Route::prefix('work-lists')->name('work-lists.')->controller(WorkListController::class)->group(function () {
     Route::get('/', 'index')->name('index');
     Route::post('/', 'store')->name('store');
+    Route::post('/remake/{run}', 'remake')->name('remake');
     Route::get('/{list}', 'show')->name('show');
     Route::get('/{list}/print', 'print')->name('print');
     Route::post('/{list}/items', 'addItem')->name('items.add');
