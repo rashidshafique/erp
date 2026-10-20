@@ -207,7 +207,7 @@ class WorkListService
             ->values();
     }
 
-    /** Runs the moulder started without a list item that fit a planned one: same plate and station, on the list's date and shift. */
+    /** Runs the moulder started without a list item that fit a planned one: same plate on the list's date, at that station or none, in that shift or the general one. */
     public function matchingRuns(MouldingWorkListItem $item): Collection
     {
         if ($item->status !== 'PLANNED' || $item->moulding_run_id) {
@@ -216,8 +216,10 @@ class WorkListService
         $list = $item->workList;
 
         return MouldingRun::whereNull('moulding_work_list_item_id')->whereIn('status', ['IN_PROGRESS', 'ON_HOLD', 'COMPLETED'])
-            ->where('pattern_revision_id', $item->pattern_revision_id)->where('moulding_station_id', $item->moulding_station_id)
-            ->whereDate('run_date', $list->list_date)->when($list->shift, fn ($q) => $q->where('shift', $list->shift))
+            ->where('pattern_revision_id', $item->pattern_revision_id)
+            ->where(fn ($q) => $q->where('moulding_station_id', $item->moulding_station_id)->orWhereNull('moulding_station_id'))
+            ->whereDate('run_date', $list->list_date)
+            ->when($list->shift, fn ($q) => $q->where(fn ($w) => $w->where('shift', $list->shift)->orWhereNull('shift')->orWhere('shift', 'General')))
             ->orderBy('started_at')->get();
     }
 
