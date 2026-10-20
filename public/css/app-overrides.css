@@ -8,7 +8,7 @@
 .sidebar-profile { flex: none; display: flex; align-items: center; gap: 8px; margin: 8px -4px 0; padding: 10px 6px 0; border-top: 1px solid #e2e8f0; }
 .sp-link { display: flex; align-items: center; gap: 9px; min-width: 0; flex: 1; color: #0f172a; text-decoration: none !important; }
 .sp-link:hover .sp-text strong { color: var(--accent-dark); }
-.sp-avatar { flex: none; display: inline-flex; width: 32px; height: 32px; align-items: center; justify-content: center; border-radius: 50%; background: var(--accent); color: #fff; font-size: 12px; font-weight: 700; letter-spacing: .3px; }
+.sp-avatar { position: relative; overflow: hidden; flex: none; display: inline-flex; width: 32px; height: 32px; align-items: center; justify-content: center; border-radius: 50%; background: var(--accent); color: #fff; font-size: 12px; font-weight: 700; letter-spacing: .3px; }
 .sp-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
 .sp-text strong { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sp-text small { font-size: 11px; color: #64748b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

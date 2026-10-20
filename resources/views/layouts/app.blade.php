@@ -142,7 +142,7 @@
             @php($roleNames = $me->roles->pluck('name')->implode(', ') ?: 'No role')
             <div class="sidebar-profile">
                 <a href="{{ route('account.password') }}" class="sp-link" title="Account and password">
-                    <span class="sp-avatar" aria-hidden="true">{{ strtoupper(mb_substr(collect(preg_split('/\s+/', trim($me->name)))->filter()->map(fn ($w) => mb_substr($w, 0, 1))->take(2)->implode(''), 0, 2)) }}</span>
+                    @include('partials.avatar', ['user' => $me])
                     <span class="sp-text"><strong>{{ $me->name }}</strong><small>{{ $roleNames }}</small></span>
                 </a>
                 <form method="POST" action="{{ route('logout') }}">@csrf<button type="submit" class="sp-out" title="Sign out">{!! \App\Support\NavIcons::get('log-out') !!}<span class="sr-only">Sign out</span></button></form>

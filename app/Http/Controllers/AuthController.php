@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 
@@ -61,5 +62,37 @@ class AuthController extends Controller
         $user = $request->user();
         $user->forceFill(['password' => $data['password'], 'must_change_password' => false])->save();
         return redirect()->route('dashboard')->with('success', 'Password changed.');
+    }
+
+    public function updateProfile(Request $request)
+    {
+        $data = $request->validate(['profile_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,gif,webp', 'max:2048'], 'remove_image' => ['nullable', 'boolean']]);
+        $user = $request->user();
+        $user->use_gravatar = $request->boolean('use_gravatar');
+
+        if ($request->hasFile('profile_image')) {
+            $this->forgetImage($user);
+            $user->profile_image_path = $request->file('profile_image')->store('avatars', 'local');
+        } elseif ($request->boolean('remove_image')) {
+            $this->forgetImage($user);
+            $user->profile_image_path = null;
+        }
+        $user->save();
+
+        return redirect()->route('account.password')->with('success', 'Profile saved.');
+    }
+
+    public function avatar(User $user)
+    {
+        abort_unless($user->profile_image_path && Storage::disk('local')->exists($user->profile_image_path), 404);
+
+        return Storage::disk('local')->response($user->profile_image_path, null, ['Cache-Control' => 'private, max-age=86400']);
+    }
+
+    private function forgetImage(User $user): void
+    {
+        if ($user->profile_image_path) {
+            Storage::disk('local')->delete($user->profile_image_path);
+        }
     }
 }

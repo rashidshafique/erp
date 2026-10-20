@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password', 'is_active', 'must_change_password'])]
+#[Fillable(['name', 'email', 'password', 'is_active', 'must_change_password', 'profile_image_path', 'use_gravatar'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -30,6 +30,7 @@ class User extends Authenticatable
             'is_active' => 'boolean',
             'last_login_at' => 'datetime',
             'must_change_password' => 'boolean',
+            'use_gravatar' => 'boolean',
         ];
     }
 
@@ -55,5 +56,19 @@ class User extends Authenticatable
     public function hasPermission(string $permission): bool
     {
         return $this->is_active && ($this->isAdmin() || in_array($permission, $this->permissions(), true));
+    }
+
+    /**
+     * The picture to show for this user: an uploaded image first, then Gravatar when switched on, otherwise none (initials are shown).
+     */
+    public function avatarUrl(): ?string
+    {
+        if ($this->profile_image_path) {
+            return route('account.avatar', ['user' => $this->id, 'v' => md5($this->profile_image_path)]);
+        }
+
+        return $this->use_gravatar
+            ? 'https://www.gravatar.com/avatar/'.md5(strtolower(trim($this->email))).'?s=96&d=404'
+            : null;
     }
 }

@@ -467,6 +467,8 @@ Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.attempt');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::get('/account/password', [AuthController::class, 'showPassword'])->name('account.password');
+Route::put('/account/profile', [AuthController::class, 'updateProfile'])->name('account.profile.update');
+Route::get('/account/avatar/{user}', [AuthController::class, 'avatar'])->name('account.avatar');
 Route::put('/account/password', [AuthController::class, 'updatePassword'])->name('account.password.update');
 Route::get('/users', [UserController::class, 'index'])->name('users.index');
 Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
