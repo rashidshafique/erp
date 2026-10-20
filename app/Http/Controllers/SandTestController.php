@@ -20,13 +20,14 @@ class SandTestController extends Controller
     {
         $systems = SandSystem::where('status', 'ACTIVE')->orderBy('name')->get();
         $run = $request->filled('moulding_run_id') ? MouldingRun::with('patternRevision.pattern', 'station')->find($request->query('moulding_run_id')) : null;
-        $system = $systems->firstWhere('id', $request->query('system')) ?? ($run ? $systems->firstWhere('name', $run->sand_system) : null) ?? $systems->first();
+        $picked = $request->query('system', $run ? 'run' : 'all');
+        $system = $picked === 'all' ? null : ($systems->firstWhere('id', $picked) ?? ($run ? $systems->firstWhere('name', $run->sand_system) : null));
 
         return view('sand-tests.index', [
             'run' => $run, 'systems' => $systems, 'system' => $system, 'stations' => MouldingStation::where('status', 'ACTIVE')->orderBy('code')->get(),
-            'rows' => $system ? $svc->formRows('SAND', 'SAND_SYSTEM', $system->id) : collect(),
-            'sets' => $system ? MeasurementSet::with('measurements', 'mouldingRun', 'pattern')->where('kind', 'SAND')->where('sand_system_id', $system->id)->orderByDesc('taken_at')->limit(30)->get() : collect(),
-            'mouldSets' => MeasurementSet::with('measurements', 'mouldingRun', 'mouldAssembly')->where('kind', 'MOULD')->orderByDesc('taken_at')->limit(15)->get(),
+            'rows' => $svc->formRows('SAND', 'SAND_SYSTEM', $system?->id), 'systemNames' => $systems->pluck('name', 'id'),
+            'sets' => MeasurementSet::with('measurements', 'mouldingRun', 'pattern')->where('kind', 'SAND')->when($system, fn ($q) => $q->where('sand_system_id', $system->id))->orderByDesc('taken_at')->limit(30)->get(),
+            'mouldSets' => MeasurementSet::with('measurements', 'mouldingRun', 'mouldAssembly')->where('kind', 'MOULD')->when($system, fn ($q) => $q->where('sand_system_id', $system->id))->orderByDesc('taken_at')->limit(15)->get(),
             'systemNames' => $systems->pluck('name', 'id'),
             'points' => ['MIXER_OUTPUT' => 'Mixer output', 'MOULDING_STATION' => 'At moulding station', 'RETURN_SAND' => 'Return / system sand'],
         ]);
