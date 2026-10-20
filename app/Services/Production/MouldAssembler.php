@@ -4,6 +4,7 @@ namespace App\Services\Production;
 
 use App\Models\MouldAssembly;
 use App\Models\MouldCavity;
+use App\Models\MouldConfiguration;
 use App\Models\MouldingRun;
 use App\Models\MouldLayer;
 use App\Models\PatternRevision;
@@ -26,6 +27,32 @@ class MouldAssembler
     public function warning(): ?string
     {
         return $this->flasks->warning;
+    }
+
+    /**
+     * A flaskless mould leaves its station already closed, so each accepted mould is assembled as the output is recorded
+     * (one block, no flasks). Does nothing for other runs, or when no cavity map or mould configuration exists to assemble with.
+     */
+    public function assembleFlaskless(MouldingRun $run): int
+    {
+        $run = $run->fresh(['station', 'patternRevision']);
+        if (! $run || $run->status === 'CANCELLED' || ! $this->flasks->isFlaskless($run->station, $run->patternRevision)) {
+            return 0;
+        }
+        $missing = (int) $run->accepted_mould_qty - MouldAssembly::where('moulding_run_id', $run->id)->count();
+        $configurationId = $run->mould_configuration_id ?? MouldConfiguration::where('is_active', true)->orderBy('name')->value('id');
+        if ($missing < 1 || ! $configurationId || ! $run->pattern_revision_id || ! $this->map->hasMap($run->pattern_revision_id)) {
+            return 0;
+        }
+        $made = 0;
+        while ($missing > 0) {
+            $batch = min($missing, 500);
+            $this->assemble($run->fresh(), $batch, $configurationId, 1, $run->team_name);
+            $missing -= $batch;
+            $made += $batch;
+        }
+
+        return $made;
     }
 
     /** @return Collection<int, MouldAssembly> */

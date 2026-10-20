@@ -485,4 +485,23 @@ class WorkListStationsTest extends TestCase
         $this->post(route('work-lists.remake', $run), ['moulding_work_list_id' => $second->id])->assertSessionHasErrors('item');   // once only
         $this->get(route('work-lists.index'))->assertDontSee('Remake needed');
     }
+
+    public function test_flaskless_moulds_are_assembled_when_output_is_recorded_and_other_moulds_are_not(): void
+    {
+        \App\Models\MouldConfiguration::create(['code' => 'MC-1', 'name' => 'Cfg', 'mould_type' => 'COPE_DRAG', 'nominal_layer_count' => 2]);
+        $disa = MouldingStation::create(['code' => 'DISA-1', 'name' => 'Disa', 'station_type' => 'AUTOMATED_LINE', 'status' => 'ACTIVE', 'max_patterns' => 1, 'makes_flaskless' => true]);
+        $bench = MouldingStation::create(['code' => 'MAN-1', 'name' => 'Bench', 'station_type' => 'MANUAL', 'status' => 'ACTIVE', 'max_patterns' => 1]);
+
+        foreach ([[$disa, 'I1', 10], [$bench, 'J1', 0]] as [$station, $code, $expected]) {
+            $list = $this->issued();
+            $this->post(route('work-lists.items.add', $list), $this->row($station, $this->job($code, 'Customer '.$code)))->assertSessionHasNoErrors();
+            $this->post(route('work-lists.issue', $list), ['issued_by' => 'Planner']);
+            $this->post(route('work-lists.items.start', [$list, $list->items()->firstOrFail()]))->assertSessionHasNoErrors();
+            $run = MouldingRun::where('moulding_station_id', $station->id)->firstOrFail();
+            $this->post(route('moulding-runs.output', $run), ['moulds_made_qty' => 12, 'accepted_mould_qty' => 10, 'damaged_mould_qty' => 2])->assertSessionHasNoErrors();
+
+            $this->assertSame($expected, $run->mouldAssemblies()->count());
+        }
+        $this->assertTrue(MouldingRun::where('moulding_station_id', $disa->id)->firstOrFail()->mouldAssemblies()->first()->is_flaskless);
+    }
 }

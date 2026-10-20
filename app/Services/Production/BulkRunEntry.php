@@ -78,10 +78,11 @@ class BulkRunEntry
                     $run->fill($clean);
                     if ($run->isDirty()) {
                         $run->save();
+                        app(MouldAssembler::class)->assembleFlaskless($run);
                         $updated++;
                     }
                 } else {
-                    MouldingRun::create($clean + ['run_number' => MouldingRun::nextRunNumber(), 'status' => 'COMPLETED', 'completed_at' => now()]);
+                    app(MouldAssembler::class)->assembleFlaskless(MouldingRun::create($clean + ['run_number' => MouldingRun::nextRunNumber(), 'status' => 'COMPLETED', 'completed_at' => now()]));
                     $created++;
                 }
             }

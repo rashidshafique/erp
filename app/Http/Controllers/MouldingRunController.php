@@ -239,6 +239,7 @@ class MouldingRunController extends Controller
             }
 
             $run = MouldingRun::create($validated);
+            app(MouldAssembler::class)->assembleFlaskless($run);
             if (in_array($run->status, ['IN_PROGRESS', 'COMPLETED'], true)) {
                 $run->productionOrder?->markInProgress();
             }

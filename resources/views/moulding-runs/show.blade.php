@@ -236,7 +236,7 @@
     <section class="panel" id="assemblies">
         <div class="panel-header">
             <h2>Mould assemblies</h2>
-            <span class="muted small">{{ $run->mouldAssemblies->count() }} of {{ $run->accepted_mould_qty }} accepted moulds assembled</span>
+            <span class="muted small">{{ $run->mouldAssemblies->count() }} of {{ $run->accepted_mould_qty }} accepted moulds assembled @if ($flaskInfo['flaskless'])· flaskless moulds are assembled at the station, so this is automatic @endif</span>
         </div>
         <div class="panel-body">
             <p class="muted small">Each assembly is one finished mould that will be poured. Its cavities are copied from the pattern's cavity map, so every cavity already knows which product (or part of a product) it makes.</p>
