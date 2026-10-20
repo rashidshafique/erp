@@ -96,11 +96,11 @@ class EmployeeController extends Controller
     private function clean(array $d): array
     {
         foreach ($d as $k => $v) {
-            if ($v === '' && $k !== 'weekly_off') {
+            if ($v === '') {
                 $d[$k] = null;
             }
         }
-        if (array_key_exists('weekly_off', $d) && $d['weekly_off'] === null) {
+        if (($d['weekly_off'] ?? null) === 'NONE') {
             $d['weekly_off'] = '';                       // "none, the roster decides"
         }
         if (! empty($d['cnic'])) {

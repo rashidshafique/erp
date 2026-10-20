@@ -7,6 +7,7 @@ use App\Domains\Hr\Models\HrDepartment;
 use App\Domains\Hr\Models\HrHoliday;
 use App\Domains\Hr\Models\HrRosterEntry;
 use App\Domains\Hr\Models\HrShift;
+use App\Domains\Hr\Services\HrDefaults;
 use App\Domains\Hr\Services\DayPlan;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
@@ -34,6 +35,7 @@ class RosterController extends Controller
         return view('hr::roster', [
             'week' => $week, 'days' => $days, 'people' => $people, 'entries' => $entries, 'defaults' => $defaults,
             'shifts' => HrShift::orderBy('starts_at')->get(), 'departments' => HrDepartment::where('active', true)->orderBy('name')->get(),
+            'defaultShift' => HrShift::find(HrDefaults::shiftId()), 'defaultWeeklyOff' => HrDefaults::weeklyOff(),
             'year' => $year, 'holidays' => HrHoliday::whereYear('holiday_on', $year)->orderBy('holiday_on')->get(),
         ]);
     }
@@ -59,6 +61,17 @@ class RosterController extends Controller
         }
 
         return redirect()->route('hr.roster', ['week' => $d['week'], 'department' => $request->input('department')])->with('success', $n ? 'Roster saved.' : 'No changes.');
+    }
+
+    public function defaultsUpdate(Request $request): RedirectResponse
+    {
+        $d = $request->validate([
+            'default_shift_id' => ['required', 'uuid', Rule::exists('hr_shifts', 'id')->where('active', true)],
+            'default_weekly_off' => ['required', Rule::in(array_keys(config('hr.weekly_off_options')))],
+        ]);
+        HrDefaults::save($d['default_shift_id'], $d['default_weekly_off']);
+
+        return redirect()->route('hr.roster', ['tab' => 'shifts'])->with('success', 'Company defaults saved.');
     }
 
     private function shiftRules(?string $id = null): array

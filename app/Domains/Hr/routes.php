@@ -91,6 +91,7 @@ Route::middleware('web')->group(function () {
         Route::prefix('roster')->controller(RosterController::class)->group(function () {
             Route::get('/', 'index')->name('roster');
             Route::post('/', 'save')->name('roster.save');
+            Route::put('/defaults', 'defaultsUpdate')->name('defaults.update');
             Route::post('/shifts', 'shiftStore')->name('shifts.store');
             Route::put('/shifts/{shift}', 'shiftUpdate')->name('shifts.update');
             Route::post('/holidays', 'holidayStore')->name('holidays.store');

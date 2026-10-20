@@ -19,9 +19,21 @@ class DayPlan
     /** @var array<string,HrShift> */
     private array $shifts;
 
+    private ?string $defaultShiftId;
+
+    private string $defaultWeeklyOff;
+
     public function __construct()
     {
         $this->shifts = HrShift::all()->keyBy('id')->all();
+        $this->defaultShiftId = HrDefaults::shiftId();
+        $this->defaultWeeklyOff = HrDefaults::weeklyOff();
+    }
+
+    /** @return list<string> */
+    private function weeklyOffDays(Employee $e): array
+    {
+        return array_values(array_filter(explode(',', (string) ($e->weekly_off ?? $this->defaultWeeklyOff)), 'strlen'));
     }
 
     /**
@@ -40,7 +52,7 @@ class DayPlan
 
         $out = [];
         foreach ($employees as $e) {
-            $shift = $e->shift_id ? ($this->shifts[$e->shift_id] ?? null) : null;
+            $shift = $this->shifts[$e->shift_id ?? $this->defaultShiftId] ?? null;
             $plan = ['kind' => 'WORK', 'shift' => $shift, 'leave' => null, 'holiday' => null];
             if ($l = $leave->get($e->id)) {
                 $plan['kind'] = 'LEAVE';
@@ -54,7 +66,7 @@ class DayPlan
             } elseif ($holiday) {
                 $plan['kind'] = 'HOLIDAY';
                 $plan['holiday'] = $holiday;
-            } elseif (in_array((string) $d->dayOfWeek, array_filter(explode(',', (string) $e->weekly_off), 'strlen'), true)) {
+            } elseif (in_array((string) $d->dayOfWeek, $this->weeklyOffDays($e), true)) {
                 $plan['kind'] = 'OFF';
             }
             $out[$e->id] = $plan;
@@ -75,7 +87,7 @@ class DayPlan
         $to = Carbon::parse($to)->startOfDay();
         $holidays = HrHoliday::whereDate('holiday_on', '>=', $from)->whereDate('holiday_on', '<=', $to)->get()->map(fn ($h) => $h->holiday_on->toDateString())->flip();
         $roster = HrRosterEntry::where('employee_id', $e->id)->whereDate('work_date', '>=', $from)->whereDate('work_date', '<=', $to)->get()->keyBy(fn ($r) => $r->work_date->toDateString());
-        $weekly = array_filter(explode(',', (string) $e->weekly_off), 'strlen');
+        $weekly = $this->weeklyOffDays($e);
         $off = collect();
         for ($d = $from->copy(); $d->lte($to); $d->addDay()) {
             $k = $d->toDateString();

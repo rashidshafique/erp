@@ -37,7 +37,7 @@ return [
     ],
 
     // Attendance rules. Everything here is a starting value; shifts carry their own grace and break.
-    'weekly_off_options' => ['0' => 'Sunday', '5' => 'Friday', '6,0' => 'Saturday and Sunday', '' => 'None (the roster decides)'],
+    'weekly_off_options' => ['0' => 'Sunday', '5' => 'Friday', '6,0' => 'Saturday and Sunday', 'NONE' => 'None (the roster decides)'],
     'attendance' => [
         'half_day_ratio' => 0.5,          // worked less than this share of the paid shift counts as a half day
         'overtime_min_minutes' => 30,     // time past the end of the shift below this is not overtime

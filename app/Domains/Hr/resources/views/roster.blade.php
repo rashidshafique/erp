@@ -19,7 +19,7 @@
 <div class="panel">@if ($people->isEmpty())<div class="empty-state">No one to roster.</div>@else
 <div class="table-wrap"><table class="roster"><thead><tr><th>Employee</th>@foreach ($days as $d)<th>{{ $d->format('D d') }}</th>@endforeach</tr></thead><tbody>
 @foreach ($people as $p)
-<tr><td><strong>{{ $p->code }}</strong> {{ $p->full_name }}<div class="muted small">{{ $p->shift?->name ?? 'No usual shift' }}</div></td>
+<tr><td><strong>{{ $p->code }}</strong> {{ $p->full_name }}<div class="muted small">{{ $p->shift?->name ?? ($defaultShift ? $defaultShift->name.' (default)' : 'No usual shift') }}</div></td>
 @foreach ($days as $d)
 @php $k = $d->toDateString(); $en = $entries->get($p->id)?->get($k); $val = $en ? ($en->shift_id ?? 'OFF') : ''; $pl = $defaults[$k][$p->id] ?? null; @endphp
 <td><select name="cells[{{ $p->id }}][{{ $k }}]"><option value="">Usual</option><option value="OFF" @selected($val === 'OFF')>Day off</option>@foreach ($shifts as $s)<option value="{{ $s->id }}" @selected($val === $s->id)>{{ $s->name }}</option>@endforeach</select>
@@ -29,6 +29,10 @@
 <div class="panel-body"><button class="btn btn-primary">Save the roster</button></div>@endif</div></form>
 
 <div class="tab-marker" data-tab-start="Shifts"></div>
+<div class="panel"><div class="panel-header"><h2>Company defaults</h2></div><div class="panel-body"><form method="POST" action="{{ route('hr.defaults.update') }}">@csrf @method('PUT')<div class="form-grid">
+@include('hr::_sel', ['name' => 'default_shift_id', 'label' => 'Default shift for all employees', 'items' => $shifts->where('active', true)->mapWithKeys(fn ($x) => [$x->id => $x->label()])->all(), 'sel' => $defaultShift?->id, 'blank' => false])
+@include('hr::_sel', ['name' => 'default_weekly_off', 'label' => 'Company weekly holiday', 'items' => config('hr.weekly_off_options'), 'sel' => $defaultWeeklyOff, 'blank' => false, 'help' => 'Applies to everyone whose own shift or weekly off is left on Company default.'])
+</div><p><button class="btn btn-primary">Save defaults</button></p></form></div></div>
 <div class="panel"><div class="table-wrap"><table><thead><tr><th>Code</th><th>Shift</th><th>Hours</th><th>Break</th><th>Grace</th><th></th></tr></thead><tbody>
 @foreach ($shifts as $s)
 <tr><td><strong>{{ $s->code }}</strong></td><td>{{ $s->name }}@if ($s->crossesMidnight()) <span class="status status-in-progress">Night</span>@endif</td><td>{{ substr($s->starts_at, 0, 5) }} – {{ substr($s->ends_at, 0, 5) }} ({{ \App\Domains\Hr\Models\AttendanceRecord::hm($s->paidMinutes()) }} paid)</td><td>{{ $s->break_minutes }} min</td><td>{{ $s->grace_minutes }} min</td>

@@ -519,8 +519,10 @@ class HrAttendanceLeaveTest extends TestCase
         $e = Employee::where('first_name', 'Sam')->first();
         $this->assertSame($ev->id, $e->shift_id);
         $this->assertSame('5', $e->weekly_off);
-        $this->put(route('hr.employees.update', $e), ['first_name' => 'Sam', 'employment_type' => 'PERMANENT', 'joined_on' => '2026-09-01', 'weekly_off' => ''])->assertSessionHasNoErrors();
+        $this->put(route('hr.employees.update', $e), ['first_name' => 'Sam', 'employment_type' => 'PERMANENT', 'joined_on' => '2026-09-01', 'weekly_off' => 'NONE'])->assertSessionHasNoErrors();
         $this->assertSame('', $e->fresh()->weekly_off);                                           // none: the roster decides
+        $this->put(route('hr.employees.update', $e), ['first_name' => 'Sam', 'employment_type' => 'PERMANENT', 'joined_on' => '2026-09-01', 'weekly_off' => ''])->assertSessionHasNoErrors();
+        $this->assertNull($e->fresh()->weekly_off);                                               // follows the company weekly holiday
         $this->post(route('hr.employees.store'), ['first_name' => 'Bad', 'employment_type' => 'PERMANENT', 'joined_on' => '2026-09-01', 'weekly_off' => '9'])->assertSessionHasErrors('weekly_off');
         $this->get(route('hr.employees.show', $e))->assertOk()->assertSee('Attendance')->assertSee('Balance history');
     }
