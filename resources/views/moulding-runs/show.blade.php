@@ -11,10 +11,15 @@
         <div>
             <h1 style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><span class="code">{{ $run->run_number }}</span>
                 <span class="status status-{{ strtolower(str_replace('_', '-', $run->status)) }}" style="font-size:12px">{{ str_replace('_', ' ', $run->status) }}</span></h1>
-            <p>
-                Run recorded for {{ $run->run_date?->format('d F Y') ?? 'an unspecified date' }}.
-                Review the production order, output and downtime below.
-            </p>
+            <div class="run-meta">
+                <span class="run-meta-date"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> {{ $run->run_date?->format('d F Y') ?? 'No date' }}</span>
+                @if ($run->started_at)
+                    <span class="run-meta-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Started: {{ $run->started_at->format('d M Y h:i A') }}</span>
+                @endif
+                @if ($run->completed_at)
+                    <span class="run-meta-item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg> Completed: {{ $run->completed_at->format('d M Y h:i A') }}</span>
+                @endif
+            </div>
         </div>
         <div class="actions">
             <a href="{{ route('moulding-runs.index') }}" class="btn">Back to runs</a>
@@ -358,6 +363,9 @@
     </aside>
     </div>
     <style>
+        .run-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin-top: 8px; font-size: 14px; color: var(--muted); }
+        .run-meta span { display: inline-flex; align-items: center; gap: 7px; }
+        .run-meta-date { padding: 6px 12px; border-radius: 6px; background: #e8eef5; color: #1f3a5a; font-weight: 600; }
         .run-kpis { display: flex; align-items: stretch; flex-wrap: wrap; gap: 0; margin-bottom: 16px; padding: 12px 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 1px 2px rgba(15, 23, 42, .04); }
         .run-kpi { padding: 0 18px; border-left: 1px solid var(--border); }
         .run-kpi:first-child { border-left: 0; }
