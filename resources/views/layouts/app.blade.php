@@ -215,7 +215,20 @@
                         rows.push({ el: el, pick: onPick }); list.appendChild(el);
                     }
                     function span(cls, text) { var s = document.createElement('span'); s.className = cls; s.textContent = text; return s; }
+                    function menuMatches(q) {
+                        if (type) return [];
+                        var words = q.toLowerCase().split(/\s+/), seen = {}, found = [];
+                        document.querySelectorAll('#main-sidebar a.nav-link[href]').forEach(function (a) {
+                            var label = (a.textContent || '').trim();
+                            var hay = label.toLowerCase();
+                            if (!label || seen[a.href] || a.getAttribute('href') === '#' || !words.every(function (w) { return hay.indexOf(w) !== -1; })) return;
+                            seen[a.href] = true; found.push({ code: label, name: '', label: 'Menu', url: a.href });
+                        });
+                        return found.slice(0, 6);
+                    }
                     function render(data) {
+                        var menu = menuMatches(i.value.trim());
+                        data = { offer: data.offer, results: menu.concat(data.results || []) };
                         list.innerHTML = ''; rows = []; active = -1; offer = data.offer;
                         if (offer) {
                             row([span('scan-row-main', 'Search ' + offer.label.toLowerCase() + 's only'), span('scan-row-kind', 'Tab')], { run: pickOffer });
@@ -235,7 +248,7 @@
                         if (request) request.abort();
                         request = new AbortController();
                         fetch(box.dataset.suggest + '?' + new URLSearchParams({ q: q, type: type || '' }), { headers: { Accept: 'application/json' }, signal: request.signal })
-                            .then(function (r) { return r.ok ? r.json() : null; }).then(function (d) { if (d) render(d); }).catch(function () {});
+                            .then(function (r) { return r.ok ? r.json() : { offer: null, results: [] }; }).then(function (d) { render(d); }).catch(function (e) { if (e.name !== 'AbortError') render({ offer: null, results: [] }); });
                     }
                     i.addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(fetchNow, 150); });
                     i.addEventListener('focus', function () { if (rows.length) open(true); });
