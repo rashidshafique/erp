@@ -40,7 +40,7 @@
         <td>{{ $i->sequence }}</td>
         <td>{{ $i->productionOrder?->customerLabel() ?? '—' }}</td>
         <td>@if($i->productionOrder){{ $i->productionOrder->production_order_number }}@if($i->order_link === 'AUTO') <span class="status" title="Found by the system: the open order that needs this pattern">auto-linked</span>@elseif($i->order_link === 'STOCK') <span class="status">stock order</span>@endif
-            <div class="muted small">{{ $i->productionOrder->product?->code }} · {{ $i->productionOrder->order_type }}</div>
+            <x-product-cell :product="$i->productionOrder->product" /><div class="muted small">{{ $i->productionOrder->order_type }}</div>
             @else<span class="muted">No order yet</span><div class="muted small">@if($i->status === 'PLANNED')links to an open order, or a stock order is raised when the run starts @endif</div>
             @if($editable && $i->status === 'PLANNED')<form method="POST" action="{{ route('work-lists.items.link', [$list, $i]) }}">@csrf<button class="btn btn-small">Find open order</button></form>@endif @endif</td>
         <td>@include('work-lists._pattern-cell', ['revision' => $i->patternRevision])</td>

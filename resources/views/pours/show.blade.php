@@ -141,10 +141,7 @@
                         <td>
                             {{ $assignment->productionOrder?->production_order_number ?? '—' }}
                             @if($assignment->productionOrder?->product)
-                                <div class="muted small">
-                                    {{ $assignment->productionOrder->product->code }}
-                                    — {{ $assignment->productionOrder->product->name }}
-                                </div>
+                                <x-product-cell :product="$assignment->productionOrder->product" />
                             @endif
                         </td>
                         <td>{{ \App\Support\Formats::number((int) $assignment->castings_poured_qty) }}</td>
