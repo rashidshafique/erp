@@ -2,7 +2,7 @@
 @section('title', $inspection->inspection_number)
 @section('content')
 @php $open = $inspection->status === 'IN_PROGRESS'; @endphp
-<div class="page-heading"><div><h1>{{ $inspection->inspection_number }}</h1><p>{{ $inspection->inspection_type }} · lot <a href="{{ route('lots.show', $inspection->lot) }}">{{ $inspection->lot->lot_number }}</a> · {{ $inspection->quantity_inspected }} piece(s) · <span class="status">{{ $inspection->status }}</span></p></div></div>
+<div class="page-heading"><div><h1>{{ $inspection->inspection_number }}</h1><p>{{ $inspection->inspection_type }} · lot <a href="{{ route('lots.show', $inspection->lot) }}">{{ $inspection->lot->label }}</a> · {{ $inspection->quantity_inspected }} piece(s) · <span class="status">{{ $inspection->status }}</span></p></div></div>
 @if(session("success"))<div class="alert alert-success">{{ session("success") }}</div>@endif
 @if(session("warning"))<div class="alert alert-warning">{{ session("warning") }}</div>@endif
 <div class="tab-marker" data-tab-start="Results"></div>

@@ -1,8 +1,8 @@
 @extends('layouts.app')
-@section('title', 'Certificate '.$lot->lot_number)
+@section('title', 'Certificate '.$lot->label)
 @push('styles')<style>@media print{.sidebar,.page-heading .actions,.no-print{display:none!important}}</style>@endpush
 @section('content')
-<div class="page-heading"><div><h1>Material and inspection certificate</h1><p>Lot {{ $lot->lot_number }}</p></div><div class="actions no-print"><button class="btn btn-primary" onclick="window.print()">Print</button></div></div>
+<div class="page-heading"><div><h1>Material and inspection certificate</h1><p>Lot {{ $lot->label }}</p></div><div class="actions no-print"><button class="btn btn-primary" onclick="window.print()">Print</button></div></div>
 @if(!$readiness['ok'])<div class="alert alert-error"><strong>DRAFT — not cleared for release.</strong> @foreach($readiness['reasons'] as $r)<div>{{ $r }}</div>@endforeach</div>@endif
 @php $cust = $lot->productionOrder?->salesOrderLine?->salesOrder?->customer; @endphp
 <div class="panel"><div class="panel-header"><h2>Casting</h2></div><div class="panel-body" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">

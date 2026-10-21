@@ -27,7 +27,7 @@
                         <tbody>
                         @foreach ($o['lots'] as $x)
                             <tr>
-                                <td><strong>{{ $x['lot']->lot_number }}</strong> ({{ $x['lot']->status }})</td>
+                                <td><strong>{{ $x['lot']->label }}</strong> ({{ $x['lot']->status }})</td>
                                 <td>@if ($x['heat'])<a href="{{ route('heats.show', $x['heat']) }}">{{ $x['heat']->heat_number }}</a>@else — @endif</td>
                                 <td>{{ $x['heat']?->ironGrade?->code ?? '—' }}</td>
                                 <td>{{ $x['lot']->quantity_good ?? '—' }} / {{ $x['lot']->quantity_poured ?? '—' }}</td>

@@ -79,6 +79,7 @@ class LotFactory
                 $net = (float) $group->sum('net');
                 $gross = $group->contains(fn ($e) => $e['gross'] !== null) ? round((float) $group->sum('gross'), 3) : null;
                 $lot = CastingLot::create([
+                    'code' => CastingLot::nextCode($pour->completed_at ?? now()),
                     'lot_number' => 'LOT-'.$pour->pour_number.'-'.str_pad((string) $seq, 2, '0', STR_PAD_LEFT),
                     'pour_mould_assembly_id' => $group[0]['row']->id,
                     'production_order_id' => $order->id,

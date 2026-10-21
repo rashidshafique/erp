@@ -21,10 +21,10 @@
 <input name="reason" placeholder="Reason (needed to hold)" maxlength="500">
 <label id="all-matching-wrap" hidden><input type="checkbox" name="all_matching" value="1"> All {{ $lots->total() }} lot(s) matching this filter</label>
 <button class="btn" type="submit" onclick="return confirm('Change the status of the selected lots?')">Apply to selected</button></div>
-<div class="table-wrap"><table><thead><tr><th><input type="checkbox" id="select-all" aria-label="Select all lots on this page"></th><th>Lot</th><th>Product</th><th>Heat</th><th>Order</th><th>Poured</th><th>Good</th><th>Rejected</th><th>Status</th></tr></thead><tbody>
+<div class="table-wrap"><table><thead><tr><th><input type="checkbox" id="select-all" aria-label="Select all lots on this page"></th><th>Lot</th><th>Product</th><th>Heat</th><th>Order</th><th>Poured</th><th>Good</th><th>Rejected</th><th>Status</th><th>Stages</th></tr></thead><tbody>
 @forelse($lots as $l)
-<tr><td><input type="checkbox" name="lots[]" value="{{ $l->id }}" class="lot-box" aria-label="Select {{ $l->lot_number }}"></td><td><a href="{{ route('lots.show', $l) }}">{{ $l->lot_number }}</a></td><td>{{ $l->product?->code }}</td><td>{{ $l->pourMouldAssembly?->pour?->heat?->heat_number ?? '—' }}</td><td>{{ $l->productionOrder?->production_order_number ?? '—' }}</td><td>{{ $l->quantity_poured }}</td><td>{{ $l->quantity_good }}</td><td>{{ $l->quantity_rejected }}</td><td><span class="status">{{ $l->status }}</span></td></tr>
-@empty<tr><td colspan="9" class="muted">No lots yet. Lots are created when a pour with assigned moulds is completed.</td></tr>@endforelse
+<tr><td><input type="checkbox" name="lots[]" value="{{ $l->id }}" class="lot-box" aria-label="Select {{ $l->label }}"></td><td><a href="{{ route('lots.show', $l) }}">{{ $l->label }}</a></td><td>{{ $l->product?->code }}</td><td>{{ $l->pourMouldAssembly?->pour?->heat?->heat_number ?? '—' }}</td><td>{{ $l->productionOrder?->production_order_number ?? '—' }}</td><td>{{ $l->quantity_poured }}</td><td>{{ $l->quantity_good }}</td><td>{{ $l->quantity_rejected }}</td><td><span class="status">{{ $l->status }}</span></td><td class="muted small" style="min-width:200px;white-space:normal">{{ $l->stages_summary }}</td></tr>
+@empty<tr><td colspan="10" class="muted">No lots yet. Lots are created when a pour with assigned moulds is completed.</td></tr>@endforelse
 </tbody></table></div></form>
 <script>
 document.getElementById('select-all')?.addEventListener('change', e => {

@@ -111,12 +111,14 @@ class ShopFloorFlowTest extends TestCase
 
         $this->assertSame(5, CastingLot::count());
         $lot = CastingLot::orderBy('lot_number')->first();
+        $this->assertMatchesRegularExpression('/^\d{6}-\d{2}$/', $lot->code);
+        $this->assertSame(5, CastingLot::distinct('code')->count('code'));
         $this->assertSame(2, $lot->quantity_poured);
         $this->assertSame('IN_PRODUCTION', $lot->status);
         $this->assertSame('IN_PROGRESS', $w['po']->fresh()->status);
-        $this->get(route('lots.index'))->assertOk()->assertSee($lot->lot_number);
+        $this->get(route('lots.index'))->assertOk()->assertSee($lot->label);
         $this->get(route('lots.show', $lot))->assertOk()->assertSee('Dispatch readiness')->assertSee('Final inspection');
-        $this->get(route('lots.queue'))->assertOk()->assertSee('Waiting for shakeout')->assertSee($lot->lot_number);
+        $this->get(route('lots.queue'))->assertOk()->assertSee('Waiting for shakeout')->assertSee($lot->label);
 
         // Shop-floor stage with a rejection needs a reason, and cannot exceed pieces
         $shakeout = ProductionStageDefinition::where('code', 'SHAKEOUT')->firstOrFail();
@@ -167,7 +169,7 @@ class ShopFloorFlowTest extends TestCase
         $this->post(route('heats.tests.store', [$w['heat'], 'MECHANICAL']), ['sample_reference' => 'Y1', 'values' => ['tensile_mpa' => '520']])->assertSessionHasNoErrors();
 
         // Pack: only the one good piece
-        $this->get(route('packing.create'))->assertOk()->assertSee($lot->lot_number);
+        $this->get(route('packing.create'))->assertOk()->assertSee($lot->label);
         $this->post(route('packing.store'), ['qty' => [$lot->id => 2]])->assertSessionHasErrors('packing');
         $this->post(route('packing.store'), ['qty' => [$lot->id => 1], 'packed_by' => 'Zahid', 'storage_location' => 'Rack B2'])->assertSessionHasNoErrors();
         $this->get(route('finished-goods.index'))->assertOk()->assertSee('Rack B2')->assertSee('Acme Pumps');
@@ -179,7 +181,7 @@ class ShopFloorFlowTest extends TestCase
         Pattern::where('code', 'PAT-1')->update(['owner_type' => 'PAYING_OFF', 'owner_customer_id' => $w['customer']->id, 'amortise_qty' => 1]);
 
         // Dispatch: wrong customer refused, right customer accepted
-        $this->get(route('dispatches.create'))->assertOk()->assertSee($lot->lot_number);
+        $this->get(route('dispatches.create'))->assertOk()->assertSee($lot->label);
         $item = PackingRecordItem::firstOrFail();
         $this->post(route('dispatches.store'), ['customer_id' => $w['other']->id, 'qty' => [$item->id => 1]])->assertSessionHasErrors('dispatch');
         $this->assertSame(0, Dispatch::count());

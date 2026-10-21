@@ -1,7 +1,7 @@
 @extends('layouts.app')
-@section('title', $lot->lot_number)
+@section('title', $lot->label)
 @section('content')
-<div class="page-heading"><div><h1>{{ $lot->lot_number }}</h1><p>{{ $lot->product?->code }} — {{ $lot->product?->name }} · <span class="status">{{ $lot->status }}</span></p></div>
+<div class="page-heading"><div><h1>{{ $lot->label }}</h1><p>{{ $lot->product?->code }} — {{ $lot->product?->name }} · <span class="status">{{ $lot->status }}</span></p></div>
 <div class="actions"><a class="btn" href="{{ route('lots.certificate', $lot) }}">Certificate</a>
 <a class="btn btn-primary" href="{{ route('lots.inspections.create', $lot) }}">+ Inspection</a></div></div>
 @if(session("success"))<div class="alert alert-success">{{ session("success") }}</div>@endif

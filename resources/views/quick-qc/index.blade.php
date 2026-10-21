@@ -12,15 +12,15 @@
 <div class="panel"><div class="table-wrap"><table><thead><tr><th>Product</th><th>Lots</th><th>To check</th><th>Accepted</th><th>Rework</th><th>Rejected</th><th>Rejected by defect</th></tr></thead><tbody>
 @foreach($products as $revisionId => $row)
 <tr>
-<td>{{ $row['product']?->code }} {{ $row['product']?->name }}<div class="muted">Rev {{ $row['revision']?->revision }}</div></td>
-<td>{{ $row['lots']->pluck('lot_number')->implode(', ') }}</td>
+<td style="min-width:180px;white-space:normal">{{ $row['product']?->code }} {{ $row['product']?->name }}<div class="muted">Rev {{ $row['revision']?->revision }}</div></td>
+<td style="width:220px;max-width:220px;white-space:normal;word-break:break-word;line-height:1.5">@foreach($row['lots'] as $lot)<a href="{{ route('lots.show', $lot) }}">{{ $lot->label }}</a>@if(! $loop->last), @endif @endforeach</td>
 <td><strong>{{ $row['to_check'] }}</strong></td>
 @if($row['has_plan'])
 <td colspan="4" class="muted">This product has an approved inspection plan. Use <a href="{{ route('lots.show', $row['lots']->first()) }}">the lot</a> to start a full inspection.</td>
 @else
-<td><input type="number" min="0" max="{{ $row['to_check'] }}" name="rows[{{ $revisionId }}][accepted]" value="{{ old("rows.$revisionId.accepted") }}" style="width:90px"></td>
-<td><input type="number" min="0" max="{{ $row['to_check'] }}" name="rows[{{ $revisionId }}][rework]" value="{{ old("rows.$revisionId.rework") }}" style="width:90px"></td>
-<td><input type="number" min="0" max="{{ $row['to_check'] }}" name="rows[{{ $revisionId }}][rejected]" value="{{ old("rows.$revisionId.rejected") }}" style="width:90px"></td>
+<td><input type="number" min="0" max="{{ $row['to_check'] }}" name="rows[{{ $revisionId }}][accepted]" value="{{ old("rows.$revisionId.accepted") }}" style="width:80px"></td>
+<td><input type="number" min="0" max="{{ $row['to_check'] }}" name="rows[{{ $revisionId }}][rework]" value="{{ old("rows.$revisionId.rework") }}" style="width:80px"></td>
+<td><input type="number" min="0" max="{{ $row['to_check'] }}" name="rows[{{ $revisionId }}][rejected]" value="{{ old("rows.$revisionId.rejected") }}" style="width:80px"></td>
 <td><details><summary class="muted">Defects (optional)</summary>
 @foreach($defects as $defect)<label style="display:flex;gap:8px;align-items:center;margin:4px 0"><input type="number" min="0" name="rows[{{ $revisionId }}][defects][{{ $defect->id }}]" value="{{ old("rows.$revisionId.defects.$defect->id") }}" style="width:70px"><span>{{ $defect->name }}</span></label>@endforeach
 </details></td>

@@ -16,9 +16,9 @@ class LotController extends Controller
 {
     public function index(Request $request): View
     {
-        $lots = CastingLot::with(['product', 'productionOrder', 'pourMouldAssembly.pour.heat'])
+        $lots = CastingLot::with(['product', 'productionOrder', 'pourMouldAssembly.pour.heat', 'stageEvents.stage'])
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->query('status')))
-            ->when($request->filled('search'), fn ($q) => $q->where('lot_number', 'ilike', '%'.$request->query('search').'%'))
+            ->when($request->filled('search'), fn ($q) => $q->where(fn ($w) => $w->where('code', 'ilike', '%'.$request->query('search').'%')->orWhere('lot_number', 'ilike', '%'.$request->query('search').'%')))
             ->orderByDesc('created_at')->paginate(25)->withQueryString();
 
         $firstIronHeld = CastingLot::where('status', 'ON_HOLD')->get()->filter(fn (CastingLot $lot) => $this->isFirstIronHold($lot))->count();
@@ -99,7 +99,7 @@ class LotController extends Controller
         ]);
         $lots = $request->boolean('all_matching')
             ? CastingLot::query()->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status')))
-                ->when($request->filled('search'), fn ($q) => $q->where('lot_number', 'ilike', '%'.$request->input('search').'%'))->get()
+                ->when($request->filled('search'), fn ($q) => $q->where(fn ($w) => $w->where('code', 'ilike', '%'.$request->input('search').'%')->orWhere('lot_number', 'ilike', '%'.$request->input('search').'%')))->get()
             : CastingLot::whereIn('id', $d['lots'])->get();
 
         return $this->applyBulk($lots, $d['action'], $d['reason'] ?? '');

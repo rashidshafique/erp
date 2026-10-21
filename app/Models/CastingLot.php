@@ -14,6 +14,7 @@ class CastingLot extends Model
 
     protected $fillable = [
         'lot_number',
+        'code',
         'pour_mould_assembly_id',
         'production_order_id',
         'product_id',
@@ -40,6 +41,37 @@ class CastingLot extends Model
             'created_from_pour_at' => 'datetime',
             'closed_at' => 'datetime',
         ];
+    }
+
+    /** Short display name: the pour-date code (YYMMDD-NN); older rows without one fall back to the stored lot number. */
+    public function getLabelAttribute(): string
+    {
+        return $this->code ?: (string) $this->lot_number;
+    }
+
+    /** The stages the lot passed through, in process order, with rejected pieces where there were any. Needs stageEvents.stage loaded to avoid extra queries. */
+    public function getStagesSummaryAttribute(): string
+    {
+        $stages = $this->stageEvents
+            ->filter(fn ($event) => $event->stage)
+            ->groupBy('stage_definition_id')
+            ->sortBy(fn ($events) => $events->first()->stage->sequence)
+            ->map(function ($events) {
+                $rejected = (int) $events->sum('quantity_rejected');
+
+                return $events->first()->stage->name.($rejected > 0 ? " ({$rejected} rej)" : '');
+            });
+
+        return $stages->isEmpty() ? '—' : $stages->implode(' → ');
+    }
+
+    /** Next code for a pour date: YYMMDD plus the day's running number. */
+    public static function nextCode(\DateTimeInterface $pouredAt): string
+    {
+        $day = $pouredAt->format('ymd');
+        $serial = static::where('code', 'like', $day.'-%')->count() + 1;
+
+        return $day.'-'.str_pad((string) $serial, 2, '0', STR_PAD_LEFT);
     }
 
     public function pourMouldAssembly(): BelongsTo

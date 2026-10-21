@@ -84,7 +84,7 @@
                 <tbody>
                 @foreach ($lots as $lot)
                     <tr>
-                        <td><a href="{{ route('lots.show', $lot) }}">{{ $lot->lot_number }}</a></td>
+                        <td><a href="{{ route('lots.show', $lot) }}">{{ $lot->label }}</a></td>
                         <td>@if ($lot->pourMouldAssembly?->pour)<a href="{{ route('pours.show', $lot->pourMouldAssembly->pour) }}">{{ $lot->pourMouldAssembly->pour->pour_number }}</a>@else — @endif</td>
                         <td>{{ $f($lot->quantity_poured) }}</td>
                         <td>{{ $f($lot->quantity_good) }}</td>

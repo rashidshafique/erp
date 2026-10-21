@@ -13,7 +13,7 @@
 </div></div>
 @endif
 <div class="panel"><div class="panel-body"><p>{{ $ncr->description }}</p>
-<p class="muted small">Lot <a href="{{ route('lots.show', $ncr->lot) }}">{{ $ncr->lot?->lot_number }}</a> · {{ $ncr->quantity_affected }} piece(s) affected @if($ncr->defect) · defect: {{ $ncr->defect->name }} @endif</p></div></div>
+<p class="muted small">Lot <a href="{{ route('lots.show', $ncr->lot) }}">{{ $ncr->lot?->label }}</a> · {{ $ncr->quantity_affected }} piece(s) affected @if($ncr->defect) · defect: {{ $ncr->defect->name }} @endif</p></div></div>
 <div class="panel"><div class="panel-header"><h2>Investigation and disposition</h2></div><div class="panel-body">
 <form method="POST" action="{{ route('ncrs.update', $ncr) }}" class="form-grid">@csrf @method('PUT')
 <label>Containment<textarea name="containment_action" @disabled($closed)>{{ old('containment_action', $ncr->containment_action) }}</textarea></label>

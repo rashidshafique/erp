@@ -153,7 +153,7 @@
                                 ? \App\Support\Formats::number((float) $assignment->poured_weight_kg, 3) . ' kg'
                                 : '—' }}
                         </td>
-                        <td>@foreach ($assignment->castingLots as $lot)<a href="{{ route('lots.show', $lot) }}">{{ $lot->lot_number }}</a><div class="muted small">{{ $lot->product?->code }} × {{ $lot->quantity_poured }}</div>@endforeach @if ($assignment->castingLots->isEmpty())—@endif</td>
+                        <td>@foreach ($assignment->castingLots as $lot)<a href="{{ route('lots.show', $lot) }}">{{ $lot->label }}</a><div class="muted small">{{ $lot->product?->code }} × {{ $lot->quantity_poured }}</div>@endforeach @if ($assignment->castingLots->isEmpty())—@endif</td>
                         <td><form method="POST" action="{{ route('pours.assemblies.cover', [$pour, $assignment]) }}" style="display:flex;gap:4px;align-items:center">@csrf @method('PUT')
                             <input name="cover_reference" value="{{ $assignment->cover_reference }}" maxlength="40" placeholder="cover" style="width:80px;min-height:24px;padding:1px 6px;font-size:12px" aria-label="Cover used on {{ $assignment->mouldAssembly?->assembly_number }}">
                             <input type="number" name="weights_count" value="{{ $assignment->weights_count }}" min="0" max="100" placeholder="wts" style="width:56px;min-height:24px;padding:1px 6px;font-size:12px" aria-label="Weights on {{ $assignment->mouldAssembly?->assembly_number }}">

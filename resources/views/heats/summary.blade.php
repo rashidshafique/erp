@@ -44,7 +44,7 @@
             @if ($pour->gate_note)<div class="small muted">{{ $pour->gate_note }}</div>@endif
             @if ($pour->containment_note)<div class="small" style="color:var(--danger)">Containment: {{ $pour->containment_note }}</div>@endif
             <ul style="margin:4px 0 0">
-                @foreach ($pour->mouldAssemblies->flatMap->castingLots as $lot)<li class="small">{{ $lot->lot_number }} · {{ $lot->product?->name }} · {{ $lot->quantity_poured }} pcs · {{ $lot->status }}</li>@endforeach
+                @foreach ($pour->mouldAssemblies->flatMap->castingLots as $lot)<li class="small">{{ $lot->label }} · {{ $lot->product?->name }} · {{ $lot->quantity_poured }} pcs · {{ $lot->status }}</li>@endforeach
             </ul>
         </div>
     @empty
