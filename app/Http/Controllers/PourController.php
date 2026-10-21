@@ -109,7 +109,7 @@ class PourController extends Controller
         $candidates = in_array($pour->status, ['PLANNED', 'IN_PROGRESS'], true)
             ? MouldAssembly::with('mouldingRun.productionOrder.product')->whereDoesntHave('pourAssignment')
                 ->whereNotIn('status', ['POURED', 'SCRAPPED', 'CANCELLED'])->whereHas('mouldingRun.productionOrder', fn ($q) => $q->whereIn('status', ['RELEASED', 'IN_PROGRESS']))
-                ->orderBy('assembly_number')->limit(200)->get()
+                ->orderBy('assembly_number')->limit(1000)->get()
             : collect();
 
         $pour->load([

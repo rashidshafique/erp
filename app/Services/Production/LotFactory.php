@@ -8,10 +8,11 @@ use App\Models\PourMouldAssembly;
 use App\Models\ProductionOrder;
 use App\Support\OrderRules;
 use App\Support\PouringRules;
+use App\Support\QualityRules;
 use App\Support\RelatedFiles;
 use Illuminate\Support\Facades\DB;
 
-/** Creates the casting lots of a completed pour: one lot per product revision in each mould assembly. */
+/** Creates the casting lots of a completed pour: one per product revision in each mould assembly, or one per product for the whole pour when lots are grouped. */
 class LotFactory
 {
     /** @return array{lots: int, warnings: array<int, string>} */
@@ -37,10 +38,13 @@ class LotFactory
                 $net[$row->id] = (float) $groups->sum('kg');
             }
             $totalNet = array_sum($net);
-            $seq = (int) CastingLot::whereIn('pour_mould_assembly_id', $rows->pluck('id'))->count();
+            $seq = (int) CastingLot::where('lot_number', 'like', 'LOT-'.$pour->pour_number.'-%')->count();
+            $alreadyMade = DB::table('casting_lot_pour_mould_assembly')->whereIn('pour_mould_assembly_id', $rows->pluck('id'))->pluck('pour_mould_assembly_id')->all();
 
+            // One entry per product revision in each mould, with its order and its share of the weight.
+            $entries = [];
             foreach ($rows as $row) {
-                if ($row->castingLots->isNotEmpty()) {
+                if ($row->castingLots->isNotEmpty() || in_array($row->id, $alreadyMade, true)) {
                     continue;   // already created
                 }
                 $asm = $row->mouldAssembly;
@@ -59,30 +63,45 @@ class LotFactory
 
                         continue;
                     }
-                    $seq++;
-                    $lot = CastingLot::create([
-                        'lot_number' => 'LOT-'.$pour->pour_number.'-'.str_pad((string) $seq, 2, '0', STR_PAD_LEFT),
-                        'pour_mould_assembly_id' => $row->id,
-                        'production_order_id' => $order->id,
-                        'product_id' => $order->product_id,
-                        'product_revision_id' => $order->product_revision_id,
-                        'status' => 'IN_PRODUCTION',
-                        'quantity_poured' => (int) $g->qty,
-                        'quantity_good' => (int) $g->qty,
-                        'quantity_rejected' => 0,
-                        'gross_weight_kg' => $asmWeight !== null && $net[$row->id] > 0 ? round($asmWeight * (float) $g->kg / $net[$row->id], 3) : null,
-                        'net_casting_weight_kg' => $g->kg > 0 ? round((float) $g->kg, 3) : null,
-                        'created_from_pour_at' => $pour->completed_at ?? now(),
-                    ]);
-                    $made++;
-                    if ($pour->is_first_iron && PouringRules::get('hold_first_iron') === 'HOLD') {
-                        $lot->update(['status' => 'ON_HOLD', 'notes' => trim($lot->notes."\n".now()->displayShortDateTime().' hold: first iron of heat '.$pour->heat?->heat_number.', held until QC passes')]);
-                    }
-                    RelatedFiles::pin('casting_lot', $lot->id);   // keeps the drawing versions the lot was made to, when versioning is on
-                    $order->markInProgress();
-                    $touchedOrders[$order->id] = $order;
+                    $entries[] = [
+                        'row' => $row, 'order' => $order, 'qty' => (int) $g->qty, 'net' => (float) $g->kg,
+                        'gross' => $asmWeight !== null && $net[$row->id] > 0 ? round($asmWeight * (float) $g->kg / $net[$row->id], 3) : null,
+                    ];
                 }
                 $asm?->update(['status' => 'POURED']);
+            }
+
+            // Grouped by pour: all the moulds' castings of one product and order make one lot. Otherwise each mould's castings are a lot.
+            $lots = collect($entries)->groupBy(fn ($e) => QualityRules::groupsByPour() ? $e['order']->id : $e['row']->id.'|'.$e['order']->id);
+            foreach ($lots as $group) {
+                $order = $group[0]['order'];
+                $seq++;
+                $net = (float) $group->sum('net');
+                $gross = $group->contains(fn ($e) => $e['gross'] !== null) ? round((float) $group->sum('gross'), 3) : null;
+                $lot = CastingLot::create([
+                    'lot_number' => 'LOT-'.$pour->pour_number.'-'.str_pad((string) $seq, 2, '0', STR_PAD_LEFT),
+                    'pour_mould_assembly_id' => $group[0]['row']->id,
+                    'production_order_id' => $order->id,
+                    'product_id' => $order->product_id,
+                    'product_revision_id' => $order->product_revision_id,
+                    'status' => 'IN_PRODUCTION',
+                    'quantity_poured' => (int) $group->sum('qty'),
+                    'quantity_good' => (int) $group->sum('qty'),
+                    'quantity_rejected' => 0,
+                    'gross_weight_kg' => $gross,
+                    'net_casting_weight_kg' => $net > 0 ? round($net, 3) : null,
+                    'created_from_pour_at' => $pour->completed_at ?? now(),
+                ]);
+                foreach ($group->groupBy(fn ($e) => $e['row']->id) as $rowId => $parts) {
+                    $lot->pourMouldAssemblies()->attach($rowId, ['quantity' => (int) $parts->sum('qty')]);
+                }
+                $made++;
+                if ($pour->is_first_iron && PouringRules::get('hold_first_iron') === 'HOLD') {
+                    $lot->update(['status' => 'ON_HOLD', 'notes' => trim($lot->notes."\n".now()->displayShortDateTime().' hold: first iron of heat '.$pour->heat?->heat_number.', held until QC passes')]);
+                }
+                RelatedFiles::pin('casting_lot', $lot->id);   // keeps the drawing versions the lot was made to, when versioning is on
+                $order->markInProgress();
+                $touchedOrders[$order->id] = $order;
             }
 
             if (OrderRules::completesAtPour()) {

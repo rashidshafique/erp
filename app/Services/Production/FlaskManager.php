@@ -257,9 +257,8 @@ class FlaskManager
         if (FlaskRules::get('release') !== 'SHAKEOUT') {
             return 0;
         }
-        $mould = $lot->pourMouldAssembly?->mouldAssembly;
 
-        return $mould ? $this->releaseMould($mould) : 0;
+        return $lot->mouldAssemblies()->sum(fn (MouldAssembly $mould) => $this->releaseMould($mould));
     }
 
     private function giveBack(Flask $flask, string $referenceType, string $referenceId, string $note): void

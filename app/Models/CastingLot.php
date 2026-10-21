@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CastingLot extends Model
@@ -44,6 +45,23 @@ class CastingLot extends Model
     public function pourMouldAssembly(): BelongsTo
     {
         return $this->belongsTo(PourMouldAssembly::class);
+    }
+
+    /** Every mould of the pour this lot's castings came from; a per-mould lot has one, a grouped lot several. */
+    public function pourMouldAssemblies(): BelongsToMany
+    {
+        return $this->belongsToMany(PourMouldAssembly::class, 'casting_lot_pour_mould_assembly')->withPivot('quantity')->withTimestamps();
+    }
+
+    /** The mould assemblies the castings came from, via the moulds linked to the lot (or the one it was made from). */
+    public function mouldAssemblies(): \Illuminate\Support\Collection
+    {
+        $rows = $this->pourMouldAssemblies()->with('mouldAssembly.mouldingRun')->get();
+        if ($rows->isEmpty() && $this->pourMouldAssembly) {
+            $rows = collect([$this->pourMouldAssembly->loadMissing('mouldAssembly.mouldingRun')]);
+        }
+
+        return $rows->map(fn ($r) => $r->mouldAssembly)->filter()->values();
     }
 
     public function productionOrder(): BelongsTo

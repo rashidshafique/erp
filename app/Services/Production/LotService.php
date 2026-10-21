@@ -111,8 +111,8 @@ class LotService
     {
         $pour = $lot->pourMouldAssembly?->pour;
         $done = $pour?->completed_at;
-        $rev = $lot->pourMouldAssembly?->mouldAssembly?->mouldingRun?->pattern_revision_id;
-        $min = $rev ? DB::table('pattern_revisions')->where('id', $rev)->value('min_cooling_minutes') : null;
+        $revs = $lot->mouldAssemblies()->map(fn ($m) => $m->mouldingRun?->pattern_revision_id)->filter()->unique()->values();
+        $min = $revs->isNotEmpty() ? DB::table('pattern_revisions')->whereIn('id', $revs)->max('min_cooling_minutes') : null;
         if (! $done || $min === null) {
             return null;
         }

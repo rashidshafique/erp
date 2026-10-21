@@ -47,6 +47,6 @@ class LotQueueController extends Controller
             ? PackingRecordItem::with(['lot.product', 'packing'])->get()->filter(fn ($i) => app(ShipmentService::class)->undispatched($i) > 0)->count()
             : 0;
 
-        return view('lots.queue', ['buckets' => $buckets, 'awaitingDispatch' => $awaitingDispatch]);
+        return view('lots.queue', ['stages' => \App\Models\ProductionStageDefinition::where('is_active', true)->where('code', '!=', 'FINAL_INSPECTION')->orderBy('sequence')->get(), 'buckets' => $buckets, 'awaitingDispatch' => $awaitingDispatch]);
     }
 }

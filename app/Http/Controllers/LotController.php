@@ -105,6 +105,61 @@ class LotController extends Controller
         return $this->applyBulk($lots, $d['action'], $d['reason'] ?? '');
     }
 
+    /**
+     * Records the same stage(s) for many lots at once, e.g. fettling and shot blasting together. Every lot passes the chosen stages
+     * in order with all its pieces; rejected pieces are taken from the lots oldest first. A lot that refuses (cooling, order of
+     * stages) is skipped and listed.
+     */
+    public function bulkStage(Request $request, LotService $service): RedirectResponse
+    {
+        $d = $request->validate([
+            'lots' => ['required', 'array'], 'lots.*' => ['uuid', Rule::exists('casting_lots', 'id')],
+            'stages' => ['required', 'array'], 'stages.*' => ['uuid', Rule::exists('production_stage_definitions', 'id')],
+            'rejected' => ['nullable', 'integer', 'min:0'],
+            'rejection_reason' => ['nullable', 'string', 'max:100'],
+            'operator_name' => ['nullable', 'string', 'max:100'],
+            'cooling_override_reason' => ['nullable', 'string', 'max:300'],
+        ]);
+        if ((int) ($d['rejected'] ?? 0) > 0 && blank($d['rejection_reason'] ?? null)) {
+            return back()->withErrors(['rejection_reason' => 'Give a rejection reason when pieces are rejected.'])->withInput();
+        }
+        $stages = ProductionStageDefinition::whereIn('id', $d['stages'])->orderBy('sequence')->get();
+        $lots = CastingLot::whereIn('id', $d['lots'])->orderBy('created_at')->get();
+        $rejectLeft = (int) ($d['rejected'] ?? 0);
+        $done = 0;
+        $skipped = [];
+
+        foreach ($lots as $lot) {
+            $reject = $rejectLeft;
+            $recorded = 0;
+            try {
+                foreach ($stages as $stage) {
+                    $in = $service->pieces($lot->fresh());
+                    if ($in === 0) {
+                        break;   // every piece was rejected: nothing is left to move on
+                    }
+                    $rej = $recorded === 0 ? min($reject, $in) : 0;
+                    $service->recordStage($lot, $stage, [
+                        'quantity_in' => $in, 'quantity_accepted' => $in - $rej, 'quantity_rejected' => $rej, 'rejection_reason' => $rej > 0 ? $d['rejection_reason'] : null,
+                        'operator_name' => $d['operator_name'] ?? null, 'cooling_override_reason' => $d['cooling_override_reason'] ?? null,
+                    ]);
+                    $rejectLeft -= $rej;
+                    $reject -= $rej;
+                    $recorded++;
+                }
+                $done++;
+            } catch (InvalidArgumentException $e) {
+                $skipped[] = "{$lot->lot_number}: ".$e->getMessage();
+            }
+        }
+        if ($rejectLeft > 0) {
+            $skipped[] = "{$rejectLeft} rejected piece(s) could not be placed.";
+        }
+
+        return back()->with('success', "{$done} lot(s) moved through ".$stages->pluck('name')->implode(' and ').'.')
+            ->with($skipped ? ['warning' => count($skipped).' problem(s): '.implode(' ', array_slice($skipped, 0, 3)).(count($skipped) > 3 ? ' ...' : '')] : []);
+    }
+
     /** Release every lot on hold only because it was first iron. Containment and manual holds stay. */
     public function releaseFirstIron(): RedirectResponse
     {

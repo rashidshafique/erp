@@ -4,7 +4,7 @@ namespace App\Support;
 
 use App\Models\AppSetting;
 
-/** How quality records are raised from the quick QC tally, set through the process depth. */
+/** How lots are made and how quality records are raised, set through the process depth. */
 class QualityRules
 {
     /** key => [setting, label, options (value => description), default] */
@@ -15,6 +15,10 @@ class QualityRules
             'OVER_10' => 'When more than 10% of the pieces checked are rejected or sent to rework',
             'NEVER' => 'Never: the defect tally is the record',
         ], 'ANY'],
+        'lot_grouping' => ['quality.lot_grouping', 'Casting lots made when a pour is completed', [
+            'MOULD' => 'One lot per mould and product: full traceability to each mould',
+            'POUR' => 'One lot per pour and product: castings from all moulds of the pour are handled together',
+        ], 'MOULD'],
     ];
 
     public static function get(string $rule): string
@@ -33,6 +37,11 @@ class QualityRules
     {
         [$key, $label] = self::RULES[$rule];
         AppSetting::setValue($key, $value, $label);
+    }
+
+    public static function groupsByPour(): bool
+    {
+        return self::get('lot_grouping') === 'POUR';
     }
 
     /** Whether a tally with this many bad pieces out of the checked total should raise a nonconformance. */
