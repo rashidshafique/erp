@@ -21,7 +21,9 @@ class LotController extends Controller
             ->when($request->filled('search'), fn ($q) => $q->where('lot_number', 'ilike', '%'.$request->query('search').'%'))
             ->orderByDesc('created_at')->paginate(25)->withQueryString();
 
-        return view('lots.index', ['lots' => $lots, 'counts' => CastingLot::selectRaw('status, count(*) c')->groupBy('status')->pluck('c', 'status')]);
+        $firstIronHeld = CastingLot::where('status', 'ON_HOLD')->get()->filter(fn (CastingLot $lot) => $this->isFirstIronHold($lot))->count();
+
+        return view('lots.index', ['firstIronHeld' => $firstIronHeld, 'lots' => $lots, 'counts' => CastingLot::selectRaw('status, count(*) c')->groupBy('status')->pluck('c', 'status')]);
     }
 
     public function show(CastingLot $lot, QualityGates $gates, LotService $service): View
@@ -78,14 +80,83 @@ class LotController extends Controller
 
     public function release(CastingLot $lot): RedirectResponse
     {
+        if (! $this->releaseHold($lot, $message)) {
+            return back()->withErrors(['hold' => $message]);
+        }
+
+        return back()->with('success', 'Lot released from hold.');
+    }
+
+    /** Put the ticked lots on hold or release them, or do it for every lot matching the page's filter. */
+    public function bulk(Request $request): RedirectResponse
+    {
+        $d = $request->validate([
+            'action' => ['required', Rule::in(['release', 'hold'])],
+            'reason' => ['required_if:action,hold', 'nullable', 'string', 'max:500'],
+            'lots' => ['required_without:all_matching', 'array'],
+            'lots.*' => ['uuid', Rule::exists('casting_lots', 'id')],
+            'all_matching' => ['nullable', 'boolean'],
+        ]);
+        $lots = $request->boolean('all_matching')
+            ? CastingLot::query()->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status')))
+                ->when($request->filled('search'), fn ($q) => $q->where('lot_number', 'ilike', '%'.$request->input('search').'%'))->get()
+            : CastingLot::whereIn('id', $d['lots'])->get();
+
+        return $this->applyBulk($lots, $d['action'], $d['reason'] ?? '');
+    }
+
+    /** Release every lot on hold only because it was first iron. Containment and manual holds stay. */
+    public function releaseFirstIron(): RedirectResponse
+    {
+        return $this->applyBulk(CastingLot::where('status', 'ON_HOLD')->get()->filter(fn (CastingLot $lot) => $this->isFirstIronHold($lot)), 'release', '');
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, CastingLot>  $lots
+     */
+    private function applyBulk($lots, string $action, string $reason): RedirectResponse
+    {
+        $done = 0;
+        $skipped = [];
+        foreach ($lots as $lot) {
+            if ($action === 'release') {
+                $ok = $this->releaseHold($lot, $message);
+            } else {
+                $ok = ! in_array($lot->status, ['DISPATCHED', 'CLOSED', 'SCRAPPED', 'ON_HOLD'], true);
+                $message = "{$lot->lot_number} is {$lot->status}.";
+                if ($ok) {
+                    $lot->update(['status' => 'ON_HOLD', 'notes' => trim($lot->notes."\n".now()->displayShortDateTime().' hold: '.$reason)]);
+                }
+            }
+            $ok ? $done++ : $skipped[] = $message;
+        }
+        $text = $done.' lot(s) '.($action === 'release' ? 'released from hold' : 'put on hold').'.';
+
+        return back()->with('success', $text)->with($skipped ? ['warning' => count($skipped).' skipped: '.implode(' ', array_slice($skipped, 0, 3)).(count($skipped) > 3 ? ' ...' : '')] : []);
+    }
+
+    private function releaseHold(CastingLot $lot, ?string &$message = null): bool
+    {
         if ($lot->status !== 'ON_HOLD') {
-            return back()->withErrors(['hold' => 'Only a lot on hold can be released.']);
+            $message = 'Only a lot on hold can be released.';
+
+            return false;
         }
         if (! app(\App\Services\Approvals\ApprovalGate::class)->passes('lot.release_hold', 'CastingLot', (string) $lot->id, $lot->lot_number ?? (string) $lot->id, $msg)) {
-            return back()->withErrors(['hold' => $msg]);
+            $message = $msg;
+
+            return false;
         }
         $lot->update(['status' => 'IN_PRODUCTION', 'notes' => trim($lot->notes."\n".now()->displayShortDateTime().' released from hold')]);
 
-        return back()->with('success', 'Lot released from hold.');
+        return true;
+    }
+
+    /** True when the latest hold written in the lot's notes is the first-iron one. */
+    public function isFirstIronHold(CastingLot $lot): bool
+    {
+        $holds = collect(preg_split('/\R/', (string) $lot->notes))->filter(fn ($line) => str_contains($line, ' hold: '));
+
+        return $holds->isNotEmpty() && str_contains($holds->last(), 'hold: first iron of heat');
     }
 }

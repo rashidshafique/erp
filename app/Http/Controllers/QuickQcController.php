@@ -19,7 +19,7 @@ class QuickQcController extends Controller
             'to_check' => $lots->sum('to_check'), 'has_plan' => $quick->hasApprovedPlan($lots->first()->product_revision_id),
         ]);
 
-        return view('quick-qc.index', ['products' => $products, 'defects' => QualityDefect::where('is_active', true)->orderBy('category')->orderBy('name')->get()]);
+        return view('quick-qc.index', ['onHold' => \App\Models\CastingLot::where('status', 'ON_HOLD')->count(), 'products' => $products, 'defects' => QualityDefect::where('is_active', true)->orderBy('category')->orderBy('name')->get()]);
     }
 
     public function store(Request $request, QuickInspection $quick): RedirectResponse

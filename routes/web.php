@@ -369,6 +369,8 @@ Route::post('/quick-qc', [\App\Http\Controllers\QuickQcController::class, 'store
 Route::prefix('lots')->name('lots.')->controller(LotController::class)->group(function () {
     Route::get('/', 'index')->name('index');
     Route::get('/queue', [LotQueueController::class, 'queue'])->name('queue');
+    Route::post('/bulk', 'bulk')->name('bulk');
+    Route::post('/release-first-iron', 'releaseFirstIron')->name('release-first-iron');
     Route::get('/{lot}', 'show')->name('show');
     Route::post('/{lot}/stages', 'storeStage')->name('stages.store');
     Route::post('/{lot}/hold', 'hold')->name('hold');
