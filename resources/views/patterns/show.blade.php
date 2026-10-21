@@ -11,6 +11,8 @@
         <p><span class="code">{{ $pattern->code }}</span><span class="dot-sep">·</span>{{ $typeLabel }}<span class="dot-sep">·</span><span class="status {{ $pattern->status === 'ACTIVE' ? 'status-completed' : 'status-cancelled' }}">{{ $pattern->status }}</span><span class="dot-sep">·</span><span title="Owner">{{ $pattern->owner_type === 'FOUNDRY' ? 'Foundry-owned' : 'Property of '.$pattern->ownerLabel() }}</span></p>
     </div>
     <div class="actions">
+        @if ($previousPattern)<a class="btn" href="{{ route('patterns.show', array_filter(['pattern' => $previousPattern, 'link' => request('link')])) }}" title="Previous: {{ $previousPattern->code }} — {{ $previousPattern->name }}" aria-label="Previous pattern, {{ $previousPattern->code }}">&larr;</a>@else<span class="btn" aria-disabled="true" style="opacity:.4;cursor:default">&larr;</span>@endif
+        @if ($nextPattern)<a class="btn" href="{{ route('patterns.show', array_filter(['pattern' => $nextPattern, 'link' => request('link')])) }}" title="Next: {{ $nextPattern->code }} — {{ $nextPattern->name }}" aria-label="Next pattern, {{ $nextPattern->code }}">&rarr;</a>@else<span class="btn" aria-disabled="true" style="opacity:.4;cursor:default">&rarr;</span>@endif
         <a class="btn" href="{{ route('patterns.index') }}">All patterns</a>
         @if ($pattern->trashed())
             <form method="POST" action="{{ route('patterns.restore', $pattern) }}" style="display:inline">@csrf<button class="btn btn-primary" type="submit">Restore pattern</button></form>

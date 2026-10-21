@@ -130,4 +130,14 @@ class PatternEditTest extends TestCase
             ->assertSee('Rashid');
         $this->get(route('patterns.show', $pattern))->assertOk()->assertSee('Change history');
     }
+
+    public function test_pattern_page_links_to_the_previous_and_next_pattern_by_code(): void
+    {
+        $a = Pattern::create(['code' => 'P-1', 'name' => 'First', 'pattern_type' => 'MATCHPLATE', 'status' => 'ACTIVE']);
+        $b = Pattern::create(['code' => 'P-2', 'name' => 'Second', 'pattern_type' => 'MATCHPLATE', 'status' => 'ACTIVE']);
+        $c = Pattern::create(['code' => 'P-3', 'name' => 'Third', 'pattern_type' => 'MATCHPLATE', 'status' => 'ACTIVE']);
+
+        $this->get(route('patterns.show', $b))->assertOk()->assertSee(route('patterns.show', $a), false)->assertSee(route('patterns.show', $c), false);
+        $this->get(route('patterns.show', $a))->assertOk()->assertDontSee('Previous pattern', false)->assertSee(route('patterns.show', $b), false);
+    }
 }

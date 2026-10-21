@@ -29,12 +29,12 @@
             <thead><tr><th>Taken</th><th>Heat</th><th>Grade</th><th>Sample</th><th>Cup</th><th>C</th><th>Si</th><th>TL</th><th>TS</th><th>TEmin</th><th>Recal.</th><th>Peak</th><th>CE</th><th>Result</th></tr></thead>
             <tbody>
             @foreach ($tests as $t)
-                <tr>
+                <tr @if ($t->isVoided()) style="opacity:.55;text-decoration:line-through" @endif>
                     <td><a href="{{ route('thermal.show', $t) }}">{{ $t->taken_at->displayShortDateTime() }}</a></td>
-                    <td>{{ $t->heat?->heat_number }}</td><td>{{ $t->ironGrade?->code ?? '—' }}</td><td>{{ $t->sample_reference ?: '—' }}@if ($t->entry_mode === 'MANUAL') <span class="muted small">(keyed in)</span>@endif</td>
+                    <td><x-heat-light :heat="$t->heat" />{{ $t->heat?->heat_number }}</td><td>{{ $t->ironGrade?->code ?? '—' }}</td><td>{{ $t->sample_reference ?: '—' }}@if ($t->entry_mode === 'MANUAL') <span class="muted small">(keyed in)</span>@endif</td>
                     <td>{{ $t->cup_type === 'TELLURIUM' ? 'White' : 'Grey' }}</td><td>{{ $t->carbon_reported_pct !== null ? rtrim(rtrim((string) $t->carbon_reported_pct, '0'), '.') : '—' }}</td><td>{{ $t->silicon_used !== null ? rtrim(rtrim((string) $t->silicon_used, '0'), '.') : '—' }}</td>
-                    <td>{{ $t->tl_c ?? '—' }}</td><td>{{ $t->solidus_c ?? '—' }}</td><td>{{ $t->te_min_c ?? '—' }}</td><td>{{ $t->recalescence_c ?? '—' }}</td><td>{{ $t->peak_temp_c ?? '—' }}</td><td>{{ $t->ce_from_tl ?? '—' }}</td>
-                    <td><span class="status {{ $t->result === 'PASS' ? 'status-completed' : ($t->result === 'FAIL' ? 'status-cancelled' : 'status-on-hold') }}">{{ str_replace('_', ' ', $t->result) }}</span></td>
+                    <td>{{ $t->tl_c ?? '—' }}</td><td>{{ $t->solidus_c ?? '—' }}</td><td>{{ $t->te_min_c ?? '—' }}</td><td>{{ $t->recalescence_c ?? '—' }}</td><td>{{ $t->peak_temp_c ?? '—' }}</td><td>{{ $t->ce_from_tl ?? '—' }}@if ($t->ce_source) <span class="muted small">({{ $t->ce_source === 'METER' ? 'meter' : 'calc.' }})</span>@endif</td>
+                    <td><span class="status {{ $t->result === 'PASS' ? 'status-completed' : ($t->result === 'FAIL' ? 'status-cancelled' : 'status-on-hold') }}">{{ $t->isVoided() ? 'VOIDED' : str_replace('_', ' ', $t->result) }}</span></td>
                 </tr>
             @endforeach
             </tbody>

@@ -15,6 +15,7 @@ class ChargeBatchItem extends Model
         'material_id',
         'sequence',
         'component_role',
+        'charge_stage',
         'target_qty_kg',
         'target_percent',
         'minimum_qty_kg',

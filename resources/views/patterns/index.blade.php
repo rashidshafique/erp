@@ -28,6 +28,11 @@
         <div class="metric-value">{{ \App\Support\Formats::number($otherPatterns) }}</div>
     </div>
     <div class="metric">
+        <div class="metric-label">Need a product link</div>
+        <div class="metric-value"><a href="{{ route('patterns.index', ['link' => 'unlinked']) }}">{{ \App\Support\Formats::number($unlinkedPatterns) }}</a></div>
+        @if ($unlinkedPatterns > 10)<div class="metric-note">Many? <a href="{{ route('imports.create', ['entity' => 'pattern_cavity']) }}">Import the cavities from a spreadsheet</a></div>@endif
+    </div>
+    <div class="metric">
         <div class="metric-label">Matching results</div>
         <div class="metric-value">{{ \App\Support\Formats::number($patterns->total()) }}</div>
     </div>
@@ -66,6 +71,10 @@
                     @foreach (\App\Models\Pattern::OWNERS as $k => $l)<option value="{{ $k }}" @selected(request('owner') === $k)>{{ $k === 'FOUNDRY' ? 'Foundry' : ($k === 'CUSTOMER' ? 'Any customer' : 'Being paid off') }}</option>@endforeach
                     @foreach ($owningCustomers as $c)<option value="{{ $c->id }}" @selected(request('owner') === $c->id)>{{ $c->name }}</option>@endforeach
                 </select>
+            </div>
+            <div class="field">
+                <label for="link">Product link</label>
+                <select id="link" name="link"><option value="">Any</option><option value="unlinked" @selected(request('link') === 'unlinked')>Needs a product link</option></select>
             </div>
             <button class="btn btn-primary" type="submit">Filter</button>
             <a class="btn" href="{{ route('patterns.index') }}">Reset</a>

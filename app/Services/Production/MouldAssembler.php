@@ -31,7 +31,7 @@ class MouldAssembler
 
     /**
      * A flaskless mould leaves its station already closed, so each accepted mould is assembled as the output is recorded
-     * (one block, no flasks). Does nothing for other runs, or when no cavity map or mould configuration exists to assemble with.
+     * (one block, no flasks). Does nothing for other runs, or when no cavity map exists to assemble with. No mould configuration is needed.
      */
     public function assembleFlaskless(MouldingRun $run): int
     {
@@ -41,7 +41,7 @@ class MouldAssembler
         }
         $missing = (int) $run->accepted_mould_qty - MouldAssembly::where('moulding_run_id', $run->id)->count();
         $configurationId = $run->mould_configuration_id ?? MouldConfiguration::where('is_active', true)->orderBy('name')->value('id');
-        if ($missing < 1 || ! $configurationId || ! $run->pattern_revision_id || ! $this->map->hasMap($run->pattern_revision_id)) {
+        if ($missing < 1 || ! $run->pattern_revision_id || ! $this->map->hasMap($run->pattern_revision_id)) {
             return 0;
         }
         $made = 0;
@@ -56,7 +56,7 @@ class MouldAssembler
     }
 
     /** @return Collection<int, MouldAssembly> */
-    public function assemble(MouldingRun $run, int $count, string $configurationId, int $layers = 2, ?string $assembledBy = null, ?string $checkedBy = null): Collection
+    public function assemble(MouldingRun $run, int $count, ?string $configurationId, int $layers = 2, ?string $assembledBy = null, ?string $checkedBy = null): Collection
     {
         if ($run->status === 'CANCELLED') {
             throw new InvalidArgumentException('A cancelled moulding run cannot be assembled.');

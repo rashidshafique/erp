@@ -126,6 +126,8 @@ class CupolaPouringTest extends TestCase
 
         $this->put(route('heats.timeline', $heat), ['blast_on_at' => $at(30), 'first_tap_at' => $at(60)])->assertSessionHasErrors('first_tap_at');
 
+        $this->put(route('heats.timeline', $heat), ['first_tap_at' => now()->addMinutes(40)->format('Y-m-d\TH:i')])->assertSessionHasErrors('first_tap_at');
+
         $this->put(route('heats.timeline', $this->heat('INDUCTION')), ['blast_on_at' => $at(30)])->assertNotFound();
         $this->get(route('heats.show', $this->heat('INDUCTION')))->assertOk()->assertDontSee('Cupola timeline');
     }

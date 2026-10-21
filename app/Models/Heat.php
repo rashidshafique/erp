@@ -34,6 +34,10 @@ class Heat extends Model
         'blast_on_at',
         'first_tap_at',
         'dropped_at',
+        'hold_reason',
+        'hold_note',
+        'held_at',
+        'charge_rounds',
     ];
 
     protected function casts(): array
@@ -47,6 +51,7 @@ class Heat extends Model
             'blast_on_at' => 'datetime',
             'first_tap_at' => 'datetime',
             'dropped_at' => 'datetime',
+            'held_at' => 'datetime',
             'target_metal_weight_kg' => 'decimal:3',
             'actual_tapped_weight_kg' => 'decimal:3',
             'target_temperature_c' => 'decimal:2',
@@ -56,6 +61,20 @@ class Heat extends Model
     }
 
     /** A cupola melts continuously and taps as it goes, so it is run on a timeline rather than as one batch. */
+    /** How many times the recipe is charged: the figure set on the heat, else the target metal over the recipe's metal weight (cupolas only). */
+    public function chargeRounds(): int
+    {
+        return max(1, (int) ($this->charge_rounds ?: $this->defaultChargeRounds()));
+    }
+
+    public function defaultChargeRounds(): int
+    {
+        $perRound = (float) $this->chargeBatch?->target_metal_weight_kg;
+        $target = (float) $this->target_metal_weight_kg;
+
+        return $this->isCupola() && $perRound > 0 && $target > 0 ? (int) ceil($target / $perRound) : 1;
+    }
+
     public function isCupola(): bool
     {
         return ($this->furnace?->furnace_type ?? $this->process_type) === 'CUPOLA';
@@ -69,6 +88,53 @@ class Heat extends Model
     public function ironGrade(): BelongsTo
     {
         return $this->belongsTo(IronGrade::class);
+    }
+
+    /**
+     * Status light: red while held for a scrap or equipment problem, green while pouring, orange while the heat is in progress.
+     */
+    /** A heat is running from the start of the melt to the end of tapping; induction heats use IN_PROGRESS, cupola heats MELTING and TAPPING. */
+    public const RUNNING_STATUSES = ['IN_PROGRESS', 'MELTING', 'TAPPING'];
+
+    public function light(): ?string
+    {
+        if ($this->hold_reason !== null) {
+            return 'red';
+        }
+        if ($this->pours()->where('status', 'IN_PROGRESS')->exists()) {
+            return 'green';
+        }
+
+        return in_array($this->status, self::RUNNING_STATUSES, true) ? 'orange' : null;
+    }
+
+    /**
+     * Heats that show in the top bar: held, pouring or in progress, red first, then green, then orange.
+     *
+     * @return \Illuminate\Support\Collection<int, Heat>
+     */
+    public static function withLight(): \Illuminate\Support\Collection
+    {
+        $rank = ['red' => 0, 'green' => 1, 'orange' => 2];
+
+        return static::query()
+            ->with(['pours' => fn ($q) => $q->where('status', 'IN_PROGRESS')])
+            ->where(fn ($q) => $q->whereNotNull('hold_reason')->orWhereIn('status', self::RUNNING_STATUSES)
+                ->orWhereHas('pours', fn ($p) => $p->where('status', 'IN_PROGRESS')))
+            ->get()
+            ->filter(fn (Heat $h) => $h->light() !== null)
+            ->sortBy(fn (Heat $h) => $rank[$h->light()])
+            ->values();
+    }
+
+    public function lightLabel(): ?string
+    {
+        return match ($this->light()) {
+            'red' => 'On hold: '.($this->hold_reason === 'SCRAP' ? 'scrap problem' : 'equipment problem'),
+            'green' => 'Pouring',
+            'orange' => 'Heat in progress',
+            default => null,
+        };
     }
 
     public function thermalTests(): HasMany

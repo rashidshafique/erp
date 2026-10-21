@@ -239,3 +239,14 @@ a.pager-item:hover { background: var(--page); color: var(--text); }
 
 .crumb-back { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; margin-right: 6px; border-radius: 6px; color: var(--muted); font-size: 15px; line-height: 1; }
 .crumb-back:hover { background: var(--page); color: var(--text); }
+
+/* Heat status lights in the top bar */
+.topbar-date { display: flex; align-items: center; justify-content: flex-end; gap: 14px; }
+.heat-lights { display: flex; align-items: center; gap: 6px; }
+.heat-chip { display: inline-flex; align-items: center; padding: 3px 9px; border: 1px solid var(--border); border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--text); text-decoration: none; white-space: nowrap; }
+.heat-chip .dot, .heat-chip span[style] { margin-right: 6px; }
+@media (max-width: 768px) { .heat-chip span:not([style]) { display: none; } .heat-chip span[style] { margin-right: 0; } }
+
+/* The top bar stays in place while the page scrolls. */
+.topbar { position: sticky; top: 0; z-index: 30; min-height: 46px !important; }
+@media (max-width: 768px) { .topbar { position: sticky; } }

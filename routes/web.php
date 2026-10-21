@@ -196,6 +196,8 @@ Route::prefix('furnaces')
         Route::get('/{furnace}', 'show')->name('show');
     });
 
+Route::post('/heats/{heat}/charge-rounds', [\App\Http\Controllers\HeatChargeRoundController::class, 'store'])->name('heats.charge-rounds.store');
+Route::put('/heats/{heat}/charge-rounds', [\App\Http\Controllers\HeatChargeRoundController::class, 'update'])->name('heats.charge-rounds.update');
 Route::post(
     '/heats/{heat}/charge-entries',
     [HeatMaterialConsumptionController::class, 'store']
@@ -209,6 +211,8 @@ Route::prefix('heats')
         Route::get('/create', 'create')->name('create');
         Route::post('/', 'store')->name('store');
         Route::get('/{heat}', 'show')->name('show');
+        Route::post('/{heat}/hold', 'hold')->name('hold');
+        Route::post('/{heat}/resume', 'resume')->name('resume');
 
         Route::post('/{heat}/power-readings', 'storePowerReading')
             ->name('power-readings.store');
@@ -295,6 +299,7 @@ Route::prefix('thermal')->name('thermal.')->controller(ThermalTestController::cl
     Route::get('/sample-curve.csv', 'sample')->name('sample');
     Route::post('/calibrate', 'calibrate')->name('calibrate');
     Route::get('/{test}', 'show')->name('show');
+    Route::post('/{test}/void', 'void')->name('void');
 });
 
 Route::prefix('heat-plan')->name('heat-plan.')->controller(HeatPlanController::class)->group(function () {

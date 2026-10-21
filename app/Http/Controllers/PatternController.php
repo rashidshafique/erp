@@ -55,6 +55,7 @@ class PatternController extends Controller
             })
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status'))
             )
+            ->when($request->input('link') === 'unlinked', fn ($q) => $q->unlinked())
             ->when($request->input('revision') === 'baseline', fn ($q) => $q->whereHas('currentRevision', fn ($r) => $r->baselineWithoutDrawing()))
             ->orderBy('code')
             ->paginate(20)
@@ -67,6 +68,7 @@ class PatternController extends Controller
             'otherPatterns' => Pattern::where('status', '!=', 'ACTIVE')->count(),
             'archivedPatterns' => Pattern::onlyTrashed()->count(),
             'archived' => $archived,
+            'unlinkedPatterns' => Pattern::unlinked()->count(),
             'baselineOnly' => Pattern::whereHas('currentRevision', fn ($r) => $r->baselineWithoutDrawing())->count(),
             'owningCustomers' => Customer::withTrashed()->whereIn('id', Pattern::whereNotNull('owner_customer_id')->select('owner_customer_id'))->orderedByName()->get(),
         ]);
@@ -364,7 +366,12 @@ class PatternController extends Controller
 
         $toolLife = $this->toolLife($pattern);
 
-        return view('patterns.show', compact('pattern', 'productRevisions', 'revisionPhotos', 'assembledRevisions', 'owner', 'toolLife'));
+        $scope = fn () => ($pattern->trashed() ? Pattern::onlyTrashed() : Pattern::query())
+            ->when(request('link') === 'unlinked', fn ($q) => $q->unlinked());
+        $previousPattern = $scope()->where('code', '<', $pattern->code)->orderByDesc('code')->first(['id', 'code', 'name']);
+        $nextPattern = $scope()->where('code', '>', $pattern->code)->orderBy('code')->first(['id', 'code', 'name']);
+
+        return view('patterns.show', compact('pattern', 'productRevisions', 'revisionPhotos', 'assembledRevisions', 'owner', 'toolLife', 'previousPattern', 'nextPattern'));
     }
 
     /**
@@ -537,7 +544,7 @@ class PatternController extends Controller
     public function storeRevision(Request $request, Pattern $pattern): RedirectResponse
     {
         $data = $request->validate([
-            'change_description' => ['required', 'string', 'max:2000'],
+            'change_description' => [$pattern->revisions()->exists() ? 'required' : 'nullable', 'string', 'max:2000'],
             'drawing_revision' => ['nullable', 'string', 'max:40'],
             'shrinkage_note' => ['nullable', 'string', 'max:2000'],
             'shrinkage_percent' => ['nullable', 'numeric', 'min:0', 'max:9.999'],
@@ -560,6 +567,7 @@ class PatternController extends Controller
             'photo.mimes' => 'The photo must be a JPG, PNG or WebP picture.',
         ]);
         $data = array_merge($data, $this->validatedLayout($request, partial: true));
+        $data['change_description'] = $data['change_description'] ?? 'Initial revision';
         $previous = $pattern->currentRevision;
         $copyLayout = true;   // a new revision starts with the previous cavity map; change it on the grid
 

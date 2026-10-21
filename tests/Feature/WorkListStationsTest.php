@@ -488,7 +488,6 @@ class WorkListStationsTest extends TestCase
 
     public function test_flaskless_moulds_are_assembled_when_output_is_recorded_and_other_moulds_are_not(): void
     {
-        \App\Models\MouldConfiguration::create(['code' => 'MC-1', 'name' => 'Cfg', 'mould_type' => 'COPE_DRAG', 'nominal_layer_count' => 2]);
         $disa = MouldingStation::create(['code' => 'DISA-1', 'name' => 'Disa', 'station_type' => 'AUTOMATED_LINE', 'status' => 'ACTIVE', 'max_patterns' => 1, 'makes_flaskless' => true]);
         $bench = MouldingStation::create(['code' => 'MAN-1', 'name' => 'Bench', 'station_type' => 'MANUAL', 'status' => 'ACTIVE', 'max_patterns' => 1]);
 

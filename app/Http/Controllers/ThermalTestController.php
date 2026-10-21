@@ -25,7 +25,7 @@ class ThermalTestController extends Controller
     public function index(): View
     {
         return view('thermal.index', [
-            'tests' => ThermalAnalysisTest::with(['heat', 'ironGrade'])->orderByDesc('taken_at')->paginate(20),
+            'tests' => ThermalAnalysisTest::withoutGlobalScope('notVoided')->with(['heat', 'ironGrade'])->orderByDesc('taken_at')->paginate(20),
             'relation' => $this->thermal->relation(),
             'calibration' => ThermalCalibration::orderByDesc('fitted_at')->first(),
         ]);
@@ -33,11 +33,24 @@ class ThermalTestController extends Controller
 
     public function create(Request $request): View
     {
+        $heats = Heat::with(['ironGrade', 'furnace'])->whereNotIn('status', ['CANCELLED', 'CLOSED'])->orderByDesc('created_at')->limit(60)->get();
+
         return view('thermal.create', [
-            'heats' => Heat::with(['ironGrade', 'furnace'])->whereNotIn('status', ['CANCELLED', 'CLOSED'])->orderByDesc('created_at')->limit(60)->get(),
-            'selected' => $request->query('heat_id'),
+            'heats' => $heats,
+            'selected' => $request->query('heat_id') ?? $this->defaultHeat($heats)?->id,
             'gauges' => Gauge::where('status', 'IN_SERVICE')->orderBy('code')->get(),
         ]);
+    }
+
+    /**
+     * The heat in progress, else a heat planned for today.
+     *
+     * @param  \Illuminate\Support\Collection<int, Heat>  $heats
+     */
+    private function defaultHeat($heats): ?Heat
+    {
+        return $heats->firstWhere('status', 'IN_PROGRESS')
+            ?? $heats->first(fn (Heat $h) => $h->status === 'PLANNED' && $h->planned_start_at?->isToday());
     }
 
     public function store(Request $request): RedirectResponse
@@ -49,6 +62,7 @@ class ThermalTestController extends Controller
             'sample_reference' => ['nullable', 'string', 'max:60'],
             'stage' => ['required', 'in:BASE,POST_TREATMENT,PRE_POUR'],
             'taken_by' => ['nullable', 'string', 'max:100'],
+            'sample_point' => ['nullable', Rule::in(array_keys(ThermalAnalysisTest::SAMPLE_POINTS))],
             'inoculant_added_pct' => ['nullable', 'numeric', 'between:0,2'],
             'notes' => ['nullable', 'string', 'max:2000'],
             // Older single-cup form fields, still accepted
@@ -65,15 +79,21 @@ class ThermalTestController extends Controller
             $rules[$prefix.'recalescence_c'] = ['nullable', 'numeric', 'between:0,40'];
         }
         foreach (['white.', 'grey.'] as $prefix) {
+            $rules[$prefix.'taken_at'] = ['nullable', 'date', 'before_or_equal:+10 minutes'];
+            $rules[$prefix.'test_started_at'] = ['nullable', 'date', 'before_or_equal:+10 minutes'];
+            $rules[$prefix.'test_finished_at'] = ['nullable', 'date', 'before_or_equal:+10 minutes', 'after_or_equal:'.$prefix.'test_started_at'];
+            $rules[$prefix.'cup_batch'] = ['nullable', 'string', 'max:60'];
             $rules[$prefix.'carbon'] = ['nullable', 'numeric', 'decimal:0,4', 'between:0,5'];
             $rules[$prefix.'silicon'] = ['nullable', 'numeric', 'decimal:0,4', 'between:0,6'];
+            $rules[$prefix.'ce'] = ['nullable', 'numeric', 'decimal:0,4', 'between:2,6'];
             $rules[$prefix.'curve_text'] = ['nullable', 'string', 'max:400000'];
             $rules[$prefix.'curve_file'] = ['nullable', 'file', 'max:2048', 'mimes:csv,txt'];
         }
         $data = $request->validate($rules);
         $heat = Heat::with('ironGrade')->findOrFail($data['heat_id']);
         $calibrationWarning = app(CalibrationStatus::class)->check(filled($data['gauge_id'] ?? null) ? Gauge::find($data['gauge_id']) : null, 'gauge_id');
-        $shared = array_intersect_key($data, array_flip(['gauge_id', 'sample_reference', 'stage', 'taken_by', 'inoculant_added_pct', 'notes']));
+        $shared = array_intersect_key($data, array_flip(['gauge_id', 'sample_reference', 'stage', 'taken_by', 'sample_point', 'inoculant_added_pct', 'notes']))
+            + ['entered_by_name' => $request->user()?->name];
 
         // One block per cup. The twin-cup form sends white[...] and grey[...]; the older form sends flat fields for one cup.
         $blocks = [];
@@ -83,7 +103,7 @@ class ThermalTestController extends Controller
             if ($request->hasFile("{$key}.curve_file")) {
                 $text = file_get_contents($request->file("{$key}.curve_file")->getRealPath());
             }
-            $filled = collect($vals)->except(['curve_text', 'curve_file'])->filter(fn ($x) => $x !== null && $x !== '')->isNotEmpty() || trim((string) $text) !== '';
+            $filled = collect($vals)->except(['curve_text', 'curve_file', 'taken_at', 'test_started_at', 'test_finished_at', 'cup_batch'])->filter(fn ($x) => $x !== null && $x !== '')->isNotEmpty() || trim((string) $text) !== '';
             if ($filled) {
                 $blocks[] = [$cup, $vals + $shared, $text, $key];
             }
@@ -142,6 +162,16 @@ class ThermalTestController extends Controller
             'test' => $test,
             'advice' => $this->thermal->inoculantAdvice($m, $test->ironGrade, $test->cup_type),
         ]);
+    }
+
+    public function void(Request $request, ThermalAnalysisTest $test): RedirectResponse
+    {
+        abort_if($test->isVoided(), 422, 'This test is already voided.');
+        $data = $request->validate(['void_reason' => ['required', 'string', 'max:500']]);
+        $test->update(['voided_at' => now(), 'void_reason' => $data['void_reason'], 'voided_by_name' => $request->user()?->name]);
+
+        return redirect()->route('thermal.create', ['heat_id' => $test->heat_id])
+            ->with('success', 'Test voided. Enter the corrected reading below; it replaces the voided one.');
     }
 
     public function calibrate(): RedirectResponse

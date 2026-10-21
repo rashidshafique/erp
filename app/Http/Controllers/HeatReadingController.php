@@ -51,16 +51,25 @@ class HeatReadingController extends Controller
 
         $plannedChargeItems = $heat->chargeBatch?->items ?? collect();
 
-        $plannedChargeItems->each(function ($item) use ($heat) {
+        $chargeRounds = $heat->chargeRounds();
+        $plannedChargeItems->each(function ($item) use ($heat, $chargeRounds) {
             $basis = $heat->chargeBatch?->target_total_charge_weight_kg;
-            $item->planned_calculated_qty_kg = $item->target_qty_kg !== null
+            $perRound = $item->target_qty_kg !== null
                 ? (float) $item->target_qty_kg
                 : (
                     $item->target_percent !== null && $basis !== null
                         ? (float) $basis * (float) $item->target_percent / 100
                         : null
                 );
+            $item->per_charge_qty_kg = $perRound;
+            $item->planned_calculated_qty_kg = $perRound !== null && $item->charge_stage !== 'BED' ? $perRound * $chargeRounds : $perRound;
         });
+
+        $roundsDone = $heat->materialConsumptions->whereNotNull('charge_round')->where('charge_round', '>', 0)->pluck('charge_round')->unique()->count();
+        $bedItems = $plannedChargeItems->where('charge_stage', 'BED');
+        $bedDone = $heat->materialConsumptions->where('charge_round', 0)->isNotEmpty();
+        $nextRound = ($bedItems->isNotEmpty() && ! $bedDone) ? 0 : ((int) $heat->materialConsumptions->max('charge_round') + 1);
+        $nextRoundItems = $plannedChargeItems->where('charge_stage', $nextRound === 0 ? 'BED' : 'ROUND')->values();
 
         $activeMaterials = Material::query()
             ->where('status', 'ACTIVE')
@@ -96,6 +105,10 @@ class HeatReadingController extends Controller
             'actualChargeCost',
             'actualChargeCostPerKg',
             'chargeIsPosted',
+            'chargeRounds',
+            'roundsDone',
+            'nextRound',
+            'nextRoundItems',
         ));
     }
 
@@ -310,7 +323,7 @@ class HeatReadingController extends Controller
                 ->selectRaw("COALESCE(MAX(CAST(SPLIT_PART(heat_number, '-', 3) AS INTEGER)), 0) AS max_number")
                 ->value('max_number');
 
-            return Heat::create([
+            $heat = Heat::create([
                 'heat_number' => 'H-'.$date.'-'.str_pad((string) ($lastNumber + 1), 3, '0', STR_PAD_LEFT),
                 'furnace_id' => $furnace->id,
                 'process_type' => $furnace->furnace_type,
@@ -324,11 +337,32 @@ class HeatReadingController extends Controller
                 'operator_name' => $validated['operator_name'],
                 'notes' => $validated['notes'] ?? null,
             ]);
+            $heat->load('furnace', 'chargeBatch');
+            if ($heat->isCupola()) {
+                $heat->update(['charge_rounds' => $heat->defaultChargeRounds()]);
+            }
+
+            return $heat;
         });
 
         return redirect()
             ->route('heats.show', $heat)
             ->with('success', "Heat {$heat->heat_number} created.");
+    }
+
+    public function hold(Request $request, Heat $heat): RedirectResponse
+    {
+        $data = $request->validate(['hold_reason' => ['required', 'in:SCRAP,EQUIPMENT'], 'hold_note' => ['required', 'string', 'max:500']]);
+        $heat->update($data + ['held_at' => now()]);
+
+        return back()->with('success', 'Heat put on hold.');
+    }
+
+    public function resume(Heat $heat): RedirectResponse
+    {
+        $heat->update(['hold_reason' => null, 'hold_note' => null, 'held_at' => null]);
+
+        return back()->with('success', 'Heat taken off hold.');
     }
 
     public function postCharge(Request $request, Heat $heat): RedirectResponse

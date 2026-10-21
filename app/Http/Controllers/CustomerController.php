@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -23,7 +24,7 @@ class CustomerController extends Controller
         return view('customers.create');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse|JsonResponse
     {
         $data = $request->validate([
             'code' => ['required', 'string', 'max:40', 'unique:customers,code'],
@@ -39,7 +40,11 @@ class CustomerController extends Controller
         ]);
         $data['code'] = strtoupper(trim($data['code']));
         $data['active'] = true;
-        Customer::create($data);
+        $customer = Customer::create($data);
+
+        if ($request->wantsJson()) {
+            return response()->json(['id' => $customer->id, 'label' => $customer->code.' — '.$customer->name], 201);
+        }
 
         return redirect()->route('customers.index')->with('success', "Customer {$data['code']} created.");
     }

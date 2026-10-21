@@ -24,6 +24,7 @@ class HeatMaterialConsumption extends Model
         'consumed_at',
         'recorded_by',
         'notes',
+        'charge_round',
     ];
 
     protected function casts(): array

@@ -6,7 +6,7 @@
 @section('content')
 <div class="page-heading">
     <div>
-        <h1>Heat {{ $heat->heat_number }}</h1>
+        <h1><x-heat-light :heat="$heat" />Heat {{ $heat->heat_number }}</h1>
         <p>
             {{ $heat->furnace?->name ?? 'Unknown furnace' }}
             · {{ $heat->furnace?->furnace_type ?? $heat->process_type }}
@@ -17,6 +17,19 @@
         <a class="btn" href="{{ route('heats.index') }}">Back to heats</a>
     </div>
 </div>
+
+@if ($heat->hold_reason)
+    <div class="alert alert-error"><strong>{{ $heat->lightLabel() }}</strong> since {{ $heat->held_at?->displayDateTime() }}: {{ $heat->hold_note }}
+        <form method="POST" action="{{ route('heats.resume', $heat) }}" style="display:inline">@csrf<button class="btn" type="submit">Take off hold</button></form></div>
+@elseif (! in_array($heat->status, ['CLOSED', 'CANCELLED'], true))
+    <details class="panel"><summary class="panel-header" style="cursor:pointer"><h2>Put on hold (scrap or equipment problem)</h2></summary>
+        <form method="POST" action="{{ route('heats.hold', $heat) }}" class="panel-body">@csrf
+            <div class="field"><label for="hold_reason">Problem *</label><select id="hold_reason" name="hold_reason" required><option value="SCRAP">Scrap problem</option><option value="EQUIPMENT">Equipment problem</option></select></div>
+            <div class="field"><label for="hold_note">What is wrong *</label><input id="hold_note" name="hold_note" maxlength="500" required></div>
+            <button class="btn" type="submit">Put on hold</button>
+        </form>
+    </details>
+@endif
 
 @if(session('success'))
     <div class="panel">
@@ -98,7 +111,7 @@
                         @forelse($plannedChargeItems as $item)
                             <tr>
                                 <td>{{ $item->material?->code }} — {{ $item->material?->name }}</td>
-                                <td>{{ $item->component_role }}</td>
+                                <td>{{ $item->component_role }}@if ($item->charge_stage === 'BED') <span class="muted small">(start-up, once)</span>@elseif ($chargeRounds > 1) <span class="muted small">(× {{ $chargeRounds }} charges)</span>@endif</td>
                                 <td>{{ $item->target_percent !== null ? \App\Support\Formats::number((float) $item->target_percent, 4).'%' : '—' }}</td>
                                 <td>
                                     {{ $item->planned_calculated_qty_kg !== null
@@ -200,6 +213,49 @@
     </div>
 </div>
 
+
+@if($heat->chargeBatch && !in_array($heat->status, ['CLOSED', 'CANCELLED'], true) && !$chargeIsPosted && $nextRoundItems->isNotEmpty())
+<div class="panel">
+    <div class="panel-header">
+        <h2>{{ $nextRound === 0 ? 'Start-up (bed) charge' : 'Charge '.$nextRound.($chargeRounds > 1 ? ' of '.$chargeRounds : '') }}</h2>
+        <span class="muted small">{{ $roundsDone }} of {{ $chargeRounds }} charge(s) recorded</span>
+    </div>
+    <div class="panel-body">
+        <p class="muted small">The recipe quantities are filled in. Change a weight if it was different, then record. The oldest accepted lot of each material is used unless you pick another.</p>
+        <form method="POST" action="{{ route('heats.charge-rounds.store', $heat) }}">
+            @csrf
+            <input type="hidden" name="charge_round" value="{{ $nextRound }}">
+            <div class="table-wrap"><table>
+                <thead><tr><th>Material</th><th>Quantity kg</th><th>Lot</th></tr></thead>
+                <tbody>
+                @foreach($nextRoundItems as $i => $item)
+                    @php $lots = $acceptedLots->where('material_id', $item->material_id); @endphp
+                    <tr>
+                        <td>{{ $item->material?->code }} — {{ $item->material?->name }}<input type="hidden" name="lines[{{ $i }}][material_id]" value="{{ $item->material_id }}"></td>
+                        <td><input name="lines[{{ $i }}][actual_qty_kg]" type="number" step="0.001" min="0" style="width:110px" value="{{ old('lines.'.$i.'.actual_qty_kg', $item->per_charge_qty_kg !== null ? round($item->per_charge_qty_kg, 3) : '') }}"></td>
+                        <td><select name="lines[{{ $i }}][material_lot_id]" style="min-width:160px"><option value="">Oldest lot</option>@foreach($lots as $lot)<option value="{{ $lot->id }}">{{ $lot->lot_number }}</option>@endforeach</select></td>
+                    </tr>
+                @endforeach
+                </tbody>
+            </table></div>
+            <div class="form-grid" style="margin-top:10px">
+                <div class="field"><label for="round_by">Recorded by *</label><input id="round_by" name="recorded_by" required maxlength="100" value="{{ old('recorded_by', auth()->user()?->name ?? $heat->operator_name) }}"></div>
+                <div class="field"><label for="round_at">Charged at *</label><input id="round_at" name="consumed_at" type="datetime-local" required value="{{ old('consumed_at', now()->format('Y-m-d\TH:i')) }}"></div>
+            </div>
+            @if($errors->has('lines') || $errors->has('charge_round') || $errors->has('material_lot_id'))<div class="alert alert-error">{{ $errors->first('lines') ?: ($errors->first('charge_round') ?: $errors->first('material_lot_id')) }}</div>@endif
+            <button class="btn btn-primary" type="submit">{{ $nextRound === 0 ? 'Record start-up charge' : 'Record charge '.$nextRound }}</button>
+        </form>
+        @if($heat->isCupola() || $chargeRounds > 1)
+            <form method="POST" action="{{ route('heats.charge-rounds.update', $heat) }}" class="form-inline" style="margin-top:14px">
+                @csrf @method('PUT')
+                <div class="field"><label for="charge_rounds">Planned charges on this heat</label><input id="charge_rounds" name="charge_rounds" type="number" min="1" max="500" value="{{ $chargeRounds }}" style="width:90px"></div>
+                <button class="btn" type="submit">Update</button>
+                <span class="muted small">Worked out from the target metal weight; raise it as the campaign runs on.</span>
+            </form>
+        @endif
+    </div>
+</div>
+@endif
 
 <div class="panel">
     <div class="panel-header">
@@ -330,7 +386,7 @@
             <thead>
                 <tr>
                     <th>#</th><th>Type</th><th>Material</th><th>Lot / reference</th>
-                    <th>Quantity kg</th><th>Cost PKR/kg</th><th>Total cost PKR</th>
+                    <th>Round</th><th>Quantity kg</th><th>Cost PKR/kg</th><th>Total cost PKR</th>
                     <th>Recorded at</th><th>Operator</th>
                 </tr>
             </thead>
@@ -346,6 +402,7 @@
                         <td>{{ str_replace('_', ' ', $entry->consumption_type) }}</td>
                         <td>{{ $entry->material?->code }} — {{ $entry->material?->name }}</td>
                         <td>{{ $entry->materialLot?->lot_number ?? $entry->source_reference ?? '—' }}</td>
+                        <td>{{ $entry->charge_round === null ? '—' : ($entry->charge_round === 0 ? 'Start-up' : $entry->charge_round) }}</td>
                         <td>{{ \App\Support\Formats::number((float) $entry->actual_qty_kg, 3) }}</td>
                         <td>{{ $entryUnitCost !== null ? \App\Support\Formats::number($entryUnitCost, 4) : '—' }}</td>
                         <td>{{ \App\Support\Formats::number((float) $entry->actual_total_cost, 2) }}</td>
@@ -353,7 +410,7 @@
                         <td>{{ $entry->recorded_by }}</td>
                     </tr>
                 @empty
-                    <tr><td colspan="9" class="muted">No actual charge entries recorded yet.</td></tr>
+                    <tr><td colspan="10" class="muted">No actual charge entries recorded yet.</td></tr>
                 @endforelse
             </tbody>
         </table>

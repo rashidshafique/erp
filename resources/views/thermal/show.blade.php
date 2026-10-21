@@ -14,9 +14,30 @@
 
 @section('content')
 <div class="page-heading">
-    <div><h1>Thermal test — heat {{ $test->heat?->heat_number }}</h1><p>{{ $test->ironGrade?->code ?? 'No grade' }} · {{ $test->taken_at->displayDateTime() }} · {{ $test->cup_type === 'TELLURIUM' ? 'white (tellurium)' : 'grey (stable)' }} cup · {{ str_replace('_', ' ', $test->stage) }}@if ($test->gauge) · measured with <a href="{{ route('gauges.show', $test->gauge) }}">{{ $test->gauge->code }}</a>@endif</p></div>
+    <div><h1>Thermal test — <x-heat-light :heat="$test->heat" />heat {{ $test->heat?->heat_number }}</h1><p>{{ $test->ironGrade?->code ?? 'No grade' }} · {{ $test->taken_at->displayDateTime() }} · {{ $test->cup_type === 'TELLURIUM' ? 'white (tellurium)' : 'grey (stable)' }} cup · {{ str_replace('_', ' ', $test->stage) }}@if ($test->gauge) · measured with <a href="{{ route('gauges.show', $test->gauge) }}">{{ $test->gauge->code }}</a>@endif</p></div>
     <div class="actions"><a class="btn" href="{{ route('thermal.index') }}">All tests</a><a class="btn" href="{{ route('thermal.create', ['heat_id' => $test->heat_id]) }}">New test on this heat</a></div>
 </div>
+<p class="muted small" style="margin:0 0 12px">
+    Sample taken {{ $test->taken_at->displayDateTime() }}@if ($test->sample_point) from the {{ strtolower(\App\Models\ThermalAnalysisTest::SAMPLE_POINTS[$test->sample_point] ?? $test->sample_point) }}@endif
+    @if ($test->test_started_at) · started {{ $test->test_started_at->displayDateTime() }}@endif
+    @if ($test->test_finished_at) · finished {{ $test->test_finished_at->displayDateTime() }}@endif
+    @if ($test->testDurationSeconds() !== null) ({{ intdiv($test->testDurationSeconds(), 60) }} min {{ $test->testDurationSeconds() % 60 }} s)@endif
+    · entered {{ $test->created_at->displayDateTime() }}@if ($test->entered_by_name) by {{ $test->entered_by_name }}@endif
+    @if ($test->cup_batch) · cup batch {{ $test->cup_batch }}@endif
+</p>
+@if ($test->isVoided())
+    <div class="alert alert-error"><strong>Voided</strong> {{ $test->voided_at->displayDateTime() }}@if ($test->voided_by_name) by {{ $test->voided_by_name }}@endif: {{ $test->void_reason }}. It no longer counts for gates, certificates or calibration.</div>
+@else
+<div class="panel">
+    <div class="panel-header"><h2>Wrong reading?</h2></div>
+    <div class="panel-body">
+        <form method="POST" action="{{ route('thermal.void', $test) }}" class="form-inline">@csrf
+            <div class="field"><label for="void_reason">Reason for voiding *</label><input id="void_reason" name="void_reason" maxlength="500" required placeholder="e.g. TL keyed in wrongly"></div>
+            <button class="btn" type="submit">Void and enter corrected test</button>
+        </form>
+    </div>
+</div>
+@endif
 @foreach ($test->siblings as $other)
     <div class="alert">Other cup from this sample: <a href="{{ route('thermal.show', $other) }}">{{ $other->cup_type === 'TELLURIUM' ? 'White (tellurium)' : 'Grey (stable)' }} cup</a> — {{ str_replace('_', ' ', $other->result) }}.</div>
 @endforeach
@@ -29,7 +50,7 @@
     <div class="metric"><div class="metric-label">TS (solidus)</div><div class="metric-value" style="font-size:22px">{{ $test->solidus_c ?? '—' }} °C</div></div>
     <div class="metric"><div class="metric-label">Peak temperature</div><div class="metric-value" style="font-size:22px">{{ $test->peak_temp_c ?? '—' }} °C</div></div>
     <div class="metric"><div class="metric-label">C / Si</div><div class="metric-value" style="font-size:22px">{{ $test->carbon_reported_pct !== null ? rtrim(rtrim((string) $test->carbon_reported_pct, '0'), '.') : '—' }} / {{ $test->silicon_used !== null ? rtrim(rtrim((string) $test->silicon_used, '0'), '.') : '—' }}</div><div class="metric-note">{{ $test->carbon_reported_pct !== null ? 'C as shown by the analyser' : 'No carbon keyed in' }}</div></div>
-    <div class="metric"><div class="metric-label">CE from TL</div><div class="metric-value" style="font-size:22px">{{ $test->ce_from_tl ?? '—' }}</div><div class="metric-note">Carbon from TL {{ $test->carbon_from_tl !== null ? rtrim(rtrim((string) $test->carbon_from_tl, '0'), '.') : '—' }}{{ $test->silicon_used !== null ? ' at Si '.$test->silicon_used : '' }}</div></div>
+    <div class="metric"><div class="metric-label">CE</div><div class="metric-value" style="font-size:22px">{{ $test->ce_from_tl ?? '—' }}</div><div class="metric-note">{{ $test->ceSourceLabel() ? 'CE '.$test->ceSourceLabel().'. ' : '' }}Carbon {{ $test->carbon_from_tl !== null ? rtrim(rtrim((string) $test->carbon_from_tl, '0'), '.') : '—' }}{{ $test->silicon_used !== null ? ' at Si '.$test->silicon_used : '' }}</div></div>
 </div>
 
 <div class="panel">

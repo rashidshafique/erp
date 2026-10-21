@@ -44,7 +44,7 @@
             <tbody>
                 @forelse($heats as $heat)
                     <tr>
-                        <td><strong>{{ $heat->heat_number }}</strong></td>
+                        <td><x-heat-light :heat="$heat" /><strong>{{ $heat->heat_number }}</strong></td>
                         <td>{{ $heat->furnace?->name ?? '—' }}</td>
                         <td>{{ $heat->furnace?->furnace_type ?? $heat->process_type }}</td>
                         <td><span class="status">{{ $heat->status }}</span></td>

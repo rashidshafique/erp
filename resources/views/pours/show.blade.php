@@ -13,6 +13,7 @@
         </p>
     </div>
     <div class="actions">
+        @if ($pour->heat)<a class="btn" href="{{ route('heats.show', $pour->heat) }}">Go to heat</a>@endif
         <a class="btn" href="{{ route('pours.index') }}">Back to pours</a>
     </div>
 </div>
@@ -69,7 +70,7 @@
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px">
             <div>
                 <div class="muted small">Heat number</div>
-                <strong>{{ $pour->heat?->heat_number ?? '—' }}</strong>
+                <x-heat-light :heat="$pour->heat" /><strong>{{ $pour->heat?->heat_number ?? '—' }}</strong>
             </div>
             <div>
                 <div class="muted small">Furnace</div>
@@ -176,12 +177,21 @@
         @if ($candidates->isNotEmpty())
             <form method="POST" action="{{ route('pours.assemblies.attach', $pour) }}">@csrf
                 <div class="field"><label>Add moulds to this pour</label>
+                    <label style="display:block;font-weight:600;padding:3px 0 6px"><input type="checkbox" id="pour-assembly-select-all"> Select all ({{ $candidates->count() }})</label>
                     <div style="max-height:220px;overflow:auto;border:1px solid var(--border);border-radius:6px;padding:8px">
                         @foreach ($candidates as $c)
-                            <label style="display:block;font-weight:400;padding:3px 0"><input type="checkbox" name="assembly_ids[]" value="{{ $c->id }}">
+                            <label style="display:block;font-weight:400;padding:3px 0"><input type="checkbox" name="assembly_ids[]" value="{{ $c->id }}" class="pour-assembly-checkbox">
                                 {{ $c->assembly_number }} — {{ $c->mouldingRun?->productionOrder?->production_order_number }} · {{ $c->mouldingRun?->productionOrder?->product?->code }}</label>
                         @endforeach
                     </div>
+                    <script>
+                    (function () {
+                        var all = document.getElementById('pour-assembly-select-all');
+                        var boxes = document.querySelectorAll('.pour-assembly-checkbox');
+                        all.addEventListener('change', function () { boxes.forEach(function (b) { b.checked = all.checked; }); });
+                        boxes.forEach(function (b) { b.addEventListener('change', function () { all.checked = [].every.call(boxes, function (x) { return x.checked; }); }); });
+                    })();
+                    </script>
                     <span class="muted small">Only moulds from released production orders are listed. Each mould is checked against the heat's iron grade.</span></div>
                 <button class="btn btn-primary" type="submit">Add selected moulds</button>
             </form>

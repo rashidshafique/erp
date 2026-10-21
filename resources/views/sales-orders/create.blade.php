@@ -4,19 +4,19 @@
 @section('breadcrumb', 'Sales orders / New')
 
 @section('content')
+@include('partials.search-select')
+@include('partials.quick-dialog', ['id' => 'qd-customer', 'title' => 'Add a customer', 'action' => route('customers.store'), 'submit' => 'Add customer', 'fields' => 'customers._quick-fields'])
 <div class="page-heading"><div><h1>New sales order</h1><p>Enter the customer's order. The contract review checks it against specifications, grades, furnaces and patterns.</p></div></div>
 
 
-@if ($customers->isEmpty())
-    <div class="alert alert-error">Create a customer first. <a href="{{ route('customers.create') }}">New customer</a></div>
-@elseif ($revisions->isEmpty())
+@if ($revisions->isEmpty())
     <div class="alert alert-error">No approved product revisions exist yet. Approve a product revision first.</div>
 @else
 <form method="POST" action="{{ route('sales-orders.store') }}">
 @csrf
 <div class="panel"><div class="panel-header"><h2>Order</h2></div><div class="panel-body"><div class="form-grid" data-progressive="3">
-    <div class="field"><label for="customer_id">Customer *</label>
-        <select id="customer_id" name="customer_id" required><option value="">Select customer</option>
+    <div class="field"><label for="customer_id">Customer * <a href="{{ route('customers.create') }}" class="qd-add" data-quick="qd-customer" data-quick-target="customer_id">+ Add</a></label>
+        <select id="customer_id" name="customer_id" required data-search-select><option value="">Select customer</option>
             @foreach ($customers as $c)<option value="{{ $c->id }}" @selected(old('customer_id') === $c->id)>{{ $c->code }} — {{ $c->name }}</option>@endforeach
         </select></div>
     <div class="field"><label for="customer_reference">Customer PO / reference</label><input id="customer_reference" name="customer_reference" maxlength="100" value="{{ old('customer_reference') }}"></div>

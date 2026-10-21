@@ -75,7 +75,7 @@
                                 <strong>{{ $pour->pour_number }}</strong>
                             </a>
                         </td>
-                        <td>{{ $pour->heat?->heat_number ?? '—' }}</td>
+                        <td><x-heat-light :heat="$pour->heat" />{{ $pour->heat?->heat_number ?? '—' }}</td>
                         <td>
                             @if($pour->heat?->furnace)
                                 {{ $pour->heat->furnace->code }}

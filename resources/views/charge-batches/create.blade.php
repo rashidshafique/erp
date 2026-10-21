@@ -80,7 +80,7 @@
     <div style="overflow-x:auto">
         <table class="table" id="components-table">
             <thead>
-                <tr><th>Material</th><th>Role</th><th>Fixed kg</th><th>Percent %</th><th>Calculated kg</th><th>% of total</th><th>Min kg</th><th>Max kg</th><th>Required</th><th>Notes</th><th></th></tr>
+                <tr><th>Material</th><th>Role</th><th>Charged</th><th>Fixed kg</th><th>Percent %</th><th>Calculated kg</th><th>% of total</th><th>Min kg</th><th>Max kg</th><th>Required</th><th>Notes</th><th></th></tr>
             </thead>
             <tbody id="components-body">
             @php($oldItems = old('items', [['material_id'=>'','component_role'=>'CHARGE','target_qty_kg'=>'','target_percent'=>'','minimum_qty_kg'=>'','maximum_qty_kg'=>'','is_required'=>'1','notes'=>'']]))
@@ -95,6 +95,7 @@
                         </select>
                     </td>
                     <td><input name="items[{{ $i }}][component_role]" class="form-control" required value="{{ $item['component_role'] ?? 'CHARGE' }}"></td>
+                    <td><select name="items[{{ $i }}][charge_stage]" class="form-control"><option value="ROUND">Every charge</option><option value="BED" @selected(($item['charge_stage'] ?? 'ROUND') === 'BED')>Start-up only</option></select></td>
                     <td><input name="items[{{ $i }}][target_qty_kg]" type="number" min="0.001" step="0.001" class="form-control fixed-qty" value="{{ $item['target_qty_kg'] ?? '' }}"></td>
                     <td><input name="items[{{ $i }}][target_percent]" type="number" min="0.001" max="100" step="0.0001" class="form-control percentage" value="{{ $item['target_percent'] ?? '' }}"></td>
                     <td class="calculated-kg muted">—</td>
@@ -227,6 +228,7 @@
         row.innerHTML = `
             <td><select name="items[${index}][material_id]" class="form-control" required><option value="">Select material</option>${options}</select></td>
             <td><input name="items[${index}][component_role]" class="form-control" required value="CHARGE" maxlength="40"></td>
+            <td><select name="items[${index}][charge_stage]" class="form-control"><option value="ROUND">Every charge</option><option value="BED">Start-up only</option></select></td>
             <td><input name="items[${index}][target_qty_kg]" type="number" min="0.001" step="0.001" class="form-control fixed-qty"></td>
             <td><input name="items[${index}][target_percent]" type="number" min="0.001" max="100" step="0.0001" class="form-control percentage"></td>
             <td class="calculated-kg muted">—</td>

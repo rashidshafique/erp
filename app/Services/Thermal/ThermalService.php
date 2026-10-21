@@ -222,12 +222,17 @@ class ThermalService
         if ($whiteCup?->carbon_reported_pct !== null) {
             $carbonReported = (float) $whiteCup->carbon_reported_pct;
         }
-        $ce = $m['tl_c'] !== null ? $this->ceFromTl($m['tl_c'], $cup) : null;
+        $ceReported = isset($v['ce']) && $v['ce'] !== '' && $v['ce'] !== null ? round((float) $v['ce'], 4) : null;
+        $ceSource = $ceReported !== null ? 'METER' : 'CALCULATED';
+        $ce = $ceReported ?? ($m['tl_c'] !== null ? $this->ceFromTl($m['tl_c'], $cup) : null);
         $carbon = ($ce !== null && $si !== null) ? round($ce - $si / 3, 4) : null;
-        if ($whiteCup?->ce_from_tl !== null) {
+        if ($ceReported !== null) {
+            $findings[] = "CE {$ce} is the reading from the meter.";
+        } elseif ($whiteCup?->ce_from_tl !== null) {
             $ce = (float) $whiteCup->ce_from_tl;
+            $ceSource = $whiteCup->ce_source ?? 'CALCULATED';
             $carbon = $whiteCup->carbon_from_tl !== null ? (float) $whiteCup->carbon_from_tl : $carbon;
-            $findings[] = "CE {$ce} and carbon from TL are taken from the white cup of this sample.";
+            $findings[] = "CE {$ce} ({$whiteCup->ceSourceLabel()}) and carbon are taken from the white cup of this sample.";
         }
 
         $judged = $this->judge($m + ['ce_from_tl' => $ce], $heat->ironGrade, $cup, $this->whiteCupJudgesCe($heat, $cup, $sampleGroupId));
@@ -245,11 +250,16 @@ class ThermalService
             'cup_type' => $cup,
             'taken_at' => $v['taken_at'] ?? now(),
             'taken_by' => $v['taken_by'] ?? null,
+            'test_started_at' => $v['test_started_at'] ?? null,
+            'test_finished_at' => $v['test_finished_at'] ?? null,
+            'sample_point' => $v['sample_point'] ?? null,
+            'cup_batch' => $v['cup_batch'] ?? null,
+            'entered_by_name' => $v['entered_by_name'] ?? null,
             'curve' => $curve,
             'entry_mode' => $curve ? 'CURVE' : 'MANUAL',
             'tl_c' => $m['tl_c'], 'te_min_c' => $m['te_min_c'], 'te_max_c' => $m['te_max_c'],
             'recalescence_c' => $m['recalescence_c'], 'solidus_c' => $m['solidus_c'], 'peak_temp_c' => $m['peak_temp_c'],
-            'ce_from_tl' => $ce, 'carbon_from_tl' => $carbon, 'silicon_used' => $si, 'carbon_reported_pct' => $carbonReported,
+            'ce_from_tl' => $ce, 'ce_source' => $ce !== null ? $ceSource : null, 'carbon_from_tl' => $carbon, 'silicon_used' => $si, 'carbon_reported_pct' => $carbonReported,
             'result' => $judged['result'], 'findings' => array_merge($findings, $judged['findings']),
             'inoculant_added_pct' => $v['inoculant_added_pct'] ?? null,
             'notes' => $v['notes'] ?? null,

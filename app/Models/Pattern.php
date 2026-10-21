@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\GeneratesCodes;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -159,6 +160,12 @@ class Pattern extends Model
      *
      * @param  array<string, mixed>  $attributes
      */
+    /** Patterns whose current revision has no cavity linked to a product, including patterns with no revision yet. */
+    public function scopeUnlinked(Builder $query): Builder
+    {
+        return $query->whereDoesntHave('currentRevision', fn ($r) => $r->whereHas('cavityMap', fn ($c) => $c->whereNotNull('product_revision_id')));
+    }
+
     public function addRevision(array $attributes, bool $copyLayout = false): PatternRevision
     {
         return DB::transaction(function () use ($attributes, $copyLayout) {

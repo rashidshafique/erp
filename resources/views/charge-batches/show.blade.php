@@ -53,7 +53,7 @@
         <tr>
             <td>{{ $item->sequence }}</td>
             <td>{{ $item->material->code }} — {{ $item->material->name }}</td>
-            <td>{{ $item->component_role }}</td>
+            <td>{{ $item->component_role }}@if ($item->charge_stage === 'BED') <span class="muted small">(start-up only)</span>@endif</td>
             <td>{{ $itemQtyKg !== null ? \App\Support\Formats::number($itemQtyKg, 3) : '—' }}</td>
             <td>{{ $itemPercent !== null ? \App\Support\Formats::number($itemPercent, 4).'%' : '—' }}</td>
             <td>{{ $item->is_required ? 'Yes' : 'No' }}</td>

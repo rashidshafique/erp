@@ -185,8 +185,8 @@
             <form method="GET" action="{{ route('scan') }}" class="scan-box" id="scan-box" data-suggest="{{ route('scan.suggest') }}" role="search"><button type="button" class="icon-btn scan-open" id="scan-open" title="Search" aria-label="Search">{!! \App\Support\NavIcons::get('search', 20) !!}</button><span class="scan-type" id="scan-type" hidden></span><input type="hidden" name="type" id="scan-type-input"><input id="scan-input" name="code" placeholder="Search or scan a code…" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="scan-results" aria-autocomplete="list"><kbd id="scan-hint" class="scan-hint" title="Press to jump to the search box">Ctrl K</kbd><div class="scan-results" id="scan-results" role="listbox" hidden></div></form>
             <style>
                 .scan-box{position:relative;display:inline-block}
-                .scan-box input:not(#_){width:230px;min-height:24px;padding:2px 52px 2px 8px}
-                .scan-hint{position:absolute;right:6px;top:50%;transform:translateY(-50%);font:600 10px/1 system-ui,sans-serif;color:#6b7280;background:#f3f4f6;border:1px solid #d1d5db;border-radius:4px;padding:3px 5px;pointer-events:none}
+                .scan-box input:not(#_){width:230px;min-height:30px;padding:3px 52px 3px 8px}
+                .scan-hint{position:absolute;right:6px;top:50%;transform:translateY(-50%);font:600 10px/1 system-ui,sans-serif;color:#6b7280;background:#fff;border:1px solid #e5e7eb;border-radius:4px;padding:3px 5px;pointer-events:none}
                 .scan-box input:focus + .scan-hint{opacity:0}
             </style>
             <script>
@@ -276,7 +276,7 @@
                     });
                 })();
             </script>
-            <div class="topbar-date">{{ now()->format('D, d M Y') }}
+            <div class="topbar-date">@include('layouts._heat-lights'){{ now()->format('D, d M Y') }}
             </div>
         </header>
 

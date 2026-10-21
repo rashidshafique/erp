@@ -14,13 +14,14 @@ class HeatTimelineController extends Controller
     public function update(Request $request, Heat $heat, CupolaTimeline $timeline): RedirectResponse
     {
         abort_unless($heat->loadMissing('furnace')->isCupola(), 404);
+        $messages = array_fill_keys(array_map(fn ($f) => $f.'.before_or_equal', ['actual_start_at', 'blast_on_at', 'first_tap_at', 'dropped_at']), 'That time is in the future. Enter the time it actually happened.');
         $times = $request->validate([
-            'actual_start_at' => ['nullable', 'date'],
-            'blast_on_at' => ['nullable', 'date'],
-            'first_tap_at' => ['nullable', 'date'],
-            'dropped_at' => ['nullable', 'date'],
+            'actual_start_at' => ['nullable', 'date', 'before_or_equal:+5 minutes'],
+            'blast_on_at' => ['nullable', 'date', 'before_or_equal:+5 minutes'],
+            'first_tap_at' => ['nullable', 'date', 'before_or_equal:+5 minutes'],
+            'dropped_at' => ['nullable', 'date', 'before_or_equal:+5 minutes'],
             'actual_tapped_weight_kg' => ['nullable', 'numeric', 'min:0', 'max:9999999'],
-        ]);
+        ], $messages);
         $order = ['actual_start_at' => 'Light-up', 'blast_on_at' => 'Blast on', 'first_tap_at' => 'First tap', 'dropped_at' => 'Bottom drop'];
         $previous = null;
         foreach ($order as $field => $label) {
