@@ -88,7 +88,7 @@
                 <div>
                     <div class="detail-label">Product</div>
                     <div class="detail-value">
-                        @if ($run->productionOrder?->product)<x-item :name="$run->productionOrder->product->name" :code="$run->productionOrder->product->code" :revision="$run->productionOrder->productRevision?->revision" />@else—@endif
+                        @if ($run->productionOrder?->product)<x-product-cell :product="$run->productionOrder->product" :revision="$run->productionOrder->productRevision?->revision" />@else—@endif
                     </div>
                 </div>
             </div>

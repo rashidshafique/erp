@@ -68,7 +68,7 @@
                             <div class="muted small">{{ $order->order_type }}</div>
                         </td>
                         <td>
-                            <x-item :name="$order->product->name ?? 'Product unavailable'" :code="$order->product->code ?? null" :revision="$order->productRevision?->revision ? 'rev '.$order->productRevision->revision : null" />
+                            <x-product-cell :product="$order->product" fallback-name="Product unavailable" :revision="$order->productRevision?->revision ? 'rev '.$order->productRevision->revision : null" />
                         </td>
                         <td>{{ \App\Support\Formats::number((float) $order->planned_qty, 0) }} {{ $order->uom }}</td>
                         <td>{{ \App\Support\Formats::number((float) $order->completed_qty, 0) }}</td>

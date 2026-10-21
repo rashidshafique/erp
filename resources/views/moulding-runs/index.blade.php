@@ -120,7 +120,7 @@
                             </td>
                             <td>
                                 <span class="code">{{ $run->productionOrder?->production_order_number ?? '—' }}</span>
-                                <div><x-item :name="$run->productionOrder?->product?->name ?? 'Product not set'" :code="$run->productionOrder?->product?->code" /></div>
+                                <div><x-product-cell :product="$run->productionOrder?->product" /></div>
                             </td>
                             <td>
                                 @if ($run->patternRevision)<x-item :name="$run->patternRevision->pattern?->name" :code="$run->patternRevision->pattern?->code" :revision="$run->patternRevision->shortCode()" />@else—@endif
