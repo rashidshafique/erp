@@ -10,7 +10,7 @@
 <form method="POST" action="{{ route('customers.store') }}">
 @csrf
 <div class="panel"><div class="panel-body"><div class="form-grid" data-progressive="3">
-    <div class="field"><label for="code">Code *</label><input id="code" name="code" required maxlength="40" value="{{ old('code') }}"></div>
+    <div class="field"><label for="code">Code</label><input id="code" name="code" maxlength="40" placeholder="Leave blank to generate: {{ app(\App\Services\Codes\CodeGenerator::class)->preview('customer') }}" value="{{ old('code') }}"></div>
     <div class="field"><label for="name">Name *</label><input id="name" name="name" required maxlength="200" value="{{ old('name') }}"></div>
     <div class="field"><label for="short_name">Short name</label><input id="short_name" name="short_name" maxlength="60" value="{{ old('short_name') }}"></div>
     <div class="field"><label for="contact_name">Contact</label><input id="contact_name" name="contact_name" maxlength="120" value="{{ old('contact_name') }}"></div>

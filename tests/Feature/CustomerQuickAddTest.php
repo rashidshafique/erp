@@ -29,4 +29,13 @@ class CustomerQuickAddTest extends TestCase
     {
         $this->get(route('sales-orders.create'))->assertOk()->assertSee('qd-customer', false);
     }
+
+    public function test_code_is_generated_when_left_blank(): void
+    {
+        $response = $this->postJson(route('customers.store'), ['name' => 'No Code Ltd'])->assertCreated();
+
+        $customer = Customer::findOrFail($response->json('id'));
+        $this->assertNotEmpty($customer->code);
+        $response->assertJson(['label' => $customer->code.' — No Code Ltd']);
+    }
 }

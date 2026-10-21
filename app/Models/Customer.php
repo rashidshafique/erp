@@ -11,7 +11,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Customer extends Model
 {
-    use HasParty, HasUuids, SoftDeletes;
+    use HasParty, HasUuids, SoftDeletes, \App\Models\Concerns\GeneratesCodes;
+
+    public string $codeKind = 'customer';
 
     protected $fillable = [
         'code',

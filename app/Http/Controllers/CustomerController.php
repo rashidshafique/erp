@@ -27,7 +27,7 @@ class CustomerController extends Controller
     public function store(Request $request): RedirectResponse|JsonResponse
     {
         $data = $request->validate([
-            'code' => ['required', 'string', 'max:40', 'unique:customers,code'],
+            'code' => ['nullable', 'string', 'max:40', 'unique:customers,code'],
             'name' => ['required', 'string', 'max:200'],
             'short_name' => ['nullable', 'string', 'max:60'],
             'contact_name' => ['nullable', 'string', 'max:120'],
@@ -38,7 +38,7 @@ class CustomerController extends Controller
             'tax_number' => ['nullable', 'string', 'max:60'],
             'payment_terms' => ['nullable', 'string', 'max:100'],
         ]);
-        $data['code'] = strtoupper(trim($data['code']));
+        $data['code'] = filled($data['code'] ?? null) ? strtoupper(trim($data['code'])) : null;
         $data['active'] = true;
         $customer = Customer::create($data);
 
@@ -46,6 +46,6 @@ class CustomerController extends Controller
             return response()->json(['id' => $customer->id, 'label' => $customer->code.' — '.$customer->name], 201);
         }
 
-        return redirect()->route('customers.index')->with('success', "Customer {$data['code']} created.");
+        return redirect()->route('customers.index')->with('success', "Customer {$customer->code} created.");
     }
 }
