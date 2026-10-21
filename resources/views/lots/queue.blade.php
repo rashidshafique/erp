@@ -20,7 +20,7 @@
 <div class="panel"><div class="panel-header"><h2>{{ $b['label'] }}</h2><span class="muted">{{ count($b['lots']) }} lot(s)</span></div>
 <div class="table-wrap"><table><thead><tr><th><input type="checkbox" class="bucket-all" aria-label="Select all in this step"></th><th>Lot</th><th>Product</th><th>Order</th><th>Pieces</th><th>Poured</th><th>Age</th><th>Cooling</th><th>Status</th></tr></thead><tbody>
 @foreach($b['lots'] as $r)@php $l = $r['lot']; @endphp
-<tr><td>@if($l->status === 'IN_PRODUCTION')<input type="checkbox" name="lots[]" value="{{ $l->id }}" class="queue-lot" aria-label="Select {{ $l->label }}">@endif</td><td><a href="{{ route('lots.show', $l) }}">{{ $l->label }}</a></td><td>{{ $l->product?->code }}</td><td>{{ $l->productionOrder?->production_order_number }}@if($r['urgent'])<div class="muted small">required {{ $r['urgent']->displayShortDate() }}</div>@endif</td>
+<tr><td>@if($l->status === 'IN_PRODUCTION')<input type="checkbox" name="lots[]" value="{{ $l->id }}" class="queue-lot" aria-label="Select {{ $l->label }}">@endif</td><td><a href="{{ route('lots.show', $l) }}">{{ $l->label }}</a></td><td><x-product-cell :product="$l->product" /></td><td>{{ $l->productionOrder?->production_order_number }}@if($r['urgent'])<div class="muted small">required {{ $r['urgent']->displayShortDate() }}</div>@endif</td>
 <td>{{ $r['pieces'] }}</td><td>{{ $r['poured']?->displayShortDateTime() ?? '—' }}</td><td>{{ $r['age_h'] !== null ? $r['age_h'].' h' : '—' }}</td>
 <td>@if($r['cool'])@if($r['cool']['wait'] > 0)<span class="status status-in-progress">wait {{ $r['cool']['wait'] }} min</span>@else <span class="muted small">met</span>@endif @endif</td>
 <td>{{ $l->status }}</td></tr>@endforeach</tbody></table></div></div>

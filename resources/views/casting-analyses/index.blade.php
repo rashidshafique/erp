@@ -59,7 +59,7 @@
                         <tr>
                             <td><strong>{{ $r->code }}</strong></td>
                             <td>{{ $r->name }}<div class="muted small">{{ $r->original_name }}</div></td>
-                            <td>{{ $r->product ? $r->product->code : '—' }}</td>
+                            <td>@if ($r->product)<x-product-cell :product="$r->product" />@else—@endif</td>
                             <td>{{ $rec['family_label'] ?? '—' }}</td>
                             <td>@if ($r->score !== null)<strong>{{ $r->score }}</strong> <span class="muted">({{ $r->score_letter }})</span>@else — @endif</td>
                             <td>@if ($rec){{ \App\Support\Formats::number($rec['times']['hotspots_min'][array_key_first($rec['times']['hotspots_min'])] ?? 0, 1) }} min @else — @endif</td>

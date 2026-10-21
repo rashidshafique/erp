@@ -51,7 +51,7 @@
             @php $sched = (float) $l->productionOrders->where('status', '!=', 'CANCELLED')->sum('planned_qty'); @endphp
             <tr>
                 <td>{{ $l->line_number }}</td>
-                <td><strong>{{ $l->product?->code }}</strong> {{ $l->product?->name }}</td>
+                <td><x-product-cell :product="$l->product" /></td>
                 <td>{{ $l->productRevision?->revision }}</td>
                 <td>{{ rtrim(rtrim(\App\Support\Formats::number((float) $l->ordered_qty, 3), '0'), '.') }}</td>
                 <td>{{ rtrim(rtrim(\App\Support\Formats::number($sched, 3), '0'), '.') }}</td>
@@ -88,7 +88,7 @@
             <tbody>
             @foreach ($review->items->sortBy(fn ($i) => [$i->line?->line_number ?? 0, ['BLOCK' => 0, 'WARN' => 1, 'PASS' => 2][$i->severity]]) as $i)
                 <tr>
-                    <td>@if($i->line)<strong>{{ $i->line->product?->code }}</strong> — {{ $i->line->product?->name }}<div class="muted small">Line {{ $i->line->line_number }}</div>@else—@endif</td>
+                    <td>@if($i->line)<x-product-cell :product="$i->line->product" /><div class="muted small">Line {{ $i->line->line_number }}</div>@else—@endif</td>
                     <td>{{ str_replace('_', ' ', $i->check_code) }}</td>
                     <td><span class="status {{ $i->severity === 'PASS' ? 'status-completed' : ($i->severity === 'WARN' ? 'status-on-hold' : 'status-cancelled') }}">{{ $i->severity }}</span></td>
                     <td style="white-space:normal;min-width:260px">{{ $i->message }}</td>
