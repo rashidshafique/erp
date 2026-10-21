@@ -19,4 +19,6 @@ Fixed in your existing app: the "Create heat" page failed because the charge rec
 
 Settings: `config/foundry.php` (gates on/off, 45-minute test age, furnace families, fill factor, default yield, lead time). Env switches: `FOUNDRY_REQUIRE_CONTRACT_REVIEW`, `FOUNDRY_ENFORCE_THERMAL_GATE`.
 
-Not built yet (the tables exist): screens to add mould assemblies to a pour, create casting lots, create dispatches and packing records, and quality inspection entry. The trace page and the lot readiness check already read those tables.
+Built since: mould assemblies attach to a pour, casting lots with stage events and holds, quality inspections, NCRs, certificates, packing and dispatch (Dispatch module), finished goods, labels and scan. All the tables are now in use.
+
+Still open: see docs/PLAN.md for the module-by-module list.
