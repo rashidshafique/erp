@@ -5,13 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\CastingLot;
 use App\Models\Gauge;
 use App\Models\InspectionPlan;
-use App\Models\NonconformanceReport;
 use App\Models\ProductionStageDefinition;
 use App\Models\QualityDefect;
 use App\Models\QualityInspection;
 use App\Models\QualityInspectionResult;
 use App\Services\Production\LotService;
 use App\Services\Quality\CalibrationStatus;
+use App\Services\Quality\QuickInspection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -39,7 +39,7 @@ class InspectionController extends Controller
         return view('inspections.create', ['lot' => $lot, 'types' => self::TYPES, 'stages' => ProductionStageDefinition::where('is_active', true)->orderBy('sequence')->get(), 'plan' => $this->planFor($lot)]);
     }
 
-    public function store(Request $request, CastingLot $lot, LotService $service): RedirectResponse
+    public function store(Request $request, CastingLot $lot, LotService $service, QuickInspection $quick): RedirectResponse
     {
         $d = $request->validate([
             'inspection_type' => ['required', Rule::in(self::TYPES)],
@@ -52,13 +52,9 @@ class InspectionController extends Controller
             return back()->withErrors(['sample_size' => "Only {$pieces} piece(s) of the lot are left to inspect."])->withInput();
         }
 
-        $insp = DB::transaction(function () use ($d, $lot) {
-            $date = now()->format('Ymd');
-            DB::select('SELECT pg_advisory_xact_lock(hashtext(?))', ['inspection-number-'.$date]);
-            $prefix = "INS-{$date}-";
-            $n = (QualityInspection::where('inspection_number', 'like', $prefix.'%')->pluck('inspection_number')->map(fn ($x) => (int) substr($x, strlen($prefix)))->max() ?? 0) + 1;
+        $insp = DB::transaction(function () use ($d, $lot, $quick) {
             $insp = QualityInspection::create([
-                'inspection_number' => $prefix.str_pad((string) $n, 3, '0', STR_PAD_LEFT),
+                'inspection_number' => $quick->nextInspectionNumber(),
                 'casting_lot_id' => $lot->id, 'stage_definition_id' => $d['stage_definition_id'] ?? null,
                 'inspection_type' => $d['inspection_type'], 'status' => 'IN_PROGRESS',
                 'sample_size' => $d['sample_size'], 'quantity_inspected' => $d['sample_size'], 'quantity_pending' => $d['sample_size'],
@@ -161,7 +157,7 @@ class InspectionController extends Controller
         return back()->with('success', 'Characteristic added.');
     }
 
-    public function complete(Request $request, QualityInspection $inspection, LotService $service): RedirectResponse
+    public function complete(Request $request, QualityInspection $inspection, LotService $service, QuickInspection $quick): RedirectResponse
     {
         if ($inspection->status !== 'IN_PROGRESS') {
             return back()->withErrors(['complete' => 'This inspection is already completed.']);
@@ -191,7 +187,7 @@ class InspectionController extends Controller
         }
 
         $ncr = null;
-        DB::transaction(function () use ($inspection, $d, $failed, &$ncr, $service) {
+        DB::transaction(function () use ($inspection, $d, $failed, &$ncr, $service, $quick) {
             $inspection->update([
                 'status' => 'COMPLETED', 'overall_disposition' => $d['overall_disposition'], 'quantity_accepted' => $d['quantity_accepted'],
                 'quantity_rejected' => $d['quantity_rejected'], 'quantity_rework' => $d['quantity_rework'], 'quantity_pending' => $d['quantity_pending'],
@@ -199,18 +195,11 @@ class InspectionController extends Controller
             ]);
             if ($d['quantity_rejected'] + $d['quantity_rework'] > 0 || $failed->isNotEmpty()) {
                 $defect = $failed->first(fn ($r) => $r->quality_defect_id)?->defect;
-                $date = now()->format('Ymd');
-                DB::select('SELECT pg_advisory_xact_lock(hashtext(?))', ['ncr-number-'.$date]);
-                $prefix = "NCR-{$date}-";
-                $n = (NonconformanceReport::where('ncr_number', 'like', $prefix.'%')->pluck('ncr_number')->map(fn ($x) => (int) substr($x, strlen($prefix)))->max() ?? 0) + 1;
-                $ncr = NonconformanceReport::create([
-                    'ncr_number' => $prefix.str_pad((string) $n, 3, '0', STR_PAD_LEFT), 'casting_lot_id' => $inspection->casting_lot_id,
-                    'quality_inspection_id' => $inspection->id, 'quality_defect_id' => $defect?->id,
-                    'title' => ($d['ncr_title'] ?? null) ?: ($defect ? $defect->name : 'Failed inspection').' — '.$inspection->lot->lot_number,
-                    'description' => $failed->isNotEmpty() ? 'Failed: '.$failed->map(fn ($r) => $r->test_name.($r->measured_value !== null ? ' = '.$r->measured_value.($r->unit ? ' '.$r->unit : '') : ''))->implode('; ').'.' : (($d['remarks'] ?? null) ?: 'Pieces rejected or sent to rework at inspection.'),
-                    'severity' => $defect->default_severity ?? ($d['quantity_rejected'] > 0 ? 'MAJOR' : 'MINOR'), 'status' => 'OPEN',
-                    'quantity_affected' => $d['quantity_rejected'] + $d['quantity_rework'], 'reported_by' => $inspection->inspector_name, 'reported_at' => now(),
-                ]);
+                $ncr = $quick->raiseNcr(
+                    $inspection, $inspection->lot, $defect, $d['quantity_rejected'] + $d['quantity_rework'], $d['quantity_rejected'] > 0, $inspection->inspector_name,
+                    $failed->isNotEmpty() ? 'Failed: '.$failed->map(fn ($r) => $r->test_name.($r->measured_value !== null ? ' = '.$r->measured_value.($r->unit ? ' '.$r->unit : '') : ''))->implode('; ').'.' : (($d['remarks'] ?? null) ?: 'Pieces rejected or sent to rework at inspection.'),
+                    ($d['ncr_title'] ?? null) ?: ($defect ? $defect->name : 'Failed inspection').' — '.$inspection->lot->lot_number,
+                );
             }
             $service->refresh($inspection->lot);
             $lot = $inspection->lot->fresh();

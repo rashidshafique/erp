@@ -5,7 +5,7 @@
 
 @section('content')
 <div class="page-heading">
-    <div><h1>Process depth</h1><p>How much checking the shop floor goes through. This sets the individual rules for you; each stays editable on its own settings page.</p></div>
+    <div><h1>Process depth</h1><p>How much checking the shop floor goes through. A preset is only a starting point: it fills in every rule below, and each rule can then be set on its own.</p></div>
 </div>
 <div class="panel"><div class="panel-body">
     @if ($current === 'CUSTOM')
@@ -22,6 +22,20 @@
             </form>
         @endforeach
     </div>
-    <p class="muted small" style="margin:16px 0 0">Rules set: pouring checks and first-iron and containment holds (Pouring rules), contract review and when an order completes (Order rules), and overdue instrument use (Calibration rules).</p>
 </div></div>
+<form method="POST" action="{{ route('settings.process-depth') }}">
+    @csrf @method('PUT')
+    <div class="panel"><div class="panel-body">
+        <h2 style="margin-top:0">Each rule</h2>
+        <div class="rule-grid">
+            @foreach ($rules as $key => [$label, $options])
+                <fieldset>
+                    <legend>{{ $label }}</legend>
+                    @foreach ($options as $value => $text)<label><input type="radio" name="{{ $key }}" value="{{ $value }}" @checked(old($key, $values[$key]) === $value)> {{ $text }}</label>@endforeach
+                </fieldset>
+            @endforeach
+        </div>
+    </div></div>
+    <div class="actions"><button class="btn btn-primary" type="submit">Save rules</button></div>
+</form>
 @endsection

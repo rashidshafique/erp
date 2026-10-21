@@ -364,6 +364,8 @@ Route::post('/moulding-runs/{mouldingRun}/assemblies/{assembly}/release-flasks',
 Route::post('/moulding-runs/{mouldingRun}/release-flasks', [MouldingRunController::class, 'releaseRunFlasks'])->name('moulding-runs.release-flasks');
 
 // ---- Casting lots, inspections, NCRs, packing, dispatch, certificate ----
+Route::get('/quick-qc', [\App\Http\Controllers\QuickQcController::class, 'index'])->name('quick-qc.index');
+Route::post('/quick-qc', [\App\Http\Controllers\QuickQcController::class, 'store'])->name('quick-qc.store');
 Route::prefix('lots')->name('lots.')->controller(LotController::class)->group(function () {
     Route::get('/', 'index')->name('index');
     Route::get('/queue', [LotQueueController::class, 'queue'])->name('queue');

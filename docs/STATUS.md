@@ -36,4 +36,5 @@ These need their tests run and a commit.
 3. Core still calls module classes directly (gauge calibration checks, tooling life panels). Planned fix: interfaces bound by modules, plus `dependsOn()`.
 4. STAGE2.md "not built yet" is out of date: inspection and dispatch screens now exist. Still to confirm: screens to add mould assemblies to a pour and to create casting lots.
 5. ISO 9001 readiness gaps listed in `iso-9001-readiness.pdf` are not tracked against the code.
-6. README is still the stock Laravel text.
+6. Quick QC tally (`/quick-qc`) records good, rework and rejected counts per product over open lots oldest first; the NCR threshold is a process-depth rule, and every process-depth rule can now be set on its own.
+7. README is still the stock Laravel text.

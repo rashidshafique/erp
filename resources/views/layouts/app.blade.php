@@ -86,12 +86,13 @@
                 </div>
             </div>
 
-            <div class="nav-group {{ request()->routeIs('lots.*', 'inspections.*', 'ncrs.*', 'reports.*', 'defects.*', ...app(\App\Domains\Core\ModuleRegistry::class)->navPatterns('quality')) ? 'is-active' : '' }}">
+            <div class="nav-group {{ request()->routeIs('quick-qc.*', 'lots.*', 'inspections.*', 'ncrs.*', 'reports.*', 'defects.*', ...app(\App\Domains\Core\ModuleRegistry::class)->navPatterns('quality')) ? 'is-active' : '' }}">
                 <button type="button" class="nav-group-toggle" aria-expanded="false">
                     <span class="nav-lab">{!! \App\Support\NavIcons::get('check-circle') !!}<span>Quality &amp; Dispatch</span></span><span class="nav-chevron">›</span>
                 </button>
                 <div class="nav-submenu" hidden>
                     <a href="{{ route('lots.queue') }}" class="nav-link {{ request()->routeIs('lots.queue') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('list') !!}<span>Production queue</span></a>
+                    <a href="{{ route('quick-qc.index') }}" class="nav-link {{ request()->routeIs('quick-qc.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('search-check') !!}<span>Quick QC</span></a>
                     <a href="{{ route('lots.index') }}" class="nav-link {{ request()->routeIs('lots.index', 'lots.show', 'lots.certificate') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('tag') !!}<span>Casting lots</span></a>
                     <a href="{{ route('inspections.index') }}" class="nav-link {{ request()->routeIs('inspections.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('search-check') !!}<span>Inspections</span></a>
                     <a href="{{ route('ncrs.index') }}" class="nav-link {{ request()->routeIs('ncrs.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('alert') !!}<span>Nonconformance</span></a>
