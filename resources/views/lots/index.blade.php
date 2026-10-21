@@ -2,9 +2,6 @@
 @section('title', 'Casting lots')
 @section('content')
 <div class="page-heading"><div><h1>Casting lots</h1><p>Every casting traced from pour to dispatch.</p></div></div>
-@if(session("success"))<div class="alert alert-success">{{ session("success") }}</div>@endif
-@if(session("warning"))<div class="alert alert-warning">{{ session("warning") }}</div>@endif
-@if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
 @if($firstIronHeld > 0)
 <div class="panel"><div class="panel-body" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span>{{ $firstIronHeld }} lot(s) are on hold only because they were first iron.</span>
 <form method="POST" action="{{ route('lots.release-first-iron') }}" onsubmit="return confirm('Release {{ $firstIronHeld }} first-iron lot(s) from hold?')">@csrf<button class="btn btn-primary">Release first-iron holds</button></form></div></div>

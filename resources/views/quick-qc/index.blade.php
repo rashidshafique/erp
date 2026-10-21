@@ -2,9 +2,7 @@
 @section('title', 'Quick QC')
 @section('content')
 <div class="page-heading"><div><h1>Quick QC</h1><p>Count the castings checked per product. The counts are shared over the open lots, oldest first, and recorded as inspections.</p></div><div class="actions"><a class="btn" href="{{ route('lots.index') }}">Casting lots</a><a class="btn" href="{{ route('inspections.index') }}">Inspections</a></div></div>
-@if(session("success"))<div class="alert alert-success">{{ session("success") }}</div>@endif
 @if($onHold > 0)<div class="alert alert-warning">{{ $onHold }} lot(s) are on hold and are not listed. <a href="{{ route('lots.index', ['status' => 'ON_HOLD']) }}">Review and release them</a>.</div>@endif
-@if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
 @if($products->isEmpty())
 <div class="panel"><div class="panel-body muted">No castings are waiting to be checked.</div></div>
 @else

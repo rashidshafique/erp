@@ -2,7 +2,6 @@
 @section('title', 'Pack lots')
 @section('content')
 <div class="page-heading"><div><h1>Pack lots</h1><p>Only READY lots with good, unpacked pieces appear here.</p></div></div>
-@if(session("success"))<div class="alert alert-success">{{ session("success") }}</div>@endif
 <form method="POST" action="{{ route('packing.store') }}">@csrf
 <div class="panel"><div class="table-wrap"><table><thead><tr><th>Lot</th><th>Product</th><th>Good</th><th>Left to pack</th><th>Pack now <label class="muted small" style="font-weight:400"><input type="checkbox" id="fill-all"> all</label></th></tr></thead><tbody>
 @forelse($lots as $l)<tr><td>{{ $l->label }}</td><td>{{ $l->product?->code }}</td><td>{{ $l->quantity_good }}</td><td>{{ $l->packable }}</td><td><input type="number" name="qty[{{ $l->id }}]" min="0" max="{{ $l->packable }}" value="{{ old('qty.'.$l->id, 0) }}"></td></tr>

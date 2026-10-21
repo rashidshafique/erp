@@ -2,9 +2,6 @@
 @section('title', 'Production queue')
 @section('content')
 <div class="page-heading"><div><h1>Production queue</h1><p>Where each open lot stands after the pour. Oldest first within each step.</p></div><div class="actions">@if (Route::has('finished-goods.index'))<a class="btn" href="{{ route('finished-goods.index') }}">Finished goods ({{ $awaitingDispatch }} packed lines)</a>@endif</div></div>
-@if(session("success"))<div class="alert alert-success">{{ session("success") }}</div>@endif
-@if(session("warning"))<div class="alert alert-warning">{{ session("warning") }}</div>@endif
-@if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
 <form method="POST" action="{{ route('lots.bulk-stage') }}">@csrf
 @if($buckets)
 <div class="panel"><div class="panel-body">
