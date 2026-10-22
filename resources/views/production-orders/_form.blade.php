@@ -22,8 +22,8 @@
                     @foreach ($products as $product)
                         @foreach ($product->revisions as $revision)
                             @if (in_array($revision->status, ['APPROVED', 'ACTIVE'], true))
-                                <option value="{{ $revision->id }}" @isset($photos[$product->id]) data-img="{{ $photos[$product->id] }}" @endisset @selected(old('product_revision_id', $order?->product_revision_id) === $revision->id)>
-                                    {{ $product->code }} — {{ $product->name }} | Revision {{ $revision->revision }} | {{ $revision->net_weight_kg }} kg
+                                <option value="{{ $revision->id }}" data-sub="{{ $product->code }} · rev {{ $revision->revision }}{{ $revision->net_weight_kg ? ' · '.(float) $revision->net_weight_kg.' kg' : '' }}" @isset($photos[$product->id]) data-img="{{ $photos[$product->id] }}" @endisset @selected(old('product_revision_id', $order?->product_revision_id) === $revision->id)>
+                                    {{ $product->name }}
                                 </option>
                             @endif
                         @endforeach

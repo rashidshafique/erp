@@ -28,6 +28,12 @@ class Product extends Model
         'active' => 'boolean',
     ];
 
+    /** Products with no revision that is not obsolete: lists offer them as "product:<id>" and give them their first revision on save. */
+    public function scopeWithoutRevision(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query->whereDoesntHave('revisions', fn ($q) => $q->where('status', '!=', 'OBSOLETE'));
+    }
+
     /** The revision a new pattern link goes on: the latest approved one, else the latest not obsolete; a product with none gets its first. */
     public function linkableRevision(): ProductRevision
     {

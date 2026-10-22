@@ -36,6 +36,7 @@ class QuickOrderController extends Controller
 
         return view('quickflow::orders.create', [
             'customers' => Customer::active()->orderBy('code')->get(), 'products' => $products,
+            'productPhotos' => \App\Models\Attachment::coverUrlsFor('product', collect($products)->pluck('product.id')->all()),
             'grades' => IronGrade::orderBy('family')->orderBy('code')->get(),
         ]);
     }

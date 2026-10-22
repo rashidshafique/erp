@@ -4,11 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Customer;
 use App\Services\Orders\SalesOrderStatus;
+use App\Models\Product;
 use App\Models\ProductRevision;
 use App\Models\SalesOrder;
 use App\Models\SalesOrderLine;
 use App\Services\Orders\ContractReviewer;
 use App\Services\Orders\ProductionOrderFactory;
+use App\Rules\ProductRevisionChoice;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -33,6 +35,7 @@ class SalesOrderController extends Controller
             'customers' => Customer::active()->orderBy('code')->get(),
             'revisions' => ProductRevision::with('product')->whereIn('status', ['APPROVED', 'ACTIVE'])->get()
                 ->sortBy(fn ($r) => $r->product?->code.' '.$r->revision)->values(),
+            'bareProducts' => Product::withoutRevision()->orderBy('code')->get(),
         ]);
     }
 
@@ -47,7 +50,7 @@ class SalesOrderController extends Controller
             'requested_delivery_date' => ['nullable', 'date', 'after_or_equal:order_date'],
             'notes' => ['nullable', 'string', 'max:3000'],
             'lines' => ['required', 'array', 'min:1', 'max:50'],
-            'lines.*.product_revision_id' => ['required', 'uuid', 'exists:product_revisions,id'],
+            'lines.*.product_revision_id' => ['required', new ProductRevisionChoice],
             'lines.*.ordered_qty' => ['required', 'numeric', 'gt:0', 'max:999999999'],
             'lines.*.unit_price' => ['nullable', 'numeric', 'min:0'],
             'lines.*.requested_delivery_date' => ['nullable', 'date'],
@@ -61,7 +64,7 @@ class SalesOrderController extends Controller
                 'customer_reference' => $data['customer_reference'] ?? null, 'notes' => $data['notes'] ?? null, 'status' => 'DRAFT',
             ]);
             foreach (array_values($data['lines']) as $i => $l) {
-                $rev = ProductRevision::findOrFail($l['product_revision_id']);
+                $rev = ProductRevision::fromChoice($l['product_revision_id']);
                 $order->lines()->create([
                     'product_id' => $rev->product_id, 'product_revision_id' => $rev->id, 'line_number' => $i + 1,
                     'ordered_qty' => $l['ordered_qty'], 'unit_price' => $l['unit_price'] ?? null, 'uom' => 'piece',

@@ -353,7 +353,7 @@ class PatternController extends Controller
             ->sortBy(fn ($r) => $r->product?->code.' '.$r->revision)
             ->values();
 
-        $bareProducts = Product::query()->whereDoesntHave('revisions', fn ($q) => $q->where('status', '!=', 'OBSOLETE'))->orderBy('code')->get();
+        $bareProducts = Product::withoutRevision()->orderBy('code')->get();
 
         $assembledRevisions = MouldCavity::whereIn('pattern_revision_id', $pattern->revisions->pluck('id'))->distinct()->pluck('pattern_revision_id')->all();
 

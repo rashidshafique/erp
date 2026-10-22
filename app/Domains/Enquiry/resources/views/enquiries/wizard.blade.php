@@ -52,7 +52,7 @@
     <div class="form-grid">
         <div class="field field-full"><label>What is the part called?</label><input name="description" value="{{ old('description') }}" placeholder="e.g. Pump housing">@error('description')<div class="error-text">{{ $message }}</div>@enderror</div>
         <div class="field field-full" data-need="product"><label>Which of our parts?</label>
-            <select name="product_id" id="product_id"><option value="">— choose —</option>@foreach ($products as $p)<option value="{{ $p->id }}" data-name="{{ $p->name }}" data-weight="{{ $p->nominal_weight_kg }}" data-revs="{{ $p->revisions->map(fn ($r) => $r->revision.' ('.strtolower($r->status).')')->implode(', ') ?: 'no revisions yet' }}" @selected(old('product_id') === $p->id)>{{ $p->code }} — {{ $p->name }}</option>@endforeach</select>
+            @include('partials.search-select')@php($productPhotos = \App\Models\Attachment::coverUrlsFor('product', $products->pluck('id')->all()))<select name="product_id" id="product_id" data-search-select="photos"><option value="">— choose —</option>@foreach ($products as $p)<option value="{{ $p->id }}" data-sub="{{ $p->code }}" @isset($productPhotos[$p->id]) data-img="{{ $productPhotos[$p->id] }}" @endisset data-name="{{ $p->name }}" data-weight="{{ $p->nominal_weight_kg }}" data-revs="{{ $p->revisions->map(fn ($r) => $r->revision.' ('.strtolower($r->status).')')->implode(', ') ?: 'no revisions yet' }}" @selected(old('product_id') === $p->id)>{{ $p->name }}</option>@endforeach</select>
             <div class="help" id="prodInfo"></div>@error('product_id')<div class="error-text">{{ $message }}</div>@enderror</div>
         <div class="field field-full" data-need="change"><label>What has changed?</label><textarea name="change_note" rows="3" placeholder="New drawing revision, thicker wall, different grade…">{{ old('change_note') }}</textarea>@error('change_note')<div class="error-text">{{ $message }}</div>@enderror</div>
         <div class="field field-full" data-need="tool"><label>Tooling they will send</label><textarea name="tool_note" rows="3" placeholder="Pattern or core box, material, size, how many, condition, who repairs it…">{{ old('tool_note') }}</textarea>@error('tool_note')<div class="error-text">{{ $message }}</div>@enderror</div>
@@ -135,7 +135,7 @@
     function review() {
         var s = SC[scenario()], dl = document.getElementById('wzReview'), rows = [];
         var cust = mode() === 'NEW' ? val('new_name') + ' (new customer)' : (form.elements.customer_id.selectedOptions[0] || {}).text;
-        rows.push(['Customer', cust]); rows.push(['Request', s.label]); rows.push(['Part', val('description') + (product() ? ' — ' + product().text : '')]);
+        rows.push(['Customer', cust]); rows.push(['Request', s.label]); rows.push(['Part', val('description') + (product() ? ' — ' + product().text + ' (' + product().dataset.sub + ')' : '')]);
         ['drawing_ref:Drawing', 'material_text:Material', 'weight_kg:Weight kg', 'first_batch_qty:First batch', 'annual_qty:Yearly', 'target_price:Target price', 'due_on:Quote needed by', 'change_note:What changed', 'tool_note:Tooling', 'concept_note:Purpose', 'transfer_note:Transfer', 'sample_note:Sample'].forEach(function (p) {
             var a = p.split(':'), e = form.elements[a[0]]; if (e && !e.disabled && val(a[0])) rows.push([a[1], val(a[0])]);
         });

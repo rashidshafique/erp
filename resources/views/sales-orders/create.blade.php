@@ -9,8 +9,8 @@
 <div class="page-heading"><div><h1>New sales order</h1><p>Enter the customer's order. The contract review checks it against specifications, grades, furnaces and patterns.</p></div></div>
 
 
-@if ($revisions->isEmpty())
-    <div class="alert alert-error">No approved product revisions exist yet. Approve a product revision first.</div>
+@if ($revisions->isEmpty() && $bareProducts->isEmpty())
+    <div class="alert alert-error">There are no products to order yet. Add a product first.</div>
 @else
 <form method="POST" action="{{ route('sales-orders.store') }}">
 @csrf
@@ -29,13 +29,14 @@
     <div class="table-wrap"><table>
         <thead><tr><th>#</th><th>Product revision</th><th>Quantity</th><th>Unit price</th><th>Line delivery</th></tr></thead>
         <tbody>
-        @php($photos = \App\Models\Attachment::coverUrlsFor('product', $revisions->pluck('product_id')->all()))
+        @php($photos = \App\Models\Attachment::coverUrlsFor('product', $revisions->pluck('product_id')->merge($bareProducts->pluck('id'))->all()))
         @for ($i = 0; $i < 5; $i++)
             <tr>
                 <td>{{ $i + 1 }}</td>
                 <td><select name="lines[{{ $i }}][product_revision_id]" data-search-select="photos" @if ($i === 0) required @endif>
                     <option value="">{{ $i === 0 ? 'Select product' : '— none —' }}</option>
-                    @foreach ($revisions as $r)<option value="{{ $r->id }}" @isset($photos[$r->product_id]) data-img="{{ $photos[$r->product_id] }}" @endisset @selected(old("lines.$i.product_revision_id") === $r->id)>{{ $r->product?->code }} rev {{ $r->revision }} — {{ $r->product?->name }}</option>@endforeach
+                    @foreach ($revisions as $r)<option value="{{ $r->id }}" data-sub="{{ $r->product?->code }} · rev {{ $r->revision }}" @isset($photos[$r->product_id]) data-img="{{ $photos[$r->product_id] }}" @endisset @selected(old("lines.$i.product_revision_id") === $r->id)>{{ $r->product?->name }}</option>@endforeach
+                    @foreach ($bareProducts as $bp)<option value="product:{{ $bp->id }}" data-sub="{{ $bp->code }} · no revision yet" @isset($photos[$bp->id]) data-img="{{ $photos[$bp->id] }}" @endisset @selected(old("lines.$i.product_revision_id") === 'product:'.$bp->id)>{{ $bp->name }}</option>@endforeach
                 </select></td>
                 <td><input name="lines[{{ $i }}][ordered_qty]" type="number" step="0.001" min="0.001" value="{{ old("lines.$i.ordered_qty") }}"></td>
                 <td><input name="lines[{{ $i }}][unit_price]" type="number" step="0.01" min="0" value="{{ old("lines.$i.unit_price") }}"></td>

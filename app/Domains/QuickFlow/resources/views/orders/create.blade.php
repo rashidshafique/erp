@@ -22,7 +22,7 @@
         <tbody>
         @for ($i = 0; $i < 5; $i++)
             <tr>
-                <td><select name="lines[{{ $i }}][product_id]" aria-label="Product" data-search-select style="min-width:280px"><option value="">—</option>@foreach ($products as $p)<option value="{{ $p['product']->id }}" data-grade="{{ $p['hasGrade'] ? 1 : 0 }}" data-weight="{{ $p['hasWeight'] ? 1 : 0 }}" @selected(old("lines.$i.product_id") === $p['product']->id)>{{ $p['product']->code }} — {{ $p['product']->name }}</option>@endforeach</select></td>
+                <td><select name="lines[{{ $i }}][product_id]" aria-label="Product" data-search-select="photos" style="min-width:280px"><option value="">—</option>@foreach ($products as $p)<option value="{{ $p['product']->id }}" data-sub="{{ $p['product']->code }}" @isset($productPhotos[$p['product']->id]) data-img="{{ $productPhotos[$p['product']->id] }}" @endisset data-grade="{{ $p['hasGrade'] ? 1 : 0 }}" data-weight="{{ $p['hasWeight'] ? 1 : 0 }}" @selected(old("lines.$i.product_id") === $p['product']->id)>{{ $p['product']->name }}</option>@endforeach</select></td>
                 <td><input type="number" min="1" name="lines[{{ $i }}][qty]" value="{{ old("lines.$i.qty") }}" aria-label="Quantity" style="max-width:110px"></td>
                 <td><input type="date" name="lines[{{ $i }}][due_date]" min="{{ today()->toDateString() }}" value="{{ old("lines.$i.due_date") }}" aria-label="Due date"></td>
                 <td><select name="lines[{{ $i }}][iron_grade_id]" class="needs-grade" aria-label="Iron grade"><option value="">known</option>@foreach ($grades as $g)<option value="{{ $g->id }}" @selected(old("lines.$i.iron_grade_id") === $g->id)>{{ $g->code }}</option>@endforeach</select></td>

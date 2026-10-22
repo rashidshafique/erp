@@ -1,7 +1,7 @@
 @php $v = fn ($k, $d = null) => old($k, $item?->{$k} ?? $d); @endphp
 <div class="form-grid" data-progressive="3">
     <div class="field field-full"><label>Description</label><input name="description" value="{{ $v('description') }}" required placeholder="What the part is"></div>
-    <div class="field"><label>Existing product</label><select name="product_id"><option value="">— new part —</option>@foreach ($products as $p)<option value="{{ $p->id }}" @selected($v('product_id') === $p->id)>{{ $p->code }} — {{ $p->name }}</option>@endforeach</select></div>
+    <div class="field"><label>Existing product</label>@include('partials.search-select')@php($productPhotos = \App\Models\Attachment::coverUrlsFor('product', $products->pluck('id')->all()))<select name="product_id" data-search-select="photos"><option value="">— new part —</option>@foreach ($products as $p)<option value="{{ $p->id }}" data-sub="{{ $p->code }}" @isset($productPhotos[$p->id]) data-img="{{ $productPhotos[$p->id] }}" @endisset @selected($v('product_id') === $p->id)>{{ $p->name }}</option>@endforeach</select></div>
     <div class="field"><label>Iron family</label><select name="family"><option value="">— decide later —</option><option value="GREY" @selected($v('family') === 'GREY')>Grey iron</option><option value="DUCTILE" @selected($v('family') === 'DUCTILE')>Ductile iron</option></select></div>
     <div class="field"><label>Drawing number</label><input name="drawing_ref" value="{{ $v('drawing_ref') }}"></div>
     <div class="field"><label>Drawing revision</label><input name="drawing_rev" value="{{ $v('drawing_rev') }}"></div>
