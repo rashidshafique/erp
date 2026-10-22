@@ -45,7 +45,8 @@
         </ul>
 
         @if ($pour->heat)
-            <a class="btn" href="{{ route('thermal.create', ['heat_id' => $pour->heat_id]) }}">Record thermal test</a>
+            <button type="button" class="btn" data-quick="qd-record-test">Record thermal test</button>
+            @include('partials.record-test-dialog', ['id' => 'qd-record-test', 'heat' => $pour->heat])
         @endif
 
         @if ($pour->status === 'PLANNED')

@@ -52,13 +52,14 @@
 </style>
 @endif
 
+@include('partials.record-test-dialog', ['id' => 'qd-record-test', 'heats' => $heats])
 <div class="panel"><div class="panel-header"><h2>Heats in progress</h2></div>
     @forelse ($heats as $h)
         @php $t = $h->thermalTests->first(); @endphp
         <div class="panel-body" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between">
             <div><a href="{{ route('heats.show', $h) }}"><strong>{{ $h->heat_number }}</strong></a> · {{ $h->ironGrade?->code }} · {{ $h->furnace?->code }}
                 <span class="muted small">{{ $t ? 'Last thermal test: '.strtolower(str_replace('_', ' ', $t->result)).' at '.$t->taken_at->format('H:i') : 'No thermal test yet' }}</span></div>
-            <a class="btn" href="{{ route('thermal.create', ['heat_id' => $h->id]) }}">Record thermal test</a>
+            <button type="button" class="btn" data-quick="qd-record-test" data-heat="{{ $h->id }}">Record thermal test</button>
         </div>
     @empty
         <div class="panel-body muted">No heats yet. Start one from the next heat page.</div>

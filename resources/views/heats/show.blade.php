@@ -12,12 +12,6 @@
             $runMinutes = $heat->furnaceRunMinutes();
         @endphp
         <h1 class="heat-title">{{ $heat->heat_number }}<x-heat-light :heat="$heat" after />
-            <span class="status" id="heat-run" title="Furnace running time for this heat{{ $run['start'] ? ', from '.$run['start']->displayDateTime() : '' }}"
-                @if ($run['running']) data-run-since="{{ $run['start']->toIso8601String() }}" @endif>@if ($run['running'])Running {{ \App\Support\Formats::clock((int) $run['start']->diffInSeconds(now(), true)) }}@elseif ($runMinutes !== null)Ran {{ \App\Support\Formats::duration($runMinutes) }}@elseif ($run['start'])Started {{ $run['start']->displayDateTime() }}@else Not started @endif</span>
-            @if ($run['running'])
-                <span class="status status-in-progress" id="heat-eta" data-eta-url="{{ route('heats.eta', $heat) }}" @unless ($finish) hidden @endunless
-                    title="Estimated finish, from the heat's target metal and the melting rate ({{ $finish['basis'] ?? '' }}). Refreshed every minute.">@if ($finish)@if ($finish['overdue'])ETA overdue, was {{ $finish['time'] }}@else ETA {{ $finish['time'] }} · in {{ $finish['in'] }}@endif @endif</span>
-            @endif
         </h1>
         <p>
             <!-- {{ $heat->furnace?->name ?? 'Unknown furnace' }}
@@ -31,11 +25,39 @@
             
         </p>
     </div>
+    @if ($run['running'] || $runMinutes !== null)
+    <div class="heat-clock" aria-label="Furnace timers">
+        <div class="clock-cell" title="Furnace running time for this heat{{ $run['start'] ? ', from '.$run['start']->displayDateTime() : '' }}">
+            <div class="clock-label">{{ $run['running'] ? 'Running time' : 'Ran for' }}</div>
+            <div class="clock-val" id="heat-run" @if ($run['running']) data-run-since="{{ $run['start']->toIso8601String() }}" @endif>{{ $run['running'] ? \App\Support\Formats::clock((int) $run['start']->diffInSeconds(now(), true)) : \App\Support\Formats::duration($runMinutes) }}</div>
+        </div>
+        @if ($run['running'])
+            <div class="clock-cell clock-eta" id="heat-eta" data-eta-url="{{ route('heats.eta', $heat) }}" @unless ($finish) hidden @endunless
+                title="Estimated finish, from the heat's target metal and the melting rate ({{ $finish['basis'] ?? '' }}). Refreshed every minute.">
+                <div class="clock-label" data-eta-label>{{ ($finish['overdue'] ?? false) ? 'Overdue, was due' : 'Finish ETA' }}</div>
+                <div class="clock-val" data-eta-time>{{ $finish['time'] ?? '' }}</div>
+                <div class="clock-sub" data-eta-in>{{ $finish ? (($finish['overdue'] ?? false) ? '' : 'in '.$finish['in']) : '' }}</div>
+            </div>
+        @endif
+    </div>
+    @endif
     <div class="actions">
         <a class="btn" href="{{ route('heats.index') }}">Back to heats</a>
+        @if (! in_array($heat->status, ['CLOSED', 'CANCELLED'], true))
+            <button type="button" class="btn" data-quick="qd-record-test">Record test</button>
+            @unless ($heat->hold_reason)<button type="button" class="btn" data-quick="qd-hold">Put on hold</button>@endunless
+        @endif
     </div>
 </div>
 <style>
+    .heat-clock { display: flex; gap: 0; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); margin-left: auto; margin-right: 16px; align-self: center; }
+    .clock-cell { padding: 8px 20px; min-width: 150px; }
+    .clock-cell + .clock-cell { border-left: 1px solid var(--border); }
+    .clock-label { font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+    .clock-val { font: 700 30px/1.15 ui-monospace, SFMono-Regular, Menlo, monospace; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+    .clock-eta .clock-val { color: #b54708; }
+    .clock-sub { font-size: 12px; color: var(--muted); min-height: 15px; }
+    @media (max-width: 900px) { .heat-clock { order: 3; margin: 8px 0 0; width: 100%; } .clock-cell { flex: 1; min-width: 0; } }
     .heat-title { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
     .heat-title .status { font-size: 13px; border-radius: 6px; }
     .heat-title .status:not([class*="status-"]) { background: color-mix(in srgb, var(--border) 45%, transparent); color: var(--text); }
@@ -49,7 +71,7 @@
         var since = new Date(run.dataset.runSince);
         (function tick() {
             var s = Math.max(0, Math.floor((Date.now() - since) / 1000));
-            run.textContent =   Math.floor(s / 3600) + ':' + pad(Math.floor(s / 60) % 60) + ':' + pad(s % 60);
+            run.textContent = Math.floor(s / 3600) + ':' + pad(Math.floor(s / 60) % 60) + ':' + pad(s % 60);
             setTimeout(tick, 1000 - (Date.now() % 1000));
         })();
     }
@@ -63,7 +85,9 @@
                     if (!d.running) { location.reload(); return; }
                     eta.hidden = !d.eta;
                     if (d.eta) {
-                        eta.textContent = d.eta.overdue ? 'ETA overdue, was ' + d.eta.time : 'ETA ' + d.eta.time + ' · in ' + d.eta.in;
+                        eta.querySelector('[data-eta-label]').textContent = d.eta.overdue ? 'Overdue, was due' : 'Finish ETA';
+                        eta.querySelector('[data-eta-time]').textContent = d.eta.time;
+                        eta.querySelector('[data-eta-in]').textContent = d.eta.overdue ? '' : 'in ' + d.eta.in;
                         eta.title = 'Estimated finish, from the heat\'s target metal and the melting rate (' + d.eta.basis + '). Refreshed every minute.';
                     }
                 })
@@ -74,17 +98,14 @@
 })();
 </script>
 
+@unless (in_array($heat->status, ['CLOSED', 'CANCELLED'], true))
+    @include('partials.record-test-dialog', ['id' => 'qd-record-test', 'heat' => $heat])
+@endunless
 @if ($heat->hold_reason)
     <div class="alert alert-error"><strong>{{ $heat->lightLabel() }}</strong> since {{ $heat->held_at?->displayDateTime() }}: {{ $heat->hold_note }}
         <form method="POST" action="{{ route('heats.resume', $heat) }}" style="display:inline">@csrf<button class="btn" type="submit">Take off hold</button></form></div>
 @elseif (! in_array($heat->status, ['CLOSED', 'CANCELLED'], true))
-    <details class="panel"><summary class="panel-header" style="cursor:pointer"><h2>Put on hold (scrap or equipment problem)</h2></summary>
-        <form method="POST" action="{{ route('heats.hold', $heat) }}" class="panel-body">@csrf
-            <div class="field"><label for="hold_reason">Problem *</label><select id="hold_reason" name="hold_reason" required><option value="SCRAP">Scrap problem</option><option value="EQUIPMENT">Equipment problem</option></select></div>
-            <div class="field"><label for="hold_note">What is wrong *</label><input id="hold_note" name="hold_note" maxlength="500" required></div>
-            <button class="btn" type="submit">Put on hold</button>
-        </form>
-    </details>
+    @include('partials.quick-dialog', ['id' => 'qd-hold', 'title' => 'Put heat '.$heat->heat_number.' on hold', 'action' => route('heats.hold', $heat), 'submit' => 'Put on hold', 'fields' => 'heats._quick-hold'])
 @endif
 
 @if(session('success'))

@@ -68,17 +68,17 @@ class HeatLightTest extends TestCase
         $furnace = $running->furnace;
 
         $this->get(route('heats.show', $running))->assertOk()
-            ->assertSeeInOrder([$running->heat_number.'<span title="Heat in progress"', 'Running 1:15:', 'Induction', '>'.$furnace->code.'</span>', '>Melting'], false);
+            ->assertSeeInOrder([$running->heat_number.'<span title="Heat in progress"', 'Induction', '>'.$furnace->code.'</span>', '>Melting', 'Running time', '1:15:'], false);
 
         $done = Heat::create(['heat_number' => 'H-DONE', 'furnace_id' => $furnace->id, 'process_type' => 'INDUCTION', 'status' => 'CLOSED',
             'actual_start_at' => now()->subHours(5), 'tapped_at' => now()->subHours(5)->addMinutes(50)]);
-        $this->get(route('heats.show', $done))->assertOk()->assertSee('Ran 50 min')
+        $this->get(route('heats.show', $done))->assertOk()->assertSee('Ran for')->assertSee('50 min')
             ->assertSee('>Melting', false)->assertSee($running->heat_number);
 
         $furnace->update(['status' => 'MAINTENANCE']);
         $planned = $this->heat('PLANNED');
         $planned->furnace->update(['status' => 'MAINTENANCE']);
-        $this->get(route('heats.show', $planned))->assertOk()->assertSee('Under maintenance')->assertSee('Not started');
+        $this->get(route('heats.show', $planned))->assertOk()->assertSee('Under maintenance')->assertDontSee('id="heat-run"', false);
     }
 
     public function test_a_running_heat_shows_a_finish_estimate_from_the_best_melting_rate_available(): void
@@ -105,7 +105,7 @@ class HeatLightTest extends TestCase
         $this->assertSame(['live', '11:10', 1400.0], [$live['source'], $live['finish_at']->format('H:i'), $live['remaining_kg']]);
 
         $this->getJson(route('heats.eta', $heat))->assertOk()->assertJson(['running' => true, 'eta' => ['time' => '11:10', 'overdue' => false]]);
-        $this->get(route('heats.show', $heat))->assertOk()->assertSee('ETA 11:10');
+        $this->get(route('heats.show', $heat))->assertOk()->assertSee('Finish ETA')->assertSee('>11:10<', false);
     }
 
     public function test_there_is_no_finish_estimate_without_a_target_a_running_heat_or_a_rate(): void
@@ -122,5 +122,20 @@ class HeatLightTest extends TestCase
         $running->update(['target_metal_weight_kg' => 1000]);
         $this->assertNull($eta->for($running->fresh('furnace')), 'No rate: nothing measured, recorded or rated.');
         $this->getJson(route('heats.eta', $running))->assertOk()->assertJson(['running' => true, 'eta' => null]);
+    }
+
+    public function test_put_on_hold_is_a_button_beside_back_to_heats_that_opens_a_dialog_and_is_gone_once_held_or_closed(): void
+    {
+        $heat = $this->heat('IN_PROGRESS');
+
+        $this->get(route('heats.show', $heat))->assertOk()
+            ->assertSeeInOrder(['Back to heats', 'data-quick="qd-hold"', 'Put on hold'], false)
+            ->assertSee('<dialog id="qd-hold"', false)->assertSee(route('heats.hold', $heat), false)->assertDontSee('<details class="panel">', false);
+
+        $heat->update(['hold_reason' => 'SCRAP', 'hold_note' => 'Wet scrap', 'held_at' => now()]);
+        $this->get(route('heats.show', $heat))->assertOk()->assertDontSee('data-quick="qd-hold"', false)->assertSee('Take off hold');
+
+        $closed = $this->heat('CLOSED');
+        $this->get(route('heats.show', $closed))->assertOk()->assertDontSee('data-quick="qd-hold"', false);
     }
 }

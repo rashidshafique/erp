@@ -143,7 +143,9 @@ class ThermalTestController extends Controller
         $containment = app(Containment::class);
         $held = $containment->message($containment->apply($heat));
 
-        return redirect()->route('thermal.show', $first)->with('warning', trim($held.' '.$calibrationWarning))->with('success', $n > 1 ? "Both cups saved. White cup: {$this->resultOf($first, 'TELLURIUM')}; grey cup: {$this->resultOf($first, 'STABLE')}." : "Test saved: {$first->result}.");
+        $redirect = $request->boolean('_dialog') ? redirect()->back() : redirect()->route('thermal.show', $first);
+
+        return $redirect->with('warning', trim($held.' '.$calibrationWarning))->with('success', $n > 1 ? "Both cups saved. White cup: {$this->resultOf($first, 'TELLURIUM')}; grey cup: {$this->resultOf($first, 'STABLE')}." : "Test saved: {$first->result}.");
     }
 
     private function resultOf(ThermalAnalysisTest $t, string $cup): string
