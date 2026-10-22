@@ -44,16 +44,27 @@
     .pd-actions .pd-nav { display: inline-flex; }
     .pd-actions .pd-nav .btn:first-child { border-top-right-radius: 0; border-bottom-right-radius: 0; }
     .pd-actions .pd-nav .btn:last-child { border-top-left-radius: 0; border-bottom-left-radius: 0; margin-left: -1px; }
-    .pd-tiles { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
-    .pd-tile { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; min-width: 0; }
+    .pd-tiles { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0; margin: 16px 0 0; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+    .pd-tile { padding: 12px 16px; min-width: 0; border-left: 1px solid var(--border); }
+    .pd-tile:first-child { border-left: 0; }
     .pd-tile dt { font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
     .pd-tile dd { margin: 6px 0 0; font-size: 16px; font-weight: 700; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; }
     .pd-tile dd.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 15px; }
     .pd-tile .sub { display: block; margin-top: 4px; font-size: 12px; font-weight: 400; color: var(--muted); white-space: normal; }
     .pd-tile .sub.good { color: var(--success, #067647); }
     .pd-tile .sub.link { color: var(--accent); }
-    @media (max-width: 1280px) { .pd-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-    @media (max-width: 640px) { .pd-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pd-actions { justify-content: flex-start; } }
+    @media (max-width: 1280px) {
+        .pd-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .pd-tile:nth-child(3n + 1) { border-left: 0; }
+        .pd-tile:nth-child(n + 4) { border-top: 1px solid var(--border); }
+    }
+    @media (max-width: 640px) {
+        .pd-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .pd-tile:nth-child(3n + 1) { border-left: 1px solid var(--border); }
+        .pd-tile:nth-child(2n + 1) { border-left: 0; }
+        .pd-tile:nth-child(n + 3) { border-top: 1px solid var(--border); }
+        .pd-actions { justify-content: flex-start; }
+    }
 
     .pd-dossier { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; align-items: start; }
     .pd-side { display: grid; gap: 16px; }
