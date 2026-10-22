@@ -197,16 +197,65 @@ class QuickFlowTest extends TestCase
         $this->assertSame([$pattern->currentRevision->id, $station->id], [$run->pattern_revision_id, $run->moulding_station_id]);
     }
 
-    public function test_grid_rows_without_a_pattern_count_or_open_order_are_refused_and_nothing_is_saved(): void
+    public function test_grid_rows_without_a_pattern_or_count_are_refused_and_nothing_is_saved(): void
     {
-        $shop = $this->shop();
         $loose = Pattern::create(['code' => 'PAT-9', 'name' => 'Unmapped plate', 'status' => 'ACTIVE']);
 
         $this->post(route('quick.floor.made'), ['rows' => [['pattern_id' => '', 'moulds' => 4], ['pattern_id' => $loose->id, 'moulds' => '']]])
             ->assertSessionHasErrors(['rows.0.pattern_id', 'rows.1.moulds']);
-        $this->post(route('quick.floor.made'), ['rows' => [$this->row($loose, 5)]])->assertSessionHasErrors('rows.0.production_order_id');
         $this->post(route('quick.floor.made'), ['rows' => [['pattern_id' => '', 'moulds' => '']]])->assertSessionHasErrors('rows');
 
         $this->assertSame(0, QuickFloorEntry::count());
+    }
+
+    public function test_moulds_made_and_poured_without_an_open_order_are_stored_and_wait_to_be_linked(): void
+    {
+        $shop = $this->shop();
+        $pattern = $this->pattern($shop);
+        $heat = Heat::create(['heat_number' => 'H-1', 'furnace_id' => $shop['furnace']->id, 'process_type' => 'INDUCTION', 'status' => 'PLANNED', 'iron_grade_id' => $shop['grade']->id]);
+
+        $this->post(route('quick.floor.made'), ['rows' => [$this->row($pattern, 10)]])->assertSessionHasNoErrors()->assertSessionHas('success', fn ($m) => str_contains($m, 'waiting for an order'));
+        $this->post(route('quick.floor.poured'), ['heat_id' => $heat->id, 'rows' => [$this->row($pattern, 6)]])->assertSessionHasNoErrors();
+
+        $this->assertSame(2, QuickFloorEntry::unlinked()->count());
+        $this->assertSame([0, 1], [MouldingRun::count(), Pour::count()]);
+        $this->assertSame(2, QuickFloorEntry::where('kind', 'MADE')->sole()->pieces_per_mould);
+        $this->get(route('quick.floor.index'))->assertOk()->assertSee('Waiting for an order')->assertSee('Not linked yet');
+    }
+
+    public function test_a_waiting_entry_is_linked_by_hand_and_writes_its_moulding_run(): void
+    {
+        $shop = $this->shop();
+        $loose = Pattern::create(['code' => 'PAT-9', 'name' => 'Unmapped plate', 'status' => 'ACTIVE']);
+        $this->post(route('quick.floor.made'), ['rows' => [$this->row($loose, 8)]])->assertSessionHasNoErrors();
+        $this->order($shop);
+        $order = ProductionOrder::firstOrFail();
+        $entry = QuickFloorEntry::sole();
+        $this->assertNull($entry->production_order_id);
+
+        $this->post(route('quick.floor.link', $entry), ['production_order_id' => $order->id])->assertSessionHasNoErrors();
+
+        $entry->refresh();
+        $this->assertSame($order->id, $entry->production_order_id);
+        $this->assertSame([8, 'IN_PROGRESS'], [MouldingRun::sole()->moulds_made_qty, $order->refresh()->status]);
+        $this->post(route('quick.floor.link', $entry), ['production_order_id' => $order->id])->assertSessionHasErrors('production_order_id');
+        $this->assertSame(1, MouldingRun::count());
+    }
+
+    public function test_waiting_entries_link_themselves_when_a_matching_order_opens_up_to_its_quantity(): void
+    {
+        $shop = $this->shop();
+        $pattern = $this->pattern($shop);
+        foreach ([30, 30] as $moulds) {
+            $this->post(route('quick.floor.made'), ['rows' => [$this->row($pattern, $moulds)]])->assertSessionHasNoErrors();
+        }
+        $this->assertSame(2, QuickFloorEntry::unlinked()->count());
+
+        $this->order($shop, 50);
+
+        $order = ProductionOrder::firstOrFail();
+        $this->assertSame(1, QuickFloorEntry::unlinked()->count(), 'The first 60 pieces cover the order of 50, so the second entry keeps waiting.');
+        $this->assertSame(60, (int) QuickFloorEntry::where('production_order_id', $order->id)->get()->sum(fn ($e) => $e->pieces()));
+        $this->assertSame([1, 'IN_PROGRESS'], [MouldingRun::count(), $order->refresh()->status]);
     }
 }

@@ -6,13 +6,15 @@ use App\Models\Heat;
 use App\Models\MouldingRun;
 use App\Models\MouldingStation;
 use App\Models\Pattern;
+use App\Models\PatternRevision;
 use App\Models\Pour;
 use App\Models\ProductionOrder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-/** A count typed in on the quick floor page: moulds made on a pattern for an order, or moulds poured from a heat. */
+/** A count typed in on the quick floor page: moulds made on a pattern, or moulds poured from a heat. Without an order it waits to be linked. */
 class QuickFloorEntry extends Model
 {
     use HasUuids;
@@ -41,6 +43,17 @@ class QuickFloorEntry extends Model
     public function heat(): BelongsTo
     {
         return $this->belongsTo(Heat::class);
+    }
+
+    /** Entries still waiting for their order. */
+    public function scopeUnlinked(Builder $query): Builder
+    {
+        return $query->whereNull('production_order_id');
+    }
+
+    public function patternRevision(): BelongsTo
+    {
+        return $this->belongsTo(PatternRevision::class);
     }
 
     public function pattern(): BelongsTo

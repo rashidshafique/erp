@@ -17,6 +17,41 @@
 @include('quickflow::floor._grid', ['kind' => 'made', 'title' => 'Moulds made', 'action' => route('quick.floor.made'), 'submit' => 'Save moulds made'])
 @include('quickflow::floor._grid', ['kind' => 'poured', 'title' => 'Moulds poured', 'action' => route('quick.floor.poured'), 'submit' => 'Save moulds poured'])
 
+@if ($waiting->isNotEmpty())
+<div class="panel" id="waiting"><div class="panel-header"><h2>Waiting for an order</h2><span class="muted small">Stored without an order. Link each one here, or it links itself when a matching order opens.</span></div>
+    <div class="table-wrap"><table><thead><tr><th>Date</th><th></th><th>Pattern</th><th>Station</th><th>Heat</th><th>Moulds</th><th>Link to order</th></tr></thead><tbody>
+        @foreach ($waiting as $w)
+            @php
+                $e = $w['entry'];
+                $matching = $openOrders->filter(fn ($o) => $w['products']->contains($o['order']->product_id));
+                $others = $openOrders->reject(fn ($o) => $w['products']->contains($o['order']->product_id));
+            @endphp
+            <tr>
+                <td>{{ $e->entry_date->displayShortDate() }}</td>
+                <td>{{ $e->kind === 'MADE' ? 'Made' : 'Poured' }}</td>
+                <td><span class="fw-pattern">@isset($patternPhotos[$e->pattern_id])<img src="{{ $patternPhotos[$e->pattern_id] }}" alt="" loading="lazy">@endisset<span><strong>{{ $e->pattern?->name ?? '—' }}</strong><small class="muted">{{ $e->pattern?->code }}</small></span></span></td>
+                <td>{{ $e->station?->code ?? '—' }}</td>
+                <td>{{ $e->heat?->heat_number ?? '—' }}</td>
+                <td>{{ $e->moulds }}</td>
+                <td><form method="POST" action="{{ route('quick.floor.link', $e) }}" style="display:flex;gap:6px;align-items:center">@csrf
+                    <select name="production_order_id" data-search-select required style="width:260px" aria-label="Order">
+                        <option value="">Choose the order…</option>
+                        @if ($matching->isNotEmpty())<optgroup label="Makes this pattern's product">@foreach ($matching as $o)<option value="{{ $o['order']->id }}">{{ $label($o) }}</option>@endforeach</optgroup>@endif
+                        @if ($others->isNotEmpty())<optgroup label="Other open orders">@foreach ($others as $o)<option value="{{ $o['order']->id }}">{{ $label($o) }}</option>@endforeach</optgroup>@endif
+                    </select>
+                    <button class="btn btn-small btn-primary" type="submit">Link</button>
+                </form></td>
+            </tr>
+        @endforeach
+    </tbody></table></div>
+</div>
+<style>
+    .fw-pattern { display: inline-flex; gap: 8px; align-items: center; }
+    .fw-pattern img { width: 32px; height: 32px; border-radius: 6px; object-fit: cover; padding: 0; min-height: 0; }
+    .fw-pattern > span { display: flex; flex-direction: column; line-height: 1.25; }
+</style>
+@endif
+
 <div class="panel"><div class="panel-header"><h2>Heats in progress</h2></div>
     @forelse ($heats as $h)
         @php $t = $h->thermalTests->first(); @endphp
@@ -32,7 +67,7 @@
 
 <div class="panel"><div class="panel-header"><h2>Recent entries</h2></div>
     <div class="table-wrap"><table><thead><tr><th>Date</th><th></th><th>Pattern</th><th>Station</th><th>Order</th><th>Heat</th><th>Moulds</th><th>Pieces</th></tr></thead><tbody>
-        @forelse ($recent as $e)<tr><td>{{ $e->entry_date->displayShortDate() }}</td><td>{{ $e->kind === 'MADE' ? 'Made' : 'Poured' }}</td><td>{{ $e->pattern?->name ?? '—' }}</td><td>{{ $e->station?->code ?? '—' }}</td><td>{{ $e->productionOrder?->production_order_number }} {{ $e->productionOrder?->product?->code }}</td><td>{{ $e->heat?->heat_number }}</td><td>{{ $e->moulds }}</td><td>{{ $e->pieces() }}</td></tr>
+        @forelse ($recent as $e)<tr><td>{{ $e->entry_date->displayShortDate() }}</td><td>{{ $e->kind === 'MADE' ? 'Made' : 'Poured' }}</td><td>{{ $e->pattern?->name ?? '—' }}</td><td>{{ $e->station?->code ?? '—' }}</td><td>@if ($e->productionOrder){{ $e->productionOrder->production_order_number }} {{ $e->productionOrder->product?->code }}@else<a href="#waiting" class="muted">Not linked yet</a>@endif</td><td>{{ $e->heat?->heat_number }}</td><td>{{ $e->moulds }}</td><td>{{ $e->pieces() }}</td></tr>
         @empty<tr><td colspan="8" class="muted">Nothing entered yet.</td></tr>@endforelse
     </tbody></table></div>
 </div>

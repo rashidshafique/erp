@@ -11,6 +11,7 @@ Route::middleware('web')->prefix('quick')->name('quick.')->group(function () {
     Route::get('/floor', [FloorEntryController::class, 'index'])->name('floor.index');
     Route::post('/floor/made', [FloorEntryController::class, 'made'])->name('floor.made');
     Route::post('/floor/poured', [FloorEntryController::class, 'poured'])->name('floor.poured');
+    Route::post('/floor/entries/{entry}/link', [FloorEntryController::class, 'link'])->name('floor.link');
     Route::get('/next-heat', [NextHeatController::class, 'index'])->name('heat.index');
     Route::post('/next-heat/start', [NextHeatController::class, 'start'])->name('heat.start');
 });

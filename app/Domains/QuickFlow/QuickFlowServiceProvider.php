@@ -2,11 +2,28 @@
 
 namespace App\Domains\QuickFlow;
 
+use App\Domains\Core\ModuleRegistry;
 use App\Domains\Core\ModuleServiceProvider;
+use App\Domains\QuickFlow\Services\QuickFloorLinker;
+use App\Models\ProductionOrder;
 
 /** A short path for a small foundry: enter an order, type in moulds made and poured, and see what the next heat should melt. It sits on top of the full records and does not replace them. */
 class QuickFlowServiceProvider extends ModuleServiceProvider
 {
+    /** Floor entries waiting for an order are linked as soon as a matching order opens, wherever it is opened. */
+    public function boot(): void
+    {
+        parent::boot();
+        if (! $this->app->make(ModuleRegistry::class)->isEnabled($this->moduleName())) {
+            return;
+        }
+        ProductionOrder::saved(function (ProductionOrder $order) {
+            if (in_array($order->status, QuickFloorLinker::OPEN, true) && ($order->wasRecentlyCreated || $order->wasChanged('status'))) {
+                app(QuickFloorLinker::class)->linkWaitingFor($order);
+            }
+        });
+    }
+
     protected function moduleName(): string
     {
         return 'quickflow';

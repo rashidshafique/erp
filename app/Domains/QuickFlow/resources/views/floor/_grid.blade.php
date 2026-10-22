@@ -8,7 +8,7 @@
     $count = max(5, count($rows));
     $orderChoices = $pouring ? $awaiting : $orders;
     $today = today()->toDateString();
-    $autoLabel = fn ($order) => $order ? 'Automatic: '.$order->production_order_number.' '.$order->product?->code : 'Automatic: none open';
+    $autoLabel = fn ($order) => $order ? 'Automatic: '.$order->production_order_number.' '.$order->product?->code : 'Automatic: none open, link later';
 @endphp
 <div class="panel fg-panel" data-floor-grid="{{ $kind }}">
     <div class="panel-header"><h2>{{ $title }}</h2><span class="muted small">Pick the pattern and type the moulds. Station, pieces per mould, order and date are filled in.</span></div>
@@ -58,7 +58,7 @@
         var station = row.querySelector('[data-fg-station]'), ppm = row.querySelector('[data-fg-ppm]'), auto = row.querySelector('[data-fg-auto]');
         if (o.value && station) station.value = o.dataset.station || '';
         if (o.value && ppm) ppm.value = o.dataset.ppm || 1;
-        if (auto) auto.textContent = o.value ? (o.dataset.order || 'Automatic: none open') : 'Automatic';
+        if (auto) auto.textContent = o.value ? (o.dataset.order || 'Automatic: none open, link later') : 'Automatic';
     }
     document.addEventListener('change', function (e) {
         if (e.target.matches('[data-fg-pattern]')) fill(e.target);

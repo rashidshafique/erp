@@ -4,16 +4,14 @@ namespace App\Domains\QuickFlow\Http\Controllers;
 
 use App\Domains\QuickFlow\Models\QuickFloorEntry;
 use App\Domains\QuickFlow\Services\NextHeatPlan;
+use App\Domains\QuickFlow\Services\QuickFloorLinker;
 use App\Http\Controllers\Controller;
 use App\Models\Attachment;
 use App\Models\Heat;
-use App\Models\MouldingRun;
 use App\Models\MouldingStation;
 use App\Models\Pattern;
 use App\Models\Pour;
 use App\Models\ProductionOrder;
-use App\Services\PatternCavityMap;
-use App\Services\Production\WorkListService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -23,26 +21,30 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 /**
- * Typed-in counts, one grid row per pattern: moulds made, and moulds poured from a heat. Each row also writes the usual
- * moulding run or pour record. A row's order, station and pieces per mould are filled in from the pattern and can be changed.
+ * Typed-in counts, one grid row per pattern: moulds made, and moulds poured from a heat. A row goes to the order picked, else
+ * the open order that matches its pattern; with no order it is stored anyway and waits to be linked, by hand or when a
+ * matching order opens. Moulds made write their moulding run once they have an order; a pour is written straight away.
  */
 class FloorEntryController extends Controller
 {
-    private const OPEN = ['RELEASED', 'IN_PROGRESS'];
+    private const OPEN = QuickFloorLinker::OPEN;
 
-    public function __construct(private NextHeatPlan $plan, private WorkListService $workLists, private PatternCavityMap $cavityMap) {}
+    public function __construct(private NextHeatPlan $plan, private QuickFloorLinker $linker) {}
 
     public function index(): View
     {
         $orders = $this->plan->orders();
         $patterns = $this->patternChoices($orders);
+        $waiting = QuickFloorEntry::unlinked()->with(['pattern', 'patternRevision.cavityMap.productRevision', 'station', 'heat'])->orderBy('entry_date')->orderBy('created_at')->get();
 
         return view('quickflow::floor.index', [
             'orders' => $orders->filter(fn ($o) => $o['ordered'] > $o['poured']), 'awaiting' => $orders->filter(fn ($o) => $o['awaiting'] > 0),
+            'openOrders' => $orders,
             'patterns' => $patterns,
-            'patternPhotos' => Attachment::coverUrlsFor('pattern', $patterns->pluck('pattern.id')->all()),
+            'patternPhotos' => Attachment::coverUrlsFor('pattern', $patterns->pluck('pattern.id')->merge($waiting->pluck('pattern_id'))->all()),
             'stations' => MouldingStation::where('status', 'ACTIVE')->orderBy('code')->get(),
             'heats' => Heat::with(['ironGrade', 'furnace', 'thermalTests'])->whereNotIn('status', ['CANCELLED', 'CLOSED'])->orderByDesc('created_at')->limit(15)->get(),
+            'waiting' => $waiting->map(fn ($e) => ['entry' => $e, 'products' => $this->linker->productsOf($e->patternRevision)]),
             'recent' => QuickFloorEntry::with(['productionOrder.product', 'heat', 'pattern', 'station'])->orderByDesc('created_at')->limit(15)->get(),
         ]);
     }
@@ -51,27 +53,23 @@ class FloorEntryController extends Controller
     {
         $rows = $this->validatedRows($request);
 
-        $moulds = DB::transaction(function () use ($rows, $request) {
+        [$moulds, $waiting] = DB::transaction(function () use ($rows, $request) {
             $total = 0;
-            foreach ($rows as $n => $row) {
-                $order = ProductionOrder::lockForUpdate()->findOrFail($row['production_order_id']);
-                $run = MouldingRun::create([
-                    'run_number' => MouldingRun::nextRunNumber(), 'production_order_id' => $order->id, 'run_date' => $row['entry_date'],
-                    'pattern_revision_id' => $row['pattern_revision_id'], 'moulding_station_id' => $row['moulding_station_id'],
-                    'operator_name' => $request->input('entered_by'), 'planned_mould_qty' => $row['moulds'], 'moulds_made_qty' => $row['moulds'],
-                    'accepted_mould_qty' => $row['moulds'], 'status' => 'COMPLETED', 'completed_at' => now(),
-                ]);
-                QuickFloorEntry::create(['kind' => QuickFloorEntry::MADE, 'moulding_run_id' => $run->id, 'entered_by' => $request->input('entered_by')] + $this->entryFields($row));
-                if ($order->status === 'RELEASED') {
-                    $order->update(['status' => 'IN_PROGRESS', 'actual_started_at' => now()]);
+            $waiting = 0;
+            foreach ($rows as $row) {
+                $entry = QuickFloorEntry::create(['kind' => QuickFloorEntry::MADE, 'entered_by' => $request->input('entered_by')] + $this->entryFields($row));
+                if ($row['production_order_id']) {
+                    $this->linker->link($entry, ProductionOrder::findOrFail($row['production_order_id']), keepPiecesPerMould: true);
+                } else {
+                    $waiting++;
                 }
                 $total += $row['moulds'];
             }
 
-            return $total;
+            return [$total, $waiting];
         });
 
-        return back()->with('success', "{$moulds} moulds recorded on ".count($rows).' '.(count($rows) === 1 ? 'pattern' : 'patterns').'.');
+        return back()->with('success', "{$moulds} moulds recorded on ".count($rows).' '.(count($rows) === 1 ? 'pattern' : 'patterns').'.'.$this->waitingNote($waiting));
     }
 
     public function poured(Request $request): RedirectResponse
@@ -83,7 +81,7 @@ class FloorEntryController extends Controller
         $heat = Heat::with(['thermalTests', 'ironGrade'])->findOrFail($heatId);
         $advice = $this->thermalAdvice($heat);
 
-        $moulds = DB::transaction(function () use ($rows, $request, $heatId, $advice) {
+        [$moulds, $waiting] = DB::transaction(function () use ($rows, $request, $heatId, $advice) {
             $prefix = 'P-'.now()->format('Ymd').'-';
             $last = Pour::where('pour_number', 'like', $prefix.'%')->lockForUpdate()->pluck('pour_number')->map(fn ($n) => (int) substr($n, strlen($prefix)))->max() ?? 0;
             $pour = Pour::create([
@@ -92,13 +90,34 @@ class FloorEntryController extends Controller
                 'gate_mode' => 'ADVISORY', 'gate_note' => $advice,
             ]);
             foreach ($rows as $row) {
-                QuickFloorEntry::create(['kind' => QuickFloorEntry::POURED, 'pour_id' => $pour->id, 'heat_id' => $heatId, 'entered_by' => $request->input('entered_by')] + $this->entryFields($row));
+                $entry = QuickFloorEntry::create(['kind' => QuickFloorEntry::POURED, 'pour_id' => $pour->id, 'heat_id' => $heatId, 'entered_by' => $request->input('entered_by')] + $this->entryFields($row));
+                if ($row['production_order_id']) {
+                    $this->linker->link($entry, ProductionOrder::findOrFail($row['production_order_id']), keepPiecesPerMould: true);
+                }
             }
 
-            return array_sum(array_column($rows, 'moulds'));
+            return [array_sum(array_column($rows, 'moulds')), count(array_filter($rows, fn ($r) => ! $r['production_order_id']))];
         });
 
-        return back()->with('success', "{$moulds} moulds poured from {$heat->heat_number}.")->with('warning', $advice);
+        return back()->with('success', "{$moulds} moulds poured from {$heat->heat_number}.".$this->waitingNote($waiting))->with('warning', $advice);
+    }
+
+    /** Links an entry that was stored without an order. */
+    public function link(Request $request, QuickFloorEntry $entry): RedirectResponse
+    {
+        $orderId = $request->validate([
+            'production_order_id' => ['required', 'uuid', Rule::exists('production_orders', 'id')->whereIn('status', self::OPEN)],
+        ], ['production_order_id.required' => 'Choose the order.', 'production_order_id.exists' => 'That order is not open.'])['production_order_id'];
+        $order = ProductionOrder::findOrFail($orderId);
+
+        $this->linker->link($entry, $order);
+
+        return back()->with('success', "{$entry->moulds} ".($entry->kind === QuickFloorEntry::MADE ? 'moulds made' : 'moulds poured')." linked to {$order->production_order_number}.");
+    }
+
+    private function waitingNote(int $waiting): string
+    {
+        return $waiting ? " {$waiting} ".($waiting === 1 ? 'row is' : 'rows are').' waiting for an order; link '.($waiting === 1 ? 'it' : 'them').' below, or '.($waiting === 1 ? 'it links' : 'they link').' when a matching order opens.' : '';
     }
 
     /**
@@ -110,38 +129,25 @@ class FloorEntryController extends Controller
      */
     private function patternChoices(Collection $orders): Collection
     {
-        $awaitingByProduct = $orders->filter(fn ($o) => $o['awaiting'] > 0)->groupBy(fn ($o) => $o['order']->product_id);
-
         return Pattern::with(['currentRevision.cavityMap.productRevision'])->where('status', 'ACTIVE')->orderBy('name')->orderBy('code')->get()
-            ->map(function (Pattern $pattern) use ($awaitingByProduct) {
+            ->map(function (Pattern $pattern) use ($orders) {
                 $revision = $pattern->currentRevision;
-                $products = $revision ? $revision->cavityMap->map(fn ($c) => $c->productRevision?->product_id)->filter()->unique() : collect();
-                $makeOrder = $revision ? $this->workLists->openOrdersFor($revision->id)->first() : null;
-                $pourOrder = $products->map(fn ($id) => $awaitingByProduct->get($id)?->first()['order'])->filter()->first();
+                $makeOrder = $this->linker->makeOrderFor($revision);
+                $pourOrder = $this->linker->pourOrderFor($revision, $orders);
 
                 return [
                     'pattern' => $pattern, 'revision' => $revision, 'station_id' => $pattern->preferred_moulding_station_id,
                     'make_order' => $makeOrder, 'pour_order' => $pourOrder,
-                    'make_ppm' => $this->piecesPerMould($revision, $makeOrder), 'pour_ppm' => $this->piecesPerMould($revision, $pourOrder),
+                    'make_ppm' => $this->linker->piecesPerMould($revision, $makeOrder?->product_id), 'pour_ppm' => $this->linker->piecesPerMould($revision, $pourOrder?->product_id),
                 ];
             });
     }
 
-    /** Pieces of the order's product one mould of the revision gives, rounded; 1 when the cavity map does not say. */
-    private function piecesPerMould(?\App\Models\PatternRevision $revision, ?ProductionOrder $order): int
-    {
-        if (! $revision || ! $order) {
-            return 1;
-        }
-
-        return max(1, (int) round($this->cavityMap->expectedProductsPerMould($revision, $order->product_id)));
-    }
-
     /**
      * The filled-in rows of a grid, checked. Empty rows are skipped; a row needs a pattern and a mould count. A row without an
-     * order takes the pattern's open order, and is refused when there is none.
+     * order takes the pattern's open order, and is kept without one when none is open.
      *
-     * @return array<int, array{pattern_id: string, pattern_revision_id: ?string, production_order_id: string, moulding_station_id: ?string, moulds: int, pieces_per_mould: int, entry_date: string}>
+     * @return array<int, array{pattern_id: string, pattern_revision_id: ?string, production_order_id: ?string, moulding_station_id: ?string, moulds: int, pieces_per_mould: int, entry_date: string}>
      */
     private function validatedRows(Request $request, bool $pouring = false): array
     {
@@ -159,7 +165,7 @@ class FloorEntryController extends Controller
             'rows.*.production_order_id.exists' => 'That order is not open.',
         ]);
 
-        $choices = null;
+        $planOrders = null;
         $errors = [];
         $rows = [];
         foreach ((array) $request->input('rows', []) as $n => $row) {
@@ -178,19 +184,19 @@ class FloorEntryController extends Controller
 
                 continue;
             }
-            $choices ??= $this->patternChoices($this->plan->orders())->keyBy(fn ($c) => $c['pattern']->id);
-            $choice = $choices->get($row['pattern_id']);
-            $pattern = $choice['pattern'] ?? Pattern::with('currentRevision')->findOrFail($row['pattern_id']);
-            $order = $row['production_order_id'] ?? null ?: ($pouring ? $choice['pour_order'] ?? null : $choice['make_order'] ?? null)?->id;
+            $pattern = Pattern::with('currentRevision.cavityMap.productRevision')->findOrFail($row['pattern_id']);
+            $revision = $pattern->currentRevision;
+            $order = $row['production_order_id'] ?? null ?: null;
             if (! $order) {
-                $errors["rows.{$n}.production_order_id"] = "Row {$line}: no open order ".($pouring ? 'has moulds of' : 'needs what').' '.$pattern->name.($pouring ? ' waiting to be poured' : ' makes').'. Choose the order.';
-
-                continue;
+                $order = $pouring
+                    ? $this->linker->pourOrderFor($revision, $planOrders ??= $this->plan->orders())?->id
+                    : $this->linker->makeOrderFor($revision)?->id;
             }
             $rows[$n] = [
-                'pattern_id' => $pattern->id, 'pattern_revision_id' => $pattern->currentRevision?->id, 'production_order_id' => $order,
+                'pattern_id' => $pattern->id, 'pattern_revision_id' => $revision?->id, 'production_order_id' => $order,
                 'moulding_station_id' => $row['moulding_station_id'] ?? null ?: $pattern->preferred_moulding_station_id,
-                'moulds' => (int) $row['moulds'], 'pieces_per_mould' => (int) ($row['pieces_per_mould'] ?? null ?: 1),
+                'moulds' => (int) $row['moulds'],
+                'pieces_per_mould' => (int) ($row['pieces_per_mould'] ?? null ?: $this->linker->piecesPerMould($revision, null)),
                 'entry_date' => $row['entry_date'] ?? null ?: today()->toDateString(),
             ];
         }
@@ -204,10 +210,14 @@ class FloorEntryController extends Controller
         return $rows;
     }
 
-    /** @param  array<string, mixed>  $row */
+    /**
+     * The stored fields of a row; its order is set by QuickFloorLinker::link, which also writes a moulding run.
+     *
+     * @param  array<string, mixed>  $row
+     */
     private function entryFields(array $row): array
     {
-        return array_intersect_key($row, array_flip(['production_order_id', 'pattern_id', 'moulding_station_id', 'moulds', 'pieces_per_mould', 'entry_date']));
+        return array_intersect_key($row, array_flip(['pattern_id', 'pattern_revision_id', 'moulding_station_id', 'moulds', 'pieces_per_mould', 'entry_date']));
     }
 
     /** What the latest thermal test on the heat says. Shown and recorded on the pour, never a reason to refuse it. */
