@@ -23,7 +23,7 @@
         @unless ($metal['complete'])<span class="status status-on-hold" title="Gating, runner or sprue weights are missing, so this is the castings only">castings only</span>@endunless
     @endif
 </div>
-<details class="layout-form" @if ($mine) open @endif>
+<details class="layout-form" @if ($mine || $revision->is_current) open @endif>
     <summary>Mould layout</summary>
     @if ($assembled)
         <div class="alert alert-warning" style="margin:0 0 8px">Moulds have been assembled with this layout. Correct it only if it was entered wrongly: those moulds keep the castings they recorded, and the reason is kept in the audit trail. If the tooling itself changed, record a new revision instead.</div>

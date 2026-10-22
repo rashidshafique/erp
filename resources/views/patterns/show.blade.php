@@ -4,59 +4,133 @@
 @section('breadcrumb', 'Patterns / ' . $pattern->code)
 
 @section('content')
-@php $typeLabel = ucfirst(strtolower(str_replace('_', ' ', $pattern->pattern_type ?? 'other'))); @endphp
-<div class="page-heading">
-    <div class="pattern-title">
-        <h1>{{ $pattern->name }}</h1>
-        <p><span class="code">{{ $pattern->code }}</span><span class="dot-sep">·</span>{{ $typeLabel }}<span class="dot-sep">·</span><span class="status {{ $pattern->status === 'ACTIVE' ? 'status-completed' : 'status-cancelled' }}">{{ $pattern->status }}</span><span class="dot-sep">·</span><span title="Owner">{{ $pattern->owner_type === 'FOUNDRY' ? 'Foundry-owned' : 'Property of '.$pattern->ownerLabel() }}</span></p>
-    </div>
-    <div class="actions">
-        @if ($previousPattern)<a class="btn" href="{{ route('patterns.show', array_filter(['pattern' => $previousPattern, 'link' => request('link')])) }}" title="Previous: {{ $previousPattern->code }} — {{ $previousPattern->name }}" aria-label="Previous pattern, {{ $previousPattern->code }}">&larr;</a>@else<span class="btn" aria-disabled="true" style="opacity:.4;cursor:default">&larr;</span>@endif
-        @if ($nextPattern)<a class="btn" href="{{ route('patterns.show', array_filter(['pattern' => $nextPattern, 'link' => request('link')])) }}" title="Next: {{ $nextPattern->code }} — {{ $nextPattern->name }}" aria-label="Next pattern, {{ $nextPattern->code }}">&rarr;</a>@else<span class="btn" aria-disabled="true" style="opacity:.4;cursor:default">&rarr;</span>@endif
-        <a class="btn" href="{{ route('patterns.index') }}">All patterns</a>
-        @if ($pattern->trashed())
-            <form method="POST" action="{{ route('patterns.restore', $pattern) }}" style="display:inline">@csrf<button class="btn btn-primary" type="submit">Restore pattern</button></form>
-        @else
-            <form method="POST" action="{{ route('patterns.archive', $pattern) }}" style="display:inline" onsubmit="return confirm(@js('Archive '.$pattern->code.'? It leaves the pattern list and pickers but stays on old runs, and can be restored.'))">@csrf @method('DELETE')<button class="btn" type="submit">Archive</button></form>
-            <button type="button" class="btn btn-primary" data-quick="qd-revision">+ New revision</button>
-        @endif
-    </div>
-</div>
-@if ($pattern->trashed() && in_array($pattern->custody, ['RETURNED', 'SCRAPPED'], true))<div class="alert alert-warning">{{ $pattern->custody === 'RETURNED' ? 'Returned to '.$pattern->ownerLabel() : 'Scrapped' }} on {{ $pattern->deleted_at->displayDate() }}. It cannot be moulded.@if ($pattern->custody === 'RETURNED') Restore it if the customer sends it back.@endif</div>
-@elseif ($pattern->trashed())<div class="alert alert-warning">Archived on {{ $pattern->deleted_at->displayDate() }}. It is left out of the pattern list, its counts and the moulding pickers, and stays on the runs and tooling records that used it. Restore it to use it again.</div>@endif
-
-@php $current = $pattern->revisions->firstWhere('is_current', true); @endphp
-@include('partials.quick-dialog', ['id' => 'qd-revision', 'title' => 'New revision of '.$pattern->code, 'action' => route('patterns.revisions.store', $pattern), 'submit' => 'Create revision', 'fields' => 'patterns._quick-revision', 'multipart' => true, 'current' => $current])
-
-<div class="tab-marker" data-tab-start="Tooling"></div>
+@php
+    $typeLabel = ucfirst(strtolower(str_replace('_', ' ', $pattern->pattern_type ?? 'other')));
+    $current = $pattern->revisions->firstWhere('is_current', true);
+    $madeProducts = $current ? $current->cavityMap->map(fn ($c) => $c->productRevision?->product)->filter()->unique('id') : collect();
+    $levels = $current?->castingLevels() ?? 1;
+    $cavities = $current ? (int) ($current->cavities_per_mould ?? $current->cavityMap->count()) : 0;
+    $flask = $current?->flaskSizes->first();
+    $sections = (int) ($current?->layers_per_mould ?? 2);
+    $station = $pattern->preferredStation;
+    $cooling = $current?->min_cooling_minutes;
+    $mm = fn ($v) => $v === null ? '—' : rtrim(rtrim(number_format((float) $v, 2, '.', ''), '0'), '.');
+    $canEditInPlace = ! $pattern->trashed() && \App\Http\Middleware\EnforceAccess::allows(auth()->user(), 'patterns.update');
+    $editingInPlace = $canEditInPlace && old('_inplace') !== null && $errors->any();
+@endphp
 <style>
-    .pattern-title h1 { font-size: 26px; line-height: 1.2; margin: 0 0 4px; }
-    .pattern-title p { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; color: var(--muted); font-size: 13px; }
-    .pattern-title .code { font: 600 13px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text); letter-spacing: .02em; }
-    .pattern-title .dot-sep { color: var(--border); }
+    .pd-head { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 16px; }
+    .pd-top { display: flex; flex-wrap: wrap; gap: 12px 20px; justify-content: space-between; align-items: flex-start; }
+    .pd-title { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .pd-title h1 { font-size: 26px; line-height: 1.2; margin: 0 6px 0 0; }
+    .pd-badge { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; border: 1px solid var(--border); color: var(--muted); }
+    .pd-badge.ok { color: var(--success, #067647); background: color-mix(in srgb, var(--success, #067647) 10%, transparent); border-color: color-mix(in srgb, var(--success, #067647) 30%, transparent); }
+    .pd-badge.off { color: var(--danger); background: color-mix(in srgb, var(--danger) 8%, transparent); border-color: color-mix(in srgb, var(--danger) 30%, transparent); }
+    .pd-badge.owner { color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); border-color: color-mix(in srgb, var(--accent) 30%, transparent); }
+    .pd-badge.type { font: 500 12px ui-monospace, SFMono-Regular, Menlo, monospace; border-radius: 6px; }
+    .pd-meta { display: flex; flex-wrap: wrap; gap: 6px 22px; margin-top: 8px; font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted); }
+    .pd-meta strong { color: var(--text); font-weight: 600; }
+    .pd-meta .stamp { padding: 0 6px; border: 1px solid color-mix(in srgb, var(--warning, #b54708) 50%, transparent); background: color-mix(in srgb, var(--warning, #b54708) 8%, transparent); border-radius: 4px; color: var(--text); letter-spacing: .1em; }
+    .pd-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; align-items: center; }
+    .pd-actions .pd-nav { display: inline-flex; }
+    .pd-actions .pd-nav .btn:first-child { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+    .pd-actions .pd-nav .btn:last-child { border-top-left-radius: 0; border-bottom-left-radius: 0; margin-left: -1px; }
+    .pd-tiles { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+    .pd-tile { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; min-width: 0; }
+    .pd-tile dt { font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+    .pd-tile dd { margin: 6px 0 0; font-size: 16px; font-weight: 700; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; }
+    .pd-tile dd.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 15px; }
+    .pd-tile .sub { display: block; margin-top: 4px; font-size: 12px; font-weight: 400; color: var(--muted); white-space: normal; }
+    .pd-tile .sub.good { color: var(--success, #067647); }
+    .pd-tile .sub.link { color: var(--accent); }
+    @media (max-width: 1280px) { .pd-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (max-width: 640px) { .pd-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pd-actions { justify-content: flex-start; } }
+
+    .pd-dossier { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; align-items: start; }
+    .pd-side { display: grid; gap: 16px; }
+    .pd-side .panel { margin: 0; }
+    .pd-side .form-grid { grid-template-columns: 1fr; }
+    @media (max-width: 1100px) { .pd-dossier { grid-template-columns: 1fr; } }
+
     [data-inplace] [hidden] { display: none !important; }
-    .tool-layout { display: grid; grid-template-columns: 170px minmax(0, 1fr) 260px; gap: 20px 28px; align-items: start; }
-    .tool-photo > .cover-box { float: none; margin: 0; width: 100% !important; }
-    .tool-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 16px 24px; margin: 0; }
+    .tool-photo > .cover-box { float: none; margin: 0 0 14px; width: 100% !important; }
+    .tool-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0; }
+    .tool-facts > div { background: color-mix(in srgb, var(--border) 25%, transparent); border-radius: 8px; padding: 10px 12px; min-width: 0; }
     .tool-facts .fact-wide { grid-column: 1 / -1; }
     .tool-facts dt { margin: 0 0 4px; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
     .tool-facts dd { margin: 0; font-size: 14px; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
     .tool-facts dd details, .tool-facts dd a { font-size: 12px; font-weight: 400; }
     .tool-facts dd details summary { color: var(--muted); }
     .tool-facts dd .sub { display: block; margin-top: 2px; font-size: 12px; font-weight: 400; color: var(--muted); }
-    .tool-diagram { justify-self: center; padding: 6px 0; }
-    .tool-notes { display: grid; gap: 14px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+    .tool-notes { display: grid; gap: 12px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
     .tool-notes h3 { margin: 0 0 4px; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
-    .tool-notes p { margin: 0; max-width: 75ch; line-height: 1.5; }
-    @media (max-width: 1024px) { .tool-layout { grid-template-columns: 150px minmax(0, 1fr); } .tool-diagram { grid-column: 1 / -1; justify-self: start; } }
-    @media (max-width: 768px) { .tool-layout { grid-template-columns: 1fr; } .tool-photo { max-width: 200px; } }
+    .tool-notes p { margin: 0; line-height: 1.5; }
 </style>
-@php
-    $canEditInPlace = ! $pattern->trashed() && \App\Http\Middleware\EnforceAccess::allows(auth()->user(), 'patterns.update');
-    $editingInPlace = $canEditInPlace && old('_inplace') !== null && $errors->any();
-@endphp
+
+<div class="pd-head">
+    <div class="pd-top">
+        <div>
+            <div class="pd-title">
+                <h1>{{ $pattern->name }}</h1>
+                <span class="pd-badge {{ $pattern->status === 'ACTIVE' ? 'ok' : 'off' }}">{{ $pattern->status }}</span>
+                <span class="pd-badge owner" title="Owner">{{ $pattern->owner_type === 'FOUNDRY' ? 'Foundry-owned' : 'Property of '.$pattern->ownerLabel() }}</span>
+                <span class="pd-badge type">{{ $typeLabel }}</span>
+            </div>
+            <div class="pd-meta">
+                <span>Code: <strong>{{ $pattern->code }}</strong></span>
+                @if ($pattern->mark_code)<span>Engraved stamp: <span class="stamp">{{ $pattern->mark_code }}</span></span>@endif
+                <span>Makes: @forelse ($madeProducts as $made)<a href="{{ route('products.show', $made) }}">{{ $made->name }}</a> {{ $made->code }}@if (! $loop->last), @endif @empty<span>no product linked</span>@endforelse</span>
+            </div>
+        </div>
+        <div class="pd-actions">
+            <span class="pd-nav">
+                @if ($previousPattern)<a class="btn" href="{{ route('patterns.show', array_filter(['pattern' => $previousPattern, 'link' => request('link')])) }}" title="Previous: {{ $previousPattern->code }} — {{ $previousPattern->name }}" aria-label="Previous pattern, {{ $previousPattern->code }}">&larr;</a>@else<span class="btn" aria-disabled="true" style="opacity:.4;cursor:default">&larr;</span>@endif
+                @if ($nextPattern)<a class="btn" href="{{ route('patterns.show', array_filter(['pattern' => $nextPattern, 'link' => request('link')])) }}" title="Next: {{ $nextPattern->code }} — {{ $nextPattern->name }}" aria-label="Next pattern, {{ $nextPattern->code }}">&rarr;</a>@else<span class="btn" aria-disabled="true" style="opacity:.4;cursor:default">&rarr;</span>@endif
+            </span>
+            <a class="btn" href="{{ route('patterns.index') }}">All patterns</a>
+            <a class="btn" href="{{ route('labels.show', ['pattern', $pattern->id]) }}" target="_blank">Print tag</a>
+            @if ($pattern->trashed())
+                <form method="POST" action="{{ route('patterns.restore', $pattern) }}" style="display:inline">@csrf<button class="btn btn-primary" type="submit">Restore pattern</button></form>
+            @else
+                <form method="POST" action="{{ route('patterns.archive', $pattern) }}" style="display:inline" onsubmit="return confirm(@js('Archive '.$pattern->code.'? It leaves the pattern list and pickers but stays on old runs, and can be restored.'))">@csrf @method('DELETE')<button class="btn" type="submit">Archive</button></form>
+                <button type="button" class="btn btn-primary" data-quick="qd-revision">+ New revision</button>
+            @endif
+        </div>
+    </div>
+    <dl class="pd-tiles">
+        <div class="pd-tile"><dt>Castings per mould</dt>
+            <dd>{{ $current && $cavities ? $levels * $cavities : '—' }}</dd>
+            <span class="sub link">@if ($current){{ $levels }} {{ $levels === 1 ? 'level' : 'levels' }} × {{ $cavities }} {{ $cavities === 1 ? 'cavity' : 'cavities' }}@else no layout yet @endif</span></div>
+        <div class="pd-tile"><dt>Active revision</dt>
+            <dd class="mono">{{ $current?->shortCode() ?? '—' }}</dd>
+            <span class="sub {{ $current?->status === 'APPROVED' ? 'good' : '' }}">@if ($current){{ ucfirst(strtolower($current->status)) }} · Current @else Recorded with the first cavity map @endif</span></div>
+        <div class="pd-tile"><dt>Default station &amp; sand</dt>
+            <dd title="{{ $station ? $station->code.' — '.$station->name : '' }}">{{ $station?->code ?? 'Any station' }}</dd>
+            <span class="sub">Sand: {{ $pattern->sand_system ?: ($station?->defaultSand() ? $station->defaultSand().' (station default)' : 'not recorded') }}</span></div>
+        <div class="pd-tile"><dt>Flask size</dt>
+            <dd>{{ $current?->isFlaskless() ? 'Flaskless' : ($flask?->name ?? '—') }}</dd>
+            <span class="sub">@if ($current){{ \Illuminate\Support\Str::before($current->arrangementLabel(), ' (') }}@if (in_array($current->mould_arrangement, ['STACK', 'CORE_PACKAGE'], true)) · {{ $sections }} sections @endif @else — @endif</span></div>
+        <div class="pd-tile"><dt>Location</dt>
+            <dd>{{ $pattern->custody_location ?: (\App\Models\Pattern::CUSTODIES[$pattern->custody] ?? 'Not recorded') }}</dd>
+            <span class="sub">{{ $pattern->custody_location ? (\App\Models\Pattern::CUSTODIES[$pattern->custody] ?? '') : 'No storage place recorded' }}</span></div>
+        <div class="pd-tile"><dt>Shakeout cooling</dt>
+            <dd>{{ $cooling !== null ? $cooling.' min' : '—' }}</dd>
+            <span class="sub {{ $cooling !== null ? 'good' : '' }}">{{ $cooling !== null ? 'Enforced before shakeout' : 'No minimum set' }}</span></div>
+    </dl>
+</div>
+@if ($pattern->trashed() && in_array($pattern->custody, ['RETURNED', 'SCRAPPED'], true))<div class="alert alert-warning">{{ $pattern->custody === 'RETURNED' ? 'Returned to '.$pattern->ownerLabel() : 'Scrapped' }} on {{ $pattern->deleted_at->displayDate() }}. It cannot be moulded.@if ($pattern->custody === 'RETURNED') Restore it if the customer sends it back.@endif</div>
+@elseif ($pattern->trashed())<div class="alert alert-warning">Archived on {{ $pattern->deleted_at->displayDate() }}. It is left out of the pattern list, its counts and the moulding pickers, and stays on the runs and tooling records that used it. Restore it to use it again.</div>@endif
+
+@include('partials.quick-dialog', ['id' => 'qd-revision', 'title' => 'New revision of '.$pattern->code, 'action' => route('patterns.revisions.store', $pattern), 'submit' => 'Create revision', 'fields' => 'patterns._quick-revision', 'multipart' => true, 'current' => $current])
+
+<div class="tab-marker" data-tab-start="Pattern dossier"></div>
+<div class="pd-dossier">
+<div class="pd-main">
+@include('patterns._cavity-map', ['pattern' => $pattern, 'productRevisions' => $productRevisions])
+</div>
+<aside class="pd-side">
 <div class="panel" data-inplace>
-    <div class="panel-header"><h2>Physical tooling record</h2>@if ($canEditInPlace)<button type="button" class="btn btn-small" data-inplace-open @if ($editingInPlace) hidden @endif>Edit</button>@endif</div>
+    <div class="panel-header"><h2>Physical tooling plate</h2>@if ($canEditInPlace)<button type="button" class="btn btn-small" data-inplace-open @if ($editingInPlace) hidden @endif>Edit specs</button>@endif</div>
     <div class="panel-body">
         @if ($canEditInPlace)
         <form method="POST" action="{{ route('patterns.update', $pattern) }}" data-inplace-form @unless ($editingInPlace) hidden @endunless>
@@ -68,35 +142,28 @@
             <div class="actions" style="margin-top:12px"><button class="btn btn-primary" type="submit">Save</button><button class="btn" type="button" data-inplace-cancel>Cancel</button></div>
         </form>
         @endif
-        <div class="tool-layout" data-inplace-view @if ($editingInPlace) hidden @endif>
-            <div class="tool-photo">@include('attachments._cover', ['type' => 'pattern', 'id' => $pattern->id, 'size' => 170])</div>
+        <div data-inplace-view @if ($editingInPlace) hidden @endif>
+            <div class="tool-photo">@include('attachments._cover', ['type' => 'pattern', 'id' => $pattern->id, 'size' => 320])</div>
             <dl class="tool-facts">
-                <div><dt>Pattern code</dt><dd class="mono">{{ $pattern->code }}</dd></div>
-                <div><dt>Type</dt><dd>{{ $typeLabel }}</dd></div>
                 <div><dt>Material</dt><dd>{{ $pattern->material ?: '—' }}</dd></div>
-                @php $mm = fn ($v) => $v === null ? '—' : rtrim(rtrim(number_format((float) $v, 2, '.', ''), '0'), '.'); @endphp
                 <div><dt>Dimensions (L × W × H)</dt><dd>@if ($pattern->length_mm || $pattern->width_mm || $pattern->height_mm){{ $mm($pattern->length_mm) }} × {{ $mm($pattern->width_mm) }} × {{ $mm($pattern->height_mm) }} mm @else — @endif</dd></div>
-                <div><dt>Made for sand</dt><dd>{{ $pattern->sand_system ?: 'Not recorded' }}@if ($pattern->compatible_sands)<span class="sub">also works on {{ implode(', ', $pattern->compatible_sands) }}</span>@endif</dd></div>
+                <div><dt>Made for sand</dt><dd>{{ $pattern->sand_system ?: ($station?->defaultSand() ? $station->defaultSand() : 'Not recorded') }}@if (! $pattern->sand_system && $station?->defaultSand())<span class="sub">station default</span>@endif @if ($pattern->compatible_sands)<span class="sub">also works on {{ implode(', ', $pattern->compatible_sands) }}</span>@endif</dd></div>
                 <div><dt>Current revision</dt><dd>@if ($current)<span class="mono">{{ $current->code }}</span>@if ($current->drawing_revision)<span class="sub">drawing rev {{ $current->drawing_revision }}</span>@endif @else — @endif</dd></div>
-                @php $madeProducts = $current ? $current->cavityMap->map(fn ($c) => $c->productRevision?->product)->filter()->unique('id') : collect(); @endphp
-                @if ($madeProducts->isNotEmpty())<div class="fact-wide"><dt>Makes</dt><dd>@foreach ($madeProducts as $made)<a href="{{ route('products.show', $made) }}">{{ $made->name }}</a> <span class="muted small mono">{{ $made->code }}</span>@if (! $loop->last)<span class="dot-sep"> · </span>@endif @endforeach</dd></div>@endif
-                <div class="fact-wide"><dt>Engraved mark</dt><dd>@include('tooling::tools._mark', ['tool' => $pattern, 'type' => 'pattern', 'bare' => true, 'optional' => true])</dd></div>
+                <div class="fact-wide"><dt>Engraved stamp</dt><dd>@include('tooling::tools._mark', ['tool' => $pattern, 'type' => 'pattern', 'bare' => true, 'optional' => true])</dd></div>
             </dl>
-            <div class="tool-diagram">@include('patterns._mould-diagram', ['revision' => $current, 'size' => 'lg'])</div>
+            @if ($pattern->description || $pattern->notes)
+                <div class="tool-notes">
+                    @if ($pattern->description)<div><h3>Description</h3><p>{{ $pattern->description }}</p></div>@endif
+                    @if ($pattern->notes)<div><h3>General tooling notes</h3><p>{{ $pattern->notes }}</p></div>@endif
+                </div>
+            @endif
         </div>
-
-        @if ($pattern->description || $pattern->notes)
-            <div class="tool-notes">
-                @if ($pattern->description)<div><h3>Description</h3><p>{{ $pattern->description }}</p></div>@endif
-                @if ($pattern->notes)<div><h3>General tooling notes</h3><p>{{ $pattern->notes }}</p></div>@endif
-            </div>
-        @endif
     </div>
 </div>
 @if ($canEditInPlace)
 <script>
 document.querySelectorAll('[data-inplace]').forEach(function (panel) {
-    var form = panel.querySelector('[data-inplace-form]'), view = panel.querySelectorAll('[data-inplace-view], .tool-notes'), open = panel.querySelector('[data-inplace-open]');
+    var form = panel.querySelector('[data-inplace-form]'), view = panel.querySelectorAll('[data-inplace-view]'), open = panel.querySelector('[data-inplace-open]');
     function show(editing) {
         form.hidden = !editing; open.hidden = editing;
         view.forEach(function (el) { el.hidden = editing; });
@@ -104,7 +171,6 @@ document.querySelectorAll('[data-inplace]').forEach(function (panel) {
     }
     open.addEventListener('click', function () { show(true); });
     form.querySelector('[data-inplace-cancel]').addEventListener('click', function () { show(false); });
-    if (!form.hidden) view.forEach(function (el) { el.hidden = true; });
 });
 </script>
 @endif
@@ -113,14 +179,17 @@ document.querySelectorAll('[data-inplace]').forEach(function (panel) {
 @include('patterns._tool-life', ['pattern' => $pattern, 'toolLife' => $toolLife])
 @endif
 
-<div class="tab-marker" data-tab-start="Sand system"></div>
-<div class="panel"><div class="panel-header"><h2>Sand system</h2></div><div class="panel-body">
+<div class="panel"><div class="panel-header"><h2>Sand system &amp; line match</h2></div><div class="panel-body">
     <p class="muted small" style="margin-top:0">A pattern is made with the taper and allowances of one sand system. The work list warns when it is put on a line running a sand system that is not listed here.</p>
     <form method="POST" action="{{ route('patterns.sand', $pattern) }}" class="form-grid">@csrf @method('PUT')
         @include('patterns._sand', ['sands' => \App\Models\SandSystem::choices($pattern->sand_system, ...($pattern->compatible_sands ?? []))])
         <div><button class="btn btn-primary">Save sand system</button></div>
     </form>
 </div></div>
+
+@include('patterns._cooling', ['pattern' => $pattern])
+</aside>
+</div>
 
 <div class="tab-marker" data-tab-start="Revisions"></div>
 <div class="panel">
@@ -193,11 +262,6 @@ document.querySelectorAll('[data-inplace]').forEach(function (panel) {
 <div class="tab-marker" data-tab-start="Ownership"></div>
 @include('patterns._ownership', ['pattern' => $pattern, 'owner' => $owner])
 
-<div class="tab-marker" data-tab-start="Cavity map"></div>
-@include('patterns._cavity-map', ['pattern' => $pattern, 'productRevisions' => $productRevisions])
-
-<div class="tab-marker" data-tab-start="Cooling"></div>
-@include('patterns._cooling', ['pattern' => $pattern])
 <div class="tab-marker" data-tab-start="Files & history"></div>
 @include('custom-fields._panel', ['entity' => 'pattern', 'id' => $pattern->id])
 @include('attachments._panel', ['type' => 'pattern', 'id' => $pattern->id])

@@ -142,9 +142,9 @@ class MouldLayoutTest extends TestCase
 
         $page = $this->get(route('patterns.show', $revision->pattern));
 
-        $page->assertOk()->assertSeeInOrder(['<h1>Ring plate</h1>', '<span class="code">'.$revision->pattern->code.'</span>'], false)
+        $page->assertOk()->assertSeeInOrder(['<h1>Ring plate</h1>', 'Code: <strong>'.$revision->pattern->code.'</strong>'], false)
             ->assertSee('aria-label="Stack mould (sections stacked on one sprue): 7 levels of 4 cavities, 28 castings per mould"', false)
             ->assertSee('28 castings per mould');
-        $this->get(route('patterns.show', $bare))->assertOk()->assertSee('no layout')->assertSee('No revision recorded yet');
+        $this->get(route('patterns.show', $bare))->assertOk()->assertSee('no layout yet')->assertSee('Recorded with the first cavity map');
     }
 }
