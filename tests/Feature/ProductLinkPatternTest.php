@@ -119,4 +119,28 @@ class ProductLinkPatternTest extends TestCase
         $this->put(route('patterns.cavities.map', [$pattern, $revision]), ['cavities_per_mould' => 1, 'rows' => [1 => ['product_revision_id' => 'product:'.fake()->uuid()]]])
             ->assertSessionHasErrors('rows.1.product_revision_id');
     }
+
+    public function test_a_pattern_without_a_revision_gets_rev_0_when_its_cavity_map_is_saved(): void
+    {
+        $pattern = Pattern::create(['code' => 'P-0100', 'name' => 'Valve plate']);
+
+        $this->get(route('patterns.show', $pattern))->assertOk()->assertSee(route('patterns.cavities.first-map', $pattern))->assertSee('first revision (Rev 0)');
+        $this->assertSame(0, $pattern->revisions()->count());
+
+        $this->put(route('patterns.cavities.first-map', $pattern), ['cavities_per_mould' => 2, 'rows' => [1 => ['product_revision_id' => $this->productRevision->id]]])
+            ->assertSessionHasNoErrors();
+
+        $revision = $pattern->currentRevision()->first();
+        $this->assertSame([0, 2, $this->productRevision->id], [(int) $revision->sequence, (int) $revision->cavities_per_mould, $revision->cavityMap()->sole()->product_revision_id]);
+    }
+
+    public function test_a_refused_first_cavity_map_leaves_the_pattern_without_a_revision(): void
+    {
+        $pattern = Pattern::create(['code' => 'P-0100', 'name' => 'Valve plate']);
+
+        $this->put(route('patterns.cavities.first-map', $pattern), ['cavities_per_mould' => 1, 'rows' => [1 => ['product_revision_id' => 'product:'.fake()->uuid()]]])
+            ->assertSessionHasErrors('rows.1.product_revision_id');
+
+        $this->assertSame(0, $pattern->revisions()->count());
+    }
 }

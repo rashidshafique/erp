@@ -131,6 +131,20 @@ class PatternCavityController extends Controller
         return redirect()->route('patterns.show', $pattern)->with('success', "Cavity map of {$revision->code} saved: {$linked} of {$count} ".($count === 1 ? 'cavity' : 'cavities').' linked to a product.'.($layoutMessage && str_contains($layoutMessage, 'corrected') ? ' '.$layoutMessage : ''));
     }
 
+    /**
+     * Saves the cavity map of a pattern that has no revision yet: its first revision (Rev 0) is recorded together with the map,
+     * and not at all if the map is refused.
+     */
+    public function saveFirstMap(Request $request, Pattern $pattern, RevisionLayout $layout): RedirectResponse
+    {
+        return DB::transaction(fn () => $this->saveMap(
+            $request,
+            $pattern,
+            $pattern->currentRevision()->first() ?? $pattern->addRevision(['change_description' => 'First revision, recorded with the cavity map']),
+            $layout,
+        ));
+    }
+
     /** Maps a cavity on the revision picked in the form, which defaults to the pattern's current revision. */
     public function add(Request $request, Pattern $pattern): RedirectResponse
     {

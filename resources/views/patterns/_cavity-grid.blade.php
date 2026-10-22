@@ -10,7 +10,7 @@
     // Products offered with more than one revision: the closed dropdown shows only the name, so those need the revision on it too.
     $manyRevisions = $productRevisions->groupBy('product_id')->filter(fn ($g) => $g->count() > 1)->keys()->flip();
 @endphp
-<form method="POST" action="{{ route('patterns.cavities.map', [$pattern, $revision]) }}" class="cavity-grid" data-cavity-grid>
+<form method="POST" action="{{ $action ?? route('patterns.cavities.map', [$pattern, $revision]) }}" class="cavity-grid" data-cavity-grid>
     @csrf @method('PUT')<input type="hidden" name="_map" value="{{ $revision->id }}">
     <div class="cg-head">
         <div class="field"><label for="cg-count-{{ $revision->id }}">Cavities on the layout</label>

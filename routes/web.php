@@ -102,6 +102,7 @@ Route::prefix('patterns')->name('patterns.')->controller(PatternController::clas
     Route::get('/{pattern}/revisions/{revision}/edit', 'editRevision')->name('revisions.edit');
     Route::put('/{pattern}/revisions/{revision}', 'updateRevisionDetails')->name('revisions.update');
     Route::post('/{pattern}/cavities', [PatternCavityController::class, 'add'])->name('cavities.add');
+    Route::put('/{pattern}/cavity-map', [PatternCavityController::class, 'saveFirstMap'])->name('cavities.first-map');
     Route::put('/{pattern}/revisions/{revision}/cavity-map', [PatternCavityController::class, 'saveMap'])->name('cavities.map');
     Route::post('/{pattern}/revisions/{revision}/cavities', [PatternCavityController::class, 'store'])->name('cavities.store');
     Route::put('/{pattern}/revisions/{revision}/cavities/{cavity}', [PatternCavityController::class, 'update'])->name('cavities.update');
