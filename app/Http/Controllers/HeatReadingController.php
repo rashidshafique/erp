@@ -16,6 +16,8 @@ use App\Models\MaterialLot;
 use App\Models\StockLotCostLayer;
 use App\Models\StockMovement;
 use App\Services\FurnaceEligibility;
+use App\Services\Production\HeatEta;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -36,7 +38,29 @@ class HeatReadingController extends Controller
         return view('heats.index', compact('heats'));
     }
 
-    public function show(Heat $heat): View
+    /** The finishing estimate of a running heat, polled by the heat page every minute. */
+    public function eta(Heat $heat, HeatEta $eta): JsonResponse
+    {
+        $heat->loadMissing('furnace');
+        $run = $heat->furnaceRun();
+
+        return response()->json([
+            'running' => $run['running'],
+            'since' => $run['start']?->toIso8601String(),
+            'eta' => ($e = $eta->for($heat)) ? $this->etaPayload($e) : null,
+        ]);
+    }
+
+    /** @param  array<string, mixed>  $e */
+    private function etaPayload(array $e): array
+    {
+        return [
+            'finish_at' => $e['finish_at']->toIso8601String(), 'time' => $e['finish_at']->format('H:i'), 'in' => \App\Support\Formats::duration((int) now()->diffInMinutes($e['finish_at'], false)),
+            'overdue' => $e['finish_at']->isPast(), 'remaining_kg' => $e['remaining_kg'], 'basis' => $e['label'],
+        ];
+    }
+
+    public function show(Heat $heat, HeatEta $eta): View
     {
         $heat->load([
             'furnace',
@@ -95,9 +119,12 @@ class HeatReadingController extends Controller
             : null;
 
         $chargeIsPosted = $heat->chargePosting !== null;
+        $finish = $eta->for($heat);
+        $finish = $finish ? $this->etaPayload($finish) : null;
 
         return view('heats.show', compact(
             'heat',
+            'finish',
             'plannedChargeItems',
             'activeMaterials',
             'acceptedLots',
@@ -372,7 +399,8 @@ class HeatReadingController extends Controller
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        DB::transaction(function () use ($heat, $validated) {
+        $withoutLot = 0;
+        DB::transaction(function () use ($heat, $validated, &$withoutLot) {
             $lockedHeat = Heat::query()
                 ->whereKey($heat->id)
                 ->lockForUpdate()
@@ -523,6 +551,16 @@ class HeatReadingController extends Controller
                     continue;
                 }
 
+                if ($entry->consumption_type === 'RAW_MATERIAL' && $entry->material_id && ! $entry->material_lot_id
+                    && ! Material::whereKey($entry->material_id)->value('requires_lot_tracking')) {
+                    // Charged at standard cost without a lot: its cost is kept as recorded and no stock layer is issued.
+                    $totalQuantity += $quantity;
+                    $totalCost += (float) $entry->actual_total_cost;
+                    $withoutLot++;
+
+                    continue;
+                }
+
                 if ($entry->consumption_type !== 'RAW_MATERIAL'
                     || ! $entry->material_id
                     || ! $entry->material_lot_id) {
@@ -635,6 +673,7 @@ class HeatReadingController extends Controller
 
         return redirect()
             ->route('heats.show', $heat)
-            ->with('success', 'Heat charge posted. Stock issues and charge costs have been recorded.');
+            ->with('success', 'Heat charge posted. Stock issues and charge costs have been recorded.'
+                .($withoutLot ? " {$withoutLot} ".($withoutLot === 1 ? 'entry was' : 'entries were').' charged at standard cost without a lot, so no stock was issued for '.($withoutLot === 1 ? 'it' : 'them').'.' : ''));
     }
 }

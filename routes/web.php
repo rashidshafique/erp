@@ -213,6 +213,7 @@ Route::prefix('heats')
         Route::get('/create', 'create')->name('create');
         Route::post('/', 'store')->name('store');
         Route::get('/{heat}', 'show')->name('show');
+        Route::get('/{heat}/eta', 'eta')->name('eta');
         Route::post('/{heat}/hold', 'hold')->name('hold');
         Route::post('/{heat}/resume', 'resume')->name('resume');
 

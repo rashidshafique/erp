@@ -23,9 +23,14 @@ class ChargeRecorder
         }
 
         $lot = null;
-        if ($v['consumption_type'] === 'RAW_MATERIAL') {
+        if ($v['consumption_type'] === 'RAW_MATERIAL' && empty($v['material_lot_id']) && ! $material->requires_lot_tracking && (float) $material->standard_cost_per_uom > 0) {
+            // A material that is not lot tracked is charged at its standard cost when no lot is chosen or on hand.
+            $unitCost = (float) $material->standard_cost_per_uom;
+        } elseif ($v['consumption_type'] === 'RAW_MATERIAL') {
             if (empty($v['material_lot_id'])) {
-                throw ValidationException::withMessages(['material_lot_id' => "Select an accepted material lot for {$material->name}."]);
+                throw ValidationException::withMessages(['material_lot_id' => $material->requires_lot_tracking
+                    ? "Select an accepted material lot for {$material->name}."
+                    : "Select an accepted material lot for {$material->name}, or set its standard cost on the material so it can be charged without one."]);
             }
             $lot = MaterialLot::query()->whereKey($v['material_lot_id'])->where('material_id', $material->id)->where('status', 'ACCEPTED')->first();
             if (! $lot) {
@@ -72,7 +77,7 @@ class ChargeRecorder
         });
     }
 
-    /** The oldest accepted, costed PKR lot of a material: what a tech would normally take from. */
+    /** The oldest accepted, costed PKR lot of a material: what a tech would normally take from. Null when it has none. */
     public function defaultLot(string $materialId): ?MaterialLot
     {
         return MaterialLot::query()->where('material_id', $materialId)->where('status', 'ACCEPTED')->whereNotNull('unit_cost')

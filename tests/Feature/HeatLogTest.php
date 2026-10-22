@@ -121,4 +121,32 @@ class HeatLogTest extends TestCase
         $this->post(route('heats.charge-postings.store', $heat), ['posted_by' => 'Stores'])->assertSessionHasErrors('posted_by');
         $this->post(route('heats.charge-entries.store', $heat), ['consumption_type' => 'RAW_MATERIAL', 'material_id' => $material->id, 'material_lot_id' => $lot->id, 'actual_qty_kg' => 5, 'recorded_by' => 'Melter', 'consumed_at' => now()->toDateTimeString()])->assertSessionHasErrors('actual_qty_kg');
     }
+
+    public function test_a_material_that_is_not_lot_tracked_is_charged_at_standard_cost_without_a_lot_and_posts_without_stock(): void
+    {
+        $heat = $this->heat();
+        $alloy = Material::create(['code' => 'FESI', 'name' => 'Ferro Silicon', 'material_type' => 'ALLOY', 'base_uom' => 'kg', 'status' => 'ACTIVE', 'is_stock_tracked' => true, 'requires_lot_tracking' => false, 'standard_cost_per_uom' => 450]);
+        $entry = ['consumption_type' => 'RAW_MATERIAL', 'material_id' => $alloy->id, 'actual_qty_kg' => 12, 'recorded_by' => 'Melter', 'consumed_at' => now()->toDateTimeString()];
+
+        $this->post(route('heats.charge-entries.store', $heat), $entry)->assertSessionHasNoErrors();
+
+        $consumption = HeatMaterialConsumption::sole();
+        $this->assertSame([null, 5400.0], [$consumption->material_lot_id, (float) $consumption->actual_total_cost]);
+
+        $this->post(route('heats.charge-postings.store', $heat), ['posted_by' => 'Stores'])->assertSessionHasNoErrors()
+            ->assertSessionHas('success', fn ($m) => str_contains($m, 'without a lot'));
+        $this->assertSame([12.0, 5400.0, 0], [(float) HeatChargePosting::sole()->total_quantity_kg, (float) HeatChargePosting::sole()->total_cost_pkr, StockMovement::where('movement_type', 'ISSUE')->count()]);
+    }
+
+    public function test_a_lot_tracked_material_or_one_without_a_standard_cost_still_needs_a_lot(): void
+    {
+        $heat = $this->heat();
+        $tracked = Material::create(['code' => 'T1', 'name' => 'Tracked', 'material_type' => 'ALLOY', 'base_uom' => 'kg', 'status' => 'ACTIVE', 'requires_lot_tracking' => true, 'standard_cost_per_uom' => 450]);
+        $uncosted = Material::create(['code' => 'U1', 'name' => 'Uncosted', 'material_type' => 'ALLOY', 'base_uom' => 'kg', 'status' => 'ACTIVE', 'requires_lot_tracking' => false]);
+        $entry = ['consumption_type' => 'RAW_MATERIAL', 'actual_qty_kg' => 5, 'recorded_by' => 'Melter', 'consumed_at' => now()->toDateTimeString()];
+
+        $this->post(route('heats.charge-entries.store', $heat), $entry + ['material_id' => $tracked->id])->assertSessionHasErrors('material_lot_id');
+        $this->post(route('heats.charge-entries.store', $heat), $entry + ['material_id' => $uncosted->id])->assertSessionHasErrors('material_lot_id');
+        $this->assertSame(0, HeatMaterialConsumption::count());
+    }
 }

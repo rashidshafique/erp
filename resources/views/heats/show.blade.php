@@ -11,19 +11,24 @@
             $run = $heat->furnaceRun();
             $runMinutes = $heat->furnaceRunMinutes();
         @endphp
-        <h1 class="heat-title"><x-heat-light :heat="$heat" />Heat {{ $heat->heat_number }}
-            @if ($heat->furnace)
-                <span class="status" title="Furnace type">{{ ucfirst(strtolower($heat->furnace->furnace_type)) }}</span>
-                <span class="status" title="Furnace">{{ $heat->furnace->code }}</span>
-                <span class="status {{ ['on' => 'status-in-progress', 'idle' => 'status-completed', 'warn' => 'status-on-hold', 'off' => 'status-cancelled'][$furnaceState['tone']] }}" title="Furnace status">{{ $furnaceState['label'] }}@if ($furnaceState['heat'] && $furnaceState['heat']->id !== $heat->id) <a href="{{ route('heats.show', $furnaceState['heat']) }}">{{ $furnaceState['heat']->heat_number }}</a>@endif</span>
+        <h1 class="heat-title"><x-heat-light :heat="$heat" />{{ $heat->heat_number }}
+            <span class="status" id="heat-run" title="Furnace running time for this heat{{ $run['start'] ? ', from '.$run['start']->displayDateTime() : '' }}"
+                @if ($run['running']) data-run-since="{{ $run['start']->toIso8601String() }}" @endif>@if ($run['running'])Running {{ \App\Support\Formats::clock((int) $run['start']->diffInSeconds(now(), true)) }}@elseif ($runMinutes !== null)Ran {{ \App\Support\Formats::duration($runMinutes) }}@elseif ($run['start'])Started {{ $run['start']->displayDateTime() }}@else Not started @endif</span>
+            @if ($run['running'])
+                <span class="status status-in-progress" id="heat-eta" data-eta-url="{{ route('heats.eta', $heat) }}" @unless ($finish) hidden @endunless
+                    title="Estimated finish, from the heat's target metal and the melting rate ({{ $finish['basis'] ?? '' }}). Refreshed every minute.">@if ($finish)@if ($finish['overdue'])ETA overdue, was {{ $finish['time'] }}@else ETA {{ $finish['time'] }} · in {{ $finish['in'] }}@endif @endif</span>
             @endif
-            <span class="status" title="Furnace running time for this heat{{ $run['start'] ? ', from '.$run['start']->displayDateTime() : '' }}"
-                @if ($run['running']) data-run-since="{{ $run['start']->toIso8601String() }}" @endif>@if ($run['running'])Running {{ \App\Support\Formats::duration($runMinutes) }}@elseif ($runMinutes !== null)Ran {{ \App\Support\Formats::duration($runMinutes) }}@elseif ($run['start'])Started {{ $run['start']->displayDateTime() }}@else Not started @endif</span>
         </h1>
         <p>
             {{ $heat->furnace?->name ?? 'Unknown furnace' }}
             @unless ($heat->furnace)· {{ $heat->process_type }}@endunless
             · Heat {{ strtolower(str_replace('_', ' ', $heat->status)) }}
+            @if ($heat->furnace)
+                <span class="status" title="Furnace type">{{ ucfirst(strtolower($heat->furnace->furnace_type)) }}</span>
+                <span class="status" title="Furnace">{{ $heat->furnace->code }}</span>
+                <span class="status {{ ['on' => 'status-in-progress', 'idle' => 'status-completed', 'warn' => 'status-on-hold', 'off' => 'status-cancelled'][$furnaceState['tone']] }}" title="Furnace status">{{ $furnaceState['label'] }}@if ($furnaceState['heat'] && $furnaceState['heat']->id !== $heat->id) <a href="{{ route('heats.show', $furnaceState['heat']) }}">{{ $furnaceState['heat']->heat_number }}</a>@endif</span>
+            @endif
+            
         </p>
     </div>
     <div class="actions">
@@ -37,14 +42,35 @@
 </style>
 <script>
 (function () {
-    var chip = document.querySelector('[data-run-since]');
-    if (!chip) return;
-    var since = new Date(chip.dataset.runSince);
-    function tick() {
-        var m = Math.max(0, Math.floor((Date.now() - since) / 60000));
-        chip.textContent = 'Running ' + (m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + String(m % 60).padStart(2, '0') + ' min');
+    var run = document.getElementById('heat-run'), eta = document.getElementById('heat-eta');
+    function pad(n) { return String(n).padStart(2, '0'); }
+    // Running time: counted in the browser from the start time, so it moves every second without asking the server.
+    if (run && run.dataset.runSince) {
+        var since = new Date(run.dataset.runSince);
+        (function tick() {
+            var s = Math.max(0, Math.floor((Date.now() - since) / 1000));
+            run.textContent = 'Running ' + Math.floor(s / 3600) + ':' + pad(Math.floor(s / 60) % 60) + ':' + pad(s % 60);
+            setTimeout(tick, 1000 - (Date.now() % 1000));
+        })();
     }
-    tick(); setInterval(tick, 30000);
+    // Finish estimate: asked of the server once a minute, since it depends on the metal tapped or poured so far.
+    if (eta) {
+        function refresh() {
+            fetch(eta.dataset.etaUrl, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+                .then(function (r) { return r.ok ? r.json() : null; })
+                .then(function (d) {
+                    if (!d) return;
+                    if (!d.running) { location.reload(); return; }
+                    eta.hidden = !d.eta;
+                    if (d.eta) {
+                        eta.textContent = d.eta.overdue ? 'ETA overdue, was ' + d.eta.time : 'ETA ' + d.eta.time + ' · in ' + d.eta.in;
+                        eta.title = 'Estimated finish, from the heat\'s target metal and the melting rate (' + d.eta.basis + '). Refreshed every minute.';
+                    }
+                })
+                .catch(function () {});
+        }
+        setInterval(refresh, 60000);
+    }
 })();
 </script>
 

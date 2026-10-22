@@ -68,7 +68,7 @@ class HeatLightTest extends TestCase
         $furnace = $running->furnace;
 
         $this->get(route('heats.show', $running))->assertOk()
-            ->assertSeeInOrder(['Heat '.$running->heat_number, 'Induction', '>'.$furnace->code.'</span>', '>Melting', 'Running 1 h 15 min'], false);
+            ->assertSeeInOrder(['Heat '.$running->heat_number, 'Induction', '>'.$furnace->code.'</span>', '>Melting', 'Running 1:15:'], false);
 
         $done = Heat::create(['heat_number' => 'H-DONE', 'furnace_id' => $furnace->id, 'process_type' => 'INDUCTION', 'status' => 'CLOSED',
             'actual_start_at' => now()->subHours(5), 'tapped_at' => now()->subHours(5)->addMinutes(50)]);
@@ -79,5 +79,48 @@ class HeatLightTest extends TestCase
         $planned = $this->heat('PLANNED');
         $planned->furnace->update(['status' => 'MAINTENANCE']);
         $this->get(route('heats.show', $planned))->assertOk()->assertSee('Under maintenance')->assertSee('Not started');
+    }
+
+    public function test_a_running_heat_shows_a_finish_estimate_from_the_best_melting_rate_available(): void
+    {
+        $this->travelTo(now()->setTime(10, 0));
+        $heat = $this->heat('IN_PROGRESS');
+        $heat->furnace->update(['nominal_melting_rate_kg_per_hour' => 500]);
+        $heat->update(['actual_start_at' => now()->subMinutes(30), 'target_metal_weight_kg' => 2000]);
+        $eta = app(\App\Services\Production\HeatEta::class);
+
+        // Nothing measured yet and no history: the rated 500 kg/h, 4 hours from the 09:30 start.
+        $rated = $eta->for($heat->fresh('furnace'));
+        $this->assertSame(['rated', '13:30'], [$rated['source'], $rated['finish_at']->format('H:i')]);
+
+        // A closed heat on the same furnace melted 800 kg in 1 hour: that recorded rate replaces the rated speed.
+        Heat::create(['heat_number' => 'H-OLD', 'furnace_id' => $heat->furnace_id, 'process_type' => 'INDUCTION', 'status' => 'CLOSED',
+            'actual_start_at' => now()->subDay(), 'tapped_at' => now()->subDay()->addHour(), 'actual_tapped_weight_kg' => 800]);
+        $recorded = $eta->for($heat->fresh('furnace'));
+        $this->assertSame(['recorded', '12:00', 800.0], [$recorded['source'], $recorded['finish_at']->format('H:i'), (float) $recorded['rate_kg_per_hour']]);
+
+        // 30 minutes in with 600 kg tapped: the live rate is 1200 kg/h, and 1400 kg remain, so 70 minutes more.
+        $heat->update(['actual_tapped_weight_kg' => 600]);
+        $live = $eta->for($heat->fresh('furnace'));
+        $this->assertSame(['live', '11:10', 1400.0], [$live['source'], $live['finish_at']->format('H:i'), $live['remaining_kg']]);
+
+        $this->getJson(route('heats.eta', $heat))->assertOk()->assertJson(['running' => true, 'eta' => ['time' => '11:10', 'overdue' => false]]);
+        $this->get(route('heats.show', $heat))->assertOk()->assertSee('ETA 11:10');
+    }
+
+    public function test_there_is_no_finish_estimate_without_a_target_a_running_heat_or_a_rate(): void
+    {
+        $eta = app(\App\Services\Production\HeatEta::class);
+        $planned = $this->heat('PLANNED');
+        $planned->update(['target_metal_weight_kg' => 1000]);
+        $this->assertNull($eta->for($planned->fresh('furnace')));
+
+        $running = $this->heat('IN_PROGRESS');
+        $running->update(['actual_start_at' => now()->subHour()]);
+        $this->assertNull($eta->for($running->fresh('furnace')), 'No target metal.');
+
+        $running->update(['target_metal_weight_kg' => 1000]);
+        $this->assertNull($eta->for($running->fresh('furnace')), 'No rate: nothing measured, recorded or rated.');
+        $this->getJson(route('heats.eta', $running))->assertOk()->assertJson(['running' => true, 'eta' => null]);
     }
 }

@@ -95,6 +95,14 @@ class Formats
         return $d ? self::date($d).' '.self::time($d) : '';
     }
 
+    /** Seconds as a running clock, "1:05:09". */
+    public static function clock(int $seconds): string
+    {
+        $seconds = max(0, $seconds);
+
+        return intdiv($seconds, 3600).':'.str_pad((string) (intdiv($seconds, 60) % 60), 2, '0', STR_PAD_LEFT).':'.str_pad((string) ($seconds % 60), 2, '0', STR_PAD_LEFT);
+    }
+
     /** A length of time in minutes as "45 min" or "1 h 05 min". */
     public static function duration(int $minutes): string
     {
