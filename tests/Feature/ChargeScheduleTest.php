@@ -209,4 +209,49 @@ class ChargeScheduleTest extends TestCase
         $this->post(route('heats.store'), array_merge($form, ['already_started' => 1, 'planned_start_at' => now()->addHour()->format('Y-m-d\TH:i')]))->assertSessionHasErrors('planned_start_at');
         $this->post(route('heats.store'), array_merge($form, ['already_started' => 1, 'planned_start_at' => '']))->assertSessionHasErrors('planned_start_at');
     }
+
+    public function test_the_missing_charges_are_added_from_the_total_metal_charged_scaled_to_match_it(): void
+    {
+        $this->actingAs(User::factory()->create(['name' => 'Melter Ali']));
+        $this->travelTo(now()->setTime(10, 0));
+        [$heat, $iron, $coke] = $this->cupola();
+        $heat->update(['actual_start_at' => now()->subHours(2), 'blast_on_at' => now()->subHours(2), 'charge_rounds' => 5]);
+        $this->charged($heat, $iron, 1, 100, 180);   // charge 1 is already in: 180 kg of metal
+
+        $this->get(route('heats.show', $heat))->assertOk()->assertSee('Total metal charged so far (kg)')->assertSee(route('heats.charge-rounds.total', $heat), false);
+
+        // 800 kg is 4 charges of 180 kg (800 / 180 = 4.4). Charges 2 to 4 and the bed are missing; they carry the other 620 kg, so each is scaled up by 620 / 540.
+        $this->post(route('heats.charge-rounds.total', $heat), ['total_charged_kg' => 800])->assertSessionHasNoErrors()
+            ->assertSessionHas('success', fn ($m) => str_contains($m, '4 missing charges added from 800'));
+
+        $metal = HeatMaterialConsumption::where('heat_id', $heat->id)->where('charge_round', '>', 0)->where('material_id', $iron->id)->sum('actual_qty_kg');
+        $this->assertEqualsWithDelta(800.0, (float) $metal, 0.01, 'The metal recorded comes to the total.');
+        $round3 = HeatMaterialConsumption::where('heat_id', $heat->id)->where('charge_round', 3)->get();
+        $this->assertEqualsWithDelta(206.667, (float) $round3->firstWhere('material_id', $iron->id)->actual_qty_kg, 0.001);
+        $this->assertEqualsWithDelta(28.704, (float) $round3->firstWhere('material_id', $coke->id)->actual_qty_kg, 0.001, 'Coke is scaled with the charge.');
+        $this->assertSame(['09:20'], $round3->map(fn ($c) => $c->consumed_at->format('H:i'))->unique()->values()->all(), 'Counted from charge 1, put in at 08:20: charge 2 at 08:50, charge 3 at 09:20.');
+        $this->assertStringContainsString('Filled in from the total metal charged', $round3->first()->notes);
+        $this->assertSame(100.0, (float) HeatMaterialConsumption::where('heat_id', $heat->id)->where('charge_round', 0)->sum('actual_qty_kg'), 'The start-up charge is added at the recipe weight.');
+        $this->assertSame(0, HeatMaterialConsumption::where('heat_id', $heat->id)->where('charge_round', 5)->count(), 'Nothing is added beyond the charges the total is worth.');
+
+        $this->post(route('heats.charge-rounds.total', $heat), ['total_charged_kg' => 800])->assertSessionHasErrors('total_charged_kg');
+    }
+
+    public function test_a_total_is_refused_when_the_heat_is_not_on_has_no_charge_in_it_or_is_below_what_is_recorded(): void
+    {
+        $this->travelTo(now()->setTime(10, 0));
+        [$heat, $iron] = $this->cupola();
+
+        $this->post(route('heats.charge-rounds.total', $heat), ['total_charged_kg' => 0])->assertSessionHasErrors('total_charged_kg');
+        $this->post(route('heats.charge-rounds.total', $heat), ['total_charged_kg' => 50])->assertSessionHasErrors('total_charged_kg');   // under one charge
+
+        $this->charged($heat, $iron, 1, 30, 360);
+        $this->post(route('heats.charge-rounds.total', $heat), ['total_charged_kg' => 360])->assertSessionHasErrors('total_charged_kg');   // two charges' worth is already in round 1
+        $this->assertSame(1, HeatMaterialConsumption::where('heat_id', $heat->id)->count());
+
+        $heat->update(['actual_start_at' => null]);
+        $this->post(route('heats.charge-rounds.total', $heat), ['total_charged_kg' => 900])->assertSessionHasErrors('total_charged_kg');
+        $heat->update(['actual_start_at' => now()->subHour(), 'status' => 'CLOSED']);
+        $this->post(route('heats.charge-rounds.total', $heat), ['total_charged_kg' => 900])->assertSessionHasErrors('total_charged_kg');
+    }
 }

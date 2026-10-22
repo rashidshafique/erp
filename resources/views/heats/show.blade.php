@@ -85,6 +85,17 @@
         tForm.querySelector('[data-target-cancel]').addEventListener('click', function () { openTarget(false); });
         if (document.querySelector('.error-text') && {{ $errors->has('target_metal_weight_kg') ? 'true' : 'false' }}) openTarget(true);
     }
+    // Total charged: shows how many charges the typed weight is worth.
+    var totalForm = document.querySelector('[data-per-round]');
+    if (totalForm) {
+        var per = parseFloat(totalForm.dataset.perRound), totalInput = totalForm.querySelector('[data-total-input]'), hint = totalForm.querySelector('[data-total-hint]');
+        totalInput.addEventListener('input', function () {
+            var kg = parseFloat(totalInput.value);
+            if (!kg || !per) return;
+            var n = Math.round(kg / per);
+            hint.textContent = n < 1 ? 'Less than one charge (' + Math.round(per) + ' kg of metal).' : kg.toLocaleString() + ' kg is ' + n + (n === 1 ? ' charge' : ' charges') + ' of ' + Math.round(per) + ' kg of metal.';
+        });
+    }
     // Charge due: the banner appears by itself when the scheduled time arrives; the minute poll below keeps the time current.
     var due = document.getElementById('charge-due');
     if (due) {
@@ -356,6 +367,16 @@
     </div>
     <div class="panel-body">
         @include('heats._charge-schedule', ['schedule' => $schedule])
+        @if ($heat->actual_start_at && $schedule['metal_per_round_kg'] && ! in_array($heat->status, ['CLOSED', 'CANCELLED'], true))
+            <form method="POST" action="{{ route('heats.charge-rounds.total', $heat) }}" class="form-inline" style="margin:4px 0 14px" data-per-round="{{ $schedule['metal_per_round_kg'] }}"
+                onsubmit="return confirm('Add the missing charges for this total, at their scheduled times, with the recipe quantities scaled to match? They will be marked as filled in from the total.')">@csrf
+                <div class="field"><label for="total_charged_kg">Total metal charged so far (kg)</label>
+                    <input id="total_charged_kg" name="total_charged_kg" type="number" step="0.001" min="0.001" required value="{{ old('total_charged_kg') }}" style="width:150px" data-total-input></div>
+                <button class="btn" type="submit">Add the missing charges</button>
+                <span class="muted small" data-total-hint>A charge is {{ \App\Support\Formats::number($schedule['metal_per_round_kg'], 0) }} kg of metal. Type the total from the scale and the missing charges are added to match.</span>
+            </form>
+            @error('total_charged_kg')<div class="alert alert-error">{{ $message }}</div>@enderror
+        @endif
         <p class="muted small">The recipe quantities are filled in. Change a weight if it was different, then record. The oldest accepted lot of each material is used unless you pick another.</p>
         <form method="POST" action="{{ route('heats.charge-rounds.store', $heat) }}">
             @csrf

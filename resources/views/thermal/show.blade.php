@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Thermal test')
+@section('title', 'Thermal test'.($test->heat ? ' · '.$test->heat->heat_number : ''))
 @section('breadcrumb', 'Thermal tests / '.($test->sample_reference ?: $test->taken_at->displayShortDateTime()))
 
 @php
@@ -14,7 +14,7 @@
 
 @section('content')
 <div class="page-heading">
-    <div><h1>Thermal test — <x-heat-light :heat="$test->heat" />heat {{ $test->heat?->heat_number }}</h1><p>{{ $test->ironGrade?->code ?? 'No grade' }} · {{ $test->taken_at->displayDateTime() }} · {{ $test->cup_type === 'TELLURIUM' ? 'white (tellurium)' : 'grey (stable)' }} cup · {{ str_replace('_', ' ', $test->stage) }}@if ($test->gauge) · measured with <a href="{{ route('gauges.show', $test->gauge) }}">{{ $test->gauge->code }}</a>@endif</p></div>
+    <div><h1>Thermal test — @if ($test->heat)<a href="{{ route('heats.show', $test->heat) }}" title="Open the heat">{{ $test->heat->heat_number }}</a>@else —@endif<x-heat-light :heat="$test->heat" after /></h1><p>{{ $test->ironGrade?->code ?? 'No grade' }} · {{ $test->taken_at->displayDateTime() }} · {{ $test->cup_type === 'TELLURIUM' ? 'white (tellurium)' : 'grey (stable)' }} cup · {{ str_replace('_', ' ', $test->stage) }}@if ($test->gauge) · measured with <a href="{{ route('gauges.show', $test->gauge) }}">{{ $test->gauge->code }}</a>@endif</p></div>
     <div class="actions"><a class="btn" href="{{ route('thermal.index') }}">All tests</a><a class="btn" href="{{ route('thermal.create', ['heat_id' => $test->heat_id]) }}">New test on this heat</a></div>
 </div>
 <p class="muted small" style="margin:0 0 12px">

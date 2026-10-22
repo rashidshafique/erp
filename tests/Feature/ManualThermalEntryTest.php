@@ -201,4 +201,16 @@ class ManualThermalEntryTest extends TestCase
         $this->get(route('thermal.create'))->assertOk()
             ->assertSee('name="white[carbon]" type="number" step="0.0001"', false)->assertSee('name="grey[silicon]" type="number" step="0.0001"', false);
     }
+
+    public function test_the_test_page_title_is_the_heat_id_without_a_heat_prefix_and_opens_the_heat(): void
+    {
+        $heat = $this->heat();
+        $this->post(route('thermal.store'), ['heat_id' => $heat->id, 'stage' => 'BASE', 'cup_type' => 'STABLE', 'tl_c' => 1188.5, 'te_min_c' => 1145, 'te_max_c' => 1148]);
+        $test = ThermalAnalysisTest::firstOrFail();
+
+        $page = $this->get(route('thermal.show', $test))->assertOk()
+            ->assertSee('<h1>Thermal test — <a href="'.route('heats.show', $heat).'" title="Open the heat">'.$heat->heat_number.'</a>', false)
+            ->assertSee('<title>Thermal test · '.$heat->heat_number.' — Foundry ERP</title>', false);
+        $this->assertStringNotContainsString('heat '.$heat->heat_number, $page->getContent());
+    }
 }

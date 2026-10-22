@@ -58,6 +58,16 @@ class HeatChargeRoundController extends Controller
         return back()->with('success', ($round === 0 ? 'Start-up charge' : "Charge {$round} of {$heat->chargeRounds()}").' recorded from the recipe. Inventory has not been deducted.');
     }
 
+    /** Adds the charges missing from a heat that is on, worked out from the total metal charged so far. */
+    public function fillToTotal(Request $request, Heat $heat, ChargeSchedule $schedule, ChargeRecorder $recorder): RedirectResponse
+    {
+        $total = (float) $request->validate(['total_charged_kg' => ['required', 'numeric', 'gt:0', 'max:999999999']], ['total_charged_kg.required' => 'Enter the total metal charged so far, in kg.'])['total_charged_kg'];
+
+        $result = DB::transaction(fn () => $schedule->fillToTotal($heat, $total, $request->user()?->name ?? $heat->operator_name ?? 'Operator', $recorder));
+
+        return back()->with('success', "{$result['added']} missing ".($result['added'] === 1 ? 'charge' : 'charges')." added from {$total} kg of metal charged ({$result['charges']} charges), at their scheduled times. Inventory has not been deducted.");
+    }
+
     /** Records every charge that should already have gone in since the heat started, each at its scheduled time. */
     public function backfill(Request $request, Heat $heat, ChargeSchedule $schedule, ChargeRecorder $recorder): RedirectResponse
     {

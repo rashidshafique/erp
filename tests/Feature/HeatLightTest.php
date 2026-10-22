@@ -68,7 +68,7 @@ class HeatLightTest extends TestCase
         $furnace = $running->furnace;
 
         $this->get(route('heats.show', $running))->assertOk()
-            ->assertSeeInOrder([$running->heat_number.'<span title="Heat in progress"', 'Induction', '>'.$furnace->code.'</span>', '>Melting', 'Running time', '1:15:'], false);
+            ->assertSeeInOrder([$running->heat_number.'<span class="heat-light heat-light-orange" title="Heat in progress"', 'Induction', '>'.$furnace->code.'</span>', '>Melting', 'Running time', '1:15:'], false);
 
         $done = Heat::create(['heat_number' => 'H-DONE', 'furnace_id' => $furnace->id, 'process_type' => 'INDUCTION', 'status' => 'CLOSED',
             'actual_start_at' => now()->subHours(5), 'tapped_at' => now()->subHours(5)->addMinutes(50)]);
@@ -165,5 +165,23 @@ class HeatLightTest extends TestCase
         $this->travelTo(now()->addSeconds(2));   // the estimate is kept for 30 seconds per heat update
         $heat->update(['target_metal_weight_kg' => null]);
         $this->get(route('heats.index'))->assertOk()->assertSee('#004')->assertDontSee('data-finish-at="', false);
+    }
+
+    public function test_only_the_orange_light_blinks_by_animating_its_outer_ring(): void
+    {
+        $running = $this->heat('IN_PROGRESS');
+        $this->get(route('heats.show', $running))->assertOk()->assertSee('class="heat-light heat-light-orange"', false);
+        $running->update(['status' => 'CLOSED']);   // so no orange light is left on the next page
+
+        $held = $this->heat('IN_PROGRESS');
+        $held->update(['hold_reason' => 'EQUIPMENT', 'hold_note' => 'Blower', 'held_at' => now()]);
+        $this->get(route('heats.show', $held))->assertOk()->assertSee('class="heat-light heat-light-red"', false)->assertDontSee('heat-light-orange', false);
+
+        $css = file_get_contents(public_path('css/app-overrides.css'));
+        $this->assertStringContainsString('.heat-light-orange { animation: heat-light-ring', $css);
+        $this->assertStringContainsString('@keyframes heat-light-ring', $css);
+        $this->assertStringNotContainsString('.heat-light-red {', $css, 'Red and green stay steady.');
+        $this->assertStringNotContainsString('color-mix', substr($css, strpos($css, '.heat-light {')), 'Plain rgba colours, so older browsers show the blink too.');
+        $this->assertStringContainsString('prefers-reduced-motion: reduce) { .heat-light-orange { animation: none; }', $css);
     }
 }
