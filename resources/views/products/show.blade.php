@@ -26,6 +26,9 @@
 
 
 
+@unless ($product->trashed())
+@include('partials.quick-dialog', ['id' => 'qd-link-pattern', 'title' => 'Link a pattern to '.$product->code, 'action' => route('products.link-pattern', $product), 'submit' => 'Link pattern', 'fields' => 'products._link-pattern-fields'])
+@endunless
 <div class="tab-marker" data-tab-start="Specification"></div>
 <div class="panel">
     <div class="panel-header">
@@ -74,7 +77,7 @@
                 <div class="detail-label">Patterns</div>
                 <div class="detail-value">
                     @forelse ($currentPatterns as $p)<a href="{{ route('patterns.show', $p) }}">{{ $p->name }}</a> <span class="muted small mono">{{ $p->code }}</span>@if (! $loop->last)<br>@endif
-                    @empty<span class="muted">None linked yet</span>@endforelse
+                    @empty<span class="muted">None linked yet</span> @unless ($product->trashed())<a href="#" class="qd-add" data-quick="qd-link-pattern">Link a pattern</a>@endunless @endforelse
                 </div>
             </div>
         </div>
@@ -167,7 +170,7 @@
                 <div class="detail-label">Patterns</div>
                 <div class="detail-value">
                     @forelse ($currentPatterns as $p)<a href="{{ route('patterns.show', $p) }}">{{ $p->name }}</a> <span class="muted small mono">{{ $p->code }}</span>@if (! $loop->last)<br>@endif
-                    @empty<span class="muted">None linked yet</span>@endforelse
+                    @empty<span class="muted">None linked yet</span> @unless ($product->trashed())<a href="#" class="qd-add" data-quick="qd-link-pattern">Link a pattern</a>@endunless @endforelse
                 </div>
             </div>
         </div>

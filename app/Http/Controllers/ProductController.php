@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Pattern;
 use App\Models\Product;
 use App\Models\ProductionOrder;
+use App\Services\PatternCavityMap;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class ProductController extends Controller
 {
@@ -114,6 +117,54 @@ class ProductController extends Controller
         );
 
         return back()->with('success', "{$grade->code} set on {$product->code} rev {$revision->revision}.");
+    }
+
+    /**
+     * Links the product to a pattern from the product page: puts the product on a cavity of the chosen pattern revision (the
+     * current one unless a revision is picked). A pattern with no revision gets its first one here. Without a cavity number it
+     * takes the revision's first free cavity.
+     */
+    public function linkPattern(Request $request, Product $product, PatternCavityMap $map): RedirectResponse
+    {
+        $data = $request->validate([
+            'pattern_id' => ['required', 'uuid', Rule::exists('patterns', 'id')->whereNull('deleted_at')],
+            'pattern_revision_id' => ['nullable', 'uuid'],
+            'product_revision_id' => ['required', 'uuid', Rule::exists('product_revisions', 'id')->where('product_id', $product->id)],
+            'cavity_number' => ['nullable', 'integer', 'min:1', 'max:10000'],
+        ], ['pattern_id.required' => 'Choose a pattern.', 'product_revision_id.required' => 'Choose which product revision the pattern makes.']);
+
+        [$pattern, $revision, $number] = DB::transaction(function () use ($data, $product, $map) {
+            $pattern = Pattern::findOrFail($data['pattern_id']);
+            if (filled($data['pattern_revision_id'] ?? null)) {
+                $revision = $pattern->revisions()->find($data['pattern_revision_id']);
+                if (! $revision) {
+                    throw ValidationException::withMessages(['pattern_revision_id' => 'Choose a revision of this pattern.']);
+                }
+            } else {
+                $revision = $pattern->currentRevision()->first()
+                    ?? $pattern->addRevision(['change_description' => 'First revision, recorded when linking '.$product->code]);
+            }
+
+            $taken = $revision->cavityMap()->pluck('cavity_number')->all();
+            $number = $data['cavity_number'] ?? null;
+            if ($number === null) {
+                $limit = $revision->cavities_per_mould ?? (count($taken) ? max($taken) + 1 : 1);
+                $number = collect(range(1, max(1, (int) $limit)))->first(fn ($n) => ! in_array($n, $taken, true));
+                if ($number === null) {
+                    throw ValidationException::withMessages(['cavity_number' => "Every cavity of {$revision->label()} already has a product. Raise the cavity count on the pattern page, or pick another revision."]);
+                }
+            }
+
+            $cavity = ['cavity_number' => (int) $number, 'product_revision_id' => $data['product_revision_id'], 'cavity_role' => 'WHOLE', 'pieces_per_product' => 1];
+            $map->assertDefinable($revision, $cavity);
+            $revision->cavityMap()->create($cavity);
+
+            return [$pattern, $revision, $number];
+        });
+
+        $response = back()->with('success', "{$product->code} linked to {$pattern->name} ({$revision->label()}), cavity {$number}.");
+
+        return $revision->isSuperseded() ? $response->with('warning', PatternCavityController::supersededWarning($revision)) : $response;
     }
 
     public function show(Product $product)
