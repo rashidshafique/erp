@@ -4,13 +4,15 @@ namespace App\Domains\QuickFlow\Models;
 
 use App\Models\Heat;
 use App\Models\MouldingRun;
+use App\Models\MouldingStation;
+use App\Models\Pattern;
 use App\Models\Pour;
 use App\Models\ProductionOrder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-/** A count typed in on the quick floor page: moulds made for an order, or moulds poured from a heat. */
+/** A count typed in on the quick floor page: moulds made on a pattern for an order, or moulds poured from a heat. */
 class QuickFloorEntry extends Model
 {
     use HasUuids;
@@ -39,6 +41,16 @@ class QuickFloorEntry extends Model
     public function heat(): BelongsTo
     {
         return $this->belongsTo(Heat::class);
+    }
+
+    public function pattern(): BelongsTo
+    {
+        return $this->belongsTo(Pattern::class)->withTrashed();
+    }
+
+    public function station(): BelongsTo
+    {
+        return $this->belongsTo(MouldingStation::class, 'moulding_station_id');
     }
 
     public function mouldingRun(): BelongsTo

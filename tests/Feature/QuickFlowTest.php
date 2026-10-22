@@ -9,6 +9,8 @@ use App\Models\Furnace;
 use App\Models\Heat;
 use App\Models\IronGrade;
 use App\Models\MouldingRun;
+use App\Models\MouldingStation;
+use App\Models\Pattern;
 use App\Models\Pour;
 use App\Models\Product;
 use App\Models\ProductionOrder;
@@ -27,6 +29,25 @@ class QuickFlowTest extends TestCase
             'furnace' => $furnace, 'customer' => Customer::create(['code' => 'ACME', 'name' => 'Acme Pumps']),
             'product' => Product::create(['code' => 'PUMP-1', 'name' => 'Pump body']), 'grade' => IronGrade::where('code', 'EN-GJS-500-7')->firstOrFail(),
         ];
+    }
+
+    /** A pattern whose one cavity makes the shop's product, two per mould level, on a default station. */
+    private function pattern(array $shop, ?string $stationId = null): Pattern
+    {
+        $pattern = Pattern::create(['code' => 'PAT-1', 'name' => 'Pump plate', 'status' => 'ACTIVE', 'preferred_moulding_station_id' => $stationId]);
+        $revision = $pattern->addRevision(['cavities_per_mould' => 2]);
+        $productRevision = $shop['product']->linkableRevision();
+        foreach ([1, 2] as $n) {
+            $revision->cavityMap()->create(['cavity_number' => $n, 'product_revision_id' => $productRevision->id, 'cavity_role' => 'WHOLE', 'pieces_per_product' => 1]);
+        }
+
+        return $pattern;
+    }
+
+    /** One grid row. */
+    private function row(Pattern $pattern, int $moulds, array $extra = []): array
+    {
+        return $extra + ['pattern_id' => $pattern->id, 'moulds' => $moulds];
     }
 
     private function order(array $shop, int $qty = 100, array $line = [], array $extra = [])
@@ -87,7 +108,7 @@ class QuickFlowTest extends TestCase
         $this->order($shop, 50, [], ['due_date' => today()->addDays(2)->toDateString()]);
         $late = ProductionOrder::orderBy('production_order_number')->first();
 
-        $this->post(route('quick.floor.made'), ['production_order_id' => $late->id, 'moulds' => 10, 'pieces_per_mould' => 2, 'entry_date' => today()->toDateString()])->assertSessionHasNoErrors();
+        $this->post(route('quick.floor.made'), ['rows' => [$this->row($this->pattern($shop), 10, ['production_order_id' => $late->id, 'pieces_per_mould' => 2])]])->assertSessionHasNoErrors();
 
         $lines = app(NextHeatPlan::class)->build()['heats'][0]['lines'];
         $this->assertTrue($lines[0]['ready']);
@@ -100,7 +121,7 @@ class QuickFlowTest extends TestCase
         $this->order($shop);
         $order = ProductionOrder::firstOrFail();
 
-        $this->post(route('quick.floor.made'), ['production_order_id' => $order->id, 'moulds' => 12, 'pieces_per_mould' => 4, 'entry_date' => today()->toDateString()])->assertSessionHasNoErrors();
+        $this->post(route('quick.floor.made'), ['rows' => [$this->row($this->pattern($shop), 12, ['production_order_id' => $order->id, 'pieces_per_mould' => 4])]])->assertSessionHasNoErrors();
 
         $run = MouldingRun::firstOrFail();
         $this->assertSame([12, 'COMPLETED', 'IN_PROGRESS'], [$run->moulds_made_qty, $run->status, $order->refresh()->status]);
@@ -113,9 +134,10 @@ class QuickFlowTest extends TestCase
         $this->order($shop);
         $order = ProductionOrder::firstOrFail();
         $heat = Heat::create(['heat_number' => 'H-1', 'furnace_id' => $shop['furnace']->id, 'process_type' => 'INDUCTION', 'status' => 'PLANNED', 'iron_grade_id' => $shop['grade']->id]);
-        $this->post(route('quick.floor.made'), ['production_order_id' => $order->id, 'moulds' => 20, 'pieces_per_mould' => 1, 'entry_date' => today()->toDateString()]);
+        $pattern = $this->pattern($shop);
+        $this->post(route('quick.floor.made'), ['rows' => [$this->row($pattern, 20, ['production_order_id' => $order->id, 'pieces_per_mould' => 1])]]);
 
-        $this->post(route('quick.floor.poured'), ['heat_id' => $heat->id, 'production_order_id' => $order->id, 'moulds' => 15, 'pieces_per_mould' => 1, 'entry_date' => today()->toDateString()])
+        $this->post(route('quick.floor.poured'), ['heat_id' => $heat->id, 'rows' => [$this->row($pattern, 15, ['production_order_id' => $order->id, 'pieces_per_mould' => 1])]])
             ->assertSessionHasNoErrors()->assertSessionHas('warning', 'No thermal test has been recorded on H-1.');
 
         $this->assertSame(['COMPLETED', 'ADVISORY'], [Pour::firstOrFail()->status, Pour::firstOrFail()->gate_mode]);
@@ -153,5 +175,38 @@ class QuickFlowTest extends TestCase
         $this->assertSame($shop['grade']->id, app(\App\Services\Planning\HeatPlanner::class)->gradeFor($revision)?->id);
         $this->get(route('products.show', $shop['product']))->assertOk()->assertSee('Set grade')->assertSee('EN-GJS-500-7')->assertSee('Ductile iron');
         $this->get(route('iron-grades.index'))->assertOk()->assertSeeInOrder(['Grey iron', 'Ductile iron']);
+    }
+
+    public function test_a_grid_row_takes_the_order_station_and_pieces_per_mould_from_the_pattern(): void
+    {
+        $shop = $this->shop();
+        $this->order($shop);
+        $order = ProductionOrder::firstOrFail();
+        $station = MouldingStation::create(['code' => 'M2', 'name' => 'Manual 2', 'station_type' => 'FLOOR', 'status' => 'ACTIVE', 'max_patterns' => 2]);
+        $pattern = $this->pattern($shop, $station->id);
+
+        $this->get(route('quick.floor.index'))->assertOk()->assertSee('data-station="'.$station->id.'"', false)->assertSee('data-ppm="2"', false)
+            ->assertSee('Automatic: '.$order->production_order_number, false);
+
+        $this->post(route('quick.floor.made'), ['rows' => [$this->row($pattern, 10, ['pieces_per_mould' => 2]), ['pattern_id' => '', 'moulds' => '']]])
+            ->assertSessionHasNoErrors();
+
+        $entry = QuickFloorEntry::sole();
+        $this->assertSame([$order->id, $pattern->id, $station->id, 20, today()->toDateString()], [$entry->production_order_id, $entry->pattern_id, $entry->moulding_station_id, $entry->pieces(), $entry->entry_date->toDateString()]);
+        $run = MouldingRun::sole();
+        $this->assertSame([$pattern->currentRevision->id, $station->id], [$run->pattern_revision_id, $run->moulding_station_id]);
+    }
+
+    public function test_grid_rows_without_a_pattern_count_or_open_order_are_refused_and_nothing_is_saved(): void
+    {
+        $shop = $this->shop();
+        $loose = Pattern::create(['code' => 'PAT-9', 'name' => 'Unmapped plate', 'status' => 'ACTIVE']);
+
+        $this->post(route('quick.floor.made'), ['rows' => [['pattern_id' => '', 'moulds' => 4], ['pattern_id' => $loose->id, 'moulds' => '']]])
+            ->assertSessionHasErrors(['rows.0.pattern_id', 'rows.1.moulds']);
+        $this->post(route('quick.floor.made'), ['rows' => [$this->row($loose, 5)]])->assertSessionHasErrors('rows.0.production_order_id');
+        $this->post(route('quick.floor.made'), ['rows' => [['pattern_id' => '', 'moulds' => '']]])->assertSessionHasErrors('rows');
+
+        $this->assertSame(0, QuickFloorEntry::count());
     }
 }
