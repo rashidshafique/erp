@@ -4,14 +4,14 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Str;
 
 /**
  * A pattern revision is a version of the cast-relevant tooling geometry; repairs and repainting belong in the maintenance log.
  * Each pattern has exactly one current revision; older ones are superseded, never deleted. Revisions get a code made from
  * the pattern code (P-0123-R1) and may name the customer drawing revision they follow.
  *
- * Back-fill: a pattern with no revision gets "Rev 0, as-imported baseline". A pattern that has revisions keeps them: the
+ * Back-fill: a pattern with no revision is left without one (imported patterns do not get an automatic revision). A pattern
+ * that has revisions keeps them: the
  * latest approved one (else the latest not obsolete, else the latest) becomes current and the older ones are superseded.
  * Safe to run again: nothing is changed for a pattern that already has a current revision.
  */
@@ -49,12 +49,6 @@ return new class extends Migration
             $revisions = DB::table('pattern_revisions')->where('pattern_id', $pattern->id)->orderBy('created_at')->orderBy('id')->get();
 
             if ($revisions->isEmpty()) {
-                DB::table('pattern_revisions')->insert([
-                    'id' => (string) Str::uuid(), 'pattern_id' => $pattern->id, 'revision' => '0', 'sequence' => 0,
-                    'code' => $this->freeCode($pattern->code, 0), 'status' => 'APPROVED', 'is_current' => true, 'legacy_baseline' => true,
-                    'change_description' => 'As-imported baseline', 'created_at' => $now, 'updated_at' => $now,
-                ]);
-
                 continue;
             }
 

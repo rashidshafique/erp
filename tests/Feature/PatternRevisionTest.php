@@ -43,7 +43,7 @@ class PatternRevisionTest extends TestCase
         return ProductRevision::create(['product_id' => $product->id, 'revision' => 'A', 'status' => 'APPROVED']);
     }
 
-    public function test_backfill_gives_a_bare_pattern_a_baseline_and_keeps_existing_revisions_current(): void
+    public function test_backfill_leaves_a_bare_pattern_without_a_revision_and_keeps_existing_revisions_current(): void
     {
         $bare = Pattern::create(['code' => 'P-0123', 'name' => 'Imported plate']);
         $revised = Pattern::create(['code' => 'P-0200', 'name' => 'Revised plate']);
@@ -53,8 +53,7 @@ class PatternRevisionTest extends TestCase
         $this->backfill();
         $this->backfill();
 
-        $baseline = PatternRevision::where('pattern_id', $bare->id)->sole();
-        $this->assertSame(['P-0123-R0', 0, true, true, null, 'APPROVED'], [$baseline->code, $baseline->sequence, $baseline->legacy_baseline, $baseline->is_current, $baseline->drawing_revision, $baseline->status]);
+        $this->assertSame(0, PatternRevision::where('pattern_id', $bare->id)->count());
         $this->assertSame(2, PatternRevision::where('pattern_id', $revised->id)->count());
         $this->assertTrue(PatternRevision::find($approved)->is_current);
         $this->assertTrue(PatternRevision::find($old)->isSuperseded());
