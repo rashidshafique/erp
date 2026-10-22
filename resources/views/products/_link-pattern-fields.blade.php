@@ -6,17 +6,17 @@
     $latestRevision = $product->revisions->where('status', '!=', 'OBSOLETE')->sortByDesc('created_at')->first();
 @endphp
 <div class="field field-full"><label for="lp-pattern">Pattern <span class="required">*</span></label>
-    <select id="lp-pattern" name="pattern_id" required data-lp>
+    <select id="lp-pattern" name="pattern_id" required data-search-select>
         <option value="">Choose a pattern…</option>
         @foreach ($patterns as $p)
-            <option value="{{ $p->id }}" data-revisions="{{ json_encode($p->revisions->map(fn ($r) => ['id' => $r->id, 'label' => $r->label().($r->is_current ? ' · current' : '')])->values()) }}" @selected($old('pattern_id') === $p->id)>{{ $p->name }} — {{ $p->code }}</option>
+            <option value="{{ $p->id }}" data-sub="{{ $p->code }}" data-revisions="{{ json_encode($p->revisions->map(fn ($r) => ['id' => $r->id, 'label' => $r->label().($r->is_current ? ' · current' : '')])->values()) }}" @selected($old('pattern_id') === $p->id)>{{ $p->name }}</option>
         @endforeach
     </select></div>
 <div class="field field-full"><label for="lp-revision">Pattern revision</label>
-    <select id="lp-revision" name="pattern_revision_id" data-old="{{ $old('pattern_revision_id') }}"><option value="">Current revision</option></select>
+    <select id="lp-revision" name="pattern_revision_id" data-search-select data-old="{{ $old('pattern_revision_id') }}"><option value="">Current revision</option></select>
     <div class="help" id="lp-revision-help">A pattern with no revision gets its first one.</div></div>
 <div class="field field-full"><label for="lp-product-revision">Product revision it makes <span class="required">*</span></label>
-    <select id="lp-product-revision" name="product_revision_id" required>
+    <select id="lp-product-revision" name="product_revision_id" required data-search-select>
         @foreach ($product->revisions->sortByDesc('created_at') as $r)
             <option value="{{ $r->id }}" @selected($old('product_revision_id', $latestRevision?->id) === $r->id) @disabled($r->status === 'OBSOLETE')>Rev {{ $r->revision }} · {{ $r->status }}</option>
         @endforeach

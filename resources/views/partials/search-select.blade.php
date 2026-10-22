@@ -1,7 +1,7 @@
 {{-- Type-to-search for long dropdowns. Mark a <select data-search-select>; each <option> may carry data-sub (a second line, such
      as a name) and data-img (a small photo). Clicking the select or typing on it opens a search box listing the options; picking
      one sets the select and fires "change", so the form and other scripts see an ordinary select. Without JavaScript the plain
-     select still works. Works for selects added to the page later. Include once per page. --}}
+     select still works. Works for selects added to the page later and inside a modal <dialog>. Include once per page. --}}
 @once
 <style>
     .ss-pop { position: fixed; z-index: 60; width: 300px; max-width: calc(100vw - 16px); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 12px 32px rgb(15 23 42 / 18%); padding: 6px; }
@@ -66,7 +66,7 @@
         close(false); target = select;
         pop = document.createElement('div'); pop.className = 'ss-pop'; pop.setAttribute('role', 'listbox');
         pop.innerHTML = '<input type="search" autocomplete="off" aria-label="Search"><ul></ul>';
-        document.body.appendChild(pop);
+        (select.closest('dialog') || document.body).appendChild(pop);
         pop.style.left = Math.max(8, Math.min(select.getBoundingClientRect().left, window.innerWidth - 308)) + 'px';
         var input = pop.querySelector('input'); input.value = typed || '';
         input.addEventListener('input', function () { render(input.value); });
