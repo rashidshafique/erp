@@ -5,7 +5,7 @@
 
 @section('content')
 @php
-    $typeLabel = ucfirst(strtolower(str_replace('_', ' ', $pattern->pattern_type ?? 'other')));
+    $typeLabel = \App\Models\Pattern::typeName($pattern->pattern_type, true);
     $current = $pattern->revisions->firstWhere('is_current', true);
     $madeProducts = $current ? $current->cavityMap->map(fn ($c) => $c->productRevision?->product)->filter()->unique('id') : collect();
     $levels = $current?->castingLevels() ?? 1;
@@ -27,7 +27,7 @@
     .pd-badge.ok { color: var(--success, #067647); background: color-mix(in srgb, var(--success, #067647) 10%, transparent); border-color: color-mix(in srgb, var(--success, #067647) 30%, transparent); }
     .pd-badge.off { color: var(--danger); background: color-mix(in srgb, var(--danger) 8%, transparent); border-color: color-mix(in srgb, var(--danger) 30%, transparent); }
     .pd-badge.owner { color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); border-color: color-mix(in srgb, var(--accent) 30%, transparent); }
-    .pd-badge.type { font: 500 12px ui-monospace, SFMono-Regular, Menlo, monospace; border-radius: 6px; }
+    .pd-badge.type { gap: 5px; font: 500 12px ui-monospace, SFMono-Regular, Menlo, monospace; border-radius: 6px; }
     .pd-meta { display: flex; flex-wrap: wrap; gap: 6px 22px; margin-top: 8px; font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted); }
     .pd-meta strong { color: var(--text); font-weight: 600; }
     .pd-meta .stamp { padding: 0 6px; border: 1px solid color-mix(in srgb, var(--warning, #b54708) 50%, transparent); background: color-mix(in srgb, var(--warning, #b54708) 8%, transparent); border-radius: 4px; color: var(--text); letter-spacing: .1em; }
@@ -94,7 +94,7 @@
                 <h1>{{ $pattern->name }}</h1>
                 <span class="pd-badge {{ $pattern->status === 'ACTIVE' ? 'ok' : 'off' }}">{{ $pattern->status }}</span>
                 <span class="pd-badge owner" title="Owner">{{ $pattern->owner_type === 'FOUNDRY' ? 'Foundry-owned' : 'Property of '.$pattern->ownerLabel() }}</span>
-                <span class="pd-badge type">{{ $typeLabel }}</span>
+                <span class="pd-badge type" title="{{ \App\Models\Pattern::typeName($pattern->pattern_type) }}">{!! \App\Support\MouldIcons::patternType($pattern->pattern_type, 15) !!} {{ $typeLabel }}</span>
             </div>
             <div class="pd-meta">
                 <span>Code: <strong>{{ $pattern->code }}</strong></span>
@@ -141,7 +141,7 @@
             <span class="sub">Sand: {{ $pattern->sand_system ?: ($station?->defaultSand() ? $station->defaultSand().' (station default)' : 'not recorded') }}</span></div>
         <div class="pd-tile"><dt>Flask size</dt>
             <dd>{{ $current?->isFlaskless() ? 'Flaskless' : ($flask?->name ?? '—') }}</dd>
-            <span class="sub">@if ($current){{ \Illuminate\Support\Str::before($current->arrangementLabel(), ' (') }}@if (in_array($current->mould_arrangement, ['STACK', 'CORE_PACKAGE'], true)) · {{ $sections }} sections @endif @else — @endif</span></div>
+            <span class="sub">@if ($current){!! \App\Support\MouldIcons::arrangement($current->mould_arrangement, 15) !!} {{ \Illuminate\Support\Str::before($current->arrangementLabel(), ' (') }}@if (in_array($current->mould_arrangement, ['STACK', 'CORE_PACKAGE'], true)) · {{ $sections }} sections @endif @else — @endif</span></div>
         <div class="pd-tile"><dt>Location</dt>
             <dd>{{ $pattern->custody_location ?: (\App\Models\Pattern::CUSTODIES[$pattern->custody] ?? 'Not recorded') }}</dd>
             <span class="sub">{{ $pattern->custody_location ? (\App\Models\Pattern::CUSTODIES[$pattern->custody] ?? '') : 'No storage place recorded' }}</span></div>

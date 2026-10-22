@@ -9,7 +9,7 @@
     $revisionData = $patternRevisions->mapWithKeys(fn ($r) => [$r->id => [
         'code' => $r->shortCode(),
         'name' => $r->pattern?->name ?? 'Pattern',
-        'type' => $r->pattern ? str_replace('_', ' ', $r->pattern->pattern_type) : null,
+        'type' => $r->pattern ? \App\Models\Pattern::typeName($r->pattern->pattern_type, true) : null,
         'cavities' => $r->cavities_per_mould,
         'layers' => $r->layers_per_mould,
         'station' => $r->pattern?->preferred_moulding_station_id,

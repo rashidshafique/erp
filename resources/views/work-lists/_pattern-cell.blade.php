@@ -14,7 +14,7 @@
     @endif
     <div class="wl-plate-text">
         <x-item :name="$pattern->name" :code="$revision->shortCode()" :href="route('patterns.show', $pattern)" />
-        <div class="muted small">{{ str_replace('_', ' ', $pattern->pattern_type) }}</div>
+        <div class="muted small">{{ \App\Models\Pattern::typeName($pattern->pattern_type, true) }}</div>
     </div>
 </div>
 @once

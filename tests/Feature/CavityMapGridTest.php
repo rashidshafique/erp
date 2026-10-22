@@ -118,7 +118,7 @@ class CavityMapGridTest extends TestCase
         $page = $this->get(route('patterns.show', $revision->pattern_id));
 
         $page->assertOk()->assertSee('data-cavity-row="3" class="has-error"', false)->assertSee('Cavity 3: Name the component this cavity makes.')
-            ->assertSee('value="Kept note"', false)->assertSee('name="cavities_per_mould" min="1" max="200" value="3"', false);
+            ->assertSee('value="Kept note"', false)->assertSee('<input type="hidden" name="cavities_per_mould" value="3" data-cavity-count data-cavity-source="cv-'.$revision->id.'">', false);
     }
 
     public function test_cavity_marks_are_kept_unique_can_be_swapped_and_carry_over(): void
@@ -167,5 +167,31 @@ class CavityMapGridTest extends TestCase
         ProductRevision::create(['product_id' => $valve->product_id, 'revision' => 'B', 'status' => 'APPROVED']);
         $this->get(route('patterns.show', $revision->pattern_id))->assertOk()
             ->assertSee('>VALVE-9 casting · rev A</option>', false)->assertSee('>VALVE-9 casting · rev B</option>', false);
+    }
+
+    public function test_the_layout_form_has_the_one_cavity_count_box_and_the_grid_follows_it(): void
+    {
+        $revision = $this->revision(2);
+
+        $page = $this->get(route('patterns.show', $revision->pattern_id))->assertOk();
+        $this->assertSame(1, substr_count($page->getContent(), 'Cavities on the layout</label>'), 'Only the layout form asks for the count.');
+        $page->assertSee('id="cv-'.$revision->id.'"', false)->assertSee('data-cavity-source="cv-'.$revision->id.'"', false);
+    }
+
+    public function test_a_pattern_without_a_revision_still_asks_for_the_count_in_the_grid(): void
+    {
+        $bare = \App\Models\Pattern::create(['code' => 'P-0777', 'name' => 'Bare plate', 'status' => 'ACTIVE']);
+
+        $page = $this->get(route('patterns.show', $bare))->assertOk();
+        $this->assertSame(1, substr_count($page->getContent(), 'Cavities on the layout</label>'));
+        $page->assertSee('id="cg-count-first"', false);
+    }
+
+    public function test_the_grid_offers_a_button_that_repeats_the_chosen_product_on_every_cavity(): void
+    {
+        $revision = $this->revision(4);
+
+        $this->get(route('patterns.show', $revision->pattern_id))->assertOk()
+            ->assertSee('data-cavity-repeat', false)->assertSee('Repeat the product on every cavity')->assertSee('data-cavity-repeat-msg', false);
     }
 }

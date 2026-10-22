@@ -70,9 +70,30 @@ class PatternController extends Controller
             'archivedPatterns' => Pattern::onlyTrashed()->count(),
             'archived' => $archived,
             'unlinkedPatterns' => Pattern::unlinked()->count(),
+            'withoutRevision' => Pattern::doesntHave('revisions')->count(),
             'baselineOnly' => Pattern::whereHas('currentRevision', fn ($r) => $r->baselineWithoutDrawing())->count(),
             'owningCustomers' => Customer::withTrashed()->whereIn('id', Pattern::whereNotNull('owner_customer_id')->select('owner_customer_id'))->orderedByName()->get(),
         ]);
+    }
+
+    /**
+     * Gives every pattern that has no revision its first one (Rev 0, current, approved), with the mould arrangement its type is
+     * usually used for. Archived patterns are left alone. Patterns that already have a revision are not touched.
+     */
+    public function storeFirstRevisions(): RedirectResponse
+    {
+        $count = DB::transaction(function () {
+            $patterns = Pattern::doesntHave('revisions')->orderBy('code')->get();
+            foreach ($patterns as $pattern) {
+                $pattern->addRevision(['change_description' => 'First revision, created in bulk for patterns that had none.']);
+            }
+
+            return $patterns->count();
+        });
+
+        return $count === 0
+            ? back()->with('warning', 'Every pattern already has a revision.')
+            : back()->with('success', "Rev 0 created for {$count} ".($count === 1 ? 'pattern' : 'patterns').' that had no revision.');
     }
 
     public function create()

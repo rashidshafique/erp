@@ -10,6 +10,10 @@
         <p>Manage physical tooling, pattern revisions and moulding configurations.</p>
     </div>
     <div class="actions">
+        @if ($withoutRevision > 0)
+            <form method="POST" action="{{ route('patterns.first-revisions.store') }}" style="display:inline" onsubmit="return confirm(@js('Create Rev 0 for the '.$withoutRevision.' '.($withoutRevision === 1 ? 'pattern' : 'patterns').' that have no revision? Each gets a current, approved Rev 0 with the mould arrangement its type is usually used for.'))">@csrf
+                <button class="btn" type="submit" title="Patterns that already have a revision are not touched">Create Rev 0 for {{ $withoutRevision }} {{ $withoutRevision === 1 ? 'pattern' : 'patterns' }} without a revision</button></form>
+        @endif
         <a class="btn" href="{{ route('pattern-ownership.index') }}" style="display:inline-flex;align-items:center;gap:6px">{!! \App\Support\NavIcons::get('users', 15) !!}Pattern ownership</a> <a class="btn" href="{{ route('imports.create', ['entity' => 'pattern']) }}">Import</a> <a class="btn btn-primary" href="{{ route('patterns.create') }}">+ New pattern</a>
     </div>
 </div>
@@ -114,7 +118,7 @@
                         @php($latestRevision = $pattern->currentRevision)
                         <tr>
                             <td><x-item :name="$pattern->name" :code="$pattern->code" /></td>
-                            <td>{{ $pattern->pattern_type }}</td>
+                            <td>{!! \App\Support\MouldIcons::patternType($pattern->pattern_type, 17) !!} {{ \App\Models\Pattern::typeName($pattern->pattern_type, true) }}</td>
                             <td>{{ $pattern->material ?: '—' }}</td>
                             <td>@if ($latestRevision)<span class="mono">{{ $latestRevision->code }}</span>@if ($latestRevision->legacy_baseline) <span class="status" title="As-imported baseline">Baseline</span>@endif @if ($latestRevision->drawing_revision)<div class="muted small">Drawing rev {{ $latestRevision->drawing_revision }}</div>@endif @else — @endif</td>
                             <td>{{ $latestRevision?->cavities_per_mould ?? '—' }}</td>

@@ -13,10 +13,22 @@
 <form method="POST" action="{{ $action ?? route('patterns.cavities.map', [$pattern, $revision]) }}" class="cavity-grid" data-cavity-grid>
     @csrf @method('PUT')<input type="hidden" name="_map" value="{{ $revision->id }}">
     <div class="cg-head">
-        <div class="field"><label for="cg-count-{{ $revision->id }}">Cavities on the layout</label>
-            <input id="cg-count-{{ $revision->id }}" type="number" name="cavities_per_mould" min="1" max="200" value="{{ $count ?: '' }}" required data-cavity-count placeholder="e.g. 4">
-            @if ($mine)@error('cavities_per_mould')<div class="error-text">{{ $message }}</div>@enderror @endif</div>
-        <p class="muted small">One row per cavity. Choose the product each cavity makes; leave a row empty if the cavity is not used. Rows follow the count.</p>
+        @if ($revision->exists)
+            {{-- The layout form above has the one "Cavities on the layout" box; the grid follows it and saves the same figure. --}}
+            <input type="hidden" name="cavities_per_mould" value="{{ $count ?: '' }}" data-cavity-count data-cavity-source="cv-{{ $revision->id }}">
+            @if ($mine)@error('cavities_per_mould')<div class="error-text">{{ $message }}</div>@enderror @endif
+            <p class="muted small">One row per cavity, following the cavities on the layout above. Choose the product each cavity makes; leave a row empty if the cavity is not used.</p>
+        @else
+            {{-- A pattern with no revision has no layout form yet, so the count is asked here and its first revision is recorded with the map. --}}
+            <div class="field"><label for="cg-count-{{ $revision->id }}">Cavities on the layout</label>
+                <input id="cg-count-{{ $revision->id }}" type="number" name="cavities_per_mould" min="1" max="200" value="{{ $count ?: '' }}" required data-cavity-count placeholder="e.g. 4">
+                @if ($mine)@error('cavities_per_mould')<div class="error-text">{{ $message }}</div>@enderror @endif</div>
+            <p class="muted small">One row per cavity. Choose the product each cavity makes; leave a row empty if the cavity is not used. Rows follow the count.</p>
+        @endif
+    </div>
+    <div class="cg-tools">
+        <button type="button" class="btn btn-small" data-cavity-repeat title="Puts the product chosen on a cavity onto every cavity that has none. Works when one product is chosen.">Repeat the product on every cavity</button>
+        <span class="muted small" data-cavity-repeat-msg role="status" aria-live="polite"></span>
     </div>
     <div class="table-wrap">
         <table class="cg-table">

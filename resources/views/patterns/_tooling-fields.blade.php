@@ -17,12 +17,14 @@
 </div>
 <div class="field">
     <label for="pattern_type">Pattern type *</label>
+    <div class="mi-field">@include('patterns._icon-preview', ['for' => 'pattern_type', 'kind' => 'type'])
     <select id="pattern_type" name="pattern_type" required>
         @foreach ($patternTypes as $type)
-            <option value="{{ $type }}" @selected(old('pattern_type', $pattern->pattern_type ?? 'MATCHPLATE') === $type)>{{ $type }}</option>
+            <option value="{{ $type }}" @selected(old('pattern_type', $pattern->pattern_type ?? 'MATCHPLATE') === $type)>{{ \App\Models\Pattern::typeName($type) }}</option>
         @endforeach
     </select>
-    @if ($pattern->exists)<div class="help">Changing the type also sets the current revision's arrangement below, unless you chose another one.</div>@endif
+    </div>
+    <div class="help">What the tooling is. How the mould is built from it (cope and drag, stack, vertically parted, shell) is the mould arrangement, set on each revision.@if ($pattern->exists) Changing the type also sets the current revision's arrangement, unless you chose another one.@endif</div>
 </div>
 <div class="field">
     <label for="status">Tooling status *</label>

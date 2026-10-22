@@ -26,11 +26,34 @@ class Pattern extends Model
         return ! $this->withoutMark;
     }
 
-    /** Pattern types, and the way each is usually moulded (PatternRevision::ARRANGEMENTS). */
+    /**
+     * Pattern types: what the tooling physically is. This is not how the mould is built; each type maps to the mould
+     * arrangement it is usually used for (PatternRevision::ARRANGEMENTS), which is only the starting choice on a revision.
+     */
     public const TYPES = [
-        'MATCHPLATE' => 'MATCHPLATE', 'COPE_DRAG' => 'COPE_DRAG', 'STACK_PLATE' => 'STACK', 'VERTICAL_PLATES' => 'VERTICAL',
-        'LOOSE_PATTERN' => 'LOOSE', 'SPLIT_PATTERN' => 'LOOSE', 'GATED' => 'GATED', 'OTHER' => 'OTHER',
+        'MATCHPLATE' => 'COPE_DRAG', 'COPE_DRAG' => 'COPE_DRAG', 'STACK_PLATE' => 'STACK', 'VERTICAL_PLATES' => 'VERTICAL',
+        'LOOSE_PATTERN' => 'COPE_DRAG', 'SPLIT_PATTERN' => 'COPE_DRAG', 'GATED' => 'COPE_DRAG', 'SHELL_PLATE' => 'SHELL', 'OTHER' => 'OTHER',
     ];
+
+    public const TYPE_LABELS = [
+        'MATCHPLATE' => 'Matchplate (cope and drag patterns on one plate)',
+        'COPE_DRAG' => 'Cope and drag plates (a plate each)',
+        'STACK_PLATE' => 'Stack mould plate',
+        'VERTICAL_PLATES' => 'Vertical plates (DISA type)',
+        'LOOSE_PATTERN' => 'Loose pattern',
+        'SPLIT_PATTERN' => 'Split pattern',
+        'GATED' => 'Gated pattern (runners on the pattern)',
+        'SHELL_PLATE' => 'Shell pattern plate',
+        'OTHER' => 'Other',
+    ];
+
+    /** The readable name of a pattern type; the part before the bracket when $short. */
+    public static function typeName(?string $type, bool $short = false): string
+    {
+        $label = self::TYPE_LABELS[$type] ?? ucfirst(strtolower(str_replace('_', ' ', (string) ($type ?: 'other'))));
+
+        return $short ? trim(\Illuminate\Support\Str::before($label, ' (')) : $label;
+    }
 
     protected $fillable = [
         'mark_code',

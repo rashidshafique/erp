@@ -55,7 +55,7 @@ return [
                 'code' => ['label' => 'Code', 'type' => 'string', 'max' => 40, 'aliases' => ['pattern code', 'pattern no', 'pattern number', 'id', 'tool code'], 'help' => 'Leave blank to have the system make one.'],
                 'mark_code' => ['label' => 'Engraving mark', 'type' => 'mark', 'aliases' => ['mark', 'engraved mark', 'engraving', 'stamp', 'tool mark'], 'help' => 'The mark already engraved on an old tool. Blank: the next free mark is issued.'],
                 'name' => ['label' => 'Name', 'type' => 'string', 'max' => 255, 'required' => true, 'aliases' => ['pattern name', 'description', 'title']],
-                'pattern_type' => ['label' => 'Pattern type', 'type' => 'enum', 'enum' => ['MATCHPLATE', 'COPE_DRAG', 'STACK_PLATE', 'VERTICAL_PLATES', 'LOOSE_PATTERN', 'SPLIT_PATTERN', 'GATED', 'OTHER'], 'default' => 'MATCHPLATE', 'aliases' => ['type', 'kind', 'plate type']],
+                'pattern_type' => ['label' => 'Pattern type', 'type' => 'enum', 'enum' => ['MATCHPLATE', 'COPE_DRAG', 'STACK_PLATE', 'VERTICAL_PLATES', 'LOOSE_PATTERN', 'SPLIT_PATTERN', 'GATED', 'SHELL_PLATE', 'OTHER'], 'default' => 'MATCHPLATE', 'aliases' => ['type', 'kind', 'plate type']],
                 'status' => ['label' => 'Status', 'type' => 'enum', 'enum' => $status, 'default' => 'ACTIVE', 'aliases' => ['state', 'condition']],
                 'sand_system' => ['label' => 'Made for sand', 'type' => 'enum', 'enum_from' => SandSystem::class, 'aliases' => ['sand', 'sand system', 'made for sand', 'moulding sand']],
                 'material' => ['label' => 'Material', 'type' => 'string', 'max' => 50, 'aliases' => ['pattern material', 'made of']],

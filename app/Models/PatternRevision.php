@@ -20,18 +20,16 @@ class PatternRevision extends Model
     use HasUuids;
 
     /**
-     * How the revision is moulded. Every arrangement counts castings the same way: casting levels × the cavity layout, where a
-     * level is a joint between a bottom and a top flask (or between two blocks of a flaskless line).
+     * How the revision is moulded: the mould, not the tooling (a matchplate, a loose pattern or a gated pattern is a pattern type,
+     * and is moulded as cope and drag). Every arrangement counts castings the same way: casting levels × the cavity layout, where
+     * a level is a joint between a bottom and a top flask (or between two blocks of a flaskless line).
      */
     public const ARRANGEMENTS = [
-        'MATCHPLATE' => 'Matchplate (cope and drag on one plate)',
-        'COPE_DRAG' => 'Cope and drag (separate plates)',
+        'COPE_DRAG' => 'Cope and drag (horizontally parted, two flasks)',
         'STACK' => 'Stack mould (sections stacked on one sprue)',
         'VERTICAL' => 'Vertically parted, flaskless (DISA type)',
-        'LOOSE' => 'Loose or split pattern, hand moulded',
-        'GATED' => 'Gated pattern (runners on the pattern)',
-        'CORE_PACKAGE' => 'Core package (stacked cores)',
         'SHELL' => 'Shell mould',
+        'CORE_PACKAGE' => 'Core package (stacked cores)',
         'CLUSTER' => 'Tree or cluster',
         'OTHER' => 'Other',
     ];

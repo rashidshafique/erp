@@ -24,6 +24,7 @@
             .cavity-grid .cg-head .field { margin: 0; }
             .cavity-grid .cg-head input { width: 110px; }
             .cavity-grid .cg-head p { margin: 0 0 6px; max-width: 60ch; }
+            .cg-tools { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; margin: 0 0 6px; }
             .cg-table { font-size: 12.5px; }
             .cg-table td { padding: 4px 5px; vertical-align: top; }
             .cg-table input, .cg-table select { min-height: 28px; padding: 3px 6px; font-size: 12.5px; max-width: 100%; }
@@ -103,7 +104,29 @@
                         if (tr) { parked[m] = tr; tr.remove(); }
                     }
                 }
+                // One product on every cavity, the usual case for a single-casting plate: the product chosen on one cavity goes on the rest.
+                var repeat = form.querySelector('[data-cavity-repeat]'), repeatMsg = form.querySelector('[data-cavity-repeat-msg]');
+                if (repeat) {
+                    repeat.addEventListener('click', function () {
+                        var selects = [].slice.call(body.querySelectorAll('select[name$="[product_revision_id]"]'));
+                        var chosen = selects.map(function (s) { return s.value; }).filter(function (v, i, a) { return v && a.indexOf(v) === i; });
+                        if (chosen.length === 0) { repeatMsg.textContent = 'Choose the product on one cavity first.'; return; }
+                        if (chosen.length > 1) { repeatMsg.textContent = 'More than one product is chosen, so there is no single product to repeat.'; return; }
+                        var done = 0;
+                        selects.forEach(function (s) {
+                            if (s.value) return;
+                            s.value = chosen[0]; s.dispatchEvent(new Event('change', { bubbles: true })); done++;
+                        });
+                        repeatMsg.textContent = done ? 'Repeated on ' + done + (done === 1 ? ' more cavity.' : ' more cavities.') : 'Every cavity already has the product.';
+                    });
+                }
                 count.addEventListener('input', sync);
+                // With a layout form above, its cavity box is the one count: the grid follows it as it is typed.
+                var source = count.dataset.cavitySource && document.getElementById(count.dataset.cavitySource);
+                if (source) {
+                    var follow = function () { count.value = source.value; sync(); };
+                    source.addEventListener('input', follow); source.addEventListener('change', follow);
+                }
             });
         })();
         </script>

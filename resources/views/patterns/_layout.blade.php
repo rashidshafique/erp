@@ -12,7 +12,7 @@
 <div class="layout-fig">@include('patterns._mould-diagram', ['revision' => $revision, 'size' => 'sm'])</div>
 <div class="layout-text">
 <div class="layout-summary">
-    <strong>{{ $revision->arrangementLabel() }}</strong>
+    <strong>{!! \App\Support\MouldIcons::arrangement($revision->mould_arrangement, 17) !!} {{ $revision->arrangementLabel() }}</strong>
     · {{ $sections }} flask {{ $sections === 1 ? 'section' : 'sections' }}
     · {{ $levels }} {{ $levels === 1 ? 'level' : 'levels' }} × {{ $revision->cavityMap->count() }} {{ $revision->cavityMap->count() === 1 ? 'cavity' : 'cavities' }}
     = <strong>{{ $levels * $revision->cavityMap->count() }} {{ $levels * $revision->cavityMap->count() === 1 ? 'casting' : 'castings' }} per mould</strong>
@@ -30,7 +30,7 @@
     @endif
         <form method="POST" action="{{ route('patterns.revisions.layout', [$pattern, $revision]) }}" class="form-grid">
             @csrf @method('PUT')<input type="hidden" name="_layout" value="{{ $revision->id }}">
-            <div class="field"><label for="ar-{{ $revision->id }}">Arrangement</label><select id="ar-{{ $revision->id }}" name="mould_arrangement">@foreach (\App\Models\PatternRevision::ARRANGEMENTS as $k => $l)<option value="{{ $k }}" @selected($val('mould_arrangement') === $k)>{{ $l }}</option>@endforeach</select></div>
+            <div class="field"><label for="ar-{{ $revision->id }}">Mould arrangement</label><div class="mi-field">@include('patterns._icon-preview', ['for' => 'ar-'.$revision->id, 'kind' => 'arrangement'])<select id="ar-{{ $revision->id }}" name="mould_arrangement">@foreach (\App\Models\PatternRevision::ARRANGEMENTS as $k => $l)<option value="{{ $k }}" @selected($val('mould_arrangement') === $k)>{{ $l }}</option>@endforeach</select></div></div>
             <div class="field"><label for="se-{{ $revision->id }}">Flask sections per mould</label><input id="se-{{ $revision->id }}" type="number" name="layers_per_mould" min="1" max="50" value="{{ $val('layers_per_mould') }}"><div class="help">2 for cope and drag; a stack counts every section, bottom and top included.</div></div>
             <div class="field"><label for="lv-{{ $revision->id }}">Casting levels</label><input id="lv-{{ $revision->id }}" type="number" name="casting_levels" min="1" max="50" value="{{ $val('casting_levels') }}" placeholder="sections − 1"><div class="help">Joints holding the layout. Left blank: sections less one.</div></div>
             <div class="field"><label for="cv-{{ $revision->id }}">Cavities on the layout</label><input id="cv-{{ $revision->id }}" type="number" name="cavities_per_mould" min="1" max="10000" value="{{ $val('cavities_per_mould') }}"><div class="help">On one level.</div></div>

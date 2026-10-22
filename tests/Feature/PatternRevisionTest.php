@@ -109,7 +109,7 @@ class PatternRevisionTest extends TestCase
 
         $page = $this->get(route('patterns.show', $pattern));
 
-        $page->assertOk()->assertSee('name="cavities_per_mould" min="1" max="200" value="3"', false)
+        $page->assertOk()->assertSee('<input type="hidden" name="cavities_per_mould" value="3" data-cavity-count data-cavity-source="cv-', false)
             ->assertSee('data-cavity-row="1"', false)->assertSee('data-cavity-row="2"', false)->assertSee('data-cavity-row="3"', false)
             ->assertDontSee('data-cavity-row="4"', false)->assertSee('name="rows[2][casting_weight_kg]" min="0.0001" step="0.0001" value="5"', false);
     }

@@ -38,8 +38,8 @@
                 <div class="layout-edit">
                     <div>@include('patterns._mould-diagram', ['revision' => $current, 'size' => 'lg'])</div>
                     <div class="form-grid">
-                        <div class="field field-full"><label for="mould_arrangement">Arrangement</label>
-                            <select id="mould_arrangement" name="mould_arrangement" data-type-defaults='@json(\App\Models\Pattern::TYPES)'>@foreach (\App\Models\PatternRevision::ARRANGEMENTS as $k => $l)<option value="{{ $k }}" @selected($lv('mould_arrangement') === $k)>{{ $l }}</option>@endforeach</select></div>
+                        <div class="field field-full"><label for="mould_arrangement">Mould arrangement</label>
+                            <div class="mi-field">@include('patterns._icon-preview', ['for' => 'mould_arrangement', 'kind' => 'arrangement'])<select id="mould_arrangement" name="mould_arrangement" data-type-defaults='@json(\App\Models\Pattern::TYPES)'>@foreach (\App\Models\PatternRevision::ARRANGEMENTS as $k => $l)<option value="{{ $k }}" @selected($lv('mould_arrangement') === $k)>{{ $l }}</option>@endforeach</select></div></div>
                         <div class="field" data-stack-only @unless ($stacked) hidden @endunless><label for="layers_per_mould">Moulds in the stack</label>
                             <input id="layers_per_mould" type="number" name="layers_per_mould" min="2" max="50" value="{{ $lv('layers_per_mould', 2) }}" @unless ($stacked) disabled @endunless>
                             <div class="help">Stack height: every section, the bottom and top ones included.</div></div>
