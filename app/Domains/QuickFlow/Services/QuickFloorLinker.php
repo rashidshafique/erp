@@ -59,6 +59,14 @@ class QuickFloorLinker
             ?? ProductionOrder::whereIn('status', self::OPEN)->whereIn('product_id', $products)->orderBy('required_date')->orderBy('production_order_number')->first();
     }
 
+    /** Castings one mould of the revision gives by its cavity map (cavities on a level × casting levels); null without a map. */
+    public function cavitiesFromMap(?PatternRevision $revision): ?int
+    {
+        $count = $revision ? ($revision->relationLoaded('cavityMap') ? $revision->cavityMap->count() : $revision->cavityMap()->count()) : 0;
+
+        return $count > 0 ? $count * $revision->castingLevels() : null;
+    }
+
     /** Pieces of a product one mould of the revision gives; without a product, of the one product it makes. 1 when the map does not say. */
     public function piecesPerMould(?PatternRevision $revision, ?string $productId): int
     {
@@ -74,26 +82,26 @@ class QuickFloorLinker
     }
 
     /**
-     * Links an entry to an open order. The pieces per mould follow the order's product on the cavity map, unless the count was
-     * typed with the entry ($keepPiecesPerMould); a "made" entry gets
+     * Links an entry to an open order. The pieces per mould follow the order's product on the cavity map (a pattern without a map
+     * keeps the cavity count typed with the entry); a "made" entry gets
      * its completed moulding run, and a released order starts. A refusal (such as a customer's pattern on another customer's
      * order) is a validation error and changes nothing.
      */
-    public function link(QuickFloorEntry $entry, ProductionOrder $order, bool $keepPiecesPerMould = false): void
+    public function link(QuickFloorEntry $entry, ProductionOrder $order): void
     {
         // Starting the order below saves it; that must not start an automatic round that links this same entry again.
         $outer = self::$linking;
         self::$linking = true;
         try {
-            $this->linkNow($entry, $order, $keepPiecesPerMould);
+            $this->linkNow($entry, $order);
         } finally {
             self::$linking = $outer;
         }
     }
 
-    private function linkNow(QuickFloorEntry $entry, ProductionOrder $order, bool $keepPiecesPerMould): void
+    private function linkNow(QuickFloorEntry $entry, ProductionOrder $order): void
     {
-        DB::transaction(function () use ($entry, $order, $keepPiecesPerMould) {
+        DB::transaction(function () use ($entry, $order) {
             $entry = QuickFloorEntry::whereKey($entry->id)->lockForUpdate()->firstOrFail();
             $order = ProductionOrder::whereKey($order->id)->lockForUpdate()->firstOrFail();
             if ($entry->production_order_id !== null) {
@@ -103,7 +111,7 @@ class QuickFloorLinker
                 throw ValidationException::withMessages(['production_order_id' => "Order {$order->production_order_number} is not open."]);
             }
             $revision = $entry->pattern_revision_id ? PatternRevision::find($entry->pattern_revision_id) : null;
-            $perMould = $revision && ! $keepPiecesPerMould ? $this->cavityMap->expectedProductsPerMould($revision, $order->product_id) : 0;
+            $perMould = $revision ? $this->cavityMap->expectedProductsPerMould($revision, $order->product_id) : 0;
             $entry->forceFill(['production_order_id' => $order->id, 'pieces_per_mould' => $perMould > 0 ? max(1, (int) round($perMould)) : $entry->pieces_per_mould]);
 
             if ($entry->kind === QuickFloorEntry::MADE) {

@@ -108,7 +108,7 @@ class QuickFlowTest extends TestCase
         $this->order($shop, 50, [], ['due_date' => today()->addDays(2)->toDateString()]);
         $late = ProductionOrder::orderBy('production_order_number')->first();
 
-        $this->post(route('quick.floor.made'), ['rows' => [$this->row($this->pattern($shop), 10, ['production_order_id' => $late->id, 'pieces_per_mould' => 2])]])->assertSessionHasNoErrors();
+        $this->post(route('quick.floor.made'), ['rows' => [$this->row($this->pattern($shop), 10, ['production_order_id' => $late->id])]])->assertSessionHasNoErrors();
 
         $lines = app(NextHeatPlan::class)->build()['heats'][0]['lines'];
         $this->assertTrue($lines[0]['ready']);
@@ -121,11 +121,11 @@ class QuickFlowTest extends TestCase
         $this->order($shop);
         $order = ProductionOrder::firstOrFail();
 
-        $this->post(route('quick.floor.made'), ['rows' => [$this->row($this->pattern($shop), 12, ['production_order_id' => $order->id, 'pieces_per_mould' => 4])]])->assertSessionHasNoErrors();
+        $this->post(route('quick.floor.made'), ['rows' => [$this->row($this->pattern($shop), 12, ['production_order_id' => $order->id, 'cavities' => 9])]])->assertSessionHasNoErrors();
 
         $run = MouldingRun::firstOrFail();
         $this->assertSame([12, 'COMPLETED', 'IN_PROGRESS'], [$run->moulds_made_qty, $run->status, $order->refresh()->status]);
-        $this->assertSame(48, QuickFloorEntry::firstOrFail()->pieces());
+        $this->assertSame(24, QuickFloorEntry::firstOrFail()->pieces(), 'The cavity map gives 2 per mould; a typed count is ignored.');
     }
 
     public function test_pouring_records_a_pour_and_warns_about_thermal_tests_without_blocking(): void
@@ -135,14 +135,14 @@ class QuickFlowTest extends TestCase
         $order = ProductionOrder::firstOrFail();
         $heat = Heat::create(['heat_number' => 'H-1', 'furnace_id' => $shop['furnace']->id, 'process_type' => 'INDUCTION', 'status' => 'PLANNED', 'iron_grade_id' => $shop['grade']->id]);
         $pattern = $this->pattern($shop);
-        $this->post(route('quick.floor.made'), ['rows' => [$this->row($pattern, 20, ['production_order_id' => $order->id, 'pieces_per_mould' => 1])]]);
+        $this->post(route('quick.floor.made'), ['rows' => [$this->row($pattern, 20, ['production_order_id' => $order->id])]]);
 
-        $this->post(route('quick.floor.poured'), ['heat_id' => $heat->id, 'rows' => [$this->row($pattern, 15, ['production_order_id' => $order->id, 'pieces_per_mould' => 1])]])
+        $this->post(route('quick.floor.poured'), ['heat_id' => $heat->id, 'rows' => [$this->row($pattern, 15, ['production_order_id' => $order->id])]])
             ->assertSessionHasNoErrors()->assertSessionHas('warning', 'No thermal test has been recorded on H-1.');
 
         $this->assertSame(['COMPLETED', 'ADVISORY'], [Pour::firstOrFail()->status, Pour::firstOrFail()->gate_mode]);
         $row = app(NextHeatPlan::class)->orders()->first();
-        $this->assertSame([20, 15, 5, 80], [$row['made'], $row['poured'], $row['awaiting'], $row['to_mould']]);
+        $this->assertSame([40, 30, 10, 60], [$row['made'], $row['poured'], $row['awaiting'], $row['to_mould']]);
     }
 
     public function test_the_next_heat_starts_a_real_heat_on_an_eligible_furnace(): void
@@ -177,7 +177,7 @@ class QuickFlowTest extends TestCase
         $this->get(route('iron-grades.index'))->assertOk()->assertSeeInOrder(['Grey iron', 'Ductile iron']);
     }
 
-    public function test_a_grid_row_takes_the_order_station_and_pieces_per_mould_from_the_pattern(): void
+    public function test_a_grid_row_takes_the_order_station_and_cavities_from_the_pattern(): void
     {
         $shop = $this->shop();
         $this->order($shop);
@@ -185,10 +185,10 @@ class QuickFlowTest extends TestCase
         $station = MouldingStation::create(['code' => 'M2', 'name' => 'Manual 2', 'station_type' => 'FLOOR', 'status' => 'ACTIVE', 'max_patterns' => 2]);
         $pattern = $this->pattern($shop, $station->id);
 
-        $this->get(route('quick.floor.index'))->assertOk()->assertSee('data-station="'.$station->id.'"', false)->assertSee('data-ppm="2"', false)
+        $this->get(route('quick.floor.index'))->assertOk()->assertSee('data-station="'.$station->id.'"', false)->assertSee('data-cavities="2"', false)
             ->assertSee('Automatic: '.$order->production_order_number, false);
 
-        $this->post(route('quick.floor.made'), ['rows' => [$this->row($pattern, 10, ['pieces_per_mould' => 2]), ['pattern_id' => '', 'moulds' => '']]])
+        $this->post(route('quick.floor.made'), ['rows' => [$this->row($pattern, 10), ['pattern_id' => '', 'moulds' => '']]])
             ->assertSessionHasNoErrors();
 
         $entry = QuickFloorEntry::sole();
@@ -227,7 +227,7 @@ class QuickFlowTest extends TestCase
     {
         $shop = $this->shop();
         $loose = Pattern::create(['code' => 'PAT-9', 'name' => 'Unmapped plate', 'status' => 'ACTIVE']);
-        $this->post(route('quick.floor.made'), ['rows' => [$this->row($loose, 8)]])->assertSessionHasNoErrors();
+        $this->post(route('quick.floor.made'), ['rows' => [$this->row($loose, 8, ['cavities' => 1])]])->assertSessionHasNoErrors();
         $this->order($shop);
         $order = ProductionOrder::firstOrFail();
         $entry = QuickFloorEntry::sole();
@@ -257,5 +257,18 @@ class QuickFlowTest extends TestCase
         $this->assertSame(1, QuickFloorEntry::unlinked()->count(), 'The first 60 pieces cover the order of 50, so the second entry keeps waiting.');
         $this->assertSame(60, (int) QuickFloorEntry::where('production_order_id', $order->id)->get()->sum(fn ($e) => $e->pieces()));
         $this->assertSame([1, 'IN_PROGRESS'], [MouldingRun::count(), $order->refresh()->status]);
+    }
+
+    public function test_a_pattern_without_a_cavity_map_needs_its_cavity_count_and_warns_it_makes_no_known_product(): void
+    {
+        $loose = Pattern::create(['code' => 'PAT-9', 'name' => 'Unmapped plate', 'status' => 'ACTIVE']);
+
+        $this->post(route('quick.floor.made'), ['rows' => [$this->row($loose, 5)]])->assertSessionHasErrors('rows.0.cavities');
+        $this->assertSame(0, QuickFloorEntry::count());
+
+        $this->post(route('quick.floor.made'), ['rows' => [$this->row($loose, 5, ['cavities' => 3])]])
+            ->assertSessionHasNoErrors()->assertSessionHas('warning', fn ($m) => str_contains($m, 'Unmapped plate is not linked to any product'));
+        $this->assertSame(15, QuickFloorEntry::sole()->pieces());
+        $this->get(route('quick.floor.index'))->assertOk()->assertSee('data-cavities=""', false)->assertSee('Not linked to any product');
     }
 }

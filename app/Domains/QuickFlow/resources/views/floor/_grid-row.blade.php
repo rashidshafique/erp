@@ -3,6 +3,7 @@
     $err = fn ($field) => $mine && is_numeric($n) && $errors->has("rows.{$n}.{$field}");
     $chosen = $patterns->first(fn ($c) => $c['pattern']->id === ($row['pattern_id'] ?? null));
     $chosenOrder = $chosen ? ($pouring ? $chosen['pour_order'] : $chosen['make_order']) : null;
+    $mapped = $chosen && $chosen['cavities'] !== null;
 @endphp
 <tr>
     <td class="fg-n">{{ is_numeric($n) ? $n + 1 : '__num__' }}</td>
@@ -10,11 +11,14 @@
         <option value="">—</option>
         @foreach ($patterns as $c)
             @php $o = $pouring ? $c['pour_order'] : $c['make_order']; @endphp
-            <option value="{{ $c['pattern']->id }}" data-sub="{{ $c['pattern']->code }}" data-station="{{ $c['station_id'] }}" data-ppm="{{ $pouring ? $c['pour_ppm'] : $c['make_ppm'] }}" data-order="{{ $autoLabel($o) }}" @isset($patternPhotos[$c['pattern']->id]) data-img="{{ $patternPhotos[$c['pattern']->id] }}" @endisset @selected(($row['pattern_id'] ?? null) === $c['pattern']->id)>{{ $c['pattern']->name }}</option>
+            <option value="{{ $c['pattern']->id }}" data-sub="{{ $c['pattern']->code }}" data-station="{{ $c['station_id'] }}" data-cavities="{{ $c['cavities'] }}" data-url="{{ route('patterns.show', $c['pattern']) }}#cavity-map" data-order="{{ $autoLabel($o) }}" @isset($patternPhotos[$c['pattern']->id]) data-img="{{ $patternPhotos[$c['pattern']->id] }}" @endisset @selected(($row['pattern_id'] ?? null) === $c['pattern']->id)>{{ $c['pattern']->name }}</option>
         @endforeach
-    </select></td>
+    </select>
+    <div class="fg-warn" data-fg-warn @unless ($chosen && ! $mapped) hidden @endunless>Not linked to any product. <a href="{{ $chosen ? route('patterns.show', $chosen['pattern']).'#cavity-map' : '#' }}" target="_blank" data-fg-warn-link>Link it on the pattern</a></div></td>
     <td><input type="number" name="rows[{{ $n }}][moulds]" min="1" max="100000" class="fg-num" value="{{ $row['moulds'] ?? '' }}" aria-label="Moulds" @if ($err('moulds')) aria-invalid="true" @endif></td>
-    <td><input type="number" name="rows[{{ $n }}][pieces_per_mould]" min="1" max="1000" class="fg-num" value="{{ $row['pieces_per_mould'] ?? 1 }}" data-fg-ppm aria-label="Pieces per mould"></td>
+    <td><input type="number" name="rows[{{ $n }}][cavities]" min="1" max="1000" class="fg-num" data-fg-cavities aria-label="Cavities"
+        value="{{ $mapped ? $chosen['cavities'] : ($row['cavities'] ?? '') }}" @if ($mapped) readonly title="From the pattern's cavity map" @elseif ($chosen) required placeholder="count" @endif @if ($err('cavities')) aria-invalid="true" @endif>
+        <div class="fg-hint" data-fg-cavities-hint>{{ $mapped ? 'from cavity map' : '' }}</div></td>
     <td><select name="rows[{{ $n }}][production_order_id]" class="fg-order" aria-label="Order" @if ($err('production_order_id')) aria-invalid="true" @endif>
         <option value="" data-fg-auto>{{ $chosen ? $autoLabel($chosenOrder) : 'Automatic' }}</option>
         @foreach ($orderChoices as $o)<option value="{{ $o['order']->id }}" @selected(($row['production_order_id'] ?? null) === $o['order']->id)>{{ $label($o) }}</option>@endforeach

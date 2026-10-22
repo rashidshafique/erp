@@ -59,7 +59,7 @@ class FloorEntryController extends Controller
             foreach ($rows as $row) {
                 $entry = QuickFloorEntry::create(['kind' => QuickFloorEntry::MADE, 'entered_by' => $request->input('entered_by')] + $this->entryFields($row));
                 if ($row['production_order_id']) {
-                    $this->linker->link($entry, ProductionOrder::findOrFail($row['production_order_id']), keepPiecesPerMould: true);
+                    $this->linker->link($entry, ProductionOrder::findOrFail($row['production_order_id']));
                 } else {
                     $waiting++;
                 }
@@ -69,7 +69,8 @@ class FloorEntryController extends Controller
             return [$total, $waiting];
         });
 
-        return back()->with('success', "{$moulds} moulds recorded on ".count($rows).' '.(count($rows) === 1 ? 'pattern' : 'patterns').'.'.$this->waitingNote($waiting));
+        return back()->with('success', "{$moulds} moulds recorded on ".count($rows).' '.(count($rows) === 1 ? 'pattern' : 'patterns').'.'.$this->waitingNote($waiting))
+            ->with('warning', $this->unlinkedPatternsWarning($rows));
     }
 
     public function poured(Request $request): RedirectResponse
@@ -92,14 +93,14 @@ class FloorEntryController extends Controller
             foreach ($rows as $row) {
                 $entry = QuickFloorEntry::create(['kind' => QuickFloorEntry::POURED, 'pour_id' => $pour->id, 'heat_id' => $heatId, 'entered_by' => $request->input('entered_by')] + $this->entryFields($row));
                 if ($row['production_order_id']) {
-                    $this->linker->link($entry, ProductionOrder::findOrFail($row['production_order_id']), keepPiecesPerMould: true);
+                    $this->linker->link($entry, ProductionOrder::findOrFail($row['production_order_id']));
                 }
             }
 
             return [array_sum(array_column($rows, 'moulds')), count(array_filter($rows, fn ($r) => ! $r['production_order_id']))];
         });
 
-        return back()->with('success', "{$moulds} moulds poured from {$heat->heat_number}.".$this->waitingNote($waiting))->with('warning', $advice);
+        return back()->with('success', "{$moulds} moulds poured from {$heat->heat_number}.".$this->waitingNote($waiting))->with('warning', trim(($advice ?? '').' '.($this->unlinkedPatternsWarning($rows) ?? '')) ?: null);
     }
 
     /** Links an entry that was stored without an order. */
@@ -115,6 +116,18 @@ class FloorEntryController extends Controller
         return back()->with('success', "{$entry->moulds} ".($entry->kind === QuickFloorEntry::MADE ? 'moulds made' : 'moulds poured')." linked to {$order->production_order_number}.");
     }
 
+    /** Patterns in the rows that are not linked to any product, so their moulds cannot go to an order on their own. */
+    private function unlinkedPatternsWarning(array $rows): ?string
+    {
+        $names = collect($rows)->pluck('unlinked_pattern')->filter()->unique()->values();
+        if ($names->isEmpty()) {
+            return null;
+        }
+
+        return $names->implode(', ').' '.($names->count() === 1 ? 'is' : 'are').' not linked to any product, so '.($names->count() === 1 ? 'its' : 'their')
+            .' moulds cannot go to an order on their own. Link the product on the pattern\'s cavity map, or link the entries by hand.';
+    }
+
     private function waitingNote(int $waiting): string
     {
         return $waiting ? " {$waiting} ".($waiting === 1 ? 'row is' : 'rows are').' waiting for an order; link '.($waiting === 1 ? 'it' : 'them').' below, or '.($waiting === 1 ? 'it links' : 'they link').' when a matching order opens.' : '';
@@ -122,7 +135,8 @@ class FloorEntryController extends Controller
 
     /**
      * The patterns offered in the grids, each with what a row is filled in with: its default station, the open order that needs
-     * what it makes (for moulding, and the one with moulds waiting to be poured), and how many pieces of that order one mould gives.
+     * what it makes (for moulding, and the one with moulds waiting to be poured), and the castings per mould its cavity map gives
+     * (null when it has no map, so the row asks for the cavity count).
      *
      * @param  Collection<int, array<string, mixed>>  $orders  from NextHeatPlan::orders()
      * @return Collection<int, array<string, mixed>>
@@ -137,15 +151,15 @@ class FloorEntryController extends Controller
 
                 return [
                     'pattern' => $pattern, 'revision' => $revision, 'station_id' => $pattern->preferred_moulding_station_id,
-                    'make_order' => $makeOrder, 'pour_order' => $pourOrder,
-                    'make_ppm' => $this->linker->piecesPerMould($revision, $makeOrder?->product_id), 'pour_ppm' => $this->linker->piecesPerMould($revision, $pourOrder?->product_id),
+                    'make_order' => $makeOrder, 'pour_order' => $pourOrder, 'cavities' => $this->linker->cavitiesFromMap($revision),
                 ];
             });
     }
 
     /**
-     * The filled-in rows of a grid, checked. Empty rows are skipped; a row needs a pattern and a mould count. A row without an
-     * order takes the pattern's open order, and is kept without one when none is open.
+     * The filled-in rows of a grid, checked. Empty rows are skipped; a row needs a pattern and a mould count, and the cavity count
+     * when the pattern has no cavity map. A row without an order takes the pattern's open order, and is kept without one when
+     * none is open.
      *
      * @return array<int, array{pattern_id: string, pattern_revision_id: ?string, production_order_id: ?string, moulding_station_id: ?string, moulds: int, pieces_per_mould: int, entry_date: string}>
      */
@@ -155,7 +169,7 @@ class FloorEntryController extends Controller
             'rows' => ['required', 'array', 'max:100'],
             'rows.*.pattern_id' => ['nullable', 'uuid', Rule::exists('patterns', 'id')->whereNull('deleted_at')],
             'rows.*.moulds' => ['nullable', 'integer', 'min:1', 'max:100000'],
-            'rows.*.pieces_per_mould' => ['nullable', 'integer', 'min:1', 'max:1000'],
+            'rows.*.cavities' => ['nullable', 'integer', 'min:1', 'max:1000'],
             'rows.*.production_order_id' => ['nullable', 'uuid', Rule::exists('production_orders', 'id')->whereIn('status', self::OPEN)],
             'rows.*.moulding_station_id' => ['nullable', 'uuid', Rule::exists('moulding_stations', 'id')],
             'rows.*.entry_date' => ['nullable', 'date', 'before_or_equal:today'],
@@ -186,6 +200,12 @@ class FloorEntryController extends Controller
             }
             $pattern = Pattern::with('currentRevision.cavityMap.productRevision')->findOrFail($row['pattern_id']);
             $revision = $pattern->currentRevision;
+            $fromMap = $this->linker->cavitiesFromMap($revision);
+            if ($fromMap === null && blank($row['cavities'] ?? null)) {
+                $errors["rows.{$n}.cavities"] = "Row {$line}: {$pattern->name} has no cavity map. Enter how many cavities it has.";
+
+                continue;
+            }
             $order = $row['production_order_id'] ?? null ?: null;
             if (! $order) {
                 $order = $pouring
@@ -196,7 +216,9 @@ class FloorEntryController extends Controller
                 'pattern_id' => $pattern->id, 'pattern_revision_id' => $revision?->id, 'production_order_id' => $order,
                 'moulding_station_id' => $row['moulding_station_id'] ?? null ?: $pattern->preferred_moulding_station_id,
                 'moulds' => (int) $row['moulds'],
-                'pieces_per_mould' => (int) ($row['pieces_per_mould'] ?? null ?: $this->linker->piecesPerMould($revision, null)),
+                // With a cavity map the pieces follow it (and the order's product once linked); without one, the typed cavity count.
+                'pieces_per_mould' => $fromMap !== null ? $this->linker->piecesPerMould($revision, null) : (int) $row['cavities'],
+                'unlinked_pattern' => $fromMap === null ? $pattern->name : null,
                 'entry_date' => $row['entry_date'] ?? null ?: today()->toDateString(),
             ];
         }
