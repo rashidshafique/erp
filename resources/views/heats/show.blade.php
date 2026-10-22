@@ -11,7 +11,7 @@
             $run = $heat->furnaceRun();
             $runMinutes = $heat->furnaceRunMinutes();
         @endphp
-        <h1 class="heat-title"><x-heat-light :heat="$heat" />{{ $heat->heat_number }}
+        <h1 class="heat-title">{{ $heat->heat_number }}<x-heat-light :heat="$heat" after />
             <span class="status" id="heat-run" title="Furnace running time for this heat{{ $run['start'] ? ', from '.$run['start']->displayDateTime() : '' }}"
                 @if ($run['running']) data-run-since="{{ $run['start']->toIso8601String() }}" @endif>@if ($run['running'])Running {{ \App\Support\Formats::clock((int) $run['start']->diffInSeconds(now(), true)) }}@elseif ($runMinutes !== null)Ran {{ \App\Support\Formats::duration($runMinutes) }}@elseif ($run['start'])Started {{ $run['start']->displayDateTime() }}@else Not started @endif</span>
             @if ($run['running'])
@@ -20,9 +20,9 @@
             @endif
         </h1>
         <p>
-            {{ $heat->furnace?->name ?? 'Unknown furnace' }}
+            <!-- {{ $heat->furnace?->name ?? 'Unknown furnace' }}
             @unless ($heat->furnace)· {{ $heat->process_type }}@endunless
-            · Heat {{ strtolower(str_replace('_', ' ', $heat->status)) }}
+            · Heat {{ strtolower(str_replace('_', ' ', $heat->status)) }} -->
             @if ($heat->furnace)
                 <span class="status" title="Furnace type">{{ ucfirst(strtolower($heat->furnace->furnace_type)) }}</span>
                 <span class="status" title="Furnace">{{ $heat->furnace->code }}</span>
@@ -49,7 +49,7 @@
         var since = new Date(run.dataset.runSince);
         (function tick() {
             var s = Math.max(0, Math.floor((Date.now() - since) / 1000));
-            run.textContent = 'Running ' + Math.floor(s / 3600) + ':' + pad(Math.floor(s / 60) % 60) + ':' + pad(s % 60);
+            run.textContent =   Math.floor(s / 3600) + ':' + pad(Math.floor(s / 60) % 60) + ':' + pad(s % 60);
             setTimeout(tick, 1000 - (Date.now() % 1000));
         })();
     }

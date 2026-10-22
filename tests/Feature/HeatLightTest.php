@@ -68,7 +68,7 @@ class HeatLightTest extends TestCase
         $furnace = $running->furnace;
 
         $this->get(route('heats.show', $running))->assertOk()
-            ->assertSeeInOrder(['Heat '.$running->heat_number, 'Induction', '>'.$furnace->code.'</span>', '>Melting', 'Running 1:15:'], false);
+            ->assertSeeInOrder([$running->heat_number.'<span title="Heat in progress"', 'Running 1:15:', 'Induction', '>'.$furnace->code.'</span>', '>Melting'], false);
 
         $done = Heat::create(['heat_number' => 'H-DONE', 'furnace_id' => $furnace->id, 'process_type' => 'INDUCTION', 'status' => 'CLOSED',
             'actual_start_at' => now()->subHours(5), 'tapped_at' => now()->subHours(5)->addMinutes(50)]);
