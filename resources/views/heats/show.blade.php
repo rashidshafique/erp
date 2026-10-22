@@ -97,6 +97,14 @@
 
 
 <div class="tab-marker" data-tab-start="Overview"></div>
+<style>
+    .heat-overview { display: grid; grid-template-columns: minmax(0, 1fr) 500px; gap: 16px; align-items: start; }
+    .heat-overview > div { display: grid; gap: 16px; min-width: 0; }
+    .heat-overview .panel { margin: 0; }
+    @media (max-width: 1250px) { .heat-overview { grid-template-columns: 1fr; } }
+</style>
+<div class="heat-overview">
+<div>
 <div class="panel">
     <div class="panel-header"><h2>Heat summary</h2></div>
     <div class="panel-body" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:18px">
@@ -139,9 +147,13 @@
 @if ($heat->isCupola())
     @include('heats._timeline', ['heat' => $heat])
 @endif
+</div>
+<div>
+@include('heats._sampling', ['heat' => $heat])
+</div>
+</div>
 
 <div class="tab-marker" data-tab-start="Chemistry & tests"></div>
-@include('heats._sampling', ['heat' => $heat])
 @include('heats._chemistry', ['heat' => $heat])
 @include('heats._treatment', ['heat' => $heat])
 @include('heats._tests', ['heat' => $heat])
