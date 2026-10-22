@@ -63,8 +63,8 @@
             </div>
             @endif
 
-            @if ($menu->showsAny(['heats.index', 'furnaces.index', 'materials.index', 'charge-batches.index']))
-            <div class="nav-group {{ request()->routeIs('heats.*', 'furnaces.*', 'materials.*', 'charge-batches.*') ? 'is-active' : '' }}">
+            @if ($menu->showsAny(['heats.index', 'furnaces.index', 'materials.index', 'charge-batches.index']) || collect(app(\App\Domains\Core\ModuleRegistry::class)->navItems('melting'))->contains(fn ($i) => $menu->shows($i['route'])))
+            <div class="nav-group {{ request()->routeIs('heats.*', 'furnaces.*', 'materials.*', 'charge-batches.*', ...app(\App\Domains\Core\ModuleRegistry::class)->navPatterns('melting')) ? 'is-active' : '' }}">
                 <button type="button" class="nav-group-toggle" aria-expanded="false">
                     <span class="nav-lab">{!! \App\Support\NavIcons::get('flame') !!}<span>Melting &amp; Materials</span></span><span class="nav-chevron">›</span>
                 </button>
@@ -72,6 +72,10 @@
                     @if ($menu->shows('heats.index')) <a href="{{ route('heats.index') }}" class="nav-link {{ request()->routeIs('heats.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('flask') !!}<span>Melting heats</span></a> @endif
                     @if ($menu->shows('furnaces.index')) <a href="{{ route('furnaces.index') }}" class="nav-link {{ request()->routeIs('furnaces.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('zap') !!}<span>Furnaces</span></a> @endif
                     @if ($menu->shows('materials.index')) <a href="{{ route('materials.index') }}" class="nav-link {{ request()->routeIs('materials.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('package') !!}<span>Materials</span></a> @endif
+                    @foreach (app(\App\Domains\Core\ModuleRegistry::class)->navItems('melting') as $item)
+                        @continue(! $menu->shows($item['route']))
+                        <a href="{{ route($item['route']) }}" class="nav-link {{ request()->routeIs(...$item['active']) ? 'active' : '' }}">{!! \App\Support\NavIcons::get($item['icon']) !!}<span>{{ $item['label'] }}</span></a>
+                    @endforeach
                     @if ($menu->shows('charge-batches.index')) <a href="{{ route('charge-batches.index') }}" class="nav-link {{ request()->routeIs('charge-batches.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('list-check') !!}<span>Charge recipes</span></a> @endif
                 </div>
             </div>

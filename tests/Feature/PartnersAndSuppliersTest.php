@@ -61,4 +61,20 @@ class PartnersAndSuppliersTest extends TestCase
         $this->put(route('suppliers.update', $other), ['name' => 'Beta', 'code' => 'acme', 'review_interval_days' => 365])->assertSessionHasErrors('code');   // case does not make a new code
         $this->put(route('suppliers.update', $other), ['name' => 'Beta', 'review_interval_days' => 10])->assertSessionHasErrors('review_interval_days');
     }
+
+    public function test_suppliers_sit_in_the_melting_and_materials_menu_after_materials_and_not_under_quality(): void
+    {
+        $html = $this->get(route('suppliers.index'))->assertOk()->getContent();
+        $menu = [];
+        foreach (array_slice(preg_split('/<div class="nav-group/', $html), 1) as $group) {
+            preg_match('/<span class="nav-lab">.*?<span>(.*?)<\/span><\/span>/s', $group, $title);
+            preg_match_all('/<span>([^<]+)<\/span><\/a>/', explode("</div>\n            </div>", $group)[0], $items);
+            $menu[html_entity_decode($title[1])] = array_map('html_entity_decode', $items[1]);
+        }
+
+        $melting = $menu['Melting & Materials'];
+        $this->assertSame(array_search('Materials', $melting) + 1, array_search('Suppliers', $melting));
+        $this->assertNotContains('Suppliers', $menu['Quality & Dispatch']);
+        $this->assertStringContainsString('class="nav-group is-active"', $html);
+    }
 }
