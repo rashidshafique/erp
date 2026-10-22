@@ -6,6 +6,8 @@ use App\Domains\Core\Contracts\ModuleAccess;
 use App\Domains\Core\Contracts\PeopleDirectory;
 use App\Domains\Core\ModuleRegistry;
 use App\Domains\Core\NoPeopleDirectory;
+use App\Domains\Core\ShowEveryMenuEntry;
+use App\Domains\Core\Contracts\MenuFilter;
 use App\Domains\Core\OpenModuleAccess;
 use App\Models\Heat;
 use App\Services\Audit\Audit;
@@ -25,6 +27,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(Audit::class);
         $this->app->singletonIf(ModuleAccess::class, OpenModuleAccess::class);
+        $this->app->singletonIf(MenuFilter::class, ShowEveryMenuEntry::class);
         $this->app->singleton(ModuleRegistry::class);
         $this->app->singletonIf(PeopleDirectory::class, NoPeopleDirectory::class);
     }
