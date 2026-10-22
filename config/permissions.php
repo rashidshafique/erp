@@ -77,6 +77,18 @@ return [
         ['pattern' => 'flask-sizes.*', 'permission' => 'tooling.manage'],
     ],
 
+    // Where someone lands after signing in, by permission. First entry they qualify for wins; everyone else gets the
+    // dashboard. An entry with a module is skipped while that module is switched off or unlicensed.
+    'home' => [
+        ['permission' => 'melting.operate', 'route' => 'heats.index'],
+        ['permission' => 'moulding.operate', 'route' => 'quick.floor.index', 'module' => 'quickflow'],
+        ['permission' => 'moulding.operate', 'route' => 'moulding-runs.index'],
+        ['permission' => 'shopfloor.record', 'route' => 'lots.queue'],
+        ['permission' => 'quality.inspect', 'route' => 'lots.queue'],
+        ['permission' => 'sales.manage', 'route' => 'sales-orders.index'],
+        ['permission' => 'stores.manage', 'route' => 'stock-movements.index'],
+    ],
+
     // Starting permissions per role. ADMIN always has everything.
     'roles' => [
         'ADMIN' => ['name' => 'Administrator', 'permissions' => ['*']],

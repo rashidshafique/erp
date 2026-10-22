@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Support\StartPage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
@@ -37,7 +38,7 @@ class AuthController extends Controller
         $request->session()->regenerate();
         User::whereKey(Auth::id())->update(['last_login_at' => now()]);
 
-        return redirect()->intended(route('dashboard'));
+        return redirect()->intended(route(StartPage::routeFor($request->user())));
     }
 
     public function logout(Request $request)
