@@ -35,17 +35,11 @@ class HeatEta
             return null;
         }
         $done = $this->metalSoFar($heat);
-        $minutes = $run['start']->diffInMinutes(now(), true);
-
-        [$rate, $source] = match (true) {
-            $minutes >= self::LIVE_MIN_MINUTES && $done >= self::LIVE_MIN_KG => [$done / ($minutes / 60), 'live'],
-            ($recorded = $this->recordedRate($heat)) !== null => [$recorded, 'recorded'],
-            (float) $heat->furnace?->nominal_melting_rate_kg_per_hour > 0 => [(float) $heat->furnace->nominal_melting_rate_kg_per_hour, 'rated'],
-            default => [null, null],
-        };
-        if (! $rate) {
+        $measured = $this->rate($heat);
+        if (! $measured) {
             return null;
         }
+        ['rate' => $rate, 'source' => $source] = $measured;
 
         // Without a live rate nothing has been measured yet, so the whole target is timed from the start of the run.
         $remaining = max(0.0, $target - $done);
@@ -60,6 +54,29 @@ class HeatEta
             'source' => $source,
             'label' => ['live' => 'live rate', 'recorded' => 'recorded average', 'rated' => 'rated speed'][$source].' '.Formats::number($rate).' kg/h',
         ];
+    }
+
+    /**
+     * The melting rate to plan with, in kg per hour, and where it comes from: measured on this heat once it has run long enough
+     * and given enough metal, else the furnace's recorded average over its recent heats, else its rated melting speed.
+     *
+     * @return array{rate: float, source: string}|null null when the furnace has no rate on record at all.
+     */
+    public function rate(Heat $heat): ?array
+    {
+        $heat->loadMissing('furnace');
+        $run = $heat->furnaceRun();
+        $done = $this->metalSoFar($heat);
+        $minutes = $run['start'] ? $run['start']->diffInMinutes($run['end'] ?? now(), true) : 0;
+
+        [$rate, $source] = match (true) {
+            $run['running'] && $minutes >= self::LIVE_MIN_MINUTES && $done >= self::LIVE_MIN_KG => [$done / ($minutes / 60), 'live'],
+            ($recorded = $this->recordedRate($heat)) !== null => [$recorded, 'recorded'],
+            (float) $heat->furnace?->nominal_melting_rate_kg_per_hour > 0 => [(float) $heat->furnace->nominal_melting_rate_kg_per_hour, 'rated'],
+            default => [null, null],
+        };
+
+        return $rate ? ['rate' => (float) $rate, 'source' => $source] : null;
     }
 
     /** Metal this heat has given so far: the tapped weight when recorded, else what has been poured. */

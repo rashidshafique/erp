@@ -35,6 +35,17 @@ class ChargeBatchItem extends Model
         ];
     }
 
+    /** What one charge of the recipe puts in for this item: its fixed weight, else its percentage of the recipe's total charge weight. */
+    public function perChargeKg(): ?float
+    {
+        if ($this->target_qty_kg !== null) {
+            return (float) $this->target_qty_kg;
+        }
+        $basis = $this->chargeBatch?->target_total_charge_weight_kg;
+
+        return $this->target_percent !== null && $basis !== null ? (float) $basis * (float) $this->target_percent / 100 : null;
+    }
+
     public function chargeBatch(): BelongsTo
     {
         return $this->belongsTo(ChargeBatch::class);

@@ -106,4 +106,15 @@ class RecordTestDialogTest extends TestCase
         $this->assertSame(1, ThermalAnalysisTest::count());
         $this->post(route('thermal.store'), $this->thermal($heat, ['_dialog' => 0]))->assertRedirect(route('thermal.show', ThermalAnalysisTest::orderByDesc('id')->first()));
     }
+
+    public function test_the_samples_panel_has_a_plus_button_beside_the_due_warning_that_opens_the_dialog_unless_the_heat_is_closed(): void
+    {
+        $heat = $this->heat();
+        $heat->update(['actual_start_at' => now()->subHours(2)]);
+
+        $this->get(route('heats.show', $heat))->assertOk()
+            ->assertSeeInOrder(['Samples', 'class="sample-plus" data-quick="qd-record-test"'], false);
+
+        $this->get(route('heats.show', $this->heat('CLOSED')))->assertOk()->assertDontSee('class="sample-plus" data-quick', false);
+    }
 }

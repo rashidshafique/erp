@@ -113,6 +113,16 @@
                 </div>
             </div>
 
+            <div id="started-block" class="panel" style="margin-top:18px" hidden>
+                <div class="panel-body" style="display:grid;gap:8px">
+                    <label style="display:flex;gap:8px;align-items:center;font-weight:600"><input type="checkbox" id="already_started" name="already_started" value="1" style="width:auto" @checked(old('already_started'))>
+                        This heat has already started, at the time given as "Planned start"</label>
+                    <label id="fill-row" style="display:none;gap:8px;align-items:flex-start;margin-left:26px"><input type="checkbox" id="fill_charges" name="fill_charges" value="1" style="width:auto;margin-top:3px" @checked(old('fill_charges', true))>
+                        <span>Fill in the charges since the start from the recipe, each at its scheduled time. <strong id="fill-preview"></strong>
+                            <span class="muted small" style="display:block">They are marked as filled in from the schedule, and can be corrected on the Charge tab. Inventory is not deducted.</span></span></label>
+                </div>
+            </div>
+
             <div id="recipe-preview" class="panel" style="margin-top:18px" hidden>
                 <div class="panel-header"><h2>Planned charge components</h2></div>
                 <div class="panel-body">
@@ -156,6 +166,34 @@ document.addEventListener('DOMContentLoaded', function () {
     const recipePreviewBasis = document.getElementById('recipe-preview-basis');
 
     const recipeData = @json($recipeData);
+
+    // A start in the past asks whether the heat has already started and, with a recipe, whether to fill in the charges since then.
+    const startAt = document.getElementById('planned_start_at'), startedBlock = document.getElementById('started-block');
+    const started = document.getElementById('already_started'), fillRow = document.getElementById('fill-row');
+    const fillPreview = document.getElementById('fill-preview'), target = document.getElementById('target_metal_weight_kg');
+    function pastStart() { return !!startAt.value && new Date(startAt.value) <= new Date(); }
+    let previewTimer = null;
+    function refreshStarted() {
+        startedBlock.hidden = !pastStart();
+        if (!pastStart()) { started.checked = false; }
+        const withRecipe = !!recipe.value;
+        fillRow.style.display = started.checked && withRecipe ? 'flex' : 'none';
+        if (!(started.checked && withRecipe && furnace.value)) { fillPreview.textContent = ''; return; }
+        clearTimeout(previewTimer);
+        previewTimer = setTimeout(function () {
+            const q = new URLSearchParams({ furnace_id: furnace.value, charge_batch_id: recipe.value, started_at: startAt.value, target_metal_weight_kg: target.value || '' });
+            fetch(@json(route('heats.charge-preview')) + '?' + q, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+                .then(function (r) { return r.ok ? r.json() : null; })
+                .then(function (d) {
+                    if (!d) { fillPreview.textContent = ''; return; }
+                    fillPreview.textContent = d.reason ? d.reason : (d.count === 0 ? 'No charge is due yet.' : d.count + (d.count === 1 ? ' charge is' : ' charges are') + ' due since the start (one every ' + d.interval + ', ' + d.rate + ').');
+                })
+                .catch(function () { fillPreview.textContent = ''; });
+        }, 300);
+    }
+    [startAt, started, furnace, recipe, target].forEach(function (el) { el.addEventListener('change', refreshStarted); });
+    startAt.addEventListener('input', refreshStarted);
+    refreshStarted();
 
     function updateRecipeOptions() {
         const option = furnace.options[furnace.selectedIndex];

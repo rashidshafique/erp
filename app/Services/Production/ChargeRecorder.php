@@ -77,6 +77,32 @@ class ChargeRecorder
         });
     }
 
+    /**
+     * One round of a recipe, all lines or none. A round can be recorded once on a heat.
+     *
+     * @param  \Illuminate\Support\Collection<int, array<string, mixed>>  $lines  material_id, actual_qty_kg and optionally material_lot_id
+     */
+    public function recordRound(Heat $heat, int $round, \Illuminate\Support\Collection $lines, string $by, mixed $at, ?string $notes = null): void
+    {
+        if ($lines->isEmpty()) {
+            throw ValidationException::withMessages(['lines' => 'Enter a quantity for at least one material.']);
+        }
+        if (HeatMaterialConsumption::where('heat_id', $heat->id)->where('charge_round', $round)->exists()) {
+            throw ValidationException::withMessages(['charge_round' => ($round === 0 ? 'The start-up charge' : "Charge {$round}").' is already recorded on this heat.']);
+        }
+
+        DB::transaction(function () use ($heat, $lines, $round, $by, $at, $notes) {
+            foreach ($lines as $line) {
+                $lotId = $line['material_lot_id'] ?? $this->defaultLot($line['material_id'])?->id;
+                $this->record($heat, [
+                    'consumption_type' => 'RAW_MATERIAL', 'material_id' => $line['material_id'], 'material_lot_id' => $lotId,
+                    'actual_qty_kg' => $line['actual_qty_kg'], 'recorded_by' => $by, 'consumed_at' => $at,
+                    'charge_round' => $round, 'notes' => $notes,
+                ], 'lines');
+            }
+        });
+    }
+
     /** The oldest accepted, costed PKR lot of a material: what a tech would normally take from. Null when it has none. */
     public function defaultLot(string $materialId): ?MaterialLot
     {

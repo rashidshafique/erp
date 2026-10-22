@@ -58,6 +58,8 @@
     .clock-eta .clock-val { color: #b54708; }
     .clock-sub { font-size: 12px; color: var(--muted); min-height: 15px; }
     @media (max-width: 900px) { .heat-clock { order: 3; margin: 8px 0 0; width: 100%; } .clock-cell { flex: 1; min-width: 0; } }
+    .link-btn { appearance: none; border: 0; background: transparent; padding: 0 0 0 6px; font: inherit; font-size: 12px; font-weight: 600; color: var(--accent); cursor: pointer; }
+    .link-btn:hover { text-decoration: underline; }
     .heat-title { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
     .heat-title .status { font-size: 13px; border-radius: 6px; }
     .heat-title .status:not([class*="status-"]) { background: color-mix(in srgb, var(--border) 45%, transparent); color: var(--text); }
@@ -75,6 +77,23 @@
             setTimeout(tick, 1000 - (Date.now() % 1000));
         })();
     }
+    // Target metal: the figure turns into a small form in place.
+    var tView = document.querySelector('[data-target-view]'), tForm = document.querySelector('[data-target-form]');
+    if (tView && tForm) {
+        var openTarget = function (open) { tView.hidden = open; tForm.hidden = !open; if (open) tForm.querySelector('input').select(); };
+        tView.querySelector('[data-target-edit]').addEventListener('click', function () { openTarget(true); });
+        tForm.querySelector('[data-target-cancel]').addEventListener('click', function () { openTarget(false); });
+        if (document.querySelector('.error-text') && {{ $errors->has('target_metal_weight_kg') ? 'true' : 'false' }}) openTarget(true);
+    }
+    // Charge due: the banner appears by itself when the scheduled time arrives; the minute poll below keeps the time current.
+    var due = document.getElementById('charge-due');
+    if (due) {
+        (function watch() {
+            var at = Date.parse(due.dataset.dueAt);
+            due.hidden = !(at && Date.now() >= at);
+            setTimeout(watch, 1000);
+        })();
+    }
     // Finish estimate: asked of the server once a minute, since it depends on the metal tapped or poured so far.
     if (eta) {
         function refresh() {
@@ -82,6 +101,7 @@
                 .then(function (r) { return r.ok ? r.json() : null; })
                 .then(function (d) {
                     if (!d) return;
+                    if (due && d.charge_due_at) due.dataset.dueAt = d.charge_due_at;
                     if (!d.running) { location.reload(); return; }
                     eta.hidden = !d.eta;
                     if (d.eta) {
@@ -108,6 +128,21 @@
     @include('partials.quick-dialog', ['id' => 'qd-hold', 'title' => 'Put heat '.$heat->heat_number.' on hold', 'action' => route('heats.hold', $heat), 'submit' => 'Put on hold', 'fields' => 'heats._quick-hold'])
 @endif
 
+@php $nextCharge = $schedule['next'] ?? null; @endphp
+@if ($nextCharge && $nextCharge['state'] !== 'waiting' && ! $heat->hold_reason && ! in_array($heat->status, ['CLOSED', 'CANCELLED'], true))
+    <div class="alert alert-warning" id="charge-due" data-due-at="{{ $nextCharge['due_at']?->toIso8601String() }}" @if ($nextCharge['state'] !== 'due') hidden @endif>
+        <strong>{{ $nextCharge['round'] === 0 ? 'The start-up charge is due' : 'Charge '.$nextCharge['round'].' is due' }}</strong>
+        (scheduled {{ $nextCharge['due_at']?->format('H:i') }}): {{ $dueLines }}.
+        <form method="POST" action="{{ route('heats.charge-rounds.confirm', $heat) }}" style="display:inline">@csrf
+            <button class="btn btn-primary" type="submit" title="Records these weights from the recipe, with the oldest accepted lot of each material, as charged now">Confirm {{ $nextCharge['round'] === 0 ? 'start-up charge' : 'charge '.$nextCharge['round'] }} from the recipe</button></form>
+        @if (($pastCount ?? 0) >= 2)
+            <form method="POST" action="{{ route('heats.charge-rounds.backfill', $heat) }}" style="display:inline" onsubmit="return confirm(@js('Record the '.$pastCount.' charges due since the heat started, each at its scheduled time, from the recipe? They will be marked as filled in from the schedule.'))">@csrf
+                <button class="btn" type="submit" title="Records every charge whose time has passed, each at its scheduled time, with the recipe weights">Fill in the {{ $pastCount }} charges since the start</button></form>
+        @endif
+        <span class="muted small">Different weights? Use the form on the Charge tab.</span>
+    </div>
+@endif
+
 @if(session('success'))
     <div class="panel">
         <div class="panel-body" style="color:var(--success)">
@@ -131,11 +166,21 @@
     <div class="panel-body" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:18px">
         <div>
             <div class="muted small">Target metal</div>
-            <strong>
-                {{ $heat->target_metal_weight_kg !== null
-                    ? \App\Support\Formats::number((float) $heat->target_metal_weight_kg, 1).' kg'
-                    : '—' }}
-            </strong>
+            <div data-target-view>
+                <strong>
+                    {{ $heat->target_metal_weight_kg !== null
+                        ? \App\Support\Formats::number((float) $heat->target_metal_weight_kg, 1).' kg'
+                        : '—' }}
+                </strong>
+                @unless (in_array($heat->status, ['CLOSED', 'CANCELLED'], true))<button type="button" class="link-btn" data-target-edit title="Change the target metal weight">Change</button>@endunless
+            </div>
+            @unless (in_array($heat->status, ['CLOSED', 'CANCELLED'], true))
+                <form method="POST" action="{{ route('heats.target.update', $heat) }}" data-target-form hidden style="display:flex;gap:6px;align-items:center;margin-top:2px">@csrf @method('PUT')
+                    <input name="target_metal_weight_kg" type="number" step="0.001" min="0.001" required value="{{ old('target_metal_weight_kg', $heat->target_metal_weight_kg !== null ? rtrim(rtrim((string) $heat->target_metal_weight_kg, '0'), '.') : '') }}" style="width:120px" aria-label="Target metal weight in kg"> <span class="muted small">kg</span>
+                    <button class="btn btn-small btn-primary" type="submit">Save</button><button class="btn btn-small" type="button" data-target-cancel>Cancel</button>
+                </form>
+                @error('target_metal_weight_kg')<div class="error-text">{{ $message }}</div>@enderror
+            @endunless
         </div>
         <div>
             <div class="muted small">Rated furnace power</div>
@@ -310,6 +355,7 @@
         <span class="muted small">{{ $roundsDone }} of {{ $chargeRounds }} charge(s) recorded</span>
     </div>
     <div class="panel-body">
+        @include('heats._charge-schedule', ['schedule' => $schedule])
         <p class="muted small">The recipe quantities are filled in. Change a weight if it was different, then record. The oldest accepted lot of each material is used unless you pick another.</p>
         <form method="POST" action="{{ route('heats.charge-rounds.store', $heat) }}">
             @csrf

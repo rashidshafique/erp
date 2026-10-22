@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Heat;
 use App\Models\HeatMaterialConsumption;
 use App\Services\Production\ChargeRecorder;
+use App\Services\Production\ChargeSchedule;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -26,25 +28,49 @@ class HeatChargeRoundController extends Controller
         ]);
         $round = (int) $data['charge_round'];
         $lines = collect($data['lines'])->filter(fn ($l) => (float) ($l['actual_qty_kg'] ?? 0) > 0)->values();
-        if ($lines->isEmpty()) {
-            throw ValidationException::withMessages(['lines' => 'Enter a quantity for at least one material.']);
-        }
-        if (HeatMaterialConsumption::where('heat_id', $heat->id)->where('charge_round', $round)->exists()) {
-            throw ValidationException::withMessages(['charge_round' => ($round === 0 ? 'The start-up charge' : "Charge {$round}").' is already recorded on this heat.']);
-        }
 
-        DB::transaction(function () use ($heat, $recorder, $data, $lines, $round) {
-            foreach ($lines as $line) {
-                $lotId = $line['material_lot_id'] ?? $recorder->defaultLot($line['material_id'])?->id;
-                $recorder->record($heat, [
-                    'consumption_type' => 'RAW_MATERIAL', 'material_id' => $line['material_id'], 'material_lot_id' => $lotId,
-                    'actual_qty_kg' => $line['actual_qty_kg'], 'recorded_by' => $data['recorded_by'], 'consumed_at' => $data['consumed_at'],
-                    'charge_round' => $round,
-                ], 'lines');
-            }
-        });
+        $recorder->recordRound($heat, $round, $lines, $data['recorded_by'], $data['consumed_at']);
 
         return redirect()->route('heats.show', $heat)->with('success', ($round === 0 ? 'Start-up charge' : "Charge {$round} of {$heat->chargeRounds()}").' recorded. Inventory has not been deducted.');
+    }
+
+    /**
+     * Records the round the schedule says is next, with the recipe's quantities, the oldest accepted lot of each material and the
+     * current time: the one-click version of the form above. Only the next round can be confirmed.
+     */
+    public function confirm(Request $request, Heat $heat, ChargeSchedule $schedule, ChargeRecorder $recorder): RedirectResponse
+    {
+        if (in_array($heat->status, ['CLOSED', 'CANCELLED'], true)) {
+            throw ValidationException::withMessages(['charge_round' => 'Charges cannot be added to a closed or cancelled heat.']);
+        }
+        $next = $schedule->for($heat)['next'];
+        if (! $next) {
+            throw ValidationException::withMessages(['charge_round' => 'Every planned charge is already recorded. Raise the number of planned charges to add more.']);
+        }
+        $round = $next['round'];
+        $lines = $schedule->lines($heat, $round);
+        if ($lines->isEmpty()) {
+            throw ValidationException::withMessages(['lines' => 'The recipe sets no quantities for this charge. Enter them on the form below.']);
+        }
+
+        $recorder->recordRound($heat, $round, $lines, $request->user()?->name ?? $heat->operator_name ?? 'Operator', now());
+
+        return back()->with('success', ($round === 0 ? 'Start-up charge' : "Charge {$round} of {$heat->chargeRounds()}").' recorded from the recipe. Inventory has not been deducted.');
+    }
+
+    /** Records every charge that should already have gone in since the heat started, each at its scheduled time. */
+    public function backfill(Request $request, Heat $heat, ChargeSchedule $schedule, ChargeRecorder $recorder): RedirectResponse
+    {
+        if (in_array($heat->status, ['CLOSED', 'CANCELLED'], true)) {
+            throw ValidationException::withMessages(['charge_round' => 'Charges cannot be added to a closed or cancelled heat.']);
+        }
+        $heat->loadMissing('materialConsumptions');
+        $count = DB::transaction(fn () => $schedule->backfill($heat, $request->user()?->name ?? $heat->operator_name ?? 'Operator', $recorder));
+        if ($count === 0) {
+            throw ValidationException::withMessages(['charge_round' => 'No charge is due yet, or the heat has not started.']);
+        }
+
+        return back()->with('success', "{$count} ".($count === 1 ? 'charge' : 'charges').' filled in from the recipe at their scheduled times. Inventory has not been deducted.');
     }
 
     /** Changes how many times the recipe is charged: more rounds when the campaign runs on, fewer if it stops early. */

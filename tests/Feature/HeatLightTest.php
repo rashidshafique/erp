@@ -138,4 +138,32 @@ class HeatLightTest extends TestCase
         $closed = $this->heat('CLOSED');
         $this->get(route('heats.show', $closed))->assertOk()->assertDontSee('data-quick="qd-hold"', false);
     }
+
+    public function test_a_heat_number_has_a_compact_form_for_tight_places(): void
+    {
+        $this->travelTo(now()->setDate(2026, 10, 22)->setTime(10, 0));
+        $today = new Heat(['heat_number' => 'H-20261022-007']);
+        $earlier = new Heat(['heat_number' => 'H-20261019-012']);
+        $odd = new Heat(['heat_number' => 'TRIAL-1']);
+
+        $this->assertSame(['#007', '19/10 #012', 'TRIAL-1'], [$today->shortNumber(), $earlier->shortNumber(), $odd->shortNumber()]);
+    }
+
+    public function test_the_top_bar_shows_the_compact_heat_number_with_a_live_countdown_to_the_finish(): void
+    {
+        $this->travelTo(now()->setTime(10, 0));
+        $heat = $this->heat('IN_PROGRESS');
+        $heat->furnace->update(['nominal_melting_rate_kg_per_hour' => 500]);
+        $heat->update(['heat_number' => 'H-'.now()->format('Ymd').'-004', 'actual_start_at' => now()->subMinutes(30), 'target_metal_weight_kg' => 2000]);
+        $this->travelTo(now());
+
+        $page = $this->get(route('heats.index'))->assertOk()->assertSee('<span class="heat-no">#004</span>', false)
+            ->assertSee('data-finish-at="'.now()->subMinutes(30)->addHours(4)->toIso8601String().'"', false)
+            ->assertSee('data-eta-url="'.route('heats.eta', $heat).'"', false);
+        $this->assertStringContainsString('title="'.$heat->heat_number.' · Heat in progress · finishes about 13:30"', $page->getContent());
+
+        $this->travelTo(now()->addSeconds(2));   // the estimate is kept for 30 seconds per heat update
+        $heat->update(['target_metal_weight_kg' => null]);
+        $this->get(route('heats.index'))->assertOk()->assertSee('#004')->assertDontSee('data-finish-at="', false);
+    }
 }

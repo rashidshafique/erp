@@ -102,6 +102,20 @@ class Heat extends Model
         return (int) $run['start']->diffInMinutes($run['end'] ?? now(), true);
     }
 
+    /**
+     * A compact heat number for tight places: the day's sequence ("#007") for a heat numbered today, otherwise the day and
+     * sequence ("22/10 #007"). A number that is not in the usual H-YYYYMMDD-NNN form is returned whole.
+     */
+    public function shortNumber(): string
+    {
+        if (! preg_match('/^H-(\d{4})(\d{2})(\d{2})-(\d+)$/', (string) $this->heat_number, $m)) {
+            return (string) $this->heat_number;
+        }
+        $sequence = '#'.str_pad((string) (int) $m[4], 3, '0', STR_PAD_LEFT);
+
+        return $m[1].$m[2].$m[3] === now()->format('Ymd') ? $sequence : $m[3].'/'.$m[2].' '.$sequence;
+    }
+
     public function isCupola(): bool
     {
         return ($this->furnace?->furnace_type ?? $this->process_type) === 'CUPOLA';

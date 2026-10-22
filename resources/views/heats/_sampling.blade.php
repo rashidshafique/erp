@@ -7,12 +7,21 @@
 <div class="panel" id="sampling">
     <div class="panel-header">
         <h2>Samples</h2>
+        <span style="display:inline-flex;align-items:center;gap:8px">
         @if ($due)
             <span class="status {{ $due['overdue'] ? 'status-cancelled' : 'status-completed' }}">
                 @if ($due['overdue']){{ $due['last'] ? 'Sample overdue by '.abs($due['minutes_left']).' min' : 'No sample yet, '.$due['minutes_since'].' min into the run' }}@else Next sample due in {{ $due['minutes_left'] }} min @endif
             </span>
         @endif
+        @unless (in_array($heat->status, ['CLOSED', 'CANCELLED'], true))
+            <button type="button" class="sample-plus" data-quick="qd-record-test" title="Record a test sample" aria-label="Record a test sample">+</button>
+        @endunless
+        </span>
     </div>
+    <style>
+        .sample-plus { width: 26px; height: 26px; padding: 0; border-radius: 50%; border: 1px solid var(--accent); background: var(--surface); color: var(--accent); font: 600 18px/1 inherit; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+        .sample-plus:hover { background: var(--accent); color: #fff; }
+    </style>
     <div class="panel-body">
         <p class="muted small" style="margin-top:0">Thermal analysis and chemistry in the order they were taken.
             @if ($heat->isCupola())A cupola is sampled while it melts, so each pour is judged against the sample before it, or the first one after it. A failing sample holds the lots poured in the period it covers.@endif</p>

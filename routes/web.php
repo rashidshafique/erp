@@ -199,6 +199,8 @@ Route::prefix('furnaces')
     });
 
 Route::post('/heats/{heat}/charge-rounds', [\App\Http\Controllers\HeatChargeRoundController::class, 'store'])->name('heats.charge-rounds.store');
+Route::post('/heats/{heat}/charge-rounds/confirm', [\App\Http\Controllers\HeatChargeRoundController::class, 'confirm'])->name('heats.charge-rounds.confirm');
+Route::post('/heats/{heat}/charge-rounds/backfill', [\App\Http\Controllers\HeatChargeRoundController::class, 'backfill'])->name('heats.charge-rounds.backfill');
 Route::put('/heats/{heat}/charge-rounds', [\App\Http\Controllers\HeatChargeRoundController::class, 'update'])->name('heats.charge-rounds.update');
 Route::post(
     '/heats/{heat}/charge-entries',
@@ -211,9 +213,11 @@ Route::prefix('heats')
     ->group(function () {
         Route::get('/', 'index')->name('index');
         Route::get('/create', 'create')->name('create');
+        Route::get('/charge-preview', 'chargePreview')->name('charge-preview');
         Route::post('/', 'store')->name('store');
         Route::get('/{heat}', 'show')->name('show');
         Route::get('/{heat}/eta', 'eta')->name('eta');
+        Route::put('/{heat}/target', 'updateTarget')->name('target.update');
         Route::post('/{heat}/hold', 'hold')->name('hold');
         Route::post('/{heat}/resume', 'resume')->name('resume');
 

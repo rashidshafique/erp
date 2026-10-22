@@ -16,6 +16,7 @@ use App\Models\MaterialLot;
 use App\Models\StockLotCostLayer;
 use App\Models\StockMovement;
 use App\Services\FurnaceEligibility;
+use App\Services\Production\ChargeSchedule;
 use App\Services\Production\HeatEta;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -38,6 +39,52 @@ class HeatReadingController extends Controller
         return view('heats.index', compact('heats'));
     }
 
+    /**
+     * Changes the target metal weight of a heat that is not closed. A cupola's planned charges follow the new target, unless
+     * someone had set them by hand or more charges are already in than the new target needs.
+     */
+    public function updateTarget(Request $request, Heat $heat): RedirectResponse
+    {
+        if (in_array($heat->status, ['CLOSED', 'CANCELLED'], true)) {
+            throw ValidationException::withMessages(['target_metal_weight_kg' => 'The target of a closed or cancelled heat cannot be changed.']);
+        }
+        $data = $request->validate(['target_metal_weight_kg' => ['required', 'numeric', 'gt:0', 'max:999999999']]);
+        $heat->loadMissing('furnace', 'chargeBatch.items', 'materialConsumptions');
+
+        $followsTarget = $heat->isCupola() && (int) $heat->charge_rounds === $heat->defaultChargeRounds();
+        $before = $heat->chargeRounds();
+        $heat->update($data);
+
+        $note = '';
+        if ($followsTarget) {
+            $charged = (int) $heat->materialConsumptions->max('charge_round');
+            $heat->update(['charge_rounds' => max($heat->defaultChargeRounds(), $charged, 1)]);
+            if ($heat->charge_rounds !== $before) {
+                $note = " Planned charges changed from {$before} to {$heat->charge_rounds}.";
+            }
+        }
+
+        return back()->with('success', 'Target metal set to '.\App\Support\Formats::number((float) $data['target_metal_weight_kg'], 1).' kg.'.$note);
+    }
+
+    /** How many charges would already be due for a heat started at a past time: the question the create form asks. */
+    public function chargePreview(Request $request, ChargeSchedule $schedule): JsonResponse
+    {
+        $data = $request->validate([
+            'furnace_id' => ['required', 'uuid', 'exists:furnaces,id'], 'charge_batch_id' => ['required', 'uuid', 'exists:charge_batches,id'],
+            'started_at' => ['required', 'date', 'before_or_equal:now'], 'target_metal_weight_kg' => ['nullable', 'numeric', 'gt:0'],
+        ]);
+        $furnace = Furnace::findOrFail($data['furnace_id']);
+        $heat = (new Heat(['process_type' => $furnace->furnace_type, 'actual_start_at' => $data['started_at'], 'target_metal_weight_kg' => $data['target_metal_weight_kg'] ?? null]))
+            ->setRelation('furnace', $furnace)->setRelation('chargeBatch', ChargeBatch::with('items')->findOrFail($data['charge_batch_id']))->setRelation('materialConsumptions', collect());
+        $plan = $schedule->for($heat);
+
+        return response()->json([
+            'count' => $plan['reason'] ? 0 : $schedule->past($plan)->count(), 'reason' => $plan['reason'],
+            'interval' => $plan['interval_minutes'] ? \App\Support\Formats::duration($plan['interval_minutes']) : null, 'rate' => $plan['rate']['label'] ?? null,
+        ]);
+    }
+
     /** The finishing estimate of a running heat, polled by the heat page every minute. */
     public function eta(Heat $heat, HeatEta $eta): JsonResponse
     {
@@ -48,6 +95,7 @@ class HeatReadingController extends Controller
             'running' => $run['running'],
             'since' => $run['start']?->toIso8601String(),
             'eta' => ($e = $eta->for($heat)) ? $this->etaPayload($e) : null,
+            'charge_due_at' => (app(ChargeSchedule::class)->for($heat)['next']['due_at'] ?? null)?->toIso8601String(),
         ]);
     }
 
@@ -60,7 +108,7 @@ class HeatReadingController extends Controller
         ];
     }
 
-    public function show(Heat $heat, HeatEta $eta): View
+    public function show(Heat $heat, HeatEta $eta, ChargeSchedule $chargeSchedule): View
     {
         $heat->load([
             'furnace',
@@ -77,14 +125,7 @@ class HeatReadingController extends Controller
 
         $chargeRounds = $heat->chargeRounds();
         $plannedChargeItems->each(function ($item) use ($heat, $chargeRounds) {
-            $basis = $heat->chargeBatch?->target_total_charge_weight_kg;
-            $perRound = $item->target_qty_kg !== null
-                ? (float) $item->target_qty_kg
-                : (
-                    $item->target_percent !== null && $basis !== null
-                        ? (float) $basis * (float) $item->target_percent / 100
-                        : null
-                );
+            $perRound = $item->perChargeKg();
             $item->per_charge_qty_kg = $perRound;
             $item->planned_calculated_qty_kg = $perRound !== null && $item->charge_stage !== 'BED' ? $perRound * $chargeRounds : $perRound;
         });
@@ -120,11 +161,17 @@ class HeatReadingController extends Controller
 
         $chargeIsPosted = $heat->chargePosting !== null;
         $finish = $eta->for($heat);
+        $schedule = $chargeSchedule->for($heat);
+        $pastCount = $chargeSchedule->past($schedule)->count();
+        $dueLines = $schedule['next'] ? $chargeSchedule->lines($heat, $schedule['next']['round'])->map(fn ($l) => ($activeMaterials->firstWhere('id', $l['material_id'])?->name ?? 'Material').' '.\App\Support\Formats::number($l['actual_qty_kg'], 1).' kg')->implode(', ') : '';
         $finish = $finish ? $this->etaPayload($finish) : null;
 
         return view('heats.show', compact(
             'heat',
             'finish',
+            'schedule',
+            'pastCount',
+            'dueLines',
             'plannedChargeItems',
             'activeMaterials',
             'acceptedLots',
@@ -288,13 +335,16 @@ class HeatReadingController extends Controller
                 'uuid',
                 Rule::exists('charge_batches', 'id')->where('status', 'ACTIVE'),
             ],
-            'planned_start_at' => ['nullable', 'date'],
+            // A heat that has already started needs the time it started; that cannot be in the future.
+            'planned_start_at' => ['nullable', 'date', 'required_if:already_started,1', 'before_or_equal:now'],
+            'already_started' => ['nullable', 'boolean'],
+            'fill_charges' => ['nullable', 'boolean'],
             'target_metal_weight_kg' => ['required', 'numeric', 'gt:0', 'max:999999999'],
             'operating_power_limit_kw' => ['nullable', 'numeric', 'gt:0', 'max:999999999'],
             'target_temperature_c' => ['nullable', 'numeric', 'gt:0', 'max:9999'],
             'operator_name' => ['required', 'string', 'max:255'],
             'notes' => ['nullable', 'string', 'max:10000'],
-        ]);
+        ], ['planned_start_at.before_or_equal' => 'The start cannot be in the future. Leave "already started" off for a planned start.', 'planned_start_at.required_if' => 'Enter the time the heat started.']);
 
         $furnace = Furnace::query()
             ->whereKey($validated['furnace_id'])
@@ -336,7 +386,8 @@ class HeatReadingController extends Controller
             $validated['operating_power_limit_kw'] = null;
         }
 
-        $heat = DB::transaction(function () use ($validated, $furnace) {
+        $filled = 0;
+        $heat = DB::transaction(function () use ($validated, $furnace, $request, &$filled) {
             $date = now()->format('Ymd');
 
             // Serialize heat-number generation for the same date in PostgreSQL.
@@ -369,12 +420,20 @@ class HeatReadingController extends Controller
                 $heat->update(['charge_rounds' => $heat->defaultChargeRounds()]);
             }
 
+            // A heat entered after it started begins at its start time, and its charges since then can be filled in from the recipe.
+            if ($request->boolean('already_started')) {
+                $heat->update(['actual_start_at' => $heat->planned_start_at, 'status' => $heat->isCupola() ? 'MELTING' : 'IN_PROGRESS']);
+                if ($request->boolean('fill_charges') && $heat->chargeBatch) {
+                    $filled = app(ChargeSchedule::class)->backfill($heat->fresh(), $validated['operator_name'], app(\App\Services\Production\ChargeRecorder::class));
+                }
+            }
+
             return $heat;
         });
 
         return redirect()
             ->route('heats.show', $heat)
-            ->with('success', "Heat {$heat->heat_number} created.");
+            ->with('success', "Heat {$heat->heat_number} created.".($request->boolean('already_started') ? ' It is recorded as started at '.$heat->planned_start_at->displayDateTime().'.' : '').($filled ? " {$filled} ".($filled === 1 ? 'charge' : 'charges').' filled in from the recipe at their scheduled times.' : ''));
     }
 
     public function hold(Request $request, Heat $heat): RedirectResponse
