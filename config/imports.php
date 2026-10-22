@@ -76,7 +76,7 @@ return [
             'match_fields' => ['cavity' => ['pattern', 'cavity_number']],
             'fields' => [
                 'pattern' => ['label' => 'Pattern', 'type' => 'ref', 'required' => true, 'aliases' => ['pattern code', 'pattern no', 'pattern number', 'pattern name', 'tool code', 'mark'], 'help' => 'The pattern\'s code, engraving mark or name.'],
-                'pattern_revision' => ['label' => 'Pattern revision', 'type' => 'string', 'max' => 20, 'aliases' => ['pattern rev', 'revision', 'rev'], 'help' => 'Blank: the pattern\'s only revision, or revision A when it has none. A revision it does not have yet is added.'],
+                'pattern_revision' => ['label' => 'Pattern revision', 'type' => 'string', 'max' => 20, 'aliases' => ['pattern rev', 'revision', 'rev'], 'help' => 'Blank: the pattern\'s only revision, or revision 0 when it has none. A revision it does not have yet is added.'],
                 'revision_status' => ['label' => 'Revision status', 'type' => 'enum', 'enum' => ['DRAFT', 'APPROVED', 'OBSOLETE'], 'default' => 'DRAFT', 'aliases' => ['rev status', 'pattern revision status'], 'help' => 'Used only for a pattern revision this import adds.'],
                 'cavity_number' => ['label' => 'Cavity number', 'type' => 'int', 'min' => 1, 'max' => 10000, 'required' => true, 'aliases' => ['cavity', 'cavity no', 'cav', 'cav no', 'impression', 'position']],
                 'product' => ['label' => 'Product', 'type' => 'ref', 'required' => true, 'aliases' => ['product code', 'part number', 'part no', 'item code', 'casting', 'product name'], 'help' => 'The product\'s code or name.'],

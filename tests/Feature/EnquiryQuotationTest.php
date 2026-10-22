@@ -176,7 +176,7 @@ class EnquiryQuotationTest extends TestCase
         $item = $e->items->first()->fresh();
         $this->assertNotNull($item->product_id);
         $rev = ProductRevision::where('product_id', $item->product_id)->firstOrFail();
-        $this->assertSame('A', $rev->revision);
+        $this->assertSame('0', $rev->revision);
         $this->assertSame('DRAFT', $rev->status);
         $line = $order->lines()->firstOrFail();
         $this->assertSame($rev->id, $line->product_revision_id);

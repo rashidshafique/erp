@@ -239,7 +239,7 @@
                 <div class="field">
                     <label for="revision">Revision identifier <span class="required">*</span></label>
                     <input id="revision" name="revision" maxlength="20" required
-                           value="{{ old('revision') }}" placeholder="e.g. B">
+                           value="{{ old('revision', \App\Models\ProductRevision::nextLabel($product->revisions->pluck('revision'))) }}" placeholder="e.g. 1">
                 </div>
 
                 <div class="field">

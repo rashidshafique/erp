@@ -34,7 +34,7 @@ class Product extends Model
         $revisions = $this->revisions()->where('status', '!=', 'OBSOLETE')->orderByDesc('created_at')->get();
 
         return $revisions->firstWhere('status', 'APPROVED') ?? $revisions->first()
-            ?? $this->revisions()->create(['revision' => $this->revisions()->exists() ? 'N' : 'A', 'status' => 'APPROVED', 'engineering_notes' => 'First revision, recorded when linking a pattern.']);
+            ?? $this->revisions()->create(['revision' => ProductRevision::nextLabel($this->revisions()->pluck('revision')), 'status' => 'APPROVED', 'engineering_notes' => 'First revision, recorded when linking a pattern.']);
     }
 
     public function revisions(): HasMany

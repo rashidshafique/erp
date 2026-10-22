@@ -88,13 +88,13 @@ class QuickOrderController extends Controller
         return Customer::create(['code' => $code, 'name' => $name]);
     }
 
-    /** The newest approved revision of the product, else the newest one; with $create, revision A is made when there is none. */
+    /** The newest approved revision of the product, else the newest one; with $create, revision 0 is made when there is none. */
     private function revisionFor(Product $product, bool $create = false): ?ProductRevision
     {
         $revisions = ProductRevision::where('product_id', $product->id)->orderByDesc('created_at')->get();
         $revision = $revisions->first(fn ($r) => in_array($r->status, ['APPROVED', 'ACTIVE'], true)) ?? $revisions->first();
 
-        return $revision ?? ($create ? ProductRevision::create(['product_id' => $product->id, 'revision' => 'A', 'status' => 'APPROVED']) : null);
+        return $revision ?? ($create ? ProductRevision::create(['product_id' => $product->id, 'revision' => '0', 'status' => 'APPROVED']) : null);
     }
 
     /** The plan needs an iron grade and a weight. Take them from the line when the product does not have them yet. */

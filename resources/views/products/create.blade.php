@@ -94,7 +94,7 @@
                 <div class="field">
                     <label for="revision">Revision identifier <span class="required">*</span></label>
                     <input id="revision" name="revision" required maxlength="20"
-                           value="{{ old('revision', 'A') }}" placeholder="A">
+                           value="{{ old('revision', '0') }}" placeholder="0">
                     @error('revision')<div class="error-text">{{ $message }}</div>@enderror
                 </div>
 

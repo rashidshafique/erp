@@ -11,6 +11,24 @@ class ProductRevision extends Model
 {
     use HasUuids;
 
+    /** The name of a product's next revision: 0 for the first, then the next number; a product still on letters continues its letters. */
+    public static function nextLabel(iterable $existing): string
+    {
+        $names = collect($existing)->map(fn ($r) => strtoupper(trim((string) $r)))->filter();
+        if ($names->isEmpty()) {
+            return '0';
+        }
+        if ($names->every(fn ($r) => ctype_digit($r))) {
+            return (string) ($names->map(fn ($r) => (int) $r)->max() + 1);
+        }
+        if ($names->every(fn ($r) => preg_match('/^[A-Y]$/', $r))) {
+            return chr(ord($names->max()) + 1);
+        }
+        for ($n = $names->count(); $names->contains((string) $n); $n++);
+
+        return (string) $n;
+    }
+
     protected $fillable = [
         'product_id',
         'revision',

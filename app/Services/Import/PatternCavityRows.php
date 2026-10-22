@@ -70,7 +70,7 @@ class PatternCavityRows implements ImportRowHandler
                 } elseif (count($own) === 1) {
                     $patternRevision = reset($own);
                 } elseif ($own === []) {
-                    $newRevision = 'A';
+                    $newRevision = '0';
                 } else {
                     $errors[] = "Pattern {$pattern->code} has revisions ".implode(', ', array_keys($own)).'. Say which one this cavity is on.';
                 }

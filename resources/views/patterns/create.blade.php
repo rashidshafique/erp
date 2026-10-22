@@ -34,7 +34,7 @@
                 <div class="field">
                     <label for="revision">Revision code *</label>
                     <input id="revision" name="revision" required maxlength="20"
-                           value="{{ old('revision', 'A') }}">
+                           value="{{ old('revision', '0') }}">
                 </div>
                 <div class="field">
                     <label for="revision_status">Revision status *</label>

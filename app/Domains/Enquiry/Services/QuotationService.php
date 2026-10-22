@@ -288,7 +288,7 @@ class QuotationService
             }
         }
         $names = $revs->pluck('revision');
-        $next = $names->isEmpty() ? 'A' : ($names->every(fn ($r) => preg_match('/^[A-Z]$/', $r)) ? chr(ord($names->max()) + 1) : (string) ($names->count() + 1));
+        $next = \App\Models\ProductRevision::nextLabel($names);
 
         return $product->revisions()->create(['revision' => $next, 'status' => 'DRAFT', 'net_weight_kg' => $weight > 0 ? $weight : null, 'engineering_notes' => 'Created from an accepted quotation. Approve after samples and specification are in place.']);
     }

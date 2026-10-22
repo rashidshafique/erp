@@ -82,7 +82,7 @@ class ProductLinkPatternTest extends TestCase
         $this->get(route('products.show', $bare))->assertOk()->assertSee('data-quick="qd-link-pattern"', false);
         $this->post(route('products.link-pattern', $bare), ['pattern_id' => $pattern->id])->assertSessionHasNoErrors()->assertSessionHas('success');
 
-        $this->assertSame(['A'], $bare->revisions()->pluck('revision')->all());
+        $this->assertSame(['0'], $bare->revisions()->pluck('revision')->all());
         $this->assertSame($bare->revisions()->value('id'), $pattern->currentRevision()->first()->cavityMap()->sole()->product_revision_id);
     }
 
@@ -142,5 +142,13 @@ class ProductLinkPatternTest extends TestCase
             ->assertSessionHasErrors('rows.1.product_revision_id');
 
         $this->assertSame(0, $pattern->revisions()->count());
+    }
+
+    public function test_product_revisions_are_named_from_0_then_count_up_or_continue_letters(): void
+    {
+        $this->assertSame('0', ProductRevision::nextLabel([]));
+        $this->assertSame('3', ProductRevision::nextLabel(['0', '1', '2']));
+        $this->assertSame('B', ProductRevision::nextLabel(['A']));
+        $this->assertSame('3', ProductRevision::nextLabel(['A', '2']));
     }
 }
