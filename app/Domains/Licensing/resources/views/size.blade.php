@@ -12,13 +12,13 @@
         <p class="muted" style="margin-top:0">The process rules are currently a custom mix. Choosing a size replaces them with its preset.</p>
     @endif
     <div class="rule-grid">
-        @foreach ($sizes as $key => $size)
-            <form method="POST" action="{{ route('settings.size') }}" @if ($current !== $key) onsubmit="return confirm('Apply {{ $size['label'] }} foundry size? This changes the menu and replaces the process rules with the {{ ucfirst(strtolower($size['preset'])) }} preset.')" @endif>
+        @foreach ($sizes as $key => $option)
+            <form method="POST" action="{{ route('settings.size') }}" @if ($current !== $key) onsubmit="return confirm('Apply {{ $option['label'] }} foundry size? This changes the menu and replaces the process rules with the {{ ucfirst(strtolower($option['preset'])) }} preset.')" @endif>
                 @csrf @method('PUT')
                 <input type="hidden" name="size" value="{{ $key }}">
-                <h2 style="margin-top:0">{{ $size['label'] }} @if ($current === $key)<span class="status">In use</span>@endif</h2>
-                <p>{{ $size['description'] }}</p>
-                <button class="btn {{ $current === $key ? '' : 'btn-primary' }}" type="submit">{{ $current === $key ? 'Re-apply' : 'Use '.$size['label'] }}</button>
+                <h2 style="margin-top:0">{{ $option['label'] }} @if ($current === $key)<span class="status">In use</span>@endif</h2>
+                <p>{{ $option['description'] }}</p>
+                <button class="btn {{ $current === $key ? '' : 'btn-primary' }}" type="submit">{{ $current === $key ? 'Re-apply' : 'Use '.$option['label'] }}</button>
             </form>
         @endforeach
     </div>
