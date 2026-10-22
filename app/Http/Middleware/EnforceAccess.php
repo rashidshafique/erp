@@ -83,6 +83,23 @@ class EnforceAccess
         return null;
     }
 
+    /** Whether the signed-in user may use a route, by the same map as the check above; for screens that show or hide a control. */
+    public static function allows(?\App\Models\User $user, string $routeName): bool
+    {
+        if (! config('foundry.require_login')) {
+            return true;
+        }
+        if (! $user || ! $user->is_active) {
+            return false;
+        }
+        if ($user->isAdmin()) {
+            return true;
+        }
+        $required = self::requiredPermission($routeName);
+
+        return $required !== null && $user->hasPermission($required['permission']);
+    }
+
     private function deny(Request $request, string $why): Response
     {
         return response()->view('errors.403', ['why' => $why], 403);

@@ -11,6 +11,7 @@ use App\Models\MouldingRun;
 use App\Models\MouldingWorkListItem;
 use App\Models\Pattern;
 use App\Models\PatternRevision;
+use App\Models\Product;
 use App\Models\ProductRevision;
 use App\Models\Quotation;
 use App\Models\SandSystem;
@@ -352,6 +353,8 @@ class PatternController extends Controller
             ->sortBy(fn ($r) => $r->product?->code.' '.$r->revision)
             ->values();
 
+        $bareProducts = Product::query()->whereDoesntHave('revisions', fn ($q) => $q->where('status', '!=', 'OBSOLETE'))->orderBy('code')->get();
+
         $assembledRevisions = MouldCavity::whereIn('pattern_revision_id', $pattern->revisions->pluck('id'))->distinct()->pluck('pattern_revision_id')->all();
 
         $pattern->load('ownerCustomer', 'ownershipQuotation', 'ownershipEvents');
@@ -371,7 +374,7 @@ class PatternController extends Controller
         $previousPattern = $scope()->where('code', '<', $pattern->code)->orderByDesc('code')->first(['id', 'code', 'name']);
         $nextPattern = $scope()->where('code', '>', $pattern->code)->orderBy('code')->first(['id', 'code', 'name']);
 
-        return view('patterns.show', compact('pattern', 'productRevisions', 'revisionPhotos', 'assembledRevisions', 'owner', 'toolLife', 'previousPattern', 'nextPattern'));
+        return view('patterns.show', compact('pattern', 'productRevisions', 'bareProducts', 'revisionPhotos', 'assembledRevisions', 'owner', 'toolLife', 'previousPattern', 'nextPattern'));
     }
 
     /**

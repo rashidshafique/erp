@@ -18,7 +18,6 @@
             <form method="POST" action="{{ route('patterns.restore', $pattern) }}" style="display:inline">@csrf<button class="btn btn-primary" type="submit">Restore pattern</button></form>
         @else
             <form method="POST" action="{{ route('patterns.archive', $pattern) }}" style="display:inline" onsubmit="return confirm(@js('Archive '.$pattern->code.'? It leaves the pattern list and pickers but stays on old runs, and can be restored.'))">@csrf @method('DELETE')<button class="btn" type="submit">Archive</button></form>
-            <a class="btn" href="{{ route('patterns.edit', $pattern) }}">Edit pattern</a>
             <button type="button" class="btn btn-primary" data-quick="qd-revision">+ New revision</button>
         @endif
     </div>
@@ -35,6 +34,7 @@
     .pattern-title p { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; color: var(--muted); font-size: 13px; }
     .pattern-title .code { font: 600 13px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text); letter-spacing: .02em; }
     .pattern-title .dot-sep { color: var(--border); }
+    [data-inplace] [hidden] { display: none !important; }
     .tool-layout { display: grid; grid-template-columns: 170px minmax(0, 1fr) 260px; gap: 20px 28px; align-items: start; }
     .tool-photo > .cover-box { float: none; margin: 0; width: 100% !important; }
     .tool-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 16px 24px; margin: 0; }
@@ -51,10 +51,24 @@
     @media (max-width: 1024px) { .tool-layout { grid-template-columns: 150px minmax(0, 1fr); } .tool-diagram { grid-column: 1 / -1; justify-self: start; } }
     @media (max-width: 768px) { .tool-layout { grid-template-columns: 1fr; } .tool-photo { max-width: 200px; } }
 </style>
-<div class="panel">
-    <div class="panel-header"><h2>Physical tooling record</h2></div>
+@php
+    $canEditInPlace = ! $pattern->trashed() && \App\Http\Middleware\EnforceAccess::allows(auth()->user(), 'patterns.update');
+    $editingInPlace = $canEditInPlace && old('_inplace') !== null && $errors->any();
+@endphp
+<div class="panel" data-inplace>
+    <div class="panel-header"><h2>Physical tooling record</h2>@if ($canEditInPlace)<button type="button" class="btn btn-small" data-inplace-open @if ($editingInPlace) hidden @endif>Edit</button>@endif</div>
     <div class="panel-body">
-        <div class="tool-layout">
+        @if ($canEditInPlace)
+        <form method="POST" action="{{ route('patterns.update', $pattern) }}" data-inplace-form @unless ($editingInPlace) hidden @endunless>
+            @csrf @method('PUT')<input type="hidden" name="_inplace" value="1">
+            @if ($editingInPlace)<div class="alert alert-error">@foreach ($errors->all() as $e)<div>{{ $e }}</div>@endforeach</div>@endif
+            <div class="form-grid">
+                @include('patterns._tooling-fields', ['patternTypes' => array_keys(\App\Models\Pattern::TYPES), 'patternStatuses' => ['ACTIVE', 'INACTIVE', 'RETIRED']])
+            </div>
+            <div class="actions" style="margin-top:12px"><button class="btn btn-primary" type="submit">Save</button><button class="btn" type="button" data-inplace-cancel>Cancel</button></div>
+        </form>
+        @endif
+        <div class="tool-layout" data-inplace-view @if ($editingInPlace) hidden @endif>
             <div class="tool-photo">@include('attachments._cover', ['type' => 'pattern', 'id' => $pattern->id, 'size' => 170])</div>
             <dl class="tool-facts">
                 <div><dt>Pattern code</dt><dd class="mono">{{ $pattern->code }}</dd></div>
@@ -79,6 +93,21 @@
         @endif
     </div>
 </div>
+@if ($canEditInPlace)
+<script>
+document.querySelectorAll('[data-inplace]').forEach(function (panel) {
+    var form = panel.querySelector('[data-inplace-form]'), view = panel.querySelectorAll('[data-inplace-view], .tool-notes'), open = panel.querySelector('[data-inplace-open]');
+    function show(editing) {
+        form.hidden = !editing; open.hidden = editing;
+        view.forEach(function (el) { el.hidden = editing; });
+        if (editing) { var first = form.querySelector('input:not([type=hidden])'); if (first) first.focus(); } else { form.reset(); }
+    }
+    open.addEventListener('click', function () { show(true); });
+    form.querySelector('[data-inplace-cancel]').addEventListener('click', function () { show(false); });
+    if (!form.hidden) view.forEach(function (el) { el.hidden = true; });
+});
+</script>
+@endif
 
 @if (app(\App\Domains\Core\ModuleRegistry::class)->isEnabled('tooling'))
 @include('patterns._tool-life', ['pattern' => $pattern, 'toolLife' => $toolLife])

@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Pattern;
 use App\Models\Product;
-use App\Models\ProductRevision;
 use App\Models\ProductionOrder;
 use App\Services\PatternCavityMap;
 use Illuminate\Http\RedirectResponse;
@@ -146,7 +145,7 @@ class ProductController extends Controller
                     ?? $pattern->addRevision(['change_description' => 'First revision, recorded when linking '.$product->code]);
             }
 
-            $productRevisionId = $data['product_revision_id'] ?? $this->currentProductRevision($product)->id;
+            $productRevisionId = $data['product_revision_id'] ?? $product->linkableRevision()->id;
 
             $taken = $revision->cavityMap()->pluck('cavity_number')->all();
             $number = $data['cavity_number'] ?? null;
@@ -168,15 +167,6 @@ class ProductController extends Controller
         $response = back()->with('success', "{$product->code} linked to {$pattern->name} ({$revision->label()}), cavity {$number}.");
 
         return $revision->isSuperseded() ? $response->with('warning', PatternCavityController::supersededWarning($revision)) : $response;
-    }
-
-    /** The revision a new link goes on: the latest approved one, else the latest not obsolete; a product with none gets its first. */
-    private function currentProductRevision(Product $product): ProductRevision
-    {
-        $revisions = $product->revisions()->where('status', '!=', 'OBSOLETE')->orderByDesc('created_at')->get();
-
-        return $revisions->firstWhere('status', 'APPROVED') ?? $revisions->first()
-            ?? $product->revisions()->create(['revision' => $product->revisions()->exists() ? 'N' : 'A', 'status' => 'APPROVED', 'engineering_notes' => 'First revision, recorded when linking a pattern.']);
     }
 
     public function show(Product $product)

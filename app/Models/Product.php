@@ -28,6 +28,15 @@ class Product extends Model
         'active' => 'boolean',
     ];
 
+    /** The revision a new pattern link goes on: the latest approved one, else the latest not obsolete; a product with none gets its first. */
+    public function linkableRevision(): ProductRevision
+    {
+        $revisions = $this->revisions()->where('status', '!=', 'OBSOLETE')->orderByDesc('created_at')->get();
+
+        return $revisions->firstWhere('status', 'APPROVED') ?? $revisions->first()
+            ?? $this->revisions()->create(['revision' => $this->revisions()->exists() ? 'N' : 'A', 'status' => 'APPROVED', 'engineering_notes' => 'First revision, recorded when linking a pattern.']);
+    }
+
     public function revisions(): HasMany
     {
         return $this->hasMany(ProductRevision::class);

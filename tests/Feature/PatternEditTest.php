@@ -30,7 +30,7 @@ class PatternEditTest extends TestCase
     {
         $pattern = Pattern::create(['code' => 'P-0123', 'name' => 'Flange plat', 'pattern_type' => 'MATCHPLATE', 'status' => 'ACTIVE', 'material' => 'Wood']);
 
-        $this->get(route('patterns.show', $pattern))->assertOk()->assertSee(route('patterns.edit', $pattern));
+        $this->get(route('patterns.show', $pattern))->assertOk()->assertSee('data-inplace-form', false)->assertDontSee('Edit pattern');
         $this->get(route('patterns.edit', $pattern))->assertOk()
             ->assertSee('value="Flange plat"', false)->assertSee('value="Wood"', false)->assertSee('<option value="MATCHPLATE" selected', false);
     }
@@ -139,5 +139,32 @@ class PatternEditTest extends TestCase
 
         $this->get(route('patterns.show', $b))->assertOk()->assertSee(route('patterns.show', $a), false)->assertSee(route('patterns.show', $c), false);
         $this->get(route('patterns.show', $a))->assertOk()->assertDontSee('Previous pattern', false)->assertSee(route('patterns.show', $b), false);
+    }
+
+    public function test_the_tooling_record_is_edited_in_place_only_by_roles_that_may_edit_patterns(): void
+    {
+        config(['foundry.require_login' => true]);
+        $pattern = Pattern::create(['code' => 'P-0123', 'name' => 'Flange plate', 'pattern_type' => 'MATCHPLATE', 'status' => 'ACTIVE']);
+        $nobody = User::factory()->create(['is_active' => true, 'must_change_password' => false]);
+        $editor = User::factory()->create(['is_active' => true, 'must_change_password' => false]);
+        $editor->roles()->attach(\App\Models\Role::where('code', 'ADMIN')->value('id'));
+
+        $this->actingAs($nobody)->get(route('patterns.show', $pattern))->assertOk()->assertDontSee('data-inplace-form', false);
+        $this->actingAs($nobody)->put(route('patterns.update', $pattern), ['code' => 'P-0123', 'name' => 'Changed', 'pattern_type' => 'MATCHPLATE', 'status' => 'ACTIVE'])->assertForbidden();
+        $this->actingAs($editor)->get(route('patterns.show', $pattern))->assertOk()->assertSee('data-inplace-form', false);
+    }
+
+    public function test_saving_the_in_place_form_updates_the_pattern_and_a_mistake_reopens_it(): void
+    {
+        $pattern = Pattern::create(['code' => 'P-0123', 'name' => 'Flange plate', 'pattern_type' => 'MATCHPLATE', 'status' => 'ACTIVE']);
+        $payload = ['_inplace' => 1, 'code' => 'P-0123', 'name' => 'Flange plate B', 'pattern_type' => 'MATCHPLATE', 'status' => 'ACTIVE', 'material' => 'Resin'];
+
+        $this->from(route('patterns.show', $pattern))->put(route('patterns.update', $pattern), ['name' => ''] + $payload)
+            ->assertRedirect(route('patterns.show', $pattern))->assertSessionHasErrors('name');
+        $this->followingRedirects()->from(route('patterns.show', $pattern))->put(route('patterns.update', $pattern), ['name' => ''] + $payload)
+            ->assertSee('The name field is required.');
+
+        $this->put(route('patterns.update', $pattern), $payload)->assertRedirect(route('patterns.show', $pattern));
+        $this->assertSame(['Flange plate B', 'Resin'], [$pattern->fresh()->name, $pattern->fresh()->material]);
     }
 }

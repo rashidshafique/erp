@@ -6,11 +6,13 @@ use App\Models\MouldCavity;
 use App\Models\Pattern;
 use App\Models\PatternRevision;
 use App\Models\PatternRevisionCavity;
+use App\Models\Product;
 use App\Services\PatternCavityMap;
 use App\Services\Patterns\RevisionLayout;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -29,7 +31,14 @@ class PatternCavityController extends Controller
         $request->validate([
             'cavities_per_mould' => ['required', 'integer', 'min:1', 'max:200'],
             'rows' => ['array'],
-            'rows.*.product_revision_id' => ['nullable', 'uuid', Rule::exists('product_revisions', 'id')],
+            'rows.*.product_revision_id' => ['nullable', function (string $attribute, mixed $value, \Closure $fail) {
+                // A product with no revision is offered as "product:<id>"; it gets its first revision when the map is saved.
+                $isProduct = is_string($value) && str_starts_with($value, 'product:');
+                $id = $isProduct ? substr($value, 8) : $value;
+                if (! is_string($id) || ! Str::isUuid($id) || ! DB::table($isProduct ? 'products' : 'product_revisions')->where('id', $id)->when($isProduct, fn ($q) => $q->whereNull('deleted_at'))->exists()) {
+                    $fail('Choose a product from the list.');
+                }
+            }],
             'rows.*.cavity_role' => ['nullable', Rule::in(['WHOLE', 'PART'])],
             'rows.*.component_label' => ['nullable', 'string', 'max:100'],
             'rows.*.pieces_per_product' => ['nullable', 'integer', 'min:1', 'max:1000'],
@@ -74,7 +83,7 @@ class PatternCavityController extends Controller
                 $marks[$data['cavity_mark']] ??= $n;
             }
             try {
-                $this->map->assertDefinable($probe, $data, $current?->id);
+                $this->map->assertDefinable($probe, str_starts_with((string) $data['product_revision_id'], 'product:') ? ['product_revision_id' => null] + $data : $data, $current?->id);
             } catch (ValidationException $e) {
                 foreach ($e->errors() as $field => $messages) {
                     $errors["rows.{$n}.{$field}"] = "Cavity {$n}: {$messages[0]}";
@@ -109,6 +118,9 @@ class PatternCavityController extends Controller
                 PatternRevisionCavity::whereIn('id', $moving)->update(['cavity_mark' => null]);
             }
             foreach ($save as [$current, $data]) {
+                if (str_starts_with((string) $data['product_revision_id'], 'product:')) {
+                    $data['product_revision_id'] = Product::findOrFail(substr($data['product_revision_id'], 8))->linkableRevision()->id;
+                }
                 $current ? $current->update($data + ['needs_review' => false]) : $revision->cavityMap()->create($data);
             }
 
