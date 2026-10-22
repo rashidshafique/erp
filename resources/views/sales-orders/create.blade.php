@@ -29,12 +29,13 @@
     <div class="table-wrap"><table>
         <thead><tr><th>#</th><th>Product revision</th><th>Quantity</th><th>Unit price</th><th>Line delivery</th></tr></thead>
         <tbody>
+        @php($photos = \App\Models\Attachment::coverUrlsFor('product', $revisions->pluck('product_id')->all()))
         @for ($i = 0; $i < 5; $i++)
             <tr>
                 <td>{{ $i + 1 }}</td>
-                <td><select name="lines[{{ $i }}][product_revision_id]" @if ($i === 0) required @endif>
+                <td><select name="lines[{{ $i }}][product_revision_id]" data-search-select="photos" @if ($i === 0) required @endif>
                     <option value="">{{ $i === 0 ? 'Select product' : '— none —' }}</option>
-                    @foreach ($revisions as $r)<option value="{{ $r->id }}" @selected(old("lines.$i.product_revision_id") === $r->id)>{{ $r->product?->code }} rev {{ $r->revision }} — {{ $r->product?->name }}</option>@endforeach
+                    @foreach ($revisions as $r)<option value="{{ $r->id }}" @isset($photos[$r->product_id]) data-img="{{ $photos[$r->product_id] }}" @endisset @selected(old("lines.$i.product_revision_id") === $r->id)>{{ $r->product?->code }} rev {{ $r->revision }} — {{ $r->product?->name }}</option>@endforeach
                 </select></td>
                 <td><input name="lines[{{ $i }}][ordered_qty]" type="number" step="0.001" min="0.001" value="{{ old("lines.$i.ordered_qty") }}"></td>
                 <td><input name="lines[{{ $i }}][unit_price]" type="number" step="0.01" min="0" value="{{ old("lines.$i.unit_price") }}"></td>

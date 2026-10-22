@@ -6,6 +6,7 @@
 @endsection
 
 @section('content')
+@include('partials.search-select')
 <div class="page-heading">
     <div>
         <h1>New casting analysis</h1>
@@ -48,10 +49,11 @@
                 </div>
                 <div class="field">
                     <label for="product_id">Product (optional)</label>
-                    <select id="product_id" name="product_id">
+                    @php($photos = \App\Models\Attachment::coverUrlsFor('product', $products->pluck('id')->all()))
+                    <select id="product_id" name="product_id" data-search-select="photos">
                         <option value="">— not linked —</option>
                         @foreach ($products as $p)
-                            <option value="{{ $p->id }}" @selected(old('product_id', $product?->id) === $p->id)>{{ $p->code }} — {{ $p->name }}</option>
+                            <option value="{{ $p->id }}" data-sub="{{ $p->code }}" @isset($photos[$p->id]) data-img="{{ $photos[$p->id] }}" @endisset @selected(old('product_id', $product?->id) === $p->id)>{{ $p->name }}</option>
                         @endforeach
                     </select>
                     <div class="help">Linking lets the weight be checked against the product's nominal weight, which catches wrong units.</div>

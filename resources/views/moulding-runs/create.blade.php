@@ -30,6 +30,7 @@
 @endphp
 
 @section('content')
+@include('partials.search-select')
 <style>
     .rm-head { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; margin-bottom:14px; }
     .rm-crumb { font:600 11px ui-monospace, Menlo, monospace; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
@@ -158,10 +159,11 @@
                         <div class="form-grid" data-progressive="3">
                         <div class="field">
                             <label for="pattern_revision_id">Pattern revision</label>
-                            <select id="pattern_revision_id" name="pattern_revision_id">
+                            @php($photos = \App\Models\Attachment::coverUrlsFor('pattern', $patternRevisions->pluck('pattern_id')->all()))
+                            <select id="pattern_revision_id" name="pattern_revision_id" data-search-select="photos">
                                 <option value="">Not specified</option>
                                 @foreach ($patternRevisions as $revision)
-                                    <option value="{{ $revision->id }}" @selected(old('pattern_revision_id') === $revision->id)>
+                                    <option value="{{ $revision->id }}" data-sub="{{ $revision->pattern?->code }}" @isset($photos[$revision->pattern_id]) data-img="{{ $photos[$revision->pattern_id] }}" @endisset @selected(old('pattern_revision_id') === $revision->id)>
                                         {{ $revision->pattern?->name ?? 'Pattern' }} — {{ $revision->label() }}
                                     </option>
                                 @endforeach

@@ -73,4 +73,26 @@ class ProductLinkPatternTest extends TestCase
             ->assertSessionHasErrors('cavity_number');
         $this->assertSame(1, $revision->cavityMap()->count());
     }
+
+    public function test_a_product_with_no_revision_can_be_linked_and_gets_its_first_revision(): void
+    {
+        $bare = Product::create(['code' => 'CAP-1', 'name' => 'Cap']);
+        $pattern = Pattern::create(['code' => 'P-0100', 'name' => 'Valve plate']);
+
+        $this->get(route('products.show', $bare))->assertOk()->assertSee('data-quick="qd-link-pattern"', false);
+        $this->post(route('products.link-pattern', $bare), ['pattern_id' => $pattern->id])->assertSessionHasNoErrors()->assertSessionHas('success');
+
+        $this->assertSame(['A'], $bare->revisions()->pluck('revision')->all());
+        $this->assertSame($bare->revisions()->value('id'), $pattern->currentRevision()->first()->cavityMap()->sole()->product_revision_id);
+    }
+
+    public function test_an_unpicked_product_revision_goes_on_the_latest_approved_one(): void
+    {
+        $pattern = Pattern::create(['code' => 'P-0100', 'name' => 'Valve plate']);
+
+        $this->post(route('products.link-pattern', $this->product), ['pattern_id' => $pattern->id])->assertSessionHasNoErrors();
+
+        $this->assertSame($this->productRevision->id, $pattern->currentRevision()->first()->cavityMap()->sole()->product_revision_id);
+        $this->assertSame(1, $this->product->revisions()->count());
+    }
 }

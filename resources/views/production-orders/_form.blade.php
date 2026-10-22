@@ -1,3 +1,4 @@
+@include('partials.search-select')
 @php($order ??= null)
 <section class="panel">
     <div class="panel-header"><h2>Order</h2></div>
@@ -15,12 +16,13 @@
 
             <div class="field field-full">
                 <label for="product_revision_id">Product / revision <span class="required">*</span></label>
-                <select id="product_revision_id" name="product_revision_id" required>
+                @php($photos = \App\Models\Attachment::coverUrlsFor('product', $products->pluck('id')->all()))
+                <select id="product_revision_id" name="product_revision_id" required data-search-select="photos">
                     <option value="">Choose product revision</option>
                     @foreach ($products as $product)
                         @foreach ($product->revisions as $revision)
                             @if (in_array($revision->status, ['APPROVED', 'ACTIVE'], true))
-                                <option value="{{ $revision->id }}" @selected(old('product_revision_id', $order?->product_revision_id) === $revision->id)>
+                                <option value="{{ $revision->id }}" @isset($photos[$product->id]) data-img="{{ $photos[$product->id] }}" @endisset @selected(old('product_revision_id', $order?->product_revision_id) === $revision->id)>
                                     {{ $product->code }} — {{ $product->name }} | Revision {{ $revision->revision }} | {{ $revision->net_weight_kg }} kg
                                 </option>
                             @endif

@@ -73,6 +73,23 @@ class Attachment extends Model
             ->get()->unique('attachable_id')->keyBy('attachable_id')->all();
     }
 
+    /**
+     * Download URLs of the main photo of each record, for dropdowns that show a thumbnail beside every option. The result is
+     * kept for the rest of the request, so a grid that asks once per row runs the query once.
+     *
+     * @param  list<string>  $ids
+     * @return array<string, string> record id => photo URL
+     */
+    public static function coverUrlsFor(string $type, array $ids): array
+    {
+        static $memo = [];
+        $ids = array_values(array_unique(array_filter($ids)));
+        sort($ids);
+        $key = $type.'|'.md5(implode(',', $ids));
+
+        return $memo[$key] ??= array_map(fn (self $a) => route('attachments.download', $a), static::coversFor($type, $ids));
+    }
+
     public function isInlineViewable(): bool
     {
         return in_array($this->mime_type, ['application/pdf', 'image/png', 'image/jpeg', 'image/webp'], true);

@@ -9,9 +9,10 @@
 <tr data-cavity-row="{{ $n }}" class="{{ $messages ? 'has-error' : '' }}">
     <td class="cg-n"><strong>{{ $n }}</strong>@if ($copied)<div class="muted small" title="Carried over from {{ $copied }}">from {{ \Illuminate\Support\Str::afterLast($copied, '-') }}</div>@endif</td>
     <td><input name="{{ $name('cavity_mark') }}" value="{{ $value('cavity_mark') }}" maxlength="20" placeholder="e.g. A{{ is_numeric($n) ? $n : '' }}" class="cg-mark {{ $error('cavity_mark') ? 'bad' : '' }}" aria-label="Mark on cavity {{ $n }}" title="Number or code engraved or embossed on the cavity"></td>
-    <td><select name="{{ $name('product_revision_id') }}" data-search-select class="cg-product {{ $error('product_revision_id') ? 'bad' : '' }}" aria-label="Product of cavity {{ $n }}">
+    @php($photos = \App\Models\Attachment::coverUrlsFor('product', $productRevisions->pluck('product_id')->all()))
+    <td><select name="{{ $name('product_revision_id') }}" data-search-select="photos" class="cg-product {{ $error('product_revision_id') ? 'bad' : '' }}" aria-label="Product of cavity {{ $n }}">
         <option value="">— not used —</option>
-        @foreach ($productRevisions as $pr)<option value="{{ $pr->id }}" data-sub="{{ $pr->product?->code }} rev {{ $pr->revision }}" @selected($value('product_revision_id') === $pr->id)>{{ $pr->product?->name ?: 'Product unavailable' }}@isset($manyRevisions[$pr->product_id]) · rev {{ $pr->revision }}@endisset</option>@endforeach
+        @foreach ($productRevisions as $pr)<option value="{{ $pr->id }}" data-sub="{{ $pr->product?->code }} rev {{ $pr->revision }}" @isset($photos[$pr->product_id]) data-img="{{ $photos[$pr->product_id] }}" @endisset @selected($value('product_revision_id') === $pr->id)>{{ $pr->product?->name ?: 'Product unavailable' }}@isset($manyRevisions[$pr->product_id]) · rev {{ $pr->revision }}@endisset</option>@endforeach
     </select></td>
     <td><select name="{{ $name('cavity_role') }}" aria-label="What cavity {{ $n }} makes"><option value="WHOLE" @selected($role === 'WHOLE')>Whole casting</option><option value="PART" @selected($role === 'PART')>One component</option></select></td>
     <td><input name="{{ $name('component_label') }}" value="{{ $value('component_label') }}" maxlength="100" placeholder="if a component" class="{{ $error('component_label') ? 'bad' : '' }}" aria-label="Component of cavity {{ $n }}"></td>
