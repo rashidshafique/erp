@@ -31,6 +31,15 @@
     .pd-meta { display: flex; flex-wrap: wrap; gap: 6px 22px; margin-top: 8px; font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted); }
     .pd-meta strong { color: var(--text); font-weight: 600; }
     .pd-meta .stamp { padding: 0 6px; border: 1px solid color-mix(in srgb, var(--warning, #b54708) 50%, transparent); background: color-mix(in srgb, var(--warning, #b54708) 8%, transparent); border-radius: 4px; color: var(--text); letter-spacing: .1em; }
+    .pd-makes { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+    .pd-makes-label { font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted); margin-right: 2px; }
+    .pd-product { display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px 4px 4px; border: 1px solid var(--border); border-radius: 8px; color: var(--text); text-decoration: none; }
+    .pd-product:hover { border-color: var(--accent); }
+    .pd-product img, .pd-product .pd-noimg { width: 36px; height: 36px; flex: none; border-radius: 6px; object-fit: cover; padding: 0; min-height: 0; }
+    .pd-product .pd-noimg { display: inline-flex; align-items: center; justify-content: center; color: var(--muted); background: color-mix(in srgb, var(--border) 50%, transparent); }
+    .pd-product > span { display: flex; flex-direction: column; line-height: 1.25; }
+    .pd-product strong { font-size: 13px; font-weight: 600; }
+    .pd-product small { font: 11.5px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted); }
     .pd-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; align-items: center; }
     .pd-actions .pd-nav { display: inline-flex; }
     .pd-actions .pd-nav .btn:first-child { border-top-right-radius: 0; border-bottom-right-radius: 0; }
@@ -79,8 +88,20 @@
             <div class="pd-meta">
                 <span>Code: <strong>{{ $pattern->code }}</strong></span>
                 @if ($pattern->mark_code)<span>Engraved stamp: <span class="stamp">{{ $pattern->mark_code }}</span></span>@endif
-                <span>Makes: @forelse ($madeProducts as $made)<a href="{{ route('products.show', $made) }}">{{ $made->name }}</a> {{ $made->code }}@if (! $loop->last), @endif @empty<span>no product linked</span>@endforelse</span>
+                @if ($madeProducts->isEmpty())<span>Makes: no product linked</span>@endif
             </div>
+            @if ($madeProducts->isNotEmpty())
+                @php($productPhotos = \App\Models\Attachment::coverUrlsFor('product', $madeProducts->pluck('id')->all()))
+                <div class="pd-makes">
+                    <span class="pd-makes-label">Makes</span>
+                    @foreach ($madeProducts as $made)
+                        <a class="pd-product" href="{{ route('products.show', $made) }}">
+                            @isset($productPhotos[$made->id])<img src="{{ $productPhotos[$made->id] }}" alt="" loading="lazy">@else<span class="pd-noimg">{!! \App\Support\NavIcons::get('layers', 16) !!}</span>@endisset
+                            <span><strong>{{ $made->name }}</strong><small>{{ $made->code }}</small></span>
+                        </a>
+                    @endforeach
+                </div>
+            @endif
         </div>
         <div class="pd-actions">
             <span class="pd-nav">
