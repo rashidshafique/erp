@@ -95,6 +95,14 @@ class Formats
         return $d ? self::date($d).' '.self::time($d) : '';
     }
 
+    /** A length of time in minutes as "45 min" or "1 h 05 min". */
+    public static function duration(int $minutes): string
+    {
+        $minutes = max(0, $minutes);
+
+        return $minutes < 60 ? $minutes.' min' : intdiv($minutes, 60).' h '.str_pad((string) ($minutes % 60), 2, '0', STR_PAD_LEFT).' min';
+    }
+
     public static function number(float|int|string|null $value, int $decimals = 0): string
     {
         $n = self::NUMBERS[self::all()['number']];

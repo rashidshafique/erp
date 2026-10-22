@@ -6,17 +6,47 @@
 @section('content')
 <div class="page-heading">
     <div>
-        <h1><x-heat-light :heat="$heat" />Heat {{ $heat->heat_number }}</h1>
+        @php
+            $furnaceState = $heat->furnace?->currentState();
+            $run = $heat->furnaceRun();
+            $runMinutes = $heat->furnaceRunMinutes();
+        @endphp
+        <h1 class="heat-title"><x-heat-light :heat="$heat" />Heat {{ $heat->heat_number }}
+            @if ($heat->furnace)
+                <span class="status" title="Furnace type">{{ ucfirst(strtolower($heat->furnace->furnace_type)) }}</span>
+                <span class="status" title="Furnace">{{ $heat->furnace->code }}</span>
+                <span class="status {{ ['on' => 'status-in-progress', 'idle' => 'status-completed', 'warn' => 'status-on-hold', 'off' => 'status-cancelled'][$furnaceState['tone']] }}" title="Furnace status">{{ $furnaceState['label'] }}@if ($furnaceState['heat'] && $furnaceState['heat']->id !== $heat->id) <a href="{{ route('heats.show', $furnaceState['heat']) }}">{{ $furnaceState['heat']->heat_number }}</a>@endif</span>
+            @endif
+            <span class="status" title="Furnace running time for this heat{{ $run['start'] ? ', from '.$run['start']->displayDateTime() : '' }}"
+                @if ($run['running']) data-run-since="{{ $run['start']->toIso8601String() }}" @endif>@if ($run['running'])Running {{ \App\Support\Formats::duration($runMinutes) }}@elseif ($runMinutes !== null)Ran {{ \App\Support\Formats::duration($runMinutes) }}@elseif ($run['start'])Started {{ $run['start']->displayDateTime() }}@else Not started @endif</span>
+        </h1>
         <p>
             {{ $heat->furnace?->name ?? 'Unknown furnace' }}
-            · {{ $heat->furnace?->furnace_type ?? $heat->process_type }}
-            · {{ $heat->status }}
+            @unless ($heat->furnace)· {{ $heat->process_type }}@endunless
+            · Heat {{ strtolower(str_replace('_', ' ', $heat->status)) }}
         </p>
     </div>
     <div class="actions">
         <a class="btn" href="{{ route('heats.index') }}">Back to heats</a>
     </div>
 </div>
+<style>
+    .heat-title { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .heat-title .status { font-size: 13px; border-radius: 6px; }
+    .heat-title .status:not([class*="status-"]) { background: color-mix(in srgb, var(--border) 45%, transparent); color: var(--text); }
+</style>
+<script>
+(function () {
+    var chip = document.querySelector('[data-run-since]');
+    if (!chip) return;
+    var since = new Date(chip.dataset.runSince);
+    function tick() {
+        var m = Math.max(0, Math.floor((Date.now() - since) / 60000));
+        chip.textContent = 'Running ' + (m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + String(m % 60).padStart(2, '0') + ' min');
+    }
+    tick(); setInterval(tick, 30000);
+})();
+</script>
 
 @if ($heat->hold_reason)
     <div class="alert alert-error"><strong>{{ $heat->lightLabel() }}</strong> since {{ $heat->held_at?->displayDateTime() }}: {{ $heat->hold_note }}

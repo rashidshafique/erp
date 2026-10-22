@@ -42,6 +42,24 @@ class Furnace extends Model
         return $this->hasMany(Heat::class);
     }
 
+    /**
+     * What the furnace is doing now: under maintenance or out of service by its own status, else melting a running heat or idle.
+     *
+     * @return array{label: string, tone: string, heat: ?Heat}
+     */
+    public function currentState(): array
+    {
+        if ($this->status === 'MAINTENANCE') {
+            return ['label' => 'Under maintenance', 'tone' => 'warn', 'heat' => null];
+        }
+        if ($this->status === 'INACTIVE') {
+            return ['label' => 'Out of service', 'tone' => 'off', 'heat' => null];
+        }
+        $running = $this->heats()->whereIn('status', Heat::RUNNING_STATUSES)->orderByDesc('actual_start_at')->first();
+
+        return $running ? ['label' => 'Melting', 'tone' => 'on', 'heat' => $running] : ['label' => 'Idle', 'tone' => 'idle', 'heat' => null];
+    }
+
     public function equipment(): BelongsTo
     {
         return $this->belongsTo(Equipment::class);

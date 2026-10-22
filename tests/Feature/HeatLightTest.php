@@ -59,4 +59,25 @@ class HeatLightTest extends TestCase
         $this->assertStringContainsString('#1e8e3e', $html);
         $this->assertStringContainsString('#d93025', $html);
     }
+
+    public function test_the_heat_page_shows_the_furnace_type_status_and_running_time_beside_the_heat_number(): void
+    {
+        $this->travelTo(now()->setTime(10, 0));
+        $running = $this->heat('IN_PROGRESS');
+        $running->update(['actual_start_at' => now()->subMinutes(75)]);
+        $furnace = $running->furnace;
+
+        $this->get(route('heats.show', $running))->assertOk()
+            ->assertSeeInOrder(['Heat '.$running->heat_number, 'Induction', '>'.$furnace->code.'</span>', '>Melting', 'Running 1 h 15 min'], false);
+
+        $done = Heat::create(['heat_number' => 'H-DONE', 'furnace_id' => $furnace->id, 'process_type' => 'INDUCTION', 'status' => 'CLOSED',
+            'actual_start_at' => now()->subHours(5), 'tapped_at' => now()->subHours(5)->addMinutes(50)]);
+        $this->get(route('heats.show', $done))->assertOk()->assertSee('Ran 50 min')
+            ->assertSee('>Melting', false)->assertSee($running->heat_number);
+
+        $furnace->update(['status' => 'MAINTENANCE']);
+        $planned = $this->heat('PLANNED');
+        $planned->furnace->update(['status' => 'MAINTENANCE']);
+        $this->get(route('heats.show', $planned))->assertOk()->assertSee('Under maintenance')->assertSee('Not started');
+    }
 }

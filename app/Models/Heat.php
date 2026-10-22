@@ -75,6 +75,33 @@ class Heat extends Model
         return $this->isCupola() && $perRound > 0 && $target > 0 ? (int) ceil($target / $perRound) : 1;
     }
 
+    /**
+     * When the furnace started and stopped running this heat: a cupola from blast on to the drop, other furnaces from the
+     * start of the melt to tapping (or closing). The end is null while the heat is still running.
+     *
+     * @return array{start: ?\Carbon\CarbonInterface, end: ?\Carbon\CarbonInterface, running: bool}
+     */
+    public function furnaceRun(): array
+    {
+        $cupola = $this->isCupola();
+        $running = in_array($this->status, self::RUNNING_STATUSES, true);
+        $start = $cupola ? ($this->blast_on_at ?? $this->actual_start_at) : $this->actual_start_at;
+        $end = $running ? null : (($cupola ? $this->dropped_at : null) ?? $this->tapped_at ?? $this->closed_at ?? $this->melt_completed_at);
+
+        return ['start' => $start, 'end' => $start ? $end : null, 'running' => $running && $start !== null];
+    }
+
+    /** Minutes the furnace has run (or ran) this heat; null before it starts or when the end was never recorded. */
+    public function furnaceRunMinutes(): ?int
+    {
+        $run = $this->furnaceRun();
+        if (! $run['start'] || (! $run['running'] && ! $run['end'])) {
+            return null;
+        }
+
+        return (int) $run['start']->diffInMinutes($run['end'] ?? now(), true);
+    }
+
     public function isCupola(): bool
     {
         return ($this->furnace?->furnace_type ?? $this->process_type) === 'CUPOLA';
