@@ -19,7 +19,7 @@ class ProductController extends Controller
         $archived = $request->boolean('archived');
         $products = Product::query()
             ->when($archived, fn ($q) => $q->onlyTrashed())
-            ->withCount('revisions')
+            ->withCount('revisions')->with('revisions')
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = trim($request->input('search'));
 
@@ -34,8 +34,24 @@ class ProductController extends Controller
             ->paginate(20)
             ->withQueryString();
 
+        // The grade each product is made to: that of its latest approved revision, else its latest one that is not obsolete.
+        $planner = app(\App\Services\Planning\HeatPlanner::class);
+        $grades = $products->getCollection()->mapWithKeys(function (Product $product) use ($planner) {
+            $revisions = $product->revisions->sortByDesc('created_at');
+            $revision = $revisions->firstWhere('status', 'APPROVED') ?? $revisions->firstWhere('status', '!=', 'OBSOLETE') ?? $revisions->first();
+
+            return [$product->id => $revision ? ['grade' => $planner->gradeFor($revision), 'revision' => $revision->revision] : null];
+        });
+
+        // The day each product was last poured: its newest casting lot.
+        $lastCast = \App\Models\CastingLot::whereIn('product_id', $products->pluck('id'))->whereNotNull('created_from_pour_at')
+            ->groupBy('product_id')->selectRaw('product_id, max(created_from_pour_at) as last_cast')->pluck('last_cast', 'product_id')
+            ->map(fn ($d) => \Illuminate\Support\Carbon::parse($d));
+
         return view('products.index', [
             'products' => $products,
+            'grades' => $grades,
+            'lastCast' => $lastCast,
             'totalProducts' => Product::count(),
             'activeProducts' => Product::where('active', true)->count(),
             'inactiveProducts' => Product::where('active', false)->count(),

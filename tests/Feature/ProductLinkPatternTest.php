@@ -151,4 +151,20 @@ class ProductLinkPatternTest extends TestCase
         $this->assertSame('B', ProductRevision::nextLabel(['A']));
         $this->assertSame('3', ProductRevision::nextLabel(['A', '2']));
     }
+
+    public function test_the_product_list_shows_each_products_metal_grade_from_its_current_revision(): void
+    {
+        $grade = \App\Models\IronGrade::where('code', 'EN-GJS-500-7')->firstOrFail();
+        \App\Models\ProductSpecification::create(['product_revision_id' => $this->productRevision->id, 'specification_code' => 'SPEC-1', 'title' => 'Iron grade', 'status' => 'APPROVED', 'material_grade' => $grade->code]);
+        $none = Product::create(['code' => 'CAP-9', 'name' => 'Cap']);
+        foreach (['pour_mould_assembly_id', 'production_order_id', 'product_revision_id'] as $column) {
+            \Illuminate\Support\Facades\DB::statement("ALTER TABLE casting_lots ALTER COLUMN {$column} DROP NOT NULL");   // undone with the test's transaction
+        }
+        foreach (['2026-09-01 08:00:00', '2026-10-05 14:30:00'] as $at) {
+            \App\Models\CastingLot::create(['lot_number' => 'LOT-'.$at, 'product_id' => $this->product->id, 'status' => 'OPEN', 'quantity_poured' => 10, 'created_from_pour_at' => $at]);
+        }
+
+        $this->get(route('products.index'))->assertOk()->assertSee('Metal grade')->assertSee('EN-GJS-500-7')->assertSee('Not set')
+            ->assertSee('Last cast')->assertSee(\Illuminate\Support\Carbon::parse('2026-10-05')->displayDate())->assertDontSee(\Illuminate\Support\Carbon::parse('2026-09-01')->displayDate());
+    }
 }

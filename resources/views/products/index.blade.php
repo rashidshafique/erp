@@ -76,6 +76,8 @@
                     <tr>
                         <th>Product</th>
                         <th>Type</th>
+                        <th>Metal grade</th>
+                        <th>Last cast</th>
                         <th>Nominal weight</th>
                         <th>Revisions</th>
                         <th>Status</th>
@@ -87,6 +89,9 @@
                         <tr>
                             <td><x-product-cell :product="$product" /></td>
                             <td>{{ $product->product_type }}</td>
+                            @php $g = $grades[$product->id] ?? null; @endphp
+                            <td>@if ($g && $g['grade'])<strong>{{ $g['grade']->code }}</strong><div class="muted small">rev {{ $g['revision'] }}</div>@else<span class="muted" title="Set the grade on the product's Iron grade tab">Not set</span>@endif</td>
+                            <td>{{ isset($lastCast[$product->id]) ? $lastCast[$product->id]->displayDate() : '—' }}</td>
                             <td>
                                 {{ $product->nominal_weight_kg !== null
                                     ? \App\Support\Formats::number((float) $product->nominal_weight_kg, 4).' kg'
