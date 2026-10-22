@@ -131,4 +131,19 @@ class ContractReviewTest extends TestCase
             $this->assertSame('SUPERSEDED', $first->fresh()->status);
         }
     }
+
+    public function test_blocking_messages_name_the_product_and_write_its_code_as_code_dash_rev_number(): void
+    {
+        $c = Customer::create(['code' => 'C1', 'name' => 'Acme Pumps']);
+        $p = Product::create(['code' => 'PRD-0240', 'name' => 'Golden Bend']);
+        $r = $p->linkableRevision();
+        $o = SalesOrder::create(['order_number' => 'SO-LABEL', 'customer_id' => $c->id, 'order_date' => today(), 'status' => 'DRAFT']);
+        $o->lines()->create(['product_id' => $p->id, 'product_revision_id' => $r->id, 'line_number' => 1, 'ordered_qty' => 10, 'uom' => 'piece']);
+
+        $review = app(ContractReviewer::class)->evaluate($o);
+
+        $texts = $review->items->where('severity', 'BLOCK')->pluck('message')->all();
+        $this->assertContains('Golden Bend PRD-0240-Rev0 has no approved, effective product specification.', $texts);
+        $this->assertContains('No material grade is named in the specification or the customer requirement for Golden Bend PRD-0240-Rev0.', $texts);
+    }
 }

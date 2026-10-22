@@ -60,7 +60,7 @@ class ContractReviewer
     {
         $out = [];
         $rev = $line->productRevision;
-        $label = ($line->product?->code ?? '?').' rev '.($rev?->revision ?? '?');
+        $label = trim(($line->product?->name ?? '').' '.($line->product?->code ?? '?').'-Rev'.($rev?->revision ?? '?'));
 
         if ((float) $line->ordered_qty <= 0) {
             $out[] = ['QUANTITY', 'BLOCK', "{$label}: the quantity must be above zero."];
