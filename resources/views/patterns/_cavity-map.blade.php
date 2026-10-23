@@ -21,6 +21,7 @@
         </style>
 
         @include('partials.search-select')
+        @include('partials.quick-dialog-assets')
         <style>
             .cavity-grid { margin: 8px 0 26px; }
             .cavity-grid .cg-head { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: end; margin-bottom: 8px; }
@@ -38,7 +39,9 @@
             .cg-table .cg-num { width: 78px; }
             .cg-table .cg-mark { width: 70px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; text-transform: uppercase; }
             .cg-table .cg-n { width: 54px; text-align: center; }
-            .cg-table .cg-dup { width: 34px; text-align: center; }
+            .cg-table .cg-dup { white-space: nowrap; text-align: right; }
+            .cg-dup-btn.bad { color: var(--danger); border-color: var(--danger); }
+            .cg-sum { margin-right: 6px; }
             .cg-dup-btn { background: none; border: 1px solid transparent; border-radius: 6px; padding: 5px; color: var(--muted); cursor: pointer; line-height: 0; }
             .cg-dup-btn:hover, .cg-dup-btn:focus-visible { color: var(--accent); border-color: var(--border); }
             .cg-table .bad { border-color: var(--danger) !important; }
@@ -116,6 +119,36 @@
                         if (tr) { parked[m] = tr; tr.remove(); }
                     }
                 }
+                var dlg = form.querySelector('[data-cavity-dialog]'), editing = null;
+                var detailFields = ['cavity_role', 'component_label', 'pieces_per_product', 'poured_weight_kg', 'notes'];
+                function hid(tr, f) { return tr.querySelector('[name$="[' + f + ']"]'); }
+                function summarise(tr) {
+                    var bits = [];
+                    if (hid(tr, 'cavity_role').value === 'PART') bits.push('Component' + (hid(tr, 'component_label').value ? ': ' + hid(tr, 'component_label').value : ''));
+                    if ((parseInt(hid(tr, 'pieces_per_product').value, 10) || 1) > 1) bits.push('× ' + hid(tr, 'pieces_per_product').value + ' pcs');
+                    if (hid(tr, 'poured_weight_kg').value) bits.push('poured ' + hid(tr, 'poured_weight_kg').value + ' kg');
+                    if (hid(tr, 'notes').value) bits.push('note');
+                    tr.querySelector('[data-cavity-summary]').textContent = bits.join(' · ');
+                }
+                function syncComponent() { var part = dlg.querySelector('[data-cd="cavity_role"]').value === 'PART'; dlg.querySelector('[data-cd="component_label"]').disabled = ! part; }
+                rows().forEach(summarise);
+                dlg.querySelector('[data-cd="cavity_role"]').addEventListener('change', syncComponent);
+                body.addEventListener('click', function (e) {
+                    var btn = e.target.closest('[data-cavity-details]');
+                    if (! btn) return;
+                    editing = btn.closest('tr');
+                    dlg.querySelector('[data-cd-n]').textContent = editing.getAttribute('data-cavity-row');
+                    detailFields.forEach(function (f) { dlg.querySelector('[data-cd="' + f + '"]').value = hid(editing, f).value; });
+                    syncComponent();
+                    dlg.showModal();
+                });
+                dlg.querySelector('[data-cd-save]').addEventListener('click', function () {
+                    if (editing) {
+                        detailFields.forEach(function (f) { var d = dlg.querySelector('[data-cd="' + f + '"]'); hid(editing, f).value = (f === 'component_label' && d.disabled) ? '' : d.value; });
+                        summarise(editing);
+                    }
+                    dlg.close();
+                });
                 // The duplicate icon on a row copies its product, role, component, pieces, weights and notes onto every cavity that has no product.
                 body.addEventListener('click', function (e) {
                     var btn = e.target.closest('[data-cavity-duplicate]');
@@ -127,6 +160,7 @@
                     rows().forEach(function (tr) {
                         if (tr === from || field(tr, 'product_revision_id').value) return;
                         fields.forEach(function (f) { var t = field(tr, f); t.value = field(from, f).value; t.dispatchEvent(new Event('change', { bubbles: true })); });
+                        summarise(tr);
                         done++;
                     });
                     if (msg) msg.textContent = done ? 'Copied to ' + done + (done === 1 ? ' empty cavity.' : ' empty cavities.') : 'No empty cavity to copy to.';

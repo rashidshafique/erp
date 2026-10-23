@@ -15,14 +15,19 @@
         @foreach ($productRevisions as $pr)<option value="{{ $pr->id }}" data-sub="{{ $pr->product?->code }} rev {{ $pr->revision }}" @isset($photos[$pr->product_id]) data-img="{{ $photos[$pr->product_id] }}" @endisset @selected($value('product_revision_id') === $pr->id)>{{ $pr->product?->name ?: 'Product unavailable' }}@isset($manyRevisions[$pr->product_id]) · rev {{ $pr->revision }}@endisset</option>@endforeach
         @foreach ($bareProducts as $bp)<option value="product:{{ $bp->id }}" data-sub="{{ $bp->code }} · no revision yet" @isset($photos[$bp->id]) data-img="{{ $photos[$bp->id] }}" @endisset @selected($value('product_revision_id') === 'product:'.$bp->id)>{{ $bp->name }}</option>@endforeach
     </select></td>
-    <td><select name="{{ $name('cavity_role') }}" aria-label="What cavity {{ $n }} makes"><option value="WHOLE" @selected($role === 'WHOLE')>Whole casting</option><option value="PART" @selected($role === 'PART')>One component</option></select></td>
-    <td><input name="{{ $name('component_label') }}" value="{{ $value('component_label') }}" maxlength="100" placeholder="if a component" class="{{ $error('component_label') ? 'bad' : '' }}" aria-label="Component of cavity {{ $n }}"></td>
-    <td><input type="number" name="{{ $name('pieces_per_product') }}" min="1" value="{{ $value('pieces_per_product') ?? 1 }}" class="cg-num" aria-label="Pieces per product, cavity {{ $n }}"></td>
     <td><input type="number" name="{{ $name('casting_weight_kg') }}" min="0.0001" step="0.0001" value="{{ $kg($value('casting_weight_kg')) }}" class="cg-num {{ $error('casting_weight_kg') ? 'bad' : '' }}" aria-label="Casting weight, cavity {{ $n }}"></td>
-    <td><input type="number" name="{{ $name('poured_weight_kg') }}" min="0.0001" step="0.0001" value="{{ $kg($value('poured_weight_kg')) }}" class="cg-num {{ $error('poured_weight_kg') ? 'bad' : '' }}" aria-label="Poured weight, cavity {{ $n }}"></td>
-    <td><input name="{{ $name('notes') }}" value="{{ $value('notes') }}" maxlength="2000" aria-label="Notes, cavity {{ $n }}"></td>
-    <td class="cg-dup"><button type="button" class="cg-dup-btn" data-cavity-duplicate title="Copy this cavity's product, component, pieces, weights and notes to every cavity that has no product yet (marks are not copied)" aria-label="Duplicate cavity {{ $n }} to the empty cavities"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg></button></td>
+    <td class="cg-dup">
+        {{-- Role, component, pieces, poured weight and notes are kept in these fields and edited in the details dialog. --}}
+        <input type="hidden" name="{{ $name('cavity_role') }}" value="{{ $role }}">
+        <input type="hidden" name="{{ $name('component_label') }}" value="{{ $value('component_label') }}">
+        <input type="hidden" name="{{ $name('pieces_per_product') }}" value="{{ $value('pieces_per_product') ?? 1 }}">
+        <input type="hidden" name="{{ $name('poured_weight_kg') }}" value="{{ $kg($value('poured_weight_kg')) }}">
+        <input type="hidden" name="{{ $name('notes') }}" value="{{ $value('notes') }}">
+        <span class="cg-sum muted small" data-cavity-summary></span>
+        <button type="button" class="cg-dup-btn {{ array_filter(array_map($error, ['cavity_role', 'component_label', 'pieces_per_product', 'poured_weight_kg', 'notes'])) ? 'bad' : '' }}" data-cavity-details title="Details of this cavity: component, pieces per product, poured weight, notes" aria-label="Details of cavity {{ $n }}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+        <button type="button" class="cg-dup-btn" data-cavity-duplicate title="Copy this cavity's product, component, pieces, weights and notes to every cavity that has no product yet (marks are not copied)" aria-label="Duplicate cavity {{ $n }} to the empty cavities"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg></button>
+    </td>
 </tr>
 @if ($messages)
-    <tr class="cg-errors" data-cavity-errors="{{ $n }}"><td></td><td colspan="9">@foreach ($messages as $m)<div>{{ $m }}</div>@endforeach</td></tr>
+    <tr class="cg-errors" data-cavity-errors="{{ $n }}"><td></td><td colspan="4">@foreach ($messages as $m)<div>{{ $m }}</div>@endforeach</td></tr>
 @endif

@@ -33,7 +33,7 @@
     </div>
     <div class="table-wrap">
         <table class="cg-table">
-            <thead><tr><th>Cavity</th><th title="Number or code engraved or embossed on the cavity">Mark</th><th>Product</th><th>Makes</th><th>Component</th><th>Pieces / product</th><th>Casting kg</th><th>Poured kg, own gating</th><th>Notes</th><th></th></tr></thead>
+            <thead><tr><th>Cavity</th><th title="Number or code engraved or embossed on the cavity">Mark</th><th>Product</th><th>Casting kg</th><th></th></tr></thead>
             <tbody data-cavity-rows>
                 @for ($n = 1; $n <= $count; $n++)
                     @include('patterns._cavity-grid-row', ['n' => $n, 'value' => fn ($field) => $rowVal($n, $field), 'error' => fn ($field) => $err($n, $field), 'copied' => ! $mine && $mapped->get($n)?->copied_from_revision_id ? $mapped->get($n)->copiedFrom?->code : null])
@@ -41,6 +41,17 @@
             </tbody>
         </table>
     </div>
+    <dialog class="qd" data-cavity-dialog aria-labelledby="cd-title-{{ $revision->id }}">
+        <div class="qd-head"><h2 id="cd-title-{{ $revision->id }}">Cavity <span data-cd-n></span> details</h2><button type="button" class="qd-x" data-close aria-label="Close">&times;</button></div>
+        <div class="qd-body"><div class="qd-fields">
+            <div class="field"><label>Makes</label><select data-cd="cavity_role"><option value="WHOLE">Whole casting</option><option value="PART">One component</option></select></div>
+            <div class="field"><label>Component</label><input data-cd="component_label" maxlength="100" placeholder="if a component"></div>
+            <div class="field"><label>Pieces per product</label><input type="number" data-cd="pieces_per_product" min="1" value="1"></div>
+            <div class="field"><label>Poured kg, own gating</label><input type="number" data-cd="poured_weight_kg" min="0.0001" step="0.0001"></div>
+            <div class="field field-full"><label>Notes</label><input data-cd="notes" maxlength="2000"></div>
+        </div></div>
+        <div class="qd-foot"><button type="button" class="btn" data-close>Cancel</button><button type="button" class="btn btn-primary" data-cd-save>Apply</button></div>
+    </dialog>
     <template data-cavity-template>
         @include('patterns._cavity-grid-row', ['n' => '__n__', 'value' => fn ($field) => null, 'error' => fn ($field) => null, 'copied' => null])
     </template>
