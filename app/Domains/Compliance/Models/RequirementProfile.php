@@ -15,7 +15,7 @@ class RequirementProfile extends Model
 {
     use HasUuids;
 
-    public const REGIONS = ['GLOBAL' => 'Global', 'ASIA' => 'Asia', 'EUROPE' => 'Europe', 'AMERICAS' => 'Americas'];
+    public const REGIONS = ['GLOBAL' => 'Global', 'ASIA' => 'Asia', 'MENA' => 'Middle East & North Africa', 'EUROPE' => 'Europe', 'AMERICAS' => 'Americas'];
 
     public const CERTIFICATES = ['NONE' => 'None', 'ATTACHED' => 'Any certificate attached', 'EN10204_21' => 'EN 10204 2.1', 'EN10204_22' => 'EN 10204 2.2', 'EN10204_31' => 'EN 10204 3.1', 'EN10204_32' => 'EN 10204 3.2'];
 
@@ -38,6 +38,9 @@ class RequirementProfile extends Model
         'report_a3' => ['Problem reports as A3', 'bool', null, 'Common with Japanese customers.'],
         'five_s_audit' => ['5S audit required', 'bool', null, ''],
         'imds_required' => ['IMDS material declaration required', 'bool', null, ''],
+        'third_party_inspection' => ['Third-party inspection before dispatch', 'bool', null, 'An inspector named by the customer, such as SGS, Bureau Veritas, TÜV or Intertek, witnesses tests or releases the shipment.'],
+        'conformity_certificate' => ['Certificate of conformity per shipment', 'bool', null, 'An import conformity certificate, such as Saudi SABER, Kuwait KUCAS or UAE ECAS for regulated products.'],
+        'origin_certificate' => ['Attested certificate of origin', 'bool', null, 'A chamber-attested certificate of origin with the shipping documents. Common with Gulf customers.'],
     ];
 
     protected $guarded = [];

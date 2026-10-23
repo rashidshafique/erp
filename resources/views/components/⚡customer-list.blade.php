@@ -201,7 +201,7 @@ new class extends Component
                 <tbody>
                 @foreach ($customers as $customer)
                     <tr wire:key="customer-{{ $customer->id }}">
-                        <td><strong class="mono">{{ $customer->code }}</strong><div class="muted small">{{ $customer->name }}@if ($customer->short_name) · {{ $customer->short_name }}@endif</div></td>
+                        <td><strong style="font-size:15px">{{ $customer->name }}</strong><div class="muted small"><span class="mono">{{ $customer->code }}</span>@if ($customer->short_name) · {{ $customer->short_name }}@endif</div></td>
                         <td>{{ $customer->contact_name ?: '—' }}@if ($customer->phone || $customer->email)<div class="muted small">{{ collect([$customer->phone, $customer->email])->filter()->implode(' · ') }}</div>@endif</td>
                         <td>{{ $customer->payment_terms ?: '—' }}</td>
                         <td>{{ $customer->sales_orders_count }}</td>

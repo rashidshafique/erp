@@ -7,9 +7,12 @@
 <div class="page-heading"><div><h1>{{ $customer->name }}</h1><p>Which requirement profiles apply to this customer. Where profiles differ, the strictest value applies.</p></div></div>
 <form method="POST" action="{{ route('customer-requirements.update', $customer) }}">
     @csrf @method('PUT')
-    <div class="panel"><div class="panel-header"><h2>Profiles</h2></div><div class="panel-body">
-        @foreach ($profiles as $profile)
-            <p><label><input type="checkbox" name="profiles[]" value="{{ $profile->id }}" @checked(in_array($profile->id, old('profiles', $held), true))> <strong>{{ $profile->name }}</strong></label> <span class="muted small">{{ \Illuminate\Support\Str::limit($profile->description, 120) }}</span></p>
+    <div class="panel"><div class="panel-header"><h2>Profiles</h2><a class="small" href="{{ route('requirements.index') }}">Edit profiles →</a></div><div class="panel-body">
+        @foreach ($profiles->groupBy('region')->sortBy(fn ($group, $region) => array_search($region, array_keys($regions), true)) as $region => $group)
+            <h3 class="muted small" style="text-transform:uppercase;letter-spacing:.04em;margin:{{ $loop->first ? '0' : '18px' }} 0 6px">{{ $regions[$region] ?? $region }}</h3>
+            @foreach ($group as $profile)
+                <p><label><input type="checkbox" name="profiles[]" value="{{ $profile->id }}" @checked(in_array($profile->id, old('profiles', $held), true))> <strong>{{ $profile->name }}</strong></label> <span class="muted small">{{ \Illuminate\Support\Str::limit($profile->description, 120) }}</span></p>
+            @endforeach
         @endforeach
     </div></div>
     <div class="actions"><button class="btn btn-primary" type="submit">Save</button></div>

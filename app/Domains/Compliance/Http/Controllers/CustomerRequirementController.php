@@ -16,7 +16,7 @@ class CustomerRequirementController extends Controller
     public function edit(Customer $customer, RequirementResolver $resolver): View
     {
         return view('compliance::customer', [
-            'customer' => $customer, 'profiles' => RequirementProfile::where('active', true)->orderBy('region')->orderBy('name')->get(),
+            'customer' => $customer, 'profiles' => RequirementProfile::where('active', true)->orderBy('region')->orderBy('name')->get(), 'regions' => RequirementProfile::REGIONS,
             'held' => $customer->requirementProfiles()->pluck('requirement_profiles.id')->all(), 'merged' => $resolver->forCustomer($customer),
         ]);
     }

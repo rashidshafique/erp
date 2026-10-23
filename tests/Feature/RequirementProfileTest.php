@@ -19,9 +19,23 @@ class RequirementProfileTest extends TestCase
 
     public function test_asian_oem_profiles_are_seeded(): void
     {
-        $this->assertEqualsCanonicalizing(['ISO9001', 'IATF16949', 'JP_OEM', 'KR_OEM', 'CN_OEM', 'IN_OEM'], RequirementProfile::pluck('code')->all());
+        $this->assertEqualsCanonicalizing(['ISO9001', 'IATF16949', 'JP_OEM', 'KR_OEM', 'CN_OEM', 'IN_OEM', 'GCC_OILGAS', 'GCC_UTILITY', 'GCC_IMPORT', 'NA_AUTO', 'MENA_INDUSTRIAL'], RequirementProfile::pluck('code')->all());
         $this->assertTrue($this->profile('JP_OEM')->value('report_a3'));
         $this->assertSame('ASIA', $this->profile('JP_OEM')->region);
+    }
+
+    public function test_mena_profiles_are_offered_under_their_own_region_and_add_the_gulf_paperwork(): void
+    {
+        $customer = Customer::create(['code' => 'C1', 'name' => 'Gulf Valves']);
+
+        $this->get(route('customer-requirements.edit', $customer))->assertOk()
+            ->assertSeeInOrder(['Global', 'ISO 9001 base', 'Asia', 'Japanese OEM supplier', 'Middle East &amp; North Africa', 'GCC import paperwork', 'Gulf oil &amp; gas operator'], false)
+            ->assertSee('Third-party inspection before dispatch');
+
+        $this->put(route('customer-requirements.update', $customer), ['profiles' => [$this->profile('GCC_OILGAS')->id, $this->profile('GCC_IMPORT')->id]])->assertSessionHasNoErrors();
+        $merged = app(RequirementResolver::class)->forCustomer($customer);
+
+        $this->assertSame(['EN10204_32', true, true, true], [$merged['delivery_certificate'], $merged['third_party_inspection'], $merged['conformity_certificate'], $merged['origin_certificate']]);
     }
 
     public function test_a_customer_with_no_profile_has_no_extra_requirements(): void
