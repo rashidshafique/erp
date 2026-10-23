@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Pattern;
 use App\Models\Product;
+use App\Models\ProductRevision;
 use App\Models\ProductionOrder;
 use App\Services\PatternCavityMap;
 use Illuminate\Http\RedirectResponse;
@@ -215,6 +216,20 @@ class ProductController extends Controller
         return redirect()
             ->route('products.show', $product)
             ->with('success', 'Product updated successfully.');
+    }
+
+    /** Sets or corrects the net weight and the engineering notes of a revision that already exists. */
+    public function updateRevision(Request $request, Product $product, ProductRevision $revision): RedirectResponse
+    {
+        abort_unless($revision->product_id === $product->id, 404);
+        $data = $request->validate([
+            'net_weight_kg' => ['nullable', 'numeric', 'gt:0', 'max:99999999.9999'],
+            'engineering_notes' => ['nullable', 'string', 'max:5000'],
+        ], ['net_weight_kg.gt' => 'The weight must be above zero. Leave it empty to clear it.']);
+
+        $revision->update(['net_weight_kg' => $data['net_weight_kg'] ?? null, 'engineering_notes' => filled($data['engineering_notes'] ?? null) ? trim($data['engineering_notes']) : null]);
+
+        return redirect()->route('products.show', $product)->with('success', "Revision {$revision->revision} saved.");
     }
 
     public function storeRevision(Request $request, Product $product)

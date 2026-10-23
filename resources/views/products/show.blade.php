@@ -204,6 +204,7 @@
                         <th>Effective from</th>
                         <th>Effective to</th>
                         <th>Engineering notes</th>
+                        <th></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -221,7 +222,20 @@
                             <td style="white-space:normal;min-width:220px">
                                 {{ $revision->engineering_notes ?: '—' }}
                             </td>
+                            <td>@unless ($product->trashed())<button type="button" class="rev-edit" data-rev-edit="{{ $revision->id }}">Edit</button>@endunless</td>
                         </tr>
+                        @unless ($product->trashed())
+                        <tr data-rev-form="{{ $revision->id }}" @unless ($errors->has('net_weight_kg') && old('_revision') === $revision->id) hidden @endunless>
+                            <td colspan="7">
+                                <form method="POST" action="{{ route('products.revisions.update', [$product, $revision]) }}" style="display:flex;gap:12px;align-items:end;flex-wrap:wrap">@csrf @method('PUT')<input type="hidden" name="_revision" value="{{ $revision->id }}">
+                                    <div class="field"><label>Net weight (kg) of revision {{ $revision->revision }}</label><input name="net_weight_kg" type="number" step="0.0001" min="0.0001" value="{{ old('_revision') === $revision->id ? old('net_weight_kg') : ($revision->net_weight_kg !== null ? rtrim(rtrim((string) $revision->net_weight_kg, '0'), '.') : '') }}" style="width:150px">
+                                        @if (old('_revision') === $revision->id)@error('net_weight_kg')<div class="error-text">{{ $message }}</div>@enderror @endif</div>
+                                    <div class="field" style="flex:1;min-width:240px"><label>Engineering notes</label><input name="engineering_notes" maxlength="5000" value="{{ old('_revision') === $revision->id ? old('engineering_notes') : $revision->engineering_notes }}"></div>
+                                    <button class="btn btn-primary" type="submit">Save revision</button><button class="btn" type="button" data-rev-cancel="{{ $revision->id }}">Cancel</button>
+                                </form>
+                            </td>
+                        </tr>
+                        @endunless
                     @endforeach
                 </tbody>
             </table>
@@ -310,4 +324,18 @@
 @include('custom-fields._panel', ['entity' => 'product', 'id' => $product->id])
 @include('attachments._panel', ['type' => 'product', 'id' => $product->id])
 @include('audit._history', ['type' => 'Product', 'id' => $product->id])
+<style>
+    .rev-edit { appearance: none; border: 0; background: transparent; padding: 0; font: inherit; font-size: 12px; font-weight: 600; color: var(--accent); cursor: pointer; }
+    .rev-edit:hover { text-decoration: underline; }
+</style>
+<script>
+document.addEventListener('click', function (e) {
+    var open = e.target.closest('[data-rev-edit]'), cancel = e.target.closest('[data-rev-cancel]');
+    if (!open && !cancel) return;
+    var id = (open || cancel).dataset.revEdit || (open || cancel).dataset.revCancel, row = document.querySelector('[data-rev-form="' + id + '"]');
+    if (!row) return;
+    row.hidden = !open;
+    if (open) { var input = row.querySelector('input[name="net_weight_kg"]'); if (input) input.focus(); }
+});
+</script>
 @endsection

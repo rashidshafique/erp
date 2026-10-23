@@ -152,6 +152,7 @@ Route::prefix('products')
         Route::put('/{product}', 'update')->name('update');
         Route::post('/{product}/grade', 'setGrade')->name('grade');
         Route::post('/{product}/link-pattern', 'linkPattern')->name('link-pattern');
+        Route::put('/{product}/revisions/{revision}', 'updateRevision')->name('revisions.update');
         Route::post('/{product}/revisions', 'storeRevision')
             ->name('revisions.store');
         Route::get('/{product}', 'show')->name('show')->withTrashed();

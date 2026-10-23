@@ -188,4 +188,29 @@ class ProductLinkPatternTest extends TestCase
 
         $this->get(route('products.index', ['search' => 'zvalve']))->assertOk()->assertDontSee('ITEM-01')->assertSee('wire:model.live.debounce.300ms="search"', false);
     }
+
+    public function test_the_weight_and_notes_of_an_existing_revision_can_be_set_corrected_and_cleared(): void
+    {
+        $this->get(route('products.show', $this->product))->assertOk()->assertSee('data-rev-edit="'.$this->productRevision->id.'"', false)
+            ->assertSee(route('products.revisions.update', [$this->product, $this->productRevision]), false);
+
+        $this->put(route('products.revisions.update', [$this->product, $this->productRevision]), ['net_weight_kg' => '6.25', 'engineering_notes' => ' Drawing B '])->assertSessionHasNoErrors()->assertRedirect(route('products.show', $this->product));
+        $this->assertSame(['6.2500', 'Drawing B'], [$this->productRevision->fresh()->net_weight_kg, $this->productRevision->fresh()->engineering_notes]);
+
+        $this->put(route('products.revisions.update', [$this->product, $this->productRevision]), ['net_weight_kg' => '6.4'])->assertSessionHasNoErrors();
+        $this->assertSame('6.4000', $this->productRevision->fresh()->net_weight_kg);
+
+        $this->put(route('products.revisions.update', [$this->product, $this->productRevision]), ['net_weight_kg' => '0'])->assertSessionHasErrors('net_weight_kg');
+        $this->put(route('products.revisions.update', [$this->product, $this->productRevision]), ['net_weight_kg' => ''])->assertSessionHasNoErrors();
+        $this->assertNull($this->productRevision->fresh()->net_weight_kg);
+    }
+
+    public function test_a_revision_of_another_product_cannot_be_changed_through_this_one(): void
+    {
+        $other = Product::create(['code' => 'OTHER-1', 'name' => 'Other']);
+        $foreign = ProductRevision::create(['product_id' => $other->id, 'revision' => '0', 'status' => 'APPROVED']);
+
+        $this->put(route('products.revisions.update', [$this->product, $foreign]), ['net_weight_kg' => '9'])->assertNotFound();
+        $this->assertNull($foreign->fresh()->net_weight_kg);
+    }
 }
