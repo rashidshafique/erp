@@ -109,6 +109,8 @@ class PartnersAndSuppliersTest extends TestCase
         $this->assertSame([], array_intersect(['Materials', 'Suppliers', 'Charge recipes', 'Stock locations'], $menu['Melting']));
         $this->assertSame([], array_diff(['Materials', 'Charge recipes', 'Suppliers', 'Stock locations', 'Stock by location'], $menu['Purchases']));
         $this->assertArrayNotHasKey('Melting & Materials', $menu);
+        $this->assertContains('Production queue', $menu['Production']);
+        $this->assertNotContains('Production queue', $menu['Quality']);
         $this->assertLessThan(array_search('Production', array_keys($menu)), array_search('Quick flow', array_keys($menu)));
     }
 }

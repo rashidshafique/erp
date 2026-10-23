@@ -46,8 +46,8 @@
 
             @include('layouts._module-nav-groups', ['position' => 'top'])
 
-            @if ($menu->showsAny(['products.index', 'patterns.index', 'casting-analyses.index', 'production-orders.index', 'moulding-runs.index', 'pours.index', 'work-lists.index', 'moulding-teams.index', 'sand-systems.index', 'mould-readiness.index']))
-            <div class="nav-group {{ request()->routeIs('products.*', 'patterns.*', 'pattern-ownership.*', 'casting-analyses.*', 'production-orders.*', 'moulding-runs.*', 'pours.*', 'work-lists.*', 'moulding-teams.*', 'sand-systems.*', 'mould-readiness.*') ? 'is-active' : '' }}">
+            @if ($menu->showsAny(['products.index', 'patterns.index', 'casting-analyses.index', 'production-orders.index', 'lots.queue', 'moulding-runs.index', 'pours.index', 'work-lists.index', 'moulding-teams.index', 'sand-systems.index', 'mould-readiness.index']))
+            <div class="nav-group {{ request()->routeIs('products.*', 'patterns.*', 'pattern-ownership.*', 'casting-analyses.*', 'production-orders.*', 'lots.queue', 'lots.bulk-stage', 'moulding-runs.*', 'pours.*', 'work-lists.*', 'moulding-teams.*', 'sand-systems.*', 'mould-readiness.*') ? 'is-active' : '' }}">
                 <button type="button" class="nav-group-toggle" aria-expanded="false">
                     <span class="nav-lab">{!! \App\Support\NavIcons::get('factory') !!}<span>Production</span></span><span class="nav-chevron">›</span>
                 </button>
@@ -56,6 +56,7 @@
                     @if ($menu->shows('patterns.index')) <a href="{{ route('patterns.index') }}" class="nav-link {{ request()->routeIs('patterns.*', 'pattern-ownership.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('layers') !!}<span>Patterns</span></a> @endif
                     @if ($menu->shows('casting-analyses.index')) <a href="{{ route('casting-analyses.index') }}" class="nav-link {{ request()->routeIs('casting-analyses.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('chart-line') !!}<span>Casting analysis</span></a> @endif
                     @if ($menu->shows('production-orders.index')) <a href="{{ route('production-orders.index') }}" class="nav-link {{ request()->routeIs('production-orders.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('factory') !!}<span>Production orders</span></a> @endif
+                    @if ($menu->shows('lots.queue')) <a href="{{ route('lots.queue') }}" class="nav-link {{ request()->routeIs('lots.queue') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('list') !!}<span>Production queue</span></a> @endif
                     @if ($menu->shows('moulding-runs.index')) <a href="{{ route('moulding-runs.index') }}" class="nav-link {{ request()->routeIs('moulding-runs.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('grid') !!}<span>Moulding runs</span></a> @endif
                     @if ($menu->shows('pours.index')) <a href="{{ route('pours.index') }}" class="nav-link {{ request()->routeIs('pours.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('flame') !!}<span>Pour register</span></a> @endif
                     @if ($menu->shows('work-lists.index')) <a href="{{ route('work-lists.index') }}" class="nav-link {{ request()->routeIs('work-lists.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('clipboard') !!}<span>Moulding work lists</span></a> @endif
@@ -115,13 +116,12 @@
             </div>
             @endif
 
-            @if ($menu->showsAny(['lots.queue', 'quick-qc.index', 'lots.index', 'inspections.index', 'ncrs.index', 'reports.yield', 'defects.index']) || collect(app(\App\Domains\Core\ModuleRegistry::class)->navItems('quality'))->contains(fn ($i) => $menu->shows($i['route'])))
-            <div class="nav-group {{ request()->routeIs('quick-qc.*', 'lots.*', 'inspections.*', 'ncrs.*', 'reports.*', 'defects.*', ...app(\App\Domains\Core\ModuleRegistry::class)->navPatterns('quality')) ? 'is-active' : '' }}">
+            @if ($menu->showsAny(['quick-qc.index', 'lots.index', 'inspections.index', 'ncrs.index', 'reports.yield', 'defects.index']) || collect(app(\App\Domains\Core\ModuleRegistry::class)->navItems('quality'))->contains(fn ($i) => $menu->shows($i['route'])))
+            <div class="nav-group {{ (request()->routeIs('lots.*') && ! request()->routeIs('lots.queue', 'lots.bulk-stage')) || request()->routeIs('quick-qc.*', 'inspections.*', 'ncrs.*', 'reports.*', 'defects.*', ...app(\App\Domains\Core\ModuleRegistry::class)->navPatterns('quality')) ? 'is-active' : '' }}">
                 <button type="button" class="nav-group-toggle" aria-expanded="false">
                     <span class="nav-lab">{!! \App\Support\NavIcons::get('check-circle') !!}<span>Quality</span></span><span class="nav-chevron">›</span>
                 </button>
                 <div class="nav-submenu" hidden>
-                    @if ($menu->shows('lots.queue')) <a href="{{ route('lots.queue') }}" class="nav-link {{ request()->routeIs('lots.queue') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('list') !!}<span>Production queue</span></a> @endif
                     @if ($menu->shows('quick-qc.index')) <a href="{{ route('quick-qc.index') }}" class="nav-link {{ request()->routeIs('quick-qc.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('search-check') !!}<span>Quick QC</span></a> @endif
                     @if ($menu->shows('lots.index')) <a href="{{ route('lots.index') }}" class="nav-link {{ request()->routeIs('lots.index', 'lots.show', 'lots.certificate') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('tag') !!}<span>Casting lots</span></a> @endif
                     @if ($menu->shows('inspections.index')) <a href="{{ route('inspections.index') }}" class="nav-link {{ request()->routeIs('inspections.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('search-check') !!}<span>Inspections</span></a> @endif
