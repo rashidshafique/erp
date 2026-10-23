@@ -39,3 +39,19 @@ These need their tests run and a commit.
 6. Quick QC tally (`/quick-qc`) records good, rework and rejected counts per product over open lots oldest first; the NCR threshold is a process-depth rule, and every process-depth rule can now be set on its own.
 7. Lot grouping rule (`lot_grouping`: MOULD or POUR): POUR makes one lot per pour and product, with every mould kept in `casting_lot_pour_mould_assembly`. The production queue moves ticked lots through several stages at once (`lots.bulk-stage`); packing and dispatch have an all-lots tick. Not done: a DAY grouping (needs several pours per lot) and QuickFlow pours still make no lots.
 8. README is still the stock Laravel text.
+
+## Gap list: Synchro ERP / B&L Odyssey parity
+
+Estimate (2026-10-23): about 60-70% of foundry-specific functionality, 20-30% of a full ERP. Based on general knowledge of both products, not checked against current vendor feature lists.
+
+Covered: order to pour, metallurgy and thermal, moulding, sand, patterns, tooling, quality and CAPA, casting lots, packing and dispatch, HR and payroll, approvals, audit, module licensing and per-rule process depth.
+
+In priority order:
+1. **Stores/Inventory** (next in the module split): stock ledger, bins, issues, GRN, stock valuation.
+2. **Costing** (`Costing` is empty): actual versus standard cost per casting (metal, energy, labour, fettling).
+3. **MRP and scheduling** (`MRP`, `Production` are empty): material requirements planning, finite capacity scheduling.
+4. **Finance** (biggest gap): general ledger, AR/AP, invoicing, tax, bank reconciliation. Decide build a thin version or integrate an accounting package.
+5. **Outside processing and machining routings**: subcontract flow, machining steps.
+6. **Reporting and BI**: management dashboards, customer scorecards, statutory report exports.
+7. **Integration**: EDI, e-invoicing and tax filing for the target market, barcode and device input.
+8. **Housekeeping**: track the ISO 9001 gaps against the code, replace direct core-to-module calls with interfaces and `dependsOn()`, write the README.
