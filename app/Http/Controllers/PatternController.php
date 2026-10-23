@@ -431,7 +431,7 @@ class PatternController extends Controller
     {
         abort_unless($revision->pattern_id === $pattern->id, 404);
 
-        return view('patterns.revision-edit', ['pattern' => $pattern, 'revision' => $revision, 'partingTypes' => PatternRevision::PARTING_TYPES]);
+        return view('patterns.revision-edit', ['pattern' => $pattern, 'revision' => $revision, 'partingTypes' => PatternRevision::PARTING_TYPES, 'severalProducts' => $revision->makesSeveralProducts()]);
     }
 
     /**
@@ -464,6 +464,9 @@ class PatternController extends Controller
             'pour_weight_kg.gte' => 'The pour weight includes gating and risers, so it cannot be less than the casting weight.',
         ]);
         $reason = trim((string) Arr::pull($data, 'correction_reason'));
+        if ($revision->makesSeveralProducts()) {
+            unset($data['casting_weight_kg']);   // recorded per cavity when the plate makes several products
+        }
 
         $revision->fill($data);
         $changes = collect($revision->getDirty())->mapWithKeys(fn ($new, $field) => [$field => ['old' => $revision->getOriginal($field), 'new' => $new]]);
@@ -593,6 +596,9 @@ class PatternController extends Controller
         $data = array_merge($data, $this->validatedLayout($request, partial: true));
         $data['change_description'] = $data['change_description'] ?? 'Initial revision';
         $previous = $pattern->currentRevision;
+        if ($previous?->makesSeveralProducts()) {
+            unset($data['casting_weight_kg']);   // the carried-over map makes several products; weights are per cavity
+        }
         $copyLayout = true;   // a new revision starts with the previous cavity map; change it on the grid
 
         $revision = DB::transaction(function () use ($pattern, $data, $request, $copyLayout) {

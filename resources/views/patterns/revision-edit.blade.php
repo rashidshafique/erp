@@ -30,7 +30,11 @@
                 <div class="field"><label for="machining_allowance_grade">Machining allowance (RMAG)</label>
                     <select id="machining_allowance_grade" name="machining_allowance_grade"><option value="">Not specified</option>@foreach (\App\Models\PatternRevision::ALLOWANCE_GRADES as $g)<option value="{{ $g }}" @selected($f('machining_allowance_grade') === $g)>{{ $g }}</option>@endforeach</select></div>
                 <div class="field"><label for="pattern_weight_kg">Pattern / plate weight (kg)</label><input id="pattern_weight_kg" type="number" name="pattern_weight_kg" min="0.0001" step="0.0001" value="{{ $f('pattern_weight_kg') }}"></div>
-                <div class="field"><label for="casting_weight_kg">Casting weight, one piece (kg)</label><input id="casting_weight_kg" type="number" name="casting_weight_kg" min="0.0001" step="0.0001" value="{{ $f('casting_weight_kg') }}"></div>
+                @if ($severalProducts)
+                    <div class="field"><label>Casting weight</label><p class="muted small" style="margin:0">This revision's cavities make several products, so the casting weight is recorded per cavity on the <a href="{{ route('patterns.show', $pattern) }}#cavities-{{ $revision->id }}">cavity map</a>.</p></div>
+                @else
+                    <div class="field"><label for="casting_weight_kg">Casting weight, one piece (kg)</label><input id="casting_weight_kg" type="number" name="casting_weight_kg" min="0.0001" step="0.0001" value="{{ $f('casting_weight_kg') }}"></div>
+                @endif
                 <div class="field"><label for="pour_weight_kg">Poured per casting, incl. gating (kg)</label><input id="pour_weight_kg" type="number" name="pour_weight_kg" min="0.0001" step="0.0001" value="{{ $f('pour_weight_kg') }}"></div>
                 <div class="field"><label for="pieces_per_mould">Pieces per mould</label><input id="pieces_per_mould" type="number" name="pieces_per_mould" min="1" max="10000" value="{{ $f('pieces_per_mould') }}"></div>
                 <div class="field"><label for="modification_cost">Modification cost (PKR)</label><input id="modification_cost" type="number" name="modification_cost" min="0" step="0.01" value="{{ $f('modification_cost') }}"></div>

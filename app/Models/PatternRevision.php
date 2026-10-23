@@ -217,6 +217,19 @@ class PatternRevision extends Model
         return $this->hasMany(PatternRevisionCavity::class)->orderBy('cavity_number');
     }
 
+    /**
+     * Whether the cavity map has cavities for more than one product. A single casting weight means nothing then; the
+     * weight is recorded per cavity on the cavity map instead.
+     */
+    public function makesSeveralProducts(): bool
+    {
+        return $this->cavityMap()
+            ->whereNotNull('product_revision_id')
+            ->join('product_revisions', 'product_revisions.id', '=', 'pattern_revision_cavities.product_revision_id')
+            ->distinct()
+            ->count('product_revisions.product_id') > 1;
+    }
+
     public function mouldCavities(): HasMany
     {
         return $this->hasMany(MouldCavity::class);

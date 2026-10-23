@@ -21,7 +21,9 @@
 <div class="field"><label for="qd-rev-cost">Modification cost (PKR)</label><input id="qd-rev-cost" type="number" name="modification_cost" min="0" step="0.01" value="{{ $old('modification_cost') }}"></div>
 <div class="field"><label for="qd-rev-from">Effective from</label><input id="qd-rev-from" type="date" name="effective_from" value="{{ $old('effective_from', today()->toDateString()) }}"></div>
 <div class="field field-full"><label for="qd-rev-costnote">Cost note</label><input id="qd-rev-costnote" name="cost_note" maxlength="2000" placeholder="e.g. Pattern shop invoice 4471" value="{{ $old('cost_note') }}"></div>
+@if ($current?->makesSeveralProducts())<p class="muted small field-full" style="margin:0">The cavities of {{ $current->code }} make several products, so the casting weight is recorded per cavity on the cavity map.</p>@else
 <div class="field"><label for="qd-rev-cast">Casting weight, one piece (kg)</label><input id="qd-rev-cast" type="number" name="casting_weight_kg" min="0.0001" step="0.0001" value="{{ $old('casting_weight_kg', $current?->casting_weight_kg) }}"></div>
+@endif
 <div class="field"><label for="qd-rev-pour">Poured per casting, incl. gating (kg)</label><input id="qd-rev-pour" type="number" name="pour_weight_kg" min="0.0001" step="0.0001" value="{{ $old('pour_weight_kg', $current?->pour_weight_kg) }}"></div>
 <div class="field"><label for="qd-rev-pieces">Pieces per mould</label><input id="qd-rev-pieces" type="number" name="pieces_per_mould" min="1" max="10000" value="{{ $old('pieces_per_mould', $current?->pieces_per_mould) }}"></div>
 <div class="field field-full"><label for="qd-rev-photo">Photo</label><input id="qd-rev-photo" type="file" name="photo" accept="image/jpeg,image/png,image/webp" data-max-kb="{{ \App\Support\Uploads::effectiveMaxKb() }}"></div>

@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Models\AuditLog;
 use App\Models\Pattern;
 use App\Models\PatternRevision;
+use App\Models\Product;
+use App\Models\ProductRevision;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -82,5 +84,37 @@ class PatternRevisionDetailsTest extends TestCase
         $other = Pattern::create(['code' => 'SP-'.uniqid(), 'name' => 'Other', 'pattern_type' => 'MATCHPLATE']);
 
         $this->put(route('patterns.revisions.update', [$other, $revision]), ['pieces_per_mould' => 2])->assertNotFound();
+    }
+
+    private function linkCavity(PatternRevision $revision, int $number, string $productCode): void
+    {
+        $product = Product::create(['code' => $productCode, 'name' => $productCode.' casting']);
+        $productRevision = ProductRevision::create(['product_id' => $product->id, 'revision' => 'A', 'status' => 'APPROVED']);
+        $revision->cavityMap()->create(['cavity_number' => $number, 'product_revision_id' => $productRevision->id, 'cavity_role' => 'WHOLE', 'pieces_per_product' => 1]);
+    }
+
+    public function test_casting_weight_is_asked_only_when_the_cavities_make_one_product(): void
+    {
+        $revision = $this->incompleteRevision();
+        $this->linkCavity($revision, 1, 'VALVE-1');
+        $this->get(route('patterns.revisions.edit', [$revision->pattern, $revision]))->assertSee('name="casting_weight_kg"', false);
+
+        $this->linkCavity($revision, 2, 'PUMP-1');
+        $this->get(route('patterns.revisions.edit', [$revision->pattern, $revision]))
+            ->assertDontSee('name="casting_weight_kg"', false)
+            ->assertSee('recorded per cavity');
+    }
+
+    public function test_a_casting_weight_sent_for_a_several_product_revision_is_ignored(): void
+    {
+        $revision = $this->incompleteRevision();
+        $this->linkCavity($revision, 1, 'VALVE-1');
+        $this->linkCavity($revision, 2, 'PUMP-1');
+
+        $this->save($revision, ['casting_weight_kg' => '2.5', 'pieces_per_mould' => 4])->assertSessionHasNoErrors();
+
+        $revision->refresh();
+        $this->assertNull($revision->casting_weight_kg);
+        $this->assertSame(4, $revision->pieces_per_mould);
     }
 }
