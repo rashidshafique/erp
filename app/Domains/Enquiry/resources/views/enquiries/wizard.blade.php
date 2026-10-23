@@ -16,6 +16,8 @@
     .wz-card strong { display: block; margin-bottom: 3px; } .wz-card span { font-size: 12.5px; color: var(--muted); }
     .wz-hint { background: color-mix(in srgb, var(--accent) 8%, #fff); border: 1px solid color-mix(in srgb, var(--accent) 30%, #fff); border-radius: 8px; padding: 8px 12px; margin: 0 0 12px; font-size: 13px; }
     .wz-nav { display: flex; gap: 8px; margin-top: 14px; } .wz-review dt { font-weight: 600; margin-top: 8px; } .wz-review dd { margin: 0; }
+    .wz-req > label:first-child::after, .wz-star::after { content: ' *'; color: #c0392b; font-weight: 600; }
+    .wz-note { font-size: 12.5px; color: var(--muted); margin: 0 0 10px; }
     input[type=checkbox], input[type=radio] { accent-color: var(--accent); }
 </style>
 <div class="page-heading"><div><h1>New customer request</h1><p>Answer a few questions and the system opens the enquiry with the right information for this kind of request.</p></div></div>
@@ -24,13 +26,14 @@
     $o = fn ($k, $d = null) => old($k, $preset[$k] ?? $d);
     $scJs = collect($scenarios)->map(function ($s) { return ['needs' => $s['needs'], 'label' => $s['label'], 'blurb' => $s['blurb'], 'advice' => $s['advice'], 'cat' => $s['file_category']]; })->all();
 @endphp
-<form method="POST" action="{{ route('enquiries.wizard.store') }}" enctype="multipart/form-data" id="wz" novalidate>@csrf
+<form method="POST" action="{{ route('enquiries.wizard.store') }}" enctype="multipart/form-data" id="wz" novalidate data-no-save-bar>@csrf
 
 <div class="wz-step panel" data-step="0"><div class="panel-header"><h2>Who is asking?</h2></div><div class="panel-body">
+    <p class="wz-note">Fields marked <span class="wz-star"></span> are required.</p>
     <div class="form-grid">
         <div class="field field-full"><label style="display:inline-flex;gap:6px;margin-right:16px"><input type="radio" name="customer_mode" value="EXISTING" @checked(old('customer_mode', 'EXISTING') === 'EXISTING')> Existing customer</label><label style="display:inline-flex;gap:6px"><input type="radio" name="customer_mode" value="NEW" @checked(old('customer_mode') === 'NEW')> New customer</label></div>
-        <div class="field field-full" data-mode="EXISTING"><label for="customer_id">Customer</label><select id="customer_id" name="customer_id"><option value="">— choose —</option>@foreach ($customers as $c)<option value="{{ $c->id }}" data-contact="{{ $c->contact_name }}" @selected($o('customer') === $c->id || old('customer_id') === $c->id)>{{ $c->code }} — {{ $c->name }}</option>@endforeach</select>@error('customer_id')<div class="error-text">{{ $message }}</div>@enderror</div>
-        <div class="field" data-mode="NEW"><label for="new_name">Company name</label><input id="new_name" name="new_name" value="{{ old('new_name') }}">@error('new_name')<div class="error-text">{{ $message }}</div>@enderror<div class="help">A short customer code is made for you.</div></div>
+        <div class="field field-full wz-req" data-mode="EXISTING"><label for="customer_id">Customer</label><select id="customer_id" name="customer_id"><option value="">— choose —</option>@foreach ($customers as $c)<option value="{{ $c->id }}" data-contact="{{ $c->contact_name }}" @selected($o('customer') === $c->id || old('customer_id') === $c->id)>{{ $c->code }} — {{ $c->name }}</option>@endforeach</select>@error('customer_id')<div class="error-text">{{ $message }}</div>@enderror</div>
+        <div class="field wz-req" data-mode="NEW"><label for="new_name">Company name</label><input id="new_name" name="new_name" value="{{ old('new_name') }}">@error('new_name')<div class="error-text">{{ $message }}</div>@enderror<div class="help">A short customer code is made for you.</div></div>
         <div class="field" data-mode="NEW"><label>Contact person</label><input name="new_contact" value="{{ old('new_contact') }}"></div>
         <div class="field" data-mode="NEW"><label>Phone</label><input name="new_phone" value="{{ old('new_phone') }}"></div>
         <div class="field" data-mode="NEW"><label>Email</label><input type="email" name="new_email" value="{{ old('new_email') }}">@error('new_email')<div class="error-text">{{ $message }}</div>@enderror</div>
@@ -39,6 +42,7 @@
 </div></div>
 
 <div class="wz-step panel" data-step="1"><div class="panel-header"><h2>What are they giving us?</h2></div><div class="panel-body">
+    <p class="wz-note">Choose one <span class="wz-star"></span></p>
     <div class="wz-cards">
     @foreach ($scenarios as $k => $s)
         <label class="wz-card"><input type="radio" name="source_type" value="{{ $k }}" @checked(old('source_type', $preset['scenario'] ?? null) === $k)><strong>{{ $s['label'] }}</strong><span>{{ $s['blurb'] }}</span></label>
@@ -50,15 +54,15 @@
 <div class="wz-step panel" data-step="2"><div class="panel-header"><h2>The part</h2></div><div class="panel-body">
     <div class="wz-hint" id="wzHint"></div>
     <div class="form-grid">
-        <div class="field field-full"><label>What is the part called?</label><input name="description" value="{{ old('description') }}" placeholder="e.g. Pump housing">@error('description')<div class="error-text">{{ $message }}</div>@enderror</div>
-        <div class="field field-full" data-need="product"><label>Which of our parts?</label>
+        <div class="field field-full wz-req"><label>What is the part called?</label><input name="description" value="{{ old('description') }}" placeholder="e.g. Pump housing">@error('description')<div class="error-text">{{ $message }}</div>@enderror</div>
+        <div class="field field-full wz-req" data-need="product"><label>Which of our parts?</label>
             @include('partials.search-select')@php($productPhotos = \App\Models\Attachment::coverUrlsFor('product', $products->pluck('id')->all()))<select name="product_id" id="product_id" data-search-select="photos"><option value="">— choose —</option>@foreach ($products as $p)<option value="{{ $p->id }}" data-sub="{{ $p->code }}" @isset($productPhotos[$p->id]) data-img="{{ $productPhotos[$p->id] }}" @endisset data-name="{{ $p->name }}" data-weight="{{ $p->nominal_weight_kg }}" data-revs="{{ $p->revisions->map(fn ($r) => $r->revision.' ('.strtolower($r->status).')')->implode(', ') ?: 'no revisions yet' }}" @selected(old('product_id') === $p->id)>{{ $p->name }}</option>@endforeach</select>
             <div class="help" id="prodInfo"></div>@error('product_id')<div class="error-text">{{ $message }}</div>@enderror</div>
-        <div class="field field-full" data-need="change"><label>What has changed?</label><textarea name="change_note" rows="3" placeholder="New drawing revision, thicker wall, different grade…">{{ old('change_note') }}</textarea>@error('change_note')<div class="error-text">{{ $message }}</div>@enderror</div>
-        <div class="field field-full" data-need="tool"><label>Tooling they will send</label><textarea name="tool_note" rows="3" placeholder="Pattern or core box, material, size, how many, condition, who repairs it…">{{ old('tool_note') }}</textarea>@error('tool_note')<div class="error-text">{{ $message }}</div>@enderror</div>
-        <div class="field field-full" data-need="concept"><label>What does the part have to do?</label><textarea name="concept_note" rows="3" placeholder="Load, pressure, temperature, environment, mating parts, standards…">{{ old('concept_note') }}</textarea>@error('concept_note')<div class="error-text">{{ $message }}</div>@enderror</div>
-        <div class="field field-full" data-need="transfer"><label>Where is it made today, and why move it?</label><textarea name="transfer_note" rows="3" placeholder="Current foundry, scrap or lead-time problems, price, pattern ownership…">{{ old('transfer_note') }}</textarea>@error('transfer_note')<div class="error-text">{{ $message }}</div>@enderror</div>
-        <div class="field field-full" data-need="sample"><label>Describe the sample</label><textarea name="sample_note" rows="3" placeholder="How many, condition, whether it is cast or machined, what the customer knows about its material…">{{ old('sample_note') }}</textarea>@error('sample_note')<div class="error-text">{{ $message }}</div>@enderror</div>
+        <div class="field field-full wz-req" data-need="change"><label>What has changed?</label><textarea name="change_note" rows="3" placeholder="New drawing revision, thicker wall, different grade…">{{ old('change_note') }}</textarea>@error('change_note')<div class="error-text">{{ $message }}</div>@enderror</div>
+        <div class="field field-full wz-req" data-need="tool"><label>Tooling they will send</label><textarea name="tool_note" rows="3" placeholder="Pattern or core box, material, size, how many, condition, who repairs it…">{{ old('tool_note') }}</textarea>@error('tool_note')<div class="error-text">{{ $message }}</div>@enderror</div>
+        <div class="field field-full wz-req" data-need="concept"><label>What does the part have to do?</label><textarea name="concept_note" rows="3" placeholder="Load, pressure, temperature, environment, mating parts, standards…">{{ old('concept_note') }}</textarea>@error('concept_note')<div class="error-text">{{ $message }}</div>@enderror</div>
+        <div class="field field-full wz-req" data-need="transfer"><label>Where is it made today, and why move it?</label><textarea name="transfer_note" rows="3" placeholder="Current foundry, scrap or lead-time problems, price, pattern ownership…">{{ old('transfer_note') }}</textarea>@error('transfer_note')<div class="error-text">{{ $message }}</div>@enderror</div>
+        <div class="field field-full wz-req" data-need="sample"><label>Describe the sample</label><textarea name="sample_note" rows="3" placeholder="How many, condition, whether it is cast or machined, what the customer knows about its material…">{{ old('sample_note') }}</textarea>@error('sample_note')<div class="error-text">{{ $message }}</div>@enderror</div>
         <div class="field" data-need="drawing"><label>Drawing number</label><input name="drawing_ref" value="{{ old('drawing_ref') }}">@error('drawing_ref')<div class="error-text">{{ $message }}</div>@enderror</div>
         <div class="field" data-need="drawing"><label>Drawing revision</label><input name="drawing_rev" value="{{ old('drawing_rev') }}"></div>
         <div class="field"><label>Material asked for</label><input name="material_text" value="{{ old('material_text') }}" placeholder="e.g. EN-GJS-500-7"></div>
@@ -118,6 +122,7 @@
 
     function problem(i) {
         if (i === 0) { if (mode() === 'EXISTING' && !val('customer_id')) return 'Choose the customer.'; if (mode() === 'NEW' && !val('new_name')) return 'Enter the company name.'; }
+        if (i === 0 && mode() === 'NEW' && val('new_email') && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(val('new_email'))) return 'Enter a valid email address.';
         if (i === 1 && !scenario()) return 'Choose what the customer is giving us.';
         if (i === 2) {
             var n = SC[scenario()].needs;
@@ -126,7 +131,10 @@
             var map = { change: ['change_note', 'Say what has changed.'], tool: ['tool_note', 'Describe the tooling.'], concept: ['concept_note', 'Say what the part has to do.'], transfer: ['transfer_note', 'Say where it is made today.'], sample: ['sample_note', 'Describe the sample.'] };
             for (var k in map) if (n.indexOf(k) >= 0 && !val(map[k][0])) return map[k][1];
         }
+        if (i === 2 && val('weight_kg') && !(parseFloat(val('weight_kg')) >= 0)) return 'Weight must be a number, zero or more.';
         if (i === 3) {
+            var bad = ['first_batch_qty', 'annual_qty', 'target_price'].filter(function (n) { return val(n) && !(parseFloat(val(n)) >= 0); });
+            if (bad.length) return 'Quantities and price must be numbers, zero or more.';
             var n2 = SC[scenario()].needs, files = form.querySelector('input[type=file]').files.length;
             if (n2.indexOf('drawing') >= 0 && scenario() !== 'CHANGE' && !val('drawing_ref') && !files) return 'Give the drawing number on the previous step, or attach the drawing or model here.';
         }
