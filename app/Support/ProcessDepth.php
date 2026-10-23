@@ -12,14 +12,14 @@ class ProcessDepth
 {
     /** label and description of each preset */
     public const PRESETS = [
-        'BASIC' => ['Basic', 'Fast entry for a small foundry: no pouring gates, first-iron holds or calibration blocks, an order completes when its castings are poured, one lot per pour and product, and the quick QC tally raises a nonconformance only above 5% rejects.'],
+        'BASIC' => ['Basic', 'Fast entry for a small foundry: no pouring gates, first-iron holds or calibration blocks, a saved order goes straight to production, an order completes when its castings are poured, one lot per pour and product, and the quick QC tally raises a nonconformance only above 5% rejects.'],
         'FULL' => ['Full', 'Every check in force: pouring gates, first-iron and containment holds, calibration warnings, contract review, and completion after final inspection.'],
     ];
 
     /** @var array<string, array<string, array{0: string, 1: string}>> rule => [class, rule key] => value, per preset */
     private const VALUES = [
-        'BASIC' => ['gate_cupola' => 'OFF', 'gate_induction' => 'OFF', 'gate_other' => 'OFF', 'hold_first_iron' => 'FREE', 'containment' => 'NOTE', 'overdue_use' => 'OFF', 'contract_review' => 'SKIP', 'order_completion' => 'POUR', 'ncr_threshold' => 'OVER_5', 'lot_grouping' => 'POUR'],
-        'FULL' => ['gate_cupola' => 'ADVISORY', 'gate_induction' => 'ENFORCED', 'gate_other' => 'ENFORCED', 'hold_first_iron' => 'HOLD', 'containment' => 'HOLD', 'overdue_use' => 'WARN', 'contract_review' => 'REQUIRED', 'order_completion' => 'INSPECTION', 'ncr_threshold' => 'ANY', 'lot_grouping' => 'MOULD'],
+        'BASIC' => ['gate_cupola' => 'OFF', 'gate_induction' => 'OFF', 'gate_other' => 'OFF', 'hold_first_iron' => 'FREE', 'containment' => 'NOTE', 'overdue_use' => 'OFF', 'contract_review' => 'SKIP', 'order_flow' => 'SIMPLE', 'order_completion' => 'POUR', 'ncr_threshold' => 'OVER_5', 'lot_grouping' => 'POUR'],
+        'FULL' => ['gate_cupola' => 'ADVISORY', 'gate_induction' => 'ENFORCED', 'gate_other' => 'ENFORCED', 'hold_first_iron' => 'HOLD', 'containment' => 'HOLD', 'overdue_use' => 'WARN', 'contract_review' => 'REQUIRED', 'order_flow' => 'FULL', 'order_completion' => 'INSPECTION', 'ncr_threshold' => 'ANY', 'lot_grouping' => 'MOULD'],
     ];
 
     public static function apply(string $preset): void
@@ -77,7 +77,7 @@ class ProcessDepth
     {
         return match ($rule) {
             'overdue_use' => CalibrationRules::RULES[$rule],
-            'contract_review', 'order_completion' => OrderRules::RULES[$rule],
+            'contract_review', 'order_flow', 'order_completion' => OrderRules::RULES[$rule],
             'ncr_threshold', 'lot_grouping' => QualityRules::RULES[$rule],
             default => PouringRules::RULES[$rule],
         };
@@ -87,7 +87,7 @@ class ProcessDepth
     {
         return match ($rule) {
             'overdue_use' => CalibrationRules::get($rule),
-            'contract_review', 'order_completion' => OrderRules::get($rule),
+            'contract_review', 'order_flow', 'order_completion' => OrderRules::get($rule),
             'ncr_threshold', 'lot_grouping' => QualityRules::get($rule),
             default => PouringRules::get($rule),
         };
@@ -97,7 +97,7 @@ class ProcessDepth
     {
         match ($rule) {
             'overdue_use' => CalibrationRules::set($rule, $value),
-            'contract_review', 'order_completion' => OrderRules::set($rule, $value),
+            'contract_review', 'order_flow', 'order_completion' => OrderRules::set($rule, $value),
             'ncr_threshold', 'lot_grouping' => QualityRules::set($rule, $value),
             default => PouringRules::set($rule, $value),
         };

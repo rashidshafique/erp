@@ -13,6 +13,10 @@ class OrderRules
             'REQUIRED' => 'Required: an order goes live only after its contract review is approved',
             'SKIP' => 'Not required: an order can be made live straight from the order page',
         ], 'REQUIRED'],
+        'order_flow' => ['orders.flow', 'What saving an order does', [
+            'SIMPLE' => 'Straight to production: a saved order goes live and a production order is created and released for every line',
+            'FULL' => 'Step by step: a saved order stays a draft; review, go live and release each production order separately',
+        ], 'FULL'],
         'order_completion' => ['orders.completion', 'A production order is complete', [
             'INSPECTION' => 'When enough good castings have passed final inspection',
             'POUR' => 'When the castings poured reach the planned quantity (no inspection needed)',
@@ -43,6 +47,11 @@ class OrderRules
     public static function completesAtPour(): bool
     {
         return self::get('order_completion') === 'POUR';
+    }
+
+    public static function sendsStraightToProduction(): bool
+    {
+        return self::get('order_flow') === 'SIMPLE';
     }
 
     public static function reviewRequired(): bool

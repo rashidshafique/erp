@@ -132,6 +132,7 @@ class SalesOrderStatusTest extends TestCase
 
     public function test_going_live_is_refused_while_review_is_required_and_not_approved(): void
     {
+        OrderRules::set('contract_review', 'REQUIRED');
         $order = $this->order('DRAFT');
 
         $this->post(route('sales-orders.status', $order), ['status' => 'IN_PRODUCTION', 'release_all' => 1])->assertSessionHasErrors('status');
@@ -160,6 +161,63 @@ class SalesOrderStatusTest extends TestCase
         $this->post(route('sales-orders.status', $order), ['status' => 'IN_PRODUCTION'])->assertSessionHasNoErrors();
 
         $this->assertSame(['CONFIRMED', 0], [$order->refresh()->status, ProductionOrder::count()]);
+    }
+
+    public function test_the_simple_flow_sends_a_saved_order_straight_to_production(): void
+    {
+        OrderRules::set('order_flow', 'SIMPLE');
+        OrderRules::set('contract_review', 'SKIP');
+        $customer = Customer::create(['code' => 'ACME', 'name' => 'Acme']);
+        $product = Product::create(['code' => 'P1', 'name' => 'Part']);
+        $revision = ProductRevision::create(['product_id' => $product->id, 'revision' => 'A', 'status' => 'APPROVED']);
+
+        $this->post(route('sales-orders.store'), ['customer_id' => $customer->id, 'order_date' => today()->toDateString(), 'lines' => [
+            ['product_revision_id' => $revision->id, 'ordered_qty' => 10],
+        ]])->assertSessionHasNoErrors();
+
+        $production = ProductionOrder::sole();
+        $this->assertSame(['IN_PRODUCTION', 'RELEASED'], [SalesOrder::sole()->status, $production->status]);
+    }
+
+    public function test_the_simple_flow_still_waits_for_the_review_when_one_is_required(): void
+    {
+        OrderRules::set('order_flow', 'SIMPLE');
+        OrderRules::set('contract_review', 'REQUIRED');
+        $customer = Customer::create(['code' => 'ACME', 'name' => 'Acme']);
+        $product = Product::create(['code' => 'P1', 'name' => 'Part']);
+        $revision = ProductRevision::create(['product_id' => $product->id, 'revision' => 'A', 'status' => 'APPROVED']);
+
+        $this->post(route('sales-orders.store'), ['customer_id' => $customer->id, 'order_date' => today()->toDateString(), 'lines' => [
+            ['product_revision_id' => $revision->id, 'ordered_qty' => 10],
+        ]])->assertSessionHasNoErrors();
+
+        $this->assertSame(['DRAFT', 0], [SalesOrder::sole()->status, ProductionOrder::count()]);
+    }
+
+    public function test_the_full_flow_leaves_a_saved_order_as_a_draft(): void
+    {
+        $customer = Customer::create(['code' => 'ACME', 'name' => 'Acme']);
+        $product = Product::create(['code' => 'P1', 'name' => 'Part']);
+        $revision = ProductRevision::create(['product_id' => $product->id, 'revision' => 'A', 'status' => 'APPROVED']);
+
+        $this->post(route('sales-orders.store'), ['customer_id' => $customer->id, 'order_date' => today()->toDateString(), 'lines' => [
+            ['product_revision_id' => $revision->id, 'ordered_qty' => 10],
+        ]]);
+
+        $this->assertSame(['DRAFT', 0], [SalesOrder::sole()->status, ProductionOrder::count()]);
+    }
+
+    public function test_going_live_releases_the_production_orders_by_default_in_the_simple_flow_unless_unticked(): void
+    {
+        OrderRules::set('order_flow', 'SIMPLE');
+        OrderRules::set('contract_review', 'SKIP');
+        $released = $this->order('DRAFT');
+        $unticked = $this->order('DRAFT');
+
+        $this->post(route('sales-orders.status', $released), ['status' => 'IN_PRODUCTION'])->assertSessionHasNoErrors();
+        $this->post(route('sales-orders.status', $unticked), ['status' => 'IN_PRODUCTION', 'release_all' => 0])->assertSessionHasNoErrors();
+
+        $this->assertSame(['IN_PRODUCTION', 'CONFIRMED', 1], [$released->refresh()->status, $unticked->refresh()->status, ProductionOrder::count()]);
     }
 
     public function test_the_contract_review_rule_is_saved_from_settings(): void

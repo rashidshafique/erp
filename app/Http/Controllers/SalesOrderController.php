@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Customer;
 use App\Services\Orders\SalesOrderStatus;
+use App\Support\OrderRules;
 use App\Models\Product;
 use App\Models\ProductRevision;
 use App\Models\SalesOrder;
@@ -39,7 +40,7 @@ class SalesOrderController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, SalesOrderStatus $status): RedirectResponse
     {
         $request->merge(['lines' => array_values(array_filter((array) $request->input('lines', []), fn ($l) => ! empty($l['product_revision_id'])))]);
 
@@ -74,6 +75,12 @@ class SalesOrderController extends Controller
 
             return $order;
         });
+
+        if (OrderRules::sendsStraightToProduction() && ! OrderRules::reviewRequired()) {
+            $status->change($order, 'IN_PRODUCTION', true);
+
+            return redirect()->route('sales-orders.show', $order)->with('success', "Order {$order->order_number} saved and sent to production.");
+        }
 
         return redirect()->route('sales-orders.show', $order)->with('success', "Order {$order->order_number} saved. Run the contract review next.");
     }
@@ -135,7 +142,7 @@ class SalesOrderController extends Controller
             'release_all' => ['nullable', 'boolean'],
             'reason' => ['required_if:status,CANCELLED', 'nullable', 'string', 'max:300'],
         ]);
-        $status->change($salesOrder, $data['status'], (bool) ($data['release_all'] ?? false), $data['reason'] ?? null);
+        $status->change($salesOrder, $data['status'], (bool) ($data['release_all'] ?? OrderRules::sendsStraightToProduction()), $data['reason'] ?? null);
 
         return back()->with('success', 'Order status updated.');
     }
