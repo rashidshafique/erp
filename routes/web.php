@@ -361,6 +361,9 @@ Route::get('/settings/work-lists', [\App\Http\Controllers\WorkListRulesControlle
 Route::put('/settings/work-lists', [\App\Http\Controllers\WorkListRulesController::class, 'update'])->name('settings.work-lists');
 Route::get('/settings/orders', [\App\Http\Controllers\OrderRulesController::class, 'edit'])->name('settings.orders.edit');
 Route::put('/settings/orders', [\App\Http\Controllers\OrderRulesController::class, 'update'])->name('settings.orders');
+Route::get('/help/new-customer', [\App\Http\Controllers\HelpController::class, 'newCustomer'])->name('help.new-customer');
+Route::get('/settings/melting-days', [\App\Http\Controllers\MeltingDaysController::class, 'edit'])->name('settings.melting-days.edit');
+Route::put('/settings/melting-days', [\App\Http\Controllers\MeltingDaysController::class, 'update'])->name('settings.melting-days');
 Route::get('/settings/pouring', [\App\Http\Controllers\PouringRulesController::class, 'edit'])->name('settings.pouring.edit');
 Route::put('/settings/pouring', [\App\Http\Controllers\PouringRulesController::class, 'update'])->name('settings.pouring');
 Route::prefix('flask-sizes')->name('flask-sizes.')->controller(FlaskSizeController::class)->group(function () {

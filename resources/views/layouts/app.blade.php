@@ -149,11 +149,12 @@
             @include('layouts._module-nav-groups')
         </nav>
 
-        @if (\App\Support\SettingsNav::canOpen())
-            <div class="sidebar-bottom">
+        <div class="sidebar-bottom">
+            <a href="{{ route('help.new-customer') }}" class="nav-link {{ request()->routeIs('help.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('book') !!}<span>Help: new customer</span></a>
+            @if (\App\Support\SettingsNav::canOpen())
                 <a href="{{ route('settings.edit') }}" class="nav-link {{ \App\Support\SettingsNav::isSettingsPage() ? 'active' : '' }}">{!! \App\Support\NavIcons::get('settings') !!}<span>Settings</span></a>
-            </div>
-        @endif
+            @endif
+        </div>
 
         @if ($brand['logo'] && $brand['position'] === 'BOTTOM_LEFT')
             <div style="margin-top:auto;padding:12px 12px 0"><img src="{{ $brand['logo'] }}" alt="{{ $brand['name'] }}" style="display:block;max-width:100%;height:{{ $brand['height'] }}px;object-fit:contain;object-position:left"></div>

@@ -14,7 +14,7 @@
         <div class="field"><label for="customer_id">Customer</label>
             <select id="customer_id" name="customer_id" data-search-select><option value="">— new customer below —</option>@foreach ($customers as $c)<option value="{{ $c->id }}" @selected(old('customer_id') === $c->id)>{{ $c->name }}</option>@endforeach</select></div>
         <div class="field"><label for="new_customer">New customer name</label><input id="new_customer" name="new_customer" maxlength="150" value="{{ old('new_customer') }}"></div>
-        <div class="field"><label for="due_date">Due date</label><input id="due_date" type="date" name="due_date" min="{{ today()->toDateString() }}" value="{{ old('due_date') }}"></div>
+        <div class="field"><label for="due_date">Due date</label><input id="due_date" type="date" name="due_date" min="{{ today()->toDateString() }}" value="{{ old('due_date') }}">@if ($meltingHint)<div class="help">{{ $meltingHint }}</div>@endif</div>
         <div class="field"><label for="customer_reference">Customer PO</label><input id="customer_reference" name="customer_reference" maxlength="100" value="{{ old('customer_reference') }}"></div>
     </div>
     <div class="table-wrap"><table>

@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>New customer checklist — Foundry ERP</title>
+        
+        <link rel="stylesheet" href="http://erp/css/app-base.css?v=1792433481">
+    <link rel="stylesheet" href="http://erp/css/app-compact.css?v=1792467807">    <link rel="stylesheet" href="http://erp/css/app-overrides.css?v=1792670494">
+    
+    <style>
+        :root {
+            --accent: #24945a !important;
+            --accent-hover: #1e794a !important;
+            --accent-dark: #19683f;
+            --accent-soft: #e9f4ef;
+            --side-w: 215px;
+            --ui-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+    </style>
+    <script>try{if(matchMedia('(min-width:769px) and (max-width:1024px)').matches||(matchMedia('(min-width:1025px)').matches&&localStorage.getItem('erp.menuSlim')==='1'))document.documentElement.classList.add('menu-slim');}catch(e){}</script>
+    <script>try{var w=parseInt(localStorage.getItem('erp.menuWidth'),10);if(w>=200&&w<=420)document.documentElement.style.setProperty('--side-w',w+'px');}catch(e){}</script>
+    </head>
+<body class="menu-groups" data-row-click="1" data-toolbar="1" data-tidy-forms="1">
+<div class="app-shell">
+    <aside class="sidebar" id="main-sidebar">
+        <button type="button" class="nav-link menu-toggle menu-expand" id="menu-expand" aria-controls="main-sidebar" aria-pressed="true" title="Show the full menu" aria-label="Show the full menu"><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg></button>
+                <a href="http://erp" class="brand" style="text-decoration:none">
+                        <span class="brand-name">Foundry ERP</span><span class="brand-mark" aria-hidden="true">F</span>            <small>OPERATIONS PLATFORM</small>
+        </a>
+
+                <nav class="sidebar-nav" aria-label="Main navigation">
+            <a href="http://erp" class="nav-link nav-top "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg><span>Dashboard</span></a>
+
+                        <div class="nav-group ">
+                <button type="button" class="nav-group-toggle" aria-expanded="false">
+                    <span class="nav-lab"><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21V10l6 3v-3l6 3V6h3v15z"/><path d="M3 21h18"/></svg><span>Production</span></span><span class="nav-chevron">›</span>
+                </button>
+                <div class="nav-submenu" hidden>
+                     <a href="http://erp/products" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg><span>Products</span></a>                      <a href="http://erp/patterns" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></svg><span>Patterns</span></a>                      <a href="http://erp/casting-analyses" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg><span>Casting analysis</span></a>                      <a href="http://erp/production-orders" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21V10l6 3v-3l6 3V6h3v15z"/><path d="M3 21h18"/></svg><span>Production orders</span></a>                      <a href="http://erp/moulding-runs" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Moulding runs</span></a>                      <a href="http://erp/pours" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1 3 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-5 1-9z"/></svg><span>Pour register</span></a>                      <a href="http://erp/work-lists" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M16 5h2a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2M9 12h6M9 16h6"/></svg><span>Moulding work lists</span></a>                      <a href="http://erp/moulding-teams" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14c2.5.5 3.5 2.5 3.5 6"/></svg><span>Teams &amp; stations</span></a>                      <a href="http://erp/sand-systems" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20 9 8l4 7 3-4 5 9z"/></svg><span>Sand systems</span></a>                      <a href="http://erp/mould-readiness" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg><span>Mould readiness</span></a>                 </div>
+            </div>
+            
+                        <div class="nav-group ">
+                <button type="button" class="nav-group-toggle" aria-expanded="false">
+                    <span class="nav-lab"><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1 3 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-5 1-9z"/></svg><span>Melting &amp; Materials</span></span><span class="nav-chevron">›</span>
+                </button>
+                <div class="nav-submenu" hidden>
+                     <a href="http://erp/heats" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6M10 3v6L4.5 19a1.5 1.5 0 0 0 1.3 2h12.4a1.5 1.5 0 0 0 1.3-2L14 9V3"/><path d="M7.5 15h9"/></svg><span>Melting heats</span></a>                      <a href="http://erp/furnaces" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg><span>Furnaces</span></a>                      <a href="http://erp/materials" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 9.4 7.5 4.2M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg><span>Materials</span></a>                                                                     <a href="http://erp/suppliers" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6h12v10H2zM14 9h4l4 4v3h-8z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg><span>Suppliers</span></a>
+                                         <a href="http://erp/charge-recipes" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 6 2 2 4-4M3 14l2 2 4-4M13 6h8M13 14h8M13 20h8"/></svg><span>Charge recipes</span></a>                 </div>
+            </div>
+            
+                        <div class="nav-group ">
+                <button type="button" class="nav-group-toggle" aria-expanded="false">
+                    <span class="nav-lab"><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 13h18"/></svg><span>Sales &amp; Planning</span></span><span class="nav-chevron">›</span>
+                </button>
+                <div class="nav-submenu" hidden>
+                     <a href="http://erp/customers" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2"/></svg><span>Customers</span></a>                                                                     <a href="http://erp/enquiries" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg><span>Enquiries &amp; quotes</span></a>
+                                                                    <a href="http://erp/partners" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14c2.5.5 3.5 2.5 3.5 6"/></svg><span>Business partners</span></a>
+                                         <a href="http://erp/sales-orders" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg><span>Sales orders</span></a>                      <a href="http://erp/heat-plan" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Melting plan</span></a>                 </div>
+            </div>
+            
+                        <div class="nav-group ">
+                <button type="button" class="nav-group-toggle" aria-expanded="false">
+                    <span class="nav-lab"><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg><span>Quality &amp; Dispatch</span></span><span class="nav-chevron">›</span>
+                </button>
+                <div class="nav-submenu" hidden>
+                     <a href="http://erp/lots/queue" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg><span>Production queue</span></a>                      <a href="http://erp/quick-qc" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3M8 11l2 2 3-4"/></svg><span>Quick QC</span></a>                      <a href="http://erp/lots" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12V3h9l9 9-9 9z"/><circle cx="7.5" cy="7.5" r="1"/></svg><span>Casting lots</span></a>                      <a href="http://erp/inspections" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3M8 11l2 2 3-4"/></svg><span>Inspections</span></a>                      <a href="http://erp/ncrs" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17h.01"/></svg><span>Nonconformance</span></a>                                                                     <a href="http://erp/corrective-actions" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg><span>Corrective actions</span></a>
+                                                                    <a href="http://erp/finished-goods" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v12h14V8M10 12h4"/></svg><span>Finished goods</span></a>
+                                                                    <a href="http://erp/packing" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 9.4 7.5 4.2M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg><span>Packing</span></a>
+                                                                    <a href="http://erp/dispatches" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6h12v10H2zM14 9h4l4 4v3h-8z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg><span>Dispatch</span></a>
+                                                                    <a href="http://erp/documents" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v17H6.5A2.5 2.5 0 0 0 4 21.5z"/><path d="M4 21.5V4.5"/></svg><span>Controlled documents</span></a>
+                                         <a href="http://erp/reports/yield" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18M6 21V11M11 21V5M16 21v-7"/></svg><span>Yield &amp; scrap</span></a>                      <a href="http://erp/defects" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="8" height="11" rx="4"/><path d="M9 8a3 3 0 0 1 6 0M4 12h4M16 12h4M5 6l3 3M19 6l-3 3M5 19l3-3M19 19l-3-3"/></svg><span>Defect list</span></a>                 </div>
+            </div>
+            
+                        <div class="nav-group ">
+                <button type="button" class="nav-group-toggle" aria-expanded="false">
+                    <span class="nav-lab"><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6M10 3v6L4.5 19a1.5 1.5 0 0 0 1.3 2h12.4a1.5 1.5 0 0 0 1.3-2L14 9V3"/><path d="M7.5 15h9"/></svg><span>Metallurgy</span></span><span class="nav-chevron">›</span>
+                </button>
+                <div class="nav-submenu" hidden>
+                     <a href="http://erp/iron-grades" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/></svg><span>Iron grades</span></a>                      <a href="http://erp/thermal" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 14.5V5a2 2 0 0 0-4 0v9.5a4 4 0 1 0 4 0z"/></svg><span>Thermal tests</span></a>                      <a href="http://erp/sand-tests" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20 9 8l4 7 3-4 5 9z"/></svg><span>Sand lab</span></a>                 </div>
+            </div>
+            
+                        <div class="nav-group ">
+                <button type="button" class="nav-group-toggle" aria-expanded="false">
+                    <span class="nav-lab"><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.5-.5-.5-2.5z"/></svg><span>Equipment &amp; Tooling</span></span><span class="nav-chevron">›</span>
+                </button>
+                <div class="nav-submenu" hidden>
+                     <a href="http://erp/flasks" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Flasks</span></a>                                                                     <a href="http://erp/gauges" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 18a8 8 0 1 1 16 0"/><path d="m12 18 4-6"/></svg><span>Gauges &amp; calibration</span></a>
+                                                                    <a href="http://erp/tooling-maintenance/dashboard" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg><span>Maintenance dashboard</span></a>
+                                                                    <a href="http://erp/tooling-maintenance" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.5-.5-.5-2.5z"/></svg><span>Maintenance records</span></a>
+                                                                    <a href="http://erp/tooling-life" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 18a8 8 0 1 1 16 0"/><path d="m12 18 4-6"/></svg><span>Tooling life</span></a>
+                                    </div>
+            </div>
+                        <div class="nav-group ">
+        <button type="button" class="nav-group-toggle" aria-expanded="false">
+            <span class="nav-lab"><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="m15 11 6-3v8l-6-3"/></svg><span>Cameras</span></span><span class="nav-chevron">›</span>
+        </button>
+        <div class="nav-submenu" hidden>
+                                                <a href="http://erp/cameras" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg><span>Live view</span></a>
+                                                                <a href="http://erp/cameras/setup" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Camera setup</span></a>
+                                    </div>
+    </div>
+            <div class="nav-group ">
+        <button type="button" class="nav-group-toggle" aria-expanded="false">
+            <span class="nav-lab"><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14c2.5.5 3.5 2.5 3.5 6"/></svg><span>People (HR)</span></span><span class="nav-chevron">›</span>
+        </button>
+        <div class="nav-submenu" hidden>
+                                                <a href="http://erp/hr" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14c2.5.5 3.5 2.5 3.5 6"/></svg><span>People overview</span></a>
+                                                                <a href="http://erp/hr/employees" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M6 16c.5-1.5 1.8-2 3-2s2.5.5 3 2M15 10h3M15 14h3"/></svg><span>Employees</span></a>
+                                                                <a href="http://erp/hr/attendance" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Attendance &amp; overtime</span></a>
+                                                                <a href="http://erp/hr/roster" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Roster, shifts &amp; holidays</span></a>
+                                                                <a href="http://erp/hr/leave" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M9 15h6"/></svg><span>Leave (HR)</span></a>
+                                                                <a href="http://erp/hr/payroll" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h13v4"/><path d="M3 7v11a2 2 0 0 0 2 2h15V9H5a2 2 0 0 1-2-2z"/><circle cx="16.5" cy="14.5" r="1"/></svg><span>Payroll</span></a>
+                                                                <a href="http://erp/leave" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M9 15h6"/></svg><span>My leave &amp; approvals</span></a>
+                                                                <a href="http://erp/payslips" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg><span>My payslips</span></a>
+                                                                <a href="http://erp/hr/org-chart" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-4h12v4"/></svg><span>Org chart</span></a>
+                                                                <a href="http://erp/directory" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-4h12v4"/></svg><span>Directory &amp; reporting lines</span></a>
+                                                                <a href="http://erp/hr/exits" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg><span>Exits &amp; clearance</span></a>
+                                                                <a href="http://erp/hr/policies" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v17H6.5A2.5 2.5 0 0 0 4 21.5z"/><path d="M4 21.5V4.5"/></svg><span>HR policies</span></a>
+                                                                <a href="http://erp/hr/organisation" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2"/></svg><span>Organisation setup</span></a>
+                                    </div>
+    </div>
+            <div class="nav-group ">
+        <button type="button" class="nav-group-toggle" aria-expanded="false">
+            <span class="nav-lab"><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M16 5h2a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2M9 12h6M9 16h6"/></svg><span>Quick flow</span></span><span class="nav-chevron">›</span>
+        </button>
+        <div class="nav-submenu" hidden>
+                                                <a href="http://erp/quick/next-heat" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Next heat</span></a>
+                                                                <a href="http://erp/quick/floor" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M16 5h2a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2M9 12h6M9 16h6"/></svg><span>Moulds made / poured</span></a>
+                                                                <a href="http://erp/quick/orders/new" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M16 5h2a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2M9 12h6M9 16h6"/></svg><span>New order</span></a>
+                                    </div>
+    </div>
+        </nav>
+
+        <div class="sidebar-bottom">
+            <a href="http://erp/help/new-customer" class="nav-link active"><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v17H6.5A2.5 2.5 0 0 0 4 21.5z"/><path d="M4 21.5V4.5"/></svg><span>Help: new customer</span></a>
+                            <a href="http://erp/settings" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg><span>Settings</span></a>
+                    </div>
+
+                            <div class="sidebar-footer" >
+                Foundry ERP<br>                Production & shop-floor control
+            </div>
+        
+    </aside>
+    <div class="sidebar-resizer" id="sidebar-resizer" role="separator" aria-orientation="vertical" aria-label="Drag to resize the menu (double-click to reset)" tabindex="0"></div>
+    <div class="menu-backdrop" id="menu-backdrop" aria-hidden="true"></div>
+
+    <div class="main-area">
+        <header class="topbar">
+            <button type="button" class="icon-btn menu-toggle" id="menu-toggle" aria-controls="main-sidebar" aria-pressed="false" title="Shrink the menu to icons" aria-label="Shrink the menu to icons"><span class="ico-panel"><svg class="nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg></span><span class="ico-hamburger"><svg class="nav-ico" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h16M4 15h16"/></svg></span></button>
+                        <div class="breadcrumb">
+                                <strong>Help / New customer</strong>
+            </div>
+            <script>
+            (function () {
+                var back = document.getElementById('crumb-back');
+                if (!back || !document.referrer) return;
+                try {
+                    var from = new URL(document.referrer);
+                    if (from.origin !== location.origin || from.href === location.href || /\/(edit|create|new)$/.test(from.pathname)) return;
+                    back.href = from.href;
+                } catch (e) {}
+            })();
+            </script>
+            <div class="save-bar" id="save-bar" hidden role="status" aria-live="polite">
+                <span class="save-bar-note"><svg class="nav-ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17h.01"/></svg><span>Unsaved changes</span></span>
+                <button type="button" class="btn" data-save-bar="discard">Discard</button>
+                <button type="button" class="btn btn-primary" data-save-bar="save">Save</button>
+            </div>
+            <form method="GET" action="http://erp/scan" class="scan-box" id="scan-box" data-suggest="http://erp/scan/suggest" role="search"><button type="button" class="icon-btn scan-open" id="scan-open" title="Search" aria-label="Search"><svg class="nav-ico" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button><span class="scan-type" id="scan-type" hidden></span><input type="hidden" name="type" id="scan-type-input"><input id="scan-input" name="code" placeholder="Search or scan a code…" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="scan-results" aria-autocomplete="list"><kbd id="scan-hint" class="scan-hint" title="Press to jump to the search box">Ctrl K</kbd><div class="scan-results" id="scan-results" role="listbox" hidden></div></form>
+            <style>
+                .scan-box{position:relative;display:inline-block}
+                .scan-box input:not(#_){width:230px;min-height:30px;padding:3px 52px 3px 8px}
+                .scan-hint{position:absolute;right:6px;top:50%;transform:translateY(-50%);font:600 10px/1 system-ui,sans-serif;color:#6b7280;background:#fff;border:1px solid #e5e7eb;border-radius:4px;padding:3px 5px;pointer-events:none}
+                .scan-box input:focus + .scan-hint{opacity:0}
+            </style>
+            <script>
+                (function () {
+                    var i = document.getElementById('scan-input'), h = document.getElementById('scan-hint');
+                    if (!i) return;
+                    var box = document.getElementById('scan-box'), opener = document.getElementById('scan-open');
+                    var chip = document.getElementById('scan-type'), typeInput = document.getElementById('scan-type-input'), list = document.getElementById('scan-results');
+                    var type = null, offer = null, rows = [], active = -1, timer = null, request = null;
+
+                    function open(show) { list.hidden = !show; i.setAttribute('aria-expanded', String(show)); }
+                    function setType(key, label) {
+                        type = key; typeInput.value = key || ''; chip.hidden = !key; chip.textContent = label || '';
+                        i.style.paddingLeft = key ? (chip.offsetWidth + 12) + 'px' : '';
+                        i.placeholder = key ? 'Search ' + label.toLowerCase() + 's…' : 'Search or scan a code…';
+                    }
+                    function highlight(n) {
+                        active = n;
+                        rows.forEach(function (r, k) { r.el.classList.toggle('is-active', k === n); r.el.setAttribute('aria-selected', String(k === n)); });
+                    }
+                    function row(html, onPick) {
+                        var el = document.createElement('a'); el.className = 'scan-row'; el.setAttribute('role', 'option'); el.href = onPick.url || '#';
+                        el.append.apply(el, html);
+                        el.addEventListener('mousedown', function (e) { e.preventDefault(); });
+                        el.addEventListener('click', function (e) { if (!onPick.url) { e.preventDefault(); onPick.run(); } });
+                        rows.push({ el: el, pick: onPick }); list.appendChild(el);
+                    }
+                    function span(cls, text) { var s = document.createElement('span'); s.className = cls; s.textContent = text; return s; }
+                    function menuMatches(q) {
+                        if (type) return [];
+                        var words = q.toLowerCase().split(/\s+/), seen = {}, found = [];
+                        document.querySelectorAll('#main-sidebar a.nav-link[href]').forEach(function (a) {
+                            var label = (a.textContent || '').trim();
+                            var hay = label.toLowerCase();
+                            if (!label || seen[a.href] || a.getAttribute('href') === '#' || !words.every(function (w) { return hay.indexOf(w) !== -1; })) return;
+                            seen[a.href] = true; found.push({ code: label, name: '', label: 'Menu', url: a.href });
+                        });
+                        return found.slice(0, 6);
+                    }
+                    function render(data) {
+                        var menu = menuMatches(i.value.trim());
+                        data = { offer: data.offer, results: menu.concat(data.results || []) };
+                        list.innerHTML = ''; rows = []; active = -1; offer = data.offer;
+                        if (offer) {
+                            row([span('scan-row-main', 'Search ' + offer.label.toLowerCase() + 's only'), span('scan-row-kind', 'Tab')], { run: pickOffer });
+                        }
+                        data.results.forEach(function (r) {
+                            row([span('scan-row-code', r.code), span('scan-row-name', r.name || ''), span('scan-row-kind', r.label)], { url: r.url });
+                        });
+                        if (!data.results.length && i.value.trim()) {
+                            var none = document.createElement('div'); none.className = 'scan-empty'; none.textContent = 'No direct matches. Press Enter to search.'; list.appendChild(none);
+                        }
+                        open(list.childNodes.length > 0);
+                    }
+                    function pickOffer() { setType(offer.type, offer.label); i.value = ''; offer = null; fetchNow(); i.focus(); }
+                    function fetchNow() {
+                        var q = i.value.trim();
+                        if (!q) { list.innerHTML = ''; rows = []; open(false); return; }
+                        if (request) request.abort();
+                        request = new AbortController();
+                        fetch(box.dataset.suggest + '?' + new URLSearchParams({ q: q, type: type || '' }), { headers: { Accept: 'application/json' }, signal: request.signal })
+                            .then(function (r) { return r.ok ? r.json() : { offer: null, results: [] }; }).then(function (d) { render(d); }).catch(function (e) { if (e.name !== 'AbortError') render({ offer: null, results: [] }); });
+                    }
+                    i.addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(fetchNow, 150); });
+                    i.addEventListener('focus', function () { if (rows.length) open(true); });
+                    i.addEventListener('keydown', function (e) {
+                        if (e.key === 'Tab' && !e.shiftKey && offer && !type) { e.preventDefault(); pickOffer(); }
+                        else if (e.key === 'Backspace' && type && i.value === '') { setType(null); fetchNow(); }
+                        else if (e.key === 'ArrowDown' && rows.length) { e.preventDefault(); open(true); highlight((active + 1) % rows.length); }
+                        else if (e.key === 'ArrowUp' && rows.length) { e.preventDefault(); highlight(active <= 0 ? rows.length - 1 : active - 1); }
+                        else if (e.key === 'Escape') { open(false); }
+                        else if (e.key === 'Enter' && active >= 0 && !list.hidden) {
+                            e.preventDefault(); var p = rows[active].pick; if (p.url) { location.href = p.url; } else { p.run(); }
+                        }
+                    });
+                    i.addEventListener('blur', function () { open(false); });
+                    opener.addEventListener('click', function () { box.classList.add('is-open'); i.focus(); });
+                    i.addEventListener('blur', function () { box.classList.remove('is-open'); });
+                    var mac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+                    h.textContent = mac ? '⌘ K' : 'Ctrl K';
+                    document.addEventListener('keydown', function (e) {
+                        var t = e.target, typing = t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable);
+                        var combo = (e.key || '').toLowerCase() === 'k' && (mac ? e.metaKey : e.ctrlKey);
+                        if (combo || (e.key === '/' && !typing && !e.metaKey && !e.ctrlKey && !e.altKey)) {
+                            e.preventDefault(); i.focus(); i.select();
+                        }
+                    });
+                })();
+            </script>
+            <div class="topbar-date">Fri, 23 Oct 2026
+            </div>
+        </header>
+
+        <main class="page-content">
+                        
+            
+                            <div class="page-heading"><div><h1>New customer checklist</h1><p>From the first call to the first casting poured, in the order the system needs it. Pick a customer to see which steps are already done.</p></div></div>
+
+<div class="panel"><div class="panel-body">
+    <form method="GET" action="http://erp/help/new-customer" data-no-toolbar style="display:flex;gap:10px;align-items:end;flex-wrap:wrap">
+        <div class="field"><label for="customer">Check a customer</label>
+            <select id="customer" name="customer" data-search-select><option value="">Choose a customer…</option><option value="01a16751-3074-7218-a8b3-1291cbfcd738" selected>Acme Pumps</option></select></div>
+        <button class="btn btn-primary" type="submit">Show their progress</button>
+    </form>
+    <style>
+    .ss-pop { position: fixed; z-index: 60; width: 300px; max-width: calc(100vw - 16px); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 12px 32px rgb(15 23 42 / 18%); padding: 6px; }
+    .ss-pop input { width: 100%; min-height: 30px; padding: 4px 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; }
+    .ss-pop input:focus { outline: 0; border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 18%, transparent); }
+    .ss-pop ul { list-style: none; margin: 6px 0 0; padding: 0; max-height: 280px; overflow-y: auto; }
+    .ss-pop li { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 6px; cursor: pointer; font-size: 12.5px; }
+    .ss-pop li[aria-selected="true"] { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+    .ss-pop li img, .ss-pop li .ss-noimg { width: 34px; height: 34px; flex: none; border-radius: 5px; object-fit: cover; background: color-mix(in srgb, var(--border) 60%, transparent); }
+    .ss-pop li span { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+    .ss-pop li strong { font-weight: 600; }
+    .ss-pop li small { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ss-pop .ss-none { padding: 8px 6px; color: var(--muted); font-size: 12.5px; }
+</style>
+<script>
+(function () {
+    var pop = null, target = null, active = -1, items = [];
+    function close(refocus) { if (pop) { pop.remove(); pop = null; } if (refocus && target) { target.focus(); } target = null; }
+    function render(q) {
+        var list = pop.querySelector('ul'), words = q.toLowerCase().split(/\s+/).filter(Boolean);
+        list.innerHTML = '';
+        items = [].filter.call(target.options, function (o) {
+            if (o.disabled || o.parentNode.hidden) return false;
+            var text = (o.text + ' ' + (o.dataset.sub || '')).toLowerCase();
+            return words.every(function (w) { return text.indexOf(w) >= 0; });
+        }).slice(0, 200);
+        if (!items.length) { list.innerHTML = '<li class="ss-none" aria-disabled="true">Nothing matches.</li>'; active = -1; return; }
+        items.forEach(function (o, i) {
+            var li = document.createElement('li'); li.setAttribute('role', 'option'); li.dataset.i = i;
+            if (o.dataset.img) { var img = document.createElement('img'); img.src = o.dataset.img; img.alt = ''; img.loading = 'lazy'; li.appendChild(img); }
+            else if (target.dataset.searchSelect === 'photos') { var ph = document.createElement('i'); ph.className = 'ss-noimg'; li.appendChild(ph); }
+            var t = document.createElement('span'), b = document.createElement('strong'); b.textContent = o.text; t.appendChild(b);
+            if (o.dataset.sub) { var s = document.createElement('small'); s.textContent = o.dataset.sub; t.appendChild(s); }
+            li.appendChild(t); list.appendChild(li);
+        });
+        var current = items.indexOf(target.options[target.selectedIndex]);
+        mark(current >= 0 && !q ? current : 0);
+    }
+    // Below the select when the list fits there, otherwise above it. Above, the list is held by its bottom edge so it stays
+    // against the select however short the filtered list gets.
+    function place() {
+        var r = target.getBoundingClientRect(), h = pop.offsetHeight, below = window.innerHeight - r.bottom - 8, above = r.top - 8;
+        if (h + 4 > below && above > below) {
+            pop.style.top = 'auto'; pop.style.bottom = (window.innerHeight - r.top + 4) + 'px';
+        } else {
+            pop.style.bottom = 'auto'; pop.style.top = (r.bottom + 4) + 'px';
+        }
+        pop.querySelector('ul').style.maxHeight = Math.max(120, Math.min(280, Math.max(below, above) - 60)) + 'px';
+    }
+    function mark(i) {
+        var lis = pop.querySelectorAll('li[role=option]'); if (!lis.length) return;
+        active = Math.max(0, Math.min(lis.length - 1, i));
+        lis.forEach(function (li, k) { li.setAttribute('aria-selected', k === active ? 'true' : 'false'); });
+        lis[active].scrollIntoView({ block: 'nearest' });
+    }
+    function pick(i) {
+        var o = items[i]; if (!o) return;
+        target.value = o.value; target.dispatchEvent(new Event('change', { bubbles: true }));
+        close(true);
+    }
+    function open(select, typed) {
+        close(false); target = select;
+        pop = document.createElement('div'); pop.className = 'ss-pop'; pop.setAttribute('role', 'listbox');
+        pop.innerHTML = '<input type="search" autocomplete="off" aria-label="Search"><ul></ul>';
+        (select.closest('dialog') || document.body).appendChild(pop);
+        pop.style.left = Math.max(8, Math.min(select.getBoundingClientRect().left, window.innerWidth - 308)) + 'px';
+        var input = pop.querySelector('input'); input.value = typed || '';
+        input.addEventListener('input', function () { render(input.value); });
+        input.addEventListener('keydown', function (e) {
+            if (e.key === 'ArrowDown') { e.preventDefault(); mark(active + 1); }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); mark(active - 1); }
+            else if (e.key === 'Enter') { e.preventDefault(); pick(active); }
+            else if (e.key === 'Escape') { e.preventDefault(); close(true); }
+            else if (e.key === 'Tab') { close(true); }
+        });
+        pop.addEventListener('mousedown', function (e) { var li = e.target.closest('li[role=option]'); if (li) { e.preventDefault(); pick(+li.dataset.i); } });
+        render(input.value); place(); input.focus();
+    }
+    document.addEventListener('mousedown', function (e) {
+        var s = e.target.closest('select[data-search-select]');
+        if (s && !s.disabled) { e.preventDefault(); if (target === s) close(true); else open(s); return; }
+        if (pop && !pop.contains(e.target)) close(false);
+    });
+    document.addEventListener('keydown', function (e) {
+        var s = e.target.closest && e.target.closest('select[data-search-select]');
+        if (!s || pop || e.ctrlKey || e.metaKey || e.altKey && e.key !== 'ArrowDown') return;
+        if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown' || e.key.length === 1) { e.preventDefault(); open(s, e.key.length === 1 && e.key !== ' ' ? e.key : ''); }
+    });
+    window.addEventListener('resize', function () { if (pop) close(false); });
+    document.addEventListener('scroll', function (e) { if (pop && !pop.contains(e.target)) close(false); }, true);
+})();
+</script>
+
+                        <div class="table-wrap" style="margin-top:12px"><table>
+                <thead><tr><th>Product ordered by Acme Pumps</th><th>Revision</th><th>Iron grade</th><th title="Metal to melt for one piece, as the melting plan counts it">Metal per piece</th><th>Pattern with a cavity</th><th>Pattern owner</th><th>Open order</th></tr></thead>
+                <tbody>                    <tr>
+                        <td><a href="http://erp/products/01a16751-307a-721b-bccd-749543446c27"><strong>Pump body</strong></a><div class="muted small mono">PUMP-1</div></td>
+                        <td><span class="status status-completed">Done</span></td>
+                        <td><span class="status status-completed">EN-GJL-200</span></td>
+                        <td><span class="status status-completed">10.00 kg</span></td>
+                        <td><span class="status status-completed">Flaskless plate</span></td>
+                        <td><span class="status status-completed">Customer's</span></td>
+                        <td><span class="status status-completed">Released</span></td>
+                    </tr>
+                </tbody>
+            </table></div>
+            <p class="muted small" style="margin-bottom:0">"Foundry-owned" is fine if the foundry made the patterns; set the owner on the pattern's Ownership tab when the customer's own patterns are used.</p>
+            </div></div>
+
+<div class="panel"><div class="panel-header"><h2>Steps</h2></div><div class="panel-body">
+    <ol class="help-steps">
+        <li><strong>The customer.</strong> Sales → Customers, or just type the name on the quick order screen. Add address and terms later.
+            <div class="help-go"><a class="btn btn-small" href="http://erp/customers/create">New customer →</a></div></li>
+        <li><strong>The product.</strong> Products → New product: code, name, type, nominal weight. A first revision (0) is made for you when it is needed.
+            <div class="help-go"><a class="btn btn-small" href="http://erp/products/create">New product →</a></div></li>
+        <li><strong>The metal.</strong> On the product page, Iron grade tab: choose revision 0 and the grade (for example EN-GJL-200), then Set grade. The melting plan cannot size a heat without it.</li>
+        <li><strong>The patterns.</strong> Patterns → New pattern, one per plate. The pattern type is the tooling (for flaskless plates, "Vertical plates (DISA type)"); the mould arrangement (vertically parted, flaskless) follows from it.
+            Then, on the pattern's Ownership tab, mark customer-owned patterns, where they are kept and who holds them.
+            <div class="help-go"><a class="btn btn-small" href="http://erp/patterns/create">New pattern →</a></div></li>
+        <li><strong>Link patterns to the product.</strong> On the product page choose "Link a pattern" (or fill the pattern's cavity map). Set the cavities on the plate, and the casting weight if it is known. This is what lets the system count products per mould and match moulds to the order.</li>
+        <li><strong>The order.</strong> Quick flow → New order: customer, product, quantity, due date. It releases the production order at once.
+            <div class="help-note">Tell the system which days the furnace is lit under Settings → Melting days, and orders are checked against them.</div>            <div class="help-go"><a class="btn btn-small" href="http://erp/quick/orders/new">New order →</a> <a class="btn btn-small" href="http://erp/settings/melting-days">Melting days →</a></div></li>
+        <li><strong>Plan the heat.</strong> Quick flow → Next heat shows what to melt, from the pieces and casting weights. Start the heat on the campaign day.
+            <div class="help-go"><a class="btn btn-small" href="http://erp/quick/next-heat">Next heat →</a></div></li>
+        <li><strong>Plan the moulding.</strong> Moulding work lists: add a row for each plate (pattern, station, number of moulds), issue the list, and the moulders start and complete each run. The flaskless line takes one pattern at a time.
+            <div class="help-go"><a class="btn btn-small" href="http://erp/work-lists">Work lists →</a></div></li>
+        <li><strong>Pour.</strong> Record the pour on the pour register for customer work: it attaches the moulds, which is what creates the casting lots for inspection and dispatch.
+            <div class="help-go"><a class="btn btn-small" href="http://erp/pours">Pour register →</a></div></li>
+        <li><strong>After the pour.</strong> Thermal and chemistry tests on the heat, the minimum cooling before shakeout, then casting lots, inspection and dispatch.
+            <div class="help-go"><a class="btn btn-small" href="http://erp/lots">Casting lots →</a> <a class="btn btn-small" href="http://erp/dispatches">Dispatch →</a></div></li>
+    </ol>
+</div></div>
+
+<div class="panel"><div class="panel-header"><h2>Which way to do it</h2></div><div class="panel-body">
+    <p class="muted small" style="margin-top:0">The system has more than one way to do some jobs. They do not all produce the same records, so choose with care.</p>
+    <div class="table-wrap"><table class="help-table">
+        <thead><tr><th>Job</th><th>Ways</th><th>Use</th></tr></thead>
+        <tbody>
+            <tr><td>Enter an order</td><td>Quick order · Sales order with contract review · Enquiry and quotation</td>
+                <td>Quick order for repeat or urgent work. The full sales order when quality must sign off first: the quick order skips the contract review.</td></tr>
+            <tr><td>Record moulds made</td><td>Work list · Moulding run page · Bulk run grid · Moulds made grid</td>
+                <td>Plan on a work list. The others record after the fact; do not record the same plates in two of them or the moulds are counted twice.</td></tr>
+            <tr><td>Record a pour</td><td>Pour register · Moulds poured grid</td>
+                <td><strong>Pour register for customer orders.</strong> The grid records the pour but attaches no moulds, so it creates no casting lots.</td></tr>
+            <tr><td>Start a heat</td><td>Next heat · Melting plan · New heat by hand</td>
+                <td>Next heat for quick-flow work; the Melting plan when heats are planned days ahead.</td></tr>
+            <tr><td>Record charges</td><td>Charge form · One-click confirm · Fill in past charges · Add missing from the total</td>
+                <td>One-click confirm as the schedule says; "add missing from the total" if charging was not recorded at the time.</td></tr>
+        </tbody>
+    </table></div>
+</div></div>
+<style>
+    .help-table td, .help-table th { white-space: normal; vertical-align: top; }
+    .help-table td:nth-child(1) { width: 170px; font-weight: 600; }
+    .help-steps { margin: 0; padding-left: 22px; display: grid; gap: 12px; }
+    .help-steps li { line-height: 1.5; }
+    .help-go { margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; }
+    .help-note { margin-top: 6px; padding: 8px 12px; border-radius: 8px; background: color-mix(in srgb, var(--accent) 8%, transparent); font-size: 13px; }
+</style>
+                    </main>
+    </div>
+</div>
+
+<script data-erp-form-behavior>
+(() => {
+    'use strict';
+
+    function initialiseForm(form) {
+        if (form.dataset.erpInitialised === 'true') return;
+        form.dataset.erpInitialised = 'true';
+
+        // Default only explicitly marked transaction dates to today's local date.
+        form.querySelectorAll('input[type="date"][data-default-today]').forEach(input => {
+            if (!input.value) {
+                const now = new Date();
+                const localDate = [
+                    now.getFullYear(),
+                    String(now.getMonth() + 1).padStart(2, '0'),
+                    String(now.getDate()).padStart(2, '0')
+                ].join('-');
+
+                input.value = localDate;
+            }
+        });
+
+        // Restore old() values after validation; autofocus the first invalid field.
+        const invalid = form.querySelector(
+            'input:invalid:not([type="hidden"]):not([disabled]), ' +
+            'select:invalid:not([disabled]), textarea:invalid:not([disabled])'
+        );
+
+        const explicit = form.querySelector(
+            '[data-autofocus]:not([disabled]), [autofocus]:not([disabled])'
+        );
+
+        const firstUsable = form.querySelector(
+            'input:not([type="hidden"]):not([disabled]):not([readonly]), ' +
+            'select:not([disabled]), textarea:not([disabled])'
+        );
+
+        const target = invalid || explicit || firstUsable;
+
+        if (target) {
+            // Defer until the page is rendered; don't steal focus from a dialog.
+            requestAnimationFrame(() => {
+                if (!document.querySelector('dialog[open], [role="dialog"]')) {
+                    target.focus({ preventScroll: true });
+                    if (target.select && target.tagName === 'INPUT' &&
+                        ['text', 'search', 'tel', 'url'].includes(target.type)) {
+                        target.select();
+                    }
+                }
+            });
+        }
+    }
+
+    function initialise() {
+        document.querySelectorAll('form').forEach(initialiseForm);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initialise);
+    } else {
+        initialise();
+    }
+})();
+</script>
+
+
+<script>
+/* Foundry ERP sidebar submenu behavior */
+document.addEventListener('DOMContentLoaded', () => {
+    const groups = [...document.querySelectorAll('.sidebar-nav .nav-group')];
+
+    function setOpen(group, open) {
+        const button = group.querySelector('.nav-group-toggle');
+        const submenu = group.querySelector('.nav-submenu');
+        if (!button || !submenu) return;
+
+        group.classList.toggle('is-open', open);
+        button.setAttribute('aria-expanded', String(open));
+        submenu.hidden = !open;
+    }
+
+    const labelsOnly = document.body.classList.contains('menu-labels');
+    groups.forEach(group => {
+        const button = group.querySelector('.nav-group-toggle');
+        if (!button) return;
+        // "Every link under section labels": headings are labels, not buttons.
+        if (labelsOnly) { setOpen(group, true); button.tabIndex = -1; button.setAttribute('aria-hidden', 'true'); return; }
+
+        setOpen(group, group.classList.contains('is-active'));
+
+        button.addEventListener('click', () => {
+            setOpen(group, !group.classList.contains('is-open'));
+        });
+
+        // group.addEventListener('mouseenter', event => {
+        //     if (event.pointerType === 'touch') return;
+        //     setOpen(group, true);
+        // });
+
+        // group.addEventListener('mouseleave', event => {
+        //     if (event.pointerType === 'touch') return;
+        //     if (group.classList.contains('is-active')) {
+        //         setOpen(group, true);
+        //     } else {
+        //         setOpen(group, false);
+        //     }
+        // });
+
+        // group.addEventListener('focusout', event => {
+        //     if (!group.contains(event.relatedTarget) &&
+        //         !group.classList.contains('is-active')) {
+        //         setOpen(group, false);
+        //     }
+        // });
+    });
+});
+</script>
+
+<script>
+(function () {
+    var h = document.getElementById('sidebar-resizer'); if (!h) return;
+    var root = document.documentElement, MIN = 200, MAX = 420;
+    function cur() { return Math.round(document.querySelector('.sidebar').getBoundingClientRect().width); }
+    function set(w) { w = Math.max(MIN, Math.min(MAX, Math.round(w))); root.style.setProperty('--side-w', w + 'px'); return w; }
+    function save(w) { try { localStorage.setItem('erp.menuWidth', String(w)); } catch (e) {} }
+    h.addEventListener('pointerdown', function (e) {
+        e.preventDefault(); h.setPointerCapture(e.pointerId); h.classList.add('dragging'); document.body.classList.add('resizing-menu');
+    });
+    h.addEventListener('pointermove', function (e) { if (h.classList.contains('dragging')) set(e.clientX); });
+    function end(e) {
+        if (!h.classList.contains('dragging')) return;
+        h.classList.remove('dragging'); document.body.classList.remove('resizing-menu');
+        try { h.releasePointerCapture(e.pointerId); } catch (x) {}
+        save(cur());
+    }
+    h.addEventListener('pointerup', end); h.addEventListener('pointercancel', end);
+    h.addEventListener('dblclick', function () { root.style.removeProperty('--side-w'); try { localStorage.removeItem('erp.menuWidth'); } catch (e) {} });
+    h.addEventListener('keydown', function (e) {
+        if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+        e.preventDefault(); save(set(cur() + (e.key === 'ArrowRight' ? 16 : -16)));
+    });
+})();
+</script>
+
+<script>
+/* Menu button. Desktop: shrinks the menu to icons and back (kept in this browser only). Tablet: the menu is always an icon
+   rail and the button opens the full menu over the page. Mobile: the menu is off-canvas and the button slides it in. */
+(function () {
+    var btn = document.getElementById('menu-toggle'), expand = document.getElementById('menu-expand'), backdrop = document.getElementById('menu-backdrop'), root = document.documentElement; if (!btn) return;
+    var mobile = matchMedia('(max-width: 768px)'), tablet = matchMedia('(min-width: 769px) and (max-width: 1024px)');
+    function mode() { return mobile.matches ? 'mobile' : (tablet.matches ? 'tablet' : 'desktop'); }
+    function names(slim) {
+        document.querySelectorAll('.sidebar .nav-link:not(.menu-expand), .sidebar .nav-group-toggle').forEach(function (el) {
+            var text = (el.querySelector('span:not(.nav-chevron)') || el).textContent.trim();
+            if (slim) { el.setAttribute('title', text); } else if (el.getAttribute('title') === text) { el.removeAttribute('title'); }
+        });
+    }
+    function label(text, expanded) {
+        [btn, expand].forEach(function (b) {
+            if (!b) return;
+            b.title = text; b.setAttribute('aria-label', text);
+            if (expanded === null) { b.removeAttribute('aria-expanded'); } else { b.setAttribute('aria-expanded', String(expanded)); b.removeAttribute('aria-pressed'); }
+        });
+    }
+    function sync() {
+        var m = mode(), open = root.classList.contains('menu-open') || root.classList.contains('menu-peek');
+        if (m === 'desktop') {
+            root.classList.remove('menu-open', 'menu-peek', 'menu-hover');
+            var slim = false; try { slim = localStorage.getItem('erp.menuSlim') === '1'; } catch (e) {}
+            root.classList.toggle('menu-slim', slim);
+            btn.setAttribute('aria-pressed', String(slim)); btn.removeAttribute('aria-expanded');
+            label(slim ? 'Show the full menu' : 'Shrink the menu to icons', null);
+            names(slim);
+        } else if (m === 'tablet') {
+            root.classList.remove('menu-open');
+            root.classList.toggle('menu-slim', !root.classList.contains('menu-peek'));
+            label(open ? 'Close the menu' : 'Show the full menu', open);
+            names(!root.classList.contains('menu-peek'));
+        } else {
+            root.classList.remove('menu-peek', 'menu-slim');
+            label(open ? 'Close the menu' : 'Open the menu', open);
+            names(false);
+        }
+    }
+    function close() {
+        if (!root.classList.contains('menu-open') && !root.classList.contains('menu-peek')) return;
+        root.classList.remove('menu-open', 'menu-peek'); sync(); btn.focus();
+    }
+    function toggle() {
+        var m = mode();
+        if (m === 'desktop') {
+            if (root.classList.contains('menu-hover')) { root.classList.remove('menu-hover'); root.classList.add('menu-slim'); }
+            var slim = !root.classList.contains('menu-slim');
+            try { localStorage.setItem('erp.menuSlim', slim ? '1' : '0'); } catch (e) {}
+        } else {
+            root.classList.toggle(m === 'mobile' ? 'menu-open' : 'menu-peek');
+            if (m === 'mobile' && root.classList.contains('menu-open')) { var first = document.querySelector('#main-sidebar a, #main-sidebar button'); if (first) first.focus(); }
+        }
+        sync();
+    }
+    btn.addEventListener('click', toggle); if (expand) expand.addEventListener('click', toggle);
+    if (backdrop) backdrop.addEventListener('click', close);
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+    document.getElementById('main-sidebar').addEventListener('click', function (e) { if (e.target.closest('a[href]') && mode() !== 'desktop') { root.classList.remove('menu-open', 'menu-peek'); sync(); } });
+    mobile.addEventListener('change', sync); tablet.addEventListener('change', sync);
+    sync();
+
+    /* Slim menu on a wide screen: pointing at it widens it over the page to show the names, and it shrinks again when the pointer leaves. */
+    var side = document.getElementById('main-sidebar'), leaving = null;
+    side.addEventListener('mouseenter', function () {
+        clearTimeout(leaving);
+        if (mode() === 'desktop' && root.classList.contains('menu-slim')) {
+            root.classList.remove('menu-slim');
+            root.style.setProperty('--side-open-w', getComputedStyle(root).getPropertyValue('--side-w').trim());
+            root.classList.add('menu-hover'); names(false);
+        }
+    });
+    side.addEventListener('mouseleave', function () {
+        leaving = setTimeout(function () {
+            if (!root.classList.contains('menu-hover')) return;
+            root.classList.remove('menu-hover'); root.classList.add('menu-slim'); names(true);
+        }, 150);
+    });
+})();
+</script>
+
+<script>
+/* "Unsaved changes" bar: once an edit form on the page is changed, the top bar offers Discard and Save for it.
+   Edit forms are POST forms with at least three fields, outside dialogs; filters, row tools and quick-add dialogs don't count.
+   A form can opt out with data-no-save-bar. */
+(function () {
+    var bar = document.getElementById('save-bar'); if (!bar) return;
+    var active = null;
+    function fields(form) { return form.querySelectorAll('input:not([type=hidden]):not([type=submit]):not([type=button]), select, textarea'); }
+    function isEditForm(form) {
+        return form && (form.getAttribute('method') || '').toLowerCase() === 'post' && !form.hasAttribute('data-no-save-bar')
+            && !form.closest('dialog, [role=dialog], .sidebar, .topbar') && fields(form).length >= 3;
+    }
+    function show(form) { active = form; bar.hidden = false; }
+    function hide() { active = null; bar.hidden = true; }
+    function onEdit(e) {
+        var form = e.target.form || (e.target.closest && e.target.closest('form'));
+        if (!e.target.name || (e.target.closest && e.target.closest('[data-no-save-bar]'))) return;   // search boxes inside pickers have no name
+        if (isEditForm(form)) show(form);
+    }
+    document.addEventListener('input', onEdit, true);
+    document.addEventListener('change', onEdit, true);
+    document.addEventListener('submit', function (e) { if (e.target === active) hide(); }, true);
+    bar.addEventListener('click', function (e) {
+        var b = e.target.closest('[data-save-bar]'); if (!b || !active) return;
+        if (b.dataset.saveBar === 'discard') {
+            active.reset();
+            active.querySelectorAll('select').forEach(function (s) { s.dispatchEvent(new Event('change', { bubbles: true })); });
+            hide();
+        } else {
+            var submit = active.querySelector('button[type=submit].btn-primary, button:not([type]).btn-primary, input[type=submit].btn-primary')
+                || active.querySelector('button[type=submit], button:not([type]), input[type=submit]');
+            var form = active;
+            if (form.requestSubmit) { submit ? form.requestSubmit(submit) : form.requestSubmit(); } else { form.submit(); }
+        }
+    });
+    document.addEventListener('keydown', function (e) {
+        if (active && (e.key || '').toLowerCase() === 's' && (e.metaKey || e.ctrlKey) && !document.querySelector('dialog[open]')) {
+            if (e.defaultPrevented) return;
+            e.preventDefault(); bar.querySelector('[data-save-bar=save]').click();
+        }
+    });
+})();
+</script>
+
+<style>
+    .tabbar { display: flex; gap: 2px; flex-wrap: wrap; border-bottom: 2px solid var(--border); margin: 6px 0 18px; position: sticky; top: 0; background: var(--page); z-index: 5; padding-top: 4px; }
+    .tabbar button { appearance: none; border: 0; background: transparent; padding: 10px 16px; font: inherit; font-weight: 600; color: var(--muted); cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; border-radius: 6px 6px 0 0; }
+    .tabbar button:hover { color: var(--text); background: var(--surface); }
+    .tabbar button[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); background: var(--surface); }
+    .tabbar button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+    .tab-pane[hidden] { display: none; }
+    @media print { .tabbar { display: none; } .tab-pane[hidden] { display: block; } }
+</style>
+<script>
+(function () {
+    var main = document.querySelector('[data-tab-host]') || document.querySelector('.page-content');
+    if (!main) return;
+    var markers = main.querySelectorAll(':scope > .tab-marker');
+    if (markers.length < 2) return;
+
+    var kids = Array.prototype.slice.call(main.children);
+    var first = kids.indexOf(markers[0]);
+    var nav = document.createElement('div');
+    nav.className = 'tabbar'; nav.setAttribute('role', 'tablist');
+    var tabs = [], hoisted = [], current = null;
+
+    kids.slice(first).forEach(function (el) {
+        if (el.classList.contains('tab-marker')) {
+            var name = el.getAttribute('data-tab-start');
+            var pane = document.createElement('div');
+            pane.className = 'tab-pane'; pane.setAttribute('role', 'tabpanel'); pane.hidden = true;
+            var btn = document.createElement('button');
+            btn.type = 'button'; btn.setAttribute('role', 'tab'); btn.textContent = name;
+            current = { name: name, pane: pane, btn: btn, slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-') };
+            tabs.push(current); nav.appendChild(btn);
+            return;
+        }
+        if (el.classList.contains('alert')) { hoisted.push(el); return; }   // messages must never hide in another tab
+        current.pane.appendChild(el);
+    });
+
+    var anchor = markers[0];
+    hoisted.forEach(function (a) { main.insertBefore(a, anchor); });
+    main.insertBefore(nav, anchor);
+    tabs.forEach(function (t) { main.insertBefore(t.pane, anchor); });
+    Array.prototype.forEach.call(markers, function (m) { m.remove(); });
+
+    var key = 'erp-tab:' + location.pathname;
+    function show(t, remember) {
+        tabs.forEach(function (x) { var on = x === t; x.pane.hidden = !on; x.btn.setAttribute('aria-selected', on ? 'true' : 'false'); x.btn.tabIndex = on ? 0 : -1; });
+        if (remember) { try { sessionStorage.setItem(key, t.slug); } catch (e) {} }
+    }
+    tabs.forEach(function (t, i) {
+        t.btn.addEventListener('click', function () { show(t, true); });
+        t.btn.addEventListener('keydown', function (e) {
+            var n = e.key === 'ArrowRight' ? i + 1 : e.key === 'ArrowLeft' ? i - 1 : null;
+            if (n === null) return;
+            n = (n + tabs.length) % tabs.length; show(tabs[n], true); tabs[n].btn.focus();
+        });
+    });
+
+    var start = tabs[0], h = decodeURIComponent(location.hash.replace('#', ''));
+    var saved = null; try { saved = sessionStorage.getItem(key); } catch (e) {}
+    tabs.forEach(function (t) { if (saved && t.slug === saved) start = t; });
+    if (h) {
+        tabs.forEach(function (t) {
+            if (t.slug === h) start = t;
+            else { try { if (t.pane.querySelector('#' + CSS.escape(h))) start = t; } catch (e) {} }
+        });
+    }
+    show(start, false);
+})();
+</script>
+<style>
+    .ico { width: 14px; height: 14px; flex: none; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vertical-align: -2px; }
+    .btn .ico { margin-right: 2px; }
+    .table-toolbar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 0 auto; padding: 3px; border: 1px solid var(--border); border-radius: 8px; background: var(--page); }
+    .table-toolbar.is-filtered { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 14%, transparent); }
+    .table-toolbar .field, .table-toolbar > label { flex: none !important; margin: 0; min-width: 0; }
+    .table-toolbar .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .table-toolbar input, .table-toolbar select { width: auto; min-width: 0; min-height: 26px; padding: 2px 8px; font-size: 12.5px; background: #fff; }
+    .table-toolbar input[type=date] { padding: 1px 6px; }
+    .table-toolbar .tt-search { position: relative; display: inline-flex; align-items: center; }
+    .table-toolbar .tt-search .ico { position: absolute; left: 8px; color: var(--muted); pointer-events: none; }
+    .table-toolbar .tt-search input { width: 190px; padding-left: 27px; }
+    .table-toolbar .btn { min-height: 26px; padding: 2px 8px; }
+    .table-toolbar .btn-clear { color: var(--muted); }
+    .table-toolbar.is-filtered .btn-clear { color: var(--danger); }
+    @media (max-width: 768px) { .table-toolbar { width: 100%; margin-left: 0; } .table-toolbar .tt-search, .table-toolbar .tt-search input { width: 100%; } }
+</style>
+<script>
+(function () {
+    var ICONS = {
+        search: '<path d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3"/>',
+        filter: '<path d="M22 3H2l8 9.5V19l4 2v-8.5L22 3z"/>',
+        clear: '<path d="M18 6 6 18M6 6l12 12"/>',
+        plus: '<path d="M12 5v14M5 12h14"/>'
+    };
+    function icon(name) { return '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">' + ICONS[name] + '</svg>'; }
+
+    // "+ New …" buttons get a real plus icon.
+    document.querySelectorAll('.btn').forEach(function (b) {
+        var t = b.firstChild;
+        if (t && t.nodeType === 3 && /^\s*\+\s/.test(t.nodeValue)) { t.nodeValue = t.nodeValue.replace(/^\s*\+\s*/, ' '); b.insertAdjacentHTML('afterbegin', icon('plus')); }
+    });
+
+    if (document.body.getAttribute('data-toolbar') !== '1') return;
+    function pageTitle() { var h = document.querySelector('.page-heading h1, h1'); return h ? h.textContent.trim() : 'Results'; }
+
+    document.querySelectorAll('.page-content form').forEach(function (form) {
+        if ((form.getAttribute('method') || '').toLowerCase() !== 'get' || form.hasAttribute('data-no-toolbar')) return;
+        var own = form.closest('.panel');
+        if (!own || form.closest('table')) return;
+        var table = own.querySelector('table'), header, remove = null;
+        var results = function (el) { return el && el.classList && el.classList.contains('panel') && (el.querySelector('table, .empty-state, .table-wrap')); };
+
+        if (table) {
+            // The filter sits inside the results panel, above its table: use that panel's header.
+            if (!(form.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING)) return;
+            header = own.querySelector(':scope > .panel-header');
+            if (!header) { header = document.createElement('div'); header.className = 'panel-header'; header.innerHTML = '<h2></h2>'; header.firstChild.textContent = pageTitle(); own.insertBefore(header, own.firstChild); }
+            var bodyOf = form.parentNode;
+            if (bodyOf !== own && bodyOf !== header && bodyOf.children.length === 1) remove = bodyOf;
+        } else {
+            // A panel of its own (with or without a title), followed by the results panel.
+            var target = own.nextElementSibling, hops = 0;
+            while (target && !results(target) && hops < 3) { target = target.nextElementSibling; hops++; }
+            if (!results(target)) return;
+            header = target.querySelector(':scope > .panel-header');
+            if (!header) { header = document.createElement('div'); header.className = 'panel-header'; header.innerHTML = '<h2></h2>'; header.firstChild.textContent = pageTitle(); target.insertBefore(header, target.firstChild); }
+            remove = own;
+        }
+
+        form.classList.add('table-toolbar');
+        form.classList.remove('filters');
+        var filled = false;
+
+        // Labels become hints inside the controls.
+        form.querySelectorAll('.field').forEach(function (f) {
+            var label = f.querySelector('label'), ctl = f.querySelector('input, select, textarea');
+            if (!label || !ctl) return;
+            var text = label.textContent.replace('*', '').trim();
+            ctl.setAttribute('title', text); ctl.setAttribute('aria-label', text);
+            if (ctl.tagName === 'INPUT' && /^(text|search|)$/.test(ctl.type) && !ctl.placeholder) ctl.placeholder = text;
+            label.classList.add('sr-only');
+        });
+
+        form.querySelectorAll('input:not([type=hidden]):not([type=checkbox]):not([type=radio]), select').forEach(function (c) {
+            if (c.value) filled = true;
+            if (c.tagName === 'INPUT' && /^(text|search|)$/.test(c.type)) {
+                var wrap = document.createElement('span'); wrap.className = 'tt-search';
+                c.parentNode.insertBefore(wrap, c); wrap.insertAdjacentHTML('beforeend', icon('search')); wrap.appendChild(c);
+            }
+            if (c.tagName === 'SELECT' || c.type === 'date') c.addEventListener('change', function () { form.submit(); });   // filters act on the table straight away
+        });
+
+        var submit = form.querySelector('button[type=submit], button:not([type])');
+        if (submit) { submit.innerHTML = icon('filter'); submit.setAttribute('title', 'Apply filters'); submit.setAttribute('aria-label', 'Apply filters'); submit.classList.add('btn-icon'); }
+        var reset = Array.prototype.find.call(form.querySelectorAll('a'), function (a) { return /reset|clear/i.test(a.textContent); });
+        if (reset) { reset.innerHTML = icon('clear'); reset.setAttribute('title', 'Clear filters'); reset.setAttribute('aria-label', 'Clear filters'); reset.classList.add('btn', 'btn-clear'); }
+        else if (filled) {
+            var a = document.createElement('a'); a.className = 'btn btn-clear'; a.href = location.pathname; a.title = 'Clear filters'; a.innerHTML = icon('clear'); form.appendChild(a);
+        }
+        if (filled) form.classList.add('is-filtered');
+
+        header.appendChild(form);
+        if (remove && !remove.querySelector('input, select, button, table, a')) remove.remove();
+    });
+})();
+</script>
+<style>
+    /* Layout: fixed-width columns that never stretch, with room to breathe. */
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 320px)); gap: 24px 36px; justify-content: start; align-items: start; }
+    .form-grid .field-full { grid-column: 1 / -1; }
+    .panel-body:has(> .form-grid), .panel-body:has(> form > .form-grid) { padding: 24px 28px 28px; }
+    .panel-header:has(+ .panel-body > .form-grid), .panel-header:has(+ .panel-body > form > .form-grid) { padding: 14px 28px; }
+    .panel-header:has(+ .panel-body > .form-grid) h2 { font-size: 15px; }
+
+    /* Labels and help text. */
+    .field > label, .field > .label { display: block; margin: 0 0 8px; font-size: 13px; font-weight: 600; color: #33414a; letter-spacing: 0; }
+    .field .help { margin-top: 7px; font-size: 12px; line-height: 1.45; color: var(--muted); max-width: 46ch; }
+    .field .error-text { margin-top: 7px; font-size: 12.5px; }
+    .field > label .required { margin-left: 2px; }
+
+    /* Controls: comfortable height, soft edges, and never wider than their content needs. */
+    .field input:not([type=checkbox]):not([type=radio]):not([type=color]):not([type=range]):not([type=file]),
+    .field select, .field textarea {
+        min-height: 42px; padding: 10px 13px; border: 1px solid #cdd6db; border-radius: 9px; background: #fff; font-size: 14px; width: 100%;
+        transition: border-color .15s, box-shadow .15s;
+    }
+    .field textarea { min-height: 96px; line-height: 1.5; max-width: 640px; }
+    .field input[type=text], .field input:not([type]), .field input[type=email], .field input[type=search], .field input[type=tel], .field input[type=url], .field input[type=password] { max-width: 340px; }
+    .field-full input[type=text], .field-full input:not([type]), .field-full input[type=email], .field-full input[type=url] { max-width: 520px; }
+    .field select { max-width: 300px; padding-right: 34px; }
+    .field input[type=number] { max-width: 170px; }
+    .field input[type=date], .field input[type=datetime-local], .field input[type=time], .field input[type=month] { max-width: 190px; }
+    .field input[type=file] { max-width: 420px; font-size: 13px; }
+    .field input:hover:not(:focus), .field select:hover:not(:focus), .field textarea:hover:not(:focus) { border-color: #b3bfc6; }
+    .field input:focus, .field select:focus, .field textarea:focus { outline: 0; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+    .field input::placeholder, .field textarea::placeholder { color: #9aa6ad; }
+    .field input[readonly], .field input:disabled, .field select:disabled { background: #f4f6f7; color: #6b7882; }
+    .field input[type=checkbox], .field input[type=radio] { width: 17px; height: 17px; accent-color: var(--accent); }
+    .field label:has(> input[type=checkbox]), .field label:has(> input[type=radio]) { display: flex; align-items: center; gap: 9px; font-weight: 500; margin: 0; }
+
+    /* Inside tables, filters and toolbars the controls stay as they were. */
+    td .field input, td .field select, td input, td select, td textarea { max-width: none; }
+    .filters .field { flex: 0 1 auto; }
+    .filters .field input, .filters .field select { min-height: 36px; padding: 7px 11px; border-radius: 8px; max-width: 240px; }
+    .table-toolbar .field input:not(#_), .table-toolbar .field select:not(#_), .table-toolbar input:not(#_), .table-toolbar select:not(#_) { min-height: 26px; padding-block: 2px; border-radius: 6px; font-size: inherit; }
+    .table-toolbar .tt-search input:not(#_) { padding-left: 27px; padding-right: 8px; }
+
+    /* Whitespace between a form's panels and its buttons. */
+    form > .panel + .panel { margin-top: 18px; }
+    form > .actions, form > p:last-child { margin-top: 22px; }
+    .panel-body > p.help, .panel-body > .muted.small { max-width: 70ch; }
+
+    /* Optional fields tucked away. */
+    .more-fields { display: contents; }
+    .more-fields[hidden] { display: none; }
+    .more-toggle { grid-column: 1 / -1; justify-self: start; margin-top: -4px; }
+    .more-toggle button { appearance: none; border: 0; background: transparent; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; padding: 6px 0; display: inline-flex; gap: 8px; align-items: center; }
+    .more-toggle button:hover { text-decoration: underline; }
+    .more-toggle .chev { display: inline-block; width: 18px; height: 18px; border-radius: 50%; background: color-mix(in srgb, var(--accent) 12%, #fff); text-align: center; line-height: 17px; font-size: 14px; }
+
+    @media (max-width: 768px) {
+        .form-grid { grid-template-columns: 1fr; gap: 20px; }
+        .panel-body:has(> .form-grid), .panel-body:has(> form > .form-grid) { padding: 18px; }
+        .field input, .field select, .field textarea { max-width: none !important; }
+    }
+</style>
+<style>
+    /* Compact density (the default): tight forms, many fields per row, small controls. */
+    .form-grid { grid-template-columns: repeat(auto-fill, minmax(170px, 230px)); gap: 10px 16px; }
+    .panel-body:has(> .form-grid), .panel-body:has(> form > .form-grid) { padding: 12px 16px 14px; }
+    .panel-header:has(+ .panel-body > .form-grid), .panel-header:has(+ .panel-body > form > .form-grid) { padding: 8px 16px; }
+    .panel-header:has(+ .panel-body > .form-grid) h2 { font-size: 13.5px; }
+    .field > label, .field > .label { margin: 0 0 3px; font-size: 12px; }
+    .field .help { margin-top: 3px; font-size: 11px; line-height: 1.35; max-width: 40ch; }
+    .field .error-text { margin-top: 3px; font-size: 11.5px; }
+    .field input:not([type=checkbox]):not([type=radio]):not([type=color]):not([type=range]):not([type=file]),
+    .field select, .field textarea { min-height: 30px; padding: 5px 9px; border-radius: 6px; font-size: 13px; }
+    .field textarea { min-height: 58px; line-height: 1.4; max-width: 520px; }
+    .field input[type=text], .field input:not([type]), .field input[type=email], .field input[type=search], .field input[type=tel], .field input[type=url], .field input[type=password] { max-width: 260px; }
+    .field-full input[type=text], .field-full input:not([type]), .field-full input[type=email], .field-full input[type=url] { max-width: 420px; }
+    .field select { max-width: 230px; padding-right: 26px; }
+    .field input[type=number] { max-width: 120px; }
+    .field input[type=date], .field input[type=datetime-local], .field input[type=time], .field input[type=month] { max-width: 150px; }
+    .field input:focus, .field select:focus, .field textarea:focus { box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 18%, transparent); }
+    .field input[type=checkbox], .field input[type=radio] { width: 15px; height: 15px; }
+    .field label:has(> input[type=checkbox]), .field label:has(> input[type=radio]) { gap: 7px; }
+    .filters .field input, .filters .field select { min-height: 30px; padding: 4px 9px; }
+    form > .panel + .panel { margin-top: 10px; }
+    form > .actions, form > p:last-child { margin-top: 12px; }
+    .more-toggle { margin-top: -2px; }
+    .more-toggle button { padding: 2px 0; font-size: 12.5px; }
+    .more-toggle .chev { width: 15px; height: 15px; line-height: 14px; font-size: 12px; }
+</style>
+<script>
+(function () {
+    if (document.body.getAttribute('data-tidy-forms') !== '1') return;
+    function isRequired(f) {
+        if (f.querySelector('[required], .required')) return true;
+        var l = f.querySelector('label'); return !!(l && /\*\s*$/.test(l.textContent));
+    }
+    function isBlank(f) {
+        var ctl = f.querySelectorAll('input, select, textarea'); if (!ctl.length) return false;
+        for (var i = 0; i < ctl.length; i++) {
+            var c = ctl[i], t = (c.type || '').toLowerCase();
+            if (t === 'hidden') continue;
+            if (t === 'checkbox' || t === 'radio') { if (c.checked) return false; else continue; }
+            if (c.tagName === 'SELECT') { if (c.value !== '' && c.selectedIndex > 0) return false; if (c.value !== '' && c.selectedIndex === 0 && c.options[0].value !== '') return false; continue; }
+            if (c.value !== '' ) return false;
+        }
+        return true;
+    }
+    document.querySelectorAll('.form-grid[data-progressive]').forEach(function (grid) {
+        var fields = [].slice.call(grid.children).filter(function (e) { return e.classList.contains('field'); });
+        var hide = fields.filter(function (f) { return !isRequired(f) && !f.hasAttribute('data-keep') && !f.querySelector('.error-text') && isBlank(f); });
+        var min = parseInt(grid.getAttribute('data-progressive'), 10) || 3;
+        if (fields.length < 6 || hide.length < min) return;
+        var wrap = document.createElement('div'); wrap.className = 'more-fields'; wrap.hidden = true;
+        hide.forEach(function (f) { wrap.appendChild(f); });
+        var bar = document.createElement('div'); bar.className = 'more-toggle';
+        var btn = document.createElement('button'); btn.type = 'button'; btn.setAttribute('aria-expanded', 'false');
+        function label(open) { btn.innerHTML = '<span class="chev">' + (open ? '&minus;' : '+') + '</span>' + (open ? 'Hide the optional fields' : 'Show ' + hide.length + ' more optional field' + (hide.length === 1 ? '' : 's')); btn.setAttribute('aria-expanded', open ? 'true' : 'false'); }
+        label(false);
+        btn.addEventListener('click', function () { wrap.hidden = !wrap.hidden; label(!wrap.hidden); });
+        bar.appendChild(btn);
+        grid.appendChild(bar); grid.appendChild(wrap);
+        // A browser validation message on a hidden field must still be visible.
+        grid.closest('form') && grid.closest('form').addEventListener('invalid', function (e) { if (wrap.contains(e.target)) { wrap.hidden = false; label(true); } }, true);
+    });
+})();
+</script>
+<style>
+    .lb { position: fixed; inset: 0; z-index: 90; display: none; align-items: center; justify-content: center; background: rgb(10 14 20 / 86%); }
+    .lb.open { display: flex; }
+    .lb figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 10px; max-width: calc(100vw - 120px); max-height: calc(100vh - 60px); }
+    .lb img { max-width: 100%; max-height: calc(100vh - 110px); object-fit: contain; border-radius: 6px; background: var(--surface); box-shadow: 0 20px 60px rgb(0 0 0 / 45%); padding: 0; min-height: 0; }
+    .lb figcaption { color: rgb(255 255 255 / 88%); font-size: 13px; text-align: center; }
+    .lb figcaption .n { opacity: .65; margin-left: 8px; }
+    .lb button { position: absolute; border: 0; background: rgb(255 255 255 / 12%); color: var(--surface); width: 44px; height: 44px; border-radius: 50%; font-size: 24px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .lb button:hover { background: rgb(255 255 255 / 24%); }
+    .lb button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .lb .lb-x { top: 16px; right: 16px; }
+    .lb .lb-prev { left: 16px; top: 50%; transform: translateY(-50%); }
+    .lb .lb-next { right: 16px; top: 50%; transform: translateY(-50%); }
+    .lb button[hidden] { display: none; }
+    @media (max-width: 768px) { .lb figure { max-width: calc(100vw - 24px); } .lb .lb-prev, .lb .lb-next { top: auto; bottom: 16px; transform: none; } }
+</style>
+<div class="lb" id="lightbox" role="dialog" aria-modal="true" aria-label="Photo">
+    <button type="button" class="lb-x" aria-label="Close">&times;</button>
+    <button type="button" class="lb-prev" aria-label="Previous photo">&#8249;</button>
+    <figure><img alt=""><figcaption></figcaption></figure>
+    <button type="button" class="lb-next" aria-label="Next photo">&#8250;</button>
+</div>
+<script>
+(function () {
+    var box = document.getElementById('lightbox'), img = box.querySelector('img'), cap = box.querySelector('figcaption');
+    var prev = box.querySelector('.lb-prev'), next = box.querySelector('.lb-next'), items = [], at = 0, opener = null;
+    function show(i) {
+        at = (i + items.length) % items.length;
+        var a = items[at], text = a.dataset.caption || a.getAttribute('title') || '';
+        img.src = a.href; img.alt = text;
+        cap.textContent = text;
+        if (items.length > 1) { var n = document.createElement('span'); n.className = 'n'; n.textContent = (at + 1) + ' / ' + items.length; cap.appendChild(n); }
+        prev.hidden = next.hidden = items.length < 2;
+    }
+    function open(a) {
+        var group = a.dataset.lightbox;
+        items = [].filter.call(document.querySelectorAll('a[data-lightbox]'), function (x) { return x.dataset.lightbox === group; })
+            .filter(function (x, i, all) { return all.findIndex(function (y) { return y.href === x.href; }) === i; });
+        opener = a; box.classList.add('open'); document.body.style.overflow = 'hidden';
+        show(Math.max(0, items.findIndex(function (x) { return x.href === a.href; })));
+        box.querySelector('.lb-x').focus();
+    }
+    function close() { box.classList.remove('open'); img.removeAttribute('src'); document.body.style.overflow = ''; if (opener) opener.focus(); }
+    document.addEventListener('click', function (e) {
+        var a = e.target.closest('a[data-lightbox]');
+        if (a && !e.ctrlKey && !e.metaKey && !e.shiftKey) { e.preventDefault(); open(a); }
+    });
+    box.addEventListener('click', function (e) {
+        if (e.target.closest('.lb-x') || e.target === box) close();
+        else if (e.target.closest('.lb-prev')) show(at - 1);
+        else if (e.target.closest('.lb-next')) show(at + 1);
+    });
+    document.addEventListener('keydown', function (e) {
+        if (!box.classList.contains('open')) return;
+        if (e.key === 'Escape') { e.preventDefault(); close(); }
+        else if (e.key === 'ArrowLeft') show(at - 1);
+        else if (e.key === 'ArrowRight') show(at + 1);
+    });
+})();
+</script>
+<style>
+    tr.row-link { cursor: pointer; }
+    tr.row-link:hover { background: #f1f7f3 !important; }
+</style>
+<script>
+(function () {
+    if (document.body.getAttribute('data-row-click') !== '1') return;
+    var SKIP_TEXT = /^(edit|delete|remove|print|download|create|new|add|cancel|back|save|view complete|manage)/i;
+    var SKIP_HREF = /(\/edit\b|\/create\b|\/print\b|\/download\b|\/remove\b|\/certificate\b|\/labels\/|^#|^javascript:|^mailto:|^tel:)/i;
+
+    function target(tr) {
+        if (tr.closest('table.no-row-click') || tr.closest('thead')) return null;
+        if (tr.querySelector('input, select, textarea, button')) return null;   // data-entry rows keep their own controls
+        var links = tr.querySelectorAll('a[href]');
+        for (var i = 0; i < links.length; i++) {
+            var a = links[i];
+            var href = a.getAttribute('href') || '';
+            if (a.target === '_blank' || SKIP_HREF.test(href) || SKIP_TEXT.test((a.textContent || '').trim())) continue;
+            if (a.closest('form')) continue;
+            return a;
+        }
+        return null;
+    }
+
+    document.querySelectorAll('.page-content table tbody tr').forEach(function (tr) {
+        var a = target(tr);
+        if (!a) return;
+        tr.classList.add('row-link');
+        tr.addEventListener('click', function (e) {
+            if (e.target.closest('a, button, input, select, textarea, label, summary, form')) return;   // real controls win
+            if (window.getSelection && String(window.getSelection())) return;                           // user is selecting text
+            if (e.ctrlKey || e.metaKey || e.button === 1) { window.open(a.href, '_blank'); return; }
+            window.location.href = a.href;
+        });
+    });
+})();
+</script>
+<script>
+// Refuse an oversized file on the spot, with the real limit, instead of after a long upload that the server would drop.
+document.addEventListener('change', function (e) {
+    var input = e.target;
+    if (!input || input.type !== 'file' || !input.dataset.maxKb || !input.files) return;
+    var max = +input.dataset.maxKb * 1024, big = [];
+    Array.prototype.forEach.call(input.files, function (f) { if (f.size > max) big.push(f.name + ' (' + (f.size / 1048576).toFixed(1) + ' MB)'); });
+    if (!big.length) return;
+    e.stopImmediatePropagation();
+    input.value = '';
+    alert('Too large: ' + big.join(', ') + '.\nEach file can be at most ' + (max / 1048576).toFixed(max % 1048576 ? 1 : 0) + ' MB.');
+}, true);
+</script>
+</body>
+</html>

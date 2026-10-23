@@ -24,6 +24,7 @@ class SettingsNav
             'Process depth' => ['settings.process-depth.edit', ['settings.process-depth*']],
             'Order rules' => ['settings.orders.edit', ['settings.orders*']],
             'Pouring rules' => ['settings.pouring.edit', ['settings.pouring*']],
+            'Melting days' => ['settings.melting-days.edit', ['settings.melting-days*']],
             'Pattern ownership rules' => ['settings.pattern-ownership.edit', ['settings.pattern-ownership*']],
         ],
         'Access & data' => [

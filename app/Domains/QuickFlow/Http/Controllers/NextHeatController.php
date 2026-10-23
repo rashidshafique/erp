@@ -8,6 +8,7 @@ use App\Models\Furnace;
 use App\Models\IronGrade;
 use App\Services\FurnaceEligibility;
 use App\Services\Planning\HeatPlanner;
+use App\Support\MeltingCalendar;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -17,7 +18,12 @@ class NextHeatController extends Controller
 {
     public function index(NextHeatPlan $plan): View
     {
-        return view('quickflow::heat.index', $plan->build());
+        $data = $plan->build();
+        $enabled = MeltingCalendar::enabled();
+        // With a melting rule set, each open order is checked: is there a melting day left before its due date allows?
+        $dueChecks = $enabled ? $data['orders']->mapWithKeys(fn ($o) => [$o['order']->id => $o['due'] ? MeltingCalendar::checkDue($o['due']) : null]) : collect();
+
+        return view('quickflow::heat.index', $data + ['calendar' => ['enabled' => $enabled, 'description' => MeltingCalendar::describe(), 'next' => MeltingCalendar::next()], 'dueChecks' => $dueChecks]);
     }
 
     /** Starts the heat as planned, then goes to it for thermal tests. The weight can be changed before it starts. */

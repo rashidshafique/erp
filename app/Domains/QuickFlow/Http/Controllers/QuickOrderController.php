@@ -11,6 +11,7 @@ use App\Models\ProductSpecification;
 use App\Models\SalesOrder;
 use App\Services\Orders\ProductionOrderFactory;
 use App\Services\Planning\HeatPlanner;
+use App\Support\MeltingCalendar;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -36,6 +37,7 @@ class QuickOrderController extends Controller
 
         return view('quickflow::orders.create', [
             'customers' => Customer::active()->orderBy('code')->get(), 'products' => $products,
+            'meltingHint' => MeltingCalendar::enabled() ? 'Next melting day: '.(MeltingCalendar::next()?->format('D j M') ?? 'none').'. '.MeltingCalendar::describe() : null,
             'productPhotos' => \App\Models\Attachment::coverUrlsFor('product', collect($products)->pluck('product.id')->all()),
             'grades' => IronGrade::orderBy('family')->orderBy('code')->get(),
         ]);
@@ -76,7 +78,22 @@ class QuickOrderController extends Controller
             return $order;
         });
 
-        return redirect()->route('quick.heat.index')->with('success', "Order {$order->order_number} entered and ready for planning.");
+        // With a melting rule set, say so when a due date leaves no melting day to pour on. The order is kept either way.
+        $late = [];
+        if (MeltingCalendar::enabled()) {
+            foreach ($data['lines'] as $row) {
+                $due = filled($row['due_date'] ?? null) ? $row['due_date'] : ($data['due_date'] ?? null);
+                $check = $due ? MeltingCalendar::checkDue(\Illuminate\Support\Carbon::parse($due)) : null;
+                if ($check && ! $check['ok']) {
+                    $late[] = Product::find($row['product_id'])?->code.' due '.\Illuminate\Support\Carbon::parse($due)->format('D j M').' (pour by '.$check['latest_pour']->format('D j M').')';
+                }
+            }
+        }
+        $response = redirect()->route('quick.heat.index')->with('success', "Order {$order->order_number} entered and ready for planning.");
+
+        return $late
+            ? $response->with('warning', 'No melting day falls in time for: '.implode(', ', array_unique($late)).'. '.MeltingCalendar::describe().' Next melting day: '.(MeltingCalendar::next()?->format('D j M') ?? 'none').'.')
+            : $response;
     }
 
     private function newCustomer(string $name): Customer

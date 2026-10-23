@@ -28,7 +28,7 @@ return [
     ],
 
     // Open to every signed-in user; the screens check who may do what (own leave, a team's leave).
-    'open_routes' => [],
+    'open_routes' => ['help.*'],
 
     // First match wins. Patterns use * as a wildcard.
     'routes' => [
