@@ -7,6 +7,7 @@ use App\Domains\Dispatch\DispatchServiceProvider;
 use App\Domains\Documents\DocumentsServiceProvider;
 use App\Domains\Enquiry\EnquiryServiceProvider;
 use App\Domains\Hr\HrServiceProvider;
+use App\Domains\Inventory\InventoryServiceProvider;
 use App\Domains\Licensing\LicensingServiceProvider;
 use App\Domains\Maintenance\MaintenanceServiceProvider;
 use App\Domains\Parties\PartiesServiceProvider;
@@ -29,5 +30,6 @@ return [
     PartiesServiceProvider::class,
     QuickFlowServiceProvider::class,
     PurchasingServiceProvider::class,
+    InventoryServiceProvider::class,
     ToolingServiceProvider::class,
 ];
