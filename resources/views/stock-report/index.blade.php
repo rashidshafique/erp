@@ -28,7 +28,7 @@
             }
         }
 
-        if ($materialQty <= (float) $material->minimum_stock_qty) {
+        if ((float) $material->minimum_stock_qty > 0 && $materialQty <= (float) $material->minimum_stock_qty) {
             $lowStockCount++;
         }
 

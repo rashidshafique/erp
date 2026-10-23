@@ -38,6 +38,7 @@ class InventoryServiceProvider extends ModuleServiceProvider
     protected function navItems(): array
     {
         return [
+            ['group' => 'purchases', 'label' => 'Reorder alerts', 'route' => 'stock-reorder.index', 'icon' => 'alert', 'active' => ['stock-reorder.*']],
             ['group' => 'purchases', 'label' => 'Stock by location', 'route' => 'stock-balances.index', 'icon' => 'package', 'active' => ['stock-balances.*', 'stock-movements.record']],
             ['group' => 'purchases', 'label' => 'Stock locations', 'route' => 'stock-locations.index', 'icon' => 'package', 'active' => ['stock-locations.*']],
         ];

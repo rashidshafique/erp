@@ -315,6 +315,9 @@
                     });
                 })();
             </script>
+            @auth
+                <livewire:notification-center />
+            @endauth
             <div class="topbar-date">@include('layouts._heat-lights'){{ now()->format('D, d M Y') }}
             </div>
         </header>

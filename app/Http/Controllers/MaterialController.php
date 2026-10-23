@@ -72,6 +72,7 @@ class MaterialController extends Controller
         $validated = $this->validateMaterial($request, $material);
 
         $material->update($validated);
+        app(\App\Services\Stock\ReorderWatcher::class)->check($material);
 
         return redirect()
             ->route('materials.show', $material)

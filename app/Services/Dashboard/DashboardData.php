@@ -139,6 +139,13 @@ class DashboardData
                 $items[] = ['tag' => 'Calibration', 'tone' => 'amber', 'at' => now(), 'ref' => null, 'text' => $count.' instrument'.($count === 1 ? ' is' : 's are').' due for calibration within '.$dueDays.' days.', 'actions' => [['Open register', route('gauges.index', ['state' => 'soon']), false]]];
             }
         }
+        $reorder = app(\App\Services\Stock\StockLevels::class)->needingReorder();
+        if ($reorder->isNotEmpty()) {
+            $out = $reorder->where('out', true)->count();
+            $items[] = ['tag' => 'Reorder', 'tone' => $out ? 'red' : 'amber', 'at' => now(), 'ref' => null,
+                'text' => $reorder->count().' material'.($reorder->count() === 1 ? ' is' : 's are').' at or below minimum stock'.($out ? ", {$out} out of stock" : '').'.',
+                'actions' => [['Open reorder list', Route::has('stock-reorder.index') ? route('stock-reorder.index') : route('stock-report.index'), $out > 0]]];
+        }
         usort($items, fn ($a, $b) => $b['at'] <=> $a['at']);
 
         return array_slice($items, 0, 6);

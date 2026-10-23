@@ -5,6 +5,7 @@ namespace App\Services\Stock;
 use App\Models\StockLotCostLayer;
 use App\Models\StockMovement;
 use App\Support\Formats;
+use App\Models\Material;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Str;
 use LogicException;
@@ -56,6 +57,7 @@ class StockLedger
             'currency_code' => 'PKR',
             'received_at' => $at,
         ]);
+        $this->watchReorderLevel($lot);
 
         return $movement;
     }
@@ -107,7 +109,7 @@ class StockLedger
         }
         $issueCost = round($issueCost, 4);
 
-        return StockMovement::create([
+        $movement = StockMovement::create([
             'movement_number' => $details['movement_number'] ?? $this->number('ISS'),
             'movement_type' => 'ISSUE',
             ...$this->identity($lot),
@@ -122,6 +124,9 @@ class StockLedger
             'recorded_by' => $details['recorded_by'] ?? null,
             'reason' => $details['reason'] ?? null,
         ]);
+        $this->watchReorderLevel($lot);
+
+        return $movement;
     }
 
     /**
@@ -242,6 +247,15 @@ class StockLedger
             'material_id' => $item->stockItemId(),
             'material_lot_id' => $lot->stockLotId(),
         ];
+    }
+
+    /** Tells the people who manage stores when a material has fallen to its minimum, or clears the flag once it is back above. */
+    private function watchReorderLevel(StockLot $lot): void
+    {
+        $material = Material::find($lot->stockItem()->stockItemId());
+        if ($material) {
+            app(ReorderWatcher::class)->check($material);
+        }
     }
 
     /** A unique movement number for a movement nobody numbers by hand. */

@@ -52,10 +52,14 @@ In priority order:
 7. **Integration**: EDI, e-invoicing and tax filing for the target market, barcode and device input.
 8. **Housekeeping**: track the ISO 9001 gaps against the code, replace direct core-to-module calls with interfaces and `dependsOn()`, write the README.
 
+**Notifications and reorder alerts**
+- `Notify` sends an `AppNotice` to everyone holding a permission, or to named roles; stored with Laravel's database notifications. The bell and growl-style toasts in the top bar (`notification-center`, Livewire) poll every 10 seconds. Websockets were not used: they need Reverb or Pusher and a socket server.
+- `ReorderWatcher` raises one notice to `stores.manage` holders each time a watched material (tracked, active, minimum above zero) falls to its minimum, and re-arms when stock is back above it. It runs after every ledger receipt or issue, when a material is edited, and hourly (`stock:check-reorder`). The Reorder alerts page (Purchases) and a dashboard "Needs attention" item list the materials with a suggested order quantity.
+
 ### Stores: not built yet
 - Finished goods are not on the ledger. They need a decision on their stock lot (casting lot or a new stock lot) and a second registered item type.
 - Cost layers still point at `material_lots`; the ledger refuses lots of other item types until that is designed.
-- Reorder alerts (`minimum_stock_qty`, `reorder_qty`) and the unused `inventory_reservations` table have no screens.
+- The unused `inventory_reservations` table has no screens.
 - Existing lot stock has no location; it shows as "not put anywhere" until transferred.
 - Movement types have no module hook yet; `StockMovementTypes::register()` is called directly.
 
