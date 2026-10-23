@@ -202,11 +202,12 @@ new class extends Component
         </div>
     @else
         <div class="table-wrap">
-            <table>
+            {{-- Clicking a row opens its quick edit, so the app's generic "row opens its first link" is switched off here. --}}
+            <table class="no-row-click">
                 <thead><tr><th>Customer</th><th>Contact</th><th>Payment terms</th><th>Orders</th>@if ($showDispatch)<th>Last dispatch</th>@endif<th>Patterns held</th><th>Status</th><th></th></tr></thead>
                 <tbody>
                 @foreach ($customers as $customer)
-                    <tr wire:key="customer-{{ $customer->id }}">
+                    <tr wire:key="customer-{{ $customer->id }}" class="row-link" title="Click to edit {{ $customer->name }}" x-data x-on:click="if (! $event.target.closest('a, button, input, label') && ! String(window.getSelection())) $wire.edit('{{ $customer->id }}')">
                         <td><strong style="font-size:15px">{{ $customer->name }}</strong><div class="muted small"><span class="mono">{{ $customer->code }}</span>@if ($customer->short_name) · {{ $customer->short_name }}@endif</div></td>
                         <td>{{ $customer->contact_name ?: '—' }}@if ($customer->phone || $customer->email)<div class="muted small">{{ collect([$customer->phone, $customer->email])->filter()->implode(' · ') }}</div>@endif</td>
                         <td>{{ $customer->payment_terms ?: '—' }}</td>

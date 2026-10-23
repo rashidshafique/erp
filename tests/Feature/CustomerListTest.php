@@ -92,6 +92,15 @@ class CustomerListTest extends TestCase
         $dialog->call('create')->set('form.name', 'Other')->set('form.code', 'Beta')->call('save')->assertHasErrors('form.code');
     }
 
+    public function test_clicking_a_row_opens_its_quick_edit_instead_of_the_rows_first_link(): void
+    {
+        $acme = $this->customer('ACME', 'Acme Pumps');
+
+        Livewire::test('customer-list')
+            ->assertSeeHtml('<table class="no-row-click">')
+            ->assertSeeHtml("\$wire.edit('{$acme->id}')");
+    }
+
     public function test_a_customer_is_quick_edited_and_can_be_marked_inactive(): void
     {
         $customer = $this->customer('ACME', 'Acme Pumps', ['phone' => '021-1']);
