@@ -12,7 +12,7 @@ use Illuminate\View\View;
 
 class StockReconciliationController extends Controller
 {
-    private const MOVEMENT_TYPES = ['RECEIPT', 'ISSUE'];
+    private const MOVEMENT_TYPES = ['RECEIPT', 'ISSUE', 'TRANSFER'];
 
     private const TOLERANCE = 0.001;
 

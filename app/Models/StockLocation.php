@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Domains\Inventory\Models;
+namespace App\Models;
 
 use Database\Factories\StockLocationFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 /** A place stock is kept: a store, yard, bin, quarantine area or line-side point. Locations nest under a parent. */
 class StockLocation extends Model
@@ -64,7 +65,7 @@ class StockLocation extends Model
     public function isInUse(): bool
     {
         return $this->children()->exists()
-            || \DB::table('stock_movements')->where('from_location_id', $this->id)->orWhere('to_location_id', $this->id)->exists()
-            || \DB::table('inventory_reservations')->where('stock_location_id', $this->id)->exists();
+            || DB::table('stock_movements')->where('from_location_id', $this->id)->orWhere('to_location_id', $this->id)->exists()
+            || DB::table('inventory_reservations')->where('stock_location_id', $this->id)->exists();
     }
 }

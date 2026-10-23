@@ -255,7 +255,7 @@ class StockReconciliationTest extends TestCase
             $material,
             $lot,
             'UNSUPPORTED',
-            'TRANSFER',
+            'REVALUATION',
             2
         );
 

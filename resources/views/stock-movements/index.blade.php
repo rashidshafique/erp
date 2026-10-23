@@ -6,8 +6,11 @@
 <div class="page-heading">
     <div>
         <h1>Stock Movement Ledger</h1>
-        <p>Trace stock receipts and issues to their lots and source records.</p>
+        <p>Trace stock receipts, issues and transfers to their lots and source records.</p>
     </div>
+    @if (app(\App\Domains\Core\ModuleRegistry::class)->isEnabled('inventory'))
+        <div class="actions"><a class="btn" href="{{ route('stock-balances.index') }}">Stock by location</a> <a class="btn btn-primary" href="{{ route('stock-movements.record') }}">+ Record movement</a></div>
+    @endif
 </div>
 
 <div class="panel">
@@ -86,6 +89,7 @@
                     <th>Type</th>
                     <th>Material</th>
                     <th>Lot</th>
+                    <th>From → to</th>
                     <th>Qty (kg)</th>
                     <th>Unit cost (PKR/kg)</th>
                     <th>Total cost (PKR)</th>
@@ -102,6 +106,7 @@
                         <td>{{ $movement->movement_type }}</td>
                         <td>{{ $movement->material?->name ?? '—' }}</td>
                         <td>{{ $movement->materialLot?->lot_number ?? '—' }}</td>
+                        <td>{{ $movement->fromLocation || $movement->toLocation ? ($movement->fromLocation?->code ?? '—').' → '.($movement->toLocation?->code ?? '—') : '—' }}</td>
                         <td>{{ \App\Support\Formats::number((float) $movement->quantity, 3) }}</td>
                         <td>{{ $movement->unit_cost === null ? '—' : \App\Support\Formats::number((float) $movement->unit_cost, 4) }}</td>
                         <td>{{ $movement->total_cost === null ? '—' : \App\Support\Formats::number((float) $movement->total_cost, 2) }}</td>
@@ -116,7 +121,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="11">No stock movements match these filters.</td>
+                        <td colspan="12">No stock movements match these filters.</td>
                     </tr>
                 @endforelse
             </tbody>

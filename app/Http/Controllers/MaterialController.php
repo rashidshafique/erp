@@ -56,6 +56,9 @@ class MaterialController extends Controller
         return view('materials.show', [
             'material' => $material,
             'receiptMovements' => $receiptMovements,
+            'stockLocations' => app(\App\Domains\Core\ModuleRegistry::class)->isEnabled('inventory')
+                ? \App\Models\StockLocation::where('is_active', true)->orderBy('code')->get()
+                : collect(),
         ]);
     }
 

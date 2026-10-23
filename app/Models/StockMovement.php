@@ -44,6 +44,16 @@ class StockMovement extends Model
         return $this->belongsTo(Material::class);
     }
 
+    public function fromLocation(): BelongsTo
+    {
+        return $this->belongsTo(StockLocation::class, 'from_location_id');
+    }
+
+    public function toLocation(): BelongsTo
+    {
+        return $this->belongsTo(StockLocation::class, 'to_location_id');
+    }
+
     public function materialLot(): BelongsTo
     {
         return $this->belongsTo(MaterialLot::class);

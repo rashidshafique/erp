@@ -1,6 +1,6 @@
 <?php
 
-use App\Domains\Inventory\Models\StockLocation;
+use App\Models\StockLocation;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -146,7 +146,7 @@ new class extends Component
             <div class="field"><label for="loc-code">Code</label><input id="loc-code" wire:model="code">@error('code')<div class="error">{{ $message }}</div>@enderror</div>
             <div class="field"><label for="loc-name">Name</label><input id="loc-name" wire:model="name">@error('name')<div class="error">{{ $message }}</div>@enderror</div>
             <div class="field"><label for="loc-type">Type</label>
-                <select id="loc-type" wire:model="locationType">@foreach (\App\Domains\Inventory\Models\StockLocation::TYPES as $key => $label)<option value="{{ $key }}">{{ $label }}</option>@endforeach</select>
+                <select id="loc-type" wire:model="locationType">@foreach (\App\Models\StockLocation::TYPES as $key => $label)<option value="{{ $key }}">{{ $label }}</option>@endforeach</select>
                 @error('locationType')<div class="error">{{ $message }}</div>@enderror</div>
             <div class="field"><label for="loc-parent">Inside</label>
                 <select id="loc-parent" wire:model="parentId"><option value="">— top level —</option>@foreach ($parents as $parent)<option value="{{ $parent->id }}">{{ $parent->code }} · {{ $parent->name }}</option>@endforeach</select>
@@ -166,7 +166,7 @@ new class extends Component
             <tr wire:key="loc-{{ $location->id }}">
                 <td class="mono">{{ $location->code }}</td>
                 <td>{{ $location->name }}<div class="muted small">{{ $location->description }}</div></td>
-                <td>{{ \App\Domains\Inventory\Models\StockLocation::TYPES[$location->location_type] ?? $location->location_type }}</td>
+                <td>{{ \App\Models\StockLocation::TYPES[$location->location_type] ?? $location->location_type }}</td>
                 <td>{{ $location->parent?->code ?? '—' }}</td>
                 <td>{{ $location->is_active ? 'Active' : 'Switched off' }}</td>
                 <td class="actions">

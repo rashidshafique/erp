@@ -20,7 +20,7 @@ class InventoryServiceProvider extends ModuleServiceProvider
 
     protected function moduleDescription(): string
     {
-        return 'Stock locations (stores, yards, bins) for keeping materials. Materials and the stock report stay.';
+        return 'Stock locations (stores, yards, bins), stock by location, and screens to issue, scrap, adjust and transfer stock. Materials and the stock report stay.';
     }
 
     protected function modulePath(): string
@@ -38,6 +38,7 @@ class InventoryServiceProvider extends ModuleServiceProvider
     protected function navItems(): array
     {
         return [
+            ['group' => 'melting', 'label' => 'Stock by location', 'route' => 'stock-balances.index', 'icon' => 'package', 'active' => ['stock-balances.*', 'stock-movements.record']],
             ['group' => 'melting', 'label' => 'Stock locations', 'route' => 'stock-locations.index', 'icon' => 'package', 'active' => ['stock-locations.*']],
         ];
     }

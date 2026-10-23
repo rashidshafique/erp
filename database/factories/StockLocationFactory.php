@@ -2,7 +2,7 @@
 
 namespace Database\Factories;
 
-use App\Domains\Inventory\Models\StockLocation;
+use App\Models\StockLocation;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /** @extends Factory<StockLocation> */

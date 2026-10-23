@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Domains\Inventory\Models\StockLocation;
+use App\Models\StockLocation;
 use App\Models\Material;
 use App\Models\MaterialLot;
 use App\Models\StockMovement;

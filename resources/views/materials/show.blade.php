@@ -106,6 +106,18 @@
                                     I confirm this stock is physically available.
                                 </label>
 
+                                @if ($stockLocations->isNotEmpty())
+                                    <div style="margin-top:10px">
+                                        <label for="receipt_location_{{ $lot->id }}">Put into</label>
+                                        <select id="receipt_location_{{ $lot->id }}" name="stock_location_id">
+                                            <option value="">— no location —</option>
+                                            @foreach ($stockLocations as $location)
+                                                <option value="{{ $location->id }}">{{ $location->code }} · {{ $location->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                @endif
+
                                 <div style="margin-top:10px">
                                     <label for="recorded_by_{{ $lot->id }}">
                                         Recorded by

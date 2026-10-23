@@ -19,7 +19,7 @@ class StockMovementController extends Controller
         ]);
 
         $movements = StockMovement::query()
-            ->with(['material', 'materialLot'])
+            ->with(['material', 'materialLot', 'fromLocation', 'toLocation'])
             ->when($filters['movement_type'] ?? null, fn ($q, $v) => $q->where('movement_type', $v))
             ->when($filters['material_id'] ?? null, fn ($q, $v) => $q->where('material_id', $v))
             ->when($filters['source_type'] ?? null, fn ($q, $v) => $q->where('source_type', $v))

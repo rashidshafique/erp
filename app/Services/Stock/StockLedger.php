@@ -161,27 +161,46 @@ class StockLedger
     }
 
     /**
-     * What the lot holds at each location, with the stock not put anywhere under the null key. Only non-zero places are listed.
+     * What the lot holds at each location, with the stock not put anywhere under the '' key. Only non-zero places are listed.
      *
      * @return array<string, float> Keyed by location id, or '' for stock with no location.
      */
     public function heldByLocation(MaterialLot $lot): array
     {
-        $held = [];
-        $movements = StockMovement::where('material_lot_id', $lot->id)->get(['movement_type', 'quantity', 'from_location_id', 'to_location_id']);
+        return $this->heldByLocationForLots([$lot->id])[$lot->id] ?? [];
+    }
+
+    /**
+     * The same for many lots at once, in two queries.
+     *
+     * @param  list<string>  $lotIds
+     * @return array<string, array<string, float>> Lot id => location id ('' for none) => quantity.
+     */
+    public function heldByLocationForLots(array $lotIds): array
+    {
+        $held = array_fill_keys($lotIds, []);
+
+        $movements = StockMovement::whereIn('material_lot_id', $lotIds)->get(['material_lot_id', 'movement_type', 'quantity', 'from_location_id', 'to_location_id']);
         foreach ($movements as $movement) {
             $quantity = (float) $movement->quantity;
             if ($movement->to_location_id && in_array($movement->movement_type, ['RECEIPT', 'TRANSFER'], true)) {
-                $held[$movement->to_location_id] = ($held[$movement->to_location_id] ?? 0) + $quantity;
+                $held[$movement->material_lot_id][$movement->to_location_id] = ($held[$movement->material_lot_id][$movement->to_location_id] ?? 0) + $quantity;
             }
             if ($movement->from_location_id && in_array($movement->movement_type, ['ISSUE', 'TRANSFER'], true)) {
-                $held[$movement->from_location_id] = ($held[$movement->from_location_id] ?? 0) - $quantity;
+                $held[$movement->material_lot_id][$movement->from_location_id] = ($held[$movement->material_lot_id][$movement->from_location_id] ?? 0) - $quantity;
             }
         }
-        $held = array_map(fn ($quantity) => round($quantity, 3), $held);
-        $held[''] = round($this->onHand($lot) - array_sum($held), 3);
 
-        return array_filter($held, fn ($quantity) => abs($quantity) > 0.0005);
+        $onHand = StockLotCostLayer::whereIn('material_lot_id', $lotIds)->groupBy('material_lot_id')
+            ->selectRaw('material_lot_id, sum(remaining_qty) as on_hand')->pluck('on_hand', 'material_lot_id');
+
+        foreach ($held as $lotId => $places) {
+            $places = array_map(fn ($quantity) => round($quantity, 3), $places);
+            $places[''] = round((float) ($onHand[$lotId] ?? 0) - array_sum($places), 3);
+            $held[$lotId] = array_filter($places, fn ($quantity) => abs($quantity) > 0.0005);
+        }
+
+        return $held;
     }
 
     /** @throws InsufficientStockException */
