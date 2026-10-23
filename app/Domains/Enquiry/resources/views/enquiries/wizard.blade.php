@@ -15,7 +15,13 @@
     .wz-card.sel { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent); }
     .wz-card strong { display: block; margin-bottom: 3px; } .wz-card span { font-size: 12.5px; color: var(--muted); }
     .wz-hint { background: color-mix(in srgb, var(--accent) 8%, #fff); border: 1px solid color-mix(in srgb, var(--accent) 30%, #fff); border-radius: 8px; padding: 8px 12px; margin: 0 0 12px; font-size: 13px; }
-    .wz-nav { display: flex; gap: 8px; margin-top: 14px; } .wz-review dt { font-weight: 600; margin-top: 8px; } .wz-review dd { margin: 0; }
+    .wz-nav { display: flex; gap: 8px; margin-top: 14px; }
+    .wz-review { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px 20px; margin: 0 0 12px; }
+    .wz-review div { min-width: 0; } .wz-review .wide { grid-column: 1 / -1; }
+    .wz-review dt { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+    .wz-review dd { margin: 1px 0 0; font-size: 13.5px; overflow-wrap: anywhere; white-space: pre-line; }
+    .wz-review .lead dd { font-weight: 600; }
+    .wz-next { font-size: 12.5px; padding: 8px 12px; } .wz-next ul { margin: 4px 0 0 16px; padding: 0; } .wz-next li { margin: 1px 0; }
     .wz-req > label:first-child::after, .wz-star::after { content: ' *'; color: #c0392b; font-weight: 600; }
     .wz-note { font-size: 12.5px; color: var(--muted); margin: 0 0 10px; }
     input[type=checkbox], input[type=radio] { accent-color: var(--accent); }
@@ -93,7 +99,7 @@
 
 <div class="wz-step panel" data-step="4"><div class="panel-header"><h2>Check and create</h2></div><div class="panel-body">
     <dl class="wz-review" id="wzReview"></dl>
-    <div class="wz-hint" id="wzNext"></div>
+    <div class="wz-hint wz-next" id="wzNext"></div>
     <button class="btn btn-primary" type="submit" id="wzSubmit">Create the request</button>
 </div></div>
 
@@ -157,14 +163,21 @@
     function review() {
         var s = SC[scenario()], dl = document.getElementById('wzReview'), rows = [];
         var cust = mode() === 'NEW' ? val('new_name') + ' (new customer)' : (form.elements.customer_id.selectedOptions[0] || {}).text;
-        rows.push(['Customer', cust]); rows.push(['Request', s.label]); rows.push(['Part', val('description') + (product() ? ' — ' + product().text + ' (' + product().dataset.sub + ')' : '')]);
-        ['drawing_ref:Drawing', 'material_text:Material', 'weight_kg:Weight kg', 'first_batch_qty:First batch', 'annual_qty:Yearly', 'target_price:Target price', 'due_on:Quote needed by', 'change_note:What changed', 'tool_note:Tooling', 'concept_note:Purpose', 'transfer_note:Transfer', 'sample_note:Sample'].forEach(function (p) {
-            var a = p.split(':'), e = form.elements[a[0]]; if (e && !e.disabled && val(a[0])) rows.push([a[1], val(a[0])]);
+        var material = val('material_text') === '__new__' ? val('material_new') : val('material_text');
+        rows.push(['Customer', cust, 'lead']); rows.push(['Request', s.label, 'lead']); rows.push(['Part', val('description') + (product() ? ' — ' + product().text + ' (' + product().dataset.sub + ')' : ''), 'lead']);
+        [['drawing_ref', 'Drawing'], ['material', 'Material'], ['weight_kg', 'Weight, kg'], ['first_batch_qty', 'First batch'], ['annual_qty', 'Yearly'], ['target_price', 'Target price'], ['due_on', 'Quote by']].forEach(function (p) {
+            var v = p[0] === 'material' ? material : (form.elements[p[0]] && !form.elements[p[0]].disabled ? val(p[0]) : ''); if (v) rows.push([p[1], v, '']);
         });
-        if (val('material_text') === '__new__') { rows = rows.filter(function (r) { return r[0] !== 'Material'; }); rows.push(['Material', val('material_new')]); }
-        var f = form.querySelector('input[type=file]').files.length; if (f) rows.push(['Files', f + ' to attach']);
-        dl.innerHTML = ''; rows.forEach(function (r) { var dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = r[0]; dd.textContent = r[1]; dl.appendChild(dt); dl.appendChild(dd); });
-        document.getElementById('wzNext').innerHTML = '<strong>What happens next</strong><ul style="margin:6px 0 0 18px">' + s.advice.map(function (a) { var li = document.createElement('li'); li.textContent = a; return li.outerHTML; }).join('') + '</ul>';
+        var flags = [form.elements.heat_treatment.checked ? 'Heat treated' : '', form.elements.ndt.checked ? 'NDT' : ''].filter(Boolean).join(', '); if (flags) rows.push(['Options', flags, '']);
+        var f = form.querySelector('input[type=file]').files.length; if (f) rows.push(['Files', f + ' to attach', '']);
+        [['change_note', 'What changed'], ['tool_note', 'Tooling'], ['concept_note', 'Purpose'], ['transfer_note', 'Transfer'], ['sample_note', 'Sample']].forEach(function (p) {
+            var e = form.elements[p[0]]; if (e && !e.disabled && val(p[0])) rows.push([p[1], val(p[0]), 'wide']);
+        });
+        dl.innerHTML = ''; rows.forEach(function (r) {
+            var w = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd');
+            w.className = r[2]; dt.textContent = r[0]; dd.textContent = r[1]; w.appendChild(dt); w.appendChild(dd); dl.appendChild(w);
+        });
+        document.getElementById('wzNext').innerHTML = '<strong>What happens next</strong><ul>' + s.advice.map(function (a) { var li = document.createElement('li'); li.textContent = a; return li.outerHTML; }).join('') + '</ul>';
     }
     function show(i) {
         cur = i; steps.forEach(function (s, k) { s.classList.toggle('on', k === i); });
