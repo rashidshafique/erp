@@ -38,6 +38,9 @@
             .cg-table .cg-num { width: 78px; }
             .cg-table .cg-mark { width: 70px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; text-transform: uppercase; }
             .cg-table .cg-n { width: 54px; text-align: center; }
+            .cg-table .cg-dup { width: 34px; text-align: center; }
+            .cg-dup-btn { background: none; border: 1px solid transparent; border-radius: 6px; padding: 5px; color: var(--muted); cursor: pointer; line-height: 0; }
+            .cg-dup-btn:hover, .cg-dup-btn:focus-visible { color: var(--accent); border-color: var(--border); }
             .cg-table .bad { border-color: var(--danger) !important; }
             .cg-table tr.has-error > td { background: color-mix(in srgb, var(--danger) 6%, transparent); }
             .cg-table tr.cg-errors td { color: var(--danger); font-size: 12px; padding-top: 0; }
@@ -113,6 +116,21 @@
                         if (tr) { parked[m] = tr; tr.remove(); }
                     }
                 }
+                // The duplicate icon on a row copies its product, role, component, pieces, weights and notes onto every cavity that has no product.
+                body.addEventListener('click', function (e) {
+                    var btn = e.target.closest('[data-cavity-duplicate]');
+                    if (!btn) return;
+                    var msg = form.querySelector('[data-cavity-repeat-msg]'), from = btn.closest('tr'), fields = ['product_revision_id', 'cavity_role', 'component_label', 'pieces_per_product', 'casting_weight_kg', 'poured_weight_kg', 'notes'];
+                    function field(tr, f) { return tr.querySelector('[name$="[' + f + ']"]'); }
+                    if (!field(from, 'product_revision_id').value) { if (msg) msg.textContent = 'Choose the product on this cavity first.'; return; }
+                    var done = 0;
+                    rows().forEach(function (tr) {
+                        if (tr === from || field(tr, 'product_revision_id').value) return;
+                        fields.forEach(function (f) { var t = field(tr, f); t.value = field(from, f).value; t.dispatchEvent(new Event('change', { bubbles: true })); });
+                        done++;
+                    });
+                    if (msg) msg.textContent = done ? 'Copied to ' + done + (done === 1 ? ' empty cavity.' : ' empty cavities.') : 'No empty cavity to copy to.';
+                });
                 // One product on every cavity, the usual case for a single-casting plate: the product chosen on one cavity goes on the rest.
                 var repeat = form.querySelector('[data-cavity-repeat]'), repeatMsg = form.querySelector('[data-cavity-repeat-msg]');
                 if (repeat) {

@@ -21,7 +21,8 @@
     <td><input type="number" name="{{ $name('casting_weight_kg') }}" min="0.0001" step="0.0001" value="{{ $kg($value('casting_weight_kg')) }}" class="cg-num {{ $error('casting_weight_kg') ? 'bad' : '' }}" aria-label="Casting weight, cavity {{ $n }}"></td>
     <td><input type="number" name="{{ $name('poured_weight_kg') }}" min="0.0001" step="0.0001" value="{{ $kg($value('poured_weight_kg')) }}" class="cg-num {{ $error('poured_weight_kg') ? 'bad' : '' }}" aria-label="Poured weight, cavity {{ $n }}"></td>
     <td><input name="{{ $name('notes') }}" value="{{ $value('notes') }}" maxlength="2000" aria-label="Notes, cavity {{ $n }}"></td>
+    <td class="cg-dup"><button type="button" class="cg-dup-btn" data-cavity-duplicate title="Copy this cavity's product, component, pieces, weights and notes to every cavity that has no product yet (marks are not copied)" aria-label="Duplicate cavity {{ $n }} to the empty cavities"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg></button></td>
 </tr>
 @if ($messages)
-    <tr class="cg-errors" data-cavity-errors="{{ $n }}"><td></td><td colspan="8">@foreach ($messages as $m)<div>{{ $m }}</div>@endforeach</td></tr>
+    <tr class="cg-errors" data-cavity-errors="{{ $n }}"><td></td><td colspan="9">@foreach ($messages as $m)<div>{{ $m }}</div>@endforeach</td></tr>
 @endif
