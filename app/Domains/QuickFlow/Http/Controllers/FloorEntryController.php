@@ -12,6 +12,8 @@ use App\Models\MouldingStation;
 use App\Models\Pattern;
 use App\Models\Pour;
 use App\Models\ProductionOrder;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -43,7 +45,7 @@ class FloorEntryController extends Controller
             'patterns' => $patterns,
             'patternPhotos' => Attachment::coverUrlsFor('pattern', $patterns->pluck('pattern.id')->merge($waiting->pluck('pattern_id'))->all()),
             'stations' => MouldingStation::where('status', 'ACTIVE')->orderBy('code')->get(),
-            'heats' => Heat::with(['ironGrade', 'furnace', 'thermalTests'])->whereNotIn('status', ['CANCELLED', 'CLOSED'])->orderByDesc('created_at')->limit(15)->get(),
+            'heats' => $this->pourableHeats()->with(['ironGrade', 'furnace', 'thermalTests'])->orderByDesc('created_at')->limit(15)->get(),
             'waiting' => $waiting->map(fn ($e) => ['entry' => $e, 'products' => $this->linker->productsOf($e->patternRevision)]),
             'recent' => QuickFloorEntry::with(['productionOrder.product', 'heat', 'pattern', 'station'])->orderByDesc('created_at')->limit(15)->get(),
         ]);
@@ -76,18 +78,21 @@ class FloorEntryController extends Controller
     public function poured(Request $request): RedirectResponse
     {
         $heatId = $request->validate([
-            'heat_id' => ['required', 'uuid', Rule::exists('heats', 'id')->whereNotIn('status', ['CANCELLED', 'CLOSED'])],
+            'heat_id' => ['required', 'uuid', Rule::exists('heats', 'id')->where(fn ($q) => $q->whereIn('id', $this->pourableHeats()->select('id')))],
         ], ['heat_id.required' => 'Choose the heat the moulds were poured from.'])['heat_id'];
         $rows = $this->validatedRows($request, pouring: true);
         $heat = Heat::with(['thermalTests', 'ironGrade'])->findOrFail($heatId);
         $advice = $this->thermalAdvice($heat);
 
-        [$moulds, $waiting] = DB::transaction(function () use ($rows, $request, $heatId, $advice) {
-            $prefix = 'P-'.now()->format('Ymd').'-';
+        // A pour typed in afterwards belongs to the day of its rows (the latest, when they differ), at the time of entry.
+        $poured = Carbon::parse(max(array_column($rows, 'entry_date')))->setTimeFrom(now());
+
+        [$moulds, $waiting] = DB::transaction(function () use ($rows, $request, $heatId, $advice, $poured) {
+            $prefix = 'P-'.$poured->format('Ymd').'-';
             $last = Pour::where('pour_number', 'like', $prefix.'%')->lockForUpdate()->pluck('pour_number')->map(fn ($n) => (int) substr($n, strlen($prefix)))->max() ?? 0;
             $pour = Pour::create([
                 'pour_number' => $prefix.str_pad((string) ($last + 1), 3, '0', STR_PAD_LEFT), 'heat_id' => $heatId, 'status' => 'COMPLETED',
-                'started_at' => now(), 'completed_at' => now(), 'operator_name' => $request->input('entered_by'),
+                'started_at' => $poured, 'completed_at' => $poured, 'operator_name' => $request->input('entered_by'),
                 'gate_mode' => 'ADVISORY', 'gate_note' => $advice,
             ]);
             foreach ($rows as $row) {
@@ -101,6 +106,13 @@ class FloorEntryController extends Controller
         });
 
         return back()->with('success', "{$moulds} moulds poured from {$heat->heat_number}.".$this->waitingNote($waiting))->with('warning', trim(($advice ?? '').' '.($this->unlinkedPatternsWarning($rows) ?? '')) ?: null);
+    }
+
+    /** Heats moulds can be poured from: not cancelled, and a closed one only for a couple of days so yesterday's campaign can still be entered. */
+    private function pourableHeats(): Builder
+    {
+        return Heat::where(fn ($q) => $q->whereNotIn('status', ['CANCELLED', 'CLOSED'])
+            ->orWhere(fn ($q) => $q->where('status', 'CLOSED')->where('closed_at', '>=', today()->subDays(2))));
     }
 
     /** Links an entry that was stored without an order. */

@@ -145,6 +145,25 @@ class QuickFlowTest extends TestCase
         $this->assertSame([40, 30, 10, 60], [$row['made'], $row['poured'], $row['awaiting'], $row['to_mould']]);
     }
 
+    public function test_yesterdays_moulds_and_pour_are_recorded_on_yesterday_even_from_a_heat_closed_since(): void
+    {
+        $shop = $this->shop();
+        $this->order($shop);
+        $order = ProductionOrder::firstOrFail();
+        $yesterday = today()->subDay();
+        $heat = Heat::create(['heat_number' => 'H-1', 'furnace_id' => $shop['furnace']->id, 'process_type' => 'INDUCTION', 'status' => 'CLOSED', 'closed_at' => now(), 'iron_grade_id' => $shop['grade']->id]);
+        $pattern = $this->pattern($shop);
+        $dated = ['production_order_id' => $order->id, 'entry_date' => $yesterday->toDateString()];
+
+        $this->post(route('quick.floor.made'), ['rows' => [$this->row($pattern, 20, $dated)]])->assertSessionHasNoErrors();
+        $this->post(route('quick.floor.poured'), ['heat_id' => $heat->id, 'rows' => [$this->row($pattern, 12, $dated)]])->assertSessionHasNoErrors();
+
+        $pour = Pour::firstOrFail();
+        $this->assertSame([$yesterday->toDateString(), 'P-'.$yesterday->format('Ymd').'-001'], [$pour->completed_at->toDateString(), $pour->pour_number]);
+        $this->assertSame($yesterday->toDateString(), MouldingRun::firstOrFail()->completed_at->toDateString());
+        $this->assertSame([20, 12], [(int) QuickFloorEntry::where('kind', 'MADE')->sum('moulds'), (int) QuickFloorEntry::where('kind', 'POURED')->sum('moulds')], 'Moulds made but not yet poured stay as awaiting.');
+    }
+
     public function test_the_next_heat_starts_a_real_heat_on_an_eligible_furnace(): void
     {
         $shop = $this->shop();

@@ -21,7 +21,7 @@
                         @php $t = $h->thermalTests->first(); @endphp
                         <option value="{{ $h->id }}" @selected($mine && old('heat_id') === $h->id)>{{ $h->heat_number }} · {{ $h->ironGrade?->code }} · {{ $h->furnace?->code }} · thermal: {{ $t ? strtolower(str_replace('_', ' ', $t->result)) : 'none yet' }}</option>@endforeach</select></div>
                 @endif
-                <div class="field"><label for="fg-{{ $kind }}-date">Date for every row</label><input id="fg-{{ $kind }}-date" type="date" value="{{ $today }}" max="{{ $today }}" data-fg-date></div>
+                <div class="field"><label for="fg-{{ $kind }}-date">Date for every row</label><input id="fg-{{ $kind }}-date" type="date" value="{{ $today }}" max="{{ $today }}" data-fg-date><button type="button" class="btn btn-small" data-fg-yesterday="{{ today()->subDay()->toDateString() }}">Yesterday</button></div>
                 <div class="field"><label for="fg-{{ $kind }}-by">By</label><input id="fg-{{ $kind }}-by" name="entered_by" maxlength="100" value="{{ $mine ? old('entered_by') : '' }}"></div>
             </div>
             <div class="table-wrap"><table class="fg-table">
@@ -80,6 +80,12 @@
         }
     });
     document.addEventListener('click', function (e) {
+        var y = e.target.closest('[data-fg-yesterday]');
+        if (y) {
+            var d = y.closest('form').querySelector('[data-fg-date]');
+            d.value = y.dataset.fgYesterday; d.dispatchEvent(new Event('change', {bubbles: true}));
+            return;
+        }
         var add = e.target.closest('[data-fg-add]');
         if (!add) return;
         var form = add.closest('form'), body = form.querySelector('[data-fg-rows]'), n = body.children.length;

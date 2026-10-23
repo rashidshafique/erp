@@ -119,7 +119,7 @@ class QuickFloorLinker
                     'run_number' => MouldingRun::nextRunNumber(), 'production_order_id' => $order->id, 'run_date' => $entry->entry_date,
                     'pattern_revision_id' => $entry->pattern_revision_id, 'moulding_station_id' => $entry->moulding_station_id,
                     'operator_name' => $entry->entered_by, 'planned_mould_qty' => $entry->moulds, 'moulds_made_qty' => $entry->moulds,
-                    'accepted_mould_qty' => $entry->moulds, 'status' => 'COMPLETED', 'completed_at' => now(), 'notes' => $entry->notes,
+                    'accepted_mould_qty' => $entry->moulds, 'status' => 'COMPLETED', 'completed_at' => $entry->entry_date->copy()->setTimeFrom(now()), 'notes' => $entry->notes,
                 ]);
                 $entry->moulding_run_id = $run->id;
                 if ($order->status === 'RELEASED') {
