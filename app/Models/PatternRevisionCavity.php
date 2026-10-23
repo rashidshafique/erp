@@ -24,6 +24,7 @@ class PatternRevisionCavity extends Model
         'casting_weight_kg',
         'poured_weight_kg',
         'notes',
+        'is_closed',
         'cavity_mark',
         'copied_from_revision_id',
         'needs_review',
@@ -35,6 +36,7 @@ class PatternRevisionCavity extends Model
         'casting_weight_kg' => 'decimal:4',
         'poured_weight_kg' => 'decimal:4',
         'needs_review' => 'boolean',
+        'is_closed' => 'boolean',
     ];
 
     public function patternRevision(): BelongsTo

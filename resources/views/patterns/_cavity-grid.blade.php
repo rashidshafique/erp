@@ -48,6 +48,7 @@
             <div class="field"><label>Component</label><input data-cd="component_label" maxlength="100" placeholder="if a component"></div>
             <div class="field"><label>Pieces per product</label><input type="number" data-cd="pieces_per_product" min="1" value="1"></div>
             <div class="field"><label>Poured kg, own gating</label><input type="number" data-cd="poured_weight_kg" min="0.0001" step="0.0001"></div>
+            <div class="field field-full"><label class="cd-check"><input type="checkbox" data-cd="is_closed"> Cavity closed, gating removed</label><div class="help">A closed cavity stays on the map but makes no casting: it is left out of the castings and metal per mould, and moulds assembled afterwards record no casting for it.</div></div>
             <div class="field field-full"><label>Notes</label><input data-cd="notes" maxlength="2000"></div>
         </div></div>
         <div class="qd-foot"><button type="button" class="btn" data-close>Cancel</button><button type="button" class="btn btn-primary" data-cd-save>Apply</button></div>

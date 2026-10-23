@@ -38,6 +38,7 @@ class PatternCavityController extends Controller
             'rows.*.casting_weight_kg' => ['nullable', 'numeric', 'gt:0', 'max:99999999.9999'],
             'rows.*.poured_weight_kg' => ['nullable', 'numeric', 'gt:0', 'max:99999999.9999'],
             'rows.*.notes' => ['nullable', 'string', 'max:2000'],
+            'rows.*.is_closed' => ['nullable', 'boolean'],
             'rows.*.cavity_mark' => ['nullable', 'string', 'max:20'],
         ], ['cavities_per_mould.required' => 'Enter how many cavities the layout has.', 'rows.*.cavity_mark.max' => 'A cavity mark is at most 20 characters.']);
         $count = (int) $request->input('cavities_per_mould');
@@ -67,6 +68,7 @@ class PatternCavityController extends Controller
                 'component_label' => ($row['cavity_role'] ?? 'WHOLE') === 'PART' ? ($row['component_label'] ?? null) : null,
                 'pieces_per_product' => (int) ($row['pieces_per_product'] ?? 1), 'casting_weight_kg' => $row['casting_weight_kg'] ?? null,
                 'poured_weight_kg' => $row['poured_weight_kg'] ?? null, 'notes' => $row['notes'] ?? null,
+                'is_closed' => (bool) ($row['is_closed'] ?? false),
                 'cavity_mark' => isset($row['cavity_mark']) ? mb_strtoupper(trim($row['cavity_mark'])) : null,
             ];
             if ($data['cavity_mark'] !== null) {
@@ -225,7 +227,9 @@ class PatternCavityController extends Controller
             'casting_weight_kg' => ['nullable', 'numeric', 'gt:0', 'max:99999999.9999'],
             'poured_weight_kg' => ['nullable', 'numeric', 'gt:0', 'max:99999999.9999'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            'is_closed' => ['nullable', 'boolean'],
         ]);
+        $data['is_closed'] = (bool) ($data['is_closed'] ?? false);
         $data['pieces_per_product'] = $data['pieces_per_product'] ?? 1;
         if ($data['cavity_role'] === 'WHOLE') {
             $data['component_label'] = null;

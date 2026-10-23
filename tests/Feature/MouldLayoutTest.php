@@ -102,6 +102,19 @@ class MouldLayoutTest extends TestCase
         $this->assertSame([2, 28, 12], [$count($one), $count($full), $count($short)]);
     }
 
+    public function test_a_closed_cavity_is_assembled_inactive_and_records_no_casting(): void
+    {
+        $configuration = MouldConfiguration::create(['code' => 'MC-1', 'name' => 'Cfg', 'mould_type' => 'COPE_DRAG', 'nominal_layer_count' => 2]);
+        $revision = $this->revision('COPE_DRAG', 2);
+        $revision->cavityMap()->where('cavity_number', 2)->update(['is_closed' => true]);
+
+        $assembly = app(MouldAssembler::class)->assemble($this->mouldingRun($revision, 1), 1, $configuration->id, 2)->first();
+
+        $cavities = MouldCavity::whereHas('layer', fn ($q) => $q->where('mould_assembly_id', $assembly->id))->orderBy('cavity_number')->get();
+        $this->assertSame([1, 0], $cavities->pluck('castings_per_cavity')->all());
+        $this->assertSame([true, false], $cavities->pluck('is_active')->all());
+    }
+
     public function test_a_layout_corrected_after_assembly_needs_a_reason_and_assembled_moulds_keep_their_castings(): void
     {
         $configuration = MouldConfiguration::create(['code' => 'MC-1', 'name' => 'Cfg', 'mould_type' => 'COPE_DRAG', 'nominal_layer_count' => 2]);

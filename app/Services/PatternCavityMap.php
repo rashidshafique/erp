@@ -113,7 +113,7 @@ class PatternCavityMap
     }
 
     /**
-     * Expected castings per mould for the product of an order on a pattern revision.
+     * Expected castings per mould for the product of an order on a pattern revision. Closed cavities make none.
      * WHOLE cavities count one casting each; PART cavities are converted to complete products.
      */
     public function expectedProductsPerMould(PatternRevision $revision, string $productId): float
@@ -121,7 +121,7 @@ class PatternCavityMap
         $total = 0.0;
         $partsByLabel = [];
 
-        foreach ($revision->cavityMap()->whereHas('productRevision', fn ($q) => $q->where('product_id', $productId))->get() as $c) {
+        foreach ($revision->cavityMap()->where('is_closed', false)->whereHas('productRevision', fn ($q) => $q->where('product_id', $productId))->get() as $c) {
             if ($c->cavity_role === 'WHOLE') {
                 $total += 1 / max(1, $c->pieces_per_product);
             } else {
@@ -147,6 +147,7 @@ class PatternCavityMap
     public function metalPerMould(PatternRevision $revision): ?array
     {
         $cavities = $revision->relationLoaded('cavityMap') ? $revision->cavityMap : $revision->cavityMap()->get();
+        $cavities = $cavities->reject(fn ($c) => $c->is_closed);   // a closed cavity has no gating and makes no casting
         if ($cavities->isEmpty()) {
             return null;
         }

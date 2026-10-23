@@ -3,6 +3,8 @@
 @php
     $metal = app(\App\Services\PatternCavityMap::class)->metalPerMould($revision);
     $levels = $revision->castingLevels();
+    $closedCount = $revision->cavityMap->where('is_closed', true)->count();
+    $openCount = $revision->cavityMap->count() - $closedCount;
     $sections = (int) ($revision->layers_per_mould ?? 2);
     $kg = fn ($v) => rtrim(rtrim(\App\Support\Formats::number((float) $v, 2), '0'), '.');
     $mine = old('_layout') === $revision->id;
@@ -14,8 +16,8 @@
 <div class="layout-summary">
     <strong>{!! \App\Support\MouldIcons::arrangement($revision->mould_arrangement, 17) !!} {{ $revision->arrangementLabel() }}</strong>
     · {{ $sections }} flask {{ $sections === 1 ? 'section' : 'sections' }}
-    · {{ $levels }} {{ $levels === 1 ? 'level' : 'levels' }} × {{ $revision->cavityMap->count() }} {{ $revision->cavityMap->count() === 1 ? 'cavity' : 'cavities' }}
-    = <strong>{{ $levels * $revision->cavityMap->count() }} {{ $levels * $revision->cavityMap->count() === 1 ? 'casting' : 'castings' }} per mould</strong>
+    · {{ $levels }} {{ $levels === 1 ? 'level' : 'levels' }} × {{ $openCount }} {{ $openCount === 1 ? 'cavity' : 'cavities' }}@if ($closedCount) <span class="muted">(+ {{ $closedCount }} closed)</span>@endif
+    = <strong>{{ $levels * $openCount }} {{ $levels * $openCount === 1 ? 'casting' : 'castings' }} per mould</strong>
     @if ($metal)
         · metal per mould <strong>{{ $kg($metal['kg']) }} kg</strong>
         @if ($metal['weighed'])<span class="muted">(weighed)</span>@else<span class="muted">(castings {{ $kg($metal['castings_kg']) }} + own gating {{ $kg($metal['own_gating_kg']) }} + runners {{ $kg($metal['runners_kg']) }} + sprue {{ $kg($metal['sprue_kg']) }})</span>@endif

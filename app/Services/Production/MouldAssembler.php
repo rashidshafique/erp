@@ -107,8 +107,8 @@ class MouldAssembler
                             'pattern_revision_id' => $run->pattern_revision_id,
                             'product_revision_id' => $c->product_revision_id,
                             'nominal_casting_weight_kg' => $c->casting_weight_kg,
-                            'castings_per_cavity' => 1,
-                            'is_active' => true,
+                            'castings_per_cavity' => $c->is_closed ? 0 : 1,
+                            'is_active' => ! $c->is_closed,
                         ]);
                     }
                 }

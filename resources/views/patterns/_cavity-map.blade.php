@@ -41,6 +41,9 @@
             .cg-table .cg-n { width: 54px; text-align: center; }
             .cg-table .cg-dup { white-space: nowrap; text-align: right; }
             .cg-del-btn:hover, .cg-del-btn:focus-visible { color: var(--danger); border-color: var(--danger); }
+            .cg-table tr.cg-closed td:not(.cg-dup):not(.cg-n) { opacity: .55; }
+            .cg-table tr.cg-closed .cg-product { text-decoration: line-through; }
+            .qd .cd-check { display: flex; gap: 6px; align-items: center; font-weight: 600; }
             .cg-dup-btn.bad { color: var(--danger); border-color: var(--danger); }
             .cg-sum { margin-right: 6px; }
             .cg-dup-btn { background: none; border: 1px solid transparent; border-radius: 6px; padding: 5px; color: var(--muted); cursor: pointer; line-height: 0; }
@@ -121,10 +124,12 @@
                     }
                 }
                 var dlg = form.querySelector('[data-cavity-dialog]'), editing = null;
-                var detailFields = ['cavity_role', 'component_label', 'pieces_per_product', 'poured_weight_kg', 'notes'];
+                var detailFields = ['cavity_role', 'component_label', 'pieces_per_product', 'poured_weight_kg', 'notes', 'is_closed'];
                 function hid(tr, f) { return tr.querySelector('[name$="[' + f + ']"]'); }
                 function summarise(tr) {
-                    var bits = [];
+                    var bits = [], closed = hid(tr, 'is_closed').value === '1';
+                    tr.classList.toggle('cg-closed', closed);
+                    if (closed) bits.push('Closed');
                     if (hid(tr, 'cavity_role').value === 'PART') bits.push('Component' + (hid(tr, 'component_label').value ? ': ' + hid(tr, 'component_label').value : ''));
                     if ((parseInt(hid(tr, 'pieces_per_product').value, 10) || 1) > 1) bits.push('× ' + hid(tr, 'pieces_per_product').value + ' pcs');
                     if (hid(tr, 'poured_weight_kg').value) bits.push('poured ' + hid(tr, 'poured_weight_kg').value + ' kg');
@@ -139,13 +144,13 @@
                     if (! btn) return;
                     editing = btn.closest('tr');
                     dlg.querySelector('[data-cd-n]').textContent = editing.getAttribute('data-cavity-row');
-                    detailFields.forEach(function (f) { dlg.querySelector('[data-cd="' + f + '"]').value = hid(editing, f).value; });
+                    detailFields.forEach(function (f) { var d = dlg.querySelector('[data-cd="' + f + '"]'); if (d.type === 'checkbox') { d.checked = hid(editing, f).value === '1'; } else { d.value = hid(editing, f).value; } });
                     syncComponent();
                     dlg.showModal();
                 });
                 dlg.querySelector('[data-cd-save]').addEventListener('click', function () {
                     if (editing) {
-                        detailFields.forEach(function (f) { var d = dlg.querySelector('[data-cd="' + f + '"]'); hid(editing, f).value = (f === 'component_label' && d.disabled) ? '' : d.value; });
+                        detailFields.forEach(function (f) { var d = dlg.querySelector('[data-cd="' + f + '"]'); hid(editing, f).value = d.type === 'checkbox' ? (d.checked ? '1' : '0') : ((f === 'component_label' && d.disabled) ? '' : d.value); });
                         summarise(editing);
                     }
                     dlg.close();
@@ -154,7 +159,7 @@
                 body.addEventListener('click', function (e) {
                     var btn = e.target.closest('[data-cavity-duplicate]');
                     if (!btn) return;
-                    var msg = form.querySelector('[data-cavity-repeat-msg]'), from = btn.closest('tr'), fields = ['product_revision_id', 'cavity_role', 'component_label', 'pieces_per_product', 'casting_weight_kg', 'poured_weight_kg', 'notes'];
+                    var msg = form.querySelector('[data-cavity-repeat-msg]'), from = btn.closest('tr'), fields = ['product_revision_id', 'cavity_role', 'component_label', 'pieces_per_product', 'casting_weight_kg', 'poured_weight_kg', 'notes', 'is_closed'];
                     function field(tr, f) { return tr.querySelector('[name$="[' + f + ']"]'); }
                     var next = rows().length + 1;
                     if (next > 200) { if (msg) msg.textContent = 'A layout holds at most 200 cavities.'; return; }
@@ -172,7 +177,7 @@
                     var btn = e.target.closest('[data-cavity-delete]');
                     if (!btn) return;
                     var msg = form.querySelector('[data-cavity-repeat-msg]'), all = [].slice.call(rows()), at = all.indexOf(btn.closest('tr'));
-                    var fields = ['cavity_mark', 'product_revision_id', 'cavity_role', 'component_label', 'pieces_per_product', 'casting_weight_kg', 'poured_weight_kg', 'notes'];
+                    var fields = ['cavity_mark', 'product_revision_id', 'cavity_role', 'component_label', 'pieces_per_product', 'casting_weight_kg', 'poured_weight_kg', 'notes', 'is_closed'];
                     function field(tr, f) { return tr.querySelector('[name$="[' + f + ']"]'); }
                     if (all.length <= 1) { if (msg) msg.textContent = 'A layout needs at least one cavity.'; return; }
                     for (var i = at; i < all.length - 1; i++) {

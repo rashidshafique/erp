@@ -215,7 +215,7 @@ class Pattern extends Model
             if ($previous && $copyLayout) {
                 foreach ($previous->cavityMap()->get() as $cavity) {
                     $revision->cavityMap()->create($cavity->only([
-                        'cavity_number', 'cavity_mark', 'product_revision_id', 'cavity_role', 'component_label', 'pieces_per_product', 'casting_weight_kg', 'poured_weight_kg', 'notes',
+                        'cavity_number', 'cavity_mark', 'product_revision_id', 'cavity_role', 'component_label', 'pieces_per_product', 'casting_weight_kg', 'poured_weight_kg', 'notes', 'is_closed',
                     ]) + ['copied_from_revision_id' => $previous->id, 'needs_review' => false]);
                 }
             }

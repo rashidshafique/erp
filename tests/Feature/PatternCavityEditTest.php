@@ -8,6 +8,7 @@ use App\Models\PatternRevision;
 use App\Models\PatternRevisionCavity;
 use App\Models\Product;
 use App\Models\ProductRevision;
+use App\Services\PatternCavityMap;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\BuildsCastingLots;
 use Tests\TestCase;
@@ -68,5 +69,20 @@ class PatternCavityEditTest extends TestCase
 
         $this->put(route('patterns.cavities.update', [$otherPattern, $revision, $cavity]), ['cavity_number' => 1, 'product_revision_id' => $product->id, 'cavity_role' => 'WHOLE'])->assertNotFound();
         $this->put(route('patterns.cavities.review', [$otherPattern, $revision, $cavity]))->assertNotFound();
+    }
+
+    public function test_a_closed_cavity_is_saved_from_the_map_and_makes_no_casting(): void
+    {
+        [$pattern, $revision, $cavity, $product] = $this->mapped();
+        $row = ['product_revision_id' => $product->id, 'cavity_role' => 'WHOLE', 'pieces_per_product' => 1, 'casting_weight_kg' => 2];
+
+        $this->put(route('patterns.cavities.map', [$pattern, $revision]), ['cavities_per_mould' => 2, 'rows' => [1 => $row, 2 => $row + ['is_closed' => '1']]])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame([false, true], $revision->cavityMap()->pluck('is_closed')->all());
+        $map = app(PatternCavityMap::class);
+        $this->assertSame(1.0, $map->expectedProductsPerMould($revision->fresh(), $product->product_id));
+        $this->assertSame(1, $map->metalPerMould($revision->fresh())['castings']);
+        $this->assertSame(2.0, $map->metalPerMould($revision->fresh())['castings_kg']);
     }
 }
