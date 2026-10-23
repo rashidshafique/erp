@@ -11,8 +11,12 @@ class ProcessRoute extends Model
 {
     use HasUuids;
 
+    /** What the route is for. A product's route comes from its manufacturing method; the foundry has one default route. */
+    public const APPLIES_TO = ['DEFAULT' => 'Every casting (the foundry default)', 'PRODUCT' => 'A product'];
+
     protected $fillable = [
         'manufacturing_method_id',
+        'applies_to',
         'code',
         'name',
         'revision',

@@ -13,6 +13,7 @@ class Operation extends Model
     protected $fillable = [
         'process_route_id',
         'work_center_id',
+        'stage_definition_id',
         'sequence',
         'code',
         'name',
@@ -48,5 +49,11 @@ class Operation extends Model
     public function workCenter(): BelongsTo
     {
         return $this->belongsTo(WorkCenter::class);
+    }
+
+    /** The library step this route step uses. */
+    public function stage(): BelongsTo
+    {
+        return $this->belongsTo(ProductionStageDefinition::class, 'stage_definition_id');
     }
 }

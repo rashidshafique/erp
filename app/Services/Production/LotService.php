@@ -30,7 +30,7 @@ class LotService
             if (in_array($lot->status, ['CLOSED', 'SCRAPPED', 'DISPATCHED'], true)) {
                 throw new InvalidArgumentException("The lot is {$lot->status} and takes no more stage records.");
             }
-            if ($stage->code === 'SHAKEOUT') {
+            if ($stage->knocks_out_mould) {
                 $cool = $this->cooling($lot);
                 if ($cool && $cool['wait'] > 0) {
                     if (blank($d['cooling_override_reason'] ?? null)) {
@@ -65,7 +65,7 @@ class LotService
                 'rejection_reason' => $d['rejection_reason'] ?? null, 'notes' => $d['notes'] ?? null,
             ]);
             $this->refresh($lot);
-            if ($stage->code === 'SHAKEOUT') {
+            if ($stage->knocks_out_mould) {
                 app(FlaskManager::class)->shakenOut($lot);   // the mould is knocked out: its flasks go back to the rack
             }
 

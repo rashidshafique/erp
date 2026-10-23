@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\AppSetting;
 use App\Models\ProductionStageDefinition;
+use Illuminate\Support\Str;
 
 /**
  * How the production queue flags work that is piling up, set under Settings: the age at which a step turns amber and red,
@@ -30,8 +31,9 @@ class QueueRules
      */
     public static function steps(): array
     {
-        $steps = ['waiting' => 'Waiting for shakeout'];
-        foreach (ProductionStageDefinition::where('is_active', true)->orderBy('sequence')->get() as $stage) {
+        $stages = ProductionStageDefinition::where('is_active', true)->orderBy('sequence')->get();
+        $steps = ['waiting' => $stages->isEmpty() ? 'Waiting' : 'Waiting for '.Str::lower($stages->first()->name)];
+        foreach ($stages as $stage) {
             $steps['after-'.$stage->code] = 'After '.$stage->name;
         }
 
