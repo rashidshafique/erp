@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Validation\Rule;
 
 class Customer extends Model
 {
@@ -28,6 +29,28 @@ class Customer extends Model
         'payment_terms',
         'active',
     ];
+
+    /**
+     * The rules a customer is saved under, from the order form's quick add or the customer list's dialog. Codes are kept in
+     * capitals, so the caller upper-cases one before checking it is unused.
+     *
+     * @return array<string, list<mixed>>
+     */
+    public static function rules(?self $customer = null): array
+    {
+        return [
+            'code' => ['nullable', 'string', 'max:40', Rule::unique('customers', 'code')->ignore($customer?->id)],
+            'name' => ['required', 'string', 'max:200'],
+            'short_name' => ['nullable', 'string', 'max:60'],
+            'contact_name' => ['nullable', 'string', 'max:120'],
+            'phone' => ['nullable', 'string', 'max:40'],
+            'email' => ['nullable', 'email', 'max:160'],
+            'billing_address' => ['nullable', 'string', 'max:1000'],
+            'shipping_address' => ['nullable', 'string', 'max:1000'],
+            'tax_number' => ['nullable', 'string', 'max:60'],
+            'payment_terms' => ['nullable', 'string', 'max:100'],
+        ];
+    }
 
     /** Patterns the customer owns or is paying off, held by the foundry. */
     public function ownedPatterns(): HasMany
