@@ -174,7 +174,7 @@ class CavityMapGridTest extends TestCase
         $revision = $this->revision(2);
 
         $page = $this->get(route('patterns.show', $revision->pattern_id))->assertOk();
-        $this->assertSame(1, substr_count($page->getContent(), 'Cavities on the layout</label>'), 'Only the layout form asks for the count.');
+        $this->assertSame(1, substr_count($page->getContent(), 'Cavities per level</label>'), 'Only the layout form asks for the count.');
         $page->assertSee('id="cv-'.$revision->id.'"', false)->assertSee('data-cavity-source="cv-'.$revision->id.'"', false);
     }
 

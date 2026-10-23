@@ -14,7 +14,7 @@
     @csrf @method('PUT')<input type="hidden" name="_map" value="{{ $revision->id }}">
     <div class="cg-head">
         @if ($revision->exists)
-            {{-- The layout form above has the one "Cavities on the layout" box; the grid follows it and saves the same figure. --}}
+            {{-- The layout form above has the one "Cavities per level" box; the grid follows it and saves the same figure. --}}
             <input type="hidden" name="cavities_per_mould" value="{{ $count ?: '' }}" data-cavity-count data-cavity-source="cv-{{ $revision->id }}">
             @if ($mine)@error('cavities_per_mould')<div class="error-text">{{ $message }}</div>@enderror @endif
             <h4>Cavity map of {{ $revision->shortCode() }}</h4>
