@@ -28,6 +28,26 @@ class Product extends Model
         'active' => 'boolean',
     ];
 
+    /** The revision the product is made to now: the latest approved one, else the latest that is not obsolete, else the latest. */
+    public function currentRevision(): ?ProductRevision
+    {
+        $revisions = $this->revisions()->orderByDesc('created_at')->get();
+
+        return $revisions->firstWhere('status', 'APPROVED') ?? $revisions->first(fn ($r) => $r->status !== 'OBSOLETE') ?? $revisions->first();
+    }
+
+    /**
+     * Sets the nominal weight from the net weight of the current revision. A product with no revision keeps the weight typed on it,
+     * and gives it to its first revision.
+     */
+    public function syncNominalWeight(): void
+    {
+        $current = $this->currentRevision();
+        if ($current && (string) $this->nominal_weight_kg !== (string) $current->net_weight_kg) {
+            $this->forceFill(['nominal_weight_kg' => $current->net_weight_kg])->saveQuietly();
+        }
+    }
+
     /** Products with no revision that is not obsolete: lists offer them as "product:<id>" and give them their first revision on save. */
     public function scopeWithoutRevision(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
     {

@@ -11,6 +11,20 @@ class ProductRevision extends Model
 {
     use HasUuids;
 
+    protected static function booted(): void
+    {
+        // A revision made without a weight starts with the product's nominal weight; every save keeps that weight in step with the
+        // current revision.
+        static::creating(function (ProductRevision $revision) {
+            if ($revision->net_weight_kg === null && $revision->product_id) {
+                $nominal = Product::withTrashed()->whereKey($revision->product_id)->value('nominal_weight_kg');
+                $revision->net_weight_kg = $nominal !== null && (float) $nominal > 0 ? $nominal : null;
+            }
+        });
+        static::saved(fn (ProductRevision $revision) => Product::withTrashed()->find($revision->product_id)?->syncNominalWeight());
+        static::deleted(fn (ProductRevision $revision) => Product::withTrashed()->find($revision->product_id)?->syncNominalWeight());
+    }
+
     /** Prefix of a list choice that names a product with no revision yet instead of one of its revisions. */
     public const PRODUCT_CHOICE = 'product:';
 

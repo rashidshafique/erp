@@ -64,6 +64,7 @@
                            name="nominal_weight_kg" value="{{ old('nominal_weight_kg') }}">
                     <div class="help">Nominal finished-product weight, not total metal poured.</div>
                     @error('nominal_weight_kg')<div class="error-text">{{ $message }}</div>@enderror
+                    <div class="help">The first revision starts with this weight, unless you enter its net weight below. Afterwards the product follows its current revision.</div>
                 </div>
 
                 <div class="field">

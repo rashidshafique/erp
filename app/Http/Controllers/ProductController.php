@@ -208,10 +208,15 @@ class ProductController extends Controller
             'name' => trim($data['name']),
             'product_type' => $data['product_type'],
             'base_uom' => $data['base_uom'],
-            'nominal_weight_kg' => $data['nominal_weight_kg'] ?? null,
             'description' => $data['description'] ?? null,
             'active' => $data['active'],
         ]);
+        // The nominal weight is the current revision's net weight: changing it here changes that revision. Without a revision it is kept on the product.
+        if ($current = $product->currentRevision()) {
+            $current->update(['net_weight_kg' => $data['nominal_weight_kg'] ?? null]);
+        } else {
+            $product->update(['nominal_weight_kg' => $data['nominal_weight_kg'] ?? null]);
+        }
 
         return redirect()
             ->route('products.show', $product)
