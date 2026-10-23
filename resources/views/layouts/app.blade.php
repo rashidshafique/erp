@@ -42,6 +42,7 @@
         @php($menu = app(\App\Domains\Core\Contracts\MenuFilter::class))
         <nav class="sidebar-nav" aria-label="Main navigation">
             <a href="{{ route('dashboard') }}" class="nav-link nav-top {{ request()->routeIs('dashboard') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('dashboard') !!}<span>Dashboard</span></a>
+            @if ($menu->shows('calendar.index')) <a href="{{ route('calendar.index') }}" class="nav-link nav-top {{ request()->routeIs('calendar.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('calendar') !!}<span>Calendar</span></a> @endif
 
             @if ($menu->showsAny(['products.index', 'patterns.index', 'casting-analyses.index', 'production-orders.index', 'moulding-runs.index', 'pours.index', 'work-lists.index', 'moulding-teams.index', 'sand-systems.index', 'mould-readiness.index']))
             <div class="nav-group {{ request()->routeIs('products.*', 'patterns.*', 'pattern-ownership.*', 'casting-analyses.*', 'production-orders.*', 'moulding-runs.*', 'pours.*', 'work-lists.*', 'moulding-teams.*', 'sand-systems.*', 'mould-readiness.*') ? 'is-active' : '' }}">
@@ -82,7 +83,7 @@
             @endif
 
             @if ($menu->showsAny(['customers.index', 'sales-orders.index', 'heat-plan.index']) || collect(app(\App\Domains\Core\ModuleRegistry::class)->navItems('sales'))->contains(fn ($i) => $menu->shows($i['route'])))
-            <div class="nav-group {{ request()->routeIs('customers.*', 'sales-orders.*', 'heat-plan.*', 'calendar.*', ...app(\App\Domains\Core\ModuleRegistry::class)->navPatterns('sales')) ? 'is-active' : '' }}">
+            <div class="nav-group {{ request()->routeIs('customers.*', 'sales-orders.*', 'heat-plan.*', ...app(\App\Domains\Core\ModuleRegistry::class)->navPatterns('sales')) ? 'is-active' : '' }}">
                 <button type="button" class="nav-group-toggle" aria-expanded="false">
                     <span class="nav-lab">{!! \App\Support\NavIcons::get('briefcase') !!}<span>Sales &amp; Planning</span></span><span class="nav-chevron">›</span>
                 </button>
@@ -93,7 +94,6 @@
                         <a href="{{ route($item['route']) }}" class="nav-link {{ request()->routeIs(...$item['active']) ? 'active' : '' }}">{!! \App\Support\NavIcons::get($item['icon']) !!}<span>{{ $item['label'] }}</span></a>
                     @endforeach
                     @if ($menu->shows('sales-orders.index')) <a href="{{ route('sales-orders.index') }}" class="nav-link {{ request()->routeIs('sales-orders.index', 'sales-orders.show', 'sales-orders.trace') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('receipt') !!}<span>Sales orders</span></a> @endif
-                    @if ($menu->shows('calendar.index')) <a href="{{ route('calendar.index') }}" class="nav-link {{ request()->routeIs('calendar.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('calendar') !!}<span>Calendar</span></a> @endif
                     @if ($menu->shows('heat-plan.index')) <a href="{{ route('heat-plan.index') }}" class="nav-link {{ request()->routeIs('heat-plan.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('calendar') !!}<span>Melting plan</span></a> @endif
                 </div>
             </div>
