@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\Customer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -54,6 +56,20 @@ class CustomerListTest extends TestCase
         $this->assertSame(['ACME', 'BETA'], $this->codes($list));
         $list->call('resetFilters');
         $this->assertCount(3, $this->codes($list));
+    }
+
+    public function test_each_customer_shows_the_date_of_its_latest_dispatch(): void
+    {
+        $acme = $this->customer('ACME', 'Acme Pumps');
+        $this->customer('BETA', 'Beta Valves');
+        foreach (['D-1' => '2026-09-02 10:00', 'D-2' => '2026-10-14 15:30', 'D-3' => null] as $number => $at) {
+            DB::table('dispatches')->insert(['id' => (string) Str::uuid(), 'dispatch_number' => $number, 'customer_id' => $acme->id, 'status' => $at ? 'DISPATCHED' : 'DRAFT', 'dispatched_at' => $at, 'created_at' => now(), 'updated_at' => now()]);
+        }
+
+        $list = Livewire::test('customer-list')->assertSee('Last dispatch');
+        $dates = collect($list->viewData('customers')->items())->mapWithKeys(fn ($c) => [$c->code => $c->last_dispatched_at?->toDateString()])->all();
+
+        $this->assertSame(['ACME' => '2026-10-14', 'BETA' => null], $dates, 'the latest sent dispatch counts; a draft is not sent yet');
     }
 
     public function test_a_customer_is_added_from_the_dialog_with_a_generated_or_typed_code(): void

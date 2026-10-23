@@ -1,7 +1,9 @@
 <?php
 
+use App\Domains\Core\ModuleRegistry;
 use App\Models\Customer;
 use App\Services\Codes\CodeGenerator;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -126,8 +128,11 @@ new class extends Component
     {
         $search = trim($this->search);
         $inactive = fn ($q) => $q->whereHas('party', fn ($p) => $p->where('active', false));
+        $showDispatch = app(ModuleRegistry::class)->isEnabled('dispatch');
 
         $customers = Customer::query()->withCount(['salesOrders', 'ownedPatterns'])
+            ->when($showDispatch, fn ($q) => $q->addSelect(['last_dispatched_at' => DB::table('dispatches')->selectRaw('max(dispatched_at)')->whereColumn('dispatches.customer_id', 'customers.id')])
+                ->withCasts(['last_dispatched_at' => 'datetime']))
             ->when($search !== '', fn ($q) => $q->where(fn ($w) => $w->matching($search)->orWhereHas('party', fn ($p) => $p
                 ->where('short_name', 'ilike', "%{$search}%")->orWhere('contact_name', 'ilike', "%{$search}%")
                 ->orWhere('phone', 'ilike', "%{$search}%")->orWhere('email', 'ilike', "%{$search}%"))))
@@ -138,6 +143,7 @@ new class extends Component
 
         return [
             'customers' => $customers,
+            'showDispatch' => $showDispatch,
             'counts' => [
                 '' => Customer::count(),
                 'active' => Customer::active()->count(),
@@ -197,7 +203,7 @@ new class extends Component
     @else
         <div class="table-wrap">
             <table>
-                <thead><tr><th>Customer</th><th>Contact</th><th>Payment terms</th><th>Orders</th><th>Patterns held</th><th>Status</th><th></th></tr></thead>
+                <thead><tr><th>Customer</th><th>Contact</th><th>Payment terms</th><th>Orders</th>@if ($showDispatch)<th>Last dispatch</th>@endif<th>Patterns held</th><th>Status</th><th></th></tr></thead>
                 <tbody>
                 @foreach ($customers as $customer)
                     <tr wire:key="customer-{{ $customer->id }}">
@@ -205,6 +211,7 @@ new class extends Component
                         <td>{{ $customer->contact_name ?: '—' }}@if ($customer->phone || $customer->email)<div class="muted small">{{ collect([$customer->phone, $customer->email])->filter()->implode(' · ') }}</div>@endif</td>
                         <td>{{ $customer->payment_terms ?: '—' }}</td>
                         <td>{{ $customer->sales_orders_count }}</td>
+                        @if ($showDispatch)<td>@if ($customer->last_dispatched_at){{ $customer->last_dispatched_at->displayDate() }}<div class="muted small">{{ $customer->last_dispatched_at->diffForHumans() }}</div>@else — @endif</td>@endif
                         <td>@if ($customer->owned_patterns_count)<a href="{{ route('patterns.index', ['owner' => $customer->id]) }}">{{ $customer->owned_patterns_count }}</a>@else — @endif</td>
                         <td><span class="status {{ $customer->active ? 'status-completed' : 'status-cancelled' }}">{{ $customer->active ? 'Active' : 'Inactive' }}</span></td>
                         <td style="white-space:nowrap"><button class="btn btn-small" type="button" wire:click="edit('{{ $customer->id }}')">Quick edit</button> <a href="{{ route('customer-requirements.edit', $customer) }}">Requirements →</a></td>
