@@ -29,4 +29,16 @@ class CalendarTest extends TestCase
         $this->get(route('calendar.index', ['view' => 'year']))->assertOk()->assertSee(today()->format('Y'));
         $this->get(route('calendar.index', ['view' => 'decade']))->assertSessionHasErrors('view');
     }
+
+    public function test_the_gantt_view_draws_a_bar_per_open_order_and_marks_a_late_one(): void
+    {
+        $product = Product::create(['code' => 'P2', 'name' => 'Part']);
+        $make = fn (string $number, $due) => ProductionOrder::create(['production_order_number' => $number, 'product_id' => $product->id, 'product_revision_id' => $product->linkableRevision()->id,
+            'status' => 'IN_PROGRESS', 'planned_qty' => 10, 'required_date' => $due, 'actual_started_at' => today()->subDays(5)]);
+        $make('PO-LATE', today()->subDays(2));
+        $make('PO-OK', today()->addDays(10));
+        ProductionOrder::where('production_order_number', 'PO-OK')->first()->update(['status' => 'CLOSED']);
+
+        $this->get(route('calendar.index', ['view' => 'gantt']))->assertOk()->assertSee('PO-LATE')->assertSee('gt-bar late', false)->assertDontSee('PO-OK');
+    }
 }

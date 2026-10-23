@@ -2,6 +2,7 @@
 
 namespace App\Services\Planning;
 
+use App\Domains\QuickFlow\Services\NextHeatPlan;
 use App\Models\Heat;
 use App\Models\MouldingRun;
 use App\Models\PlannedHeat;
@@ -59,6 +60,33 @@ class CalendarEvents
             ->each(fn ($o) => $events->push($this->event('DUE', $o->required_date, $o->production_order_number, (string) $o->product?->code, route('production-orders.show', $o))));
 
         return $events->sortBy('sort')->groupBy('date');
+    }
+
+    /**
+     * One bar per open production order that overlaps the span: from when it started (else its planned start, else when it was
+     * created) to its due date, with the pieces made and poured against the quantity ordered. An order is late when its due date has
+     * passed with pieces still to make or pour, and at risk when no campaign day is left to pour in time.
+     *
+     * @return Collection<int, array{order: ProductionOrder, customer: string, start: CarbonInterface, due: ?CarbonInterface, ordered: int, made: int, poured: int, late: bool, at_risk: bool}>
+     */
+    public function orderBars(CarbonInterface $from, CarbonInterface $to): Collection
+    {
+        $from = $from->copy()->startOfDay();
+        $to = $to->copy()->endOfDay();
+
+        return app(NextHeatPlan::class)->orders()->map(function (array $row) {
+            $order = $row['order'];
+            $start = ($order->actual_started_at ?? $order->planned_start_date ?? $order->created_at)->copy()->startOfDay();
+            $due = $row['due']?->copy()->startOfDay() ?? $order->planned_finish_date?->copy()->startOfDay();
+            $open = $row['awaiting'] + $row['to_mould'] > 0;
+
+            return [
+                'order' => $order, 'customer' => $row['customer'], 'start' => $start, 'due' => $due, 'ordered' => $row['ordered'], 'made' => $row['made'], 'poured' => $row['poured'],
+                'late' => $open && $due !== null && $due->lt(today()),
+                'at_risk' => $open && $due !== null && $due->gte(today()) && ! MeltingCalendar::checkDue($due)['ok'],
+            ];
+        })->filter(fn ($b) => $b['start']->lte($to) && ($b['due'] ?? $b['start'])->gte($from))
+            ->sortBy(fn ($b) => ($b['due'] ?? $b['start'])->format('Y-m-d').$b['order']->production_order_number)->values();
     }
 
     /** Whether the furnace is lit on this day under the melting calendar. */
