@@ -33,12 +33,12 @@ class ProcessRouteTest extends TestCase
         $this->assertSame(['SHAKEOUT', 'CUTTING', 'SHOT_BLAST', 'FETTLING', 'HEAT_TREATMENT', 'MACHINING', 'COATING', 'FINAL_INSPECTION'], $this->routeCodes());
         $this->assertTrue($this->stage('SHAKEOUT')->knocks_out_mould);
         $this->assertSame('INSPECTION', $this->stage('FINAL_INSPECTION')->kind);
-        $this->get(route('settings.process'))->assertOk()->assertSee('Our process')->assertSee('Gate and riser removal');
+        $this->get(route('settings.process'))->assertOk()->assertSee('Our process')->assertSee('Fettling')->assertSee('Grinding');
     }
 
     public function test_moving_and_taking_off_steps_changes_the_order_the_queue_follows(): void
     {
-        $page = Livewire::test('process-route')->call('move', 2, -1);   // shot blasting before gate and riser removal
+        $page = Livewire::test('process-route')->call('move', 2, -1);   // shot blasting before fettling
         $this->assertSame(['SHAKEOUT', 'SHOT_BLAST', 'CUTTING'], array_slice($this->routeCodes(), 0, 3));
         $this->assertSame(['waiting', 'after-SHAKEOUT', 'after-SHOT_BLAST', 'after-CUTTING'], array_slice(array_keys(QueueRules::steps()), 0, 4));
 
@@ -64,7 +64,7 @@ class ProcessRouteTest extends TestCase
         $this->assertSame(['FETTLING', 'WEIGHING'], $this->routeCodes());
         $this->assertTrue($this->stage('WEIGHING')->records_weight);
         $this->assertSame(['waiting', 'after-FETTLING', 'after-WEIGHING', 'ready'], array_keys(QueueRules::steps()));
-        $this->assertSame('Waiting for fettling and grinding', QueueRules::steps()['waiting']);
+        $this->assertSame('Waiting for grinding', QueueRules::steps()['waiting']);
         $this->get(route('lots.queue'))->assertOk();
     }
 
@@ -105,7 +105,7 @@ class ProcessRouteTest extends TestCase
         $this->stage('FETTLING')->update(['quality_notes' => 'No cracks at the gate']);
 
         $this->get(route('lots.traveller', $lot))->assertOk()
-            ->assertSeeInOrder(['Gate and riser removal', '5', '4', '1', 'Crack', 'Asif', 'Fettling', 'No cracks at the gate', 'Machining', 'recorded, not on the process'])
+            ->assertSeeInOrder(['Fettling', '5', '4', '1', 'Crack', 'Asif', 'Grinding', 'No cracks at the gate', 'Machining', 'recorded, not on the process'])
             ->assertDontSee('Shot blasting');
     }
 
