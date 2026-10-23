@@ -1,8 +1,8 @@
 <?php
 
 namespace App\Http\Controllers;
-use App\Models\StockLotCostLayer;
 use App\Models\StockMovement;
+use App\Services\Stock\StockLedger;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use App\Domains\Core\ModuleRegistry;
@@ -92,6 +92,7 @@ class MaterialLotController extends Controller
     $validated = $request->validate([
         'confirmed_physical_stock' => ['required', 'accepted'],
         'recorded_by' => ['required', 'string', 'max:100'],
+        'stock_location_id' => ['nullable', 'uuid', Rule::exists('stock_locations', 'id')->where('is_active', true)],
         'notes' => ['nullable', 'string', 'max:2000'],
     ]);
 
@@ -150,33 +151,14 @@ try {
             ]);
         }
 
-        $now = now();
-
-        $movement = StockMovement::create([
+        app(StockLedger::class)->receive($lockedLot, $quantity, $unitCost, $baseUom, [
             'movement_number' => 'RCV-'.strtoupper(str_replace('-', '', $lockedLot->id)),
-            'movement_type' => 'RECEIPT',
-            'material_id' => $lockedLot->material_id,
-            'material_lot_id' => $lockedLot->id,
-            'quantity' => $quantity,
-            'uom' => $baseUom,
-            'unit_cost' => $unitCost,
-            'total_cost' => round($quantity * $unitCost, 4),
             'source_type' => 'MATERIAL_LOT_RECEIPT',
             'source_id' => $lockedLot->id,
             'receipt_lot_id' => $lockedLot->id,
-            'occurred_at' => $now,
+            'to_location_id' => $validated['stock_location_id'] ?? null,
             'recorded_by' => $validated['recorded_by'],
             'reason' => $validated['notes'] ?? 'Accepted lot receipt',
-        ]);
-
-        StockLotCostLayer::create([
-            'material_lot_id' => $lockedLot->id,
-            'stock_movement_id' => $movement->id,
-            'original_qty' => $quantity,
-            'remaining_qty' => $quantity,
-            'unit_cost' => $unitCost,
-            'currency_code' => 'PKR',
-            'received_at' => $now,
         ]);
 
         return true;

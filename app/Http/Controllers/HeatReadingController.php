@@ -13,11 +13,12 @@ use App\Models\HeatProcessReading;
 use App\Models\IronGrade;
 use App\Models\Material;
 use App\Models\MaterialLot;
-use App\Models\StockLotCostLayer;
 use App\Models\StockMovement;
 use App\Services\FurnaceEligibility;
 use App\Services\Production\ChargeSchedule;
 use App\Services\Production\HeatEta;
+use App\Services\Stock\InsufficientStockException;
+use App\Services\Stock\StockLedger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -573,31 +574,13 @@ class HeatReadingController extends Controller
                             'notes' => "Automatic internal-return receipt from heat {$lockedHeat->heat_number}, charge entry {$entry->sequence}.",
                         ]);
 
-                        $returnMovement = StockMovement::create([
-                            'movement_number' => 'RET-'
-                                .strtoupper(str_replace('-', '', $entry->id)),
-                            'movement_type' => 'RECEIPT',
-                            'material_id' => $returnMaterial->id,
-                            'material_lot_id' => $returnLot->id,
-                            'quantity' => $quantity,
-                            'uom' => 'kg',
-                            'unit_cost' => $unitCost,
-                            'total_cost' => $returnCost,
+                        app(StockLedger::class)->receive($returnLot, $quantity, $unitCost, 'kg', [
+                            'movement_number' => 'RET-'.strtoupper(str_replace('-', '', $entry->id)),
                             'source_type' => 'HEAT_RETURN',
                             'source_id' => $entry->id,
                             'occurred_at' => $now,
                             'recorded_by' => $validated['posted_by'],
                             'reason' => "Internal return received from heat {$lockedHeat->heat_number}, entry {$entry->sequence}.",
-                        ]);
-
-                        StockLotCostLayer::create([
-                            'material_lot_id' => $returnLot->id,
-                            'stock_movement_id' => $returnMovement->id,
-                            'original_qty' => $quantity,
-                            'remaining_qty' => $quantity,
-                            'unit_cost' => $unitCost,
-                            'currency_code' => 'PKR',
-                            'received_at' => $now,
                         ]);
                     }
 
@@ -647,73 +630,22 @@ class HeatReadingController extends Controller
                     ]);
                 }
 
-                $layers = StockLotCostLayer::query()
-                    ->where('material_lot_id', $lot->id)
-                    ->where('currency_code', 'PKR')
-                    ->where('remaining_qty', '>', 0)
-                    ->orderBy('received_at')
-                    ->orderBy('id')
-                    ->lockForUpdate()
-                    ->get();
-
-                $available = $layers->sum(
-                    fn ($layer) => (float) $layer->remaining_qty
-                );
-
-                if ($available + 0.000001 < $quantity) {
-                    throw ValidationException::withMessages([
-                        'posted_by' => "Insufficient posted stock in lot {$lot->lot_number}. Available: "
-                            .\App\Support\Formats::number($available, 3)
-                            .' kg; required: '.\App\Support\Formats::number($quantity, 3).' kg.',
+                try {
+                    $issue = app(StockLedger::class)->issue($lot, $quantity, 'kg', [
+                        'movement_number' => 'ISS-'.substr(str_replace('-', '', $lockedHeat->id), 0, 20).'-'.$entry->sequence,
+                        'source_type' => 'HEAT_CHARGE',
+                        'source_id' => $lockedHeat->id,
+                        'occurred_at' => $now,
+                        'recorded_by' => $validated['posted_by'],
+                        'reason' => 'Charge issued to heat '.$lockedHeat->heat_number,
                     ]);
+                } catch (InsufficientStockException $e) {
+                    throw ValidationException::withMessages(['posted_by' => $e->getMessage()]);
                 }
-
-                $remainingToIssue = $quantity;
-                $issueCost = 0.0;
-
-                foreach ($layers as $layer) {
-                    if ($remainingToIssue <= 0.000001) {
-                        break;
-                    }
-
-                    $layerRemaining = (float) $layer->remaining_qty;
-                    $taken = min($layerRemaining, $remainingToIssue);
-                    $layerCost = round($taken * (float) $layer->unit_cost, 4);
-
-                    $layer->remaining_qty = round($layerRemaining - $taken, 3);
-                    $layer->save();
-
-                    $remainingToIssue = round($remainingToIssue - $taken, 3);
-                    $issueCost += $layerCost;
-                }
-                if ($remainingToIssue > 0.000001) {
-                    throw ValidationException::withMessages([
-                        'posted_by' => "Could not fully allocate charge entry {$entry->sequence} to available cost layers.",
-                    ]);
-                }
-                $issueCost = round($issueCost, 4);
-                $averageCost = round($issueCost / $quantity, 4);
+                $issueCost = (float) $issue->total_cost;
 
                 $entry->actual_total_cost = $issueCost;
                 $entry->save();
-
-                StockMovement::create([
-                    'movement_number' => 'ISS-'
-                        .substr(str_replace('-', '', $lockedHeat->id), 0, 20)
-                        .'-'.$entry->sequence,
-                    'movement_type' => 'ISSUE',
-                    'material_id' => $lot->material_id,
-                    'material_lot_id' => $lot->id,
-                    'quantity' => $quantity,
-                    'uom' => 'kg',
-                    'unit_cost' => $averageCost,
-                    'total_cost' => $issueCost,
-                    'source_type' => 'HEAT_CHARGE',
-                    'source_id' => $lockedHeat->id,
-                    'occurred_at' => $now,
-                    'recorded_by' => $validated['posted_by'],
-                    'reason' => 'Charge issued to heat '.$lockedHeat->heat_number,
-                ]);
 
                 $totalQuantity += $quantity;
                 $totalCost += $issueCost;
