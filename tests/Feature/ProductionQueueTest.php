@@ -73,6 +73,21 @@ class ProductionQueueTest extends TestCase
         $this->assertSame(1, substr_count($page->getContent(), 'class="qmould-toggle"'), 'only the lot from several moulds can be expanded');
     }
 
+    public function test_the_board_shows_a_column_per_step_and_a_card_per_lot_that_can_be_ticked(): void
+    {
+        $lot = $this->castingLot();
+        $held = $this->castingLot();
+        $held->update(['status' => 'ON_HOLD']);
+
+        $page = $this->get(route('lots.queue', ['view' => 'board']))->assertOk()->assertViewHas('view', 'board');
+        $html = $page->getContent();
+
+        $this->assertSame(count($page->viewData('steps')), substr_count($html, '<section class="qcol'), 'one column per step, empty ones included');
+        $this->assertSame(2, substr_count($html, '<article class="qcard"'));
+        $page->assertSee('value="'.$lot->id.'"', false)->assertDontSee('value="'.$held->id.'"', false)->assertSee('on hold')->assertSee('Move ticked lots');
+        $this->get(route('lots.queue'))->assertOk()->assertDontSee('<section class="qcol', false);
+    }
+
     public function test_the_ready_to_pack_pile_starts_collapsed_and_shows_the_oldest_fifteen_first(): void
     {
         foreach (range(1, 16) as $n) {

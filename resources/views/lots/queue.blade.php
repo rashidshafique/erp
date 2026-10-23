@@ -16,11 +16,15 @@
     .qstep.red .qstep-age { color: var(--danger); font-weight: 650; }
     .qstep.amber .qstep-age { color: var(--warning); font-weight: 650; }
     .qarrow { align-self: center; color: var(--muted); flex: 0 0 auto; }
+    .btn-group { display: inline-flex; }
+    .btn-group .btn { border-radius: 0; }
+    .btn-group .btn:first-child { border-radius: 7px 0 0 7px; }
+    .btn-group .btn:last-child { border-radius: 0 7px 7px 0; margin-left: -1px; }
     .qmould td { background: #fafbfc; font-size: 12.5px; }
     .qmould-toggle { border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 1px 8px; font: inherit; font-size: 11.5px; cursor: pointer; margin-top: 3px; }
 </style>
 
-<div class="page-heading"><div><h1>Production queue</h1><p>How much work sits at each step after the pour. Oldest first within each step.</p></div><div class="actions">@if (Route::has('finished-goods.index'))<a class="btn" href="{{ route('finished-goods.index') }}">Finished goods ({{ $awaitingDispatch }} packed lines)</a>@endif</div></div>
+<div class="page-heading"><div><h1>Production queue</h1><p>How much work sits at each step after the pour. Oldest first within each step.</p></div><div class="actions"><span class="btn-group" role="group" aria-label="Queue layout"><a class="btn {{ $view === 'list' ? 'btn-primary' : '' }}" href="{{ route('lots.queue') }}" @if ($view === 'list') aria-current="page" @endif>List</a><a class="btn {{ $view === 'board' ? 'btn-primary' : '' }}" href="{{ route('lots.queue', ['view' => 'board']) }}" @if ($view === 'board') aria-current="page" @endif>Board</a></span>@if (Route::has('finished-goods.index'))<a class="btn" href="{{ route('finished-goods.index') }}">Finished goods ({{ $awaitingDispatch }} packed lines)</a>@endif</div></div>
 
 @if ($openLots)
 <nav class="qflow" aria-label="Work at each step">
@@ -54,6 +58,9 @@
 </div></div>
 @endif
 
+@if ($view === 'board' && $openLots)
+@include('lots._queue-board')
+@else
 @forelse (array_filter($steps, fn ($s) => $s['lot_count'] > 0) as $b)
 @php
     $isReady = $b['key'] === 'ready';
@@ -103,11 +110,12 @@
     </div>
 </div>
 @empty<div class="panel"><div class="panel-body muted">No open lots.</div></div>@endforelse
+@endif
 </form>
 <script>
 document.querySelectorAll('.bucket-all').forEach(h => h.addEventListener('change', e => {
     // Only the lots on show: hidden ones (past the first 15 of a long step) are never ticked unseen.
-    e.target.closest('table').querySelectorAll('.queue-lot').forEach(b => { if (b.offsetParent !== null) b.checked = e.target.checked; });
+    e.target.closest('table, .qcol').querySelectorAll('.queue-lot').forEach(b => { if (b.offsetParent !== null) b.checked = e.target.checked; });
 }));
 </script>
 @endsection
