@@ -17,7 +17,8 @@
             {{-- The layout form above has the one "Cavities on the layout" box; the grid follows it and saves the same figure. --}}
             <input type="hidden" name="cavities_per_mould" value="{{ $count ?: '' }}" data-cavity-count data-cavity-source="cv-{{ $revision->id }}">
             @if ($mine)@error('cavities_per_mould')<div class="error-text">{{ $message }}</div>@enderror @endif
-            <p class="muted small">One row per cavity, following the cavities on the layout above. Choose the product each cavity makes; leave a row empty if the cavity is not used.</p>
+            <h4>Cavity map of {{ $revision->shortCode() }}</h4>
+            <p class="muted small">One row per cavity, following the cavities per level in this revision's layout. Choose the product each cavity makes; leave a row empty if the cavity is not used.</p>
         @else
             {{-- A pattern with no revision has no layout form yet, so the count is asked here and its first revision is recorded with the map. --}}
             <div class="field"><label for="cg-count-{{ $revision->id }}">Cavities on the layout</label>

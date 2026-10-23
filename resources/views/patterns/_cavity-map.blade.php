@@ -1,12 +1,7 @@
 @php $current = $pattern->revisions->firstWhere('is_current', true); @endphp
 <div class="panel" id="cavity-map">
-    <div class="panel-header"><h2>Cavity map: which product each cavity makes</h2></div>
+    <div class="panel-header"><h2>Cavity map by revision: which product each cavity makes</h2></div>
     <div class="panel-body">
-        <p class="muted small">
-            Each cavity of a pattern revision makes one product revision, either the whole casting or one
-            component of it. The layout is one level: a cope-and-drag mould holds it once, a stack once at every joint.
-            Once a map exists, moulds and moulding runs using this revision are checked against it.
-        </p>
         <style>
             .layout-row { display: flex; gap: 16px; align-items: flex-start; margin: 6px 0 10px; }
             .layout-fig { flex: none; }
@@ -15,6 +10,14 @@
             @media (max-width: 768px) { .layout-row { flex-direction: column; } }
             .layout-form summary { cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--accent); margin-bottom: 6px; }
             .layout-form { margin-bottom: 10px; }
+            .lf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); gap: 6px 10px; align-items: end; }
+            .lf-grid .field { margin: 0; }
+            .lf-grid .lf-wide { grid-column: span 2; }
+            .lf-grid .lf-full { grid-column: 1 / -1; }
+            .lf-grid label { font-size: 12px; margin-bottom: 2px; }
+            .lf-grid input, .lf-grid select { min-height: 28px; padding: 3px 6px; font-size: 12.5px; }
+            .lf-actions { display: flex; gap: 10px; align-items: center; }
+            .lf-flasks > summary { cursor: pointer; font-size: 12px; font-weight: 600; }
         </style>
 
         @include('partials.search-select')
@@ -51,14 +54,16 @@
             @endif
             <details class="rev-block {{ $revision->is_current ? 'is-current' : '' }}" id="cavities-{{ $revision->id }}" @if ($open) open @endif>
                 <summary>
-                    <strong>{{ $revision->label() }}</strong>
+                    <span class="rev-tag">Revision</span> <strong>{{ $revision->label() }}</strong>
                     <span class="muted small">{{ $revision->cavityMap->count() }} of {{ $revision->cavities_per_mould ?? '?' }} cavities linked @if ($revision->isSuperseded()) · superseded {{ $revision->superseded_at->displayDate() }}@endif</span>
                 </summary>
+                <div class="rev-body">
                 @include('patterns._layout', ['revision' => $revision, 'pattern' => $pattern, 'assembled' => in_array($revision->id, $assembledRevisions, true)])
                 @if ($revision->isSuperseded() && $revision->cavityMap->isNotEmpty())
                     <div class="alert alert-warning">{{ \App\Http\Controllers\PatternCavityController::supersededWarning($revision) }}</div>
                 @endif
                 @include('patterns._cavity-grid', ['revision' => $revision, 'pattern' => $pattern, 'productRevisions' => $productRevisions, 'assembled' => in_array($revision->id, $assembledRevisions, true)])
+                </div>
             </details>
         @endforeach
         @if ($pattern->revisions->isEmpty() && ! $pattern->trashed())
@@ -70,6 +75,10 @@
             .rev-block { border: 1px solid var(--border); border-radius: 10px; padding: 0 14px; margin: 12px 0; }
             .rev-block[open] { padding-bottom: 4px; }
             .rev-block.is-current { border-color: var(--accent); }
+            .rev-block > summary .rev-tag { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+            .rev-block > .rev-body { border-left: 3px solid var(--border); padding-left: 12px; margin: 0 0 10px; }
+            .rev-block.is-current > .rev-body { border-left-color: var(--accent); }
+            .rev-body h4 { margin: 10px 0 2px; font-size: 13px; }
             .rev-block > summary { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; padding: 10px 0; cursor: pointer; font-size: 14px; }
             .rev-block:not(.is-current) > summary strong { font-weight: 600; color: var(--muted); }
             .older-heading { margin: 22px 0 4px; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
