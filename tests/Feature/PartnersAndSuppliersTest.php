@@ -78,7 +78,7 @@ class PartnersAndSuppliersTest extends TestCase
         $this->assertStringContainsString('class="nav-group is-active"', $html);
     }
 
-    public function test_dispatch_has_a_menu_of_its_own_and_the_quality_menu_no_longer_carries_it(): void
+    public function test_finished_goods_packing_and_dispatch_sit_in_the_sales_menu(): void
     {
         $html = $this->get(route('dispatches.index'))->assertOk()->getContent();
         $menu = [];
@@ -88,9 +88,10 @@ class PartnersAndSuppliersTest extends TestCase
             $menu[html_entity_decode($title[1])] = array_map('html_entity_decode', $items[1]);
         }
 
-        $this->assertSame(['Finished goods', 'Packing', 'Dispatch'], $menu['Dispatch']);
+        $sales = $menu['Sales & Planning'];
+        $this->assertSame([], array_diff(['Finished goods', 'Packing', 'Dispatch'], $sales));
         $this->assertSame([], array_intersect(['Finished goods', 'Packing', 'Dispatch'], $menu['Quality']));
-        $this->assertArrayNotHasKey('Quality & Dispatch', $menu);
-        $this->assertStringContainsString('class="nav-group is-active"', $html, 'The Dispatch menu opens on its own pages.');
+        $this->assertArrayNotHasKey('Dispatch', $menu, 'No menu of its own.');
+        $this->assertStringContainsString('class="nav-group is-active"', $html, 'The Sales menu opens on the dispatch pages.');
     }
 }
