@@ -396,6 +396,7 @@ Route::prefix('lots')->name('lots.')->controller(LotController::class)->group(fu
     Route::post('/{lot}/hold', 'hold')->name('hold');
     Route::post('/{lot}/release', 'release')->name('release');
     Route::get('/{lot}/certificate', [CertificateController::class, 'show'])->name('certificate');
+    Route::get('/{lot}/traveller', 'traveller')->name('traveller');
     Route::get('/{lot}/inspections/create', [InspectionController::class, 'create'])->name('inspections.create');
     Route::post('/{lot}/inspections', [InspectionController::class, 'store'])->name('inspections.store');
 });

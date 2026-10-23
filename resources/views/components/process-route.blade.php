@@ -30,17 +30,17 @@ new class extends Component
     /** @return array<string, mixed> */
     private function blankForm(): array
     {
-        return ['name' => '', 'kind' => 'PROCESS', 'is_quality_gate' => false, 'knocks_out_mould' => false, 'records_weight' => false, 'description' => ''];
+        return ['name' => '', 'kind' => 'PROCESS', 'is_quality_gate' => false, 'knocks_out_mould' => false, 'records_weight' => false, 'description' => '', 'quality_notes' => ''];
     }
 
     /** @return list<string> */
-    private function order(): array
+    private function routeOrder(): array
     {
         return app(ProcessRoutes::class)->defaultSteps()->pluck('stage_definition_id')->all();
     }
 
     /** @param list<string> $order */
-    private function apply(array $order, string $message): void
+    private function saveOrder(array $order, string $message): void
     {
         try {
             app(ProcessRoutes::class)->saveDefault($order);
@@ -52,25 +52,25 @@ new class extends Component
 
     public function move(int $index, int $by): void
     {
-        $order = $this->order();
+        $order = $this->routeOrder();
         $to = $index + $by;
         if (! isset($order[$index], $order[$to])) {
             return;
         }
         [$order[$index], $order[$to]] = [$order[$to], $order[$index]];
-        $this->apply($order, 'Order saved.');
+        $this->saveOrder($order, 'Order saved.');
     }
 
     public function takeOff(string $stageId): void
     {
         $name = ProductionStageDefinition::find($stageId)?->name;
-        $this->apply(array_values(array_diff($this->order(), [$stageId])), "{$name} taken off the process. It stays in the library below.");
+        $this->saveOrder(array_values(array_diff($this->routeOrder(), [$stageId])), "{$name} taken off the process. It stays in the library below.");
     }
 
     public function putBack(string $stageId): void
     {
         $name = ProductionStageDefinition::find($stageId)?->name;
-        $this->apply([...$this->order(), $stageId], "{$name} added at the end. Move it into place.");
+        $this->saveOrder([...$this->routeOrder(), $stageId], "{$name} added at the end. Move it into place.");
     }
 
     public function create(): void
@@ -84,7 +84,7 @@ new class extends Component
         $stage = ProductionStageDefinition::findOrFail($stageId);
         $this->resetValidation();
         $this->editingId = $stage->id;
-        $this->form = ['name' => $stage->name, 'kind' => $stage->kind, 'is_quality_gate' => $stage->is_quality_gate, 'knocks_out_mould' => $stage->knocks_out_mould, 'records_weight' => $stage->records_weight, 'description' => (string) $stage->description];
+        $this->form = ['name' => $stage->name, 'kind' => $stage->kind, 'is_quality_gate' => $stage->is_quality_gate, 'knocks_out_mould' => $stage->knocks_out_mould, 'records_weight' => $stage->records_weight, 'description' => (string) $stage->description, 'quality_notes' => (string) $stage->quality_notes];
         $this->formOpen = true;
     }
 
@@ -106,13 +106,15 @@ new class extends Component
             }],
             'form.kind' => ['required', Rule::in(array_keys(ProductionStageDefinition::KINDS))],
             'form.is_quality_gate' => ['boolean'], 'form.knocks_out_mould' => ['boolean'], 'form.records_weight' => ['boolean'],
-            'form.description' => ['nullable', 'string', 'max:1000'],
+            'form.description' => ['nullable', 'string', 'max:1000'], 'form.quality_notes' => ['nullable', 'string', 'max:1000'],
         ], [], ['form.name' => 'name', 'form.kind' => 'kind'])['form'];
-        $data['description'] = ($data['description'] ?? '') === '' ? null : $data['description'];
+        foreach (['description', 'quality_notes'] as $field) {
+            $data[$field] = trim((string) ($data[$field] ?? '')) === '' ? null : $data[$field];
+        }
 
         if ($this->editingId) {
             ProductionStageDefinition::whereKey($this->editingId)->update($data);
-            $this->apply($this->order(), "{$data['name']} saved.");   // the route keeps the step's name too
+            $this->saveOrder($this->routeOrder(), "{$data['name']} saved.");   // the route keeps the step's name too
         } else {
             app(ProcessRoutes::class)->addStep($data);
             [$this->saved, $this->problem] = ["{$data['name']} added at the end. Move it into place.", null];
@@ -147,6 +149,7 @@ new class extends Component
     .route-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
     .route-tag { font-size: 11px; padding: 1px 7px; border-radius: 999px; background: #eef1f3; color: var(--muted); }
     .route-tag.gate { background: #fff3cd; color: #7a5b00; }
+    .route-check { margin-top: 4px; white-space: pre-line; }
     .route-actions { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
 </style>
 
@@ -172,6 +175,7 @@ new class extends Component
                         @if ($stage->knocks_out_mould)<span class="route-tag">Knocks out the mould: cooling check, flasks back</span>@endif
                         @if ($stage->records_weight)<span class="route-tag">Records weight</span>@endif
                     </div>
+                    @if ($stage->quality_notes)<div class="small route-check"><strong>Check:</strong> {{ $stage->quality_notes }}</div>@endif
                 </div>
                 <div class="route-actions">
                     <button class="btn btn-small" type="button" wire:click="move({{ $i }}, -1)" @disabled($i === 0) aria-label="Move {{ $stage->name }} up">↑</button>
@@ -219,6 +223,7 @@ new class extends Component
                     <label><input type="checkbox" wire:model="form.records_weight"> Records weight</label>
                 </div>
                 <div class="field field-full"><label for="st-desc">Description</label><textarea id="st-desc" rows="2" wire:model="form.description" placeholder="What is done at this step"></textarea></div>
+                <div class="field field-full"><label for="st-quality">Quality notes</label><textarea id="st-quality" rows="2" wire:model="form.quality_notes" placeholder="What to check at this step, e.g. no cold shuts on the flange; gate stubs ground flush"></textarea><span class="muted small">Shown when the step is recorded and printed on the lot traveller.</span></div>
             </div>
             @unless ($editingId)<p class="muted small">New steps go at the end of the process. Move them into place afterwards.</p>@endunless
         </div>

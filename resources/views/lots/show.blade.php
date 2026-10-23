@@ -2,7 +2,7 @@
 @section('title', $lot->label)
 @section('content')
 <div class="page-heading"><div><h1>{{ $lot->label }}</h1><p>{{ $lot->product?->code }} — {{ $lot->product?->name }} · <span class="status">{{ $lot->status }}</span></p></div>
-<div class="actions"><a class="btn" href="{{ route('lots.certificate', $lot) }}">Certificate</a>
+<div class="actions"><a class="btn" href="{{ route('lots.traveller', $lot) }}">Traveller</a><a class="btn" href="{{ route('lots.certificate', $lot) }}">Certificate</a>
 <a class="btn btn-primary" href="{{ route('lots.inspections.create', $lot) }}">+ Inspection</a></div></div>
 <div class="tab-marker" data-tab-start="Summary"></div>
 <div class="panel"><div class="panel-header"><h2>Summary</h2></div><div class="panel-body" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:16px">
@@ -25,8 +25,9 @@
 @forelse($lot->stageEvents->sortBy('created_at') as $e)<tr><td>{{ $e->stage?->name }}</td><td>{{ $e->quantity_in }}</td><td>{{ $e->quantity_accepted }}</td><td>{{ $e->quantity_rejected }}</td><td>{{ $e->rejection_reason }}</td><td>{{ $e->operator_name }}</td><td>{{ $e->created_at?->displayShortDateTime() }}</td></tr>
 @empty<tr><td colspan="7" class="muted">No stage recorded yet.</td></tr>@endforelse</tbody></table></div>
 @if(in_array($lot->status, ['IN_PRODUCTION','ON_HOLD']))
-<div class="panel-body"><form method="POST" action="{{ route('lots.stages.store', $lot) }}" class="form-grid">@csrf
-<label>Stage<select name="stage_definition_id" required>@foreach($stages as $s)<option value="{{ $s->id }}">{{ $s->name }}</option>@endforeach</select></label>
+<div class="panel-body"><form method="POST" action="{{ route('lots.stages.store', $lot) }}" class="form-grid" x-data="{ check: @js((string) $stages->first()?->quality_notes) }">@csrf
+<label>Stage<select name="stage_definition_id" required x-on:change="check = $event.target.selectedOptions[0].dataset.check">@foreach($stages as $s)<option value="{{ $s->id }}" data-check="{{ $s->quality_notes }}">{{ $s->name }}</option>@endforeach</select></label>
+<div class="alert" style="grid-column:1/-1;margin:0;white-space:pre-line;display:none" x-show="check"><strong>Check:</strong> <span x-text="check"></span></div>
 <label>Pieces in<input type="number" name="quantity_in" min="1" value="{{ $pieces }}" required></label>
 <label>Accepted<input type="number" name="quantity_accepted" min="0" value="{{ $pieces }}" required></label>
 <label>Rejected<input type="number" name="quantity_rejected" min="0" value="0" required></label>

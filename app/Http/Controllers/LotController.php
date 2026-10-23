@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CastingLot;
 use App\Models\ProductionStageDefinition;
 use App\Services\Production\LotService;
+use App\Services\Production\ProcessRoutes;
 use App\Services\QualityGates;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -42,6 +43,29 @@ class LotController extends Controller
             'thermal' => $heat?->thermalTests()->limit(2)->get() ?? collect(),
             'chemistry' => $heat?->chemistryReadings()->get()->last(),
             'packed' => (float) $lot->packingItems->sum('quantity_packed'),
+        ]);
+    }
+
+    /**
+     * The printed traveller that goes with the lot on the floor: the route's steps in order, each with what is done, what to
+     * check and boxes to write the counts and sign. Steps already recorded are filled in.
+     */
+    public function traveller(CastingLot $lot, ProcessRoutes $routes, LotService $service): View
+    {
+        $lot->load(['product', 'productRevision', 'productionOrder.salesOrderLine.salesOrder.customer', 'stageEvents.stage']);
+        $heat = $lot->sourceHeat();
+        $heat?->loadMissing('ironGrade');
+        $steps = $routes->defaultSteps()->map(fn ($step) => $step->stage);
+        $recorded = $lot->stageEvents->sortBy('created_at')->toBase()->groupBy('stage_definition_id');
+
+        return view('lots.traveller', [
+            'lot' => $lot,
+            'heat' => $heat,
+            'moulds' => $lot->mouldAssemblies(),
+            'steps' => $steps,
+            'recorded' => $recorded,
+            'offRoute' => $recorded->except($steps->pluck('id')->all())->map(fn ($events) => $events->first()->stage)->filter()->values(),
+            'pieces' => $service->pieces($lot),
         ]);
     }
 

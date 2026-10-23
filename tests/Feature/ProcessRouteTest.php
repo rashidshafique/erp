@@ -84,6 +84,31 @@ class ProcessRouteTest extends TestCase
         app(LotService::class)->recordStage($lot, $knockOut, $in);
     }
 
+    public function test_quality_notes_show_where_the_step_is_recorded(): void
+    {
+        $fettling = $this->stage('FETTLING');
+        Livewire::test('process-route')->call('edit', $fettling->id)
+            ->set('form.quality_notes', 'Gate stubs ground flush')->set('form.description', '  ')->call('save')->assertHasNoErrors()
+            ->assertSee('Gate stubs ground flush');
+
+        $this->assertNull($fettling->fresh()->description);   // blank text is not kept
+        $this->get(route('lots.show', $this->castingLot()))->assertOk()->assertSee('data-check="Gate stubs ground flush"', false);
+    }
+
+    public function test_the_traveller_lists_the_route_and_fills_in_what_is_recorded(): void
+    {
+        $lot = $this->castingLot();
+        $service = app(LotService::class);
+        $service->recordStage($lot, $this->stage('CUTTING'), ['quantity_in' => 5, 'quantity_accepted' => 4, 'quantity_rejected' => 1, 'rejection_reason' => 'Crack', 'operator_name' => 'Asif']);
+        $service->recordStage($lot, $this->stage('MACHINING'), ['quantity_in' => 4, 'quantity_accepted' => 4, 'quantity_rejected' => 0]);
+        app(ProcessRoutes::class)->saveDefault([$this->stage('CUTTING')->id, $this->stage('FETTLING')->id]);   // machining taken off after the lot passed it
+        $this->stage('FETTLING')->update(['quality_notes' => 'No cracks at the gate']);
+
+        $this->get(route('lots.traveller', $lot))->assertOk()
+            ->assertSeeInOrder(['Gate and riser removal', '5', '4', '1', 'Crack', 'Asif', 'Fettling', 'No cracks at the gate', 'Machining', 'recorded, not on the process'])
+            ->assertDontSee('Shot blasting');
+    }
+
     public function test_a_step_cannot_be_on_the_route_twice(): void
     {
         $this->expectException(InvalidArgumentException::class);
