@@ -4,8 +4,8 @@
     <div class="panel-header"><h2>Identity</h2></div>
     <div class="panel-body"><div class="form-grid">
         <div class="field">
-            <label for="code">Material code <span class="required">*</span></label>
-            <input id="code" name="code" required maxlength="50" value="{{ old('code', $material->code) }}">
+            <label for="code">Material code</label>
+            <input id="code" name="code" maxlength="50" value="{{ old('code', $material->code) }}" style="text-transform:uppercase" placeholder="{{ $material->exists ? '' : 'Leave blank to generate: '.app(\App\Services\Codes\CodeGenerator::class)->preview('material') }}">
             @error('code')<div class="error">{{ $message }}</div>@enderror
         </div>
         <div class="field">
@@ -74,6 +74,31 @@
             </label>
         </div>
     </div></div>
+</div>
+
+<div class="panel">
+    <div class="panel-header"><h2>Chemistry <span class="muted small">(optional)</span></h2></div>
+    <div class="panel-body">
+        <p class="muted">The typical analysis of this material, in percent. When it is on file, a heat's charge is worked out from it and compared with the iron grade before the metal is tested. Leave it blank for materials you do not track, and for any element you do not know.</p>
+        @php $chem = $material->exists ? $material->elements->keyBy('element') : collect(); @endphp
+        <div class="table-wrap"><table>
+            <thead><tr><th>Element</th><th>Typical %</th><th>Lowest %</th><th>Highest %</th><th>Recovery %</th></tr></thead>
+            <tbody>
+            @foreach (\App\Models\IronGrade::ELEMENTS as $key => $label)
+                @php $row = $chem->get($key); @endphp
+                <tr>
+                    <td><strong>{{ $label }}</strong></td>
+                    @foreach (['nominal_pct' => 'Typical', 'min_pct' => 'Lowest', 'max_pct' => 'Highest', 'recovery_pct' => 'Recovery'] as $field => $name)
+                        <td><input type="number" step="0.0001" min="0" max="{{ $field === 'recovery_pct' ? 300 : 100 }}" style="width:110px" name="chemistry[{{ $key }}][{{ $field }}]" aria-label="{{ $label }} {{ strtolower($name) }}"
+                                   value="{{ old("chemistry.{$key}.{$field}", $row?->{$field} !== null ? rtrim(rtrim((string) $row->{$field}, '0'), '.') : '') }}"@if ($field === 'recovery_pct') placeholder="100"@endif></td>
+                    @endforeach
+                </tr>
+                @error("chemistry.{$key}.nominal_pct")<tr><td colspan="5"><div class="error">{{ $message }}</div></td></tr>@enderror
+            @endforeach
+            </tbody>
+        </table></div>
+        <div class="help">Recovery is how much of the element ends up in the iron: below 100 for what burns off (silicon, manganese), above 100 for what the melt picks up. Blank means 100. The lowest and highest figures widen the prediction; blank uses the typical value.</div>
+    </div>
 </div>
 
 <div class="panel">

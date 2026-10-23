@@ -236,6 +236,7 @@
 @include('heats._tests', ['heat' => $heat])
 
 <div class="tab-marker" data-tab-start="Charge"></div>
+@include('heats._charge-prediction', ['heat' => $heat, 'plannedChargeItems' => $plannedChargeItems])
 <div class="panel">
     <div class="panel-header"><h2>Charge recipe and planned materials</h2></div>
     <div class="panel-body">

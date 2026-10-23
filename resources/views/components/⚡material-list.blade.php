@@ -108,11 +108,16 @@ new class extends Component
     public function save(): void
     {
         $material = $this->editingId ? Material::findOrFail($this->editingId) : null;
+        $this->form['code'] = strtoupper(trim((string) $this->form['code']));
         $rules = collect(Material::rules($material))->mapWithKeys(fn ($rule, $field) => ["form.{$field}" => $rule])->all();
         $data = $this->validate($rules, [], ['form.code' => 'code', 'form.name' => 'name', 'form.material_type' => 'type', 'form.base_uom' => 'unit'])['form'];
 
         foreach (['minimum_stock_qty', 'reorder_qty', 'standard_cost_per_uom', 'description', 'notes'] as $optional) {
             $data[$optional] = ($data[$optional] ?? '') === '' ? null : $data[$optional];
+        }
+
+        if (blank($data['code'])) {
+            unset($data['code']);
         }
 
         if ($material) {
@@ -152,6 +157,7 @@ new class extends Component
             'activeMaterials' => Material::where('status', 'ACTIVE')->count(),
             'inactiveMaterials' => Material::where('status', '!=', 'ACTIVE')->count(),
             'lowCount' => $reorder->count(),
+            'nextCode' => app(\App\Services\Codes\CodeGenerator::class)->preview('material'),
         ];
     }
 };
@@ -268,7 +274,7 @@ new class extends Component
         <div class="qd-body">
             @if ($errors->any())<div class="alert alert-error qd-errors" role="alert">@foreach ($errors->all() as $message)<div>{{ $message }}</div>@endforeach</div>@endif
             <div class="qd-fields">
-                <div class="field"><label for="m-code">Code <span class="required">*</span></label><input id="m-code" wire:model="form.code" maxlength="50" autocomplete="off" @error('form.code') aria-invalid="true" @enderror></div>
+                <div class="field"><label for="m-code">Code</label><input id="m-code" wire:model="form.code" maxlength="50" autocomplete="off" style="text-transform:uppercase" placeholder="{{ $editingId ? '' : 'Blank: '.$nextCode }}" @error('form.code') aria-invalid="true" @enderror></div>
                 <div class="field"><label for="m-name">Name <span class="required">*</span></label><input id="m-name" wire:model="form.name" maxlength="150" autocomplete="off" @error('form.name') aria-invalid="true" @enderror></div>
                 <div class="field"><label for="m-type">Type <span class="required">*</span></label>
                     <select id="m-type" wire:model="form.material_type">@foreach (\App\Models\Material::TYPES as $key => $label)<option value="{{ $key }}">{{ $label }}</option>@endforeach</select></div>

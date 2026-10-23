@@ -36,6 +36,26 @@
 @endif
 
 <div class="panel">
+<div class="panel-header"><h2>Chemistry</h2><a class="btn btn-small" href="{{ route('materials.edit', $material) }}">{{ $material->elements->isEmpty() ? 'Add chemistry' : 'Edit' }}</a></div>
+@if ($material->elements->isEmpty())
+    <div class="panel-body"><p class="muted">No chemistry on file. It is optional: add the typical analysis and a heat's charge can be checked against the iron grade before it is tested.</p></div>
+@else
+    <div class="table-wrap"><table>
+        <thead><tr><th>Element</th><th>Typical %</th><th>Range %</th><th>Recovery %</th></tr></thead>
+        <tbody>
+        @foreach (\App\Models\IronGrade::ELEMENTS as $key => $label)
+            @if ($row = $material->elements->firstWhere('element', $key))
+                <tr><td><strong>{{ $label }}</strong></td><td>{{ \App\Support\Formats::number((float) $row->nominal_pct, 4) }}</td>
+                    <td>{{ $row->min_pct !== null || $row->max_pct !== null ? \App\Support\Formats::number((float) ($row->min_pct ?? $row->nominal_pct), 4).' – '.\App\Support\Formats::number((float) ($row->max_pct ?? $row->nominal_pct), 4) : '—' }}</td>
+                    <td>{{ \App\Support\Formats::number((float) $row->recovery_pct, 2) }}</td></tr>
+            @endif
+        @endforeach
+        </tbody>
+    </table></div>
+@endif
+</div>
+
+<div class="panel">
 <div class="panel-header"><h2>Material lots</h2></div>
 <div class="table-wrap">
     <table>

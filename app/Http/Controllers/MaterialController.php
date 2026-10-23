@@ -25,8 +25,12 @@ class MaterialController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $this->validateMaterial($request);
+        $chemistry = $this->validatedChemistry($request);
 
         $material = Material::create($validated);
+        if ($chemistry !== null) {
+            $material->saveChemistry($chemistry);
+        }
 
         return redirect()
             ->route('materials.show', $material)
@@ -37,6 +41,7 @@ class MaterialController extends Controller
     {
         $material->load([
             'lots' => fn ($query) => $query->orderByDesc('created_at'),
+            'elements',
         ]);
 
         $material->loadCount('chargeBatchItems');
@@ -60,14 +65,20 @@ class MaterialController extends Controller
 
     public function edit(Material $material): View
     {
+        $material->load('elements');
+
         return view('materials.edit', compact('material'));
     }
 
     public function update(Request $request, Material $material): RedirectResponse
     {
         $validated = $this->validateMaterial($request, $material);
+        $chemistry = $this->validatedChemistry($request);
 
         $material->update($validated);
+        if ($chemistry !== null) {
+            $material->saveChemistry($chemistry);
+        }
         app(\App\Services\Stock\ReorderWatcher::class)->check($material);
 
         return redirect()
@@ -75,11 +86,33 @@ class MaterialController extends Controller
             ->with('success', "Material {$material->code} updated.");
     }
 
+    /** The chemistry panel's figures, or null when the request carries none, which leaves the stored chemistry alone. @return array<string, array<string, mixed>>|null */
+    private function validatedChemistry(Request $request): ?array
+    {
+        if (! $request->has('chemistry')) {
+            return null;
+        }
+        $chemistry = $request->validate(Material::chemistryRules())['chemistry'] ?? [];
+        if ($problems = Material::chemistryProblems($chemistry)) {
+            throw \Illuminate\Validation\ValidationException::withMessages($problems);
+        }
+
+        return $chemistry;
+    }
+
     private function validateMaterial(
         Request $request,
         ?Material $material = null
     ): array {
-        return $request->validate(Material::rules($material));
+        if (is_string($request->input('code'))) {
+            $request->merge(['code' => strtoupper(trim($request->input('code')))]);   // "fesi-75" and "FESI-75" are the same code
+        }
+        $data = $request->validate(Material::rules($material));
+        if (blank($data['code'] ?? null)) {
+            unset($data['code']);
+        }
+
+        return $data;
     }
 }
 

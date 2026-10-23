@@ -61,7 +61,7 @@ class MaterialListTest extends TestCase
 
         $dialog = Livewire::test('material-list')->call('create')->assertSet('formOpen', true)->assertSeeHtml('<dialog class="qd"');
 
-        $dialog->call('save')->assertHasErrors(['form.code', 'form.name'])->assertSet('formOpen', true);
+        $dialog->call('save')->assertHasErrors('form.name')->assertHasNoErrors('form.code')->assertSet('formOpen', true);
         $dialog->set('form.code', 'TAKEN')->set('form.name', 'Dup')->call('save')->assertHasErrors('form.code');
         $dialog->set('form.code', 'BENT-1')->set('form.name', 'Bentonite')->set('form.material_type', 'GOLD')->call('save')->assertHasErrors('form.material_type');
 
@@ -104,5 +104,30 @@ class MaterialListTest extends TestCase
         foreach ([route('materials.create'), route('materials.edit', $material), route('materials.show', $material), route('materials.lots.create', $material)] as $url) {
             $this->get($url)->assertOk()->assertDontSee('page-header')->assertDontSee('form-control')->assertDontSee('btn-secondary')->assertSee('page-heading');
         }
+    }
+
+    public function test_a_blank_code_is_generated_and_a_typed_one_is_kept_in_capitals_on_both_the_dialog_and_the_form_page(): void
+    {
+        Livewire::test('material-list')->call('create')->assertSee('Blank: MAT-')->set('form.name', 'Bentonite')->call('save')->assertHasNoErrors();
+        $generated = Material::where('name', 'Bentonite')->sole();
+        $this->assertMatchesRegularExpression('/^MAT-\w+$/', $generated->code);
+
+        Livewire::test('material-list')->call('create')->set('form.name', 'Coke')->set('form.code', ' coke-1 ')->call('save')->assertHasNoErrors();
+        $this->assertNotNull(Material::where('code', 'COKE-1')->first());
+        Livewire::test('material-list')->call('create')->set('form.name', 'Other coke')->set('form.code', 'Coke-1')->call('save')->assertHasErrors('form.code');
+
+        $form = ['name' => 'Silica sand', 'material_type' => 'SAND', 'base_uom' => 'kg', 'status' => 'ACTIVE', 'is_stock_tracked' => 1, 'requires_lot_tracking' => 1];
+        $this->post(route('materials.store'), $form)->assertSessionHasNoErrors();
+        $sand = Material::where('name', 'Silica sand')->sole();
+        $this->assertMatchesRegularExpression('/^MAT-\w+$/', $sand->code);
+        $this->assertNotSame($generated->code, $sand->code);
+
+        $this->put(route('materials.update', $sand), $form + ['name' => 'Silica sand 2'])->assertSessionHasNoErrors();
+        $this->assertSame($sand->code, $sand->fresh()->code, 'a blank code on edit keeps the code');
+        $this->put(route('materials.update', $sand), $form + ['code' => 'sand-x'])->assertSessionHasNoErrors();
+        $this->assertSame('SAND-X', $sand->fresh()->code);
+        $this->post(route('materials.store'), $form + ['code' => 'sand-x'])->assertSessionHasErrors('code');
+
+        $this->get(route('materials.create'))->assertOk()->assertSee('Leave blank to generate: MAT-');
     }
 }
