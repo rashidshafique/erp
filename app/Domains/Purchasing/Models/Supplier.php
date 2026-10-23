@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Validation\Rule;
 
 /** An approved vendor list entry: who supplies what, whether they may be bought from, and when they are next reviewed. */
 class Supplier extends Model
@@ -25,6 +26,27 @@ class Supplier extends Model
     public const BLOCKED = ['SUSPENDED', 'DISQUALIFIED'];
 
     protected $guarded = [];
+
+    /**
+     * The rules a supplier is saved under, from the form page or the add dialog. Codes are kept in capitals, so the caller
+     * upper-cases one before checking it is unused.
+     *
+     * @return array<string, list<mixed>>
+     */
+    public static function rules(?self $supplier = null): array
+    {
+        return [
+            'code' => ['nullable', 'string', 'max:40', Rule::unique('suppliers', 'code')->ignore($supplier?->id)],
+            'name' => ['required', 'string', 'max:150'],
+            'supplies' => ['nullable', 'string', 'max:200'],
+            'contact_name' => ['nullable', 'string', 'max:150'],
+            'phone' => ['nullable', 'string', 'max:60'],
+            'email' => ['nullable', 'email', 'max:160'],
+            'billing_address' => ['nullable', 'string', 'max:1000'],
+            'review_interval_days' => ['required', 'integer', 'min:30', 'max:1825'],
+            'notes' => ['nullable', 'string', 'max:2000'],
+        ];
+    }
 
     protected function casts(): array
     {

@@ -5,6 +5,7 @@ namespace App\Domains\Purchasing;
 use App\Domains\Core\ModuleServiceProvider;
 use App\Domains\Purchasing\Models\Supplier;
 use App\Models\MaterialLot;
+use Livewire\Livewire;
 
 /** The supplier register: approval status, scored evaluations and review dates. Material lots can name the supplier they came from. */
 class PurchasingServiceProvider extends ModuleServiceProvider
@@ -27,6 +28,13 @@ class PurchasingServiceProvider extends ModuleServiceProvider
     protected function modulePath(): string
     {
         return __DIR__;
+    }
+
+    public function boot(): void
+    {
+        parent::boot();
+
+        Livewire::addNamespace('purchasing', viewPath: __DIR__.'/resources/views/livewire');
     }
 
     protected function navItems(): array

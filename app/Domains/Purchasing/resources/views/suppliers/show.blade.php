@@ -13,13 +13,16 @@
 @elseif ($supplier->approval_status === 'PENDING')<div class="alert alert-warning">Not yet approved. Record an evaluation below to approve or reject it.</div>
 @elseif ($supplier->isReviewOverdue())<div class="alert alert-error">Review was due {{ $supplier->next_review_on->displayDate() }}. Record a new evaluation.</div>@endif
 
+<div class="metrics">
+    <div class="metric"><div class="metric-label">Status</div><div class="metric-value" style="font-size:20px">{{ $statuses[$supplier->approval_status] }}</div></div>
+    <div class="metric"><div class="metric-label">Latest score</div><div class="metric-value">{{ $supplier->latest_score ?? '—' }}</div></div>
+    <div class="metric"><div class="metric-label">Approved on</div><div class="metric-value" style="font-size:20px">{{ $supplier->approved_on?->displayDate() ?? '—' }}</div></div>
+    <div class="metric"><div class="metric-label">Next review</div><div class="metric-value" style="font-size:20px;@if ($supplier->isReviewOverdue()) color:var(--danger) @endif">{{ $supplier->next_review_on?->displayDate() ?? '—' }}</div><div class="metric-note">every {{ $supplier->review_interval_days }} days</div></div>
+</div>
+
 <div class="panel"><div class="panel-header"><h2>Supplier</h2></div>
 <div class="panel-body" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px">
-    @foreach ([
-        'Supplies' => $supplier->supplies, 'Contact' => $supplier->contact_name, 'Phone' => $supplier->phone, 'Email' => $supplier->email,
-        'Approved on' => $supplier->approved_on?->displayDate(), 'Next review' => $supplier->next_review_on?->displayDate(),
-        'Latest score' => $supplier->latest_score, 'Review interval' => $supplier->review_interval_days.' days',
-    ] as $label => $value)
+    @foreach (['Supplies' => $supplier->supplies, 'Contact' => $supplier->contact_name, 'Phone' => $supplier->phone, 'Email' => $supplier->email] as $label => $value)
         <div><div class="muted small">{{ $label }}</div><strong>{{ $value ?: '—' }}</strong></div>
     @endforeach
     @if ($supplier->billing_address)<div style="grid-column:1/-1"><div class="muted small">Address</div>{{ $supplier->billing_address }}</div>@endif
