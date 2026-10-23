@@ -82,7 +82,7 @@
             @endif
 
             @if ($menu->showsAny(['customers.index', 'sales-orders.index', 'heat-plan.index']) || collect(app(\App\Domains\Core\ModuleRegistry::class)->navItems('sales'))->contains(fn ($i) => $menu->shows($i['route'])))
-            <div class="nav-group {{ request()->routeIs('customers.*', 'sales-orders.*', 'heat-plan.*', ...app(\App\Domains\Core\ModuleRegistry::class)->navPatterns('sales')) ? 'is-active' : '' }}">
+            <div class="nav-group {{ request()->routeIs('customers.*', 'sales-orders.*', 'heat-plan.*', 'calendar.*', ...app(\App\Domains\Core\ModuleRegistry::class)->navPatterns('sales')) ? 'is-active' : '' }}">
                 <button type="button" class="nav-group-toggle" aria-expanded="false">
                     <span class="nav-lab">{!! \App\Support\NavIcons::get('briefcase') !!}<span>Sales &amp; Planning</span></span><span class="nav-chevron">›</span>
                 </button>
@@ -93,6 +93,7 @@
                         <a href="{{ route($item['route']) }}" class="nav-link {{ request()->routeIs(...$item['active']) ? 'active' : '' }}">{!! \App\Support\NavIcons::get($item['icon']) !!}<span>{{ $item['label'] }}</span></a>
                     @endforeach
                     @if ($menu->shows('sales-orders.index')) <a href="{{ route('sales-orders.index') }}" class="nav-link {{ request()->routeIs('sales-orders.index', 'sales-orders.show', 'sales-orders.trace') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('receipt') !!}<span>Sales orders</span></a> @endif
+                    @if ($menu->shows('calendar.index')) <a href="{{ route('calendar.index') }}" class="nav-link {{ request()->routeIs('calendar.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('calendar') !!}<span>Calendar</span></a> @endif
                     @if ($menu->shows('heat-plan.index')) <a href="{{ route('heat-plan.index') }}" class="nav-link {{ request()->routeIs('heat-plan.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('calendar') !!}<span>Melting plan</span></a> @endif
                 </div>
             </div>

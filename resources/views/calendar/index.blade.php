@@ -1,0 +1,99 @@
+@extends('layouts.app')
+
+@section('title', 'Calendar')
+@section('breadcrumb', 'Calendar')
+
+@php
+    $url = fn ($v, $d) => route('calendar.index', ['view' => $v, 'date' => $d->toDateString()]);
+    $todayKey = today()->toDateString();
+    $chip = function ($e) {
+        $tag = $e['url'] ? 'a href="'.e($e['url']).'"' : 'span';
+        $close = $e['url'] ? 'a' : 'span';
+
+        return '<'.$tag.' class="cal-chip cal-'.strtolower($e['kind']).'" title="'.e($e['label'].' — '.$e['detail']).'">'.e($e['label']).'</'.$close.'>';
+    };
+    $weekStart = $view === 'month' ? $start->copy()->startOfWeek() : $start;
+    $weekEnd = $view === 'month' ? $end->copy()->endOfWeek() : $end;
+@endphp
+
+@section('content')
+<div class="page-heading">
+    <div><h1>Calendar</h1><p>Planned and past heats, pours, moulding runs and order due dates. Shaded days are campaign days under the melting calendar.</p></div>
+    <div class="actions" style="gap:8px">
+        <div class="cal-switch">@foreach (['week' => 'Week', 'month' => 'Month', 'year' => 'Year'] as $v => $name)<a class="btn btn-small {{ $view === $v ? 'btn-primary' : '' }}" href="{{ $url($v, $anchor) }}">{{ $name }}</a>@endforeach</div>
+        <a class="btn btn-small" href="{{ $url($view, $previous) }}" aria-label="Previous">‹</a>
+        <a class="btn btn-small" href="{{ $url($view, today()) }}">Today</a>
+        <a class="btn btn-small" href="{{ $url($view, $next) }}" aria-label="Next">›</a>
+    </div>
+</div>
+
+<div class="panel"><div class="panel-header"><h2>{{ $title }}</h2>
+    <span class="cal-legend">@foreach ($kinds as $k => $name)<span><i class="cal-dot cal-{{ strtolower($k) }}"></i>{{ $name }}</span>@endforeach</span></div>
+<div class="panel-body">
+@if ($view === 'year')
+    <div class="cal-year">
+    @for ($m = 1; $m <= 12; $m++)
+        @php $first = $anchor->copy()->month($m)->startOfMonth(); $from = $first->copy()->startOfWeek(); $to = $first->copy()->endOfMonth()->endOfWeek(); @endphp
+        <div class="cal-mini"><a class="cal-mini-title" href="{{ $url('month', $first) }}">{{ $first->format('F') }}</a>
+            <div class="cal-mini-grid">
+                @for ($d = $from->copy(); $d <= $to; $d->addDay())
+                    @php $key = $d->toDateString(); $n = $d->month === $m ? ($events[$key] ?? collect())->count() : 0; @endphp
+                    <a href="{{ $url('week', $d) }}" class="cal-mini-day @if ($d->month !== $m) other @endif @if ($key === $todayKey) today @endif @if ($d->month === $m && $calendar->isCampaignDay($d)) campaign @endif @if ($n) has @endif" title="{{ $d->format('j M') }}{{ $n ? ': '.$n.' '.($n === 1 ? 'item' : 'items') : '' }}">{{ $d->day }}</a>
+                @endfor
+            </div></div>
+    @endfor
+    </div>
+@elseif ($view === 'month')
+    <div class="cal-grid">
+        @foreach (['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as $n)<div class="cal-dow">{{ $n }}</div>@endforeach
+        @for ($d = $weekStart->copy(); $d <= $weekEnd; $d->addDay())
+            @php $key = $d->toDateString(); $day = $events[$key] ?? collect(); @endphp
+            <div class="cal-day @if ($d->month !== $start->month) other @endif @if ($key === $todayKey) today @endif @if ($calendar->isCampaignDay($d)) campaign @endif">
+                <a class="cal-num" href="{{ $url('week', $d) }}">{{ $d->day }}</a>
+                @foreach ($day->take(4) as $e){!! $chip($e) !!}@endforeach
+                @if ($day->count() > 4)<a class="cal-more" href="{{ $url('week', $d) }}">+{{ $day->count() - 4 }} more</a>@endif
+            </div>
+        @endfor
+    </div>
+@else
+    <div class="cal-week">
+        @for ($d = $start->copy(); $d <= $end; $d->addDay())
+            @php $key = $d->toDateString(); $day = $events[$key] ?? collect(); @endphp
+            <div class="cal-day tall @if ($key === $todayKey) today @endif @if ($calendar->isCampaignDay($d)) campaign @endif">
+                <div class="cal-num">{{ $d->format('D j') }}</div>
+                @forelse ($day as $e)
+                    <div class="cal-row">{!! $chip($e) !!}<small class="muted">{{ $kinds[$e['kind']] }}@if ($e['detail']) · {{ $e['detail'] }}@endif</small></div>
+                @empty<small class="muted">Nothing</small>@endforelse
+            </div>
+        @endfor
+    </div>
+@endif
+</div></div>
+
+<style>
+    .cal-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--muted); }
+    .cal-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 4px; }
+    .cal-planned { --c: #7c5cc4; } .cal-heat { --c: #d9622b; } .cal-pour { --c: #c0392b; } .cal-moulding { --c: #2a7fb8; } .cal-due { --c: #6b7280; }
+    .cal-dot { background: var(--c); }
+    .cal-grid, .cal-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+    .cal-dow { font-size: 12px; color: var(--muted); text-align: center; }
+    .cal-day { border: 1px solid var(--border); border-radius: 6px; min-height: 96px; padding: 4px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .cal-day.tall { min-height: 220px; }
+    .cal-day.campaign { background: color-mix(in srgb, var(--primary, #2a7fb8) 8%, transparent); }
+    .cal-day.other { opacity: .45; }
+    .cal-day.today { outline: 2px solid var(--primary, #2a7fb8); }
+    .cal-num { font-size: 12px; font-weight: 600; color: var(--muted); }
+    .cal-chip { display: block; font-size: 11px; line-height: 1.3; padding: 1px 5px; border-radius: 4px; border-left: 3px solid var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cal-more { font-size: 11px; color: var(--muted); }
+    .cal-row { display: flex; flex-direction: column; margin-bottom: 4px; }
+    .cal-year { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 16px; }
+    .cal-mini-title { font-weight: 600; display: block; margin-bottom: 4px; }
+    .cal-mini-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+    .cal-mini-day { font-size: 11px; text-align: center; padding: 3px 0; border-radius: 4px; color: inherit; text-decoration: none; }
+    .cal-mini-day.other { visibility: hidden; }
+    .cal-mini-day.campaign { background: color-mix(in srgb, var(--primary, #2a7fb8) 10%, transparent); }
+    .cal-mini-day.has { background: color-mix(in srgb, #d9622b 35%, transparent); font-weight: 600; }
+    .cal-mini-day.today { outline: 2px solid var(--primary, #2a7fb8); }
+    @media (max-width: 760px) { .cal-grid, .cal-week { grid-template-columns: 1fr; } .cal-dow { display: none; } .cal-day.other { display: none; } .cal-day, .cal-day.tall { min-height: 0; } }
+</style>
+@endsection

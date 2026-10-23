@@ -25,6 +25,7 @@ use App\Http\Controllers\FlaskSizeController;
 use App\Http\Controllers\FurnaceController;
 use App\Http\Controllers\HeatChemistryController;
 use App\Http\Controllers\HeatMaterialConsumptionController;
+use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\HeatPlanController;
 use App\Http\Controllers\HeatReadingController;
 use App\Http\Controllers\HeatTreatmentController;
@@ -311,6 +312,8 @@ Route::prefix('thermal')->name('thermal.')->controller(ThermalTestController::cl
     Route::get('/{test}', 'show')->name('show');
     Route::post('/{test}/void', 'void')->name('void');
 });
+
+Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar.index');
 
 Route::prefix('heat-plan')->name('heat-plan.')->controller(HeatPlanController::class)->group(function () {
     Route::get('/', 'index')->name('index');
