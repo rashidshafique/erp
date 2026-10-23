@@ -16,6 +16,11 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [EnforceAccess::class]);
+
+        // A tunnel (ngrok) in front of a local copy forwards the public address and https; trust it there only.
+        if (env('APP_ENV') === 'local') {
+            $middleware->trustProxies(at: '*');
+        }
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (PostTooLargeException $e, Request $request) {
