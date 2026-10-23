@@ -19,6 +19,9 @@ class CastingAnalysisService
 
     public function run(CastingAnalysis $a): CastingAnalysis
     {
+        // The analysis gets its own time budget; the caller's limit is put back afterwards, so a long-running process
+        // (a queue worker, the test suite) is not left with the analysis's clock running.
+        $previousLimit = (int) ini_get('max_execution_time');
         @ini_set('memory_limit', (string) config('casting.memory_limit'));
         @set_time_limit((int) config('casting.time_limit_seconds'));
         $t0 = microtime(true);
@@ -82,6 +85,7 @@ class CastingAnalysisService
             if ($tmp && is_file($tmp)) {
                 @unlink($tmp);
             }
+            @set_time_limit($previousLimit);
         }
 
         return $a;

@@ -317,7 +317,9 @@ class HeatReadingController extends Controller
             ])->values(),
         ])->values();
 
-        return view('heats.create', compact('furnaces', 'grades', 'chargeBatches', 'recipeData'));
+        $gradeTemps = $grades->mapWithKeys(fn (IronGrade $grade) => [$grade->id => $grade->suggestedTapTemperature()])->filter();
+
+        return view('heats.create', compact('furnaces', 'grades', 'chargeBatches', 'recipeData', 'gradeTemps'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -340,7 +342,7 @@ class HeatReadingController extends Controller
             'planned_start_at' => ['nullable', 'date', 'required_if:already_started,1', 'before_or_equal:now'],
             'already_started' => ['nullable', 'boolean'],
             'fill_charges' => ['nullable', 'boolean'],
-            'target_metal_weight_kg' => ['required', 'numeric', 'gt:0', 'max:999999999'],
+            'target_metal_weight_kg' => ['nullable', 'numeric', 'gt:0', 'max:999999999'],
             'operating_power_limit_kw' => ['nullable', 'numeric', 'gt:0', 'max:999999999'],
             'target_temperature_c' => ['nullable', 'numeric', 'gt:0', 'max:9999'],
             'operator_name' => ['required', 'string', 'max:255'],
@@ -410,7 +412,7 @@ class HeatReadingController extends Controller
                 'charge_batch_id' => $validated['charge_batch_id'] ?? null,
                 'status' => 'PLANNED',
                 'planned_start_at' => $validated['planned_start_at'] ?? null,
-                'target_metal_weight_kg' => $validated['target_metal_weight_kg'],
+                'target_metal_weight_kg' => $validated['target_metal_weight_kg'] ?? null,
                 'operating_power_limit_kw' => $validated['operating_power_limit_kw'] ?? null,
                 'target_temperature_c' => $validated['target_temperature_c'] ?? null,
                 'operator_name' => $validated['operator_name'],

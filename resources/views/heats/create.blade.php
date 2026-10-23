@@ -79,11 +79,12 @@
                 </div>
 
                 <div>
-                    <label for="target_metal_weight_kg">Target metal weight (kg) *</label>
+                    <label for="target_metal_weight_kg">Target metal weight (kg)</label>
                     <input id="target_metal_weight_kg" name="target_metal_weight_kg"
-                           type="number" min="0.001" step="0.001" required
+                           type="number" min="0.001" step="0.001"
                            value="{{ old('target_metal_weight_kg') }}"
                            style="display:block;width:100%;padding:11px;border:1px solid var(--border);border-radius:7px;font:inherit">
+                    <small class="muted">Optional. Set it later on the heat if it is not known yet.</small>
                 </div>
 
                 <div id="power-limit-field">
@@ -103,6 +104,7 @@
                            type="number" min="0.001" step="0.01"
                            value="{{ old('target_temperature_c') }}"
                            style="display:block;width:100%;padding:11px;border:1px solid var(--border);border-radius:7px;font:inherit">
+                    <small class="muted" id="temperature-hint">Optional. Choose an iron grade to see a suggested temperature.</small>
                 </div>
 
                 <div>
@@ -278,6 +280,25 @@ document.addEventListener('DOMContentLoaded', function () {
             ? 'Furnace maximum configured: ' + maximum + ' kW.'
             : 'No furnace maximum configured. Enter a limit only if known.';
     }
+
+    // The grade (or its iron family) suggests a temperature. It fills the field only while the field is empty or still holds the last suggestion.
+    const grade = document.getElementById('iron_grade_id'), temperature = document.getElementById('target_temperature_c');
+    const temperatureHint = document.getElementById('temperature-hint'), gradeTemps = @json($gradeTemps);
+    let suggested = null;
+    function updateSuggestedTemperature() {
+        const s = gradeTemps[grade.value];
+        if (!s) {
+            if (suggested !== null && temperature.value === String(suggested)) { temperature.value = ''; }
+            suggested = null;
+            temperatureHint.textContent = 'Optional. Choose an iron grade to see a suggested temperature.';
+            return;
+        }
+        if (temperature.value === '' || (suggested !== null && temperature.value === String(suggested))) { temperature.value = s.temp; }
+        suggested = s.temp;
+        temperatureHint.textContent = 'Suggested ' + s.temp + ' °C, ' + s.source + '. Change it if the melt needs something else.';
+    }
+    grade.addEventListener('change', updateSuggestedTemperature);
+    updateSuggestedTemperature();
 
     furnace.addEventListener('change', function () {
         updatePowerLimit();

@@ -17,6 +17,30 @@ class IronGrade extends Model
         'WHITE' => 'White iron', 'ALLOY' => 'Alloy iron',
     ];
 
+    /** Typical tapping temperatures by iron family, in °C, suggested for a new heat when the grade sets no tap range. */
+    public const FAMILY_TAP_TEMPS_C = ['GREY' => 1480, 'DUCTILE' => 1500, 'MALLEABLE' => 1460, 'CGI' => 1500, 'WHITE' => 1450, 'ALLOY' => 1500];
+
+    /**
+     * The temperature to suggest when a heat of this grade is planned: the middle of the grade's tap range, else the end it gives,
+     * else the typical figure for its iron family.
+     *
+     * @return array{temp: int, source: string}|null
+     */
+    public function suggestedTapTemperature(): ?array
+    {
+        $min = $this->tap_temp_min_c;
+        $max = $this->tap_temp_max_c;
+        if ($min !== null && $max !== null) {
+            return ['temp' => (int) round(((float) $min + (float) $max) / 2), 'source' => "the middle of {$this->code}'s tap range ({$min}–{$max} °C)"];
+        }
+        if ($min !== null || $max !== null) {
+            return ['temp' => (int) round((float) ($min ?? $max)), 'source' => "{$this->code}'s tap temperature"];
+        }
+        $family = self::FAMILY_TAP_TEMPS_C[$this->family] ?? null;
+
+        return $family === null ? null : ['temp' => $family, 'source' => 'a typical figure for '.strtolower($this->familyLabel())];
+    }
+
     public function familyLabel(): string
     {
         return self::FAMILIES[$this->family] ?? ucfirst(strtolower((string) $this->family));
