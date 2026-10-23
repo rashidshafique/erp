@@ -370,6 +370,8 @@ Route::get('/settings/melting-days', [\App\Http\Controllers\MeltingDaysControlle
 Route::put('/settings/melting-days', [\App\Http\Controllers\MeltingDaysController::class, 'update'])->name('settings.melting-days');
 Route::get('/settings/pouring', [\App\Http\Controllers\PouringRulesController::class, 'edit'])->name('settings.pouring.edit');
 Route::put('/settings/pouring', [\App\Http\Controllers\PouringRulesController::class, 'update'])->name('settings.pouring');
+Route::get('/settings/queue', [\App\Http\Controllers\QueueRulesController::class, 'edit'])->name('settings.queue.edit');
+Route::put('/settings/queue', [\App\Http\Controllers\QueueRulesController::class, 'update'])->name('settings.queue');
 Route::prefix('flask-sizes')->name('flask-sizes.')->controller(FlaskSizeController::class)->group(function () {
     Route::post('/', 'store')->name('store');
     Route::get('/{flaskSize}/edit', 'edit')->name('edit');

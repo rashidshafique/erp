@@ -58,6 +58,32 @@ class ProductionQueueTest extends TestCase
         $this->assertSame(1, $steps['ready']['lot_count']);
     }
 
+    public function test_the_age_limits_and_step_limits_come_from_the_settings(): void
+    {
+        $lot = $this->castingLot();
+        $this->pouredHoursAgo($lot, 10);
+        $this->castingLot();
+        $this->assertSame('green', $this->steps()['waiting']['tone'], '10 h is under the default 24 h');
+
+        $this->put(route('settings.queue'), ['amber_hours' => 8, 'red_hours' => 12, 'wip_unit' => 'LOTS'])->assertSessionHasNoErrors();
+        $this->assertSame('amber', $this->steps()['waiting']['tone']);
+
+        $this->put(route('settings.queue'), ['amber_hours' => 8, 'red_hours' => 12, 'wip_unit' => 'LOTS', 'wip_waiting' => 1])->assertSessionHasNoErrors();
+        $waiting = $this->steps()['waiting'];
+        $this->assertSame([1, true, 'red'], [$waiting['limit'], $waiting['over_limit'], $waiting['tone']], 'two lots against a limit of one');
+        $this->get(route('lots.queue'))->assertSee('over limit of 1 lots');
+
+        $this->put(route('settings.queue'), ['amber_hours' => 8, 'red_hours' => 12, 'wip_unit' => 'PIECES', 'wip_waiting' => 10])->assertSessionHasNoErrors();
+        $this->assertFalse($this->steps()['waiting']['over_limit'], 'ten pieces is within a limit of ten');
+    }
+
+    public function test_the_rules_page_lists_a_limit_for_each_step_and_red_must_come_after_amber(): void
+    {
+        $this->get(route('settings.queue.edit'))->assertOk()->assertSee('Limit: Waiting for shakeout')->assertSee('Limit: After Shakeout')->assertSee('Limit: Ready to pack');
+
+        $this->put(route('settings.queue'), ['amber_hours' => 30, 'red_hours' => 20, 'wip_unit' => 'LOTS'])->assertSessionHasErrors('red_hours');
+    }
+
     public function test_a_lot_from_several_moulds_is_one_row_that_expands_to_its_moulds(): void
     {
         $grouped = $this->castingLot();

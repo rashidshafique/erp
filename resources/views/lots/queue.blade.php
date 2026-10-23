@@ -38,6 +38,7 @@
                 <div class="qstep-note">{{ \App\Support\Formats::number($step['pieces']) }} pcs</div>
                 @if ($step['oldest_h'] !== null)<div class="qstep-note qstep-age">oldest {{ $step['oldest_h'] >= 72 ? intdiv($step['oldest_h'], 24).' d' : $step['oldest_h'].' h' }}</div>@endif
             @endif
+            @if ($step['limit'])<div class="qstep-note" @if ($step['over_limit']) style="color:var(--danger);font-weight:650" @endif>{{ $step['over_limit'] ? 'over limit of' : 'limit' }} {{ \App\Support\Formats::number($step['limit']) }} {{ $step['limit_unit'] }}</div>@endif
         </{{ $tag }}>
     @endforeach
 </nav>
@@ -69,7 +70,7 @@
 <div class="panel" id="step-{{ $b['key'] }}" x-data="{ open: {{ $isReady ? 'false' : 'true' }}, all: false }" @queue-open.window="if ($event.detail === '{{ $b['key'] }}') open = true">
     <div class="panel-header">
         <h2>{{ $b['label'] }}</h2>
-        <span class="muted small">{{ $b['lot_count'] }} {{ $b['lot_count'] === 1 ? 'lot' : 'lots' }} · {{ \App\Support\Formats::number($b['pieces']) }} pcs</span>
+        <span class="muted small">{{ $b['lot_count'] }} {{ $b['lot_count'] === 1 ? 'lot' : 'lots' }} · {{ \App\Support\Formats::number($b['pieces']) }} pcs @if ($b['limit'])· <span @if ($b['over_limit']) style="color:var(--danger);font-weight:650" @endif>{{ $b['over_limit'] ? 'over limit of' : 'limit' }} {{ \App\Support\Formats::number($b['limit']) }} {{ $b['limit_unit'] }}</span>@endif</span>
         <span style="margin-left:auto;display:flex;gap:6px">
             @if ($multi)
                 <button type="button" class="btn btn-small" x-show="open" @click="window.dispatchEvent(new CustomEvent('queue-moulds', { detail: { step: '{{ $b['key'] }}', open: true } }))">Expand all</button>

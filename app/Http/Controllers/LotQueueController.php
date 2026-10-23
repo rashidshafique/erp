@@ -7,17 +7,13 @@ use App\Models\PackingRecordItem;
 use App\Models\ProductionStageDefinition;
 use App\Services\Production\LotService;
 use App\Services\Production\ShipmentService;
+use App\Support\QueueRules;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\View\View;
 
 class LotQueueController extends Controller
 {
-    /** Hours since the pour after which the oldest lot in a step turns the step amber, then red. */
-    public const AMBER_AFTER_HOURS = 24;
-
-    public const RED_AFTER_HOURS = 48;
-
     /**
      * Where every open lot stands, as a line of steps in process order: waiting for shakeout, after each active stage, ready
      * to pack. Each step carries its totals so the flow strip and the board can show how much work sits where.
@@ -26,13 +22,11 @@ class LotQueueController extends Controller
     {
         $lots = CastingLot::with(['product', 'stageEvents.stage', 'pourMouldAssembly.pour', 'pourMouldAssemblies.mouldAssembly', 'productionOrder'])
             ->whereIn('status', ['IN_PRODUCTION', 'ON_HOLD', 'READY'])->get();
-        $activeStages = ProductionStageDefinition::where('is_active', true)->orderBy('sequence')->get();
 
-        $steps = ['waiting' => $this->step('waiting', 'Waiting for shakeout')];
-        foreach ($activeStages as $stage) {
-            $steps['after-'.$stage->code] = $this->step('after-'.$stage->code, 'After '.$stage->name);
+        $steps = [];
+        foreach (QueueRules::steps() as $key => $label) {
+            $steps[$key] = $this->step($key, $label);
         }
-        $steps['ready'] = $this->step('ready', 'Ready to pack');
 
         foreach ($lots as $lot) {
             $last = $lot->stageEvents->sortBy(fn ($e) => $e->stage?->sequence)->last()?->stage;
@@ -57,15 +51,19 @@ class LotQueueController extends Controller
             ];
         }
 
+        [$amber, $red, $byPieces] = [QueueRules::amberHours(), QueueRules::redHours(), QueueRules::countsPieces()];
         foreach ($steps as &$step) {
             usort($step['lots'], fn ($x, $y) => ($y['age_h'] ?? -1) <=> ($x['age_h'] ?? -1));
             $step['lot_count'] = count($step['lots']);
             $step['pieces'] = array_sum(array_column($step['lots'], 'pieces'));
             $step['oldest_h'] = $step['lots'][0]['age_h'] ?? null;
+            $step['limit'] = QueueRules::wipLimit($step['key']);
+            $step['limit_unit'] = $byPieces ? 'pcs' : 'lots';
+            $step['over_limit'] = $step['limit'] !== null && ($byPieces ? $step['pieces'] : $step['lot_count']) > $step['limit'];
             $step['tone'] = match (true) {
                 $step['lot_count'] === 0 => 'empty',
-                $step['oldest_h'] !== null && $step['oldest_h'] >= self::RED_AFTER_HOURS => 'red',
-                $step['oldest_h'] !== null && $step['oldest_h'] >= self::AMBER_AFTER_HOURS => 'amber',
+                $step['over_limit'], $step['oldest_h'] !== null && $step['oldest_h'] >= $red => 'red',
+                $step['oldest_h'] !== null && $step['oldest_h'] >= $amber => 'amber',
                 default => 'green',
             };
         }
@@ -76,7 +74,7 @@ class LotQueueController extends Controller
             : 0;
 
         return view('lots.queue', [
-            'stages' => $activeStages->where('code', '!=', 'FINAL_INSPECTION')->values(),
+            'stages' => ProductionStageDefinition::where('is_active', true)->where('code', '!=', 'FINAL_INSPECTION')->orderBy('sequence')->get(),
             'steps' => array_values($steps),
             'openLots' => $lots->count(),
             'view' => $request->query('view') === 'board' ? 'board' : 'list',

@@ -19,7 +19,7 @@
     <section class="qcol {{ $b['tone'] }}" id="step-{{ $b['key'] }}" x-data="{ all: false }" aria-label="{{ $b['label'] }}">
         <div class="qcol-head">
             @if (collect($b['lots'])->contains(fn ($r) => $r['lot']->status === 'IN_PRODUCTION'))<input type="checkbox" class="bucket-all" aria-label="Select all in {{ $b['label'] }}" style="margin-top:3px">@endif
-            <div><h2>{{ $b['label'] }}</h2><div class="muted small">{{ $b['lot_count'] }} {{ $b['lot_count'] === 1 ? 'lot' : 'lots' }}@if ($b['lot_count']) · {{ \App\Support\Formats::number($b['pieces']) }} pcs @endif</div></div>
+            <div><h2>{{ $b['label'] }}</h2><div class="muted small">{{ $b['lot_count'] }} {{ $b['lot_count'] === 1 ? 'lot' : 'lots' }}@if ($b['lot_count']) · {{ \App\Support\Formats::number($b['pieces']) }} pcs @endif</div>@if ($b['limit'])<div class="small {{ $b['over_limit'] ? '' : 'muted' }}" @if ($b['over_limit']) style="color:var(--danger);font-weight:650" @endif>{{ $b['over_limit'] ? 'Over limit of' : 'Limit' }} {{ \App\Support\Formats::number($b['limit']) }} {{ $b['limit_unit'] }}</div>@endif</div>
         </div>
         <div class="qcol-body">
             @foreach ($b['lots'] as $r)
