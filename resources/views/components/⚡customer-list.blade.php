@@ -211,7 +211,7 @@ new class extends Component
                         <td>{{ $customer->contact_name ?: '—' }}@if ($customer->phone || $customer->email)<div class="muted small">{{ collect([$customer->phone, $customer->email])->filter()->implode(' · ') }}</div>@endif</td>
                         <td>{{ $customer->payment_terms ?: '—' }}</td>
                         <td>{{ $customer->sales_orders_count }}</td>
-                        @if ($showDispatch)<td>@if ($customer->last_dispatched_at){{ $customer->last_dispatched_at->displayDate() }}<div class="muted small">{{ $customer->last_dispatched_at->diffForHumans() }}</div>@else — @endif</td>@endif
+                        @if ($showDispatch)<td>@if ($customer->last_dispatched_at)<a href="{{ route('dispatches.index', ['customer' => $customer->id]) }}">{{ $customer->last_dispatched_at->displayDate() }}</a><div class="muted small">{{ $customer->last_dispatched_at->diffForHumans() }}</div>@else — @endif</td>@endif
                         <td>@if ($customer->owned_patterns_count)<a href="{{ route('patterns.index', ['owner' => $customer->id]) }}">{{ $customer->owned_patterns_count }}</a>@else — @endif</td>
                         <td><span class="status {{ $customer->active ? 'status-completed' : 'status-cancelled' }}">{{ $customer->active ? 'Active' : 'Inactive' }}</span></td>
                         <td style="white-space:nowrap"><button class="btn btn-small" type="button" wire:click="edit('{{ $customer->id }}')">Quick edit</button> <a href="{{ route('customer-requirements.edit', $customer) }}">Requirements →</a></td>

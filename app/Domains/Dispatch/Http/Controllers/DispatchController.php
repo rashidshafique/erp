@@ -9,14 +9,23 @@ use App\Domains\Dispatch\Models\PackingRecordItem;
 use App\Domains\Dispatch\Services\ShipmentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 use InvalidArgumentException;
 
 class DispatchController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
-        return view('dispatch::dispatches.index', ['dispatches' => Dispatch::with('customer')->withCount('items')->orderByDesc('created_at')->paginate(25)]);
+        $customerId = $request->filled('customer') && Str::isUuid($request->query('customer')) ? $request->query('customer') : null;
+        $dispatches = Dispatch::with('customer')->withCount('items')
+            ->when($customerId, fn ($q) => $q->where('customer_id', $customerId))
+            ->orderByDesc('created_at')->paginate(25)->withQueryString();
+
+        return view('dispatch::dispatches.index', [
+            'dispatches' => $dispatches, 'customerId' => $customerId,
+            'customers' => Customer::whereIn('id', Dispatch::select('customer_id'))->orderedByName()->get(),
+        ]);
     }
 
     public function create(ShipmentService $ship): View
