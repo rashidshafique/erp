@@ -65,7 +65,13 @@
         <div class="field field-full wz-req" data-need="sample"><label>Describe the sample</label><textarea name="sample_note" rows="3" placeholder="How many, condition, whether it is cast or machined, what the customer knows about its material…">{{ old('sample_note') }}</textarea>@error('sample_note')<div class="error-text">{{ $message }}</div>@enderror</div>
         <div class="field" data-need="drawing"><label>Drawing number</label><input name="drawing_ref" value="{{ old('drawing_ref') }}">@error('drawing_ref')<div class="error-text">{{ $message }}</div>@enderror</div>
         <div class="field" data-need="drawing"><label>Drawing revision</label><input name="drawing_rev" value="{{ old('drawing_rev') }}"></div>
-        <div class="field"><label>Material asked for</label><input name="material_text" value="{{ old('material_text') }}" placeholder="e.g. EN-GJS-500-7"></div>
+        <div class="field"><label for="material_text">Material grade</label>
+            <select name="material_text" id="material_text" data-search-select>
+                <option value="">— choose —</option>
+                @foreach ($grades as $g)<option value="{{ $g->code }}" data-sub="{{ $g->name }}" data-family="{{ $g->family }}" @selected(old('material_text') === $g->code)>{{ $g->code }}</option>@endforeach
+                <option value="__new__" data-sub="Not in the list" @selected(old('material_text') === '__new__')>+ Add new grade…</option>
+            </select>@error('material_text')<div class="error-text">{{ $message }}</div>@enderror</div>
+        <div class="field" id="materialNewField" hidden><label for="material_new">New grade</label><input id="material_new" name="material_new" value="{{ old('material_new') }}" placeholder="e.g. EN-GJS-500-7" disabled>@error('material_new')<div class="error-text">{{ $message }}</div>@enderror</div>
         <div class="field"><label>Iron family</label><select name="family"><option value="">— decide later —</option><option value="GREY" @selected(old('family') === 'GREY')>Grey iron</option><option value="DUCTILE" @selected(old('family') === 'DUCTILE')>Ductile iron</option></select></div>
         <div class="field"><label>Weight, kg (if known)</label><input type="number" step="0.001" min="0" name="weight_kg" value="{{ old('weight_kg') }}"><div class="help">Left blank, our own product weight is used for repeats. A casting analysis replaces it later.</div></div>
         <div class="field"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="heat_treatment" value="1" @checked(old('heat_treatment'))> Heat treated</label><label style="display:flex;gap:8px;align-items:center;margin-top:6px"><input type="checkbox" name="ndt" value="1" @checked(old('ndt'))> NDT required</label></div>
@@ -111,6 +117,13 @@
         form.querySelectorAll('.wz-card').forEach(function (c) { c.classList.toggle('sel', c.querySelector('input').checked); });
         if (s && !form.dataset.catTouched) document.getElementById('file_category').value = s.cat;
     }
+    function applyMaterial() {
+        var sel = document.getElementById('material_text'), o = sel.options[sel.selectedIndex], isNew = sel.value === '__new__';
+        var box = document.getElementById('materialNewField'); box.hidden = !isNew; box.querySelector('input').disabled = !isNew;
+        if (isNew) { box.querySelector('input').focus(); }
+        else if (o && o.dataset.family) { form.elements.family.value = (o.dataset.family === 'GREY' || o.dataset.family === 'DUCTILE') ? o.dataset.family : ''; }
+    }
+    document.getElementById('material_text').addEventListener('change', applyMaterial);
     function product() { var sel = document.getElementById('product_id'); return sel && sel.selectedIndex > 0 ? sel.options[sel.selectedIndex] : null; }
     document.getElementById('product_id').addEventListener('change', function () {
         var o = product(), info = document.getElementById('prodInfo');
@@ -127,6 +140,7 @@
         if (i === 2) {
             var n = SC[scenario()].needs;
             if (!val('description')) return 'Name the part.';
+            if (val('material_text') === '__new__' && !val('material_new')) return 'Enter the new material grade.';
             if (n.indexOf('product') >= 0 && !val('product_id')) return 'Choose which of our parts it is.';
             var map = { change: ['change_note', 'Say what has changed.'], tool: ['tool_note', 'Describe the tooling.'], concept: ['concept_note', 'Say what the part has to do.'], transfer: ['transfer_note', 'Say where it is made today.'], sample: ['sample_note', 'Describe the sample.'] };
             for (var k in map) if (n.indexOf(k) >= 0 && !val(map[k][0])) return map[k][1];
@@ -147,6 +161,7 @@
         ['drawing_ref:Drawing', 'material_text:Material', 'weight_kg:Weight kg', 'first_batch_qty:First batch', 'annual_qty:Yearly', 'target_price:Target price', 'due_on:Quote needed by', 'change_note:What changed', 'tool_note:Tooling', 'concept_note:Purpose', 'transfer_note:Transfer', 'sample_note:Sample'].forEach(function (p) {
             var a = p.split(':'), e = form.elements[a[0]]; if (e && !e.disabled && val(a[0])) rows.push([a[1], val(a[0])]);
         });
+        if (val('material_text') === '__new__') { rows = rows.filter(function (r) { return r[0] !== 'Material'; }); rows.push(['Material', val('material_new')]); }
         var f = form.querySelector('input[type=file]').files.length; if (f) rows.push(['Files', f + ' to attach']);
         dl.innerHTML = ''; rows.forEach(function (r) { var dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = r[0]; dd.textContent = r[1]; dl.appendChild(dt); dl.appendChild(dd); });
         document.getElementById('wzNext').innerHTML = '<strong>What happens next</strong><ul style="margin:6px 0 0 18px">' + s.advice.map(function (a) { var li = document.createElement('li'); li.textContent = a; return li.outerHTML; }).join('') + '</ul>';
@@ -168,6 +183,7 @@
     pills.forEach(function (p, k) { p.onclick = function () { if (k < cur) go(k); }; });
     form.addEventListener('submit', function () { document.getElementById('wzSubmit').disabled = true; });
     applyMode(); applyScenario();
+    (function () { var sel = document.getElementById('material_text'), box = document.getElementById('materialNewField'); if (sel.value === '__new__') { box.hidden = false; box.querySelector('input').disabled = false; } })();
     var firstErr = form.querySelector('.error-text'), start = 0;
     if (firstErr) start = steps.indexOf(firstErr.closest('.wz-step'));
     else if ('{{ $preset['customer'] ?? '' }}' && '{{ $preset['scenario'] ?? '' }}') start = 2;

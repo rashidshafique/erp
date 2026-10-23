@@ -5,6 +5,7 @@ namespace App\Domains\Enquiry\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\AttachmentController;
 use App\Models\Customer;
+use App\Models\IronGrade;
 use App\Domains\Enquiry\Models\Enquiry;
 use App\Models\Product;
 use App\Support\AttachableEntities;
@@ -24,6 +25,7 @@ class RequestWizardController extends Controller
         return view('enquiry::enquiries.wizard', [
             'customers' => Customer::active()->orderedByName()->get(),
             'products' => Product::with('revisions:id,product_id,revision,status')->orderBy('code')->get(['id', 'code', 'name', 'nominal_weight_kg']),
+            'grades' => IronGrade::listed(),
             'scenarios' => config('enquiry_scenarios'),
             'categories' => AttachableEntities::CATEGORIES,
             'preset' => $request->only(['customer', 'scenario']),
@@ -50,7 +52,7 @@ class RequestWizardController extends Controller
             'description' => ['required', 'string', 'max:200'],
             'product_id' => [$has('product') ? 'required' : 'nullable', 'exists:products,id'],
             'drawing_ref' => ['nullable', 'string', 'max:100'], 'drawing_rev' => ['nullable', 'string', 'max:20'],
-            'material_text' => ['nullable', 'string', 'max:200'], 'family' => ['nullable', Rule::in(['GREY', 'DUCTILE'])],
+            'material_text' => ['nullable', 'string', 'max:200'], 'material_new' => ['required_if:material_text,__new__', 'nullable', 'string', 'max:200'], 'family' => ['nullable', Rule::in(['GREY', 'DUCTILE'])],
             'weight_kg' => ['nullable', 'numeric', 'min:0', 'max:100000'],
             'change_note' => [$has('change') ? 'required' : 'nullable', 'string', 'max:3000'],
             'tool_note' => [$has('tool') ? 'required' : 'nullable', 'string', 'max:3000'],
@@ -106,7 +108,7 @@ class RequestWizardController extends Controller
             ]);
             $e->items()->create([
                 'line_no' => 1, 'description' => $d['description'], 'product_id' => $product?->id,
-                'drawing_ref' => $d['drawing_ref'] ?? null, 'drawing_rev' => $d['drawing_rev'] ?? null, 'material_text' => $d['material_text'] ?? null,
+                'drawing_ref' => $d['drawing_ref'] ?? null, 'drawing_rev' => $d['drawing_rev'] ?? null, 'material_text' => ($d['material_text'] ?? null) === '__new__' ? $d['material_new'] : ($d['material_text'] ?? null),
                 'family' => $d['family'] ?? null, 'weight_kg' => ($d['weight_kg'] ?? null) ?: $product?->nominal_weight_kg,
                 'first_batch_qty' => $d['first_batch_qty'] ?? null, 'annual_qty' => $d['annual_qty'] ?? null, 'target_price' => $d['target_price'] ?? null,
                 'heat_treatment' => $request->boolean('heat_treatment'), 'ndt' => $request->boolean('ndt'),

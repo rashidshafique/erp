@@ -88,6 +88,13 @@ class RequestWizardTest extends TestCase
         $this->assertSame('cover.stl', $a->original_name);
     }
 
+    public function test_material_grade_comes_from_the_list_or_is_typed_as_a_new_one(): void
+    {
+        $this->submit(['source_type' => 'DRAWING', 'description' => 'Bracket', 'drawing_ref' => 'D-1', 'material_text' => '__new__'])->assertSessionHasErrors('material_new');
+        $this->submit(['source_type' => 'DRAWING', 'description' => 'Bracket', 'drawing_ref' => 'D-1', 'material_text' => '__new__', 'material_new' => 'EN-GJS-450-10', 'family' => 'DUCTILE'])->assertSessionHasNoErrors();
+        $this->assertSame('EN-GJS-450-10', Enquiry::firstOrFail()->items()->firstOrFail()->material_text);
+    }
+
     public function test_customer_supplied_tool_is_recorded_as_such(): void
     {
         $this->submit(['source_type' => 'CUSTOMER_TOOL', 'description' => 'Valve body', 'drawing_ref' => 'V-12', 'tool_note' => 'Aluminium pattern and 2 core boxes, worn'])->assertSessionHasNoErrors();
