@@ -44,6 +44,8 @@
             <a href="{{ route('dashboard') }}" class="nav-link nav-top {{ request()->routeIs('dashboard') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('dashboard') !!}<span>Dashboard</span></a>
             @if ($menu->shows('calendar.index')) <a href="{{ route('calendar.index') }}" class="nav-link nav-top {{ request()->routeIs('calendar.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('calendar') !!}<span>Calendar</span></a> @endif
 
+            @include('layouts._module-nav-groups', ['position' => 'top'])
+
             @if ($menu->showsAny(['products.index', 'patterns.index', 'casting-analyses.index', 'production-orders.index', 'moulding-runs.index', 'pours.index', 'work-lists.index', 'moulding-teams.index', 'sand-systems.index', 'mould-readiness.index']))
             <div class="nav-group {{ request()->routeIs('products.*', 'patterns.*', 'pattern-ownership.*', 'casting-analyses.*', 'production-orders.*', 'moulding-runs.*', 'pours.*', 'work-lists.*', 'moulding-teams.*', 'sand-systems.*', 'mould-readiness.*') ? 'is-active' : '' }}">
                 <button type="button" class="nav-group-toggle" aria-expanded="false">
@@ -64,16 +66,30 @@
             </div>
             @endif
 
-            @if ($menu->showsAny(['heats.index', 'furnaces.index', 'materials.index', 'charge-batches.index']) || collect(app(\App\Domains\Core\ModuleRegistry::class)->navItems('melting'))->contains(fn ($i) => $menu->shows($i['route'])))
-            <div class="nav-group {{ request()->routeIs('heats.*', 'furnaces.*', 'materials.*', 'charge-batches.*', ...app(\App\Domains\Core\ModuleRegistry::class)->navPatterns('melting')) ? 'is-active' : '' }}">
+            @if ($menu->showsAny(['heats.index', 'furnaces.index']) || collect(app(\App\Domains\Core\ModuleRegistry::class)->navItems('melting'))->contains(fn ($i) => $menu->shows($i['route'])))
+            <div class="nav-group {{ request()->routeIs('heats.*', 'furnaces.*', ...app(\App\Domains\Core\ModuleRegistry::class)->navPatterns('melting')) ? 'is-active' : '' }}">
                 <button type="button" class="nav-group-toggle" aria-expanded="false">
-                    <span class="nav-lab">{!! \App\Support\NavIcons::get('flame') !!}<span>Melting &amp; Materials</span></span><span class="nav-chevron">›</span>
+                    <span class="nav-lab">{!! \App\Support\NavIcons::get('flame') !!}<span>Melting</span></span><span class="nav-chevron">›</span>
                 </button>
                 <div class="nav-submenu" hidden>
                     @if ($menu->shows('heats.index')) <a href="{{ route('heats.index') }}" class="nav-link {{ request()->routeIs('heats.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('flask') !!}<span>Melting heats</span></a> @endif
                     @if ($menu->shows('furnaces.index')) <a href="{{ route('furnaces.index') }}" class="nav-link {{ request()->routeIs('furnaces.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('zap') !!}<span>Furnaces</span></a> @endif
-                    @if ($menu->shows('materials.index')) <a href="{{ route('materials.index') }}" class="nav-link {{ request()->routeIs('materials.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('package') !!}<span>Materials</span></a> @endif
                     @foreach (app(\App\Domains\Core\ModuleRegistry::class)->navItems('melting') as $item)
+                        @continue(! $menu->shows($item['route']))
+                        <a href="{{ route($item['route']) }}" class="nav-link {{ request()->routeIs(...$item['active']) ? 'active' : '' }}">{!! \App\Support\NavIcons::get($item['icon']) !!}<span>{{ $item['label'] }}</span></a>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+
+            @if ($menu->showsAny(['materials.index', 'charge-batches.index']) || collect(app(\App\Domains\Core\ModuleRegistry::class)->navItems('purchases'))->contains(fn ($i) => $menu->shows($i['route'])))
+            <div class="nav-group {{ request()->routeIs('materials.*', 'charge-batches.*', ...app(\App\Domains\Core\ModuleRegistry::class)->navPatterns('purchases')) ? 'is-active' : '' }}">
+                <button type="button" class="nav-group-toggle" aria-expanded="false">
+                    <span class="nav-lab">{!! \App\Support\NavIcons::get('package') !!}<span>Purchases</span></span><span class="nav-chevron">›</span>
+                </button>
+                <div class="nav-submenu" hidden>
+                    @if ($menu->shows('materials.index')) <a href="{{ route('materials.index') }}" class="nav-link {{ request()->routeIs('materials.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('package') !!}<span>Materials</span></a> @endif
+                    @foreach (app(\App\Domains\Core\ModuleRegistry::class)->navItems('purchases') as $item)
                         @continue(! $menu->shows($item['route']))
                         <a href="{{ route($item['route']) }}" class="nav-link {{ request()->routeIs(...$item['active']) ? 'active' : '' }}">{!! \App\Support\NavIcons::get($item['icon']) !!}<span>{{ $item['label'] }}</span></a>
                     @endforeach

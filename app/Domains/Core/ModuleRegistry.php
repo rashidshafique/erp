@@ -103,11 +103,11 @@ class ModuleRegistry
     }
 
     /** @return list<array{key: string, label: string, icon: string, active: list<string>, items: list<array<string, mixed>>}> */
-    public function navGroups(): array
+    public function navGroups(string $position = 'bottom'): array
     {
         return array_values(array_map(
             fn (array $g) => $g + ['active' => []],
-            $this->navGroups,
+            array_filter($this->navGroups, fn (array $g) => ($g['position'] ?? 'bottom') === $position),
         ));
     }
 

@@ -38,8 +38,8 @@ class InventoryServiceProvider extends ModuleServiceProvider
     protected function navItems(): array
     {
         return [
-            ['group' => 'melting', 'label' => 'Stock by location', 'route' => 'stock-balances.index', 'icon' => 'package', 'active' => ['stock-balances.*', 'stock-movements.record']],
-            ['group' => 'melting', 'label' => 'Stock locations', 'route' => 'stock-locations.index', 'icon' => 'package', 'active' => ['stock-locations.*']],
+            ['group' => 'purchases', 'label' => 'Stock by location', 'route' => 'stock-balances.index', 'icon' => 'package', 'active' => ['stock-balances.*', 'stock-movements.record']],
+            ['group' => 'purchases', 'label' => 'Stock locations', 'route' => 'stock-locations.index', 'icon' => 'package', 'active' => ['stock-locations.*']],
         ];
     }
 }

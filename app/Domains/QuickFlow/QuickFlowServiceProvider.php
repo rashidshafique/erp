@@ -47,7 +47,7 @@ class QuickFlowServiceProvider extends ModuleServiceProvider
     protected function navGroups(): array
     {
         return [[
-            'key' => 'quickflow', 'label' => 'Quick flow', 'icon' => 'clipboard', 'active' => ['quick.*'],
+            'key' => 'quickflow', 'label' => 'Quick flow', 'icon' => 'clipboard', 'active' => ['quick.*'], 'position' => 'top',
             'items' => [
                 ['label' => 'Next heat', 'route' => 'quick.heat.index', 'icon' => 'calendar', 'active' => ['quick.heat.*']],
                 ['label' => 'Moulds made / poured', 'route' => 'quick.floor.index', 'icon' => 'clipboard', 'active' => ['quick.floor.*']],

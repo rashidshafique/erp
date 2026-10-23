@@ -1,5 +1,5 @@
 @php($menu = app(\App\Domains\Core\Contracts\MenuFilter::class))
-@foreach (app(\App\Domains\Core\ModuleRegistry::class)->navGroups() as $group)
+@foreach (app(\App\Domains\Core\ModuleRegistry::class)->navGroups($position ?? 'bottom') as $group)
     @continue(! $menu->showsModuleGroup($group['key']) || ! $menu->showsAny(array_column($group['items'], 'route')))
     @php($patterns = array_merge($group['active'], ...array_column($group['items'], 'active')))
     <div class="nav-group {{ request()->routeIs(...$patterns) ? 'is-active' : '' }}">

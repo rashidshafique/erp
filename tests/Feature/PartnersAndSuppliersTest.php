@@ -62,7 +62,7 @@ class PartnersAndSuppliersTest extends TestCase
         $this->put(route('suppliers.update', $other), ['name' => 'Beta', 'review_interval_days' => 10])->assertSessionHasErrors('review_interval_days');
     }
 
-    public function test_suppliers_sit_in_the_melting_and_materials_menu_after_materials_and_not_under_quality(): void
+    public function test_suppliers_sit_in_the_purchases_menu_after_materials_and_not_under_quality(): void
     {
         $html = $this->get(route('suppliers.index'))->assertOk()->getContent();
         $menu = [];
@@ -72,8 +72,8 @@ class PartnersAndSuppliersTest extends TestCase
             $menu[html_entity_decode($title[1])] = array_map('html_entity_decode', $items[1]);
         }
 
-        $melting = $menu['Melting & Materials'];
-        $this->assertSame(array_search('Materials', $melting) + 1, array_search('Suppliers', $melting));
+        $purchases = $menu['Purchases'];
+        $this->assertSame(array_search('Materials', $purchases) + 1, array_search('Suppliers', $purchases));
         $this->assertNotContains('Suppliers', $menu['Quality']);
         $this->assertStringContainsString('class="nav-group is-active"', $html);
     }
@@ -93,5 +93,22 @@ class PartnersAndSuppliersTest extends TestCase
         $this->assertSame([], array_intersect(['Finished goods', 'Packing', 'Dispatch'], $menu['Quality']));
         $this->assertArrayNotHasKey('Dispatch', $menu, 'No menu of its own.');
         $this->assertStringContainsString('class="nav-group is-active"', $html, 'The Sales menu opens on the dispatch pages.');
+    }
+
+    public function test_melting_keeps_heats_and_furnaces_and_quick_flow_sits_above_production(): void
+    {
+        $html = $this->get(route('dashboard'))->assertOk()->getContent();
+        $menu = [];
+        foreach (array_slice(preg_split('/<div class="nav-group/', $html), 1) as $group) {
+            preg_match('/<span class="nav-lab">.*?<span>(.*?)<\/span><\/span>/s', $group, $title);
+            preg_match_all('/<span>([^<]+)<\/span><\/a>/', explode("</div>\n            </div>", $group)[0], $items);
+            $menu[html_entity_decode($title[1])] = array_map('html_entity_decode', $items[1]);
+        }
+
+        $this->assertSame(['Melting heats', 'Furnaces'], $menu['Melting']);
+        $this->assertSame([], array_intersect(['Materials', 'Suppliers', 'Charge recipes', 'Stock locations'], $menu['Melting']));
+        $this->assertSame([], array_diff(['Materials', 'Charge recipes', 'Suppliers', 'Stock locations', 'Stock by location'], $menu['Purchases']));
+        $this->assertArrayNotHasKey('Melting & Materials', $menu);
+        $this->assertLessThan(array_search('Production', array_keys($menu)), array_search('Quick flow', array_keys($menu)));
     }
 }

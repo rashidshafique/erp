@@ -1,6 +1,6 @@
 # Project status
 
-Updated 2026-10-21. 132 commits, 105 feature test files, 52 uncommitted files from the in-progress cupola/thermal work.
+Updated 2026-10-23.
 
 ## Done
 
@@ -22,17 +22,13 @@ Updated 2026-10-21. 132 commits, 105 feature test files, 52 uncommitted files fr
 **Platform**
 - Approvals, attachments, audit, custom fields, codes, data import, roles, profile pictures, global search.
 
-## In progress (uncommitted)
-- Cupola charge rounds (`HeatChargeRoundController`, `ChargeRecorder`, `CupolaChargeRoundsTest`).
-- Thermal tests: void, CE source, cup timing and sampling.
-- Heat hold and heat-light indicator.
-- Customer quick-add; pattern link filter; optional mould assembly configuration.
-
-These need their tests run and a commit.
+**Stores (`app/Domains/Inventory`, `app/Services/Stock`)**
+- `StockLedger` is the one write path for receipts, FIFO issues and transfers. Movements name their item (`item_type` + `item_id`); `StockItemTypes` and `StockMovementTypes` are registries a module can add to. `Material` is a `Stockable`, `MaterialLot` a `StockLot`.
+- Stock locations register, record a stock movement (issue, scrap, count adjustment, transfer) and stock by location, all Livewire. Lot receipts can name a location.
 
 ## Missing / next
-1. HR is done; next in the module split: Stores/materials (Inventory), then Sales split. Melting, pouring and moulding stay in core.
-2. Empty module folders still to fill or remove: Commercial, Costing, Engineering, Inventory, MRP, Melting, Moulding, Pouring, Product, Production, Quality, Sand, Traceability.
+1. HR and the first part of Stores are done; next in the module split: Sales split. Melting, pouring and moulding stay in core.
+2. Empty module folders still to fill or remove: Commercial, Costing, Engineering, MRP, Melting, Moulding, Pouring, Product, Production, Quality, Sand, Traceability.
 3. Core still calls module classes directly (gauge calibration checks, tooling life panels). Planned fix: interfaces bound by modules, plus `dependsOn()`.
 4. STAGE2.md "not built yet" is out of date: inspection and dispatch screens now exist. Still to confirm: screens to add mould assemblies to a pour and to create casting lots.
 5. ISO 9001 readiness gaps listed in `iso-9001-readiness.pdf` are not tracked against the code.
@@ -55,3 +51,13 @@ In priority order:
 6. **Reporting and BI**: management dashboards, customer scorecards, statutory report exports.
 7. **Integration**: EDI, e-invoicing and tax filing for the target market, barcode and device input.
 8. **Housekeeping**: track the ISO 9001 gaps against the code, replace direct core-to-module calls with interfaces and `dependsOn()`, write the README.
+
+### Stores: not built yet
+- Finished goods are not on the ledger. They need a decision on their stock lot (casting lot or a new stock lot) and a second registered item type.
+- Cost layers still point at `material_lots`; the ledger refuses lots of other item types until that is designed.
+- Reorder alerts (`minimum_stock_qty`, `reorder_qty`) and the unused `inventory_reservations` table have no screens.
+- Existing lot stock has no location; it shows as "not put anywhere" until transferred.
+- Movement types have no module hook yet; `StockMovementTypes::register()` is called directly.
+
+### Menu
+Quick flow sits above Production (module nav groups take `'position' => 'top'`). Melting holds heats and furnaces; materials, charge recipes, suppliers and stock screens are under Purchases. Finished goods, packing and dispatch are under Sales & Planning.
