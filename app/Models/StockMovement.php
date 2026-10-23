@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Services\Stock\StockItemTypes;
+use App\Services\Stock\Stockable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,6 +13,8 @@ class StockMovement extends Model
     use HasUuids;
 
     protected $fillable = [
+        'item_type',
+        'item_id',
         'movement_number',
         'movement_type',
         'material_id',
@@ -29,6 +33,17 @@ class StockMovement extends Model
         'reason',
     ];
 
+    /** Movements written with only a material and lot, as older code does, are given the matching item columns. */
+    protected static function booted(): void
+    {
+        static::creating(function (self $movement) {
+            if ($movement->item_id === null && $movement->material_id !== null) {
+                $movement->item_type = 'material';
+                $movement->item_id = $movement->material_id;
+            }
+        });
+    }
+
     protected function casts(): array
     {
         return [
@@ -37,6 +52,12 @@ class StockMovement extends Model
             'total_cost' => 'decimal:4',
             'occurred_at' => 'datetime',
         ];
+    }
+
+    /** The item moved, whatever its type. */
+    public function item(): ?Stockable
+    {
+        return app(StockItemTypes::class)->find($this->item_type, $this->item_id);
     }
 
     public function material(): BelongsTo

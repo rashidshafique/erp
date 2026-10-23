@@ -124,7 +124,8 @@ new class extends Component
         $lots = $this->materialId
             ? MaterialLot::where('material_id', $this->materialId)->where('status', 'ACCEPTED')->orderBy('lot_number')->get()
             : collect();
-        $held = $this->lotId ? app(StockLedger::class)->heldByLocation($lots->firstWhere('id', $this->lotId) ?? new MaterialLot) : [];
+        $chosen = $this->lotId ? $lots->firstWhere('id', $this->lotId) : null;
+        $held = $chosen ? app(StockLedger::class)->heldByLocation($chosen) : [];
 
         return [
             'kinds' => self::KINDS,

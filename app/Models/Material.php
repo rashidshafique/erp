@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Services\Stock\Stockable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Material extends Model
+class Material extends Model implements Stockable
 {
     use HasUuids, SoftDeletes;
 
@@ -50,5 +51,45 @@ class Material extends Model
     public function chargeBatchItems(): HasMany
     {
         return $this->hasMany(ChargeBatchItem::class);
+    }
+
+    public function stockItemType(): string
+    {
+        return 'material';
+    }
+
+    public function stockItemId(): string
+    {
+        return $this->id;
+    }
+
+    public function stockCode(): string
+    {
+        return $this->code;
+    }
+
+    public function stockName(): string
+    {
+        return $this->name;
+    }
+
+    public function stockUom(): string
+    {
+        return (string) $this->base_uom;
+    }
+
+    public function isStockTracked(): bool
+    {
+        return (bool) $this->is_stock_tracked;
+    }
+
+    public function isLotTracked(): bool
+    {
+        return (bool) $this->requires_lot_tracking;
+    }
+
+    public function standardCost(): ?float
+    {
+        return $this->standard_cost_per_uom === null ? null : (float) $this->standard_cost_per_uom;
     }
 }

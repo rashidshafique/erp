@@ -10,7 +10,10 @@ use App\Domains\Core\ShowEveryMenuEntry;
 use App\Domains\Core\Contracts\MenuFilter;
 use App\Domains\Core\OpenModuleAccess;
 use App\Models\Heat;
+use App\Models\Material;
 use App\Services\Audit\Audit;
+use App\Services\Stock\StockItemTypes;
+use App\Services\Stock\StockMovementTypes;
 use App\Support\Formats;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\Paginator;
@@ -30,6 +33,13 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singletonIf(MenuFilter::class, ShowEveryMenuEntry::class);
         $this->app->singleton(ModuleRegistry::class);
         $this->app->singletonIf(PeopleDirectory::class, NoPeopleDirectory::class);
+        $this->app->singleton(StockItemTypes::class, function () {
+            $types = new StockItemTypes;
+            $types->register('material', Material::class);
+
+            return $types;
+        });
+        $this->app->singleton(StockMovementTypes::class);
     }
 
     /**

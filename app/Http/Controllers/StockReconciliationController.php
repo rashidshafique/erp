@@ -6,14 +6,13 @@ use App\Models\Material;
 use App\Models\MaterialLot;
 use App\Models\StockLotCostLayer;
 use App\Models\StockMovement;
+use App\Services\Stock\StockMovementTypes;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class StockReconciliationController extends Controller
 {
-    private const MOVEMENT_TYPES = ['RECEIPT', 'ISSUE', 'TRANSFER'];
-
     private const TOLERANCE = 0.001;
 
     public function index(): View
@@ -71,7 +70,8 @@ class StockReconciliationController extends Controller
             ]);
 
         $movements = StockMovement::query()
-            ->where('material_id', $material->id)
+            ->where('item_type', 'material')
+            ->where('item_id', $material->id)
             ->get([
                 'id',
                 'material_id',
@@ -113,8 +113,9 @@ class StockReconciliationController extends Controller
             ->groupBy('movement_type')
             ->map(fn (Collection $group) => $group->sum('quantity'));
 
-        $receiptsQty = (float) ($movementSummary['RECEIPT'] ?? 0);
-        $issuesQty = (float) ($movementSummary['ISSUE'] ?? 0);
+        $types = app(StockMovementTypes::class);
+        $receiptsQty = (float) $movementSummary->only($types->adding())->sum();
+        $issuesQty = (float) $movementSummary->only($types->removing())->sum();
 
         $movementQty = round($receiptsQty - $issuesQty, 3);
 
@@ -129,11 +130,7 @@ class StockReconciliationController extends Controller
 
         $unsupported = $movements->contains(
             fn (StockMovement $movement) =>
-                ! in_array(
-                    $movement->movement_type,
-                    self::MOVEMENT_TYPES,
-                    true
-                )
+                ! app(StockMovementTypes::class)->has($movement->movement_type)
         );
 
         $status = $this->determineStatus(
@@ -213,13 +210,9 @@ class StockReconciliationController extends Controller
             $receiptLayers
         );
 
-        $receiptsQty = (float) $movements
-            ->where('movement_type', 'RECEIPT')
-            ->sum('quantity');
-
-        $issuesQty = (float) $movements
-            ->where('movement_type', 'ISSUE')
-            ->sum('quantity');
+        $types = app(StockMovementTypes::class);
+        $receiptsQty = (float) $movements->whereIn('movement_type', $types->adding())->sum('quantity');
+        $issuesQty = (float) $movements->whereIn('movement_type', $types->removing())->sum('quantity');
 
         $movementQty = round($receiptsQty - $issuesQty, 3);
 
@@ -234,11 +227,7 @@ class StockReconciliationController extends Controller
 
         $unsupported = $movements->contains(
             fn (StockMovement $movement) =>
-                ! in_array(
-                    $movement->movement_type,
-                    self::MOVEMENT_TYPES,
-                    true
-                )
+                ! app(StockMovementTypes::class)->has($movement->movement_type)
         );
 
         $status = $this->determineStatus(

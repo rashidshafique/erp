@@ -2,17 +2,20 @@
 
 namespace App\Services\Stock;
 
-use App\Models\MaterialLot;
 use App\Models\StockLotCostLayer;
 use App\Models\StockMovement;
 use App\Support\Formats;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Str;
+use LogicException;
 
 /**
  * The one place stock movements are written. A receipt opens a FIFO cost layer; an issue draws the lot's layers down,
  * oldest first, and costs the movement from them; a transfer only changes where the stock sits. Cost layers are opened
  * by receipts alone, so a stock gain is recorded as a receipt and a loss as an issue, told apart by `source_type`.
+ *
+ * The ledger takes a {@see StockLot}, whatever item it is a lot of, and records the item on each movement. Cost layers are kept for
+ * material lots only so far; a lot of another item type is refused until its layers are designed.
  *
  * Every method expects to run inside the caller's transaction, with the lot locked where concurrent posting matters.
  */
@@ -23,15 +26,14 @@ class StockLedger
      *
      * @param  array{movement_number?: string, source_type?: string|null, source_id?: string|null, receipt_lot_id?: string|null, recorded_by?: string|null, reason?: string|null, to_location_id?: string|null, occurred_at?: CarbonInterface|null}  $details
      */
-    public function receive(MaterialLot $lot, float $quantity, float $unitCost, string $uom, array $details = []): StockMovement
+    public function receive(StockLot $lot, float $quantity, float $unitCost, string $uom, array $details = []): StockMovement
     {
         $at = $details['occurred_at'] ?? now();
 
         $movement = StockMovement::create([
             'movement_number' => $details['movement_number'] ?? $this->number('RCV'),
             'movement_type' => 'RECEIPT',
-            'material_id' => $lot->material_id,
-            'material_lot_id' => $lot->id,
+            ...$this->identity($lot),
             'to_location_id' => $details['to_location_id'] ?? null,
             'quantity' => $quantity,
             'uom' => $uom,
@@ -46,7 +48,7 @@ class StockLedger
         ]);
 
         StockLotCostLayer::create([
-            'material_lot_id' => $lot->id,
+            'material_lot_id' => $lot->stockLotId(),
             'stock_movement_id' => $movement->id,
             'original_qty' => $quantity,
             'remaining_qty' => $quantity,
@@ -65,7 +67,7 @@ class StockLedger
      *
      * @throws InsufficientStockException
      */
-    public function issue(MaterialLot $lot, float $quantity, string $uom, array $details = []): StockMovement
+    public function issue(StockLot $lot, float $quantity, string $uom, array $details = []): StockMovement
     {
         $fromLocation = $details['from_location_id'] ?? null;
         if ($fromLocation !== null) {
@@ -73,7 +75,7 @@ class StockLedger
         }
 
         $layers = StockLotCostLayer::query()
-            ->where('material_lot_id', $lot->id)
+            ->where('material_lot_id', $lot->stockLotId())
             ->where('currency_code', 'PKR')
             ->where('remaining_qty', '>', 0)
             ->orderBy('received_at')
@@ -83,7 +85,7 @@ class StockLedger
 
         $available = $layers->sum(fn ($layer) => (float) $layer->remaining_qty);
         if ($available + 0.000001 < $quantity) {
-            throw new InsufficientStockException("Insufficient posted stock in lot {$lot->lot_number}. Available: "
+            throw new InsufficientStockException("Insufficient posted stock in lot {$lot->stockLotNumber()}. Available: "
                 .Formats::number($available, 3).' kg; required: '.Formats::number($quantity, 3).' kg.');
         }
 
@@ -101,15 +103,14 @@ class StockLedger
             $remainingToIssue = round($remainingToIssue - $taken, 3);
         }
         if ($remainingToIssue > 0.000001) {
-            throw new InsufficientStockException("Could not fully allocate the issue from lot {$lot->lot_number} to its cost layers.");
+            throw new InsufficientStockException("Could not fully allocate the issue from lot {$lot->stockLotNumber()} to its cost layers.");
         }
         $issueCost = round($issueCost, 4);
 
         return StockMovement::create([
             'movement_number' => $details['movement_number'] ?? $this->number('ISS'),
             'movement_type' => 'ISSUE',
-            'material_id' => $lot->material_id,
-            'material_lot_id' => $lot->id,
+            ...$this->identity($lot),
             'from_location_id' => $fromLocation,
             'quantity' => $quantity,
             'uom' => $uom,
@@ -130,7 +131,7 @@ class StockLedger
      *
      * @throws InsufficientStockException
      */
-    public function transfer(MaterialLot $lot, float $quantity, string $uom, ?string $fromLocationId, ?string $toLocationId, array $details = []): StockMovement
+    public function transfer(StockLot $lot, float $quantity, string $uom, ?string $fromLocationId, ?string $toLocationId, array $details = []): StockMovement
     {
         $this->assertHeldAt($lot, $fromLocationId, $quantity);
 
@@ -139,8 +140,7 @@ class StockLedger
         return StockMovement::create([
             'movement_number' => $details['movement_number'] ?? $this->number('TRF'),
             'movement_type' => 'TRANSFER',
-            'material_id' => $lot->material_id,
-            'material_lot_id' => $lot->id,
+            ...$this->identity($lot),
             'from_location_id' => $fromLocationId,
             'to_location_id' => $toLocationId,
             'quantity' => $quantity,
@@ -155,9 +155,9 @@ class StockLedger
     }
 
     /** What the lot has left in its cost layers. */
-    public function onHand(MaterialLot $lot): float
+    public function onHand(StockLot $lot): float
     {
-        return round((float) StockLotCostLayer::where('material_lot_id', $lot->id)->sum('remaining_qty'), 3);
+        return round((float) StockLotCostLayer::where('material_lot_id', $lot->stockLotId())->sum('remaining_qty'), 3);
     }
 
     /**
@@ -165,9 +165,9 @@ class StockLedger
      *
      * @return array<string, float> Keyed by location id, or '' for stock with no location.
      */
-    public function heldByLocation(MaterialLot $lot): array
+    public function heldByLocation(StockLot $lot): array
     {
-        return $this->heldByLocationForLots([$lot->id])[$lot->id] ?? [];
+        return $this->heldByLocationForLots([$lot->stockLotId()])[$lot->stockLotId()] ?? [];
     }
 
     /**
@@ -179,14 +179,17 @@ class StockLedger
     public function heldByLocationForLots(array $lotIds): array
     {
         $held = array_fill_keys($lotIds, []);
+        $types = app(StockMovementTypes::class);
+        $arriving = $types->arrivingAtPlace();
+        $leaving = $types->leavingPlace();
 
         $movements = StockMovement::whereIn('material_lot_id', $lotIds)->get(['material_lot_id', 'movement_type', 'quantity', 'from_location_id', 'to_location_id']);
         foreach ($movements as $movement) {
             $quantity = (float) $movement->quantity;
-            if ($movement->to_location_id && in_array($movement->movement_type, ['RECEIPT', 'TRANSFER'], true)) {
+            if ($movement->to_location_id && in_array($movement->movement_type, $arriving, true)) {
                 $held[$movement->material_lot_id][$movement->to_location_id] = ($held[$movement->material_lot_id][$movement->to_location_id] ?? 0) + $quantity;
             }
-            if ($movement->from_location_id && in_array($movement->movement_type, ['ISSUE', 'TRANSFER'], true)) {
+            if ($movement->from_location_id && in_array($movement->movement_type, $leaving, true)) {
                 $held[$movement->material_lot_id][$movement->from_location_id] = ($held[$movement->material_lot_id][$movement->from_location_id] ?? 0) - $quantity;
             }
         }
@@ -204,21 +207,41 @@ class StockLedger
     }
 
     /** @throws InsufficientStockException */
-    private function assertHeldAt(MaterialLot $lot, ?string $locationId, float $quantity): void
+    private function assertHeldAt(StockLot $lot, ?string $locationId, float $quantity): void
     {
         $held = $this->heldByLocation($lot)[$locationId ?? ''] ?? 0.0;
         if ($held + 0.000001 < $quantity) {
             $where = $locationId === null ? 'with no location' : 'at that location';
-            throw new InsufficientStockException("Lot {$lot->lot_number} holds only ".Formats::number($held, 3)." kg {$where}; ".Formats::number($quantity, 3).' kg asked for.');
+            throw new InsufficientStockException("Lot {$lot->stockLotNumber()} holds only ".Formats::number($held, 3)." kg {$where}; ".Formats::number($quantity, 3).' kg asked for.');
         }
     }
 
-    private function averageLayerCost(MaterialLot $lot): float
+    private function averageLayerCost(StockLot $lot): float
     {
-        $layers = StockLotCostLayer::where('material_lot_id', $lot->id)->where('remaining_qty', '>', 0)->get();
+        $layers = StockLotCostLayer::where('material_lot_id', $lot->stockLotId())->where('remaining_qty', '>', 0)->get();
         $quantity = (float) $layers->sum('remaining_qty');
 
-        return $quantity > 0 ? round($layers->sum(fn ($l) => (float) $l->remaining_qty * (float) $l->unit_cost) / $quantity, 4) : (float) $lot->unit_cost;
+        return $quantity > 0 ? round($layers->sum(fn ($l) => (float) $l->remaining_qty * (float) $l->unit_cost) / $quantity, 4) : 0.0;
+    }
+
+    /**
+     * The columns that say which item and lot a movement is about. Only material lots can carry cost layers so far.
+     *
+     * @return array<string, string>
+     */
+    private function identity(StockLot $lot): array
+    {
+        $item = $lot->stockItem();
+        if ($item->stockItemType() !== 'material') {
+            throw new LogicException("Stock of {$item->stockItemType()} items cannot be posted yet: only material lots have cost layers.");
+        }
+
+        return [
+            'item_type' => $item->stockItemType(),
+            'item_id' => $item->stockItemId(),
+            'material_id' => $item->stockItemId(),
+            'material_lot_id' => $lot->stockLotId(),
+        ];
     }
 
     /** A unique movement number for a movement nobody numbers by hand. */

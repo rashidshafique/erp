@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Services\Stock\Stockable;
+use App\Services\Stock\StockLot;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class MaterialLot extends Model
+class MaterialLot extends Model implements StockLot
 {
     use HasUuids;
 
@@ -70,5 +72,20 @@ class MaterialLot extends Model
             StockMovement::class,
             'material_lot_id'
         );
+    }
+
+    public function stockItem(): Stockable
+    {
+        return $this->material;
+    }
+
+    public function stockLotId(): string
+    {
+        return $this->id;
+    }
+
+    public function stockLotNumber(): string
+    {
+        return $this->lot_number;
     }
 }
