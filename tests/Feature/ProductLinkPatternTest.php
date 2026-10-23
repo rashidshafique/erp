@@ -167,4 +167,25 @@ class ProductLinkPatternTest extends TestCase
         $this->get(route('products.index'))->assertOk()->assertSee('Metal grade')->assertSee('EN-GJS-500-7')->assertSee('Not set')
             ->assertSee('Last cast')->assertSee(\Illuminate\Support\Carbon::parse('2026-10-05')->displayDate())->assertDontSee(\Illuminate\Support\Carbon::parse('2026-09-01')->displayDate());
     }
+
+    public function test_the_product_list_filters_as_it_is_typed_pages_and_keeps_its_state_in_the_address(): void
+    {
+        foreach (range(1, 23) as $n) {
+            Product::create(['code' => sprintf('ITEM-%02d', $n), 'name' => 'Item '.$n, 'active' => $n % 2 === 1]);
+        }
+        $valve = Product::create(['code' => 'ZVALVE-1', 'name' => 'Valve body', 'active' => true]);
+
+        $list = \Livewire\Livewire::test('product-list');
+        $list->assertSee('ITEM-01')->assertDontSee('ZVALVE-1')   // 26 products, 20 to a page, by code
+            ->call('gotoPage', 2)->assertSee('ZVALVE-1')->assertDontSee('ITEM-01')->assertSet('paginators.page', 2);
+
+        $list->set('search', 'zvalve')->assertSee('ZVALVE-1')->assertDontSee('ITEM-01')->assertSet('paginators.page', 1)->assertSee('Matching results');
+        $list->set('search', '')->set('active', '0')->assertSee('ITEM-02')->assertDontSee('ITEM-01')->assertDontSee('ZVALVE-1');
+        $list->call('resetFilters')->assertSet('search', '')->assertSet('active', '')->assertSee('ITEM-01');
+
+        $valve->delete();
+        $list->set('archived', true)->assertSee('ZVALVE-1')->assertSee('Restore')->assertDontSee('ITEM-01');
+
+        $this->get(route('products.index', ['search' => 'zvalve']))->assertOk()->assertDontSee('ITEM-01')->assertSee('wire:model.live.debounce.300ms="search"', false);
+    }
 }

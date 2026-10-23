@@ -32,14 +32,15 @@ class ArchiveProductsAndPatternsTest extends TestCase
 
         $this->delete(route('products.archive', $gone))->assertRedirect(route('products.index'))->assertSessionHas('success');
 
-        $this->get(route('products.index'))->assertOk()->assertSee('VALVE-1')->assertDontSee('Old pump housing')
-            ->assertViewHas('totalProducts', 1)->assertViewHas('activeProducts', 1)->assertSee('1 archived');
+        $this->get(route('products.index'))->assertOk()->assertSee('VALVE-1')->assertDontSee('Old pump housing')->assertSee('1 archived');
+        \Livewire\Livewire::test('product-list')->assertViewHas('totalProducts', 1)->assertViewHas('activeProducts', 1)->assertSee('VALVE-1')->assertDontSee('Old pump housing');
         $this->get(route('products.index', ['archived' => 1]))->assertOk()->assertSee('Old pump housing')->assertDontSee('Valve body')->assertSee('Restore');
         $this->get(route('products.show', $gone))->assertOk()->assertSee('Archived on')->assertSee('Restore product');
         $this->assertSame('PUMP-1', $order->fresh()->product->code);
 
         $this->post(route('products.restore', $gone))->assertRedirect(route('products.show', $gone));
-        $this->get(route('products.index'))->assertSee('Old pump housing')->assertViewHas('totalProducts', 2);
+        $this->get(route('products.index'))->assertSee('Old pump housing');
+        \Livewire\Livewire::test('product-list')->assertViewHas('totalProducts', 2);
         $this->assertModelExists($kept);
     }
 
