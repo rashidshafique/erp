@@ -9,7 +9,8 @@
     $current = $pattern->revisions->firstWhere('is_current', true);
     $madeProducts = $current ? $current->cavityMap->map(fn ($c) => $c->productRevision?->product)->filter()->unique('id') : collect();
     $levels = $current?->castingLevels() ?? 1;
-    $cavities = $current ? (int) ($current->cavities_per_mould ?? $current->cavityMap->count()) : 0;
+    $closedCavities = $current ? $current->cavityMap->where('is_closed', true)->count() : 0;
+    $cavities = $current ? max(0, (int) ($current->cavities_per_mould ?? $current->cavityMap->count()) - $closedCavities) : 0;
     $flask = $current?->flaskSizes->first();
     $sections = (int) ($current?->layers_per_mould ?? 2);
     $station = $pattern->preferredStation;
@@ -132,7 +133,7 @@
     <dl class="pd-tiles">
         <div class="pd-tile"><dt>Castings per mould</dt>
             <dd>{{ $current && $cavities ? $levels * $cavities : '—' }}</dd>
-            <span class="sub link">@if ($current){{ $levels }} {{ $levels === 1 ? 'level' : 'levels' }} × {{ $cavities }} {{ $cavities === 1 ? 'cavity' : 'cavities' }}@else no layout yet @endif</span></div>
+            <span class="sub link">@if ($current){{ $levels }} {{ $levels === 1 ? 'level' : 'levels' }} × {{ $cavities }} {{ $cavities === 1 ? 'cavity' : 'cavities' }}@if ($closedCavities) (+ {{ $closedCavities }} closed)@endif @else no layout yet @endif</span></div>
         <div class="pd-tile"><dt>Active revision</dt>
             <dd class="mono">{{ $current?->shortCode() ?? '—' }}</dd>
             <span class="sub {{ $current?->status === 'APPROVED' ? 'good' : '' }}">@if ($current){{ ucfirst(strtolower($current->status)) }} · Current @else Recorded with the first cavity map @endif</span></div>

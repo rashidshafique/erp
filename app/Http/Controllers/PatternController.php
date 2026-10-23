@@ -616,6 +616,6 @@ class PatternController extends Controller
         return redirect()
             ->route('patterns.show', $pattern)
             ->with('success', "Revision {$revision->code} is now current.".($previous ? " {$previous->code} is superseded and kept." : '')
-                .(($copied = $revision->cavityMap()->count()) ? " Its cavity map ({$copied} ".($copied === 1 ? 'cavity' : 'cavities').') was carried over; change it on the cavity map if the new layout differs.' : ''));
+                .(($copied = $revision->cavityMap()->count()) ? " Its cavity map ({$copied} ".($copied === 1 ? 'cavity' : 'cavities').(($closed = $revision->cavityMap()->where('is_closed', true)->count()) ? ", {$closed} closed" : '').') was carried over; change it on the cavity map if the new layout differs.' : ''));
     }
 }

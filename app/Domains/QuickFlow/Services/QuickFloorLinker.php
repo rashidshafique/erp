@@ -59,10 +59,10 @@ class QuickFloorLinker
             ?? ProductionOrder::whereIn('status', self::OPEN)->whereIn('product_id', $products)->orderBy('required_date')->orderBy('production_order_number')->first();
     }
 
-    /** Castings one mould of the revision gives by its cavity map (cavities on a level × casting levels); null without a map. */
+    /** Castings one mould of the revision gives by its cavity map (open cavities on a level × casting levels); null without a map. */
     public function cavitiesFromMap(?PatternRevision $revision): ?int
     {
-        $count = $revision ? ($revision->relationLoaded('cavityMap') ? $revision->cavityMap->count() : $revision->cavityMap()->count()) : 0;
+        $count = $revision ? ($revision->relationLoaded('cavityMap') ? $revision->cavityMap->where('is_closed', false)->count() : $revision->cavityMap()->where('is_closed', false)->count()) : 0;
 
         return $count > 0 ? $count * $revision->castingLevels() : null;
     }

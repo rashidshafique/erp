@@ -24,9 +24,10 @@
     $levels = $revision?->castingLevels() ?? 1;
     $sections = max(1, (int) ($revision?->layers_per_mould ?? 2));
     $cavities = $revision ? max($revision->cavityMap->count(), (int) $revision->cavities_per_mould) : 0;
-    $linked = $revision ? $revision->cavityMap->count() : 0;
+    $linked = $revision ? $revision->cavityMap->where('is_closed', false)->count() : 0;
+    $allClosed = $revision && $revision->cavityMap->isNotEmpty() && $linked === 0;
     // Only cavities linked to a product make castings; before any are linked, the layout's count stands in.
-    $castings = $levels * ($linked ?: $cavities);
+    $castings = $levels * ($linked ?: ($allClosed ? 0 : $cavities));
     $kind = match ($arrangement) {
         'STACK', 'CORE_PACKAGE' => 'stack',
         'VERTICAL' => 'vertical',

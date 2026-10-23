@@ -65,7 +65,7 @@
             <details class="rev-block {{ $revision->is_current ? 'is-current' : '' }}" id="cavities-{{ $revision->id }}" @if ($open) open @endif>
                 <summary>
                     <span class="rev-tag">Revision</span> <strong>{{ $revision->label() }}</strong>
-                    <span class="muted small">{{ $revision->cavityMap->count() }} of {{ $revision->cavities_per_mould ?? '?' }} cavities linked @if ($revision->isSuperseded()) · superseded {{ $revision->superseded_at->displayDate() }}@endif</span>
+                    <span class="muted small">{{ $revision->cavityMap->count() }} of {{ $revision->cavities_per_mould ?? '?' }} cavities linked @if ($revision->cavityMap->where('is_closed', true)->count()) · {{ $revision->cavityMap->where('is_closed', true)->count() }} closed @endif @if ($revision->isSuperseded()) · superseded {{ $revision->superseded_at->displayDate() }}@endif</span>
                 </summary>
                 <div class="rev-body">
                 @include('patterns._layout', ['revision' => $revision, 'pattern' => $pattern, 'assembled' => in_array($revision->id, $assembledRevisions, true)])

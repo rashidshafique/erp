@@ -35,6 +35,7 @@ class HeatPlanner
     public function metalPerProduct(ProductRevision $rev): ?array
     {
         $links = PatternRevisionCavity::with('patternRevision')
+            ->where('is_closed', false)
             ->whereHas('productRevision', fn ($q) => $q->where('product_id', $rev->product_id))
             ->whereHas('patternRevision', fn ($q) => $q->where('status', 'APPROVED'))->get();
 

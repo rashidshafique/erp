@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domains\QuickFlow\Services\QuickFloorLinker;
 use App\Models\Furnace;
 use App\Models\IronGrade;
 use App\Models\Pattern;
@@ -127,6 +128,21 @@ class HeatPlannerTest extends TestCase
         $per = app(HeatPlanner::class)->metalPerProduct($o->productRevision);
         $this->assertSame('mould metal (castings, gating, runners, sprue), shared by casting weight', $per['source']);
         $this->assertEqualsWithDelta(80.0, $per['kg'], 0.001);   // 160 kg poured per mould / 2 products
+    }
+
+    public function test_a_closed_cavity_does_not_count_in_the_metal_estimate_or_castings_per_mould(): void
+    {
+        $this->furnace('INDUCTION', 1000, 'IF1');
+        $o = $this->orderFor('EN-GJL-250', 10, 50);
+        $pat = Pattern::create(['code' => 'PP'.uniqid(), 'name' => 'x']);
+        $pr = PatternRevision::create(['pattern_id' => $pat->id, 'revision' => 'A', 'status' => 'APPROVED', 'cavities_per_mould' => 3]);
+        foreach ([1, 2] as $n) {
+            $pr->cavityMap()->create(['cavity_number' => $n, 'product_revision_id' => $o->product_revision_id, 'casting_weight_kg' => 50, 'poured_weight_kg' => 80]);
+        }
+        $pr->cavityMap()->create(['cavity_number' => 3, 'product_revision_id' => $o->product_revision_id, 'casting_weight_kg' => 50, 'poured_weight_kg' => 80, 'is_closed' => true]);
+
+        $this->assertEqualsWithDelta(80.0, app(HeatPlanner::class)->metalPerProduct($o->productRevision)['kg'], 0.001);
+        $this->assertSame(2, app(QuickFloorLinker::class)->cavitiesFromMap($pr->fresh()));
     }
 
     public function test_cannot_release_on_a_furnace_that_cannot_melt_the_grade(): void
