@@ -149,21 +149,22 @@
                     }
                     dlg.close();
                 });
-                // The duplicate icon on a row copies its product, role, component, pieces, weights and notes onto every cavity that has no product.
+                // The duplicate icon on a row adds a cavity after the last one, with this row's product, role, component, pieces and weights (not its mark), and raises the cavity count.
                 body.addEventListener('click', function (e) {
                     var btn = e.target.closest('[data-cavity-duplicate]');
                     if (!btn) return;
                     var msg = form.querySelector('[data-cavity-repeat-msg]'), from = btn.closest('tr'), fields = ['product_revision_id', 'cavity_role', 'component_label', 'pieces_per_product', 'casting_weight_kg', 'poured_weight_kg', 'notes'];
                     function field(tr, f) { return tr.querySelector('[name$="[' + f + ']"]'); }
-                    if (!field(from, 'product_revision_id').value) { if (msg) msg.textContent = 'Choose the product on this cavity first.'; return; }
-                    var done = 0;
-                    rows().forEach(function (tr) {
-                        if (tr === from || field(tr, 'product_revision_id').value) return;
-                        fields.forEach(function (f) { var t = field(tr, f); t.value = field(from, f).value; t.dispatchEvent(new Event('change', { bubbles: true })); });
-                        summarise(tr);
-                        done++;
-                    });
-                    if (msg) msg.textContent = done ? 'Copied to ' + done + (done === 1 ? ' empty cavity.' : ' empty cavities.') : 'No empty cavity to copy to.';
+                    var next = rows().length + 1;
+                    if (next > 200) { if (msg) msg.textContent = 'A layout holds at most 200 cavities.'; return; }
+                    var source = count.dataset.cavitySource && document.getElementById(count.dataset.cavitySource);
+                    if (source) { source.value = next; source.dispatchEvent(new Event('input', { bubbles: true })); } else { count.value = next; sync(); }
+                    var added = body.querySelector('tr[data-cavity-row="' + next + '"]');
+                    if (! added) return;
+                    fields.forEach(function (f) { var t = field(added, f); t.value = field(from, f).value; t.dispatchEvent(new Event('change', { bubbles: true })); });
+                    summarise(added);
+                    if (msg) msg.textContent = 'Cavity ' + next + ' added as a copy of cavity ' + from.getAttribute('data-cavity-row') + '; the cavity count is now ' + next + '.';
+                    added.scrollIntoView({ block: 'nearest' });
                 });
                 // One product on every cavity, the usual case for a single-casting plate: the product chosen on one cavity goes on the rest.
                 var repeat = form.querySelector('[data-cavity-repeat]'), repeatMsg = form.querySelector('[data-cavity-repeat-msg]');
