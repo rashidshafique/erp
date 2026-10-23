@@ -31,7 +31,7 @@ class FoundrySize implements MenuFilter
     ];
 
     /** Micro shows only these module groups. */
-    private const MICRO_MODULE_GROUPS = ['quickflow'];
+    private const MICRO_MODULE_GROUPS = ['quickflow', 'dispatch'];
 
     /** Small hides these routes. */
     private const SMALL_HIDES = ['casting-analyses.index', 'tooling-maintenance.dashboard', 'tooling-maintenance.index', 'tooling-life.dashboard', 'parties.index'];

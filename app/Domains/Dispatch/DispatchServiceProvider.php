@@ -43,13 +43,17 @@ class DispatchServiceProvider extends ModuleServiceProvider
         ];
     }
 
-    protected function navItems(): array
+    /** Finished goods, packing and dispatch have a menu of their own, after Quality. */
+    protected function navGroups(): array
     {
-        return [
-            ['group' => 'quality', 'label' => 'Finished goods', 'route' => 'finished-goods.index', 'icon' => 'archive', 'active' => ['finished-goods.*']],
-            ['group' => 'quality', 'label' => 'Packing', 'route' => 'packing.index', 'icon' => 'package', 'active' => ['packing.*']],
-            ['group' => 'quality', 'label' => 'Dispatch', 'route' => 'dispatches.index', 'icon' => 'truck', 'active' => ['dispatches.*']],
-        ];
+        return [[
+            'key' => 'dispatch', 'label' => 'Dispatch', 'icon' => 'truck', 'active' => ['finished-goods.*', 'packing.*', 'dispatches.*'],
+            'items' => [
+                ['label' => 'Finished goods', 'route' => 'finished-goods.index', 'icon' => 'archive', 'active' => ['finished-goods.*']],
+                ['label' => 'Packing', 'route' => 'packing.index', 'icon' => 'package', 'active' => ['packing.*']],
+                ['label' => 'Dispatch', 'route' => 'dispatches.index', 'icon' => 'truck', 'active' => ['dispatches.*']],
+            ],
+        ]];
     }
 
     protected function permissionCatalog(): array

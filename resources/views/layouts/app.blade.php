@@ -101,7 +101,7 @@
             @if ($menu->showsAny(['lots.queue', 'quick-qc.index', 'lots.index', 'inspections.index', 'ncrs.index', 'reports.yield', 'defects.index']) || collect(app(\App\Domains\Core\ModuleRegistry::class)->navItems('quality'))->contains(fn ($i) => $menu->shows($i['route'])))
             <div class="nav-group {{ request()->routeIs('quick-qc.*', 'lots.*', 'inspections.*', 'ncrs.*', 'reports.*', 'defects.*', ...app(\App\Domains\Core\ModuleRegistry::class)->navPatterns('quality')) ? 'is-active' : '' }}">
                 <button type="button" class="nav-group-toggle" aria-expanded="false">
-                    <span class="nav-lab">{!! \App\Support\NavIcons::get('check-circle') !!}<span>Quality &amp; Dispatch</span></span><span class="nav-chevron">›</span>
+                    <span class="nav-lab">{!! \App\Support\NavIcons::get('check-circle') !!}<span>Quality</span></span><span class="nav-chevron">›</span>
                 </button>
                 <div class="nav-submenu" hidden>
                     @if ($menu->shows('lots.queue')) <a href="{{ route('lots.queue') }}" class="nav-link {{ request()->routeIs('lots.queue') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('list') !!}<span>Production queue</span></a> @endif

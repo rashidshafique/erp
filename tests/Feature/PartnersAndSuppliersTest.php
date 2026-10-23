@@ -74,7 +74,23 @@ class PartnersAndSuppliersTest extends TestCase
 
         $melting = $menu['Melting & Materials'];
         $this->assertSame(array_search('Materials', $melting) + 1, array_search('Suppliers', $melting));
-        $this->assertNotContains('Suppliers', $menu['Quality & Dispatch']);
+        $this->assertNotContains('Suppliers', $menu['Quality']);
         $this->assertStringContainsString('class="nav-group is-active"', $html);
+    }
+
+    public function test_dispatch_has_a_menu_of_its_own_and_the_quality_menu_no_longer_carries_it(): void
+    {
+        $html = $this->get(route('dispatches.index'))->assertOk()->getContent();
+        $menu = [];
+        foreach (array_slice(preg_split('/<div class="nav-group/', $html), 1) as $group) {
+            preg_match('/<span class="nav-lab">.*?<span>(.*?)<\/span><\/span>/s', $group, $title);
+            preg_match_all('/<span>([^<]+)<\/span><\/a>/', explode("</div>\n            </div>", $group)[0], $items);
+            $menu[html_entity_decode($title[1])] = array_map('html_entity_decode', $items[1]);
+        }
+
+        $this->assertSame(['Finished goods', 'Packing', 'Dispatch'], $menu['Dispatch']);
+        $this->assertSame([], array_intersect(['Finished goods', 'Packing', 'Dispatch'], $menu['Quality']));
+        $this->assertArrayNotHasKey('Quality & Dispatch', $menu);
+        $this->assertStringContainsString('class="nav-group is-active"', $html, 'The Dispatch menu opens on its own pages.');
     }
 }
