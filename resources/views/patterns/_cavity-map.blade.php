@@ -40,6 +40,7 @@
             .cg-table .cg-mark { width: 70px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; text-transform: uppercase; }
             .cg-table .cg-n { width: 54px; text-align: center; }
             .cg-table .cg-dup { white-space: nowrap; text-align: right; }
+            .cg-del-btn:hover, .cg-del-btn:focus-visible { color: var(--danger); border-color: var(--danger); }
             .cg-dup-btn.bad { color: var(--danger); border-color: var(--danger); }
             .cg-sum { margin-right: 6px; }
             .cg-dup-btn { background: none; border: 1px solid transparent; border-radius: 6px; padding: 5px; color: var(--muted); cursor: pointer; line-height: 0; }
@@ -165,6 +166,23 @@
                     summarise(added);
                     if (msg) msg.textContent = 'Cavity ' + next + ' added as a copy of cavity ' + from.getAttribute('data-cavity-row') + '; the cavity count is now ' + next + '.';
                     added.scrollIntoView({ block: 'nearest' });
+                });
+                // The delete icon removes a cavity: the ones after it take over their predecessor's values, so the numbers stay unbroken, and the cavity count goes down by one.
+                body.addEventListener('click', function (e) {
+                    var btn = e.target.closest('[data-cavity-delete]');
+                    if (!btn) return;
+                    var msg = form.querySelector('[data-cavity-repeat-msg]'), all = [].slice.call(rows()), at = all.indexOf(btn.closest('tr'));
+                    var fields = ['cavity_mark', 'product_revision_id', 'cavity_role', 'component_label', 'pieces_per_product', 'casting_weight_kg', 'poured_weight_kg', 'notes'];
+                    function field(tr, f) { return tr.querySelector('[name$="[' + f + ']"]'); }
+                    if (all.length <= 1) { if (msg) msg.textContent = 'A layout needs at least one cavity.'; return; }
+                    for (var i = at; i < all.length - 1; i++) {
+                        fields.forEach(function (f) { var t = field(all[i], f); t.value = field(all[i + 1], f).value; t.dispatchEvent(new Event('change', { bubbles: true })); });
+                        summarise(all[i]);
+                    }
+                    var left = all.length - 1, source = count.dataset.cavitySource && document.getElementById(count.dataset.cavitySource);
+                    if (source) { source.value = left; source.dispatchEvent(new Event('input', { bubbles: true })); } else { count.value = left; sync(); }
+                    delete parked[all.length];   // the emptied last row must not come back with old values
+                    if (msg) msg.textContent = 'Cavity ' + (at + 1) + ' removed; the cavity count is now ' + left + '.';
                 });
                 // One product on every cavity, the usual case for a single-casting plate: the product chosen on one cavity goes on the rest.
                 var repeat = form.querySelector('[data-cavity-repeat]'), repeatMsg = form.querySelector('[data-cavity-repeat-msg]');
