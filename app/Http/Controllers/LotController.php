@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\CastingLot;
 use App\Models\ProductionStageDefinition;
+use App\Services\Production\LotCombiner;
 use App\Services\Production\LotService;
 use App\Services\Production\ProcessRoutes;
 use App\Services\QualityGates;
@@ -111,11 +112,11 @@ class LotController extends Controller
         return back()->with('success', 'Lot released from hold.');
     }
 
-    /** Put the ticked lots on hold or release them, or do it for every lot matching the page's filter. */
-    public function bulk(Request $request): RedirectResponse
+    /** Put the ticked lots on hold, release or combine them, or do it for every lot matching the page's filter. */
+    public function bulk(Request $request, LotCombiner $combiner): RedirectResponse
     {
         $d = $request->validate([
-            'action' => ['required', Rule::in(['release', 'hold'])],
+            'action' => ['required', Rule::in(['release', 'hold', 'combine'])],
             'reason' => ['required_if:action,hold', 'nullable', 'string', 'max:500'],
             'lots' => ['required_without:all_matching', 'array'],
             'lots.*' => ['uuid', Rule::exists('casting_lots', 'id')],
@@ -125,8 +126,23 @@ class LotController extends Controller
             ? CastingLot::query()->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status')))
                 ->when($request->filled('search'), fn ($q) => $q->where(fn ($w) => $w->where('code', 'ilike', '%'.$request->input('search').'%')->orWhere('lot_number', 'ilike', '%'.$request->input('search').'%')))->get()
             : CastingLot::whereIn('id', $d['lots'])->get();
+        if ($d['action'] === 'combine') {
+            return $this->combine($lots, $combiner);
+        }
 
         return $this->applyBulk($lots, $d['action'], $d['reason'] ?? '');
+    }
+
+    /** @param  \Illuminate\Support\Collection<int, CastingLot>  $lots */
+    private function combine($lots, LotCombiner $combiner): RedirectResponse
+    {
+        $result = $combiner->combine($lots);
+        if ($result['kept'] === []) {
+            return back()->withErrors(['combine' => 'Nothing to combine: lots combine only with others of the same heat, order, status and stages passed, and not once packed, dispatched or closed.']);
+        }
+        $text = "{$result['combined']} lots combined into ".count($result['kept']).' lot(s): '.implode(', ', array_slice($result['kept'], 0, 5)).(count($result['kept']) > 5 ? ' ...' : '').'.';
+
+        return back()->with('success', $text)->with($result['skipped'] > 0 ? ['warning' => "{$result['skipped']} lot(s) had no match of the same heat, order, status and stages, or are packed, dispatched or closed, and were left as they are."] : []);
     }
 
     /**

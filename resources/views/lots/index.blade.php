@@ -14,10 +14,10 @@
 <form method="POST" action="{{ route('lots.bulk') }}" id="bulk-form">@csrf
 <input type="hidden" name="status" value="{{ request('status') }}"><input type="hidden" name="search" value="{{ request('search') }}">
 <div class="panel-body" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-<select name="action" aria-label="Status change"><option value="release">Release from hold</option><option value="hold">Put on hold</option></select>
+<select name="action" aria-label="Action" id="bulk-action"><option value="release">Release from hold</option><option value="hold">Put on hold</option><option value="combine">Combine into one lot</option></select>
 <input name="reason" placeholder="Reason (needed to hold)" maxlength="500">
 <label id="all-matching-wrap" hidden><input type="checkbox" name="all_matching" value="1"> All {{ $lots->total() }} lot(s) matching this filter</label>
-<button class="btn" type="submit" onclick="return confirm('Change the status of the selected lots?')">Apply to selected</button></div>
+<button class="btn" type="submit" onclick="return confirm(document.getElementById('bulk-action').value === 'combine' ? 'Combine the selected lots? Lots of the same heat, order, status and stages passed become one lot, kept under the oldest code. This cannot be undone.' : 'Change the status of the selected lots?')">Apply to selected</button></div>
 <div class="table-wrap"><table><thead><tr><th><input type="checkbox" id="select-all" aria-label="Select all lots on this page"></th><th>Lot</th><th>Product</th><th>Heat</th><th>Order</th><th>Poured</th><th>Good</th><th>Rejected</th><th>Status</th><th>Stages</th></tr></thead><tbody>
 @forelse($lots as $l)
 <tr><td><input type="checkbox" name="lots[]" value="{{ $l->id }}" class="lot-box" aria-label="Select {{ $l->label }}"></td><td><a href="{{ route('lots.show', $l) }}">{{ $l->label }}</a></td><td><x-product-cell :product="$l->product" /></td><td>{{ $l->pourMouldAssembly?->pour?->heat?->heat_number ?? '—' }}</td><td>{{ $l->productionOrder?->production_order_number ?? '—' }}</td><td>{{ $l->quantity_poured }}</td><td>{{ $l->quantity_good }}</td><td>{{ $l->quantity_rejected }}</td><td><span class="status">{{ $l->status }}</span></td><td class="muted small" style="min-width:200px;white-space:normal">{{ $l->stages_summary }}</td></tr>
