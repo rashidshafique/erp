@@ -12,12 +12,7 @@ class MaterialController extends Controller
 {
     public function index(): View
     {
-        $materials = Material::query()
-            ->withCount(['lots', 'chargeBatchItems'])
-            ->orderBy('code')
-            ->paginate(25);
-
-        return view('materials.index', compact('materials'));
+        return view('materials.index');
     }
 
     public function create(): View
@@ -56,6 +51,7 @@ class MaterialController extends Controller
         return view('materials.show', [
             'material' => $material,
             'receiptMovements' => $receiptMovements,
+            'onHand' => app(\App\Services\Stock\StockLevels::class)->onHand([$material->id])[$material->id] ?? 0.0,
             'stockLocations' => app(\App\Domains\Core\ModuleRegistry::class)->isEnabled('inventory')
                 ? \App\Models\StockLocation::where('is_active', true)->orderBy('code')->get()
                 : collect(),
@@ -83,38 +79,7 @@ class MaterialController extends Controller
         Request $request,
         ?Material $material = null
     ): array {
-        return $request->validate([
-            'code' => [
-                'required', 'string', 'max:50',
-                Rule::unique('materials', 'code')
-                    ->ignore($material?->id)
-                    ->whereNull('deleted_at'),
-            ],
-            'name' => ['required', 'string', 'max:150'],
-            'material_type' => [
-                'required', 'string', 'max:40',
-                Rule::in([
-                    'METAL',
-                    'RETURN',
-                    'ALLOY',
-                    'FLUX',
-                    'FUEL',
-                    'SAND',
-                    'BINDER',
-                    'ADDITIVE',
-                    'OTHER',
-                ]),
-            ],
-            'base_uom' => ['required', 'string', 'max:20'],
-            'status' => ['required', Rule::in(['ACTIVE', 'INACTIVE'])],
-            'is_stock_tracked' => ['required', 'boolean'],
-            'requires_lot_tracking' => ['required', 'boolean'],
-            'minimum_stock_qty' => ['nullable', 'numeric', 'min:0', 'max:999999999'],
-            'reorder_qty' => ['nullable', 'numeric', 'min:0', 'max:999999999'],
-            'standard_cost_per_uom' => ['nullable', 'numeric', 'min:0', 'max:999999999'],
-            'description' => ['nullable', 'string', 'max:10000'],
-            'notes' => ['nullable', 'string', 'max:10000'],
-        ]);
+        return $request->validate(Material::rules($material));
     }
 }
 

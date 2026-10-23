@@ -1,7 +1,10 @@
 @extends('layouts.app')
 
+@section('title', 'Edit '.$material->code)
+@section('breadcrumb')<a href="{{ route('materials.index') }}">Materials</a> / <a href="{{ route('materials.show', $material) }}">{{ $material->code }}</a> / Edit @endsection
+
 @section('content')
-<div class="page-header">
+<div class="page-heading">
     <div><h1>Edit material</h1><p>{{ $material->code }} — {{ $material->name }}</p></div>
 </div>
 

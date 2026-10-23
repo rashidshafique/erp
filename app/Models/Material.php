@@ -6,11 +6,44 @@ use App\Services\Stock\Stockable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Validation\Rule;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Material extends Model implements Stockable
 {
     use HasUuids, SoftDeletes;
+
+    /** @var array<string, string> */
+    public const TYPES = [
+        'METAL' => 'Metal', 'RETURN' => 'Foundry returns', 'ALLOY' => 'Alloy', 'FLUX' => 'Flux', 'FUEL' => 'Fuel',
+        'SAND' => 'Sand', 'BINDER' => 'Binder', 'ADDITIVE' => 'Additive', 'OTHER' => 'Other',
+    ];
+
+    /** @var list<string> */
+    public const UNITS = ['kg', 'tonne', 'litre', 'piece', 'bag', 'box'];
+
+    /**
+     * The rules a material is saved under, whether from the form page or the add dialog.
+     *
+     * @return array<string, list<mixed>>
+     */
+    public static function rules(?self $material = null): array
+    {
+        return [
+            'code' => ['required', 'string', 'max:50', Rule::unique('materials', 'code')->ignore($material?->id)->whereNull('deleted_at')],
+            'name' => ['required', 'string', 'max:150'],
+            'material_type' => ['required', 'string', 'max:40', Rule::in(array_keys(self::TYPES))],
+            'base_uom' => ['required', 'string', 'max:20'],
+            'status' => ['required', Rule::in(['ACTIVE', 'INACTIVE'])],
+            'is_stock_tracked' => ['required', 'boolean'],
+            'requires_lot_tracking' => ['required', 'boolean'],
+            'minimum_stock_qty' => ['nullable', 'numeric', 'min:0', 'max:999999999'],
+            'reorder_qty' => ['nullable', 'numeric', 'min:0', 'max:999999999'],
+            'standard_cost_per_uom' => ['nullable', 'numeric', 'min:0', 'max:999999999'],
+            'description' => ['nullable', 'string', 'max:10000'],
+            'notes' => ['nullable', 'string', 'max:10000'],
+        ];
+    }
 
     protected $fillable = [
         'code',

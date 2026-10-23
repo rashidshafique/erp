@@ -1,35 +1,44 @@
 @extends('layouts.app')
 
+@section('title', $material->code)
+@section('breadcrumb')<a href="{{ route('materials.index') }}">Materials</a> / {{ $material->code }} @endsection
+
 @section('content')
-<div class="page-header">
+<div class="page-heading">
     <div>
         <h1>{{ $material->name }}</h1>
-        <p>{{ $material->code }} · {{ $material->material_type }} · {{ $material->base_uom }}</p>
+        <p>{{ $material->code }} · {{ \App\Models\Material::TYPES[$material->material_type] ?? $material->material_type }} · {{ $material->base_uom }}</p>
     </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <a class="btn btn-secondary" href="{{ route('materials.edit', $material) }}">Edit material</a>
-        @if(app(\App\Domains\Core\ModuleRegistry::class)->isEnabled('purchasing'))<a class="btn btn-secondary" href="{{ route('incoming.plan.edit', $material) }}">Inspection plan</a>@endif
+    <div class="actions">
+        <a class="btn" href="{{ route('materials.edit', $material) }}">Edit material</a>
+        @if(app(\App\Domains\Core\ModuleRegistry::class)->isEnabled('purchasing'))<a class="btn" href="{{ route('incoming.plan.edit', $material) }}">Inspection plan</a>@endif
         <a class="btn btn-primary" href="{{ route('materials.lots.create', $material) }}">+ Record lot</a>
     </div>
 </div>
 
 
-<div class="card" style="padding:18px;margin-bottom:20px;display:flow-root">
-    @include('attachments._cover', ['type' => 'material', 'id' => $material->id, 'size' => 140])
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px">
-        <div><small>Status</small><h3>{{ $material->status }}</h3></div>
-        <div><small>Lot records</small><h3>{{ $material->lots->count() }}</h3></div>
-        <div><small>Recipe components</small><h3>{{ $material->charge_batch_items_count }}</h3></div>
-        <div><small>Standard cost</small><h3>{{ $material->standard_cost_per_uom !== null ? \App\Support\Formats::number((float)$material->standard_cost_per_uom, 4).' PKR/'.$material->base_uom : 'Not set' }}</h3></div>
-    </div>
-    @if($material->description)<p>{{ $material->description }}</p>@endif
-    @if($material->notes)<p><strong>Notes:</strong> {{ $material->notes }}</p>@endif
+<div class="metrics">
+    <div class="metric"><div class="metric-label">Status</div><div class="metric-value" style="font-size:20px">{{ $material->status }}</div></div>
+    <div class="metric"><div class="metric-label">On hand</div><div class="metric-value" style="font-size:20px">{{ $material->is_stock_tracked ? \App\Support\Formats::number($onHand, 3).' '.$material->base_uom : 'Not tracked' }}</div>@if ($material->minimum_stock_qty !== null)<div class="metric-note">minimum {{ \App\Support\Formats::number((float) $material->minimum_stock_qty, 3) }}</div>@endif</div>
+    <div class="metric"><div class="metric-label">Lot records</div><div class="metric-value">{{ $material->lots->count() }}</div></div>
+    <div class="metric"><div class="metric-label">Recipe components</div><div class="metric-value">{{ $material->charge_batch_items_count }}</div></div>
+    <div class="metric"><div class="metric-label">Standard cost</div><div class="metric-value" style="font-size:20px">{{ $material->standard_cost_per_uom !== null ? \App\Support\Formats::number((float)$material->standard_cost_per_uom, 4).' PKR/'.$material->base_uom : 'Not set' }}</div></div>
 </div>
 
-<h2>Material lots</h2>
+@if ($material->description || $material->notes)
+<div class="panel"><div class="panel-body" style="display:flow-root">
+    @include('attachments._cover', ['type' => 'material', 'id' => $material->id, 'size' => 140])
+    @if($material->description)<p>{{ $material->description }}</p>@endif
+    @if($material->notes)<p><strong>Notes:</strong> {{ $material->notes }}</p>@endif
+</div></div>
+@else
+<div class="panel"><div class="panel-body" style="display:flow-root">@include('attachments._cover', ['type' => 'material', 'id' => $material->id, 'size' => 140])<span class="muted">No description or notes.</span></div></div>
+@endif
 
-<div class="table-responsive">
-    <table class="table">
+<div class="panel">
+<div class="panel-header"><h2>Material lots</h2></div>
+<div class="table-wrap">
+    <table>
         <thead>
             <tr>
                 <th>Lot</th>
@@ -169,6 +178,7 @@
         @endforelse
         </tbody>
     </table>
+</div>
 </div>
 @include('attachments._panel', ['type' => 'material', 'id' => $material->id])
 @endsection

@@ -1,7 +1,10 @@
 @extends('layouts.app')
 
+@section('title', 'New material')
+@section('breadcrumb')<a href="{{ route('materials.index') }}">Materials</a> / New @endsection
+
 @section('content')
-<div class="page-header">
+<div class="page-heading">
     <div><h1>New material</h1><p>Create a reusable material master record.</p></div>
 </div>
 
