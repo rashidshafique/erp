@@ -24,7 +24,7 @@ class CodeGenerator
         'core_definition' => ['core_definitions', 'COR', 4, 'Core'],
         'mould_configuration' => ['mould_configurations', 'MCF', 5, 'Mould configuration'],
         'flask' => ['flasks', 'FLK', 6, 'Flask'],
-        'customer' => ['customers', 'CUS', 7, 'Customer'],
+        'customer' => ['customers', 'C', 7, 'Customer'],
         'material' => ['materials', 'MAT', 8, 'Material'],
         'casting_analysis' => ['casting_analyses', 'CAN', 6, 'Casting analysis'],
     ];
