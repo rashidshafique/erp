@@ -128,6 +128,58 @@
 <div class="panel">
     <div class="panel-header">
         <h2>Revision history</h2>
+        @unless ($product->trashed())<button class="btn btn-small" type="button" data-rev-add aria-controls="add-revision">Add revision</button>@endunless
+    </div>
+    <div class="panel-body" id="add-revision" @unless ($errors->hasAny(['revision', 'status', 'net_weight_kg', 'effective_from', 'effective_to', 'engineering_notes'])) hidden @endunless>
+        <form method="POST" action="{{ route('products.revisions.store', $product) }}">
+            @csrf
+            <div class="form-grid">
+                <div class="field">
+                    <label for="revision">Revision identifier <span class="required">*</span></label>
+                    <input id="revision" name="revision" maxlength="20" required
+                           value="{{ old('revision', \App\Models\ProductRevision::nextLabel($product->revisions->pluck('revision'))) }}" placeholder="e.g. 1">
+                </div>
+
+                <div class="field">
+                    <label for="status">Revision status <span class="required">*</span></label>
+                    <select id="status" name="status" required>
+                        @foreach (['DRAFT', 'APPROVED', 'OBSOLETE'] as $status)
+                            <option value="{{ $status }}" @selected(old('status', 'DRAFT') === $status)>
+                                {{ $status }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label for="net_weight_kg">Net weight (kg)</label>
+                    <input id="net_weight_kg" name="net_weight_kg" type="number"
+                           step="0.0001" min="0" value="{{ old('net_weight_kg') }}">
+                </div>
+
+                <div class="field">
+                    <label for="effective_from">Effective from</label>
+                    <input id="effective_from" name="effective_from" type="date"
+                           value="{{ old('effective_from') }}">
+                </div>
+
+                <div class="field">
+                    <label for="effective_to">Effective to</label>
+                    <input id="effective_to" name="effective_to" type="date"
+                           value="{{ old('effective_to') }}">
+                </div>
+
+                <div class="field field-full">
+                    <label for="engineering_notes">Engineering notes</label>
+                    <textarea id="engineering_notes" name="engineering_notes">{{ old('engineering_notes') }}</textarea>
+                </div>
+            </div>
+
+            <div class="actions" style="margin-top:18px">
+                <button class="btn btn-primary" type="submit">Add revision</button>
+                <button class="btn" type="button" data-rev-add-cancel>Cancel</button>
+            </div>
+        </form>
     </div>
 
     @if ($product->revisions->isEmpty())
@@ -183,59 +235,6 @@
 </div>
 
 
-<div class="panel">
-    <div class="panel-header"><h2>Add revision</h2></div>
-    <div class="panel-body">
-        <form method="POST" action="{{ route('products.revisions.store', $product) }}">
-            @csrf
-            <div class="form-grid">
-                <div class="field">
-                    <label for="revision">Revision identifier <span class="required">*</span></label>
-                    <input id="revision" name="revision" maxlength="20" required
-                           value="{{ old('revision', \App\Models\ProductRevision::nextLabel($product->revisions->pluck('revision'))) }}" placeholder="e.g. 1">
-                </div>
-
-                <div class="field">
-                    <label for="status">Revision status <span class="required">*</span></label>
-                    <select id="status" name="status" required>
-                        @foreach (['DRAFT', 'APPROVED', 'OBSOLETE'] as $status)
-                            <option value="{{ $status }}" @selected(old('status', 'DRAFT') === $status)>
-                                {{ $status }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div class="field">
-                    <label for="net_weight_kg">Net weight (kg)</label>
-                    <input id="net_weight_kg" name="net_weight_kg" type="number"
-                           step="0.0001" min="0" value="{{ old('net_weight_kg') }}">
-                </div>
-
-                <div class="field">
-                    <label for="effective_from">Effective from</label>
-                    <input id="effective_from" name="effective_from" type="date"
-                           value="{{ old('effective_from') }}">
-                </div>
-
-                <div class="field">
-                    <label for="effective_to">Effective to</label>
-                    <input id="effective_to" name="effective_to" type="date"
-                           value="{{ old('effective_to') }}">
-                </div>
-
-                <div class="field field-full">
-                    <label for="engineering_notes">Engineering notes</label>
-                    <textarea id="engineering_notes" name="engineering_notes">{{ old('engineering_notes') }}</textarea>
-                </div>
-            </div>
-
-            <div class="actions" style="margin-top:18px">
-                <button class="btn btn-primary" type="submit">Add revision</button>
-            </div>
-        </form>
-    </div>
-</div>
 @include('products._extra-steps', ['product' => $product])
 @include('control-plans._panel', ['product' => $product])
 <div class="tab-marker" data-tab-start="Patterns"></div>
@@ -271,6 +270,9 @@
 </style>
 <script>
 document.addEventListener('click', function (e) {
+    var add = document.getElementById('add-revision');
+    if (add && e.target.closest('[data-rev-add]')) { add.hidden = false; var first = add.querySelector('input[name="revision"]'); if (first) first.focus(); return; }
+    if (add && e.target.closest('[data-rev-add-cancel]')) { add.hidden = true; return; }
     var open = e.target.closest('[data-rev-edit]'), cancel = e.target.closest('[data-rev-cancel]');
     if (!open && !cancel) return;
     var id = (open || cancel).dataset.revEdit || (open || cancel).dataset.revCancel, row = document.querySelector('[data-rev-form="' + id + '"]');
