@@ -114,6 +114,26 @@ class ProductionQueueTest extends TestCase
         $this->get(route('lots.queue'))->assertOk()->assertDontSee('<section class="qcol', false);
     }
 
+    public function test_a_lot_tick_box_carries_what_the_move_bar_needs(): void
+    {
+        $lot = $this->castingLot();
+        $this->passStage($lot, 'SHAKEOUT');
+
+        $seq = ProductionStageDefinition::where('code', 'SHAKEOUT')->value('sequence');
+        $this->get(route('lots.queue'))->assertOk()
+            ->assertSee('data-seq="'.$seq.'"', false)->assertSee('data-code="', false)->assertSee('data-pieces="5"', false)->assertSee('Move all 1 →');
+    }
+
+    public function test_after_a_refused_move_the_same_lots_stay_ticked(): void
+    {
+        $lot = $this->castingLot();
+        $stage = ProductionStageDefinition::where('is_active', true)->orderBy('sequence')->first();
+
+        $this->from(route('lots.queue'))->post(route('lots.bulk-stage'), ['lots' => [$lot->id], 'stages' => [$stage->id], 'rejected' => 2])->assertSessionHasErrors('rejection_reason');
+
+        $this->get(route('lots.queue'))->assertOk()->assertSee('value="'.$lot->id.'" class="queue-lot"', false)->assertSee('checked', false);
+    }
+
     public function test_the_ready_to_pack_pile_starts_collapsed_and_shows_the_oldest_fifteen_first(): void
     {
         foreach (range(1, 16) as $n) {

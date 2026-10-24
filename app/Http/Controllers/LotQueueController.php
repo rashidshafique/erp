@@ -45,7 +45,7 @@ class LotQueueController extends Controller
 
             $poured = $lot->pourMouldAssembly?->pour?->completed_at;
             $steps[$key]['lots'][] = [
-                'lot' => $lot, 'pieces' => $svc->pieces($lot), 'poured' => $poured, 'age_h' => $poured ? (int) $poured->diffInHours(now()) : null,
+                'lot' => $lot, 'last_seq' => (int) ($last?->sequence ?? 0), 'pieces' => $svc->pieces($lot), 'poured' => $poured, 'age_h' => $poured ? (int) $poured->diffInHours(now()) : null,
                 'cool' => $svc->cooling($lot), 'urgent' => $lot->productionOrder?->required_date,
                 'moulds' => $lot->pourMouldAssemblies->map(fn ($row) => ['number' => $row->mouldAssembly?->assembly_number ?? '—', 'pieces' => (int) $row->pivot->quantity])->all(),
             ];

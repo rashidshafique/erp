@@ -15,18 +15,18 @@
 </style>
 <div class="qboard">
 @foreach ($steps as $b)
-    @php $isReady = $b['key'] === 'ready'; @endphp
+    @php $isReady = $b['key'] === 'ready'; $next = $nextFor($b); @endphp
     <section class="qcol {{ $b['tone'] }}" id="step-{{ $b['key'] }}" x-data="{ all: false }" aria-label="{{ $b['label'] }}">
         <div class="qcol-head">
             @if (collect($b['lots'])->contains(fn ($r) => $r['lot']->status === 'IN_PRODUCTION'))<input type="checkbox" class="bucket-all" aria-label="Select all in {{ $b['label'] }}" style="margin-top:3px">@endif
-            <div><h2>{{ $b['label'] }}</h2><div class="muted small">{{ $b['lot_count'] }} {{ $b['lot_count'] === 1 ? 'lot' : 'lots' }}@if ($b['lot_count']) · {{ \App\Support\Formats::number($b['pieces']) }} pcs @endif</div>@if ($b['limit'])<div class="small {{ $b['over_limit'] ? '' : 'muted' }}" @if ($b['over_limit']) style="color:var(--danger);font-weight:650" @endif>{{ $b['over_limit'] ? 'Over limit of' : 'Limit' }} {{ \App\Support\Formats::number($b['limit']) }} {{ $b['limit_unit'] }}</div>@endif</div>
+            <div><h2>{{ $b['label'] }}</h2><div class="muted small">{{ $b['lot_count'] }} {{ $b['lot_count'] === 1 ? 'lot' : 'lots' }}@if ($b['lot_count']) · {{ \App\Support\Formats::number($b['pieces']) }} pcs @endif</div>@if ($b['limit'])<div class="small {{ $b['over_limit'] ? '' : 'muted' }}" @if ($b['over_limit']) style="color:var(--danger);font-weight:650" @endif>{{ $b['over_limit'] ? 'Over limit of' : 'Limit' }} {{ \App\Support\Formats::number($b['limit']) }} {{ $b['limit_unit'] }}</div>@endif @if ($next)<button type="button" class="btn btn-small" style="margin-top:6px" @click="moveStep('{{ $b['key'] }}')">Move all {{ $next['count'] }} → {{ $next['name'] }}</button>@endif</div>
         </div>
         <div class="qcol-body">
             @foreach ($b['lots'] as $r)
                 @php $l = $r['lot']; $moulds = count($r['moulds']); @endphp
                 <article class="qcard" x-data="{ moulds: false }" @if ($isReady && $loop->index >= 15) x-show="all" x-cloak @endif>
                     <div class="qcard-top">
-                        <label style="display:flex;gap:6px;align-items:center;margin:0">@if ($l->status === 'IN_PRODUCTION')<input type="checkbox" name="lots[]" value="{{ $l->id }}" class="queue-lot" aria-label="Select {{ $l->label }}">@endif<a href="{{ route('lots.show', $l) }}" class="mono"><strong>{{ $l->label }}</strong></a></label>
+                        <label style="display:flex;gap:6px;align-items:center;margin:0">@if ($l->status === 'IN_PRODUCTION')@include('lots._queue-lot-box', ['step' => $b['key']])@endif<a href="{{ route('lots.show', $l) }}" class="mono"><strong>{{ $l->label }}</strong></a></label>
                         <span class="muted">{{ $r['pieces'] }} pcs</span>
                     </div>
                     <div>{{ $l->product?->name ?? '—' }}</div>
