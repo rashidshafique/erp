@@ -13,7 +13,7 @@
 
 @php $plans = app(\App\Services\Production\ControlPlans::class); @endphp
 <div class="panel">
-    <div class="panel-header"><h2>Default control plan</h2><span class="muted small">What is controlled at each step. Every product revision follows this until it is given its own plan.</span></div>
-    <div class="panel-body">@include('control-plans._rows', ['items' => $plans->defaultPlan()->items, 'action' => route('settings.process.control-plan')])</div>
+    <div class="panel-header"><h2>Default control plan</h2><span class="muted small">What is controlled at each step of Our process. Every product revision follows this until it is given its own plan.</span></div>
+    <div class="panel-body">@include('control-plans._steps', ['items' => $plans->defaultPlan()->items()->with('stageDefinition')->get(), 'stages' => \App\Models\ProductionStageDefinition::where('is_active', true)->orderBy('sequence')->get(), 'action' => route('settings.process.control-plan')])</div>
 </div>
 @endsection

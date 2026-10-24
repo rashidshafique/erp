@@ -10,6 +10,7 @@ use App\Models\PatternRevision;
 use App\Models\PatternRevisionCavity;
 use App\Models\ProcessControlPlan;
 use App\Models\Product;
+use App\Models\ProductionStageDefinition;
 use App\Models\ProductRevision;
 use App\Services\Production\ControlPlans;
 use App\Support\ControlPlanRules;
@@ -145,5 +146,24 @@ class ControlPlanTest extends TestCase
             ->assertSessionHasNoErrors();
 
         $this->get(route('products.show', $revision->product_id))->assertSee('Sand compactability');
+    }
+
+    public function test_the_plan_is_shown_along_the_process_with_each_control_under_its_step(): void
+    {
+        $revision = $this->revision();
+        $steps = ProductionStageDefinition::where('is_active', true)->where('product_specific', false)->orderBy('sequence')->get();
+        [$first, $second] = [$steps[0], $steps[1]];
+
+        $this->put(route('settings.process.control-plan'), ['rows' => [
+            ['parameter_name' => 'Wall check', 'stage_definition_id' => $second->id],
+            ['parameter_name' => 'Room temperature', 'stage_definition_id' => ''],
+        ]])->assertSessionHasNoErrors();
+
+        $items = app(ControlPlans::class)->defaultPlan()->items()->get();
+        $this->assertSame($second->id, $items->firstWhere('parameter_name', 'Wall check')->stage_definition_id);
+        $this->assertNull($items->firstWhere('parameter_name', 'Room temperature')->stage_definition_id);
+
+        $this->get(route('products.show', $revision->product_id))->assertOk()
+            ->assertSeeInOrder(['Whole process', 'Room temperature', '1. '.$first->name, '2. '.$second->name, 'Wall check']);
     }
 }
