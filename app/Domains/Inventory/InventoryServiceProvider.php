@@ -3,6 +3,7 @@
 namespace App\Domains\Inventory;
 
 use App\Domains\Core\ModuleServiceProvider;
+use App\Services\Stock\StockLevels;
 use Livewire\Livewire;
 
 /** Stores: where stock is kept. Stock locations, then movements and balances by location. */
@@ -38,7 +39,8 @@ class InventoryServiceProvider extends ModuleServiceProvider
     protected function navItems(): array
     {
         return [
-            ['group' => 'purchases', 'label' => 'Reorder alerts', 'route' => 'stock-reorder.index', 'icon' => 'alert', 'active' => ['stock-reorder.*']],
+            ['group' => 'purchases', 'label' => 'Reorder alerts', 'route' => 'stock-reorder.index', 'icon' => 'alert', 'active' => ['stock-reorder.*'],
+                'count' => fn (): int => app(StockLevels::class)->needingReorder()->count()],
             ['group' => 'purchases', 'label' => 'Stock by location', 'route' => 'stock-balances.index', 'icon' => 'package', 'active' => ['stock-balances.*', 'stock-movements.record']],
             ['group' => 'purchases', 'label' => 'Stock locations', 'route' => 'stock-locations.index', 'icon' => 'package', 'active' => ['stock-locations.*']],
         ];

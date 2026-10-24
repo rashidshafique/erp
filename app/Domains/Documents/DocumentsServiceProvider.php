@@ -3,6 +3,7 @@
 namespace App\Domains\Documents;
 
 use App\Domains\Core\ModuleServiceProvider;
+use App\Domains\Documents\Models\ControlledDocumentRevision;
 
 /** The register of controlled documents: revisions, ordered approval, the revision in force, and review dates. */
 class DocumentsServiceProvider extends ModuleServiceProvider
@@ -30,7 +31,8 @@ class DocumentsServiceProvider extends ModuleServiceProvider
     protected function navItems(): array
     {
         return [
-            ['group' => 'quality', 'label' => 'Controlled documents', 'route' => 'documents.index', 'icon' => 'book', 'active' => ['documents.*']],
+            ['group' => 'quality', 'label' => 'Controlled documents', 'route' => 'documents.index', 'icon' => 'book', 'active' => ['documents.*'],
+                'count' => fn (): int => ControlledDocumentRevision::where('status', 'IN_REVIEW')->count()],
         ];
     }
 

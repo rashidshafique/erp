@@ -3,7 +3,9 @@
 namespace App\Domains\Maintenance\Models;
 
 use App\Domains\Maintenance\Services\CalibrationStatus;
+use App\Domains\Maintenance\Support\CalibrationRules;
 use App\Models\Concerns\GeneratesCodes;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -34,6 +36,13 @@ class Gauge extends Model
             'last_calibrated_on' => 'date',
             'next_due_on' => 'date',
         ];
+    }
+
+    /** Instruments in use that are overdue, never calibrated, or due within the due-soon days of Calibration rules. */
+    public function scopeCalibrationDue(Builder $query): Builder
+    {
+        return $query->where('status', 'IN_SERVICE')->where('requires_calibration', true)
+            ->where(fn ($q) => $q->whereNull('next_due_on')->orWhereDate('next_due_on', '<=', today()->addDays((int) CalibrationRules::get('due_soon_days'))));
     }
 
     public function calibrations(): HasMany

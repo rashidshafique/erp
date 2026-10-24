@@ -38,7 +38,8 @@ class CapaServiceProvider extends ModuleServiceProvider
     protected function navItems(): array
     {
         return [
-            ['group' => 'quality', 'label' => 'Corrective actions', 'route' => 'capa.index', 'icon' => 'check-circle', 'active' => ['capa.*']],
+            ['group' => 'quality', 'label' => 'Corrective actions', 'route' => 'capa.index', 'icon' => 'check-circle', 'active' => ['capa.*'],
+                'count' => fn (): int => CapaAction::whereIn('status', ['OPEN', 'IN_PROGRESS', 'AWAITING_VERIFICATION'])->count()],
         ];
     }
 

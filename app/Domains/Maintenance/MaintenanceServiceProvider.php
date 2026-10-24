@@ -46,7 +46,8 @@ class MaintenanceServiceProvider extends ModuleServiceProvider
     protected function navItems(): array
     {
         return [
-            ['group' => 'equipment', 'label' => 'Gauges & calibration', 'route' => 'gauges.index', 'icon' => 'gauge', 'active' => ['gauges.*']],
+            ['group' => 'equipment', 'label' => 'Gauges & calibration', 'route' => 'gauges.index', 'icon' => 'gauge', 'active' => ['gauges.*'],
+                'count' => fn (): int => Gauge::calibrationDue()->count()],
         ];
     }
 

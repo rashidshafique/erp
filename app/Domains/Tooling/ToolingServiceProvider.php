@@ -45,7 +45,8 @@ class ToolingServiceProvider extends ModuleServiceProvider
     {
         return [
             ['group' => 'equipment', 'label' => 'Maintenance dashboard', 'route' => 'tooling-maintenance.dashboard', 'icon' => 'dashboard', 'active' => ['tooling-maintenance.dashboard']],
-            ['group' => 'equipment', 'label' => 'Maintenance records', 'route' => 'tooling-maintenance.index', 'icon' => 'wrench', 'active' => ['tooling-maintenance.index', 'tooling-maintenance.show', 'tooling-maintenance.edit']],
+            ['group' => 'equipment', 'label' => 'Maintenance records', 'route' => 'tooling-maintenance.index', 'icon' => 'wrench', 'active' => ['tooling-maintenance.index', 'tooling-maintenance.show', 'tooling-maintenance.edit'],
+                'count' => fn (): int => ToolingMaintenanceRecord::whereIn('status', ['OPEN', 'IN_PROGRESS'])->count()],
             ['group' => 'equipment', 'label' => 'Tooling life', 'route' => 'tooling-life.dashboard', 'icon' => 'gauge', 'active' => ['tooling-life.*']],
         ];
     }

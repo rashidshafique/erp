@@ -19,6 +19,7 @@ use App\Services\Patterns\PatternOwnership;
 use App\Services\Production\FlaskManager;
 use App\Services\Production\MouldAssembler;
 use App\Services\Production\WorkListService;
+use App\Support\MenuCounts;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -64,7 +65,7 @@ class MouldingRunController extends Controller
 
         $todayRuns = MouldingRun::whereDate('run_date', today())->count();
 
-        $inProgressRuns = MouldingRun::where('status', 'IN_PROGRESS')->count();
+        $inProgressRuns = app(MenuCounts::class)->runsInProgress();
 
         $todayMoulds = MouldingRun::whereDate('run_date', today())
             ->sum('moulds_made_qty');

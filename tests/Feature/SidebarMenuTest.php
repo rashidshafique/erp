@@ -2,8 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Domains\Capa\Models\CapaAction;
+use App\Domains\Purchasing\Models\PurchaseOrder;
+use App\Domains\Purchasing\Models\Supplier;
 use App\Domains\Sales\Models\SalesOrder;
 use App\Models\Customer;
+use App\Models\Product;
+use App\Models\ProductionOrder;
+use App\Models\ProductRevision;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -59,5 +65,27 @@ class SidebarMenuTest extends TestCase
 
         $this->assertSame(1, preg_match('/Sales &amp; Planning<\/span><span class="nav-count"[^>]*>3</', $html));
         $this->assertSame(1, preg_match('/Sales orders<\/span><span class="nav-count"[^>]*>3</', $html));
+    }
+
+    public function test_items_waiting_for_action_are_counted_on_the_item_and_its_group(): void
+    {
+        CapaAction::create(['source_type' => 'COMPLAINT', 'title' => 'Blowholes', 'severity' => 'MAJOR', 'status' => 'OPEN']);
+        CapaAction::create(['source_type' => 'COMPLAINT', 'title' => 'Old one', 'severity' => 'MINOR', 'status' => 'CLOSED']);
+        $supplier = Supplier::create(['name' => 'Acme Pig Iron', 'review_interval_days' => 180, 'approval_status' => 'APPROVED']);
+        PurchaseOrder::create(['supplier_id' => $supplier->id, 'order_date' => today(), 'status' => 'DRAFT']);
+        PurchaseOrder::create(['supplier_id' => $supplier->id, 'order_date' => today(), 'status' => 'ISSUED', 'po_number' => 'PO-1']);
+        $product = Product::create(['code' => 'P1', 'name' => 'Grill plate']);
+        $revision = ProductRevision::create(['product_id' => $product->id, 'revision' => '0', 'status' => 'APPROVED']);
+        foreach (['LATE' => today()->subDay(), 'ONTIME' => today()->addWeek()] as $number => $due) {
+            ProductionOrder::create(['production_order_number' => $number, 'product_id' => $product->id, 'product_revision_id' => $revision->id, 'status' => 'RELEASED', 'planned_qty' => 5, 'required_date' => $due]);
+        }
+
+        $html = $this->get(route('dashboard'))->assertOk()->getContent();
+
+        foreach (['Corrective actions', 'Purchase orders', 'Production orders', 'Production'] as $label) {
+            $this->assertSame(1, preg_match('/<span>'.$label.'<\/span><span class="nav-count"[^>]*>1</', $html), $label);
+        }
+        $this->assertSame(1, preg_match('/<span>Quality<\/span><span class="nav-count"[^>]*>(\d+)</', $html, $quality));
+        $this->assertGreaterThanOrEqual(1, (int) $quality[1]);
     }
 }

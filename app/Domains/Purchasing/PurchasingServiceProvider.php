@@ -42,7 +42,8 @@ class PurchasingServiceProvider extends ModuleServiceProvider
     {
         return [
             ['group' => 'purchases', 'label' => 'Suppliers', 'route' => 'suppliers.index', 'icon' => 'truck', 'active' => ['suppliers.*']],
-            ['group' => 'purchases', 'label' => 'Purchase orders', 'route' => 'purchase-orders.index', 'icon' => 'receipt', 'active' => ['purchase-orders.*']],
+            ['group' => 'purchases', 'label' => 'Purchase orders', 'route' => 'purchase-orders.index', 'icon' => 'receipt', 'active' => ['purchase-orders.*'],
+                'count' => fn (): int => PurchaseOrder::where('status', 'DRAFT')->count()],
         ];
     }
 

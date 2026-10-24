@@ -13,6 +13,7 @@ use App\Services\Production\LotFactory;
 use App\Services\Production\PourAssembler;
 use App\Services\Quality\CalibrationStatus;
 use App\Services\QualityGates;
+use App\Support\MenuCounts;
 use App\Support\PouringRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -32,9 +33,7 @@ class PourController extends Controller
 
         $totalPours = Pour::count();
 
-        $activePours = Pour::whereIn('status', [
-            'PLANNED', 'IN_PROGRESS',
-        ])->count();
+        $activePours = app(MenuCounts::class)->openPours();
 
         $completedPours = Pour::where('status', 'COMPLETED')->count();
 

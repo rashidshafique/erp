@@ -8,6 +8,7 @@ use App\Domains\Dispatch\Models\DispatchItem;
 use App\Domains\Dispatch\Models\PackingRecord;
 use App\Domains\Dispatch\Models\PackingRecordItem;
 use App\Domains\Dispatch\Services\ShipmentService;
+use App\Models\CastingLot;
 
 /** Packing, finished goods and dispatch: from an accepted casting lot to the delivery challan. */
 class DispatchServiceProvider extends ModuleServiceProvider
@@ -48,8 +49,10 @@ class DispatchServiceProvider extends ModuleServiceProvider
     {
         return [
             ['group' => 'sales', 'label' => 'Finished goods', 'route' => 'finished-goods.index', 'icon' => 'archive', 'active' => ['finished-goods.*']],
-            ['group' => 'sales', 'label' => 'Packing', 'route' => 'packing.index', 'icon' => 'package', 'active' => ['packing.*']],
-            ['group' => 'sales', 'label' => 'Dispatch', 'route' => 'dispatches.index', 'icon' => 'truck', 'active' => ['dispatches.*']],
+            ['group' => 'sales', 'label' => 'Packing', 'route' => 'packing.index', 'icon' => 'package', 'active' => ['packing.*'],
+                'count' => fn (): int => CastingLot::where('status', 'READY')->count()],
+            ['group' => 'sales', 'label' => 'Dispatch', 'route' => 'dispatches.index', 'icon' => 'truck', 'active' => ['dispatches.*'],
+                'count' => fn (): int => CastingLot::where('status', 'PACKED')->count()],
         ];
     }
 
