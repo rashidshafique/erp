@@ -26,6 +26,11 @@ Updated 2026-10-23.
 - `StockLedger` is the one write path for receipts, FIFO issues and transfers. Movements name their item (`item_type` + `item_id`); `StockItemTypes` and `StockMovementTypes` are registries a module can add to. `Material` is a `Stockable`, `MaterialLot` a `StockLot`.
 - Stock locations register, record a stock movement (issue, scrap, count adjustment, transfer) and stock by location, all Livewire. Lot receipts can name a location.
 
+**Finance (`app/Domains/Finance`, started 2026-10-24)**
+- Sales invoices and credit notes raised from a dispatch, a sales order or with free lines (never tied to dispatch); draft, issue (numbered `INV-<year>-0001`), void, print.
+- Customer receipts spread over invoices (rest stays on account), ageing report, customer statement, tax rates and defaults under Settings > Invoicing & tax. Permission `finance.manage`, role ACCOUNTS.
+- Not built: purchase bills and payables, general ledger and posting, bank reconciliation, financial reports, tax returns, e-invoicing. Order agreed: Sales split, then Purchasing/stock valuation and supplier bills, then the ledger.
+
 ## Missing / next
 1. HR and the first part of Stores are done; next in the module split: Sales split. Melting, pouring and moulding stay in core.
 2. Empty module folders still to fill or remove: Commercial, Costing, Engineering, MRP, Melting, Moulding, Pouring, Product, Production, Quality, Sand, Traceability.
@@ -46,7 +51,7 @@ In priority order:
 1. **Stores/Inventory** (next in the module split): stock ledger, bins, issues, GRN, stock valuation.
 2. **Costing** (`Costing` is empty): actual versus standard cost per casting (metal, energy, labour, fettling).
 3. **MRP and scheduling** (`MRP`, `Production` are empty): material requirements planning, finite capacity scheduling.
-4. **Finance** (biggest gap): general ledger, AR/AP, invoicing, tax, bank reconciliation. Decide build a thin version or integrate an accounting package.
+4. **Finance** (biggest gap): invoicing and receivables are in; still to do: AP and supplier bills, general ledger, tax returns, bank reconciliation. Decide build a thin version or integrate an accounting package.
 5. **Outside processing and machining routings**: subcontract flow, machining steps.
 6. **Reporting and BI**: management dashboards, customer scorecards, statutory report exports.
 7. **Integration**: EDI, e-invoicing and tax filing for the target market, barcode and device input.

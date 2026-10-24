@@ -6,6 +6,7 @@ use App\Domains\Compliance\ComplianceServiceProvider;
 use App\Domains\Dispatch\DispatchServiceProvider;
 use App\Domains\Documents\DocumentsServiceProvider;
 use App\Domains\Enquiry\EnquiryServiceProvider;
+use App\Domains\Finance\FinanceServiceProvider;
 use App\Domains\Hr\HrServiceProvider;
 use App\Domains\Inventory\InventoryServiceProvider;
 use App\Domains\Licensing\LicensingServiceProvider;
@@ -25,6 +26,7 @@ return [
     DispatchServiceProvider::class,
     DocumentsServiceProvider::class,
     EnquiryServiceProvider::class,
+    FinanceServiceProvider::class,
     HrServiceProvider::class,
     MaintenanceServiceProvider::class,
     PartiesServiceProvider::class,
