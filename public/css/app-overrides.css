@@ -239,6 +239,9 @@ a.pager-item:hover { background: var(--page); color: var(--text); }
 
 .crumb-back { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; margin-right: 6px; border-radius: 6px; color: var(--muted); font-size: 15px; line-height: 1; }
 .crumb-back:hover { background: var(--page); color: var(--text); }
+.crumb-prev { color: var(--muted); text-decoration: none; }
+.crumb-prev:hover { color: var(--text); text-decoration: underline; }
+.crumb-sep { color: var(--muted); white-space: pre; }
 
 /* Heat status lights in the top bar */
 .topbar-date { display: flex; align-items: center; justify-content: flex-end; gap: 14px; }

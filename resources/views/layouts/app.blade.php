@@ -208,11 +208,28 @@
             <script>
             (function () {
                 var back = document.getElementById('crumb-back');
+                var trail = document.querySelector('.breadcrumb strong');
+                var key = function (url) { return 'crumb:' + url.split('#')[0]; };
+                try { if (trail) sessionStorage.setItem(key(location.href), trail.textContent.trim()); } catch (e) {}
                 if (!back || !document.referrer) return;
                 try {
                     var from = new URL(document.referrer);
                     if (from.origin !== location.origin || from.href === location.href || /\/(edit|create|new)$/.test(from.pathname)) return;
+                    if (new URL(back.href, location.href).href === from.href) return;
                     back.href = from.href;
+                    var title = sessionStorage.getItem(key(from.href));
+                    if (!title || !trail) return;
+                    back.title = back.ariaLabel = 'Back to ' + title;
+                    var prev = document.createElement('a');
+                    prev.className = 'crumb-prev';
+                    prev.href = from.href;
+                    prev.textContent = title.split(' / ').pop();
+                    prev.title = 'Back to ' + title;
+                    var sep = document.createElement('span');
+                    sep.className = 'crumb-sep';
+                    sep.textContent = ' ‹ ';
+                    trail.parentNode.insertBefore(prev, trail);
+                    trail.parentNode.insertBefore(sep, trail);
                 } catch (e) {}
             })();
             </script>
