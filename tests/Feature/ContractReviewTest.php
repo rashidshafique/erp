@@ -167,4 +167,24 @@ class ContractReviewTest extends TestCase
         $this->assertContains('Golden Bend PRD-0240-Rev0 has no approved, effective product specification.', $texts);
         $this->assertContains('No material grade is named in the specification or the customer requirement for Golden Bend PRD-0240-Rev0.', $texts);
     }
+
+    public function test_missing_customer_requirement_is_optional_by_default(): void
+    {
+        $review = app(ContractReviewer::class)->evaluate($this->order('EN-GJS-500-7', null));
+
+        $this->assertNotContains('CUSTOMER_REQUIREMENT', $review->items->pluck('check_code')->all());
+    }
+
+    public function test_enforced_customer_requirement_blocks_until_a_profile_is_selected(): void
+    {
+        \App\Support\OrderRules::set('customer_requirement', 'ENFORCED');
+        $order = $this->order('EN-GJS-500-7', null);
+
+        $this->assertContains('CUSTOMER_REQUIREMENT', $this->codes(app(ContractReviewer::class)->evaluate($order), 'BLOCK'));
+
+        $profile = \App\Domains\Compliance\Models\RequirementProfile::create(['code' => 'IATF', 'name' => 'IATF 16949', 'region' => 'EUROPE', 'active' => true]);
+        $order->customer->requirementProfiles()->attach($profile->id);
+
+        $this->assertContains('CUSTOMER_REQUIREMENT', $this->codes(app(ContractReviewer::class)->evaluate($order), 'PASS'));
+    }
 }

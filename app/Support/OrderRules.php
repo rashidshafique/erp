@@ -21,6 +21,10 @@ class OrderRules
             'INSPECTION' => 'When enough good castings have passed final inspection',
             'POUR' => 'When the castings poured reach the planned quantity (no inspection needed)',
         ], 'INSPECTION'],
+        'customer_requirement' => ['orders.customer_requirement', 'Customer requirements on an order', [
+            'OPTIONAL' => 'Optional: a customer may hold requirement profiles, but an order is not held up when none is selected',
+            'ENFORCED' => 'Enforced: contract review fails for a product when the customer holds no requirement profile and has no requirement for that product',
+        ], 'OPTIONAL'],
     ];
 
     public static function get(string $rule): string
@@ -52,6 +56,11 @@ class OrderRules
     public static function sendsStraightToProduction(): bool
     {
         return self::get('order_flow') === 'SIMPLE';
+    }
+
+    public static function customerRequirementEnforced(): bool
+    {
+        return self::get('customer_requirement') === 'ENFORCED';
     }
 
     public static function reviewRequired(): bool

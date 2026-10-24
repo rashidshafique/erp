@@ -11,6 +11,7 @@ use App\Domains\Sales\Models\SalesOrder;
 use App\Domains\Sales\Models\SalesOrderLine;
 use App\Models\ThermalWindow;
 use App\Services\FurnaceEligibility;
+use App\Support\OrderRules;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -90,8 +91,13 @@ class ContractReviewer
             ->whereNull('superseded_at')->get();
         $okReq = $reqs->first(fn ($r) => in_array($r->status, self::OK_STATUS, true)
             && ($r->effective_at === null || $r->effective_at <= $now) && ($r->expires_at === null || $r->expires_at > $now));
+        $profiles = $order->customer?->requirementProfiles()->where('active', true)->pluck('name') ?? collect();
         if ($reqs->isEmpty()) {
-            $out[] = ['CUSTOMER_REQUIREMENT', 'WARN', "No customer requirement is on file for {$label}. Confirm there are no extra customer demands."];
+            if ($profiles->isNotEmpty()) {
+                $out[] = ['CUSTOMER_REQUIREMENT', 'PASS', 'The customer holds requirement profile(s): '.$profiles->implode(', ').'.'];
+            } elseif (OrderRules::customerRequirementEnforced()) {
+                $out[] = ['CUSTOMER_REQUIREMENT', 'BLOCK', "No customer requirement is on file for {$label}. Select a requirement profile for the customer."];
+            }
         } elseif (! $okReq) {
             $out[] = ['CUSTOMER_REQUIREMENT', 'WARN', "The customer requirement for {$label} is not approved or not in effect yet."];
         } else {
