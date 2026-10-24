@@ -17,6 +17,7 @@ class MaterialLot extends Model implements StockLot
         'lot_number',
         'material_id',
         'supplier_id',
+        'purchase_order_line_id',
         'certificate_type',
         'supplier_lot_number',
         'supplier_name_snapshot',

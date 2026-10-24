@@ -3,6 +3,7 @@
 namespace App\Domains\Purchasing;
 
 use App\Domains\Core\ModuleServiceProvider;
+use App\Domains\Purchasing\Models\PurchaseOrder;
 use App\Domains\Purchasing\Models\Supplier;
 use App\Models\MaterialLot;
 use Livewire\Livewire;
@@ -22,7 +23,7 @@ class PurchasingServiceProvider extends ModuleServiceProvider
 
     protected function moduleDescription(): string
     {
-        return 'The approved supplier list with evaluations. Material lots stop offering a supplier to choose.';
+        return 'The approved supplier list with evaluations, and purchase orders with receiving into material lots. Material lots stop offering a supplier to choose.';
     }
 
     protected function modulePath(): string
@@ -41,6 +42,7 @@ class PurchasingServiceProvider extends ModuleServiceProvider
     {
         return [
             ['group' => 'purchases', 'label' => 'Suppliers', 'route' => 'suppliers.index', 'icon' => 'truck', 'active' => ['suppliers.*']],
+            ['group' => 'purchases', 'label' => 'Purchase orders', 'route' => 'purchase-orders.index', 'icon' => 'receipt', 'active' => ['purchase-orders.*']],
         ];
     }
 
@@ -48,6 +50,7 @@ class PurchasingServiceProvider extends ModuleServiceProvider
     {
         return [
             'supplier' => ['label' => 'Supplier', 'model' => Supplier::class, 'edit' => 'quality.manage'],
+            'purchase_order' => ['label' => 'Purchase order', 'model' => PurchaseOrder::class, 'edit' => 'purchasing.manage'],
             'material_lot' => ['label' => 'Material lot', 'model' => MaterialLot::class, 'edit' => 'quality.manage'],
         ];
     }
@@ -57,7 +60,28 @@ class PurchasingServiceProvider extends ModuleServiceProvider
         return [
             ['pattern' => 'suppliers.*', 'permission' => 'quality.manage'],
             ['pattern' => 'incoming.*', 'permission' => 'quality.manage'],
+            ['pattern' => 'purchase-orders.*', 'permission' => 'purchasing.manage'],
         ];
+    }
+
+    protected function permissionCatalog(): array
+    {
+        return ['purchasing.manage' => 'Purchase orders and receiving'];
+    }
+
+    protected function roleDefaults(): array
+    {
+        return ['BUYER' => ['name' => 'Buyer', 'permissions' => ['purchasing.manage', 'attachments.manage']]];
+    }
+
+    protected function approvalActions(): array
+    {
+        return ['purchase_order.issue' => 'Issue a purchase order'];
+    }
+
+    protected function settingsLinks(): array
+    {
+        return [['section' => 'Foundry', 'label' => 'Purchase orders', 'route' => 'purchase-orders.settings.edit', 'active' => ['purchase-orders.settings.*']]];
     }
 
     protected function codeKinds(): array
