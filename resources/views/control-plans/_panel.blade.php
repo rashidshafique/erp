@@ -5,7 +5,7 @@
     <div class="panel-body">
         @foreach ($product->revisions as $revision)
             @php $plan = $service->forRevision($revision); $items = $service->effectiveItems($plan); @endphp
-            <details @open($loop->first || $plan->needs_review_at) style="margin-bottom:14px">
+            <details {{ $loop->first || $plan->needs_review_at ? 'open' : '' }} style="margin-bottom:14px">
                 <summary><strong>Revision {{ $revision->revision }}</strong>
                     <span class="status">{{ $plan->follows_default ? 'Follows Our process' : ($plan->isApproved() ? 'Own plan, approved' : 'Own plan, draft') }}</span>
                     @if ($plan->needs_review_at)<span class="status status-on-hold">Needs review</span>@endif</summary>
