@@ -62,6 +62,22 @@ class ModuleRegistry
         return $this->navItems[$group] ?? [];
     }
 
+    /** How many things wait on someone in this link, from its optional 'count' closure. */
+    public function navCount(array $item): int
+    {
+        return isset($item['count']) ? (int) ($item['count'])() : 0;
+    }
+
+    /**
+     * The waiting count of the links the menu shows, so the group holding them can carry it too.
+     *
+     * @param  list<array<string, mixed>>  $items
+     */
+    public function groupCount(array $items, Contracts\MenuFilter $menu): int
+    {
+        return array_sum(array_map(fn ($item) => $menu->shows($item['route']) && (! isset($item['visible']) || ($item['visible'])()) ? $this->navCount($item) : 0, $items));
+    }
+
     /** Every route pattern the group's contributed links answer to, so the group opens on those pages. @return list<string> */
     public function navPatterns(string $group): array
     {

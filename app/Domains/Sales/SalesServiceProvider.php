@@ -50,7 +50,8 @@ class SalesServiceProvider extends ModuleServiceProvider
     protected function navItems(): array
     {
         return [
-            ['group' => 'sales', 'label' => 'Sales orders', 'route' => 'sales-orders.index', 'icon' => 'receipt', 'active' => ['sales-orders.index', 'sales-orders.show', 'sales-orders.trace']],
+            ['group' => 'sales', 'label' => 'Sales orders', 'route' => 'sales-orders.index', 'icon' => 'receipt', 'active' => ['sales-orders.index', 'sales-orders.show', 'sales-orders.trace'],
+                'count' => fn (): int => SalesOrder::whereIn('status', ['DRAFT', 'UNDER_REVIEW'])->count()],
         ];
     }
 

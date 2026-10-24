@@ -4,12 +4,12 @@
     @php($patterns = array_merge($group['active'], ...array_column($group['items'], 'active')))
     <div class="nav-group {{ request()->routeIs(...$patterns) ? 'is-active' : '' }}">
         <button type="button" class="nav-group-toggle" aria-expanded="false">
-            <span class="nav-lab">{!! \App\Support\NavIcons::get($group['icon']) !!}<span>{{ $group['label'] }}</span></span><span class="nav-chevron">›</span>
+            <span class="nav-lab">{!! \App\Support\NavIcons::get($group['icon']) !!}<span>{{ $group['label'] }}</span>@if (($n = app(\App\Domains\Core\ModuleRegistry::class)->groupCount($group['items'], $menu)) > 0)<span class="nav-count" title="Waiting for someone">{{ $n }}</span>@endif</span><span class="nav-chevron">›</span>
         </button>
         <div class="nav-submenu" hidden>
             @foreach ($group['items'] as $item)
                 @if ($menu->shows($item['route']) && (! isset($item['visible']) || ($item['visible'])()))
-                    <a href="{{ route($item['route']) }}" class="nav-link {{ request()->routeIs(...$item['active']) ? 'active' : '' }}">{!! \App\Support\NavIcons::get($item['icon']) !!}<span>{{ $item['label'] }}</span></a>
+                    <a href="{{ route($item['route']) }}" class="nav-link {{ request()->routeIs(...$item['active']) ? 'active' : '' }}">{!! \App\Support\NavIcons::get($item['icon']) !!}<span>{{ $item['label'] }}</span>@if (($n = app(\App\Domains\Core\ModuleRegistry::class)->navCount($item)) > 0)<span class="nav-count" title="Waiting for someone">{{ $n }}</span>@endif</a>
                 @endif
             @endforeach
         </div>

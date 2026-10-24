@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Domains\Sales\Models\SalesOrder;
+use App\Models\Customer;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -44,5 +46,18 @@ class SidebarMenuTest extends TestCase
         $this->assertGreaterThan(strpos($aside, '</nav>'), strpos($aside, 'sidebar-profile'));
         $topbar = substr($html, strpos($html, '<header'), strpos($html, '</header>') - strpos($html, '<header'));
         $this->assertStringNotContainsString('Sign out', $topbar);
+    }
+
+    public function test_sales_orders_in_draft_or_review_are_counted_on_the_item_and_its_group(): void
+    {
+        $customer = Customer::create(['code' => 'C1', 'name' => 'Acme']);
+        foreach (['DRAFT', 'UNDER_REVIEW', 'UNDER_REVIEW', 'CONFIRMED'] as $i => $status) {
+            SalesOrder::create(['order_number' => 'SO-'.$i, 'customer_id' => $customer->id, 'order_date' => today(), 'status' => $status]);
+        }
+
+        $html = $this->get(route('dashboard'))->assertOk()->getContent();
+
+        $this->assertSame(1, preg_match('/Sales &amp; Planning<\/span><span class="nav-count"[^>]*>3</', $html));
+        $this->assertSame(1, preg_match('/Sales orders<\/span><span class="nav-count"[^>]*>3</', $html));
     }
 }
