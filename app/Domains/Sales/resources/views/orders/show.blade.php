@@ -82,7 +82,7 @@
     @else
         @php $blocks = $review->items->where('severity', 'BLOCK'); @endphp
         @if ($blocks->isNotEmpty())
-            <div class="alert alert-error" style="margin:12px"><strong>Blocked. Fix these, then re-run the review:</strong><ul>@foreach ($blocks as $b)<li>{{ $b->message }}</li>@endforeach</ul></div>
+            <div class="alert alert-error" style="margin:12px"><strong>Blocked. Fix these, then re-run the review:</strong><ul>@foreach ($blocks as $b)<li>{{ $b->message }}@foreach ($b->fixLinks() as $fix) <a href="{{ $fix['url'] }}" class="btn btn-small">{{ $fix['label'] }} →</a>@endforeach</li>@endforeach</ul></div>
         @endif
         <div class="table-wrap"><table>
             <thead><tr><th>Line</th><th>Check</th><th>Result</th><th>Finding</th><th>Acknowledgement</th></tr></thead>
@@ -92,7 +92,7 @@
                     <td>@if($i->line)<x-product-cell :product="$i->line->product" /><div class="muted small">Line {{ $i->line->line_number }}</div>@else—@endif</td>
                     <td>{{ str_replace('_', ' ', $i->check_code) }}</td>
                     <td><span class="status {{ $i->severity === 'PASS' ? 'status-completed' : ($i->severity === 'WARN' ? 'status-on-hold' : 'status-cancelled') }}">{{ $i->severity }}</span></td>
-                    <td style="white-space:normal;min-width:260px">{{ $i->message }}</td>
+                    <td style="white-space:normal;min-width:260px">{{ $i->message }}@foreach ($i->fixLinks() as $fix)<div><a href="{{ $fix['url'] }}">{{ $fix['label'] }} →</a></div>@endforeach</td>
                     <td style="white-space:normal;min-width:220px">
                         @if ($i->severity === 'WARN')
                             @if ($i->acknowledgement) {{ $i->acknowledgement }}

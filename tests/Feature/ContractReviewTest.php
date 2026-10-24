@@ -93,6 +93,27 @@ class ContractReviewTest extends TestCase
         $this->assertNotContains('THERMAL_WINDOW', $this->codes($review, 'WARN'));
     }
 
+    public function test_findings_about_the_product_or_pattern_link_to_where_they_are_fixed(): void
+    {
+        $o = $this->order();
+        $line = $o->lines->first();
+        ProductSpecification::query()->delete();
+        $review = app(ContractReviewer::class)->evaluate($o);
+        $spec = $review->items->firstWhere('check_code', 'PRODUCT_SPEC');
+        $this->assertSame([route('products.show', $line->product_id)], array_column($spec->fixLinks(), 'url'));
+        $this->get(route('sales-orders.show', $o))->assertOk()->assertSee(route('products.show', $line->product_id), false);
+
+        $this->assertContains(route('products.show', $line->product_id), array_column($review->items->firstWhere('check_code', 'PATTERN')->fixLinks(), 'url'), 'no pattern is linked yet, so go to the product');
+
+        $pat = Pattern::create(['code' => 'PT'.uniqid(), 'name' => 'Pat']);
+        $pr = PatternRevision::create(['pattern_id' => $pat->id, 'revision' => 'A', 'status' => 'DRAFT', 'cavities_per_mould' => 2]);
+        $pr->cavityMap()->create(['cavity_number' => 1, 'product_revision_id' => $line->product_revision_id]);
+        $review = app(ContractReviewer::class)->evaluate($o);
+        $pattern = $review->items->firstWhere('check_code', 'PATTERN');
+        $this->assertSame([route('patterns.show', $pat)], array_column($pattern->fixLinks(), 'url'), 'a draft pattern revision still gets linked so it can be approved');
+        $this->assertSame([], $review->items->firstWhere('check_code', 'FURNACE')->fixLinks());
+    }
+
     public function test_signing_needs_acknowledged_warnings_and_both_signatures(): void
     {
         $svc = app(ContractReviewer::class);
