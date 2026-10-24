@@ -11,7 +11,7 @@ use App\Models\ProductRevision;
 use App\Models\Quotation;
 use App\Models\Role;
 use App\Models\User;
-use App\Services\Orders\ContractReviewer;
+use App\Domains\Sales\Services\ContractReviewer;
 use App\Services\Quotation\QuoteCalculator;
 use App\Services\Quotation\QuotationService;
 use App\Services\Quotation\Rates;

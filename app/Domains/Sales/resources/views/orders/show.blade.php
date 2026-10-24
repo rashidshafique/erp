@@ -9,7 +9,7 @@
     <div class="actions">
         <a class="btn" href="{{ route('sales-orders.trace', $order) }}">Trace to dispatch</a>
         @if (Route::has('invoices.create'))<a class="btn" href="{{ route('invoices.create', ['order' => $order->id]) }}">Raise invoice</a>@endif
-        @php $changes = app(\App\Services\Orders\SalesOrderStatus::class)->allowedFrom($order); @endphp
+        @php $changes = app(\App\Domains\Sales\Services\SalesOrderStatus::class)->allowedFrom($order); @endphp
         @if ($changes)
             <details style="display:inline-block"><summary class="btn">Change status</summary>
                 <form method="POST" action="{{ route('sales-orders.status', $order) }}" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px">@csrf

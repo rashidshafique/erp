@@ -9,6 +9,7 @@ use App\Domains\Enquiry\Models\QuotationLine;
 use App\Services\Patterns\PatternOwnership;
 use App\Domains\Enquiry\Services\QuotationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\Rule;
 
 class QuotationController extends Controller
@@ -119,6 +120,10 @@ class QuotationController extends Controller
             $order = $this->svc->accept($quotation);
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
+        }
+
+        if (! Route::has('sales-orders.show')) {
+            return redirect()->route('quotations.show', $quotation)->with('success', "Quotation accepted. Draft sales order {$order->order_number} was created.");
         }
 
         return redirect()->route('sales-orders.show', $order)->with('success', 'Quotation accepted. A draft sales order was created; the contract review will hold it until the revision is approved.');

@@ -20,7 +20,7 @@ class CustomFields
         'casting_lot' => ['Casting lot', 'casting_lots'], 'ncr' => ['Nonconformance report', 'nonconformance_reports'], 'inspection' => ['Inspection', 'quality_inspections'],
     ];
 
-    public const ENTITY_CLASSES = ['heat' => \App\Models\Heat::class, 'pattern' => \App\Models\Pattern::class, 'product' => \App\Models\Product::class, 'sales_order' => \App\Models\SalesOrder::class, 'moulding_run' => \App\Models\MouldingRun::class, 'pour' => \App\Models\Pour::class, 'casting_lot' => \App\Models\CastingLot::class, 'ncr' => \App\Models\NonconformanceReport::class, 'inspection' => \App\Models\QualityInspection::class];
+    public const ENTITY_CLASSES = ['heat' => \App\Models\Heat::class, 'pattern' => \App\Models\Pattern::class, 'product' => \App\Models\Product::class, 'sales_order' => \App\Domains\Sales\Models\SalesOrder::class, 'moulding_run' => \App\Models\MouldingRun::class, 'pour' => \App\Models\Pour::class, 'casting_lot' => \App\Models\CastingLot::class, 'ncr' => \App\Models\NonconformanceReport::class, 'inspection' => \App\Models\QualityInspection::class];
 
     public const TYPES = ['TEXT' => 'Text', 'NUMBER' => 'Number', 'BOOLEAN' => 'Yes / no', 'DATE' => 'Date', 'SELECT' => 'Choice list'];
 

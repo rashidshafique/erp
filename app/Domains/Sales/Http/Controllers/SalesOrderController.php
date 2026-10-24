@@ -1,15 +1,16 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Domains\Sales\Http\Controllers;
 
+use App\Http\Controllers\Controller;
 use App\Models\Customer;
-use App\Services\Orders\SalesOrderStatus;
+use App\Domains\Sales\Services\SalesOrderStatus;
 use App\Support\OrderRules;
 use App\Models\Product;
 use App\Models\ProductRevision;
-use App\Models\SalesOrder;
-use App\Models\SalesOrderLine;
-use App\Services\Orders\ContractReviewer;
+use App\Domains\Sales\Models\SalesOrder;
+use App\Domains\Sales\Models\SalesOrderLine;
+use App\Domains\Sales\Services\ContractReviewer;
 use App\Services\Orders\ProductionOrderFactory;
 use App\Rules\ProductRevisionChoice;
 use Illuminate\Http\RedirectResponse;
@@ -27,12 +28,12 @@ class SalesOrderController extends Controller
             ->when($request->filled('search'), fn ($q) => $q->where('order_number', 'ilike', '%'.trim($request->search).'%'))
             ->orderByDesc('created_at')->paginate(20)->withQueryString();
 
-        return view('sales-orders.index', compact('orders'));
+        return view('sales::orders.index', compact('orders'));
     }
 
     public function create(): View
     {
-        return view('sales-orders.create', [
+        return view('sales::orders.create', [
             'customers' => Customer::active()->orderBy('code')->get(),
             'revisions' => ProductRevision::with('product')->whereIn('status', ['APPROVED', 'ACTIVE'])->get()
                 ->sortBy(fn ($r) => $r->product?->code.' '.$r->revision)->values(),
@@ -93,7 +94,7 @@ class SalesOrderController extends Controller
 
         $shipped = \Illuminate\Support\Facades\DB::table('dispatch_items')->whereIn('sales_order_line_id', $salesOrder->lines->pluck('id'))->selectRaw('sales_order_line_id, sum(quantity_dispatched) q')->groupBy('sales_order_line_id')->pluck('q', 'sales_order_line_id');
 
-        return view('sales-orders.show', ['order' => $salesOrder, 'review' => $review, 'shipped' => $shipped]);
+        return view('sales::orders.show', ['order' => $salesOrder, 'review' => $review, 'shipped' => $shipped]);
     }
 
     public function review(SalesOrder $salesOrder, ContractReviewer $reviewer): RedirectResponse

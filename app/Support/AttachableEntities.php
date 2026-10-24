@@ -20,7 +20,7 @@ use App\Models\PatternRevision;
 use App\Models\Pour;
 use App\Models\Product;
 use App\Models\QualityInspection;
-use App\Models\SalesOrder;
+use App\Domains\Sales\Models\SalesOrder;
 use App\Models\ThermalAnalysisTest;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;

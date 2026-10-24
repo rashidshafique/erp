@@ -31,7 +31,7 @@ class CodedRecords
             return route('production-orders.show', $id);
         }
 
-        return $route ? route($route, $id) : (Route::has('tools.show') ? route('tools.show', [$type, $id]) : route('dashboard'));
+        return $route && Route::has($route) ? route($route, $id) : (Route::has('tools.show') ? route('tools.show', [$type, $id]) : route('dashboard'));
     }
 
     /** Find any record by a scanned or typed code, including engraved marks. @return array{0:string,1:string}|null [type, id] */

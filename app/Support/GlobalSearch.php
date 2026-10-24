@@ -24,7 +24,6 @@ class GlobalSearch
         'product' => ['label' => 'Product', 'table' => 'products', 'code' => 'code', 'name' => 'name', 'route' => 'products.show', 'permission' => null, 'words' => ['prd', 'pro', 'prod', 'product', 'products']],
         'pattern' => ['label' => 'Pattern', 'table' => 'patterns', 'code' => 'code', 'name' => 'name', 'route' => 'patterns.show', 'permission' => null, 'words' => ['pat', 'patt', 'pattern', 'patterns']],
         'material' => ['label' => 'Material', 'table' => 'materials', 'code' => 'code', 'name' => 'name', 'route' => 'materials.show', 'permission' => null, 'words' => ['mat', 'mtl', 'material', 'materials']],
-        'sales_order' => ['label' => 'Sales order', 'table' => 'sales_orders', 'code' => 'order_number', 'name' => 'customer_reference', 'route' => 'sales-orders.show', 'permission' => null, 'words' => ['so', 'order', 'orders', 'sales']],
         'casting_lot' => ['label' => 'Casting lot', 'table' => 'casting_lots', 'code' => 'code', 'name' => null, 'route' => 'lots.show', 'permission' => null, 'words' => ['lot', 'lots']],
         'heat' => ['label' => 'Heat', 'table' => 'heats', 'code' => 'heat_number', 'name' => null, 'route' => 'heats.show', 'permission' => null, 'words' => ['heat', 'heats', 'ht']],
         'pour' => ['label' => 'Pour', 'table' => 'pours', 'code' => 'pour_number', 'name' => null, 'route' => 'pours.show', 'permission' => null, 'words' => ['pour', 'pours']],

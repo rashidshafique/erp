@@ -15,7 +15,7 @@ use App\Models\Product;
 use App\Models\ProductionOrder;
 use App\Models\ProductRevision;
 use App\Models\ProductSpecification;
-use App\Models\SalesOrder;
+use App\Domains\Sales\Models\SalesOrder;
 use App\Models\ThermalWindow;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;

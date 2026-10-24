@@ -7,7 +7,7 @@ use App\Domains\Finance\Models\Invoice;
 use App\Domains\Finance\Models\InvoiceLine;
 use App\Domains\Finance\Models\TaxRate;
 use App\Models\Customer;
-use App\Models\SalesOrder;
+use App\Domains\Sales\Models\SalesOrder;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 

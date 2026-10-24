@@ -105,7 +105,7 @@
             <div><div class="detail-label">Planned end</div>{{ $order->planned_finish_date?->displayDate() ?? '—' }}</div>
             <div><div class="detail-label">Started</div>{{ $order->actual_started_at?->displayDateTime() ?? '—' }}</div>
             <div><div class="detail-label">Completed</div>{{ $order->actual_completed_at?->displayDateTime() ?? '—' }}</div>
-            <div><div class="detail-label">Sales order</div>@if ($order->salesOrderLine?->salesOrder)<a href="{{ route('sales-orders.show', $order->salesOrderLine->salesOrder) }}">{{ $order->salesOrderLine->salesOrder->order_number }}</a>@else — @endif</div>
+            <div><div class="detail-label">Sales order</div>@if ($order->salesOrderLine?->salesOrder && Route::has('sales-orders.show'))<a href="{{ route('sales-orders.show', $order->salesOrderLine->salesOrder) }}">{{ $order->salesOrderLine->salesOrder->order_number }}</a>@elseif ($order->salesOrderLine?->salesOrder){{ $order->salesOrderLine->salesOrder->order_number }}@else — @endif</div>
         </div>
         @if ($order->instructions)<div class="panel-body"><div class="detail-label">Instructions</div>{!! nl2br(e($order->instructions)) !!}</div>@endif
         @if ($order->notes)<div class="panel-body"><div class="detail-label">Notes</div>{!! nl2br(e($order->notes)) !!}</div>@endif

@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use App\Models\Customer;
 use App\Models\Product;
 use App\Models\ProductRevision;
-use App\Models\SalesOrder;
+use App\Domains\Sales\Models\SalesOrder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

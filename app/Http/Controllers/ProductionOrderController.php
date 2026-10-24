@@ -237,7 +237,7 @@ class ProductionOrderController extends Controller
             }
 
             if (\App\Support\OrderRules::reviewRequired() && $order->sales_order_line_id) {
-                $so = \App\Models\SalesOrderLine::with('salesOrder')->find($order->sales_order_line_id)?->salesOrder;
+                $so = \App\Domains\Sales\Models\SalesOrderLine::with('salesOrder')->find($order->sales_order_line_id)?->salesOrder;
                 if ($so && ! $so->hasApprovedReview()) {
                     $blocked = "Order {$so->order_number} has no approved contract review.";
 
@@ -260,7 +260,7 @@ class ProductionOrderController extends Controller
 
         $order = $productionOrder->salesOrderLine?->salesOrder;
         if ($order) {
-            app(\App\Services\Orders\SalesOrderStatus::class)->productionStarted($order);
+            app(\App\Domains\Sales\Services\SalesOrderStatus::class)->productionStarted($order);
         }
 
         return redirect()

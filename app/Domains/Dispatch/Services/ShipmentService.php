@@ -7,7 +7,7 @@ use App\Domains\Dispatch\Models\Dispatch;
 use App\Domains\Dispatch\Models\DispatchItem;
 use App\Domains\Dispatch\Models\PackingRecord;
 use App\Domains\Dispatch\Models\PackingRecordItem;
-use App\Services\Orders\SalesOrderStatus;
+use App\Domains\Sales\Services\SalesOrderStatus;
 use App\Services\Patterns\PatternOwnership;
 use App\Services\QualityGates;
 use Illuminate\Support\Facades\DB;

@@ -2,7 +2,7 @@
 
 namespace App\Domains\Enquiry\Models;
 
-use App\Models\SalesOrder;
+use App\Domains\Sales\Models\SalesOrder;
 use App\Models\Concerns\GeneratesCodes;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;

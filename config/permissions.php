@@ -47,7 +47,6 @@ return [
         ['pattern' => 'attachments.*', 'permission' => 'attachments.manage'],
         ['pattern' => 'imports.*', 'permission' => 'master.manage', 'reads' => true],
         ['pattern' => 'customers.*', 'permission' => 'sales.manage'],
-        ['pattern' => 'sales-orders.*', 'permission' => 'sales.manage'],
         ['pattern' => 'calendar.*', 'permission' => 'planning.manage', 'reads' => true],
         ['pattern' => 'heat-plan.*', 'permission' => 'planning.manage'],
         ['pattern' => 'production-orders.*', 'permission' => 'planning.manage'],
@@ -86,7 +85,7 @@ return [
         ['permission' => 'moulding.operate', 'route' => 'moulding-runs.index'],
         ['permission' => 'shopfloor.record', 'route' => 'lots.queue'],
         ['permission' => 'quality.inspect', 'route' => 'lots.queue'],
-        ['permission' => 'sales.manage', 'route' => 'sales-orders.index'],
+        ['permission' => 'sales.manage', 'route' => 'sales-orders.index', 'module' => 'sales'],
         ['permission' => 'stores.manage', 'route' => 'stock-movements.index'],
     ],
 

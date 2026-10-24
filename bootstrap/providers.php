@@ -13,6 +13,7 @@ use App\Domains\Licensing\LicensingServiceProvider;
 use App\Domains\Maintenance\MaintenanceServiceProvider;
 use App\Domains\Parties\PartiesServiceProvider;
 use App\Domains\QuickFlow\QuickFlowServiceProvider;
+use App\Domains\Sales\SalesServiceProvider;
 use App\Domains\Purchasing\PurchasingServiceProvider;
 use App\Domains\Tooling\ToolingServiceProvider;
 use App\Providers\AppServiceProvider;
@@ -23,6 +24,7 @@ return [
     CapaServiceProvider::class,
     CamerasServiceProvider::class,
     ComplianceServiceProvider::class,
+    SalesServiceProvider::class,
     DispatchServiceProvider::class,
     DocumentsServiceProvider::class,
     EnquiryServiceProvider::class,

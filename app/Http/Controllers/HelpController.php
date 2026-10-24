@@ -6,7 +6,7 @@ use App\Models\Customer;
 use App\Models\PatternRevisionCavity;
 use App\Models\Product;
 use App\Models\ProductionOrder;
-use App\Models\SalesOrderLine;
+use App\Domains\Sales\Models\SalesOrderLine;
 use App\Services\Planning\HeatPlanner;
 use App\Support\MeltingCalendar;
 use Illuminate\Http\Request;

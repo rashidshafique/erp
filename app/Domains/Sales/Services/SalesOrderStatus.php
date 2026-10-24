@@ -1,8 +1,9 @@
 <?php
 
-namespace App\Services\Orders;
+namespace App\Domains\Sales\Services;
 
-use App\Models\SalesOrder;
+use App\Domains\Sales\Models\SalesOrder;
+use App\Services\Orders\ProductionOrderFactory;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 

@@ -20,7 +20,7 @@
     </div>
 </div>
 @if (session('error'))<div class="alert alert-error">{{ session('error') }}</div>@endif
-@if ($q->status === 'ACCEPTED' && $q->salesOrder)<div class="alert alert-success">Accepted. Sales order <a href="{{ route('sales-orders.show', $q->salesOrder) }}">{{ $q->salesOrder->order_number }}</a> was created.</div>@endif
+@if ($q->status === 'ACCEPTED' && $q->salesOrder)<div class="alert alert-success">Accepted. Sales order @if (Route::has('sales-orders.show'))<a href="{{ route('sales-orders.show', $q->salesOrder) }}">{{ $q->salesOrder->order_number }}</a>@else{{ $q->salesOrder->order_number }}@endif was created.</div>@endif
 @if ($q->status === 'EXPIRED')<div class="alert alert-error">This quotation passed its valid-until date. Create a new version from the enquiry and issue it again.</div>@endif
 
 <div class="tab-marker" data-tab-start="Prices"></div>

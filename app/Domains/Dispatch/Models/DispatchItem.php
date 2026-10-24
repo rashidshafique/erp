@@ -2,7 +2,7 @@
 
 namespace App\Domains\Dispatch\Models;
 
-use App\Models\SalesOrderLine;
+use App\Domains\Sales\Models\SalesOrderLine;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

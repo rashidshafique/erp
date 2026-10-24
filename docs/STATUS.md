@@ -29,10 +29,10 @@ Updated 2026-10-23.
 **Finance (`app/Domains/Finance`, started 2026-10-24)**
 - Sales invoices and credit notes raised from a dispatch, a sales order or with free lines (never tied to dispatch); draft, issue (numbered `INV-<year>-0001`), void, print.
 - Customer receipts spread over invoices (rest stays on account), ageing report, customer statement, tax rates and defaults under Settings > Invoicing & tax. Permission `finance.manage`, role ACCOUNTS.
-- Not built: purchase bills and payables, general ledger and posting, bank reconciliation, financial reports, tax returns, e-invoicing. Order agreed: Sales split, then Purchasing/stock valuation and supplier bills, then the ledger.
+- Not built: purchase bills and payables, general ledger and posting, bank reconciliation, financial reports, tax returns, e-invoicing. Order agreed: then Purchasing/stock valuation and supplier bills, then the ledger.
 
 ## Missing / next
-1. HR and the first part of Stores are done; next in the module split: Sales split. Melting, pouring and moulding stay in core.
+1. HR and the first part of Stores are done; Sales split done (sales orders and contract review in `app/Domains/Sales`; customers, production orders and the melting plan stay in core). Melting, pouring and moulding stay in core.
 2. Empty module folders still to fill or remove: Commercial, Costing, Engineering, MRP, Melting, Moulding, Pouring, Product, Production, Quality, Sand, Traceability.
 3. Core still calls module classes directly (gauge calibration checks, tooling life panels). Planned fix: interfaces bound by modules, plus `dependsOn()`.
 4. STAGE2.md "not built yet" is out of date: inspection and dispatch screens now exist. Still to confirm: screens to add mould assemblies to a pour and to create casting lots.

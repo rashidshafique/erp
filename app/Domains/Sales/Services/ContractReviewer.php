@@ -1,14 +1,14 @@
 <?php
 
-namespace App\Services\Orders;
+namespace App\Domains\Sales\Services;
 
-use App\Models\ContractReview;
+use App\Domains\Sales\Models\ContractReview;
 use App\Models\CustomerProductRequirement;
 use App\Models\IronGrade;
 use App\Models\PatternRevisionCavity;
 use App\Models\ProductSpecification;
-use App\Models\SalesOrder;
-use App\Models\SalesOrderLine;
+use App\Domains\Sales\Models\SalesOrder;
+use App\Domains\Sales\Models\SalesOrderLine;
 use App\Models\ThermalWindow;
 use App\Services\FurnaceEligibility;
 use Illuminate\Support\Facades\DB;

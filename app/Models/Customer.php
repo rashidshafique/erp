@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Domains\Sales\Models\SalesOrder;
 use App\Domains\Parties\Concerns\HasParty;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;

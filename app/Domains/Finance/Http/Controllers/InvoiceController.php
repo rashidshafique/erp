@@ -9,7 +9,7 @@ use App\Domains\Finance\Services\FinanceRules;
 use App\Domains\Finance\Services\InvoiceService;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
-use App\Models\SalesOrder;
+use App\Domains\Sales\Models\SalesOrder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;

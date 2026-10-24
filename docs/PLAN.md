@@ -6,7 +6,7 @@ Updated 2026-10-21. Module by module: what is done, what remains. Modules in `ap
 
 | Area | Done | Remaining |
 |---|---|---|
-| Sales and planning | Customers (quick add), sales orders, contract review, production orders, melting plan | Sales split into its own module; customers stay core master data |
+| Sales and planning | Customers (quick add), sales orders, contract review, production orders, melting plan | Sales orders and contract review now in the Sales module; customers, production orders and melting plan stay core |
 | Products and patterns | Products, revisions, specifications, patterns, revisions, cavity map, ownership, core boxes, preferred station | Move to a Product module (placeholder empty) |
 | Melting | Furnaces, iron grades, heats, readings, chemistry (import and verify), charge batches, material consumption, cupola charge rounds | Cupola work uncommitted; hold, void and heat lights need tests run and commit |
 | Thermal analysis | Curve analyser, TL/TE/recalescence, CE, calibration, void, CE source, cup timing | Same uncommitted batch |
@@ -38,7 +38,7 @@ Updated 2026-10-21. Module by module: what is done, what remains. Modules in `ap
 
 ## Order of work
 1. Run tests on the uncommitted cupola/thermal batch and commit.
-2. Inventory (stores) module split, then Sales split.
+2. Inventory (stores) and Sales splits done; more Stores work continues.
 3. Replace direct core-to-module calls with bound interfaces and `dependsOn()`.
 4. Fill or remove empty placeholder modules.
 5. Track ISO 9001 readiness gaps against the code.

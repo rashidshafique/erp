@@ -8,7 +8,7 @@ use App\Models\PatternRevision;
 use App\Models\Product;
 use App\Models\ProductRevision;
 use App\Domains\Enquiry\Models\Quotation;
-use App\Models\SalesOrder;
+use App\Domains\Sales\Models\SalesOrder;
 use App\Services\Approvals\ApprovalGate;
 use App\Services\Patterns\PatternOwnership;
 use Illuminate\Support\Facades\Auth;

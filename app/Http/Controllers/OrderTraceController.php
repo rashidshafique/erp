@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\CastingLot;
-use App\Models\SalesOrder;
+use App\Domains\Sales\Models\SalesOrder;
 use App\Services\QualityGates;
 use Illuminate\View\View;
 
@@ -26,6 +26,6 @@ class OrderTraceController extends Controller
             $rows[] = ['line' => $line, 'orders' => $orders];
         }
 
-        return view('sales-orders.trace', ['order' => $salesOrder, 'review' => $currentReview, 'rows' => $rows]);
+        return view('sales::orders.trace', ['order' => $salesOrder, 'review' => $currentReview, 'rows' => $rows]);
     }
 }

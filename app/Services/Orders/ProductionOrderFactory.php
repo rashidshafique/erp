@@ -3,7 +3,7 @@
 namespace App\Services\Orders;
 
 use App\Models\ProductionOrder;
-use App\Models\SalesOrderLine;
+use App\Domains\Sales\Models\SalesOrderLine;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 

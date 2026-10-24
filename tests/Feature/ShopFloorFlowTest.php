@@ -27,7 +27,7 @@ use App\Models\ProductRevision;
 use App\Models\ProductSpecification;
 use App\Models\QualityDefect;
 use App\Models\QualityInspection;
-use App\Models\SalesOrder;
+use App\Domains\Sales\Models\SalesOrder;
 use App\Models\ThermalWindow;
 use App\Support\PatternOwnershipRules;
 use Illuminate\Foundation\Testing\RefreshDatabase;

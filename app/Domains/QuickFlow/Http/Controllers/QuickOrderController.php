@@ -8,7 +8,7 @@ use App\Models\IronGrade;
 use App\Models\Product;
 use App\Models\ProductRevision;
 use App\Models\ProductSpecification;
-use App\Models\SalesOrder;
+use App\Domains\Sales\Models\SalesOrder;
 use App\Services\Orders\ProductionOrderFactory;
 use App\Services\Planning\HeatPlanner;
 use App\Support\MeltingCalendar;

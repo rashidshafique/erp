@@ -42,7 +42,6 @@ use App\Http\Controllers\MouldingRunBulkController;
 use App\Http\Controllers\MouldingRunController;
 use App\Http\Controllers\MouldReadinessController;
 use App\Http\Controllers\NcrController;
-use App\Http\Controllers\OrderTraceController;
 use App\Http\Controllers\PatternCavityController;
 use App\Http\Controllers\PatternController;
 use App\Http\Controllers\PatternOwnershipController;
@@ -51,7 +50,6 @@ use App\Http\Controllers\ProcessControlController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductionOrderController;
 use App\Http\Controllers\RoleController;
-use App\Http\Controllers\SalesOrderController;
 use App\Http\Controllers\SandSystemController;
 use App\Http\Controllers\SandTestController;
 use App\Http\Controllers\ScanController;
@@ -279,19 +277,6 @@ Route::prefix('customers')->name('customers.')->controller(CustomerController::c
     Route::get('/', 'index')->name('index');
     Route::get('/create', 'create')->name('create');
     Route::post('/', 'store')->name('store');
-});
-
-Route::prefix('sales-orders')->name('sales-orders.')->controller(SalesOrderController::class)->group(function () {
-    Route::get('/', 'index')->name('index');
-    Route::get('/create', 'create')->name('create');
-    Route::post('/', 'store')->name('store');
-    Route::get('/{salesOrder}', 'show')->name('show');
-    Route::post('/{salesOrder}/status', 'changeStatus')->name('status');
-    Route::post('/{salesOrder}/review', 'review')->name('review');
-    Route::post('/{salesOrder}/review/acknowledge', 'acknowledge')->name('review.acknowledge');
-    Route::post('/{salesOrder}/review/sign', 'sign')->name('review.sign');
-    Route::post('/{salesOrder}/lines/{line}/production-order', 'productionOrder')->name('lines.production-order');
-    Route::get('/{salesOrder}/trace', [OrderTraceController::class, 'show'])->name('trace');
 });
 
 Route::prefix('iron-grades')->name('iron-grades.')->controller(IronGradeController::class)->group(function () {
