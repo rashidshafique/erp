@@ -123,67 +123,6 @@
     </div>
 </div>
 
-<div class="tab-marker" data-tab-start="Specification"></div>
-<div class="panel">
-    <div class="panel-header">
-        <h2>Product specification</h2>
-        <span class="status {{ $product->active ? 'status-completed' : 'status-cancelled' }}">
-            {{ $product->active ? 'ACTIVE' : 'INACTIVE' }}
-        </span>
-    </div>
-    <div class="panel-body">
-        @include('attachments._cover', ['type' => 'product', 'id' => $product->id])
-        <div style="margin:6px 0 10px">{!! \App\Support\Code128::svg($product->code, 40, 2) !!} <a class="small" href="{{ route('labels.show', ['product', $product->id]) }}" target="_blank">Print label →</a></div>
-        <div class="detail-grid">
-            <div>
-                <div class="detail-label">Product code</div>
-                <div class="detail-value">{{ $product->code }}</div>
-            </div>
-            <div>
-                <div class="detail-label">Product name</div>
-                <div class="detail-value">{{ $product->name }}</div>
-            </div>
-            <div>
-                <div class="detail-label">Product type</div>
-                <div class="detail-value">{{ $product->product_type }}</div>
-            </div>
-            <div>
-                <div class="detail-label">Base unit</div>
-                <div class="detail-value">{{ $product->base_uom }}</div>
-            </div>
-            <div>
-                <div class="detail-label">Nominal weight</div>
-                <div class="detail-value">
-                    {{ $product->nominal_weight_kg !== null
-                        ? \App\Support\Formats::number((float) $product->nominal_weight_kg, 4).' kg'
-                        : 'Not specified' }}
-                </div>
-            </div>
-            <div>
-                <div class="detail-label">Revision count</div>
-                <div class="detail-value">{{ $product->revisions->count() }}</div>
-            </div>
-            @php
-                $currentPatterns = $product->revisions->flatMap->patternCavities->map->patternRevision
-                    ->filter(fn ($r) => $r->is_current && ! $r->pattern->trashed())->unique('pattern_id')->map->pattern->sortBy('name');
-            @endphp
-            <div>
-                <div class="detail-label">Patterns</div>
-                <div class="detail-value">
-                    @forelse ($currentPatterns as $p)<a href="{{ route('patterns.show', $p) }}">{{ $p->name }}</a> <span class="muted small mono">{{ $p->code }}</span>@if (! $loop->last)<br>@endif
-                    @empty<span class="muted">None linked yet</span> @unless ($product->trashed())<a href="#" class="qd-add" data-quick="qd-link-pattern">Link a pattern</a>@endunless @endforelse
-                </div>
-            </div>
-        </div>
-
-        @if ($product->description)
-            <div style="margin-top:20px">
-                <div class="detail-label">Description</div>
-                <div>{{ $product->description }}</div>
-            </div>
-        @endif
-    </div>
-</div>
 
 <div class="tab-marker" data-tab-start="Revisions"></div>
 <div class="panel">

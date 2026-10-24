@@ -131,7 +131,8 @@ class ControlPlanTest extends TestCase
     {
         $revision = $this->revision();
 
-        $this->get(route('products.show', $revision->product_id))->assertOk()->assertSee('Follows Our process')->assertDontSee('$loop->first', false);
+        $page = $this->get(route('products.show', $revision->product_id))->assertOk()->assertSee('Follows Our process')->assertDontSee('$loop->first', false);
+        $this->assertSame(1, substr_count($page->getContent(), 'data-tab-start="Specification"'));
         $this->get(route('settings.process'))->assertOk()->assertSee('Default control plan');
         $this->get(route('settings.control-plans.edit'))->assertOk();
     }
