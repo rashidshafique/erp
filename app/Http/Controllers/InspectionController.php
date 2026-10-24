@@ -54,6 +54,16 @@ class InspectionController extends Controller
             return back()->withErrors(['sample_size' => "Only {$pieces} piece(s) of the lot are left to inspect."])->withInput();
         }
 
+        if ($lot->inspections()->where('inspection_type', $d['inspection_type'])->where('status', 'IN_PROGRESS')->exists()) {
+            return back()->withErrors(['inspection_type' => 'A '.$d['inspection_type'].' inspection of this lot is already in progress; complete it first.'])->withInput();
+        }
+        if ($d['inspection_type'] === 'FINAL') {
+            $cleared = (int) $lot->inspections()->where('inspection_type', 'FINAL')->where('status', 'COMPLETED')->sum(DB::raw('quantity_accepted + quantity_rework'));
+            if ($lot->status === 'READY' || ($cleared > 0 && $cleared >= $pieces)) {
+                return back()->withErrors(['inspection_type' => 'The final inspection of this lot is already complete for all its pieces.'])->withInput();
+            }
+        }
+
         $insp = DB::transaction(function () use ($d, $lot, $quick) {
             $insp = QualityInspection::create([
                 'inspection_number' => $quick->nextInspectionNumber(),
@@ -171,6 +181,9 @@ class InspectionController extends Controller
             'remarks' => ['nullable', 'string', 'max:2000'],
             'ncr_title' => ['nullable', 'string', 'max:200'],
         ]);
+        foreach (['quantity_accepted', 'quantity_rejected', 'quantity_rework', 'quantity_pending'] as $field) {
+            $d[$field] = (int) $d[$field];   // a form posts numbers as text
+        }
         $inspection->load('results.planItem', 'lot');
         $sum = $d['quantity_accepted'] + $d['quantity_rejected'] + $d['quantity_rework'] + $d['quantity_pending'];
         if ($sum !== (int) $inspection->quantity_inspected) {
