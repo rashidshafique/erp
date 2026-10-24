@@ -8,20 +8,25 @@ use App\Http\Controllers\Controller;
 use App\Models\AppSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class FinanceSettingsController extends Controller
 {
     public function edit(): View
     {
-        return view('finance::settings.edit', ['dueDays' => FinanceRules::dueDays(), 'currency' => FinanceRules::currency(), 'rates' => TaxRate::orderBy('name')->get()]);
+        return view('finance::settings.edit', ['dueDays' => FinanceRules::dueDays(), 'currency' => FinanceRules::currency(), 'billMatch' => FinanceRules::billMatch(), 'billTolerance' => FinanceRules::billTolerance(), 'rates' => TaxRate::orderBy('name')->get()]);
     }
 
     public function update(Request $request): RedirectResponse
     {
-        $d = $request->validate(['due_days' => ['required', 'integer', 'min:0', 'max:365'], 'currency' => ['nullable', 'string', 'max:10']]);
+        $d = $request->validate(['due_days' => ['required', 'integer', 'min:0', 'max:365'], 'currency' => ['nullable', 'string', 'max:10'],
+            'bill_match' => ['sometimes', Rule::in(array_keys(FinanceRules::MATCH_OPTIONS))], 'bill_tolerance' => ['sometimes', 'numeric', 'min:0', 'max:100']]);
         AppSetting::setValue(FinanceRules::DUE_DAYS, (string) $d['due_days'], 'Days to payment on a new invoice when the customer has no terms');
         AppSetting::setValue(FinanceRules::CURRENCY, (string) ($d['currency'] ?? ''), 'Currency on a new invoice');
+
+        AppSetting::setValue(FinanceRules::BILL_MATCH, $d['bill_match'] ?? FinanceRules::billMatch(), 'What happens when a supplier bill does not match its purchase order');
+        AppSetting::setValue(FinanceRules::BILL_TOLERANCE, (string) ($d['bill_tolerance'] ?? FinanceRules::billTolerance()), 'Percent a supplier bill line may go over the order price or received quantity');
 
         return back()->with('success', 'Invoicing settings saved.');
     }

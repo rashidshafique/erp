@@ -1,9 +1,12 @@
 <?php
 
+use App\Domains\Finance\Http\Controllers\BillController;
 use App\Domains\Finance\Http\Controllers\FinanceSettingsController;
 use App\Domains\Finance\Http\Controllers\InvoiceController;
 use App\Domains\Finance\Http\Controllers\ReceiptController;
+use App\Domains\Finance\Http\Controllers\PayablesController;
 use App\Domains\Finance\Http\Controllers\ReceivablesController;
+use App\Domains\Finance\Http\Controllers\SupplierPaymentController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('web')->group(function () {
@@ -28,6 +31,28 @@ Route::middleware('web')->group(function () {
         Route::get('/{receipt}', 'show')->name('show');
         Route::post('/{receipt}/allocate', 'allocate')->name('allocate');
     });
+    Route::prefix('bills')->name('bills.')->controller(BillController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('/create', 'create')->name('create');
+        Route::post('/', 'store')->name('store');
+        Route::get('/{bill}', 'show')->name('show');
+        Route::get('/{bill}/edit', 'edit')->name('edit');
+        Route::put('/{bill}', 'update')->name('update');
+        Route::delete('/{bill}', 'destroy')->name('destroy');
+        Route::post('/{bill}/post', 'post')->name('post');
+        Route::post('/{bill}/void', 'void')->name('void');
+        Route::get('/{bill}/credit', 'credit')->name('credit');
+        Route::post('/{bill}/credit', 'storeCredit')->name('credit.store');
+    });
+    Route::prefix('supplier-payments')->name('supplier-payments.')->controller(SupplierPaymentController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('/create', 'create')->name('create');
+        Route::post('/', 'store')->name('store');
+        Route::get('/{payment}', 'show')->name('show');
+        Route::post('/{payment}/allocate', 'allocate')->name('allocate');
+    });
+    Route::get('/payables', [PayablesController::class, 'index'])->name('payables.index');
+    Route::get('/payables/{supplier}', [PayablesController::class, 'statement'])->name('payables.statement');
     Route::get('/receivables', [ReceivablesController::class, 'index'])->name('receivables.index');
     Route::get('/receivables/{customer}', [ReceivablesController::class, 'statement'])->name('receivables.statement');
     Route::get('/settings/invoicing', [FinanceSettingsController::class, 'edit'])->name('finance.settings');

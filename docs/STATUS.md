@@ -29,7 +29,8 @@ Updated 2026-10-23.
 **Finance (`app/Domains/Finance`, started 2026-10-24)**
 - Sales invoices and credit notes raised from a dispatch, a sales order or with free lines (never tied to dispatch); draft, issue (numbered `INV-<year>-0001`), void, print.
 - Customer receipts spread over invoices (rest stays on account), ageing report, customer statement, tax rates and defaults under Settings > Invoicing & tax. Permission `finance.manage`, role ACCOUNTS.
-- Not built: purchase bills and payables, general ledger and posting, bank reconciliation, financial reports, tax returns, e-invoicing. Order agreed: then Purchasing/stock valuation and supplier bills, then the ledger.
+- Supplier side: purchase orders in Purchasing (draft, issue with optional approval, receive into quarantine lots, over-receipt rule); supplier bills and credit notes in Finance entered from a PO or free, posted as `BILL-<year>-0001` with a duplicate check on the supplier's number, 3-way match against the PO (off, warn or block, with a tolerance), supplier payments spread over bills, payables ageing and supplier statements. Permissions `purchasing.manage` (role Buyer) and `finance.manage`.
+- Not built: bill price differences feeding back into lot cost, advance-to-supplier offsets on a bill, general ledger and posting, bank reconciliation, financial reports, tax returns, e-invoicing. Order agreed: ledger next.
 
 ## Missing / next
 1. HR and the first part of Stores are done; Sales split done (sales orders and contract review in `app/Domains/Sales`; customers, production orders and the melting plan stay in core). Melting, pouring and moulding stay in core.

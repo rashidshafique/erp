@@ -12,6 +12,31 @@ class FinanceRules
 
     public const CURRENCY = 'finance.currency';
 
+    public const BILL_MATCH = 'finance.bill_match';
+
+    public const BILL_TOLERANCE = 'finance.bill_tolerance';
+
+    /** What happens when a supplier bill line asks for more than was received or more than the order price. */
+    public const MATCH_OPTIONS = [
+        'OFF' => 'Not checked',
+        'WARN' => 'Shown on the bill; it can still be posted',
+        'BLOCK' => 'The bill cannot be posted until it matches the order and what was received',
+    ];
+
+    /** @return 'OFF'|'WARN'|'BLOCK' */
+    public static function billMatch(): string
+    {
+        $v = (string) AppSetting::getValue(self::BILL_MATCH, 'WARN');
+
+        return isset(self::MATCH_OPTIONS[$v]) ? $v : 'WARN';
+    }
+
+    /** How far over the order price or the received quantity a bill line may go before it counts as a mismatch, in percent. */
+    public static function billTolerance(): float
+    {
+        return (float) AppSetting::getValue(self::BILL_TOLERANCE, '2');
+    }
+
     /** Days to payment when the customer's terms do not say. */
     public static function dueDays(): int
     {
