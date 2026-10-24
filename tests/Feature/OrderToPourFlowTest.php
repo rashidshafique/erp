@@ -74,6 +74,7 @@ class OrderToPourFlowTest extends TestCase
         $this->post(route('sales-orders.lines.production-order', [$order, $line]))->assertSessionHasNoErrors();
         $po = ProductionOrder::firstOrFail();
         $this->assertSame($line->id, $po->sales_order_line_id);
+        $this->get(route('sales-orders.show', $order))->assertOk()->assertSee(route('production-orders.show', $po), false);
         $this->post(route('sales-orders.lines.production-order', [$order, $line]))->assertSessionHasErrors('qty');   // nothing left to schedule
         $this->post(route('production-orders.release', $po))->assertSessionHasNoErrors();
         $this->assertSame('RELEASED', $po->fresh()->status);
