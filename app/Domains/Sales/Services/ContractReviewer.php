@@ -142,8 +142,9 @@ class ContractReviewer
             $min = now()->addDays((int) config('foundry.planner.lead_time_days'))->startOfDay();
             if ($due->lt(now()->startOfDay())) {
                 $out[] = ['DELIVERY_DATE', 'BLOCK', 'The requested delivery date is in the past.'];
-            } elseif ($due->lt($min)) {
-                $out[] = ['DELIVERY_DATE', 'WARN', 'The requested delivery is sooner than the standard lead time of '.config('foundry.planner.lead_time_days').' days.'];
+            } elseif ($due->lt($min) && OrderRules::get('delivery_lead_time') !== 'OFF') {
+                $severity = OrderRules::get('delivery_lead_time') === 'ENFORCED' ? 'BLOCK' : 'WARN';
+                $out[] = ['DELIVERY_DATE', $severity, 'The requested delivery is sooner than the standard lead time of '.config('foundry.planner.lead_time_days').' days.'];
             } else {
                 $out[] = ['DELIVERY_DATE', 'PASS', 'The delivery date allows the standard lead time.'];
             }

@@ -187,4 +187,21 @@ class ContractReviewTest extends TestCase
 
         $this->assertContains('CUSTOMER_REQUIREMENT', $this->codes(app(ContractReviewer::class)->evaluate($order), 'PASS'));
     }
+
+    public function test_short_delivery_date_follows_the_lead_time_rule(): void
+    {
+        $order = $this->order();
+        $order->lines->first()->update(['requested_delivery_date' => today()->addDays(2)]);
+        $order->update(['requested_delivery_date' => today()->addDays(2)]);
+
+        $this->assertContains('DELIVERY_DATE', $this->codes(app(ContractReviewer::class)->evaluate($order), 'WARN'));
+
+        \App\Support\OrderRules::set('delivery_lead_time', 'ENFORCED');
+        $this->assertContains('DELIVERY_DATE', $this->codes(app(ContractReviewer::class)->evaluate($order), 'BLOCK'));
+
+        \App\Support\OrderRules::set('delivery_lead_time', 'OFF');
+        $review = app(ContractReviewer::class)->evaluate($order);
+        $this->assertNotContains('DELIVERY_DATE', $this->codes($review, 'WARN'));
+        $this->assertNotContains('DELIVERY_DATE', $this->codes($review, 'BLOCK'));
+    }
 }

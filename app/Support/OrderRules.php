@@ -25,6 +25,11 @@ class OrderRules
             'OPTIONAL' => 'Optional: a customer may hold requirement profiles, but an order is not held up when none is selected',
             'ENFORCED' => 'Enforced: contract review fails for a product when the customer holds no requirement profile and has no requirement for that product',
         ], 'OPTIONAL'],
+        'delivery_lead_time' => ['orders.delivery_lead_time', 'Requested delivery sooner than the standard lead time', [
+            'OFF' => 'No check: accept any delivery date that is not in the past',
+            'WARN' => 'Warn: contract review notes it, and the order can still be approved',
+            'ENFORCED' => 'Enforced: contract review fails until the delivery date allows the standard lead time',
+        ], 'WARN'],
     ];
 
     public static function get(string $rule): string
