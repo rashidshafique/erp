@@ -159,4 +159,17 @@ class ProductionQueueTest extends TestCase
 
         $this->get(route('lots.queue'))->assertOk()->assertSee('Show lots')->assertSee('Show all 16 lots')->assertSee('Oldest 15 shown.');
     }
+
+    public function test_each_lot_row_ends_with_the_actions_that_can_be_done_on_it(): void
+    {
+        $running = $this->castingLot();
+        $held = $this->castingLot();
+        $held->update(['status' => 'ON_HOLD']);
+
+        $page = $this->get(route('lots.queue'))->assertOk();
+
+        $page->assertSee('<th>Actions</th>', false)->assertSee(route('lots.inspections.create', $running), false)->assertSee(route('lots.traveller', $running), false)
+            ->assertSee(route('lots.show', $running).'#hold', false)->assertSee('form="release-'.$held->id.'"', false)->assertSee('id="release-'.$held->id.'"', false);
+        $this->assertStringNotContainsString(route('lots.inspections.create', $held), $page->getContent());
+    }
 }

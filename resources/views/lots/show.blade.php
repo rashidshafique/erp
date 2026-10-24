@@ -49,7 +49,7 @@
 @if($lot->inspections->isEmpty() && $lot->ncrs->isEmpty())<tr><td colspan="4" class="muted">None yet.</td></tr>@endif</tbody></table></div></div>
 
 @if(!in_array($lot->status, ['DISPATCHED','CLOSED','SCRAPPED']))
-<div class="panel"><div class="panel-header"><h2>Hold</h2></div><div class="panel-body">
+<div class="panel" id="hold"><div class="panel-header"><h2>Hold</h2></div><div class="panel-body">
 @if($lot->status === 'ON_HOLD')<form method="POST" action="{{ route('lots.release', $lot) }}">@csrf<button class="btn">Release from hold</button></form>
 @else<form method="POST" action="{{ route('lots.hold', $lot) }}" style="display:flex;gap:10px">@csrf<input name="reason" placeholder="Reason for hold" required style="flex:1"><button class="btn btn-danger">Put on hold</button></form>@endif</div></div>@endif
 <div class="tab-marker" data-tab-start="Files & history"></div>

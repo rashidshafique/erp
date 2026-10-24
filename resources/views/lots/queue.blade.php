@@ -45,6 +45,8 @@
     .qbar-stage.on { background: var(--accent-soft); border-color: var(--accent); border-top-color: var(--accent); color: var(--accent-dark); }
     .qbar-stage:disabled { opacity: .45; cursor: default; text-decoration: line-through; }
     .qbar-fields input { height: 32px; }
+    .qactions { white-space: nowrap; }
+    .qactions .btn { margin-right: 4px; }
     .qbar-move { margin-left: auto; }
     .qbar-move:disabled { opacity: .5; cursor: not-allowed; }
 </style>
@@ -114,7 +116,7 @@
         </span>
     </div>
     <div class="table-wrap" x-show="open" @if ($isReady) x-cloak @endif><table>
-        <thead><tr><th><input type="checkbox" class="bucket-all" aria-label="Select all in this step"></th><th>Lot</th><th>Product</th><th>Order</th><th>Pieces</th><th>Poured</th><th>Age</th><th>Cooling</th><th>Status</th></tr></thead>
+        <thead><tr><th><input type="checkbox" class="bucket-all" aria-label="Select all in this step"></th><th>Lot</th><th>Product</th><th>Order</th><th>Pieces</th><th>Poured</th><th>Age</th><th>Cooling</th><th>Status</th><th>Actions</th></tr></thead>
         @foreach ($b['lots'] as $r)
         @php $l = $r['lot']; $moulds = count($r['moulds']); @endphp
         <tbody x-data="{ moulds: false }" @queue-moulds.window="if ($event.detail.step === '{{ $b['key'] }}') moulds = $event.detail.open" @if ($isReady && $loop->index >= 15) x-show="all" x-cloak @endif>
@@ -130,10 +132,11 @@
                 <td>{{ $r['age_h'] !== null ? $r['age_h'].' h' : '—' }}</td>
                 <td>@if($r['cool'])@if($r['cool']['wait'] > 0)<span class="status status-in-progress">wait {{ $r['cool']['wait'] }} min</span>@else <span class="muted small">met</span>@endif @endif</td>
                 <td>{{ $l->status }}</td>
+                <td class="qactions">@include('lots._queue-lot-actions', ['l' => $l, 'step' => $b['key'], 'canMove' => $nextFor($b) !== null])</td>
             </tr>
             @if ($moulds > 1)
                 @foreach ($r['moulds'] as $m)
-                    <tr class="qmould" x-show="moulds" x-cloak><td></td><td class="mono" style="padding-left:22px">↳ {{ $m['number'] }}</td><td colspan="7" class="muted">{{ $m['pieces'] }} {{ $m['pieces'] === 1 ? 'piece' : 'pieces' }} from this mould</td></tr>
+                    <tr class="qmould" x-show="moulds" x-cloak><td></td><td class="mono" style="padding-left:22px">↳ {{ $m['number'] }}</td><td colspan="8" class="muted">{{ $m['pieces'] }} {{ $m['pieces'] === 1 ? 'piece' : 'pieces' }} from this mould</td></tr>
                 @endforeach
             @endif
         </tbody>
@@ -174,6 +177,7 @@
 </div>
 @endif
 </form>
+@foreach ($steps as $b)@foreach ($b['lots'] as $r)@if ($r['lot']->status === 'ON_HOLD')<form id="release-{{ $r['lot']->id }}" method="POST" action="{{ route('lots.release', $r['lot']) }}">@csrf</form>@endif @endforeach @endforeach
 </div>
 
 <script>
@@ -232,6 +236,11 @@ function moveBar(stages, endSeq, rejected) {
                 inGroup.slice(a, b + 1).forEach(x => { x.checked = box.checked; });
             }
             this.lastBox = box;
+        },
+        moveOne(box) {
+            this.boxes().forEach(b => { b.checked = false; });
+            this.lastBox = null;
+            this.tick(box);
         },
         clear() {
             this.boxes().forEach(b => { b.checked = false; });
