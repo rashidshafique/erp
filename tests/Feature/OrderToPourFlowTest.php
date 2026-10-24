@@ -62,6 +62,9 @@ class OrderToPourFlowTest extends TestCase
         $this->post(route('sales-orders.review', $order))->assertRedirect();
         $this->get(route('sales-orders.show', $order))->assertOk()->assertSee('Contract review')->assertSee('GRADE');
         $review = $order->currentReview();
+        $openWarnings = $review->items->where('severity', 'WARN')->count();
+        $this->get(route('sales-orders.show', $order))->assertSee($openWarnings.' '.($openWarnings === 1 ? 'warning' : 'warnings'))
+            ->assertSeeInOrder(['Sales sign-off', 'Quality sign-off', 'Acknowledgement']);
         $this->assertNotSame('BLOCK', $review->verdict, $review->items->where('severity', 'BLOCK')->pluck('message')->implode('|'));
         foreach ($review->items->where('severity', 'WARN') as $item) {
             $this->post(route('sales-orders.review.acknowledge', $order), ['item_id' => $item->id, 'reason' => 'Accepted for the first lot'])->assertSessionHasNoErrors();

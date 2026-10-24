@@ -75,11 +75,30 @@
 <div class="panel">
     <div class="panel-header">
         <h2>Contract review{{ $review ? ' '.$review->review_number : '' }}</h2>
-        @if ($review)<span class="status {{ $review->status === 'APPROVED' ? 'status-completed' : ($review->verdict === 'BLOCK' ? 'status-cancelled' : 'status-on-hold') }}">{{ $review->status }} · {{ $review->verdict }}</span>@endif
+        @if ($review)@php $openWarns = $review->items->where('severity', 'WARN')->whereNull('acknowledgement')->count(); @endphp<span>@if (($n = $review->items->where('severity', 'BLOCK')->count()) > 0)<span class="nav-count" style="float:none" title="Blocks">{{ $n }} blocked</span> @endif @if ($openWarns > 0)<span class="nav-count" style="float:none" title="Warnings not yet acknowledged">{{ $openWarns }} {{ $openWarns === 1 ? 'warning' : 'warnings' }}</span> @endif<span class="status {{ $review->status === 'APPROVED' ? 'status-completed' : ($review->verdict === 'BLOCK' ? 'status-cancelled' : 'status-on-hold') }}">{{ $review->status }} · {{ $review->verdict }}</span></span>@endif
     </div>
     @if (! $review)
         <div class="empty-state">No review yet. Run the contract review to check the order against specifications, customer requirements, grade, furnaces, thermal window, pattern and control plan.</div>
     @else
+        <div class="panel-body">
+            <div class="form-grid">
+                @foreach (['sales' => 'Sales', 'quality' => 'Quality'] as $role => $label)
+                    <div class="field">
+                        <strong>{{ $label }} sign-off</strong>
+                        @if ($review->{$role.'_signed_at'})
+                            <div>{{ $review->{$role.'_signed_by'} }} · {{ $review->{$role.'_signed_at'}->displayDateTime() }}</div>
+                        @elseif ($review->status === 'IN_REVIEW')
+                            <form method="POST" action="{{ route('sales-orders.review.sign', $order) }}">@csrf
+                                <input type="hidden" name="role" value="{{ $role }}">
+                                <input name="name" placeholder="Your name" required maxlength="100">
+                                <button class="btn btn-primary" type="submit">Sign as {{ strtolower($label) }}</button></form>
+                        @else
+                            <div class="muted small">Not signed.</div>
+                        @endif
+                    </div>
+                @endforeach
+            </div>
+        </div>
         @php $blocks = $review->items->where('severity', 'BLOCK'); @endphp
         @if ($blocks->isNotEmpty())
             <div class="alert alert-error" style="margin:12px"><strong>Blocked. Fix these, then re-run the review:</strong><ul>@foreach ($blocks as $b)<li>{{ $b->message }}@foreach ($b->fixLinks() as $fix) <a href="{{ $fix['url'] }}" class="btn btn-small">{{ $fix['label'] }} →</a>@endforeach</li>@endforeach</ul></div>
@@ -108,26 +127,6 @@
             @endforeach
             </tbody>
         </table></div>
-
-        <div class="panel-body">
-            <div class="form-grid">
-                @foreach (['sales' => 'Sales', 'quality' => 'Quality'] as $role => $label)
-                    <div class="field">
-                        <strong>{{ $label }} sign-off</strong>
-                        @if ($review->{$role.'_signed_at'})
-                            <div>{{ $review->{$role.'_signed_by'} }} · {{ $review->{$role.'_signed_at'}->displayDateTime() }}</div>
-                        @elseif ($review->status === 'IN_REVIEW')
-                            <form method="POST" action="{{ route('sales-orders.review.sign', $order) }}">@csrf
-                                <input type="hidden" name="role" value="{{ $role }}">
-                                <input name="name" placeholder="Your name" required maxlength="100">
-                                <button class="btn btn-primary" type="submit">Sign as {{ strtolower($label) }}</button></form>
-                        @else
-                            <div class="muted small">Not signed.</div>
-                        @endif
-                    </div>
-                @endforeach
-            </div>
-        </div>
     @endif
 </div>
 <div class="tab-marker" data-tab-start="Files & history"></div>
