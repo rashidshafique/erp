@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ProductRevision extends Model
@@ -21,7 +22,10 @@ class ProductRevision extends Model
                 $revision->net_weight_kg = $nominal !== null && (float) $nominal > 0 ? $nominal : null;
             }
         });
-        static::created(fn (ProductRevision $revision) => app(\App\Services\Production\ControlPlans::class)->forRevision($revision));
+        static::created(function (ProductRevision $revision) {
+            app(\App\Services\Production\ControlPlans::class)->forRevision($revision);
+            $revision->inheritExtraSteps();
+        });
         static::saved(fn (ProductRevision $revision) => Product::withTrashed()->find($revision->product_id)?->syncNominalWeight());
         static::deleted(fn (ProductRevision $revision) => Product::withTrashed()->find($revision->product_id)?->syncNominalWeight());
     }
@@ -80,6 +84,21 @@ class ProductRevision extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class)->withTrashed();   // archived products still show on old records
+    }
+
+    /** The product-specific steps this revision goes through, besides the foundry's default process. */
+    public function extraSteps(): BelongsToMany
+    {
+        return $this->belongsToMany(ProductionStageDefinition::class, 'product_revision_steps', 'product_revision_id', 'stage_definition_id')->withTimestamps();
+    }
+
+    /** A new revision starts with the extra steps of the revision before it. */
+    public function inheritExtraSteps(): void
+    {
+        $previous = static::where('product_id', $this->product_id)->where('id', '!=', $this->id)->latest('created_at')->first();
+        if ($previous) {
+            $this->extraSteps()->sync($previous->extraSteps()->pluck('production_stage_definitions.id')->all());
+        }
     }
 
     public function patternCavities(): HasMany

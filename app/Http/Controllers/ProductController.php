@@ -237,6 +237,16 @@ class ProductController extends Controller
         return redirect()->route('products.show', $product)->with('success', "Revision {$revision->revision} saved.");
     }
 
+    /** Sets which product-specific steps (e.g. grinding) a revision goes through, besides the default process. */
+    public function updateRevisionSteps(Request $request, Product $product, ProductRevision $revision): RedirectResponse
+    {
+        abort_unless($revision->product_id === $product->id, 404);
+        $data = $request->validate(['steps' => ['nullable', 'array'], 'steps.*' => ['uuid', Rule::exists('production_stage_definitions', 'id')->where('product_specific', true)]]);
+        $revision->extraSteps()->sync($data['steps'] ?? []);
+
+        return redirect()->route('products.show', $product)->with('success', "Extra steps of revision {$revision->revision} saved.");
+    }
+
     public function storeRevision(Request $request, Product $product)
     {
         $data = $request->validate([

@@ -152,6 +152,7 @@ Route::prefix('products')
         Route::post('/{product}/grade', 'setGrade')->name('grade');
         Route::post('/{product}/link-pattern', 'linkPattern')->name('link-pattern');
         Route::put('/{product}/revisions/{revision}', 'updateRevision')->name('revisions.update');
+        Route::put('/{product}/revisions/{revision}/steps', 'updateRevisionSteps')->name('revisions.steps');
         Route::prefix('/{product}/revisions/{revision}/control-plan')->name('control-plan.')->controller(\App\Http\Controllers\ControlPlanController::class)->group(function () {
             Route::post('/customise', 'customise')->name('customise');
             Route::put('/', 'save')->name('save');

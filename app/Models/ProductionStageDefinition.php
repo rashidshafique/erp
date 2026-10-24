@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 /**
  * A step a casting can go through after the pour, from the foundry's library of steps. What a step does is set by its kind
@@ -30,8 +32,15 @@ class ProductionStageDefinition extends Model
     {
         return [
             'is_quality_gate' => 'boolean', 'knocks_out_mould' => 'boolean', 'records_weight' => 'boolean', 'requires_equipment' => 'boolean',
-            'requires_quantity_confirmation' => 'boolean', 'is_active' => 'boolean',
+            'requires_quantity_confirmation' => 'boolean', 'is_active' => 'boolean', 'product_specific' => 'boolean',
         ];
+    }
+
+    /** Steps every casting goes through, plus the product-specific ones this product revision has been given. */
+    public function scopeApplicableTo(Builder $query, ?string $productRevisionId): Builder
+    {
+        return $query->where(fn ($q) => $q->where('product_specific', false)
+            ->orWhereIn('id', DB::table('product_revision_steps')->where('product_revision_id', $productRevisionId)->select('stage_definition_id')));
     }
 
     public function events(): HasMany

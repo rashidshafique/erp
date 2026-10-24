@@ -38,7 +38,7 @@ class InspectionController extends Controller
     {
         $lot->load('product');
 
-        return view('inspections.create', ['lot' => $lot, 'types' => self::TYPES, 'stages' => ProductionStageDefinition::where('is_active', true)->orderBy('sequence')->get(), 'plan' => $this->planFor($lot)]);
+        return view('inspections.create', ['lot' => $lot, 'types' => self::TYPES, 'stages' => ProductionStageDefinition::where('is_active', true)->applicableTo($lot->product_revision_id)->orderBy('sequence')->get(), 'plan' => $this->planFor($lot)]);
     }
 
     public function store(Request $request, CastingLot $lot, LotService $service, QuickInspection $quick): RedirectResponse

@@ -30,7 +30,7 @@ new class extends Component
     /** @return array<string, mixed> */
     private function blankForm(): array
     {
-        return ['name' => '', 'kind' => 'PROCESS', 'is_quality_gate' => false, 'knocks_out_mould' => false, 'records_weight' => false, 'description' => '', 'quality_notes' => ''];
+        return ['name' => '', 'kind' => 'PROCESS', 'is_quality_gate' => false, 'knocks_out_mould' => false, 'records_weight' => false, 'product_specific' => false, 'description' => '', 'quality_notes' => ''];
     }
 
     /** @return list<string> */
@@ -84,7 +84,7 @@ new class extends Component
         $stage = ProductionStageDefinition::findOrFail($stageId);
         $this->resetValidation();
         $this->editingId = $stage->id;
-        $this->form = ['name' => $stage->name, 'kind' => $stage->kind, 'is_quality_gate' => $stage->is_quality_gate, 'knocks_out_mould' => $stage->knocks_out_mould, 'records_weight' => $stage->records_weight, 'description' => (string) $stage->description, 'quality_notes' => (string) $stage->quality_notes];
+        $this->form = ['name' => $stage->name, 'kind' => $stage->kind, 'is_quality_gate' => $stage->is_quality_gate, 'knocks_out_mould' => $stage->knocks_out_mould, 'records_weight' => $stage->records_weight, 'product_specific' => $stage->product_specific, 'description' => (string) $stage->description, 'quality_notes' => (string) $stage->quality_notes];
         $this->formOpen = true;
     }
 
@@ -105,7 +105,7 @@ new class extends Component
                 }
             }],
             'form.kind' => ['required', Rule::in(array_keys(ProductionStageDefinition::KINDS))],
-            'form.is_quality_gate' => ['boolean'], 'form.knocks_out_mould' => ['boolean'], 'form.records_weight' => ['boolean'],
+            'form.is_quality_gate' => ['boolean'], 'form.knocks_out_mould' => ['boolean'], 'form.records_weight' => ['boolean'], 'form.product_specific' => ['boolean'],
             'form.description' => ['nullable', 'string', 'max:1000'], 'form.quality_notes' => ['nullable', 'string', 'max:1000'],
         ], [], ['form.name' => 'name', 'form.kind' => 'kind'])['form'];
         foreach (['description', 'quality_notes'] as $field) {
@@ -174,6 +174,7 @@ new class extends Component
                         @if ($stage->is_quality_gate)<span class="route-tag gate">Quality gate</span>@endif
                         @if ($stage->knocks_out_mould)<span class="route-tag">Knocks out the mould: cooling check, flasks back</span>@endif
                         @if ($stage->records_weight)<span class="route-tag">Records weight</span>@endif
+                        @if ($stage->product_specific)<span class="route-tag">Only for products that need it</span>@endif
                     </div>
                     @if ($stage->quality_notes)<div class="small route-check"><strong>Check:</strong> {{ $stage->quality_notes }}</div>@endif
                 </div>
@@ -221,6 +222,7 @@ new class extends Component
                     <label><input type="checkbox" wire:model="form.is_quality_gate"> Quality gate</label>
                     <label><input type="checkbox" wire:model="form.knocks_out_mould"> Knocks out the mould (cooling time is checked first, flasks go back to the rack)</label>
                     <label><input type="checkbox" wire:model="form.records_weight"> Records weight</label>
+                    <label><input type="checkbox" wire:model="form.product_specific"> Only for some products (ticked on each product revision that needs it, e.g. grinding)</label>
                 </div>
                 <div class="field field-full"><label for="st-desc">Description</label><textarea id="st-desc" rows="2" wire:model="form.description" placeholder="What is done at this step"></textarea></div>
                 <div class="field field-full"><label for="st-quality">Quality notes</label><textarea id="st-quality" rows="2" wire:model="form.quality_notes" placeholder="What to check at this step, e.g. no cold shuts on the flange; gate stubs ground flush"></textarea><span class="muted small">Shown when the step is recorded and printed on the lot traveller.</span></div>

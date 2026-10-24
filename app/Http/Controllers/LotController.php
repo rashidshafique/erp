@@ -38,7 +38,7 @@ class LotController extends Controller
             'lot' => $lot,
             'heat' => $heat,
             'readiness' => $gates->lotReadiness($lot),
-            'stages' => ProductionStageDefinition::where('is_active', true)->orderBy('sequence')->get(),
+            'stages' => ProductionStageDefinition::where('is_active', true)->applicableTo($lot->product_revision_id)->orderBy('sequence')->get(),
             'pieces' => $service->pieces($lot),
             'cooling' => $service->cooling($lot),
             'thermal' => $heat?->thermalTests()->limit(2)->get() ?? collect(),
@@ -56,7 +56,8 @@ class LotController extends Controller
         $lot->load(['product', 'productRevision', 'productionOrder.salesOrderLine.salesOrder.customer', 'stageEvents.stage']);
         $heat = $lot->sourceHeat();
         $heat?->loadMissing('ironGrade');
-        $steps = $routes->defaultSteps()->map(fn ($step) => $step->stage);
+        $applicable = ProductionStageDefinition::applicableTo($lot->product_revision_id)->pluck('id');
+        $steps = $routes->defaultSteps()->filter(fn ($step) => $applicable->contains($step->stage_definition_id))->map(fn ($step) => $step->stage)->values();
         $recorded = $lot->stageEvents->sortBy('created_at')->toBase()->groupBy('stage_definition_id');
 
         return view('lots.traveller', [
@@ -173,7 +174,8 @@ class LotController extends Controller
             $reject = $rejectLeft;
             $recorded = 0;
             try {
-                foreach ($stages as $stage) {
+                $applicable = ProductionStageDefinition::applicableTo($lot->product_revision_id)->pluck('id');
+                foreach ($stages->filter(fn ($stage) => $applicable->contains($stage->id)) as $stage) {
                     $in = $service->pieces($lot->fresh());
                     if ($in === 0) {
                         break;   // every piece was rejected: nothing is left to move on

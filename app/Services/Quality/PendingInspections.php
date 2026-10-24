@@ -26,7 +26,7 @@ class PendingInspections
     /** @return Builder<CastingLot> */
     public function awaitingLots(): Builder
     {
-        $last = ProductionStageDefinition::where('is_active', true)->max('sequence');
+        $last = ProductionStageDefinition::where('is_active', true)->where('product_specific', false)->max('sequence');
 
         return CastingLot::query()->where('status', 'IN_PRODUCTION')->where('quantity_good', '>', 0)
             ->when($last === null, fn ($q) => $q->whereRaw('1 = 0'))
