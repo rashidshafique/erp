@@ -76,10 +76,43 @@ class LotQueueController extends Controller
         return view('lots.queue', [
             'stages' => ProductionStageDefinition::where('is_active', true)->where('code', '!=', 'FINAL_INSPECTION')->orderBy('sequence')->get(),
             'steps' => array_values($steps),
+            'flow' => $this->flow($steps),
             'openLots' => $lots->count(),
             'view' => $request->query('view') === 'board' ? 'board' : 'list',
             'awaitingDispatch' => $awaitingDispatch,
         ]);
+    }
+
+    /**
+     * The flow strip: one block per active stage with the lots waiting for it and the lots done with it, then a block for every step
+     * that belongs to no active stage (after a stage since switched off, ready to pack). A block takes the worst tone of its sides.
+     *
+     * @param  array<string, array<string, mixed>>  $steps
+     * @return list<array{label: string, tone: string, sides: list<array{word: ?string, step: array<string, mixed>}>}>
+     */
+    private function flow(array $steps): array
+    {
+        $blocks = [];
+        $before = 'waiting';
+        $used = [];
+        foreach (ProductionStageDefinition::where('is_active', true)->orderBy('sequence')->get() as $stage) {
+            $after = 'after-'.$stage->code;
+            $blocks[] = ['label' => $stage->name, 'sides' => [['word' => 'waiting', 'step' => $steps[$before]], ['word' => 'done', 'step' => $steps[$after]]]];
+            $used[$before] = $used[$after] = true;
+            $before = $after;
+        }
+        foreach ($steps as $key => $step) {
+            if (! isset($used[$key])) {
+                $blocks[] = ['label' => $step['label'], 'sides' => [['word' => null, 'step' => $step]]];
+            }
+        }
+        $rank = ['empty' => 0, 'green' => 1, 'amber' => 2, 'red' => 3];
+
+        return array_map(function (array $block) use ($rank): array {
+            $block['tone'] = collect($block['sides'])->pluck('step.tone')->sortByDesc(fn ($t) => $rank[$t])->first();
+
+            return $block;
+        }, $blocks);
     }
 
     /** @return array{key: string, label: string, lots: list<array<string, mixed>>} */

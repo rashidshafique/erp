@@ -114,6 +114,25 @@ class ProductionQueueTest extends TestCase
         $this->get(route('lots.queue'))->assertOk()->assertDontSee('<section class="qcol', false);
     }
 
+    public function test_the_flow_strip_has_one_block_per_stage_with_the_lots_waiting_for_it_and_done_with_it(): void
+    {
+        $this->castingLot();
+        $done = $this->castingLot();
+        $this->passStage($done, 'SHAKEOUT');
+        $this->castingLot()->update(['status' => 'READY']);
+
+        $page = $this->get(route('lots.queue'))->assertOk();
+        $flow = collect($page->viewData('flow'));
+        $stages = ProductionStageDefinition::where('is_active', true)->orderBy('sequence')->get();
+
+        $this->assertSame($stages->pluck('name')->push('Ready to pack')->all(), $flow->pluck('label')->all(), 'one block per stage, then ready to pack');
+        $shakeout = $flow->first();
+        $this->assertSame([['waiting', 1], ['done', 1]], collect($shakeout['sides'])->map(fn ($s) => [$s['word'], $s['step']['lot_count']])->all());
+        $this->assertSame(1, $flow[1]['sides'][0]['step']['lot_count'], 'done at shakeout is waiting for the next stage');
+        $this->assertSame([null], collect($flow->last()['sides'])->pluck('word')->all());
+        $page->assertSee('qside-word', false)->assertSee('waiting')->assertSee('done');
+    }
+
     public function test_a_lot_tick_box_carries_what_the_move_bar_needs(): void
     {
         $lot = $this->castingLot();

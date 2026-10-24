@@ -4,17 +4,22 @@
 <style>
     [x-cloak] { display: none !important; }
     .qflow { display: flex; align-items: stretch; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 18px; }
-    .qstep { flex: 1 0 128px; display: block; padding: 12px 14px; background: var(--surface); border: 1px solid var(--border); border-top: 4px solid var(--success); border-radius: 10px; color: inherit; text-decoration: none; }
+    .qstep { flex: 1 0 150px; display: block; padding: 12px 14px; background: var(--surface); border: 1px solid var(--border); border-top: 4px solid var(--success); border-radius: 10px; color: inherit; text-decoration: none; }
     a.qstep:hover { text-decoration: none; border-color: var(--accent); }
     .qstep.amber { border-top-color: var(--warning); }
     .qstep.red { border-top-color: var(--danger); }
     .qstep.empty { border-top-color: var(--border); opacity: .55; }
     .qstep-name { color: var(--muted); font-size: 12px; font-weight: 600; line-height: 1.3; }
-    .qstep-lots { margin-top: 6px; font-size: 24px; font-weight: 750; line-height: 1; }
-    .qstep-lots small { font-size: 12px; font-weight: 600; color: var(--muted); }
+    .qstep-lots { font-size: 20px; font-weight: 750; line-height: 1; }
     .qstep-note { margin-top: 4px; color: var(--muted); font-size: 11.5px; }
-    .qstep.red .qstep-age { color: var(--danger); font-weight: 650; }
-    .qstep.amber .qstep-age { color: var(--warning); font-weight: 650; }
+    .qstep-age.red { color: var(--danger); font-weight: 650; }
+    .qstep-age.amber { color: var(--warning); font-weight: 650; }
+    .qside { display: block; margin-top: 7px; color: inherit; text-decoration: none; }
+    a.qside:hover { text-decoration: none; }
+    a.qside:hover .qstep-lots { color: var(--accent); }
+    .qside.off { opacity: .5; }
+    .qside-main small { font-size: 12px; font-weight: 600; color: var(--muted); }
+    .qside-word { display: inline-block; min-width: 50px; font-size: 11.5px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
     .qarrow { align-self: center; color: var(--muted); flex: 0 0 auto; }
     .btn-group { display: inline-flex; }
     .btn-group .btn { border-radius: 0; }
@@ -65,18 +70,21 @@
 
 @if ($openLots)
 <nav class="qflow" aria-label="Work at each step">
-    @foreach ($steps as $step)
+    @foreach ($flow as $block)
         @if (! $loop->first)<span class="qarrow" aria-hidden="true">→</span>@endif
-        @php $tag = $step['lot_count'] ? 'a' : 'div'; @endphp
-        <{{ $tag }} class="qstep {{ $step['tone'] }}" @if ($step['lot_count']) href="#step-{{ $step['key'] }}" @click="window.dispatchEvent(new CustomEvent('queue-open', { detail: '{{ $step['key'] }}' }))" @endif>
-            <div class="qstep-name">{{ $step['label'] }}</div>
-            <div class="qstep-lots">{{ $step['lot_count'] }} <small>{{ $step['lot_count'] === 1 ? 'lot' : 'lots' }}</small></div>
-            @if ($step['lot_count'])
-                <div class="qstep-note">{{ \App\Support\Formats::number($step['pieces']) }} pcs</div>
-                @if ($step['oldest_h'] !== null)<div class="qstep-note qstep-age">oldest {{ $step['oldest_h'] >= 72 ? intdiv($step['oldest_h'], 24).' d' : $step['oldest_h'].' h' }}</div>@endif
-            @endif
-            @if ($step['limit'])<div class="qstep-note" @if ($step['over_limit']) style="color:var(--danger);font-weight:650" @endif>{{ $step['over_limit'] ? 'over limit of' : 'limit' }} {{ \App\Support\Formats::number($step['limit']) }} {{ $step['limit_unit'] }}</div>@endif
-        </{{ $tag }}>
+        <div class="qstep {{ $block['tone'] }}">
+            <div class="qstep-name">{{ $block['label'] }}</div>
+            @foreach ($block['sides'] as $side)
+                @php $step = $side['step']; $tag = $step['lot_count'] ? 'a' : 'div'; @endphp
+                <{{ $tag }} class="qside {{ $step['lot_count'] ? '' : 'off' }}" @if ($step['lot_count']) href="#step-{{ $step['key'] }}" @click="window.dispatchEvent(new CustomEvent('queue-open', { detail: '{{ $step['key'] }}' }))" @endif>
+                    <div class="qside-main">@if ($side['word'])<span class="qside-word">{{ $side['word'] }}</span>@endif <span class="qstep-lots">{{ $step['lot_count'] }}</span> <small>{{ $step['lot_count'] === 1 ? 'lot' : 'lots' }}</small></div>
+                    @if ($step['lot_count'])
+                        <div class="qstep-note">{{ \App\Support\Formats::number($step['pieces']) }} pcs @if ($step['oldest_h'] !== null)<span class="qstep-age {{ $step['tone'] }}">· oldest {{ $step['oldest_h'] >= 72 ? intdiv($step['oldest_h'], 24).' d' : $step['oldest_h'].' h' }}</span>@endif</div>
+                    @endif
+                    @if ($step['limit'])<div class="qstep-note" @if ($step['over_limit']) style="color:var(--danger);font-weight:650" @endif>{{ $step['over_limit'] ? 'over limit of' : 'limit' }} {{ \App\Support\Formats::number($step['limit']) }} {{ $step['limit_unit'] }}</div>@endif
+                </{{ $tag }}>
+            @endforeach
+        </div>
     @endforeach
 </nav>
 @endif
