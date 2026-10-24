@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\CastingLot;
 use App\Domains\Dispatch\Models\PackingRecord;
 use App\Domains\Dispatch\Services\ShipmentService;
+use App\Services\QualityGates;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -41,6 +42,18 @@ class PackingController extends Controller
         }
 
         return redirect()->route('packing.show', $pack)->with('success', "Packing record {$pack->packing_number} created.");
+    }
+
+    /** Lets one lot be packed although its heat's chemistry or thermal analysis check fails; the reason and who waived it stay on the lot. */
+    public function waiveMaterialChecks(Request $request, CastingLot $lot, QualityGates $gates): RedirectResponse
+    {
+        $d = $request->validate(['reason' => ['required', 'string', 'min:5', 'max:500']]);
+        if (! $gates->lotReadiness($lot)['waivable']) {
+            return back()->withErrors(['waiver' => 'No chemistry or thermal analysis check is holding this lot, so there is nothing to waive.']);
+        }
+        $lot->update(['material_waived_at' => now(), 'material_waived_by' => $request->user()?->name, 'material_waiver_reason' => $d['reason']]);
+
+        return back()->with('success', "Chemistry and thermal analysis checks waived for lot {$lot->label}.");
     }
 
     public function show(PackingRecord $packing, ShipmentService $ship): View

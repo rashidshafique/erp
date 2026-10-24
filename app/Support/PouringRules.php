@@ -13,11 +13,20 @@ class PouringRules
         'ENFORCED' => 'Enforced: the pour cannot start until the checks pass',
     ];
 
+    /** What packing does with the chemistry and thermal analysis checks of a lot's heat. */
+    public const PACKING_MODES = [
+        'FOLLOW' => 'Same as for pouring: the mode of the furnace type the heat was made in',
+        'OFF' => 'No check: pack without chemistry or thermal analysis results',
+        'ADVISORY' => 'Advisory: show what is missing or failed, but let the lot be packed',
+        'ENFORCED' => 'Enforced: the lot cannot be packed until they pass, unless someone waives them for that lot with a reason',
+    ];
+
     /** key => [setting, label, options (value => description) or null for a number, default] */
     public const RULES = [
         'gate_cupola' => ['pouring.gate.cupola', 'Checks before pouring: cupola heats', self::GATE_MODES, 'ADVISORY'],
         'gate_induction' => ['pouring.gate.induction', 'Checks before pouring: induction heats', self::GATE_MODES, 'ENFORCED'],
         'gate_other' => ['pouring.gate.other', 'Checks before pouring: other furnaces', self::GATE_MODES, 'ENFORCED'],
+        'gate_packing' => ['pouring.gate.packing', 'Chemistry and thermal analysis checks at packing', self::PACKING_MODES, 'FOLLOW'],
         'first_iron_minutes' => ['pouring.first_iron_minutes', 'Cupola: minutes after the first tap that count as first iron (0 = no first iron)', null, '30'],
         'hold_first_iron' => ['pouring.hold_first_iron', 'Lots made from first iron', [
             'HOLD' => 'Hold them until QC passes',
@@ -68,5 +77,13 @@ class PouringRules
             'INDUCTION' => 'gate_induction',
             default => 'gate_other',
         });
+    }
+
+    /** OFF, ADVISORY or ENFORCED for the chemistry and thermal analysis checks when packing a lot from a heat of this furnace type. */
+    public static function packingMode(?string $furnaceType): string
+    {
+        $mode = self::get('gate_packing');
+
+        return $mode === 'FOLLOW' || ! config('foundry.enforce_thermal_gate') ? self::gateMode($furnaceType) : $mode;
     }
 }

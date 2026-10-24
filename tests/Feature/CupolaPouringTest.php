@@ -137,11 +137,11 @@ class CupolaPouringTest extends TestCase
         $this->get(route('settings.pouring.edit'))->assertOk()->assertSee('Pouring rules');
 
         $this->put(route('settings.pouring'), [
-            'gate_cupola' => 'ENFORCED', 'gate_induction' => 'ENFORCED', 'gate_other' => 'OFF', 'first_iron_minutes' => 45, 'hold_first_iron' => 'FREE',
+            'gate_cupola' => 'ENFORCED', 'gate_induction' => 'ENFORCED', 'gate_other' => 'OFF', 'gate_packing' => 'ADVISORY', 'first_iron_minutes' => 45, 'hold_first_iron' => 'FREE',
             'test_interval_minutes' => 20, 'containment' => 'NOTE',
         ])->assertSessionHasNoErrors();
 
-        $this->assertSame(['ENFORCED', 'OFF', 45, 'FREE', 20, 'NOTE'], [PouringRules::get('gate_cupola'), PouringRules::get('gate_other'), PouringRules::minutes('first_iron_minutes'), PouringRules::get('hold_first_iron'), PouringRules::minutes('test_interval_minutes'), PouringRules::get('containment')]);
+        $this->assertSame(['ENFORCED', 'OFF', 'ADVISORY', 45, 'FREE', 20, 'NOTE'], [PouringRules::get('gate_cupola'), PouringRules::get('gate_other'), PouringRules::get('gate_packing'), PouringRules::minutes('first_iron_minutes'), PouringRules::get('hold_first_iron'), PouringRules::minutes('test_interval_minutes'), PouringRules::get('containment')]);
         $this->put(route('settings.pouring'), ['gate_cupola' => 'MAYBE'] + PouringRules::RULES)->assertSessionHasErrors('gate_cupola');
     }
 

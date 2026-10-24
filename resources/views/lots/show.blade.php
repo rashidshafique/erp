@@ -16,7 +16,13 @@
 <div><div class="muted small">Gross / net kg</div>{{ $lot->gross_weight_kg }} / {{ $lot->net_casting_weight_kg }}</div></div></div>
 
 <div class="panel"><div class="panel-header"><h2>Dispatch readiness</h2><span class="status {{ $readiness['ok'] ? 'status-completed' : 'status-cancelled' }}">{{ $readiness['ok'] ? 'CLEAR' : 'NOT CLEAR' }}</span></div>
-<div class="panel-body"><ul>@foreach($readiness['checks'] as $c)<li>{{ $c['ok'] === true ? '✔' : ($c['ok'] === false ? '✘' : '•') }} <strong>{{ $c['label'] }}</strong> — {{ $c['detail'] }}</li>@endforeach</ul></div></div>
+<div class="panel-body"><ul>@foreach($readiness['checks'] as $c)<li>{{ $c['ok'] === true ? '✔' : ($c['ok'] === false ? '✘' : '•') }} <strong>{{ $c['label'] }}</strong> — {{ $c['detail'] }}</li>@endforeach</ul>
+@if (($readiness['waivable'] ?? false) && Route::has('packing.waive-material-checks'))
+<form method="POST" action="{{ route('packing.waive-material-checks', $lot) }}" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px">@csrf
+<input name="reason" placeholder="Why the chemistry and thermal analysis checks can be waived for this lot" maxlength="500" required style="min-width:340px;flex:1">
+<button class="btn" type="submit" onclick="return confirm('Waive the chemistry and thermal analysis checks for this lot only?')">Waive for this lot</button></form>
+@error('waiver')<div class="alert alert-error">{{ $message }}</div>@enderror @error('reason')<div class="alert alert-error">{{ $message }}</div>@enderror
+@endif</div></div>
 
 <div class="tab-marker" data-tab-start="Stages"></div>
 <div class="panel"><div class="panel-header"><h2>Shop-floor stages</h2></div>

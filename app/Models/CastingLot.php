@@ -28,6 +28,9 @@ class CastingLot extends Model
         'created_from_pour_at',
         'closed_at',
         'notes',
+        'material_waived_at',
+        'material_waived_by',
+        'material_waiver_reason',
     ];
 
     protected function casts(): array
@@ -40,6 +43,7 @@ class CastingLot extends Model
             'net_casting_weight_kg' => 'decimal:3',
             'created_from_pour_at' => 'datetime',
             'closed_at' => 'datetime',
+            'material_waived_at' => 'datetime',
         ];
     }
 

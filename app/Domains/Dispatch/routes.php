@@ -11,6 +11,7 @@ Route::middleware('web')->group(function () {
         Route::get('/', 'index')->name('index');
         Route::get('/create', 'create')->name('create');
         Route::post('/', 'store')->name('store');
+        Route::post('/lots/{lot}/waive-material-checks', 'waiveMaterialChecks')->name('waive-material-checks');
         Route::get('/{packing}', 'show')->name('show');
     });
     Route::prefix('dispatches')->name('dispatches.')->controller(DispatchController::class)->group(function () {

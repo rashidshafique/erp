@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\CastingLot;
 use App\Models\Heat;
 use App\Models\ThermalWindow;
+use App\Support\PouringRules;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -27,14 +28,14 @@ class QualityGates
         $hasChemWindow = collect(array_keys(\App\Models\IronGrade::ELEMENTS))->contains(fn ($e) => $grade->{$e.'_min'} !== null || $grade->{$e.'_max'} !== null) || $grade->ce_min !== null || $grade->ce_max !== null;
         if ($hasChemWindow) {
             if (! $chem) {
-                $checks[] = ['label' => 'Chemistry', 'ok' => false, 'detail' => 'No chemistry reading is recorded for the heat.'];
+                $checks[] = ['label' => 'Chemistry', 'material' => true, 'ok' => false, 'detail' => 'No chemistry reading is recorded for the heat.'];
             } else {
                 $f = $grade->chemistryFindings([
                     'c' => $chem->carbon_percent, 'si' => $chem->silicon_percent, 'mn' => $chem->manganese_percent, 'p' => $chem->phosphorus_percent,
                     's' => $chem->sulphur_percent, 'cr' => $chem->chromium_percent, 'cu' => $chem->copper_percent, 'mo' => $chem->molybdenum_percent,
                     'mg' => $chem->magnesium_percent, 'ce' => $chem->carbon_equivalent,
                 ]);
-                $checks[] = ['label' => 'Chemistry', 'ok' => $f === [], 'detail' => $f ? implode(' ', $f) : "Reading {$chem->reading_number} is within the {$grade->code} window."];
+                $checks[] = ['label' => 'Chemistry', 'material' => true, 'ok' => $f === [], 'detail' => $f ? implode(' ', $f) : "Reading {$chem->reading_number} is within the {$grade->code} window."];
             }
         }
 
@@ -49,15 +50,15 @@ class QualityGates
             $failed = $cups->firstWhere('result', 'FAIL');
             $max = (int) config('foundry.thermal.max_test_age_minutes');
             if (! $t) {
-                $checks[] = ['label' => 'Thermal analysis', 'ok' => false, 'detail' => 'No thermal analysis test is recorded for the heat.'];
+                $checks[] = ['label' => 'Thermal analysis', 'material' => true, 'ok' => false, 'detail' => 'No thermal analysis test is recorded for the heat.'];
             } elseif ($failed) {
-                $checks[] = ['label' => 'Thermal analysis', 'ok' => false, 'detail' => "Latest test {$failed->sample_reference} ({$failed->cup_type} cup) is FAIL: ".implode(' ', $failed->findings ?? [])];
+                $checks[] = ['label' => 'Thermal analysis', 'material' => true, 'ok' => false, 'detail' => "Latest test {$failed->sample_reference} ({$failed->cup_type} cup) is FAIL: ".implode(' ', $failed->findings ?? [])];
             } elseif ($judged->isEmpty()) {
-                $checks[] = ['label' => 'Thermal analysis', 'ok' => false, 'detail' => "Latest test {$t->sample_reference} is NOT JUDGED: ".implode(' ', $t->findings ?? [])];
+                $checks[] = ['label' => 'Thermal analysis', 'material' => true, 'ok' => false, 'detail' => "Latest test {$t->sample_reference} is NOT JUDGED: ".implode(' ', $t->findings ?? [])];
             } elseif ($t->taken_at->lt(now()->subMinutes($max))) {
-                $checks[] = ['label' => 'Thermal analysis', 'ok' => false, 'detail' => "The passing test is older than {$max} minutes; take a new sample."];
+                $checks[] = ['label' => 'Thermal analysis', 'material' => true, 'ok' => false, 'detail' => "The passing test is older than {$max} minutes; take a new sample."];
             } else {
-                $checks[] = ['label' => 'Thermal analysis', 'ok' => true, 'detail' => 'Latest test passed within the time limit.'];
+                $checks[] = ['label' => 'Thermal analysis', 'material' => true, 'ok' => true, 'detail' => 'Latest test passed within the time limit.'];
             }
         }
 
@@ -96,13 +97,28 @@ class QualityGates
         $checks = [];
         $heat = $lot->pourMouldAssembly?->pour?->heat;
 
+        $waivable = false;
         if ($heat && $heat->ironGrade) {
             $gate = $this->pourGate($heat);
+            $mode = PouringRules::packingMode($heat->furnace?->furnace_type ?? $heat->process_type);
             foreach ($gate['checks'] as $c) {
-                if ($c['ok'] !== null && ($c['phase'] ?? null) !== 'POUR') {
-                    // The age limit is a pour-time rule; for dispatch only the result matters.
-                    $okEvidence = $c['ok'] || str_contains($c['detail'], 'older than');
-                    $checks[] = ['label' => $c['label'].' (heat '.$heat->heat_number.')', 'ok' => $okEvidence, 'detail' => $c['detail']];
+                if ($c['ok'] === null || ($c['phase'] ?? null) === 'POUR') {
+                    continue;
+                }
+                // The age limit is a pour-time rule; for dispatch only the result matters.
+                $okEvidence = $c['ok'] || str_contains($c['detail'], 'older than');
+                $label = $c['label'].' (heat '.$heat->heat_number.')';
+                if (! ($c['material'] ?? false) || $okEvidence) {
+                    $checks[] = ['label' => $label, 'ok' => $okEvidence, 'detail' => $c['detail']];
+                } elseif ($mode === 'OFF') {
+                    continue;
+                } elseif ($lot->material_waived_at) {
+                    $checks[] = ['label' => $label, 'ok' => null, 'detail' => 'Waived for this lot by '.($lot->material_waived_by ?: 'someone').' on '.$lot->material_waived_at->displayShortDateTime().': '.$lot->material_waiver_reason.' ('.$c['detail'].')'];
+                } elseif ($mode === 'ADVISORY') {
+                    $checks[] = ['label' => $label, 'ok' => null, 'detail' => $c['detail'].' Advisory: this does not stop the lot being packed.'];
+                } else {
+                    $waivable = true;
+                    $checks[] = ['label' => $label, 'ok' => false, 'detail' => $c['detail']];
                 }
             }
         } else {
@@ -131,6 +147,6 @@ class QualityGates
 
         $reasons = collect($checks)->filter(fn ($c) => $c['ok'] === false)->pluck('detail')->values()->all();
 
-        return ['ok' => $reasons === [], 'reasons' => $reasons, 'checks' => $checks];
+        return ['ok' => $reasons === [], 'reasons' => $reasons, 'checks' => $checks, 'waivable' => $waivable];
     }
 }
