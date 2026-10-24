@@ -423,8 +423,10 @@ class PatternController extends Controller
         }
         $from = $revision->status;
         $revision->update(['status' => $data['status']]);
+        $flagged = $data['status'] === 'APPROVED' ? app(\App\Services\Production\ControlPlans::class)->flagForPattern($revision) : 0;
 
-        return back()->with('success', 'Revision '.$revision->shortCode()." is now {$data['status']} (was {$from}).");
+        return back()->with('success', 'Revision '.$revision->shortCode()." is now {$data['status']} (was {$from})."
+            .($flagged ? " {$flagged} product control plan(s) marked for review." : ''));
     }
 
     public function editRevision(Pattern $pattern, PatternRevision $revision)

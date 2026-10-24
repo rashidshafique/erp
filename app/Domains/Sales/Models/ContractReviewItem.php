@@ -48,7 +48,7 @@ class ContractReviewItem extends Model
         $productLink = ['label' => 'Product '.$product->code, 'url' => route('products.show', $product)];
 
         return match ($this->check_code) {
-            'REVISION_STATUS', 'PRODUCT_SPEC', 'GRADE' => [$productLink],
+            'REVISION_STATUS', 'PRODUCT_SPEC', 'GRADE', 'CONTROL_PLAN' => [$productLink],
             'PATTERN' => $this->patternLinks($productLink),
             default => [],
         };

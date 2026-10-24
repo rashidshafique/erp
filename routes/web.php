@@ -152,6 +152,12 @@ Route::prefix('products')
         Route::post('/{product}/grade', 'setGrade')->name('grade');
         Route::post('/{product}/link-pattern', 'linkPattern')->name('link-pattern');
         Route::put('/{product}/revisions/{revision}', 'updateRevision')->name('revisions.update');
+        Route::prefix('/{product}/revisions/{revision}/control-plan')->name('control-plan.')->controller(\App\Http\Controllers\ControlPlanController::class)->group(function () {
+            Route::post('/customise', 'customise')->name('customise');
+            Route::put('/', 'save')->name('save');
+            Route::post('/approve', 'approve')->name('approve');
+            Route::post('/confirm', 'confirm')->name('confirm');
+        });
         Route::post('/{product}/revisions', 'storeRevision')
             ->name('revisions.store');
         Route::get('/{product}', 'show')->name('show')->withTrashed();
@@ -356,6 +362,9 @@ Route::put('/settings/melting-days', [\App\Http\Controllers\MeltingDaysControlle
 Route::get('/settings/pouring', [\App\Http\Controllers\PouringRulesController::class, 'edit'])->name('settings.pouring.edit');
 Route::put('/settings/pouring', [\App\Http\Controllers\PouringRulesController::class, 'update'])->name('settings.pouring');
 Route::view('/settings/process', 'settings.process')->name('settings.process');
+Route::get('/settings/control-plans', [\App\Http\Controllers\ControlPlanController::class, 'rules'])->name('settings.control-plans.edit');
+Route::put('/settings/control-plans', [\App\Http\Controllers\ControlPlanController::class, 'saveRules'])->name('settings.control-plans');
+Route::put('/settings/process/control-plan', [\App\Http\Controllers\ControlPlanController::class, 'saveDefault'])->name('settings.process.control-plan');
 Route::get('/settings/queue', [\App\Http\Controllers\QueueRulesController::class, 'edit'])->name('settings.queue.edit');
 Route::put('/settings/queue', [\App\Http\Controllers\QueueRulesController::class, 'update'])->name('settings.queue');
 Route::prefix('flask-sizes')->name('flask-sizes.')->controller(FlaskSizeController::class)->group(function () {

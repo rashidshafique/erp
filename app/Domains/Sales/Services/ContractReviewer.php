@@ -125,10 +125,10 @@ class ContractReviewer
             : ['PATTERN', 'WARN', "No cavity of an approved pattern revision is linked to {$line->product?->code}. Link cavities on the pattern page."];
 
         // Control plan
-        $plans = DB::table('process_control_plans')->where('product_revision_id', $line->product_revision_id)->whereIn('status', self::OK_STATUS)->count();
-        $out[] = $plans > 0
-            ? ['CONTROL_PLAN', 'PASS', 'An approved process control plan exists.']
-            : ['CONTROL_PLAN', 'WARN', "No approved process control plan exists for {$label}."];
+        $planStatus = $line->productRevision ? app(\App\Services\Production\ControlPlans::class)->status($line->productRevision) : null;
+        if ($planStatus) {
+            $out[] = $planStatus;
+        }
 
         // Delivery date
         $due = $line->requested_delivery_date ?? $order->requested_delivery_date;

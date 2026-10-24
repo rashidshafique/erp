@@ -21,6 +21,7 @@ class ProductRevision extends Model
                 $revision->net_weight_kg = $nominal !== null && (float) $nominal > 0 ? $nominal : null;
             }
         });
+        static::created(fn (ProductRevision $revision) => app(\App\Services\Production\ControlPlans::class)->forRevision($revision));
         static::saved(fn (ProductRevision $revision) => Product::withTrashed()->find($revision->product_id)?->syncNominalWeight());
         static::deleted(fn (ProductRevision $revision) => Product::withTrashed()->find($revision->product_id)?->syncNominalWeight());
     }

@@ -220,6 +220,9 @@ class Pattern extends Model
                 }
             }
             $this->unsetRelation('revisions')->unsetRelation('currentRevision');
+            if ($previous && $revision->status === 'APPROVED') {
+                app(\App\Services\Production\ControlPlans::class)->flagForPattern($revision);
+            }
 
             return $revision->fresh();
         });
