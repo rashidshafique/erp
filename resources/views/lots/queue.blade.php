@@ -46,16 +46,14 @@
 
 <form method="POST" action="{{ route('lots.bulk-stage') }}">@csrf
 @if ($openLots)
-<div class="panel"><div class="panel-body">
-<strong>Move the ticked lots together</strong>
-<div style="display:flex;gap:14px;flex-wrap:wrap;margin:8px 0">@foreach($stages as $st)<label><input type="checkbox" name="stages[]" value="{{ $st->id }}"> {{ $st->name }}</label>@endforeach</div>
-<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-<input type="number" min="0" name="rejected" placeholder="Rejected (total)" style="width:150px" value="{{ old('rejected') }}">
-<input name="rejection_reason" placeholder="Rejection reason" maxlength="100" value="{{ old('rejection_reason') }}">
-<input name="operator_name" placeholder="Operator" maxlength="100" value="{{ old('operator_name') }}">
-<input name="cooling_override_reason" placeholder="Reason, to shake out before cooling is met" maxlength="300">
-<button class="btn btn-primary" type="submit" onclick="return confirm('Record the chosen stages for the ticked lots?')">Move ticked lots</button></div>
-<p class="muted small" style="margin:8px 0 0">Every ticked lot passes the stages in order with all its pieces. Rejected pieces are taken from the oldest lots first.</p>
+<div class="panel"><div class="panel-body" style="display:flex;gap:6px 12px;flex-wrap:wrap;align-items:center;padding-top:10px;padding-bottom:10px">
+<strong title="Every ticked lot passes the stages in order with all its pieces. Rejected pieces are taken from the oldest lots first." style="cursor:help">Move ticked lots through</strong>
+@foreach($stages as $st)<label class="small" style="white-space:nowrap"><input type="checkbox" name="stages[]" value="{{ $st->id }}"> {{ $st->name }}</label>@endforeach
+<input type="number" min="0" name="rejected" placeholder="Rejected" aria-label="Rejected (total)" style="width:95px" value="{{ old('rejected') }}">
+<input name="rejection_reason" placeholder="Reason" aria-label="Rejection reason" maxlength="100" style="width:130px" value="{{ old('rejection_reason') }}">
+<input name="operator_name" placeholder="Operator" maxlength="100" style="width:120px" value="{{ old('operator_name') }}">
+<input name="cooling_override_reason" placeholder="Early shake-out reason" title="Reason, to shake out before cooling is met" maxlength="300" style="width:170px">
+<button class="btn btn-primary btn-small" type="submit" onclick="return confirm('Record the chosen stages for the ticked lots?')">Move ticked lots</button>
 </div></div>
 @endif
 
