@@ -25,7 +25,7 @@ class LotService
 
     public function recordStage(CastingLot $lot, ProductionStageDefinition $stage, array $d): CastingLotStageEvent
     {
-        return DB::transaction(function () use ($lot, $stage, $d) {
+        $event = DB::transaction(function () use ($lot, $stage, $d) {
             $lot = CastingLot::whereKey($lot->id)->lockForUpdate()->firstOrFail();
             if (in_array($lot->status, ['CLOSED', 'SCRAPPED', 'DISPATCHED'], true)) {
                 throw new InvalidArgumentException("The lot is {$lot->status} and takes no more stage records.");
@@ -71,6 +71,9 @@ class LotService
 
             return $event;
         });
+        app(\App\Services\Quality\PendingInspections::class)->announce($lot);
+
+        return $event;
     }
 
     /** Recalculate counts, status and the order totals for a lot. */

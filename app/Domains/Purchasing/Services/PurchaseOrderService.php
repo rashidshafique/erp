@@ -7,6 +7,8 @@ use App\Domains\Purchasing\Models\PurchaseOrderLine;
 use App\Domains\Purchasing\Models\Supplier;
 use App\Domains\Purchasing\Support\BuyingRules;
 use App\Models\MaterialLot;
+use App\Notifications\AppNotice;
+use App\Services\Notifications\Notify;
 use App\Support\Formats;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -123,6 +125,15 @@ class PurchaseOrderService
                 $line->update(['received_qty' => round($line->received_qty + $qty, 3)]);
             }
             $this->refreshStatus($order);
+            if ($lots !== []) {
+                app(Notify::class)->toPermission('quality.manage', new AppNotice(
+                    'incoming',
+                    count($lots) === 1 ? "Lot {$lots[0]->lot_number} is waiting for incoming inspection" : count($lots).' lots are waiting for incoming inspection',
+                    "Received against {$order->po_number} from {$order->supplier->name}: ".collect($lots)->pluck('lot_number')->implode(', ').'.',
+                    'info',
+                    route('incoming.lots.show', $lots[0]),
+                ));
+            }
 
             return $lots;
         });

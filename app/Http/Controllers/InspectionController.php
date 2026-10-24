@@ -29,7 +29,9 @@ class InspectionController extends Controller
             ->when($request->filled('type'), fn ($q) => $q->where('inspection_type', $request->query('type')))
             ->orderByDesc('created_at')->paginate(25)->withQueryString();
 
-        return view('inspections.index', ['inspections' => $rows, 'types' => self::TYPES]);
+        $pending = app(\App\Services\Quality\PendingInspections::class);
+
+        return view('inspections.index', ['inspections' => $rows, 'types' => self::TYPES, 'awaiting' => $pending->awaitingLots()->with('product')->orderBy('created_at')->get()]);
     }
 
     public function create(CastingLot $lot): View

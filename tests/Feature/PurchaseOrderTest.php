@@ -132,4 +132,16 @@ class PurchaseOrderTest extends TestCase
         $this->get(route('purchase-orders.print', $order))->assertOk();
         $this->get(route('purchase-orders.settings.edit'))->assertOk();
     }
+
+    public function test_receiving_tells_everyone_who_manages_quality_that_a_lot_waits_for_incoming_inspection(): void
+    {
+        $inspector = \App\Models\User::factory()->create(['is_active' => true, 'must_change_password' => false]);
+        $inspector->roles()->attach(\App\Models\Role::where('code', 'QUALITY_MANAGER')->value('id'));
+        $order = $this->issued($this->supplier(), $this->material());
+
+        $this->post(route('purchase-orders.receive', $order), ['qty' => [$order->lines->first()->id => 10]]);
+
+        $this->assertSame(1, $inspector->notifications()->count());
+        $this->assertSame('incoming', $inspector->notifications()->first()->data['kind']);
+    }
 }

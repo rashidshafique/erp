@@ -40,6 +40,7 @@
         </a>
 
         @php($menu = app(\App\Domains\Core\Contracts\MenuFilter::class))
+        @php($pendingInspections = $menu->shows('inspections.index') ? app(\App\Services\Quality\PendingInspections::class)->count() : 0)
         <nav class="sidebar-nav" aria-label="Main navigation">
             <a href="{{ route('dashboard') }}" class="nav-link nav-top {{ request()->routeIs('dashboard') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('dashboard') !!}<span>Dashboard</span></a>
             @if ($menu->shows('calendar.index')) <a href="{{ route('calendar.index') }}" class="nav-link nav-top {{ request()->routeIs('calendar.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('calendar') !!}<span>Calendar</span></a> @endif
@@ -123,7 +124,7 @@
                 <div class="nav-submenu" hidden>
                     @if ($menu->shows('quick-qc.index')) <a href="{{ route('quick-qc.index') }}" class="nav-link {{ request()->routeIs('quick-qc.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('search-check') !!}<span>Quick QC</span></a> @endif
                     @if ($menu->shows('lots.index')) <a href="{{ route('lots.index') }}" class="nav-link {{ request()->routeIs('lots.index', 'lots.show', 'lots.certificate') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('tag') !!}<span>Casting lots</span></a> @endif
-                    @if ($menu->shows('inspections.index')) <a href="{{ route('inspections.index') }}" class="nav-link {{ request()->routeIs('inspections.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('search-check') !!}<span>Inspections</span></a> @endif
+                    @if ($menu->shows('inspections.index')) <a href="{{ route('inspections.index') }}" class="nav-link {{ request()->routeIs('inspections.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('search-check') !!}<span>Inspections</span>@if (($pendingInspections ?? 0) > 0)<span class="nav-count" title="Lots waiting for inspection and inspections still open">{{ $pendingInspections }}</span>@endif</a> @endif
                     @if ($menu->shows('ncrs.index')) <a href="{{ route('ncrs.index') }}" class="nav-link {{ request()->routeIs('ncrs.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('alert') !!}<span>Nonconformance</span></a> @endif
                     @foreach (app(\App\Domains\Core\ModuleRegistry::class)->navItems('quality') as $item)
                         @continue(! $menu->shows($item['route']))
