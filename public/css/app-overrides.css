@@ -210,7 +210,7 @@ body, button, input, select, textarea { font-family: var(--ui-font); }
 .scan-results { position: absolute; top: calc(100% + 6px); right: 0; z-index: 70; width: 420px; max-width: calc(100vw - 24px); max-height: 60vh; overflow-y: auto; padding: 4px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); box-shadow: 0 12px 32px rgba(15, 23, 42, .16); }
 .scan-results[hidden] { display: none; }
 .scan-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 7px; color: var(--text); font-size: 13px; text-decoration: none; }
-.scan-row:hover, .scan-row.is-active { background: var(--hover); }
+.scan-row:hover, .scan-row.is-active { background: var(--hover); text-decoration: none; }
 .scan-row-code { font-weight: 600; white-space: nowrap; }
 .scan-row-main { grid-column: 1 / 3; font-weight: 500; }
 .scan-row-name { overflow: hidden; color: var(--muted); white-space: nowrap; text-overflow: ellipsis; }
