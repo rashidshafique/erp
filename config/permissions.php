@@ -49,6 +49,7 @@ return [
         ['pattern' => 'customers.*', 'permission' => 'sales.manage'],
         ['pattern' => 'calendar.*', 'permission' => 'planning.manage', 'reads' => true],
         ['pattern' => 'heat-plan.*', 'permission' => 'planning.manage'],
+        ['pattern' => 'planner.*', 'permission' => 'planning.manage'],
         ['pattern' => 'production-orders.*', 'permission' => 'planning.manage'],
         ['pattern' => 'charge-batches.*', 'permission' => 'planning.manage'],
         ['pattern' => 'heats.*', 'permission' => 'melting.operate'],

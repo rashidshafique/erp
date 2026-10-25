@@ -309,6 +309,12 @@ Route::prefix('thermal')->name('thermal.')->controller(ThermalTestController::cl
 
 Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar.index');
 
+Route::prefix('planner')->name('planner.')->controller(\App\Http\Controllers\PlannerController::class)->group(function () {
+    Route::get('/', 'index')->name('index');
+    Route::post('/fill', 'fill')->name('fill');
+    Route::put('/rules', 'saveRules')->name('rules');
+});
+
 Route::prefix('heat-plan')->name('heat-plan.')->controller(HeatPlanController::class)->group(function () {
     Route::get('/', 'index')->name('index');
     Route::post('/rebuild', 'rebuild')->name('rebuild');

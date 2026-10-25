@@ -10,6 +10,7 @@ Updated 2026-10-23.
 **Production**
 - Moulding runs: bulk entry, three-step record screen, KPI strip, mould hardness, stations, sand test from a run.
 - Work lists: planned items, runs matched to the list, draft-list start setting, remake shortfall added in one click.
+- Planner (`/planner`, `OrderPlanner`): open orders ranked by next unshipped delivery, then priority; moulds left loaded onto stations by moulds per shift and patterns at once; projected finish with late / at-risk flags; poured pieces still in the queue per order; the first shift goes onto a draft work list in one click, optionally rebuilding the melting plan. Not done: working-day calendar, per-pattern rates, downstream stage capacity.
 - Flaskless moulds assembled automatically when output is recorded.
 - Pouring, heat timeline and readings, charge batches, material consumption.
 - Sand lab: tests, limits, sand systems, sortable and filterable tables.

@@ -32,16 +32,16 @@
 <div class="panel">
     <div class="panel-header"><h2>Stations</h2><span class="muted small">{{ $stations->count() }} stations</span></div>
     <div class="table-wrap"><table>
-        <thead><tr><th>Code</th><th>Name</th><th>Type</th><th>Patterns at once</th><th>Default team</th><th>Sand system</th><th>Flasks</th><th>Status</th><th>Runs</th><th>Made</th><th>Damaged %</th><th>Downtime min</th><th>Actions</th></tr></thead>
+        <thead><tr><th>Code</th><th>Name</th><th>Type</th><th>Patterns at once</th><th>Moulds / shift</th><th>Default team</th><th>Sand system</th><th>Flasks</th><th>Status</th><th>Runs</th><th>Made</th><th>Damaged %</th><th>Downtime min</th><th>Actions</th></tr></thead>
         <tbody>
         @forelse($stations as $st)
             @php($s = $stationStats[$st->id] ?? null)
             <tr>
-                <td><strong>{{ $st->code }}</strong></td><td>{{ $st->name }}</td><td>{{ $stationTypes[$st->station_type] ?? $st->station_type }}</td><td>{{ $st->capacity() }}</td><td>{{ $st->defaultTeam ? $st->defaultTeam->code.' — '.$st->defaultTeam->name : '—' }}</td><td>{{ $st->default_sand_system ?: 'Default sand' }}</td><td>{{ $st->makes_flaskless ? 'Flaskless' : ($st->flaskSizes->isEmpty() ? 'Any size' : $st->flaskSizes->pluck('name')->implode(', ')) }}</td>
+                <td><strong>{{ $st->code }}</strong></td><td>{{ $st->name }}</td><td>{{ $stationTypes[$st->station_type] ?? $st->station_type }}</td><td>{{ $st->capacity() }}</td><td>{{ $st->moulds_per_shift ?? '—' }}</td><td>{{ $st->defaultTeam ? $st->defaultTeam->code.' — '.$st->defaultTeam->name : '—' }}</td><td>{{ $st->default_sand_system ?: 'Default sand' }}</td><td>{{ $st->makes_flaskless ? 'Flaskless' : ($st->flaskSizes->isEmpty() ? 'Any size' : $st->flaskSizes->pluck('name')->implode(', ')) }}</td>
                 <td><span class="status {{ $st->status === 'ACTIVE' ? 'status-completed' : '' }}">{{ $st->status }}</span></td><td>{{ $s->runs ?? 0 }}</td><td>{{ $s->made ?? 0 }}</td><td>{{ ($s->made ?? 0) > 0 ? round(100 * $s->damaged / $s->made, 1) : '—' }}</td><td>{{ $s->downtime ?? 0 }}</td>
-                <td><button type="button" class="btn btn-small" data-edit-station data-id="{{ $st->id }}" data-code="{{ $st->code }}" data-name="{{ $st->name }}" data-type="{{ $st->station_type }}" data-max-patterns="{{ $st->max_patterns }}" data-team="{{ $st->default_moulding_team_id }}" data-sand="{{ $st->default_sand_system }}" data-status="{{ $st->status }}" data-flaskless="{{ $st->makes_flaskless ? '1' : '0' }}" data-flasks="{{ $st->flaskSizes->pluck('id')->implode(',') }}" data-notes="{{ $st->notes }}">Edit</button></td>
+                <td><button type="button" class="btn btn-small" data-edit-station data-id="{{ $st->id }}" data-code="{{ $st->code }}" data-name="{{ $st->name }}" data-type="{{ $st->station_type }}" data-max-patterns="{{ $st->max_patterns }}" data-moulds-per-shift="{{ $st->moulds_per_shift }}" data-team="{{ $st->default_moulding_team_id }}" data-sand="{{ $st->default_sand_system }}" data-status="{{ $st->status }}" data-flaskless="{{ $st->makes_flaskless ? '1' : '0' }}" data-flasks="{{ $st->flaskSizes->pluck('id')->implode(',') }}" data-notes="{{ $st->notes }}">Edit</button></td>
             </tr>
-        @empty<tr><td colspan="13" class="muted">No stations yet. Use Add station to create the first one.</td></tr>@endforelse
+        @empty<tr><td colspan="14" class="muted">No stations yet. Use Add station to create the first one.</td></tr>@endforelse
         </tbody>
     </table></div>
 </div>
@@ -92,6 +92,7 @@
             <div class="field"><label for="es-name">Name <span class="required">*</span></label><input id="es-name" name="name" required maxlength="100"></div>
             <div class="field field-full"><label for="es-type">Station type <span class="required">*</span></label><select id="es-type" name="station_type" required>@foreach($stationTypes as $k => $label)<option value="{{ $k }}">{{ $label }}</option>@endforeach</select></div>
             <div class="field"><label for="es-capacity">Patterns at once <span class="required">*</span></label><input id="es-capacity" name="max_patterns" type="number" min="1" max="20" step="1" required><div class="help">Automated lines always use one.</div></div>
+            <div class="field"><label for="es-rate">Moulds per shift</label><input id="es-rate" name="moulds_per_shift" type="number" min="1" step="1"><div class="help">Good moulds in one shift, all patterns together. The planner needs it.</div></div>
             <div class="field"><label for="es-team">Team on this line</label><select id="es-team" name="default_moulding_team_id"><option value="">No default team</option>@foreach($teams as $t)<option value="{{ $t->id }}">{{ $t->code }} — {{ $t->name }}{{ $t->status === 'ACTIVE' ? '' : ' (inactive)' }}</option>@endforeach</select></div>
             <div class="field"><label for="es-sand">Default sand system</label><select id="es-sand" name="default_sand_system"><option value="">Use system default</option>@foreach($sands as $sd)<option value="{{ $sd }}">{{ $sd }}</option>@endforeach</select></div>
             <div class="field"><label for="es-status">Status <span class="required">*</span></label><select id="es-status" name="status" required><option value="ACTIVE">Active</option><option value="MAINTENANCE">Maintenance</option><option value="INACTIVE">Inactive</option></select></div>
@@ -175,7 +176,7 @@
         if (stationButton) {
             var form = document.getElementById('edit-station-form'), d = stationButton.dataset;
             form.action = @json(url('/moulding-teams/stations')) + '/' + encodeURIComponent(d.id);
-            setValue(form, 'code', d.code); setValue(form, 'name', d.name); setValue(form, 'station_type', d.type); setValue(form, 'max_patterns', d.maxPatterns); setValue(form, 'default_moulding_team_id', d.team); setValue(form, 'default_sand_system', d.sand); setValue(form, 'status', d.status); setValue(form, 'notes', d.notes);
+            setValue(form, 'code', d.code); setValue(form, 'name', d.name); setValue(form, 'station_type', d.type); setValue(form, 'max_patterns', d.maxPatterns); setValue(form, 'moulds_per_shift', d.mouldsPerShift); setValue(form, 'default_moulding_team_id', d.team); setValue(form, 'default_sand_system', d.sand); setValue(form, 'status', d.status); setValue(form, 'notes', d.notes);
             document.getElementById('es-flaskless').checked = d.flaskless === '1';
             var chosen = (d.flasks || '').split(',');
             form.querySelectorAll('[data-flask-option]').forEach(function (box) { box.checked = chosen.includes(box.value); box.disabled = d.flaskless === '1'; });

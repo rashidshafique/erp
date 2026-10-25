@@ -166,12 +166,13 @@ class MouldingResourceController extends Controller
             'code' => ['required', 'string', 'max:30', 'regex:/^[A-Za-z0-9._-]+$/', Rule::unique('moulding_stations', 'code')->ignore($station?->id)],
             'name' => ['required', 'string', 'max:100'], 'station_type' => ['required', Rule::in(array_keys(MouldingStation::TYPES))],
             'status' => ['required', 'in:ACTIVE,INACTIVE,MAINTENANCE'], 'notes' => ['nullable', 'string', 'max:1000'],
-            'max_patterns' => ['nullable', 'integer', 'min:1', 'max:20'], 'default_moulding_team_id' => ['nullable', 'uuid', 'exists:moulding_teams,id'], 'default_sand_system' => ['nullable', Rule::in(SandSystem::allNames())],
+            'max_patterns' => ['nullable', 'integer', 'min:1', 'max:20'], 'moulds_per_shift' => ['nullable', 'integer', 'min:1', 'max:100000'], 'default_moulding_team_id' => ['nullable', 'uuid', 'exists:moulding_teams,id'], 'default_sand_system' => ['nullable', Rule::in(SandSystem::allNames())],
         ]);
         $d['code'] = strtoupper($d['code']);
         $d['max_patterns'] = $d['station_type'] === 'AUTOMATED_LINE' ? 1 : (int) ($d['max_patterns'] ?? ($d['station_type'] === 'MATCHPLATE_MACHINE' ? 1 : 4));
         $d['default_moulding_team_id'] = $d['default_moulding_team_id'] ?? null;
         $d['default_sand_system'] = $d['default_sand_system'] ?? null;
+        $d['moulds_per_shift'] = $d['moulds_per_shift'] ?? null;
         if ($request->has('flask_sizes_sent')) {
             $d['makes_flaskless'] = $request->boolean('makes_flaskless');
         }
