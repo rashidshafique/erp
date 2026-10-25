@@ -481,4 +481,22 @@ class ChargeScheduleTest extends TestCase
         $heat->update(['status' => 'CANCELLED']);
         $this->get(route('heats.show', $heat))->assertOk()->assertDontSee('Post charge to inventory');
     }
+
+    public function test_the_metal_balance_and_the_board_count_the_same_metal_charged_from_the_recorded_charges(): void
+    {
+        [$heat, $iron, $coke] = $this->cupola();
+        $coke->update(['material_type' => 'FUEL']);
+        $this->charged($heat, $coke, 0, 120, 100);
+        $this->charged($heat, $iron, 1, 100, 180);
+        $this->charged($heat, $coke, 1, 100, 25);
+
+        $this->assertSame(180.0, app(\App\Services\Production\HeatBalance::class)->for($heat->fresh())['charged_kg'], 'Coke is not metal.');
+        $this->get(route('heats.show', $heat))->assertOk()->assertSee('Metal charged');
+
+        // A weight corrected in the history moves both.
+        $entry = HeatMaterialConsumption::where('heat_id', $heat->id)->where('material_id', $iron->id)->sole();
+        app(\App\Services\Production\ChargeEntryEditor::class)->reweigh($heat, $entry, 150, 'Ali');
+        $this->assertSame(150.0, app(\App\Services\Production\HeatBalance::class)->for($heat->fresh())['charged_kg']);
+        $this->assertSame(150.0, $heat->fresh()->chargedMetalKg());
+    }
 }

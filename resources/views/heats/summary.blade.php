@@ -25,7 +25,7 @@
 
 <div class="panel"><div class="panel-header"><h2>Metal balance</h2></div><div class="panel-body">
     @foreach ($balance['warnings'] as $warning)<div class="alert alert-warning">{{ $warning }}</div>@endforeach
-    <p style="margin:0">Charged {{ $kg($balance['charged_kg']) }} · tapped {{ $kg($balance['tapped_kg']) }} · poured {{ $kg($balance['poured_kg']) }} in {{ $balance['pours'] }} {{ $balance['pours'] === 1 ? 'pour' : 'pours' }} (first iron {{ $kg($balance['first_iron_kg']) }}) · castings {{ $kg($balance['net_casting_kg']) }} net · {{ $balance['lots'] }} lots, {{ $balance['held_lots'] }} on hold.</p>
+    <p style="margin:0">Metal charged {{ $kg($balance['charged_kg']) }} · tapped {{ $kg($balance['tapped_kg']) }} · poured {{ $kg($balance['poured_kg']) }} in {{ $balance['pours'] }} {{ $balance['pours'] === 1 ? 'pour' : 'pours' }} (first iron {{ $kg($balance['first_iron_kg']) }}) · castings {{ $kg($balance['net_casting_kg']) }} net · {{ $balance['lots'] }} lots, {{ $balance['held_lots'] }} on hold.</p>
 </div></div>
 
 <div class="panel"><div class="panel-header"><h2>Samples</h2></div><div class="panel-body">

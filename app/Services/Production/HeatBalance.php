@@ -19,7 +19,7 @@ class HeatBalance
         $heat->loadMissing('pours.mouldAssemblies.castingLots', 'materialConsumptions');
         $completed = $heat->pours->where('status', 'COMPLETED');
         $poured = (float) $completed->sum('total_poured_weight_kg');
-        $charged = (float) $heat->materialConsumptions->sum('actual_qty_kg');
+        $charged = $heat->chargedMetalKg();   // metal only, worked out from the recorded charges; coke and flux are not metal
         $tapped = $heat->actual_tapped_weight_kg !== null ? (float) $heat->actual_tapped_weight_kg : null;
         $lots = $completed->flatMap(fn ($pour) => $pour->mouldAssemblies->flatMap->castingLots);
         $net = (float) $lots->sum('net_casting_weight_kg');
@@ -31,7 +31,7 @@ class HeatBalance
             $warnings[] = 'More metal was poured ('.\App\Support\Formats::number($poured, 1).' kg) than was tapped ('.\App\Support\Formats::number($tapped, 1).' kg). Check the weights on the pours.';
         }
         if ($charged > 0 && $poured > $charged + 0.5) {
-            $warnings[] = 'More metal was poured ('.\App\Support\Formats::number($poured, 1).' kg) than was charged ('.\App\Support\Formats::number($charged, 1).' kg).';
+            $warnings[] = 'More metal was poured ('.\App\Support\Formats::number($poured, 1).' kg) than metal was charged ('.\App\Support\Formats::number($charged, 1).' kg).';
         }
 
         return [
