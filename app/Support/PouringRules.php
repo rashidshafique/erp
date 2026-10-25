@@ -32,6 +32,7 @@ class PouringRules
             'HOLD' => 'Hold them until QC passes',
             'FREE' => 'Treat them like any other lot',
         ], 'HOLD'],
+        'lightup_to_first_charge_minutes' => ['charging.lightup_to_first_charge_minutes', 'Cupola: minutes from light-up to the first metal charge (the bed burns first; a recorded blast-on time takes over)', null, '60'],
         'test_interval_minutes' => ['pouring.test_interval_minutes', 'Minutes between samples while a cupola is running (reminder only)', null, '30'],
         'auto_charge' => ['charging.auto', 'Charges that come due on a running heat', [
             'AUTO' => 'Record them automatically every minute, from the recipe, at the time the furnace speed puts them due',

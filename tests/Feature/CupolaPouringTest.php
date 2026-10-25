@@ -138,9 +138,10 @@ class CupolaPouringTest extends TestCase
 
         $this->put(route('settings.pouring'), [
             'gate_cupola' => 'ENFORCED', 'gate_induction' => 'ENFORCED', 'gate_other' => 'OFF', 'gate_packing' => 'ADVISORY', 'first_iron_minutes' => 45, 'hold_first_iron' => 'FREE',
-            'test_interval_minutes' => 20, 'containment' => 'NOTE', 'auto_charge' => 'MANUAL',
+            'test_interval_minutes' => 20, 'containment' => 'NOTE', 'auto_charge' => 'MANUAL', 'lightup_to_first_charge_minutes' => 75,
         ])->assertSessionHasNoErrors();
         $this->assertFalse(PouringRules::autoCharges());
+        $this->assertSame(75, PouringRules::minutes('lightup_to_first_charge_minutes'));
 
         $this->assertSame(['ENFORCED', 'OFF', 'ADVISORY', 45, 'FREE', 20, 'NOTE'], [PouringRules::get('gate_cupola'), PouringRules::get('gate_other'), PouringRules::get('gate_packing'), PouringRules::minutes('first_iron_minutes'), PouringRules::get('hold_first_iron'), PouringRules::minutes('test_interval_minutes'), PouringRules::get('containment')]);
         $this->put(route('settings.pouring'), ['gate_cupola' => 'MAYBE'] + PouringRules::RULES)->assertSessionHasErrors('gate_cupola');

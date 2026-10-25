@@ -3,6 +3,7 @@
 namespace App\Services\Production;
 
 use App\Models\Heat;
+use App\Support\PouringRules;
 use Carbon\CarbonInterface;
 use App\Models\ChargeBatch;
 use Illuminate\Support\Collection;
@@ -11,7 +12,7 @@ use Illuminate\Validation\ValidationException;
 /**
  * When each charge of a heat's recipe is due. The furnace melts a round's metal at its melting rate (HeatEta::rate: measured on
  * the heat, else the furnace's recorded average, else its rated speed), so a new round is due one "metal per round ÷ rate" after
- * the last: the bed at the start of the heat, charge 1 at blast on (or once the bed is in), then each charge that long after the
+ * the last: the bed at the start of the heat, charge 1 at blast on, or an hour after light-up when blast on is not recorded (the lightup_to_first_charge_minutes rule),, then each charge that long after the
  * one before it was actually put in. Anchoring on what was really charged keeps a late charge from making the next one look
  * early. The schedule only says what is due; recording a charge is done by a person, so the consumption stays measured.
  */
@@ -53,7 +54,8 @@ class ChargeSchedule
         $interval = $reason === null ? (int) max(1, round($perRound / $measured['rate'] * 60)) : null;
 
         $start = $heat->actual_start_at;
-        $blast = $heat->isCupola() ? ($heat->blast_on_at ?? $start) : $start;
+        // A cupola's bed burns after light-up, so its first metal charge is due that long after the start unless blast on was recorded.
+        $blast = $heat->isCupola() ? ($heat->blast_on_at ?? $start?->copy()->addMinutes(PouringRules::minutes('lightup_to_first_charge_minutes'))) : $start;
 
         $rounds = collect();
         $previousDue = null;

@@ -182,17 +182,17 @@ class ChargeScheduleTest extends TestCase
         [$heat, $iron, $coke] = $this->cupola();
         $recipe = $heat->chargeBatch;
         $furnace = $heat->furnace;
-        $heat->forceDelete();   // the form below creates its own heat
+        $heat->forceDelete();   // the form below creates its own heat; started at 08:00, the bed goes in then and charge 1 is due at 09:00, one hour after light-up
         $form = ['furnace_id' => $furnace->id, 'charge_batch_id' => $recipe->id, 'target_metal_weight_kg' => 900, 'operator_name' => 'Ali', 'planned_start_at' => now()->subHours(2)->format('Y-m-d\TH:i')];
 
         $this->getJson(route('heats.charge-preview', ['furnace_id' => $furnace->id, 'charge_batch_id' => $recipe->id, 'started_at' => $form['planned_start_at'], 'target_metal_weight_kg' => 900]))
-            ->assertOk()->assertJson(['count' => 6, 'interval' => '30 min']);
+            ->assertOk()->assertJson(['count' => 4, 'interval' => '30 min']);
 
         $this->post(route('heats.store'), $form + ['already_started' => 1, 'fill_charges' => 1])->assertSessionHasNoErrors()
-            ->assertSessionHas('success', fn ($m) => str_contains($m, 'recorded as started') && str_contains($m, '6 charges filled in'));
+            ->assertSessionHas('success', fn ($m) => str_contains($m, 'recorded as started') && str_contains($m, '4 charges filled in'));
         $created = Heat::latest('id')->first();
         $this->assertSame(['MELTING', '08:00'], [$created->status, $created->actual_start_at->format('H:i')]);
-        $this->assertSame(6, HeatMaterialConsumption::where('heat_id', $created->id)->distinct('charge_round')->count('charge_round'));
+        $this->assertSame(4, HeatMaterialConsumption::where('heat_id', $created->id)->distinct('charge_round')->count('charge_round'));
     }
 
     public function test_a_heat_created_without_the_question_is_left_planned_and_a_future_start_cannot_be_called_started(): void
@@ -378,5 +378,21 @@ class ChargeScheduleTest extends TestCase
         $this->charged($heat, $iron, 2, 60 * 26, 180);                                              // yesterday
 
         $page = \Livewire\Livewire::test('heat-charge-history', ['heatId' => $heat->id])->assertSee('2:35 PM')->assertSee(now()->subDay()->displayShortDate().', ')->assertDontSee('14:35');
+    }
+
+    public function test_a_cupolas_first_metal_charge_is_due_an_hour_after_light_up_unless_blast_on_is_recorded(): void
+    {
+        $this->travelTo(now()->setTime(10, 0));
+        [$heat] = $this->cupola();
+        $heat->update(['actual_start_at' => now()->subHours(3), 'blast_on_at' => null]);   // light-up at 07:00
+
+        $due = fn () => app(ChargeSchedule::class)->for($heat->fresh())['rounds']->mapWithKeys(fn ($r) => [$r['round'] => $r['due_at']->format('H:i')])->take(3)->all();
+        $this->assertSame([0 => '07:00', 1 => '08:00', 2 => '08:30'], $due(), 'The bed at light-up, the first metal an hour later, then a charge every 30 minutes.');
+
+        \App\Support\PouringRules::set('lightup_to_first_charge_minutes', '90');
+        $this->assertSame('08:30', $due()[1]);
+
+        $heat->update(['blast_on_at' => now()->subHours(2)->subMinutes(20)]);   // blast on at 07:40 wins over the rule
+        $this->assertSame('07:40', $due()[1]);
     }
 }
