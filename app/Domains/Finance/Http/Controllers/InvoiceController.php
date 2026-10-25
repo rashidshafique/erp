@@ -73,15 +73,16 @@ class InvoiceController extends Controller
     public function show(Invoice $invoice): View
     {
         $invoice->load(['customer', 'lines', 'creditNotes', 'original', 'allocations.receipt']);
+        $checks = $invoice->status === 'DRAFT' && ! $invoice->isCreditNote() ? app(InvoiceService::class)->taxChecks($invoice) : ['blocks' => [], 'warnings' => []];
 
-        return view('finance::invoices.show', ['invoice' => $invoice]);
+        return view('finance::invoices.show', ['invoice' => $invoice, 'taxChecks' => $checks]);
     }
 
     public function print(Invoice $invoice): View
     {
         $invoice->load(['customer', 'lines', 'original']);
 
-        return view('finance::invoices.print', ['invoice' => $invoice]);
+        return view('finance::invoices.print', ['invoice' => $invoice, 'registrations' => app(\App\Domains\Core\Contracts\TaxCalculator::class)->registrations($invoice->customer?->party_id)]);
     }
 
     public function edit(Invoice $invoice): View|RedirectResponse
@@ -89,9 +90,9 @@ class InvoiceController extends Controller
         if ($invoice->status !== 'DRAFT') {
             return redirect()->route('invoices.show', $invoice)->withErrors(['invoice' => 'Only a draft can be changed.']);
         }
-        $lines = $invoice->lines->map(fn ($l) => $l->only(['description', 'quantity', 'uom', 'unit_price', 'tax_rate_id', 'sales_order_line_id', 'dispatch_item_id']))->all();
+        $lines = $invoice->lines->map(fn ($l) => $l->only(['description', 'quantity', 'uom', 'unit_price', 'tax_rate_id', 'sales_order_line_id', 'dispatch_item_id', 'supply_type', 'tariff_code', 'inventory_class']))->all();
 
-        return view('finance::invoices.form', $this->formData($invoice, $invoice->only(['customer_id', 'source_type', 'source_id', 'customer_reference']), $lines) + ['notice' => null]);
+        return view('finance::invoices.form', $this->formData($invoice, $invoice->only(['customer_id', 'source_type', 'source_id', 'customer_reference', 'place_of_supply']), $lines) + ['notice' => null]);
     }
 
     public function update(Request $request, Invoice $invoice, InvoiceService $service): RedirectResponse
@@ -180,6 +181,7 @@ class InvoiceController extends Controller
             'customer_id' => ['required', 'uuid', 'exists:customers,id'], 'invoice_date' => ['required', 'date'], 'due_date' => ['nullable', 'date', 'after_or_equal:invoice_date'],
             'currency' => ['nullable', 'string', 'max:10'], 'payment_terms' => ['nullable', 'string', 'max:100'], 'customer_reference' => ['nullable', 'string', 'max:100'],
             'notes' => ['nullable', 'string', 'max:2000'], 'source_type' => ['nullable', 'in:manual,dispatch,sales_order'], 'source_id' => ['nullable', 'uuid'],
+            'place_of_supply' => ['nullable', 'string', 'max:10'],
         ]);
 
         return $d;
@@ -192,6 +194,7 @@ class InvoiceController extends Controller
             'lines' => ['required', 'array', 'min:1'], 'lines.*.description' => ['nullable', 'string', 'max:300'],
             'lines.*.quantity' => ['nullable', 'numeric', 'gt:0'], 'lines.*.uom' => ['nullable', 'string', 'max:20'], 'lines.*.unit_price' => ['nullable', 'numeric', 'min:0'],
             'lines.*.tax_rate_id' => ['nullable', 'uuid', 'exists:tax_rates,id'], 'lines.*.sales_order_line_id' => ['nullable', 'uuid'], 'lines.*.dispatch_item_id' => ['nullable', 'uuid'],
+            'lines.*.supply_type' => ['nullable', 'in:GOODS,SERVICE'], 'lines.*.tariff_code' => ['nullable', 'string', 'max:20'], 'lines.*.inventory_class' => ['nullable', 'string', 'max:20'],
         ])['lines']);
     }
 }

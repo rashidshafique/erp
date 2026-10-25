@@ -3,6 +3,7 @@
 namespace App\Domains\Finance\Services;
 
 use App\Domains\Core\Contracts\TaxCalculator;
+use App\Domains\Core\Tax\TaxAmount;
 use App\Domains\Core\Tax\TaxContext;
 use App\Domains\Core\Tax\TaxLine;
 use App\Domains\Dispatch\Models\Dispatch;
@@ -28,6 +29,8 @@ class InvoiceService
      */
     public function saveDraft(array $head, array $lines, ?Invoice $invoice = null): Invoice
     {
+        $taxDate = $head['tax_date'] ?? null;   // a credit note is taxed as at its invoice's date
+        unset($head['tax_date']);
         $lines = array_values(array_filter($lines, fn ($l) => trim((string) ($l['description'] ?? '')) !== ''));
         if ($lines === []) {
             throw new InvalidArgumentException('Add at least one line with a description.');
@@ -36,7 +39,7 @@ class InvoiceService
             throw new InvalidArgumentException("Only a draft can be changed; this one is {$invoice->status}.");
         }
 
-        return DB::transaction(function () use ($head, $lines, $invoice) {
+        return DB::transaction(function () use ($head, $lines, $invoice, $taxDate) {
             $customer = Customer::findOrFail($head['customer_id']);
             $head += ['kind' => 'INVOICE', 'invoice_date' => today()->toDateString(), 'currency' => FinanceRules::currency()];
             $head['payment_terms'] = $head['payment_terms'] ?? $customer->payment_terms;
@@ -52,24 +55,27 @@ class InvoiceService
             $taxLines = array_map(fn ($l) => new TaxLine(
                 round(round((float) $l['quantity'], 3) * round((float) $l['unit_price'], 4), 2),
                 (float) ($rates[$l['tax_rate_id'] ?? null]->rate_percent ?? 0),
+                ($l['supply_type'] ?? null) === TaxLine::SERVICE ? TaxLine::SERVICE : TaxLine::GOODS,
+                ($l['inventory_class'] ?? null) ?: null,
+                ($l['tariff_code'] ?? null) ?: null,
             ), $lines);
-            $taxes = app(TaxCalculator::class)->calculate(new TaxContext(TaxContext::SALE, Carbon::parse($head['invoice_date']), $customer->party_id), $taxLines);
-            [$subtotal, $tax] = [0.0, 0.0];
+            $taxes = app(TaxCalculator::class)->calculate($this->taxContext($invoice, $taxDate), $taxLines);
+            [$subtotal, $tax, $withheld] = [0.0, 0.0, 0.0];
             foreach ($lines as $i => $l) {
-                $qty = round((float) $l['quantity'], 3);
-                $price = round((float) $l['unit_price'], 4);
-                $percent = $taxes->chargedRate($i);
-                $net = $taxLines[$i]->net;
-                $lineTax = $taxes->charged($i);
+                $taxLine = $taxLines[$i];
                 InvoiceLine::create([
-                    'invoice_id' => $invoice->id, 'line_number' => $i + 1, 'description' => trim($l['description']), 'quantity' => $qty, 'uom' => $l['uom'] ?? null,
-                    'unit_price' => $price, 'tax_rate_id' => $l['tax_rate_id'] ?? null, 'tax_percent' => $percent, 'line_net' => $net, 'line_tax' => $lineTax,
+                    'invoice_id' => $invoice->id, 'line_number' => $i + 1, 'description' => trim($l['description']), 'quantity' => round((float) $l['quantity'], 3), 'uom' => $l['uom'] ?? null,
+                    'unit_price' => round((float) $l['unit_price'], 4), 'tax_rate_id' => $l['tax_rate_id'] ?? null, 'tax_percent' => $taxes->chargedRate($i),
+                    'line_net' => $taxLine->net, 'line_tax' => $taxes->charged($i), 'line_withheld' => $taxes->withheld($i),
+                    'supply_type' => $taxLine->supplyType, 'tariff_code' => $taxLine->tariffCode, 'inventory_class' => $taxLine->inventoryClass,
+                    'taxes' => array_map(fn (TaxAmount $t) => (array) $t, $taxes->forLine($i)),
                     'sales_order_line_id' => $l['sales_order_line_id'] ?? null, 'dispatch_item_id' => $l['dispatch_item_id'] ?? null,
                 ]);
-                $subtotal += $net;
-                $tax += $lineTax;
+                $subtotal += $taxLine->net;
+                $tax += $taxes->charged($i);
+                $withheld += $taxes->withheld($i);
             }
-            $invoice->update(['subtotal' => round($subtotal, 2), 'tax_total' => round($tax, 2), 'total' => round($subtotal + $tax, 2)]);
+            $invoice->update(['subtotal' => round($subtotal, 2), 'tax_total' => round($tax, 2), 'total' => round($subtotal + $tax, 2), 'tax_withheld' => round($withheld, 2)]);
 
             return $invoice->fresh('lines');
         });
@@ -85,6 +91,9 @@ class InvoiceService
             }
             if (! $invoice->lines()->exists()) {
                 throw new InvalidArgumentException('An invoice with no lines cannot be issued.');
+            }
+            if (! $invoice->isCreditNote() && ($blocks = $this->taxChecks($invoice)['blocks']) !== []) {
+                throw new InvalidArgumentException(implode(' ', $blocks));
             }
             $due = $invoice->due_date ?? ($invoice->isCreditNote() ? null : $invoice->invoice_date->copy()->addDays(FinanceRules::daysFromTerms($invoice->payment_terms)));
             $invoice->update(['invoice_number' => $this->nextNumber($invoice->kind), 'status' => 'ISSUED', 'issued_at' => now(), 'due_date' => $due]);
@@ -121,7 +130,7 @@ class InvoiceService
         $note = $this->saveDraft([
             'kind' => 'CREDIT_NOTE', 'customer_id' => $original->customer_id, 'original_invoice_id' => $original->id, 'currency' => $original->currency,
             'payment_terms' => $original->payment_terms, 'customer_reference' => $original->customer_reference, 'notes' => $reason,
-            'source_type' => 'invoice', 'source_id' => $original->id,
+            'source_type' => 'invoice', 'source_id' => $original->id, 'place_of_supply' => $original->place_of_supply, 'tax_date' => $original->invoice_date->toDateString(),
         ], $lines);
         $room = round($original->total - $original->credited(), 2);
         if ($note->total > $room) {
@@ -150,7 +159,7 @@ class InvoiceService
             return [
                 'description' => trim(($product?->code ? $product->code.' ' : '').($product?->name ?? 'Castings')), 'quantity' => (float) $i->quantity_dispatched,
                 'uom' => $i->uom ?: $i->salesOrderLine?->uom, 'unit_price' => (float) ($i->salesOrderLine?->unit_price ?? 0), 'tax_rate_id' => $default,
-                'sales_order_line_id' => $i->sales_order_line_id, 'dispatch_item_id' => $i->id,
+                'sales_order_line_id' => $i->sales_order_line_id, 'dispatch_item_id' => $i->id, ...$this->taxDetails($product),
             ];
         })->values()->all();
     }
@@ -170,6 +179,7 @@ class InvoiceService
             return $left > 0 ? [
                 'description' => trim(($l->product?->code ? $l->product->code.' ' : '').($l->product?->name ?? 'Castings')), 'quantity' => $left, 'uom' => $l->uom,
                 'unit_price' => (float) $l->unit_price, 'tax_rate_id' => $default, 'sales_order_line_id' => $l->id, 'dispatch_item_id' => null,
+                ...$this->taxDetails($l->product),
             ] : null;
         })->filter()->values()->all();
     }
@@ -179,6 +189,33 @@ class InvoiceService
     {
         return round((float) InvoiceLine::where('sales_order_line_id', $salesOrderLineId)
             ->whereHas('invoice', fn ($q) => $q->where('kind', 'INVOICE')->where('status', '!=', 'VOID'))->sum('quantity'), 3);
+    }
+
+    /**
+     * What tax needs to know of an invoice: sale, date (or the date it is taxed as at), customer and place of supply.
+     */
+    public function taxContext(Invoice $invoice, ?string $taxDate = null): TaxContext
+    {
+        return new TaxContext(TaxContext::SALE, $taxDate ? Carbon::parse($taxDate) : $invoice->invoice_date, $invoice->customer?->party_id, $invoice->place_of_supply);
+    }
+
+    /**
+     * What stops a draft being issued, or should be looked at first, for tax.
+     *
+     * @return array{blocks: list<string>, warnings: list<string>}
+     */
+    public function taxChecks(Invoice $invoice): array
+    {
+        $lines = $invoice->lines()->orderBy('line_number')->get()
+            ->map(fn (InvoiceLine $l) => new TaxLine((float) $l->line_net, (float) $l->tax_percent, $l->supply_type, $l->inventory_class, $l->tariff_code))->all();
+
+        return app(TaxCalculator::class)->issueChecks($this->taxContext($invoice), $lines);
+    }
+
+    /** @return array{supply_type: string, tariff_code: ?string, inventory_class: ?string} */
+    private function taxDetails(?\App\Models\Product $product): array
+    {
+        return ['supply_type' => $product?->supply_type ?: TaxLine::GOODS, 'tariff_code' => $product?->tariff_code, 'inventory_class' => $product?->inventory_class];
     }
 
     public function defaultTaxRateId(): ?string

@@ -73,7 +73,19 @@ Plan for bought-in goods sold as they are, in order: (1) trade details on items,
   - "Load defaults" fills the starting set. A rate change starts a new dated row.
   - Partners get a Tax panel (`party_tax_profiles`) through the new `ModuleRegistry::panels('party.show')` hook.
   - Items carry `supply_type` (goods or service).
-- Not yet: the rule-based calculator (phase 3), so the rules don't change any document yet. Also not yet: registers, and FBR digital invoicing.
+- With the module on, `RuleBasedTax` taxes sales invoices.
+  - Every active rule in force on the invoice date that matches a line adds its taxes at that day's rates: charged taxes first, then withheld ones.
+  - The tax of an authority the company isn't registered with is left off once any registration is ticked.
+  - A line no rule covers keeps its chosen percent.
+  - With no country loaded, invoices work exactly as without the module.
+- Invoice lines keep `supply_type`, `tariff_code`, `inventory_class` and a `taxes` JSON snapshot. Invoices keep `place_of_supply` and `tax_withheld` (`payableToUs()` = total less withheld).
+- The print shows seller and buyer registrations, the PCT code, each tax with its rate and authority, and the amount withheld.
+- Checks before issuing (Off / Warn / Enforced): buyer registration number, tariff code on goods lines, an authority you're not registered with.
+- Purchases (bills, POs) still use the typed percent.
+- Not yet:
+  - Receivables still count the full total; withheld tax needs settling against the withholding certificate.
+  - Credit notes are taxed at the original invoice's date with the rules in force then.
+  - Registers per authority, and FBR digital invoicing.
 
 ### Stores: not built yet
 - Finished goods are not on the ledger. They need a decision on their stock lot (casting lot or a new stock lot) and a second registered item type.

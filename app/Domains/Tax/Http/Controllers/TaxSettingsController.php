@@ -7,6 +7,7 @@ use App\Domains\Core\Tax\TaxLine;
 use App\Domains\Tax\Models\TaxAuthority;
 use App\Domains\Tax\Models\TaxComponent;
 use App\Domains\Tax\Models\TaxRule;
+use App\Domains\Tax\Services\TaxRules;
 use App\Domains\Tax\Services\TaxSetup;
 use App\Http\Controllers\Controller;
 use App\Models\AppSetting;
@@ -56,6 +57,16 @@ class TaxSettingsController extends Controller
             ->each(fn (TaxAuthority $a) => $a->update(['is_registered' => in_array($a->id, $d['registered'] ?? [], true)]));
 
         return back()->with('success', 'Tax registration saved.');
+    }
+
+    public function updateChecks(Request $request): RedirectResponse
+    {
+        $d = $request->validate(['checks' => ['required', 'array'], 'checks.*' => [Rule::in(array_keys(TaxRules::LEVELS))]]);
+        foreach (array_intersect_key($d['checks'], TaxRules::RULES) as $rule => $level) {
+            TaxRules::set($rule, $level);
+        }
+
+        return back()->with('success', 'Checks saved.');
     }
 
     public function loadDefaults(Request $request, TaxSetup $setup): RedirectResponse

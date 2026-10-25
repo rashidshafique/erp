@@ -2,9 +2,12 @@
 
 namespace App\Domains\Tax;
 
+use App\Domains\Core\Contracts\TaxCalculator;
+use App\Domains\Core\ModuleRegistry;
 use App\Domains\Core\ModuleServiceProvider;
 use App\Domains\Core\Tax\TaxJurisdictions;
 use App\Domains\Tax\Jurisdictions\Pakistan;
+use App\Domains\Tax\Services\RuleBasedTax;
 
 /**
  * Taxation: each country is a pack of authorities, dated tax rates and rules, kept as data the accounts team edits. Without this
@@ -37,6 +40,9 @@ class TaxServiceProvider extends ModuleServiceProvider
         parent::boot();
         // Country packs are known even with the module off, so the tariff code keeps its country's format.
         $this->app->make(TaxJurisdictions::class)->register('PK', Pakistan::class);
+        if ($this->app->make(ModuleRegistry::class)->isEnabled('tax')) {
+            $this->app->singleton(TaxCalculator::class, RuleBasedTax::class);
+        }
     }
 
     protected function settingsLinks(): array

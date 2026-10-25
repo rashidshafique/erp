@@ -14,4 +14,19 @@ interface TaxCalculator
 {
     /** @param list<TaxLine> $lines */
     public function calculate(TaxContext $context, array $lines): TaxResult;
+
+    /**
+     * What stops a document being issued (blocks) or should be looked at first (warnings), such as a buyer with no registration number.
+     *
+     * @param  list<TaxLine>  $lines
+     * @return array{blocks: list<string>, warnings: list<string>}
+     */
+    public function issueChecks(TaxContext $context, array $lines): array;
+
+    /**
+     * The registration numbers a tax document prints for the seller and for the other party, as label => number.
+     *
+     * @return array{seller: array<string, string>, party: array<string, string>}
+     */
+    public function registrations(?string $partyId): array;
 }

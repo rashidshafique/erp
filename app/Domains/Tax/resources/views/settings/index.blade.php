@@ -38,6 +38,15 @@
 </div></div><div class="panel-body"><button class="btn btn-primary">Save</button></div></div>
 </form>
 
+<form method="POST" action="{{ route('tax.checks.update') }}">@csrf @method('PUT')
+<div class="panel"><div class="panel-header"><h2>Checks before an invoice is issued</h2></div><div class="panel-body"><div class="form-grid">
+    @foreach (\App\Domains\Tax\Services\TaxRules::RULES as $rule => [, $label])
+        <div class="field"><label for="check-{{ $rule }}">{{ $label }}</label>
+            <select id="check-{{ $rule }}" name="checks[{{ $rule }}]">@foreach (\App\Domains\Tax\Services\TaxRules::LEVELS as $k => $l)<option value="{{ $k }}" @selected(\App\Domains\Tax\Services\TaxRules::get($rule) === $k)>{{ $l }}</option>@endforeach</select></div>
+    @endforeach
+</div></div><div class="panel-body"><button class="btn btn-primary">Save checks</button></div></div>
+</form>
+
 @if ($pack)
 <div class="panel"><div class="panel-header"><h2>Starting taxes and rules</h2></div><div class="panel-body">
     <p class="muted">Loads {{ $pack->name() }}'s authorities, taxes and rules as a starting set. The rates are a starting point only: check each one against the current law before you invoice.</p>

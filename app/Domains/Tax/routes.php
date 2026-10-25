@@ -9,6 +9,7 @@ Route::middleware('web')->prefix('settings/tax')->name('tax.')->group(function (
         Route::get('/', 'index')->name('settings');
         Route::put('/company', 'updateCompany')->name('company.update');
         Route::post('/defaults', 'loadDefaults')->name('defaults');
+        Route::put('/checks', 'updateChecks')->name('checks.update');
         Route::post('/components/{component}/rate', 'changeRate')->name('components.rate');
         Route::post('/rules', 'storeRule')->name('rules.store');
         Route::put('/rules/{rule}', 'updateRule')->name('rules.update');
