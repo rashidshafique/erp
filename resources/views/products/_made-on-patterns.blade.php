@@ -1,4 +1,4 @@
-{{-- The patterns that make a product, one entry per pattern revision: which cavities make it and how many of the product
+{{-- The patterns that make a product, one entry per pattern with its latest revision, earlier ones folded: which cavities make it and how many of the product
      one mould gives. Current revisions come first; superseded and archived ones stay listed for traceability. --}}
 @php
     $map = app(\App\Services\PatternCavityMap::class);
@@ -7,6 +7,9 @@
         ->map(fn ($cavities) => ['revision' => $cavities->first()->patternRevision, 'cavities' => $cavities->sortBy('cavity_number')->values()])
         ->sortBy(fn ($g) => [! $g['revision']->is_current, $g['revision']->pattern->name, -$g['revision']->sequence])
         ->values();
+    // One entry per pattern, its latest revision first: the current one, else the highest sequence.
+    $patterns = $groups->groupBy(fn ($g) => $g['revision']->pattern_id)->map(fn ($revisions) => $revisions->values())
+        ->sortBy(fn ($revisions) => [! $revisions->first()['revision']->is_current, $revisions->first()['revision']->pattern->name])->values();
     $photos = \App\Models\Attachment::where('attachable_type', 'pattern')->whereIn('attachable_id', $groups->map(fn ($g) => $g['revision']->pattern_id)->unique())
         ->whereNull('removed_at')->whereIn('mime_type', ['image/png', 'image/jpeg', 'image/webp'])
         ->orderByDesc('is_cover')->orderByDesc('created_at')->get()->unique('attachable_id')->keyBy('attachable_id');
@@ -21,6 +24,9 @@
     .made-on .mo-meta { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; font-size: 12.5px; color: var(--muted); margin-top: 3px; }
     .made-on .mo-count { text-align: right; font-size: 12px; color: var(--muted); }
     .made-on .mo-count strong { display: block; font-size: 20px; color: var(--text); }
+    .mo-earlier { margin: -4px 0 0 24px; }
+    .mo-earlier summary { cursor: pointer; font-size: 12.5px; color: var(--muted); padding: 4px 0; }
+    .mo-earlier .made-on { margin-top: 6px; }
     @media (max-width: 768px) { .made-on .mo-row { grid-template-columns: 48px 1fr; } .made-on .mo-count { grid-column: 2; text-align: left; } }
 </style>
 <div class="panel">
@@ -30,29 +36,18 @@
             <div class="empty-state" style="padding:12px 0">No pattern cavity is linked to this product yet. Link cavities from the <a href="{{ route('patterns.index') }}">pattern page</a>.</div>
         @else
             <div class="made-on">
-                @foreach ($groups as $g)
-                    @php
-                        $rev = $g['revision']; $pattern = $rev->pattern; $photo = $photos[$pattern->id] ?? null;
-                        $perMould = $map->expectedProductsPerMould($rev, $product->id);
-                    @endphp
-                    <div class="mo-row {{ $rev->is_current && ! $pattern->trashed() ? '' : 'old' }}">
-                        <a class="mo-photo" href="{{ $photo ? route('attachments.download', $photo) : route('patterns.show', $pattern) }}" @if ($photo) data-lightbox="made-on-{{ $product->id }}" data-caption="{{ $pattern->name }}" @endif>
-                            @if ($photo)<img src="{{ route('attachments.download', $photo) }}" alt="" loading="lazy">@else{!! \App\Support\NavIcons::get('layers', 22) !!}@endif
-                        </a>
-                        <div>
-                            <div class="mo-name"><a href="{{ route('patterns.show', $pattern) }}#cavities-{{ $rev->id }}">{{ $pattern->name }}</a></div>
-                            <div class="mo-meta">
-                                <span class="mono">{{ $pattern->code }}</span>
-                                <span class="mono">{{ $rev->code }}</span>
-                                @if ($rev->is_current)<span class="status status-completed">Current</span>@elseif ($rev->isSuperseded())<span class="status status-on-hold">Superseded</span>@endif
-                                @if ($pattern->trashed())<span class="status status-cancelled">{{ $pattern->custody === 'RETURNED' ? 'Returned' : ($pattern->custody === 'SCRAPPED' ? 'Scrapped' : 'Archived') }}</span>@endif
-                                <span>{{ $pattern->owner_type === 'FOUNDRY' ? 'Foundry-owned' : 'Owner: '.$pattern->ownerLabel() }}</span>
-                                <span>{{ \Illuminate\Support\Str::before($rev->arrangementLabel(), ' (') }}</span>
-                                <span>cavit{{ $g['cavities']->count() === 1 ? 'y' : 'ies' }} {{ $g['cavities']->map(fn ($c) => $c->cavity_number.($c->cavity_mark ? ' ('.$c->cavity_mark.')' : ''))->implode(', ') }}@if ($g['cavities']->contains('cavity_role', 'PART')) · {{ $g['cavities']->where('cavity_role', 'PART')->pluck('component_label')->unique()->implode(', ') }}@endif</span>
+                @foreach ($patterns as $revisions)
+                    @include('products._made-on-row', ['g' => $revisions->first()])
+                    @if ($revisions->count() > 1)
+                        <details class="mo-earlier">
+                            <summary>{{ $revisions->count() - 1 }} earlier revision{{ $revisions->count() === 2 ? '' : 's' }}</summary>
+                            <div class="made-on">
+                                @foreach ($revisions->slice(1) as $g)
+                                    @include('products._made-on-row', ['g' => $g])
+                                @endforeach
                             </div>
-                        </div>
-                        <div class="mo-count"><strong>{{ rtrim(rtrim(\App\Support\Formats::number($perMould, 2), '0'), '.') }}</strong>per mould</div>
-                    </div>
+                        </details>
+                    @endif
                 @endforeach
             </div>
         @endif

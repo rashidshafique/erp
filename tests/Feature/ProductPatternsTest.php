@@ -30,7 +30,19 @@ class ProductPatternsTest extends TestCase
             ->assertSee('data-tab-start="Patterns"', false)
             ->assertSee('<a href="'.route('patterns.show', $pattern).'">Valve body plate</a>', false)
             ->assertSee(route('patterns.show', $pattern).'#cavities-'.$current->id, false)
-            ->assertSeeInOrder(['P-0123-R1', 'Current', 'cavities 1, 2, 3', '<strong>3</strong>per mould', 'P-0123-R0', 'Superseded'], false);
+            ->assertSeeInOrder(['P-0123-R1', 'Current', 'cavities 1, 2, 3', '<strong>3</strong>per mould', '1 earlier revision', 'P-0123-R0', 'Superseded'], false)
+            ->assertSee('<details class="mo-earlier">', false);
+    }
+
+    public function test_a_pattern_with_one_revision_has_nothing_folded(): void
+    {
+        $product = Product::create(['code' => 'VALVE-2', 'name' => 'Valve cap']);
+        $productRevision = ProductRevision::create(['product_id' => $product->id, 'revision' => 'A', 'status' => 'APPROVED']);
+        $pattern = Pattern::create(['code' => 'P-0200', 'name' => 'Cap plate', 'pattern_type' => 'MATCHPLATE']);
+        PatternRevision::create(['pattern_id' => $pattern->id, 'status' => 'APPROVED', 'cavities_per_mould' => 2])
+            ->cavityMap()->create(['cavity_number' => 1, 'product_revision_id' => $productRevision->id]);
+
+        $this->get(route('products.show', $product))->assertOk()->assertSee('Cap plate')->assertDontSee('<details class="mo-earlier">', false);
     }
 
     public function test_a_product_with_no_pattern_says_so(): void
