@@ -6,6 +6,13 @@ use App\Domains\Tooling\Support\CoreRules;
 use App\Models\CoreBox;
 use App\Models\CoreDefinition;
 use App\Models\CoreLot;
+use App\Models\CoreRequirement;
+use App\Models\MouldingRun;
+use App\Models\Pattern;
+use App\Models\PatternRevision;
+use App\Models\Product;
+use App\Models\ProductionOrder;
+use App\Models\ProductRevision;
 use App\Models\ToolingUsageRecord;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -125,5 +132,61 @@ class CoreLotTest extends TestCase
         $this->get(route('cores.index'))->assertOk();
         $this->get(route('core-lots.create'))->assertOk();
         $this->get(route('settings.cores.edit'))->assertOk();
+    }
+
+    /** A run of $moulds moulds of a pattern with two cavities for one product that needs 2 of the box's core per casting. */
+    private function mouldingRun(int $moulds, array $cavityNumbers = []): MouldingRun
+    {
+        $product = ProductRevision::create(['product_id' => Product::create(['code' => 'P-'.uniqid(), 'name' => 'Casting'])->id, 'revision' => 'A', 'status' => 'APPROVED']);
+        CoreRequirement::create(['core_definition_id' => $this->core->id, 'product_revision_id' => $product->id, 'quantity_per_casting' => 2]);
+        $revision = PatternRevision::create(['pattern_id' => Pattern::create(['code' => 'PT-'.uniqid(), 'name' => 'Plate'])->id, 'status' => 'APPROVED', 'cavities_per_mould' => 2]);
+        foreach ([1, 2] as $n) {
+            $revision->cavityMap()->create(['cavity_number' => $n, 'product_revision_id' => $product->id]);
+        }
+        $order = ProductionOrder::create(['production_order_number' => 'PO-'.uniqid(), 'product_id' => $product->product_id, 'product_revision_id' => $product->id, 'order_type' => 'STOCK', 'status' => 'RELEASED', 'planned_qty' => 100, 'uom' => 'piece']);
+
+        return MouldingRun::create(['run_number' => 'MR-'.uniqid(), 'production_order_id' => $order->id, 'pattern_revision_id' => $revision->id, 'run_date' => today(), 'status' => 'PLANNED', 'planned_mould_qty' => $moulds, 'cavity_numbers' => $cavityNumbers ?: null]);
+    }
+
+    public function test_a_run_shows_the_cores_its_moulds_need_and_what_is_short(): void
+    {
+        $run = $this->mouldingRun(3);
+        $this->make(['quantity_made' => 5, 'location' => 'Rack 1']);
+
+        $need = app(\App\Domains\Tooling\Services\CoreLotService::class)->needsForRun($run)[0];
+
+        $this->assertSame([4, 12, 0, 5, 7], [$need['per_mould'], $need['needed'], $need['issued'], $need['on_hand'], $need['short']]);
+        $this->get(route('moulding-runs.show', $run))->assertOk()->assertSee('7 short');
+    }
+
+    public function test_a_run_that_uses_some_cavities_needs_cores_for_those_only(): void
+    {
+        $run = $this->mouldingRun(2, [1]);
+
+        $this->assertSame(4, app(\App\Domains\Tooling\Services\CoreLotService::class)->needsForRun($run)[0]['needed']);
+    }
+
+    public function test_cores_issued_to_a_run_come_from_the_oldest_lots_first(): void
+    {
+        $run = $this->mouldingRun(2);
+        $old = $this->make(['quantity_made' => 3, 'made_on' => today()->subDays(2)->format('Y-m-d')]);
+        $new = $this->make(['quantity_made' => 10]);
+
+        $this->post(route('core-lots.issue-to-run', $run), ['core_definition_id' => $this->core->id, 'quantity' => 5])->assertSessionHasNoErrors();
+
+        $this->assertSame(0, $old->remaining());
+        $this->assertSame(8, $new->remaining());
+        $this->assertSame(5, (int) \App\Models\CoreLotUse::where('moulding_run_id', $run->id)->sum('quantity'));
+        $this->assertSame(5, app(\App\Domains\Tooling\Services\CoreLotService::class)->needsForRun($run)[0]['issued']);
+    }
+
+    public function test_issuing_more_than_can_be_used_issues_nothing(): void
+    {
+        $run = $this->mouldingRun(2);
+        $lot = $this->make(['quantity_made' => 4]);
+
+        $this->post(route('core-lots.issue-to-run', $run), ['core_definition_id' => $this->core->id, 'quantity' => 6])->assertSessionHasErrors('quantity');
+
+        $this->assertSame(4, $lot->remaining());
     }
 }

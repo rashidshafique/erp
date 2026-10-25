@@ -117,6 +117,19 @@ class CoreLotController extends Controller
         return back()->with('success', "{$data['quantity']} ".($data['kind'] === 'USED' ? 'used' : 'scrapped').' from lot '.$coreLot->lot_number.'.');
     }
 
+    /** Issues the cores a moulding run needs from stock, oldest lots first. */
+    public function issueToRun(Request $request, MouldingRun $mouldingRun, CoreLotService $service): RedirectResponse
+    {
+        $data = $request->validate([
+            'core_definition_id' => ['required', 'uuid', Rule::exists('core_definitions', 'id')],
+            'quantity' => ['required', 'integer', 'min:1', 'max:100000'],
+        ]);
+        $core = CoreDefinition::withTrashed()->findOrFail($data['core_definition_id']);
+        $service->issueToRun($core, (int) $data['quantity'], $mouldingRun);
+
+        return back()->with('success', "{$data['quantity']} {$core->name} issued to {$mouldingRun->run_number}.");
+    }
+
     public function editRules(): View
     {
         return view('settings.rules', [

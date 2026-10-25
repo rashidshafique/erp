@@ -97,6 +97,7 @@ Route::middleware('web')->group(function () {
         Route::put('/{coreLot}/check', 'check')->name('check');
         Route::post('/{coreLot}/take', 'take')->name('take');
     });
+    Route::post('/moulding-runs/{mouldingRun}/cores', [CoreLotController::class, 'issueToRun'])->name('core-lots.issue-to-run');
     Route::get('/settings/cores', [CoreLotController::class, 'editRules'])->name('settings.cores.edit');
     Route::put('/settings/cores', [CoreLotController::class, 'updateRules'])->name('settings.cores');
 

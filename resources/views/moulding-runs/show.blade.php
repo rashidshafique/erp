@@ -231,6 +231,7 @@
         </div>
     </section>
 
+@foreach (app(\App\Domains\Core\ModuleRegistry::class)->panels('moulding-run.show') as $panel)@include($panel, ['run' => $run])@endforeach
 <div class="tab-marker" data-tab-start="Moulds"></div>
 
     <section class="panel" id="assemblies">

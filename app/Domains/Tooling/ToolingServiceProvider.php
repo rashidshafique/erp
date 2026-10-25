@@ -69,7 +69,10 @@ class ToolingServiceProvider extends ModuleServiceProvider
 
     protected function panels(): array
     {
-        return ['product.show' => 'tooling::product-cores-panel'];
+        return [
+            'product.show' => 'tooling::product-cores-panel',
+            'moulding-run.show' => 'tooling::run-cores-panel',
+        ];
     }
 
     protected function permissionRoutes(): array
