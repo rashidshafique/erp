@@ -7,9 +7,9 @@
     .tabbar button:hover { color: var(--text); background: var(--surface); }
     .tabbar button[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); background: var(--surface); }
     .tabbar button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-    .tab-count { display: inline-block; min-width: 18px; margin-left: 6px; padding: 0 6px; border-radius: 999px; font-size: 11px; line-height: 1.6; text-align: center; color: #fff; }
-    .tab-count-warn { background: #d4a017; color: #3d2c00; }
-    .tab-count-block { background: var(--danger); }
+    .tab-count { display: inline-block; min-width: 18px; margin-left: 6px; padding: 0 7px; border-radius: 6px; font-size: 11px; font-weight: 600; line-height: 1.6; text-align: center; }
+    .tab-count-warn { background: #fff3cd; color: #7a5b00; }
+    .tab-count-block { background: #fce8e6; color: #a12820; }
     .tab-pane[hidden] { display: none; }
     @media print { .tabbar { display: none; } .tab-pane[hidden] { display: block; } }
 </style>
