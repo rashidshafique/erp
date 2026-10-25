@@ -95,16 +95,24 @@
         </tbody>
     </table></div>
     @if (in_array($order->status, \App\Domains\Sales\Models\SalesOrder::OPEN, true))
-        <form method="POST" action="" class="panel-body" onsubmit="this.action = this.dataset.base.replace('LINE', this.line.value)" data-base="{{ route('sales-orders.lines.deliveries.store', [$order, 'LINE']) }}">@csrf
-            <div class="form-grid">
-                <div class="field"><label for="d-line">Line</label><select id="d-line" name="line" data-search-select>@foreach ($order->lines as $l)<option value="{{ $l->id }}" data-sub="{{ $l->product?->name }}">{{ $l->line_number }} · {{ $l->product?->code }}</option>@endforeach</select></div>
-                <div class="field"><label for="d-date">Due</label><input id="d-date" name="due_date" type="date" required value="{{ old('due_date') }}"></div>
-                <div class="field"><label for="d-qty">Quantity</label><input id="d-qty" name="quantity" type="number" step="any" min="0" required value="{{ old('quantity') }}"></div>
-                <div class="field"><label for="d-note">Note</label><input id="d-note" name="notes" maxlength="200" value="{{ old('notes') }}"></div>
-            </div>
-            @error('quantity')<div class="alert alert-error">{{ $message }}</div>@enderror
-            <button class="btn" type="submit">Add delivery</button>
-        </form>
+        <div class="panel-body"><button type="button" class="btn" data-quick="qd-delivery">+ Add delivery</button></div>
+        @php $photos = \App\Models\Attachment::coverUrlsFor('product', $order->lines->pluck('product_id')->filter()->all()); @endphp
+        <dialog id="qd-delivery" class="qd" aria-labelledby="qd-delivery-title" @if ($errors->has('quantity')) data-reopen="{{ json_encode($errors->getMessages()) }}" @endif>
+            <form method="POST" action="" onsubmit="this.action = this.dataset.base.replace('LINE', this.line.value)" data-base="{{ route('sales-orders.lines.deliveries.store', [$order, 'LINE']) }}">@csrf
+                <div class="qd-head"><h2 id="qd-delivery-title">Add a delivery</h2><button type="button" class="qd-x" data-close aria-label="Close">&times;</button></div>
+                <div class="qd-body">
+                    <div class="alert alert-error qd-errors" role="alert" @unless ($errors->has('quantity')) hidden @endunless>@error('quantity')<div>{{ $message }}</div>@enderror</div>
+                    <div class="qd-fields">
+                        <div class="field"><label for="d-line">Line</label><select id="d-line" name="line" data-search-select="photos">@foreach ($order->lines as $l)<option value="{{ $l->id }}" data-sub="{{ $l->product?->code }} · line {{ $l->line_number }}" @isset($photos[$l->product_id]) data-img="{{ $photos[$l->product_id] }}" @endisset>{{ $l->product?->name }}</option>@endforeach</select></div>
+                        <div class="field"><label for="d-date">Due</label><input id="d-date" name="due_date" type="date" required value="{{ old('due_date') }}"></div>
+                        <div class="field"><label for="d-qty">Quantity</label><input id="d-qty" name="quantity" type="number" step="any" min="0" required value="{{ old('quantity') }}"></div>
+                        <div class="field"><label for="d-note">Note</label><input id="d-note" name="notes" maxlength="200" value="{{ old('notes') }}"></div>
+                    </div>
+                </div>
+                <div class="qd-foot"><button type="button" class="btn" data-close>Cancel</button><button class="btn btn-primary" type="submit">Add delivery</button></div>
+            </form>
+        </dialog>
+        @include('partials.quick-dialog-assets')
     @endif
 </div>
 
