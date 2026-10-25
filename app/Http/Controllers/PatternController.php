@@ -24,6 +24,7 @@ use App\Services\Patterns\PatternOwnership;
 use App\Services\Patterns\RevisionLayout;
 use App\Services\ToolingLifeStatusService;
 use App\Support\Uploads;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -111,6 +112,22 @@ class PatternController extends Controller
                 'OTHER',
             ],
         ]);
+    }
+
+    /** A pattern with just a name and type, from the "New pattern" button of the link dialog; it gets its first revision when linked. */
+    public function storeQuick(Request $request): JsonResponse|RedirectResponse
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'pattern_type' => ['required', Rule::in(array_keys(Pattern::TYPES))],
+        ]);
+        $pattern = new Pattern(['name' => trim($data['name']), 'pattern_type' => $data['pattern_type'], 'status' => 'ACTIVE']);
+        $pattern->withoutMark = true;
+        $pattern->save();
+
+        return $request->wantsJson()
+            ? response()->json(['id' => $pattern->id, 'label' => $pattern->name], 201)
+            : back()->with('success', "Pattern {$pattern->name} added.");
     }
 
     public function store(Request $request)

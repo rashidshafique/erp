@@ -5,7 +5,7 @@
     $patterns = \App\Models\Pattern::with(['revisions' => fn ($q) => $q->orderByDesc('sequence')])->orderBy('name')->orderBy('code')->get();
     $photos = \App\Models\Attachment::coverUrlsFor('pattern', $patterns->pluck('id')->all());
 @endphp
-<div class="field field-full"><label for="lp-pattern">Pattern <span class="required">*</span></label>
+<div class="field field-full"><label for="lp-pattern">Pattern <span class="required">*</span> <a href="{{ route('patterns.create') }}" class="qd-add" data-quick="qd-new-pattern" data-quick-target="lp-pattern">+ New pattern</a></label>
     <select id="lp-pattern" name="pattern_id" required data-search-select="photos">
         <option value="">Choose a pattern…</option>
         @foreach ($patterns as $p)

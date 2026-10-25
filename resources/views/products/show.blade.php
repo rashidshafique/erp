@@ -29,6 +29,7 @@
 @unless ($product->trashed())
 @include('partials.search-select')
 @include('partials.quick-dialog', ['id' => 'qd-link-pattern', 'title' => 'Link a pattern to '.$product->code, 'action' => route('products.link-pattern', $product), 'submit' => 'Link pattern', 'fields' => 'products._link-pattern-fields'])
+@include('partials.quick-dialog', ['id' => 'qd-new-pattern', 'title' => 'New pattern', 'action' => route('patterns.quick'), 'submit' => 'Add pattern', 'fields' => 'products._new-pattern-fields'])
 @endunless
 <div class="tab-marker" data-tab-start="Specification"></div>
 <div class="panel">

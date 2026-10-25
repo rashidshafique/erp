@@ -46,6 +46,23 @@ class ProductPatternsTest extends TestCase
         $this->get(route('products.show', $product))->assertOk()->assertSee('Cap plate')->assertDontSee('<details class="mo-earlier">', false);
     }
 
+    public function test_a_new_pattern_can_be_added_from_the_link_dialog_and_gets_its_first_revision_when_linked(): void
+    {
+        $product = Product::create(['code' => 'VALVE-3', 'name' => 'Valve seat']);
+        ProductRevision::create(['product_id' => $product->id, 'revision' => 'A', 'status' => 'APPROVED']);
+
+        $this->get(route('products.show', $product))->assertOk()->assertSee('+ New pattern')->assertSee('id="qd-new-pattern"', false);
+        $this->postJson(route('patterns.quick'), ['name' => ''])->assertUnprocessable()->assertJsonValidationErrors(['name', 'pattern_type']);
+
+        $id = $this->postJson(route('patterns.quick'), ['name' => 'Seat plate', 'pattern_type' => 'MATCHPLATE'])->assertCreated()->assertJsonPath('label', 'Seat plate')->json('id');
+        $pattern = Pattern::findOrFail($id);
+        $this->assertNotEmpty($pattern->code);
+        $this->assertSame(0, $pattern->revisions()->count());
+
+        $this->post(route('products.link-pattern', $product), ['pattern_id' => $id])->assertSessionHasNoErrors();
+        $this->assertSame(1, $pattern->revisions()->count());
+    }
+
     public function test_a_product_with_no_pattern_says_so(): void
     {
         $product = Product::create(['code' => 'PUMP-1', 'name' => 'Pump housing']);

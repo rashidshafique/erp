@@ -90,6 +90,7 @@ Route::prefix('patterns')->name('patterns.')->controller(PatternController::clas
     Route::get('/create', 'create')->name('create');
     Route::post('/', 'store')->name('store');
     Route::post('/first-revisions', 'storeFirstRevisions')->name('first-revisions.store');
+    Route::post('/quick', 'storeQuick')->name('quick');
     Route::get('/{pattern}/edit', 'edit')->name('edit');
     Route::put('/{pattern}', 'update')->name('update');
     Route::get('/{pattern}', 'show')->name('show')->withTrashed();
