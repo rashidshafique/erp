@@ -185,13 +185,8 @@ class HeatPlanner
     /** Creates a melting heat for a grade on a furnace, numbered for the day it is planned. */
     public function startHeat(Furnace $furnace, IronGrade $grade, float $kg, CarbonInterface $day, ?string $operator = null, ?string $note = null): Heat
     {
-        $date = $day->format('Ymd');
-        DB::select('SELECT pg_advisory_xact_lock(hashtext(?))', ['heat-number-'.$date]);
-        $last = (int) Heat::where('heat_number', 'like', "H-{$date}-%")
-            ->selectRaw("COALESCE(MAX(CAST(SPLIT_PART(heat_number, '-', 3) AS INTEGER)), 0) AS m")->value('m');
-
         return Heat::create([
-            'heat_number' => "H-{$date}-".str_pad((string) ($last + 1), 3, '0', STR_PAD_LEFT),
+            'heat_number' => app(\App\Services\Production\HeatNumber::class)->next($day),
             'furnace_id' => $furnace->id,
             'process_type' => $furnace->furnace_type,
             'status' => 'PLANNED',

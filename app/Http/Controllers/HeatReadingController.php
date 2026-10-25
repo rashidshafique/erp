@@ -383,21 +383,8 @@ class HeatReadingController extends Controller
 
         $filled = 0;
         $heat = DB::transaction(function () use ($validated, $furnace, $request, &$filled) {
-            $date = now()->format('Ymd');
-
-            // Serialize heat-number generation for the same date in PostgreSQL.
-            DB::select(
-                'SELECT pg_advisory_xact_lock(hashtext(?))',
-                ['heat-number-'.$date]
-            );
-
-            $lastNumber = (int) Heat::query()
-                ->where('heat_number', 'like', 'H-'.$date.'-%')
-                ->selectRaw("COALESCE(MAX(CAST(SPLIT_PART(heat_number, '-', 3) AS INTEGER)), 0) AS max_number")
-                ->value('max_number');
-
             $heat = Heat::create([
-                'heat_number' => 'H-'.$date.'-'.str_pad((string) ($lastNumber + 1), 3, '0', STR_PAD_LEFT),
+                'heat_number' => app(\App\Services\Production\HeatNumber::class)->next(now()),
                 'furnace_id' => $furnace->id,
                 'process_type' => $furnace->furnace_type,
                 'iron_grade_id' => $validated['iron_grade_id'] ?? null,

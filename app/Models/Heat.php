@@ -135,16 +135,21 @@ class Heat extends Model
 
     /**
      * A compact heat number for tight places: the day's sequence ("#007") for a heat numbered today, otherwise the day and
-     * sequence ("22/10 #007"). A number that is not in the usual H-YYYYMMDD-NNN form is returned whole.
+     * sequence ("22/10 #007"). Both number forms are read: H-2610-25 and H-2610-25-1 (the first and second of 25 October 2026), and the
+     * older H-YYYYMMDD-NNN. Any other number is returned whole.
      */
     public function shortNumber(): string
     {
-        if (! preg_match('/^H-(\d{4})(\d{2})(\d{2})-(\d+)$/', (string) $this->heat_number, $m)) {
+        if (preg_match('/^H-(\d{2})(\d{2})-(\d{2})(?:-(\d+))?$/', (string) $this->heat_number, $m)) {
+            [$year, $month, $day, $sequence] = ['20'.$m[1], $m[2], $m[3], (int) ($m[4] ?? 0) + 1];
+        } elseif (preg_match('/^H-(\d{4})(\d{2})(\d{2})-(\d+)$/', (string) $this->heat_number, $m)) {
+            [$year, $month, $day, $sequence] = [$m[1], $m[2], $m[3], (int) $m[4]];
+        } else {
             return (string) $this->heat_number;
         }
-        $sequence = '#'.str_pad((string) (int) $m[4], 3, '0', STR_PAD_LEFT);
+        $sequence = '#'.str_pad((string) $sequence, 3, '0', STR_PAD_LEFT);
 
-        return $m[1].$m[2].$m[3] === now()->format('Ymd') ? $sequence : $m[3].'/'.$m[2].' '.$sequence;
+        return $year.$month.$day === now()->format('Ymd') ? $sequence : $day.'/'.$month.' '.$sequence;
     }
 
     public function isCupola(): bool
