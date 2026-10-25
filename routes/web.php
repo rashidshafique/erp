@@ -213,6 +213,9 @@ Route::post(
     '/heats/{heat}/charge-entries',
     [HeatMaterialConsumptionController::class, 'store']
 )->name('heats.charge-entries.store');
+Route::put('/heats/{heat}/charge-entries/{entry}', [HeatMaterialConsumptionController::class, 'update'])->name('heats.charge-entries.update');
+Route::delete('/heats/{heat}/charge-entries/{entry}', [HeatMaterialConsumptionController::class, 'destroy'])->name('heats.charge-entries.destroy');
+Route::post('/heats/{heat}/charge-rounds/{round}/restore', [HeatMaterialConsumptionController::class, 'restore'])->whereNumber('round')->name('heats.charge-rounds.restore');
 
 Route::prefix('heats')
     ->name('heats.')

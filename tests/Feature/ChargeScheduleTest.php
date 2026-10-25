@@ -264,4 +264,66 @@ class ChargeScheduleTest extends TestCase
         $this->get(route('heats.show', $heat))->assertOk()->assertSee('Add back charges')->assertSee('Add back 4 charges')->assertSee('180.0 kg')->assertSee('1 of 5 charges')
             ->assertSee('a charge of 180 kg every 30 min')->assertSee('Charges are also added automatically every minute');
     }
+
+    public function test_the_weight_of_a_charge_entry_can_be_corrected_and_its_cost_follows_at_the_same_price(): void
+    {
+        $this->actingAs(User::factory()->create(['name' => 'Melter Ali']));
+        [$heat, $iron] = $this->cupola();
+        $this->charged($heat, $iron, 1, 30, 180);
+        $entry = HeatMaterialConsumption::where('heat_id', $heat->id)->sole();
+
+        $this->get(route('heats.show', $heat))->assertOk()->assertSee(route('heats.charge-entries.update', [$heat, $entry]), false);
+        $this->put(route('heats.charge-entries.update', [$heat, $entry]), ['actual_qty_kg' => 150.5])->assertSessionHasNoErrors();
+
+        $entry->refresh();
+        $this->assertSame([150.5, 7525.0], [(float) $entry->actual_qty_kg, (float) $entry->actual_total_cost]);   // 150.5 kg at 50 a kg
+        $this->assertStringContainsString('Weight changed from 180.000 kg to 150.500 kg by Melter Ali', $entry->notes);
+        $this->assertEqualsWithDelta(150.5, $heat->fresh()->chargedMetalKg(), 0.001);
+        $this->put(route('heats.charge-entries.update', [$heat, $entry]), ['actual_qty_kg' => 0])->assertSessionHasErrors('actual_qty_kg');
+    }
+
+    public function test_deleting_the_last_entry_of_a_charge_marks_it_skipped_so_it_is_not_added_back_until_restored(): void
+    {
+        $this->travelTo(now()->setTime(10, 0));
+        [$heat, $iron, $coke] = $this->cupola();
+        $heat->update(['actual_start_at' => now()->subHours(2), 'blast_on_at' => now()->subHours(2), 'target_metal_weight_kg' => 360]);   // two charges, due 08:30 and 09:00
+        $this->charged($heat, $iron, 1, 100, 180);
+        $this->charged($heat, $coke, 1, 100, 25);
+        $entries = HeatMaterialConsumption::where('heat_id', $heat->id)->where('charge_round', 1)->get();
+
+        $this->delete(route('heats.charge-entries.destroy', [$heat, $entries[0]]))->assertSessionHasNoErrors();
+        $this->assertSame([], $heat->fresh()->skippedChargeRounds(), 'One line of the charge is still in.');
+        $this->delete(route('heats.charge-entries.destroy', [$heat, $entries[1]]))->assertSessionHas('success', fn ($m) => str_contains($m, 'Charge 1 will not be added automatically'));
+        $this->assertSame([1], $heat->fresh()->skippedChargeRounds());
+
+        $this->artisan('heats:add-due-charges')->assertSuccessful();
+        $this->assertSame([0, 2], HeatMaterialConsumption::where('heat_id', $heat->id)->pluck('charge_round')->unique()->sort()->values()->all(), 'The skipped charge stays out; the others come in.');
+        $this->get(route('heats.show', $heat))->assertSee('Removed on purpose')->assertSee(route('heats.charge-rounds.restore', [$heat, 1]), false);
+
+        $this->post(route('heats.charge-rounds.restore', [$heat, 1]))->assertSessionHasNoErrors();
+        $this->artisan('heats:add-due-charges')->assertSuccessful();
+        $this->assertTrue(HeatMaterialConsumption::where('heat_id', $heat->id)->where('charge_round', 1)->exists());
+        $this->assertSame([], $heat->fresh()->skippedChargeRounds());
+    }
+
+    public function test_entries_cannot_be_changed_on_a_closed_heat_or_after_the_charge_is_posted_or_through_another_heat(): void
+    {
+        [$heat, $iron] = $this->cupola();
+        $other = Heat::create(['heat_number' => 'H-OTHER', 'furnace_id' => $heat->furnace_id, 'process_type' => 'CUPOLA', 'status' => 'MELTING']);
+        $this->charged($heat, $iron, 1, 30, 180);
+        $entry = HeatMaterialConsumption::where('heat_id', $heat->id)->sole();
+
+        $this->delete(route('heats.charge-entries.destroy', [$other, $entry]))->assertNotFound();
+
+        \App\Models\HeatChargePosting::create(['heat_id' => $heat->id, 'total_quantity_kg' => 180, 'total_cost_pkr' => 9000, 'posted_by' => 'Ali', 'posted_at' => now()]);
+        $this->put(route('heats.charge-entries.update', [$heat, $entry]), ['actual_qty_kg' => 10])->assertSessionHasErrors('actual_qty_kg');
+        $this->get(route('heats.show', $heat))->assertOk()->assertDontSee(route('heats.charge-entries.destroy', [$heat, $entry]), false);
+        \App\Models\HeatChargePosting::where('heat_id', $heat->id)->delete();
+
+        $heat->update(['status' => 'CLOSED']);
+        $this->put(route('heats.charge-entries.update', [$heat, $entry]), ['actual_qty_kg' => 10])->assertSessionHasErrors('actual_qty_kg');
+        $this->delete(route('heats.charge-entries.destroy', [$heat, $entry]))->assertSessionHasErrors('actual_qty_kg');
+        $this->assertSame(180.0, (float) $entry->fresh()->actual_qty_kg);
+        $this->get(route('heats.show', $heat))->assertOk()->assertDontSee(route('heats.charge-entries.update', [$heat, $entry]), false);
+    }
 }

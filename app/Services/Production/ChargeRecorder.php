@@ -92,6 +92,9 @@ class ChargeRecorder
         }
 
         DB::transaction(function () use ($heat, $lines, $round, $by, $at, $notes) {
+            if (in_array($round, $heat->skippedChargeRounds(), true)) {
+                $heat->update(['skipped_charge_rounds' => array_values(array_diff($heat->skippedChargeRounds(), [$round]))]);   // recorded after all
+            }
             foreach ($lines as $line) {
                 $lotId = $line['material_lot_id'] ?? $this->defaultLot($line['material_id'])?->id;
                 $this->record($heat, [

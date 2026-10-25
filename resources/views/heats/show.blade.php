@@ -192,6 +192,9 @@
 
 <div class="tab-marker" data-tab-start="Overview"></div>
 <style>
+    .entry-edit { display: inline-block; position: relative; vertical-align: middle; }
+    .entry-edit > summary { list-style: none; }
+    .entry-edit[open] > form { position: absolute; right: 0; top: 30px; z-index: 5; width: 220px; padding: 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); box-shadow: 0 8px 24px rgb(15 23 42 / 18%); display: grid; gap: 6px; }
     .addback { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; margin: 4px 0 14px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--hover, #f7f8fa); }
     .heat-overview { display: grid; grid-template-columns: minmax(0, 1fr) 500px; gap: 16px; align-items: start; }
     .heat-overview > div { display: grid; gap: 16px; min-width: 0; }
@@ -367,6 +370,13 @@
             </div>
             @error('charge_round')<div class="alert alert-error">{{ $message }}</div>@enderror
         @endif
+        @if ($heat->skippedChargeRounds() !== [] && ! $closedHeat)
+            <p class="small" style="margin:0 0 14px">Removed on purpose, so not added automatically:
+                @foreach ($heat->skippedChargeRounds() as $skippedRound)
+                    <form method="POST" action="{{ route('heats.charge-rounds.restore', [$heat, $skippedRound]) }}" style="display:inline">@csrf<button class="btn btn-small" type="submit" title="Put it back on the schedule">{{ $skippedRound === 0 ? 'Start-up charge' : 'Charge '.$skippedRound }}: restore</button></form>
+                @endforeach
+            </p>
+        @endif
         <p class="muted small">The recipe quantities are filled in. Change a weight if it was different, then record. The oldest accepted lot of each material is used unless you pick another.</p>
         <form method="POST" action="{{ route('heats.charge-rounds.store', $heat) }}">
             @csrf
@@ -517,6 +527,8 @@
     </div>
 </div>
 
+@php $canChangeEntries = ! $closedHeat && ! $chargeIsPosted; @endphp
+@error('actual_qty_kg')<div class="alert alert-error">{{ $message }}</div>@enderror
 <div class="panel">
     <div class="panel-header">
         <h2>Actual charge history</h2>
@@ -528,7 +540,7 @@
                 <tr>
                     <th>#</th><th>Type</th><th>Material</th><th>Lot / reference</th>
                     <th>Round</th><th>Quantity kg</th><th>Cost PKR/kg</th><th>Total cost PKR</th>
-                    <th>Recorded at</th><th>Operator</th>
+                    <th>Recorded at</th><th>Operator</th>@if ($canChangeEntries)<th></th>@endif
                 </tr>
             </thead>
             <tbody>
@@ -549,9 +561,23 @@
                         <td>{{ \App\Support\Formats::number((float) $entry->actual_total_cost, 2) }}</td>
                         <td>{{ $entry->consumed_at?->displayDateTime() ?? '—' }}</td>
                         <td>{{ $entry->recorded_by }}</td>
+                        @if ($canChangeEntries)
+                            <td style="white-space:nowrap">
+                                <details class="entry-edit"><summary class="icon-btn icon-btn-edit" title="Change the weight" aria-label="Change the weight of {{ $entry->material?->name }}">{!! \App\Support\NavIcons::get('pencil', 16) !!}</summary>
+                                    <form method="POST" action="{{ route('heats.charge-entries.update', [$heat, $entry]) }}">@csrf @method('PUT')
+                                        <label class="small muted" for="qty-{{ $entry->id }}">{{ $entry->material?->name }}, kg</label>
+                                        <input id="qty-{{ $entry->id }}" name="actual_qty_kg" type="number" step="any" min="0.001" required value="{{ rtrim(rtrim((string) $entry->actual_qty_kg, '0'), '.') }}">
+                                        <button class="btn btn-small btn-primary" type="submit">Save</button>
+                                    </form>
+                                </details>
+                                <form method="POST" action="{{ route('heats.charge-entries.destroy', [$heat, $entry]) }}" style="display:inline">@csrf @method('DELETE')
+                                    @include('partials.icon-button', ['type' => 'delete', 'name' => $entry->material?->name, 'confirm' => 'Remove '.($entry->material?->name ?? 'this entry').' ('.\App\Support\Formats::number((float) $entry->actual_qty_kg, 3).' kg) from the charges?'])
+                                </form>
+                            </td>
+                        @endif
                     </tr>
                 @empty
-                    <tr><td colspan="10" class="muted">No actual charge entries recorded yet.</td></tr>
+                    <tr><td colspan="{{ $canChangeEntries ? 11 : 10 }}" class="muted">No actual charge entries recorded yet.</td></tr>
                 @endforelse
             </tbody>
         </table>

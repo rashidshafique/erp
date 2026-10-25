@@ -25,7 +25,7 @@ class ChargeSchedule
      *     rounds: Collection<int, array{round: int, due_at: ?CarbonInterface, recorded_at: ?CarbonInterface, state: string, minutes: ?int}>,
      *     next: ?array{round: int, due_at: ?CarbonInterface, recorded_at: ?CarbonInterface, state: string, minutes: ?int},
      *     reason: ?string
-     * } state is "done", "due" (its time has come), "upcoming" (the next one, not yet due), "projected" (a later one, timed from the next) or "waiting" (the heat has not started, so no time can be given).
+     * } state is "done", "skipped" (removed on purpose, so not added back), "due" (its time has come), "upcoming" (the next one, not yet due), "projected" (a later one, timed from the next) or "waiting" (the heat has not started, so no time can be given).
      */
     public function for(Heat $heat): array
     {
@@ -40,6 +40,7 @@ class ChargeSchedule
         $measured = $this->eta->rate($heat);
         $hasBed = $batch->items->where('charge_stage', 'BED')->isNotEmpty();
         $total = $heat->chargeRounds();
+        $skipped = $heat->skippedChargeRounds();
         $charged = $heat->materialConsumptions->whereNotNull('charge_round')->groupBy('charge_round')
             ->map(fn (Collection $entries) => $entries->max('consumed_at'));
 
@@ -72,9 +73,10 @@ class ChargeSchedule
             $previousDue = $recordedAt ?? $due;
             $state = match (true) {
                 $recordedAt !== null => 'done',
+                in_array($round, $skipped, true) => 'skipped',
                 $due === null => 'waiting',
                 // Only the first charge not yet in can be due; the ones after it are projections that move as charges go in.
-                $rounds->contains(fn ($r) => $r['state'] !== 'done') => 'projected',
+                $rounds->contains(fn ($r) => ! in_array($r['state'], ['done', 'skipped'], true)) => 'projected',
                 $due->lte(now()) => 'due',
                 default => 'upcoming',
             };
@@ -86,7 +88,7 @@ class ChargeSchedule
             'rate' => $measured ? $measured + ['label' => ['live' => 'live rate', 'recorded' => 'recorded average', 'rated' => 'rated speed'][$measured['source']].' '.number_format($measured['rate']).' kg/h'] : null,
             'interval_minutes' => $interval, 'metal_per_round_kg' => $perRound > 0 ? $perRound : null,
             'rounds' => $rounds, 'reason' => $reason,
-            'next' => in_array($heat->status, ['CLOSED', 'CANCELLED'], true) ? null : $rounds->firstWhere('state', '!=', 'done'),
+            'next' => in_array($heat->status, ['CLOSED', 'CANCELLED'], true) ? null : $rounds->first(fn ($r) => ! in_array($r['state'], ['done', 'skipped'], true)),
         ];
     }
 
@@ -98,7 +100,7 @@ class ChargeSchedule
      */
     public function past(array $plan): Collection
     {
-        return $plan['rounds']->filter(fn ($r) => $r['state'] !== 'done' && $r['due_at'] !== null && $r['due_at']->lte(now()))->values();
+        return $plan['rounds']->filter(fn ($r) => ! in_array($r['state'], ['done', 'skipped'], true) && $r['due_at'] !== null && $r['due_at']->lte(now()))->values();
     }
 
     /**

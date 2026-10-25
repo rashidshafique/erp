@@ -38,11 +38,13 @@ class Heat extends Model
         'hold_note',
         'held_at',
         'charge_rounds',
+        'skipped_charge_rounds',
     ];
 
     protected function casts(): array
     {
         return [
+            'skipped_charge_rounds' => 'array',
             'planned_start_at' => 'datetime',
             'actual_start_at' => 'datetime',
             'melt_completed_at' => 'datetime',
@@ -71,6 +73,12 @@ class Heat extends Model
         $recorded = (int) ($this->relationLoaded('materialConsumptions') ? $this->materialConsumptions->max('charge_round') : $this->materialConsumptions()->max('charge_round'));
 
         return max(1, $planned, $recorded);
+    }
+
+    /** The charges someone removed on purpose; the schedule does not add them back. @return list<int> */
+    public function skippedChargeRounds(): array
+    {
+        return array_values(array_map('intval', $this->skipped_charge_rounds ?? []));
     }
 
     /** The charges the target needs, or null when the heat is not a cupola or has no target or recipe weight to work it from. */
