@@ -7,6 +7,7 @@
 <div class="page-heading">
     <div><h1>{{ $order->order_number }}</h1><p>{{ $order->customer?->code }} — {{ $order->customer?->name }}</p></div>
     <div class="actions">
+        @if (in_array($order->status, \App\Domains\Sales\Models\SalesOrder::OPEN, true))<a class="btn" href="{{ route('sales-orders.edit', $order) }}">Edit</a>@endif
         <a class="btn" href="{{ route('sales-orders.trace', $order) }}">Trace to dispatch</a>
         @if (Route::has('invoices.create'))<a class="btn" href="{{ route('invoices.create', ['order' => $order->id]) }}">Raise invoice</a>@endif
         @php $changes = app(\App\Domains\Sales\Services\SalesOrderStatus::class)->allowedFrom($order); @endphp

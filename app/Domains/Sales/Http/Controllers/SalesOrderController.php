@@ -11,6 +11,7 @@ use App\Models\ProductRevision;
 use App\Domains\Sales\Models\SalesOrder;
 use App\Domains\Sales\Models\SalesOrderLine;
 use App\Domains\Sales\Services\ContractReviewer;
+use App\Domains\Sales\Services\SalesOrderEditor;
 use App\Services\Orders\ProductionOrderFactory;
 use App\Rules\ProductRevisionChoice;
 use Illuminate\Http\RedirectResponse;
@@ -103,6 +104,39 @@ class SalesOrderController extends Controller
         $shipped = \Illuminate\Support\Facades\DB::table('dispatch_items')->whereIn('sales_order_line_id', $salesOrder->lines->pluck('id'))->selectRaw('sales_order_line_id, sum(quantity_dispatched) q')->groupBy('sales_order_line_id')->pluck('q', 'sales_order_line_id');
 
         return view('sales::orders.show', ['order' => $salesOrder, 'review' => $review, 'shipped' => $shipped]);
+    }
+
+    public function edit(SalesOrder $salesOrder, SalesOrderEditor $editor): View|RedirectResponse
+    {
+        if (! $editor->isEditable($salesOrder)) {
+            return redirect()->route('sales-orders.show', $salesOrder)->withErrors(['order' => 'A closed order cannot be edited.']);
+        }
+        $salesOrder->load(['lines.product', 'lines.productionOrders']);
+
+        return view('sales::orders.edit', ['order' => $salesOrder, 'needsReason' => $editor->needsReason($salesOrder)] + $this->create()->getData());
+    }
+
+    public function update(Request $request, SalesOrder $salesOrder, SalesOrderEditor $editor): RedirectResponse
+    {
+        $request->merge(['lines' => array_values(array_filter((array) $request->input('lines', []), fn ($l) => empty($l['remove']) && (! empty($l['id']) || ! empty($l['product_revision_id']))))]);
+
+        $data = $request->validate([
+            'customer_id' => ['required', 'uuid', Rule::exists('customers', 'id')->whereNull('deleted_at')],
+            'customer_reference' => ['nullable', 'string', 'max:100'],
+            'order_date' => ['required', 'date'],
+            'requested_delivery_date' => ['nullable', 'date', 'after_or_equal:order_date'],
+            'notes' => ['nullable', 'string', 'max:3000'],
+            'reason' => [$editor->needsReason($salesOrder) ? 'required' : 'nullable', 'string', 'min:5', 'max:300'],
+            'lines' => ['required', 'array', 'min:1', 'max:50'],
+            'lines.*.id' => ['nullable', 'uuid'],
+            'lines.*.product_revision_id' => ['required_without:lines.*.id', 'nullable', new ProductRevisionChoice],
+            'lines.*.ordered_qty' => ['required', 'numeric', 'gt:0', 'max:999999999'],
+            'lines.*.unit_price' => ['nullable', 'numeric', 'min:0'],
+            'lines.*.requested_delivery_date' => ['nullable', 'date'],
+        ]);
+        $reviewStale = $editor->update($salesOrder, $data, $data['reason'] ?? null);
+
+        return redirect()->route('sales-orders.show', $salesOrder)->with('success', "Order {$salesOrder->order_number} updated.".($reviewStale ? ' The lines changed after the contract review was approved, so run the review again.' : ''));
     }
 
     public function review(SalesOrder $salesOrder, ContractReviewer $reviewer): RedirectResponse

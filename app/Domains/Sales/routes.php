@@ -10,6 +10,8 @@ Route::middleware('web')->group(function () {
         Route::get('/create', 'create')->name('create');
         Route::post('/', 'store')->name('store');
         Route::get('/{salesOrder}', 'show')->name('show');
+        Route::get('/{salesOrder}/edit', 'edit')->name('edit');
+        Route::put('/{salesOrder}', 'update')->name('update');
         Route::post('/{salesOrder}/status', 'changeStatus')->name('status');
         Route::post('/{salesOrder}/review', 'review')->name('review');
         Route::post('/{salesOrder}/review/acknowledge', 'acknowledge')->name('review.acknowledge');
