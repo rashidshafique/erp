@@ -30,7 +30,7 @@ class ProductPatternsTest extends TestCase
             ->assertSee('data-tab-start="Patterns"', false)
             ->assertSee('<a href="'.route('patterns.show', $pattern).'">Valve body plate</a>', false)
             ->assertSee(route('patterns.show', $pattern).'#cavities-'.$current->id, false)
-            ->assertSeeInOrder(['VALVE-1 Rev A', 'Current', '3 cavities', '<strong>3</strong>per mould', '1 earlier revision', 'VALVE-1 Rev A', 'Superseded'], false)
+            ->assertSeeInOrder(['P-0123 Rev 1', 'Current', '3 cavities', '<strong>3</strong>per mould', '1 earlier revision', 'P-0123 Rev 0', 'Superseded'], false)
             ->assertSee('<details class="mo-earlier">', false);
     }
 
