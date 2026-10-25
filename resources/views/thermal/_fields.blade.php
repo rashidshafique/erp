@@ -7,6 +7,11 @@
     $old = fn ($key, $default = null) => $mine ? old($key, $default) : $default;
     $f = fn ($cup, $k) => $old($cup.'.'.$k);
     $nowLocal = now()->format('Y-m-d\TH:i');
+    // Thermal analysis units come first and one is chosen for a new test, preferring one whose calibration is in date.
+    $isAnalyser = fn ($g) => $g->instrument_type === 'THERMAL_ANALYSER';
+    $gauges = $gauges->sortBy(fn ($g) => ($isAnalyser($g) ? '0' : '1').$g->code)->values();
+    $inDate = fn ($g) => ! in_array($g->calibrationStatus(), ['OVERDUE', 'NOT_CALIBRATED'], true);
+    $defaultGauge = $gauges->first(fn ($g) => $isAnalyser($g) && $inDate($g)) ?? $gauges->first($isAnalyser);
     $timeFields = fn (string $p, string $k) => '<div class="cup-times">'
         .'<div class="field"><div class="lbl-row"><label for="'.$ip.$p.'_taken">Sample taken</label><button type="button" class="now-link" data-now="'.$ip.$p.'_taken">now</button></div><input id="'.$ip.$p.'_taken" name="'.$k.'[taken_at]" type="datetime-local" value="'.e($old($k.'.taken_at', $nowLocal)).'"></div>'
         .'<div class="field"><div class="lbl-row"><label for="'.$ip.$p.'_start">Test started</label><button type="button" class="now-link" data-now="'.$ip.$p.'_start">now</button></div><input id="'.$ip.$p.'_start" name="'.$k.'[test_started_at]" type="datetime-local" value="'.e($old($k.'.test_started_at')).'"></div>'
@@ -30,7 +35,7 @@
         <select id="{{ $ip }}stage" name="stage">@foreach (['BASE' => 'Base iron (before treatment)', 'POST_TREATMENT' => 'After treatment / inoculation', 'PRE_POUR' => 'Pre-pour check'] as $k => $l)<option value="{{ $k }}" @selected($old('stage', 'POST_TREATMENT') === $k)>{{ $l }}</option>@endforeach</select></div>
     <div class="field"><label for="{{ $ip }}taken_by">Taken by</label><input id="{{ $ip }}taken_by" name="taken_by" maxlength="100" value="{{ $old('taken_by', auth()->user()?->name) }}"></div>
     <div class="field"><label for="{{ $ip }}sample_point">Sampled from</label><select id="{{ $ip }}sample_point" name="sample_point"><option value="">—</option>@foreach (\App\Models\ThermalAnalysisTest::SAMPLE_POINTS as $k => $l)<option value="{{ $k }}" @selected($old('sample_point') === $k)>{{ $l }}</option>@endforeach</select></div>
-    <div class="field"><label for="{{ $ip }}gauge_id">Analyser from the register</label><select id="{{ $ip }}gauge_id" name="gauge_id"><option value="">—</option>@foreach ($gauges as $g)<option value="{{ $g->id }}" @selected($old('gauge_id') === $g->id)>{{ $g->code }} · {{ $g->name }}@if (in_array($g->calibrationStatus(), ['OVERDUE', 'NOT_CALIBRATED'], true)) ({{ strtolower(\App\Services\Quality\CalibrationStatus::LABELS[$g->calibrationStatus()]) }})@endif</option>@endforeach</select></div>
+    <div class="field"><label for="{{ $ip }}gauge_id">Analyser from the register</label><select id="{{ $ip }}gauge_id" name="gauge_id"><option value="">—</option>@foreach ($gauges as $g)<option value="{{ $g->id }}" @selected($old('gauge_id', $defaultGauge?->id) === $g->id)>{{ $g->code }} · {{ $g->name }}@if (in_array($g->calibrationStatus(), ['OVERDUE', 'NOT_CALIBRATED'], true)) ({{ strtolower(\App\Services\Quality\CalibrationStatus::LABELS[$g->calibrationStatus()]) }})@endif</option>@endforeach</select></div>
     <div class="field"><label for="{{ $ip }}inoculant_added_pct">Inoculant added (%)</label><input id="{{ $ip }}inoculant_added_pct" name="inoculant_added_pct" type="number" step="any" min="0" max="2" value="{{ $old('inoculant_added_pct') }}"></div>
     <div class="field"><label for="{{ $ip }}notes">Notes</label><input id="{{ $ip }}notes" name="notes" maxlength="2000" value="{{ $old('notes') }}"></div>
 </div>

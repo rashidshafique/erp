@@ -39,7 +39,7 @@ class ThermalWhiteCupWindowTest extends TestCase
         $grade = $this->grade();
 
         $this->get(route('iron-grades.show', $grade))->assertOk()
-            ->assertSee('white / tellurium cup')->assertSee('name="ce_min" type="number" step="0.01" value="'.$grade->ce_min.'"', false);
+            ->assertSee('white / tellurium cup')->assertSee('name="ce_min" type="number" step="any" value="'.$grade->ce_min.'"', false);
     }
 
     public function test_a_white_cup_window_is_saved_and_never_keeps_eutectic_limits(): void

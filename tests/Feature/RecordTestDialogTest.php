@@ -30,6 +30,17 @@ class RecordTestDialogTest extends TestCase
             'white' => ['carbon' => 3.6, 'silicon' => 2.4, 'tl_c' => 1182, 'solidus_c' => 1121, 'peak_temp_c' => 1385]];
     }
 
+    public function test_the_thermal_test_preselects_the_registered_thermal_analysis_unit(): void
+    {
+        $gauge = fn (string $name, string $type, array $extra = []) => \App\Domains\Maintenance\Models\Gauge::create($extra + ['name' => $name, 'instrument_type' => $type, 'status' => 'IN_SERVICE', 'requires_calibration' => false]);
+        $gauge('Caliper', 'CALIPER');
+        $gauge('Old analyser', 'THERMAL_ANALYSER', ['requires_calibration' => true, 'calibration_interval_days' => 365]);
+        $analyser = $gauge('ATAS cup stand', 'THERMAL_ANALYSER');
+
+        $this->get(route('heats.show', $this->heat()))->assertOk()
+            ->assertSee('<option value="'.$analyser->id.'" selected', false);
+    }
+
     public function test_the_heat_page_offers_the_dialog_with_thermal_and_chemical_tabs_for_its_own_heat(): void
     {
         $heat = $this->heat();

@@ -196,10 +196,10 @@ class ManualThermalEntryTest extends TestCase
         $this->assertSame(0, ThermalAnalysisTest::count());
     }
 
-    public function test_the_entry_form_allows_four_decimals_in_the_browser(): void
+    public function test_the_entry_form_takes_any_decimals_in_the_browser(): void
     {
         $this->get(route('thermal.create'))->assertOk()
-            ->assertSee('name="white[carbon]" type="number" step="0.0001"', false)->assertSee('name="grey[silicon]" type="number" step="0.0001"', false);
+            ->assertSee('name="white[carbon]" type="number" step="any"', false)->assertSee('name="grey[silicon]" type="number" step="any"', false);
     }
 
     public function test_the_test_page_title_is_the_heat_id_without_a_heat_prefix_and_opens_the_heat(): void
