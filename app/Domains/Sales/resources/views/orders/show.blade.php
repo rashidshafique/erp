@@ -167,6 +167,7 @@
     @endif
 </div>
 <div class="tab-marker" data-tab-start="Files & history"></div>
+@include('partials.search-select')
 @include('custom-fields._panel', ['entity' => 'sales_order', 'id' => $order->id])
 @include('attachments._panel', ['type' => 'sales_order', 'id' => $order->id])
 @include('audit._history', ['type' => 'SalesOrder', 'id' => $order->id])
