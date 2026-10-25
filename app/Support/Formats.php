@@ -18,12 +18,26 @@ class Formats
         'ymd-' => ['label' => '2026-10-18 (yyyy-mm-dd)', 'date' => 'Y-m-d', 'short' => 'm-d'],
         'dmy/' => ['label' => '18/10/2026 (dd/mm/yyyy)', 'date' => 'd/m/Y', 'short' => 'd/m'],
         'mdy/' => ['label' => '10/18/2026 (mm/dd/yyyy)', 'date' => 'm/d/Y', 'short' => 'm/d'],
+        'dmy.' => ['label' => '18.10.2026 (dd.mm.yyyy)', 'date' => 'd.m.Y', 'short' => 'd.m'],
+        'ymd/' => ['label' => '2026/10/18 (yyyy/mm/dd)', 'date' => 'Y/m/d', 'short' => 'm/d'],
+        'ymd.' => ['label' => '2026.10.18 (yyyy.mm.dd)', 'date' => 'Y.m.d', 'short' => 'm.d'],
+        'dMYc' => ['label' => '18 October 2026', 'date' => 'd F Y', 'short' => 'd M'],
+        'MdY' => ['label' => 'Oct 18, 2026', 'date' => 'M d, Y', 'short' => 'M d'],
+        'FdY' => ['label' => 'October 18, 2026', 'date' => 'F d, Y', 'short' => 'M d'],
+        'DdMY' => ['label' => 'Sun, 18 Oct 2026', 'date' => 'D, d M Y', 'short' => 'D, d M'],
+        'dMy' => ['label' => '18-Oct-26', 'date' => 'd-M-y', 'short' => 'd-M'],
+        'dmy2' => ['label' => '18/10/26 (dd/mm/yy)', 'date' => 'd/m/y', 'short' => 'd/m'],
     ];
 
     /** @var array<string, array{label:string,time:string}> */
     public const TIMES = [
         '24' => ['label' => '24-hour (14:30)', 'time' => 'H:i'],
         '12' => ['label' => '12-hour (2:30 PM)', 'time' => 'g:i A'],
+        '12l' => ['label' => '12-hour (2:30 pm)', 'time' => 'g:i a'],
+        '12z' => ['label' => '12-hour (02:30 PM)', 'time' => 'h:i A'],
+        '24s' => ['label' => '24-hour with seconds (14:30:15)', 'time' => 'H:i:s'],
+        '12s' => ['label' => '12-hour with seconds (2:30:15 PM)', 'time' => 'g:i:s A'],
+        '24d' => ['label' => '24-hour with dot (14.30)', 'time' => 'H.i'],
     ];
 
     /** @var array<string, array{label:string,dec:string,thou:string}> */
@@ -106,10 +120,10 @@ class Formats
         return $d ? self::date($d).' '.self::time($d) : '';
     }
 
-    /** A moment as the heat screens show it: today's as the 12-hour time alone ("2:05 PM"), earlier ones with their date as well. */
+    /** A moment as the heat screens show it: today's as the time alone ("2:05 PM"), earlier ones with their date as well. */
     public static function at(?CarbonInterface $d): string
     {
-        return $d === null ? '' : ($d->isToday() ? '' : self::shortDate($d).', ').$d->format('g:i A');
+        return $d === null ? '' : ($d->isToday() ? '' : self::shortDate($d).', ').self::time($d);
     }
 
     /** Seconds as a running clock, "1:05:09". */

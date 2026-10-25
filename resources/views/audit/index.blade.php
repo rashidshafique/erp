@@ -8,7 +8,7 @@
 <input name="q" value="{{ request('q') }}" placeholder="Record number or name"><input name="user" value="{{ request('user') }}" placeholder="User">
 <input type="date" name="from" value="{{ request('from') }}"><input type="date" name="to" value="{{ request('to') }}"><button class="btn">Filter</button></form></div></div>
 <div class="panel"><div class="table-wrap"><table><thead><tr><th>When</th><th>Who</th><th>Action</th><th>Record</th><th>Changes</th></tr></thead><tbody>
-@forelse($entries as $e)<tr><td>{{ $e->occurred_at->setTimezone(config('app.timezone'))->format('d M Y H:i:s') }}</td><td>{{ $e->user_name ?? '—' }}<div class="muted small">{{ $e->ip_address }}</div></td><td>{{ $e->action }}</td>
+@forelse($entries as $e)<tr><td>{{ $e->occurred_at->setTimezone(config('app.timezone'))->format(\App\Support\Formats::DATES[\App\Support\Formats::all()['date']]['date'].' H:i:s') }}</td><td>{{ $e->user_name ?? '—' }}<div class="muted small">{{ $e->ip_address }}</div></td><td>{{ $e->action }}</td>
 <td>{{ $e->entity_type }}<div class="small">{{ $e->entity_label }}</div></td><td>@include('audit._changes', ['entry' => $e])</td></tr>
 @empty<tr><td colspan="5" class="muted">No entries match.</td></tr>@endforelse</tbody></table></div><div class="panel-body">{{ $entries->links() }}</div></div>
 @endsection

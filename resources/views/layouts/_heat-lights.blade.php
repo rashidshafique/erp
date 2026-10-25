@@ -6,7 +6,7 @@
             $finishAt = \Illuminate\Support\Facades\Cache::remember('heat-eta-'.$h->id.'-'.$h->updated_at?->timestamp, 30, fn () => ($e = app(\App\Services\Production\HeatEta::class)->for($h)) ? $e['finish_at']->toIso8601String() : '');
         @endphp
         <a class="heat-chip" href="{{ $h->light() === 'green' && $h->pours->first() ? route('pours.show', $h->pours->first()) : route('heats.show', $h) }}"
-            title="{{ $h->heat_number }} · {{ $h->lightLabel() }}@if ($finishAt) · finishes about {{ \Illuminate\Support\Carbon::parse($finishAt)->format('H:i') }}@endif"><x-heat-light :heat="$h" /><span class="heat-no">{{ $h->shortNumber() }}</span>@if ($finishAt)<span class="heat-left" data-finish-at="{{ $finishAt }}" data-eta-url="{{ route('heats.eta', $h) }}"></span>@endif</a>
+            title="{{ $h->heat_number }} · {{ $h->lightLabel() }}@if ($finishAt) · finishes about {{ \App\Support\Formats::time(\Illuminate\Support\Carbon::parse($finishAt)) }}@endif"><x-heat-light :heat="$h" /><span class="heat-no">{{ $h->shortNumber() }}</span>@if ($finishAt)<span class="heat-left" data-finish-at="{{ $finishAt }}" data-eta-url="{{ route('heats.eta', $h) }}"></span>@endif</a>
     @endforeach
     @if ($topbarHeats->count() > 4)<a class="heat-chip" href="{{ route('heats.index') }}">+{{ $topbarHeats->count() - 4 }} more</a>@endif
 </div>
