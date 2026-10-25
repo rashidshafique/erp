@@ -10,13 +10,12 @@
             <div>
                 <div class="mo-name"><a href="{{ route('patterns.show', $pattern) }}#cavities-{{ $rev->id }}">{{ $pattern->name }}</a></div>
                 <div class="mo-meta">
-                    <span class="mono">{{ $pattern->code }}</span>
-                    <span class="mono">{{ $rev->code }}</span>
+                    <span class="mono">{{ $product->code }} Rev {{ $product->revisions->whereIn('id', $g['cavities']->pluck('product_revision_id'))->pluck('revision')->sort()->implode(', ') }}</span>
                     @if ($rev->is_current)<span class="status status-completed">Current</span>@elseif ($rev->isSuperseded())<span class="status status-on-hold">Superseded</span>@endif
                     @if ($pattern->trashed())<span class="status status-cancelled">{{ $pattern->custody === 'RETURNED' ? 'Returned' : ($pattern->custody === 'SCRAPPED' ? 'Scrapped' : 'Archived') }}</span>@endif
                     <span>{{ $pattern->owner_type === 'FOUNDRY' ? 'Foundry-owned' : 'Owner: '.$pattern->ownerLabel() }}</span>
                     <span>{{ \Illuminate\Support\Str::before($rev->arrangementLabel(), ' (') }}</span>
-                    <span>cavit{{ $g['cavities']->count() === 1 ? 'y' : 'ies' }} {{ $g['cavities']->map(fn ($c) => $c->cavity_number.($c->cavity_mark ? ' ('.$c->cavity_mark.')' : ''))->implode(', ') }}@if ($g['cavities']->contains('cavity_role', 'PART')) · {{ $g['cavities']->where('cavity_role', 'PART')->pluck('component_label')->unique()->implode(', ') }}@endif</span>
+                    <span>{{ $g['cavities']->count() }} cavit{{ $g['cavities']->count() === 1 ? 'y' : 'ies' }}@if ($g['cavities']->contains('cavity_role', 'PART')) · {{ $g['cavities']->where('cavity_role', 'PART')->pluck('component_label')->unique()->implode(', ') }}@endif</span>
                 </div>
             </div>
             <div class="mo-count"><strong>{{ rtrim(rtrim(\App\Support\Formats::number($perMould, 2), '0'), '.') }}</strong>per mould</div>
