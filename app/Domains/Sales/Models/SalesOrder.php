@@ -12,6 +12,14 @@ class SalesOrder extends Model
 {
     use HasUuids;
 
+    public const STATUSES = [
+        'DRAFT' => 'Draft', 'UNDER_REVIEW' => 'Under review', 'CONFIRMED' => 'Confirmed', 'IN_PRODUCTION' => 'In production',
+        'ON_HOLD' => 'On hold', 'DISPATCHED' => 'Dispatched', 'CANCELLED' => 'Cancelled',
+    ];
+
+    /** Statuses of an order not yet finished: everything before it is dispatched or cancelled. */
+    public const OPEN = ['DRAFT', 'UNDER_REVIEW', 'CONFIRMED', 'IN_PRODUCTION', 'ON_HOLD'];
+
     protected $fillable = [
         'order_number',
         'customer_id',

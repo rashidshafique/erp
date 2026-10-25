@@ -21,15 +21,22 @@ class PurchaseOrderController extends Controller
     public function index(Request $request): View
     {
         $supplierId = $request->filled('supplier') && Str::isUuid($request->query('supplier')) ? $request->query('supplier') : null;
-        $status = array_key_exists((string) $request->query('status'), PurchaseOrder::STATUSES) || $request->query('status') === 'OPEN' ? $request->query('status') : null;
-        $orders = PurchaseOrder::with('supplier')->when($supplierId, fn ($q) => $q->where('supplier_id', $supplierId))
-            ->when($status === 'OPEN', fn ($q) => $q->whereIn('status', PurchaseOrder::RECEIVING))
-            ->when($status && $status !== 'OPEN', fn ($q) => $q->where('status', $status))
+        $status = array_key_exists((string) $request->query('status'), PurchaseOrder::STATUSES) || in_array($request->query('status'), ['OPEN', 'RECEIVING'], true) ? $request->query('status') : null;
+        $search = trim((string) $request->query('search'));
+        $base = PurchaseOrder::query()->when($supplierId, fn ($q) => $q->where('supplier_id', $supplierId))
+            ->when($search !== '', fn ($q) => $q->where(fn ($q) => $q->where('po_number', 'ilike', "%{$search}%")
+                ->orWhereHas('supplier', fn ($s) => $s->matching($search))));
+        $orders = (clone $base)->with('supplier')
+            ->when($status === 'OPEN', fn ($q) => $q->whereIn('status', PurchaseOrder::OPEN))
+            ->when($status === 'RECEIVING', fn ($q) => $q->whereIn('status', PurchaseOrder::RECEIVING))
+            ->when($status && ! in_array($status, ['OPEN', 'RECEIVING'], true), fn ($q) => $q->where('status', $status))
             ->orderByDesc('order_date')->orderByDesc('created_at')->paginate(25)->withQueryString();
+        $counts = (clone $base)->groupBy('status')->selectRaw('status, count(*) as n')->pluck('n', 'status')->map(fn ($n) => (int) $n);
 
         return view('purchasing::orders.index', [
-            'orders' => $orders, 'supplierId' => $supplierId, 'status' => $status,
-            'suppliers' => Supplier::whereIn('id', PurchaseOrder::select('supplier_id'))->orderedByName()->get(),
+            'orders' => $orders, 'supplierId' => $supplierId, 'status' => $status, 'search' => $search,
+            'supplierName' => $supplierId ? Supplier::find($supplierId)?->name : null,
+            'counts' => $counts->all() + ['OPEN' => $counts->only(PurchaseOrder::OPEN)->sum(), 'RECEIVING' => $counts->only(PurchaseOrder::RECEIVING)->sum(), '' => $counts->sum()],
         ]);
     }
 

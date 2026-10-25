@@ -19,6 +19,9 @@ class PurchaseOrder extends Model
     /** Statuses in which goods may still be received. */
     public const RECEIVING = ['ISSUED', 'PART_RECEIVED'];
 
+    /** Statuses of an order not yet finished: still a draft or waiting for goods. */
+    public const OPEN = ['DRAFT', 'ISSUED', 'PART_RECEIVED'];
+
     protected $guarded = [];
 
     protected function casts(): array

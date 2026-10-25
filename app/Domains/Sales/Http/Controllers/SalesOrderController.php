@@ -23,12 +23,20 @@ class SalesOrderController extends Controller
 {
     public function index(Request $request): View
     {
-        $orders = SalesOrder::with('customer')->withCount('lines')
-            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))
-            ->when($request->filled('search'), fn ($q) => $q->where('order_number', 'ilike', '%'.trim($request->search).'%'))
+        $status = array_key_exists((string) $request->query('status'), SalesOrder::STATUSES) || $request->query('status') === 'OPEN' ? $request->query('status') : null;
+        $search = trim((string) $request->query('search'));
+        $base = SalesOrder::query()->when($search !== '', fn ($q) => $q->where(fn ($q) => $q->where('order_number', 'ilike', "%{$search}%")
+            ->orWhere('customer_reference', 'ilike', "%{$search}%")->orWhereHas('customer', fn ($c) => $c->matching($search))));
+        $orders = (clone $base)->with('customer')->withCount('lines')
+            ->when($status === 'OPEN', fn ($q) => $q->whereIn('status', SalesOrder::OPEN))
+            ->when($status && $status !== 'OPEN', fn ($q) => $q->where('status', $status))
             ->orderByDesc('created_at')->paginate(20)->withQueryString();
+        $counts = (clone $base)->groupBy('status')->selectRaw('status, count(*) as n')->pluck('n', 'status')->map(fn ($n) => (int) $n);
 
-        return view('sales::orders.index', compact('orders'));
+        return view('sales::orders.index', [
+            'orders' => $orders, 'status' => $status, 'search' => $search,
+            'counts' => $counts->all() + ['OPEN' => $counts->only(SalesOrder::OPEN)->sum(), '' => $counts->sum()],
+        ]);
     }
 
     public function create(): View

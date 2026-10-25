@@ -10,26 +10,22 @@
 </div>
 
 
-<div class="panel"><div class="panel-body">
-    <form method="GET" class="filters">
-        <div class="field"><label for="search">Order number</label><input id="search" name="search" value="{{ request('search') }}"></div>
-        <div class="field"><label for="status">Status</label>
-            <select id="status" name="status"><option value="">All</option>
-                @foreach (['DRAFT','UNDER_REVIEW','CONFIRMED','IN_PRODUCTION','ON_HOLD','DISPATCHED','CANCELLED'] as $s)
-                    <option value="{{ $s }}" @selected(request('status') === $s)>{{ str_replace('_', ' ', $s) }}</option>
-                @endforeach
-            </select></div>
-        <button class="btn btn-primary" type="submit">Filter</button>
-        <a class="btn" href="{{ route('sales-orders.index') }}">Reset</a>
+@php $statusTabs = ['OPEN' => 'Open'] + \App\Domains\Sales\Models\SalesOrder::STATUSES + ['' => 'All']; @endphp
+<div class="list-toolbar">
+    <x-status-tabs :options="$statusTabs" :counts="$counts" :current="$status ?? ''" />
+    <form method="GET" role="search">
+        @if ($status)<input type="hidden" name="status" value="{{ $status }}">@endif
+        <input type="search" name="search" value="{{ $search }}" placeholder="Search by order number, customer or reference" aria-label="Search by order number, customer or reference">
+        <button class="btn btn-primary" type="submit">Search</button>
     </form>
-</div></div>
+</div>
 
 <div class="panel">
     @if ($orders->isEmpty())
-        <div class="empty-state">No sales orders yet.</div>
+        <div class="empty-state">{{ $search !== '' || $status ? 'No sales order matches.' : 'No sales orders yet.' }}</div>
     @else
         <div class="table-wrap"><table>
-            <thead><tr><th>Order</th><th>Customer</th><th>Customer ref</th><th>Order date</th><th>Delivery</th><th>Lines</th><th>Status</th></tr></thead>
+            <thead><tr><th>Order</th><th>Customer</th><th>Customer ref</th><th>Order date</th><th>Delivery</th><th>Lines</th><th>Status</th><th>Action</th></tr></thead>
             <tbody>
             @foreach ($orders as $o)
                 <tr>
@@ -39,7 +35,8 @@
                     <td>{{ $o->order_date?->displayDate() }}</td>
                     <td>{{ $o->requested_delivery_date?->displayDate() ?? '—' }}</td>
                     <td>{{ $o->lines_count }}</td>
-                    <td><span class="status">{{ str_replace('_', ' ', $o->status) }}</span></td>
+                    <td><span class="status {{ $o->status === 'DISPATCHED' ? 'status-completed' : ($o->status === 'CANCELLED' ? 'status-cancelled' : ($o->status === 'ON_HOLD' ? 'status-on-hold' : 'status-in-progress')) }}">{{ \App\Domains\Sales\Models\SalesOrder::STATUSES[$o->status] ?? str_replace('_', ' ', $o->status) }}</span></td>
+                    <td><a class="btn btn-small" href="{{ route('sales-orders.show', $o) }}">Open</a></td>
                 </tr>
             @endforeach
             </tbody>

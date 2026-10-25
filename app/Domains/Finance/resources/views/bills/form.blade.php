@@ -3,7 +3,7 @@
 @section('content')
 @php $startLines = old('lines', $lines); @endphp
 <div class="page-heading"><div><h1>{{ $bill ? 'Edit draft supplier bill' : 'New supplier bill' }}</h1><p>{{ $notice ?? 'Enter what the supplier billed, free lines or filled from a purchase order. Nothing counts as owed until the bill is posted.' }}</p></div>
-@if (! $bill && Route::has('purchase-orders.index'))<div class="actions"><a class="btn" href="{{ route('purchase-orders.index', ['status' => 'OPEN']) }}">From a purchase order…</a></div>@endif</div>
+@if (! $bill && Route::has('purchase-orders.index'))<div class="actions"><a class="btn" href="{{ route('purchase-orders.index', ['status' => 'RECEIVING']) }}">From a purchase order…</a></div>@endif</div>
 <form method="POST" action="{{ $bill ? route('bills.update', $bill) : route('bills.store') }}" x-data="billLines(@js($startLines))">@csrf @if ($bill) @method('PUT') @endif
 <input type="hidden" name="purchase_order_id" value="{{ old('purchase_order_id', $head['purchase_order_id'] ?? '') }}">
 <div class="panel"><div class="panel-body form-grid">
