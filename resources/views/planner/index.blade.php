@@ -33,7 +33,7 @@
                 @foreach ($rows as $r)
                     <tr>
                         <td>@if ($loop->first)<strong>{{ $station->code }}</strong><div class="muted small">{{ $station->moulds_per_shift }} / shift</div>@endif</td>
-                        <td>{{ $r['pattern']->pattern->code }} <span class="muted small">{{ $r['pattern']->shortCode() }}</span></td>
+                        <td>{{ $r['pattern']->pattern->name }}<div class="muted small">{{ $r['pattern']->pattern->code }} {{ $r['pattern']->shortCode() }}</div></td>
                         <td><a href="{{ route('production-orders.show', $r['order']) }}">{{ $r['order']->production_order_number }}</a></td>
                         <td>{{ $r['order']->customerLabel() }}<div class="muted small">{{ $r['order']->product?->name }}</div></td>
                         <td><strong>{{ $r['moulds'] }}</strong></td>
