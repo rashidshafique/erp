@@ -44,11 +44,12 @@ class FlaskSizeController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100'],
             'inside_length_mm' => $mm, 'inside_width_mm' => $mm, 'cope_depth_mm' => $mm, 'drag_depth_mm' => $mm, 'pin_centres_mm' => $mm,
-            'notes' => ['nullable', 'string', 'max:2000'],
+            'notes' => ['nullable', 'string', 'max:2000'], 'is_block' => ['nullable', 'boolean'],
         ]);
+        $data['is_block'] = $request->boolean('is_block');
         $data['name'] = FlaskSize::tidyName($data['name']);
         if (FlaskSize::nameTaken($data['name'], $size?->id)) {
-            throw ValidationException::withMessages(['name' => "There is already a flask size called {$data['name']}."]);
+            throw ValidationException::withMessages(['name' => "There is already a flask or block size called {$data['name']}."]);
         }
 
         return $data;

@@ -43,7 +43,8 @@
                     @php $c = ($counts[$size->id] ?? collect())->groupBy('position'); $n = fn ($pos, $status) => (int) ($c[$pos] ?? collect())->where('status', $status)->sum('n'); @endphp
                     <div class="fb-card">
                         <h3><a href="{{ route('flasks.index', ['size' => $size->id]) }}">{{ $size->name }}</a>@include('partials.icon-button', ['type' => 'edit', 'name' => $size->name, 'href' => route('flask-sizes.edit', $size)])</h3>
-                        <div class="dim">{{ $size->dimensions() ?: 'No dimensions recorded' }}@if ($size->status !== 'ACTIVE') · <span class="status status-cancelled">inactive</span>@endif</div>
+                        <div class="dim">{{ $size->dimensions() ?: 'No dimensions recorded' }}@if ($size->is_block) · <span class="pill">Block size</span>@endif @if ($size->status !== 'ACTIVE') · <span class="status status-cancelled">inactive</span>@endif</div>
+                        @if ($size->is_block)<p class="muted small" style="margin:6px 0 0">A block size for flaskless moulds: no flasks are counted.</p>@else
                         <table>
                             <thead><tr><th>Position</th><th>Free</th><th>In mould</th><th>Repair</th></tr></thead>
                             <tbody>
@@ -54,6 +55,7 @@
                                 @if ($c->isEmpty())<tr><td colspan="4" class="muted">No flasks of this size yet.</td></tr>@endif
                             </tbody>
                         </table>
+                        @endif
                     </div>
                 @endforeach
             </div>

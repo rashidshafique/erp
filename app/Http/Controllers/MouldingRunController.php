@@ -268,6 +268,9 @@ class MouldingRunController extends Controller
         $flasks = app(FlaskManager::class);
         $flaskInfo = ['flaskless' => $flasks->isFlaskless($mouldingRun->station, $mouldingRun->patternRevision), 'sizes' => collect(), 'free' => null,
             'held' => Flask::where('current_moulding_run_id', $mouldingRun->id)->orderBy('code')->get()];
+        if ($flaskInfo['flaskless'] && $mouldingRun->patternRevision) {
+            $flaskInfo['sizes'] = $flasks->sizesFor($mouldingRun->patternRevision, $mouldingRun->station);
+        }
         if (! $flaskInfo['flaskless'] && $mouldingRun->patternRevision) {
             $flaskInfo['sizes'] = $flasks->sizesFor($mouldingRun->patternRevision, $mouldingRun->station);
             $sections = (int) ($mouldingRun->mouldConfiguration?->nominal_layer_count ?? $mouldingRun->patternRevision->layers_per_mould ?? 2);

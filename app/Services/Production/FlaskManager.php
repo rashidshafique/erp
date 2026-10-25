@@ -35,14 +35,16 @@ class FlaskManager
 
     /**
      * The sizes a pattern revision can be moulded in on a station: the sizes it fits that the station handles, the one it was
-     * designed for first. A station that lists no sizes takes any.
+     * designed for first. A station that lists no sizes takes any. A flaskless mould is made in a block size, any other in a
+     * flask size, and a station's list does not narrow the block sizes.
      *
      * @return Collection<int, FlaskSize>
      */
     public function sizesFor(PatternRevision $revision, ?MouldingStation $station): Collection
     {
-        $sizes = $revision->flaskSizes()->where('flask_sizes.status', 'ACTIVE')->get();
-        $handled = $station ? $station->flaskSizes()->pluck('flask_sizes.id') : collect();
+        $flaskless = $this->isFlaskless($station, $revision);
+        $sizes = $revision->flaskSizes()->where('flask_sizes.status', 'ACTIVE')->where('flask_sizes.is_block', $flaskless)->get();
+        $handled = $station && ! $flaskless ? $station->flaskSizes()->pluck('flask_sizes.id') : collect();
 
         return $handled->isEmpty() ? $sizes : $sizes->whereIn('id', $handled->all())->values();
     }
@@ -181,7 +183,7 @@ class FlaskManager
         $this->warning = null;
         $revision = $run->patternRevision;
         if ($this->isFlaskless($run->station, $revision)) {
-            MouldAssembly::whereIn('id', $moulds->pluck('id'))->update(['is_flaskless' => true]);
+            MouldAssembly::whereIn('id', $moulds->pluck('id'))->update(['is_flaskless' => true, 'flask_size_id' => $this->sizesFor($revision, $run->station)->first()?->id]);
 
             return;
         }

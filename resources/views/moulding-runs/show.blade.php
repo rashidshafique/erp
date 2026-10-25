@@ -249,7 +249,7 @@
                             <td>{{ $a->assembled_at?->displayShortDateTime() }}<div class="muted small">{{ $a->assembled_by }}</div></td>
                             <td>@if ($a->pourAssignment?->pour)<a href="{{ route('pours.show', $a->pourAssignment->pour) }}">{{ $a->pourAssignment->pour->pour_number }}</a>@else<span class="muted">not poured</span>@endif</td>
                             <td class="small">
-                                @if ($a->is_flaskless)<span class="muted">Flaskless</span>
+                                @if ($a->is_flaskless)<span class="muted">Flaskless</span>@if ($a->flaskSize) <span class="pill">{{ $a->flaskSize->name }}</span>@endif
                                 @else
                                     @foreach ($a->layers as $layer)
                                         <div style="display:flex;gap:6px;align-items:center;margin-bottom:2px">
@@ -271,7 +271,7 @@
             @if ($run->status !== 'CANCELLED' && $run->accepted_mould_qty > $run->mouldAssemblies->count())
                 <h3 style="margin-top:20px;font-size:15px">Assemble moulds</h3>
                 <p class="muted small" style="margin:0 0 8px">
-                    @if ($flaskInfo['flaskless'])Flaskless moulds: no flasks are used.
+                    @if ($flaskInfo['flaskless'])Flaskless moulds: no flasks are used.@if ($flaskInfo['sizes']->isNotEmpty()) Block size: {{ $flaskInfo['sizes']->pluck('name')->implode(' or ') }}.@else No block size is set for this pattern, so the moulds' size is not recorded.@endif
                     @elseif ($flaskInfo['sizes']->isEmpty())No flask size is set for this pattern{{ $run->station ? ' that station '.$run->station->code.' handles' : '' }}, so moulds are made without flasks.
                     @else Flasks: {{ $flaskInfo['sizes']->pluck('name')->implode(' or ') }} — {{ $flaskInfo['free'] }} of {{ $flaskInfo['open'] }} {{ $flaskInfo['open'] === 1 ? 'set' : 'sets' }} free. <a href="{{ route('flasks.index') }}">Flask board</a>@endif
                 </p>

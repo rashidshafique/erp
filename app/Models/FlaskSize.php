@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-/** A family of interchangeable flasks: the same inside size and pin centres, so any drag of it closes with any cope of it. */
+/** A family of interchangeable flasks (or, marked as a block size, the block a flaskless line makes, which has no flasks): the same inside size and pin centres, so any drag of it closes with any cope of it. */
 class FlaskSize extends Model
 {
     use Concerns\IsNamedListEntry, HasUuids, SoftDeletes;
@@ -18,7 +18,7 @@ class FlaskSize extends Model
 
     protected $casts = [
         'inside_length_mm' => 'decimal:2', 'inside_width_mm' => 'decimal:2', 'cope_depth_mm' => 'decimal:2',
-        'drag_depth_mm' => 'decimal:2', 'pin_centres_mm' => 'decimal:2', 'sort_order' => 'integer',
+        'drag_depth_mm' => 'decimal:2', 'pin_centres_mm' => 'decimal:2', 'sort_order' => 'integer', 'is_block' => 'boolean',
     ];
 
     public function scopeOrdered(Builder $query): Builder

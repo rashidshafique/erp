@@ -228,6 +228,32 @@ class FlaskTest extends TestCase
         $this->assertSame(4, Flask::where('status', 'AVAILABLE')->count());
     }
 
+    public function test_a_flaskless_mould_records_the_block_size_of_its_pattern_and_never_a_flask_size(): void
+    {
+        $flaskSize = $this->makeSize('600 × 500');
+        $block = $this->makeSize('Block 535 × 480');
+        $block->update(['is_block' => true]);
+        $this->flasks($flaskSize, 'ANY', 2);
+
+        $mould = $this->assemble($this->makeRun([$flaskSize, $block], null, 1, 'VERTICAL', 1), 1, 1)->first();
+
+        $this->assertSame($block->id, $mould->fresh()->flask_size_id);
+        $this->assertSame(2, Flask::where('status', 'AVAILABLE')->count());
+    }
+
+    public function test_block_sizes_are_never_used_for_flasks(): void
+    {
+        $block = $this->makeSize('Block');
+        $block->update(['is_block' => true]);
+        $flaskSize = $this->makeSize('600 × 500');
+        $this->flasks($flaskSize, 'ANY', 2);
+
+        $this->post(route('flasks.store'), ['flask_size_id' => $block->id, 'position' => 'ANY', 'quantity' => 1])->assertSessionHasErrors('flask_size_id');
+        $moulds = $this->assemble($this->makeRun([$block, $flaskSize], null, 1), 1)->first();
+
+        $this->assertSame($flaskSize->id, $moulds->fresh()->flask_size_id);
+    }
+
     public function test_a_pattern_without_sizes_is_moulded_without_flasks(): void
     {
         $run = $this->makeRun([], accepted: 1);

@@ -39,7 +39,7 @@ class FlaskController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'flask_size_id' => ['required', 'uuid', Rule::exists('flask_sizes', 'id')->whereNull('deleted_at')],
+            'flask_size_id' => ['required', 'uuid', Rule::exists('flask_sizes', 'id')->whereNull('deleted_at')->where('is_block', false)],
             'position' => ['required', Rule::in(array_keys(Flask::POSITIONS))],
             'quantity' => ['required', 'integer', 'min:1', 'max:200'],
             'construction' => ['nullable', Rule::in(array_keys(Flask::CONSTRUCTIONS))],
@@ -92,7 +92,7 @@ class FlaskController extends Controller
     {
         return view('flasks.edit', [
             'flask' => $flask,
-            'sizes' => FlaskSize::ordered()->where('status', 'ACTIVE')->orWhere('id', $flask->flask_size_id)->get(),
+            'sizes' => FlaskSize::ordered()->where('is_block', false)->where(fn ($q) => $q->where('status', 'ACTIVE')->orWhere('id', $flask->flask_size_id))->get(),
             'partners' => Flask::where('flask_size_id', $flask->flask_size_id)->whereKeyNot($flask->id)->orderBy('code')->get(),
         ]);
     }
@@ -100,7 +100,7 @@ class FlaskController extends Controller
     public function update(Request $request, Flask $flask): RedirectResponse
     {
         $data = $request->validate([
-            'flask_size_id' => ['required', 'uuid', Rule::exists('flask_sizes', 'id')],
+            'flask_size_id' => ['required', 'uuid', Rule::exists('flask_sizes', 'id')->where('is_block', false)],
             'position' => ['required', Rule::in(array_keys(Flask::POSITIONS))],
             'construction' => ['nullable', Rule::in(array_keys(Flask::CONSTRUCTIONS))],
             'material' => ['nullable', 'string', 'max:50'],
