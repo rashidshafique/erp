@@ -60,6 +60,7 @@
         <button type="submit" class="alert alert-warning" style="display:block;width:100%;text-align:left;font:inherit;cursor:pointer" title="Re-run the contract review">This order was changed after the last contract review ({{ $review->evaluated_at->displayDateTime() }}). <strong>Click here to re-run the review.</strong></button></form>
 @endif
 
+@php $reviewBlocksProduction = \App\Support\OrderRules::reviewRequired() && ! $order->hasApprovedReview(); @endphp
 <div class="tab-marker" data-tab-start="Lines"></div>
 <div class="panel">
     <div class="panel-header"><h2>Lines and delivery schedule</h2></div>
@@ -81,7 +82,7 @@
                     <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:flex-end">
                     @if ($sched < (float) $l->ordered_qty - 0.0005)
                         <form method="POST" action="{{ route('sales-orders.lines.production-order', [$order, $l]) }}">@csrf
-                            <button class="btn" type="submit" @disabled(! $order->hasApprovedReview())>+ Production Order</button></form>
+                            <button class="btn" type="submit" @disabled($reviewBlocksProduction) @if ($reviewBlocksProduction) title="Needs an approved contract review: sales and quality must both sign it off" @endif>+ Production Order</button></form>
                     @endif
                     @if ($isOpen)
                         <button type="button" class="btn" data-quick="qd-delivery-{{ $l->id }}">+ Add delivery</button>
@@ -145,7 +146,7 @@
         });
     })();
     </script>
-    @unless ($order->hasApprovedReview())<div class="panel-body muted small">Production orders can be created once the contract review is approved by both sales and quality.</div>@endunless
+    @if ($reviewBlocksProduction)<div class="panel-body muted small">Production orders can be created once the contract review is approved by both sales and quality.</div>@endif
 </div>
 
 <div class="tab-marker" data-tab-start="Contract review" data-tab-warn="{{ $review ? $review->items->where('severity', 'WARN')->whereNull('acknowledgement')->count() : 0 }}" data-tab-block="{{ $review ? $review->items->where('severity', 'BLOCK')->count() : 0 }}"></div>
