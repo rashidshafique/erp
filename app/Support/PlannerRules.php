@@ -11,6 +11,9 @@ class PlannerRules
     public const RULES = [
         'shifts_per_day' => ['planner.shifts_per_day', 'Moulding shifts worked each day', 1, 3, 1],
         'days_after_moulding' => ['planner.days_after_moulding', 'Days from moulding to finished (pour, cool, fettle, inspect)', 0, 60, 3],
+        'patterns_per_shift' => ['planner.patterns_per_shift', 'Patterns sharing a station\'s shift (1 = earliest due fills it first)', 1, 10, 1],
+        'min_run_moulds' => ['planner.min_run_moulds', 'Minimum run once a pattern is put on (moulds, 0 = none)', 0, 10000, 0],
+        'group_same_pattern' => ['planner.group_same_pattern', 'Run later orders on the same pattern right behind the first', 0, 1, 0],
     ];
 
     public static function get(string $rule): int

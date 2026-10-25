@@ -87,7 +87,11 @@
     <div class="panel-body">
         <form method="POST" action="{{ route('planner.rules') }}" class="form-grid">@csrf @method('PUT')
             @foreach ($rules as $key => $r)
-                <label>{{ $r['label'] }}<input type="number" name="{{ $key }}" value="{{ $r['value'] }}" min="{{ $r['min'] }}" max="{{ $r['max'] }}" required></label>
+                @if ($r['max'] === 1 && $r['min'] === 0)
+                    <label>{{ $r['label'] }}<select name="{{ $key }}"><option value="0" @selected(! $r['value'])>No</option><option value="1" @selected($r['value'])>Yes</option></select></label>
+                @else
+                    <label>{{ $r['label'] }}<input type="number" name="{{ $key }}" value="{{ $r['value'] }}" min="{{ $r['min'] }}" max="{{ $r['max'] }}" required></label>
+                @endif
             @endforeach
             <div><button class="btn" type="submit">Save</button></div>
         </form>

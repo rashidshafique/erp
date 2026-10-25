@@ -72,6 +72,51 @@ class PlannerTest extends TestCase
         $this->assertTrue($order['finish']->isSameDay(today()->addDays(1 + 3)));             // 40 in shift 0, 10 in shift 1: the line was free
     }
 
+    public function test_a_station_shift_is_shared_by_the_sequencing_rules(): void
+    {
+        $w = $this->world();
+        $w['order']->update(['status' => 'CANCELLED']);
+        $w['st']->update(['moulds_per_shift' => 40]);
+        $p1 = $this->plate('P1', $w['st']);
+        $p2 = $this->plate('P2', $w['st']);
+        $this->order('A', $p1, 1);
+        $this->order('B', $p2, 2);
+        $this->order('C', $p1, 3);
+        $firstShift = fn (): array => collect(app(OrderPlanner::class)->plan(today())['suggestion'])->flatMap(fn ($s) => $s['rows'])
+            ->mapWithKeys(fn ($r) => [$r['order']->production_order_number => $r['moulds']])->all();
+
+        $this->assertSame(['A' => 30, 'B' => 10], $firstShift());                            // earliest due fills the shift, the next starts in what is left
+
+        PlannerRules::set('group_same_pattern', 1);
+        $this->assertSame(['A' => 30, 'C' => 10], $firstShift());                            // C runs behind A on the same plate
+        PlannerRules::set('group_same_pattern', 0);
+
+        PlannerRules::set('patterns_per_shift', 2);
+        $this->assertSame(['A' => 20, 'B' => 20], $firstShift());
+        PlannerRules::set('patterns_per_shift', 1);
+
+        PlannerRules::set('min_run_moulds', 15);
+        $this->assertSame(['A' => 30], $firstShift());                                       // 10 left is less than B's minimum run
+    }
+
+    private function plate(string $code, \App\Models\MouldingStation $station): array
+    {
+        $product = \App\Models\Product::create(['code' => 'PR-'.$code, 'name' => 'Product '.$code]);
+        $rev = \App\Models\ProductRevision::create(['product_id' => $product->id, 'revision' => 'A', 'status' => 'APPROVED']);
+        $pat = \App\Models\Pattern::create(['code' => $code, 'name' => 'Plate '.$code, 'pattern_type' => 'MATCHPLATE', 'preferred_moulding_station_id' => $station->id]);
+        $pr = \App\Models\PatternRevision::create(['pattern_id' => $pat->id, 'revision' => 'A', 'status' => 'APPROVED', 'cavities_per_mould' => 1]);
+        $pr->cavityMap()->create(['cavity_number' => 1, 'product_revision_id' => $rev->id, 'casting_weight_kg' => 5, 'poured_weight_kg' => 8]);
+
+        return compact('product', 'rev');
+    }
+
+    /** An order for 30 moulds of a plate's product, due in the given days. */
+    private function order(string $number, array $plate, int $dueInDays): ProductionOrder
+    {
+        return ProductionOrder::create(['production_order_number' => $number, 'product_id' => $plate['product']->id, 'product_revision_id' => $plate['rev']->id,
+            'order_type' => 'STOCK', 'status' => 'RELEASED', 'planned_qty' => 30, 'uom' => 'piece', 'required_date' => today()->addDays($dueInDays)]);
+    }
+
     public function test_the_suggestion_is_put_on_a_draft_work_list_linked_to_the_order(): void
     {
         $w = $this->world();
@@ -98,8 +143,9 @@ class PlannerTest extends TestCase
 
     public function test_assumptions_are_saved_within_their_limits(): void
     {
-        $this->put(route('planner.rules'), ['shifts_per_day' => 4, 'days_after_moulding' => 2])->assertSessionHasErrors('shifts_per_day');
-        $this->put(route('planner.rules'), ['shifts_per_day' => 2, 'days_after_moulding' => 5])->assertSessionHasNoErrors();
+        $rest = ['patterns_per_shift' => 1, 'min_run_moulds' => 0, 'group_same_pattern' => 0];
+        $this->put(route('planner.rules'), ['shifts_per_day' => 4, 'days_after_moulding' => 2] + $rest)->assertSessionHasErrors('shifts_per_day');
+        $this->put(route('planner.rules'), ['shifts_per_day' => 2, 'days_after_moulding' => 5] + $rest)->assertSessionHasNoErrors();
 
         $this->assertSame([2, 5], [PlannerRules::get('shifts_per_day'), PlannerRules::get('days_after_moulding')]);
     }

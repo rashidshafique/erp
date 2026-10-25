@@ -48,25 +48,39 @@ class OrderPlanner
             }
         }
 
+        // Each order that needs moulds joins a station's queue, in rank order.
+        $queued = collect($load)->map(fn ($shifts) => array_sum($shifts))->all();
+        $jobs = [];
+        foreach ($orders as $i => $o) {
+            if ($o['moulds_left'] > 0 && $o['pattern'] && ($station = $this->stationFor($o['pattern'], $stations, $queued))) {
+                $jobs[$station->id][] = ['order' => $i, 'pattern' => $o['pattern']->id, 'moulds' => $o['moulds_left']];
+                $queued[$station->id] = ($queued[$station->id] ?? 0) + $o['moulds_left'];
+            }
+        }
+        $shiftsOf = [];   // order index => [shift => moulds]
+        $stationOf = [];
+        foreach ($jobs as $stationId => $stationJobs) {
+            foreach ($this->runQueue($stations[$stationId], $stationJobs, $load[$stationId] ?? []) as $i => $shifts) {
+                [$shiftsOf[$i], $stationOf[$i]] = [$shifts, $stations[$stationId]];
+            }
+        }
+
         $planned = [];
         $suggestion = [];
-        foreach ($orders as $o) {
+        foreach ($orders as $i => $o) {
             $row = $o + ['station' => null, 'finish' => null, 'state' => 'ON_TRACK', 'note' => null];
             if ($o['moulds_left'] > 0) {
-                $station = $o['pattern'] ? $this->stationFor($o['pattern'], $stations, $load) : null;
                 if (! $o['pattern']) {
                     [$row['state'], $row['note']] = ['NO_PATTERN', 'No approved pattern with a cavity map makes this product.'];
-                } elseif (! $station) {
+                } elseif (! isset($shiftsOf[$i])) {
                     [$row['state'], $row['note']] = ['NO_RATE', 'No active station has moulds per shift set.'];
                 } else {
-                    $row['station'] = $station;
-                    $shifts = $this->allocate($load, $station, $o['moulds_left']);
-                    $first = $shifts[0];
-                    if ($first['shift'] === 0) {
+                    $station = $row['station'] = $stationOf[$i];
+                    if (isset($shiftsOf[$i][0])) {
                         $suggestion[$station->id]['station'] = $station;
-                        $suggestion[$station->id]['rows'][] = ['order' => $o['order'], 'pattern' => $o['pattern'], 'moulds' => $first['moulds']];
+                        $suggestion[$station->id]['rows'][] = ['order' => $o['order'], 'pattern' => $o['pattern'], 'moulds' => $shiftsOf[$i][0]];
                     }
-                    $row['finish'] = $from->copy()->addDays(intdiv(end($shifts)['shift'], $shiftsPerDay) + $after);
+                    $row['finish'] = $from->copy()->addDays(intdiv(array_key_last($shiftsOf[$i]), $shiftsPerDay) + $after);
                 }
             } elseif ($o['downstream'] > 0) {
                 $row['finish'] = $from->copy()->addDays($after);
@@ -207,8 +221,9 @@ class OrderPlanner
      * preferring stations whose sand suits the pattern.
      *
      * @param  Collection<string, MouldingStation>  $stations
+     * @param  array<string, int>  $queued  moulds already queued on each station
      */
-    private function stationFor(PatternRevision $pattern, Collection $stations, array $load): ?MouldingStation
+    private function stationFor(PatternRevision $pattern, Collection $stations, array $queued): ?MouldingStation
     {
         $rated = $stations->filter(fn ($s) => $s->moulds_per_shift > 0);
         $preferred = $pattern->pattern->preferred_moulding_station_id;
@@ -216,7 +231,81 @@ class OrderPlanner
             return $rated[$preferred];
         }
 
-        return $rated->sortBy(fn ($s) => [$pattern->pattern->sandWarning($s->defaultSand()) ? 1 : 0, count($load[$s->id] ?? [])])->first();
+        return $rated->sortBy(fn ($s) => [$pattern->pattern->sandWarning($s->defaultSand()) ? 1 : 0, ($queued[$s->id] ?? 0) / $s->moulds_per_shift])->first();
+    }
+
+    /**
+     * Work a station's queue shift by shift. Jobs are grouped into runs of one plate (later orders on the same plate join the first
+     * when grouping is on). A shift is shared by up to "patterns per shift" runs in queue order; a run starting in a shift gets at
+     * least the minimum run (or what it needs), and a run that cannot have that waits for the next shift rather than being skipped.
+     *
+     * @param  list<array{order: int, pattern: string, moulds: int}>  $jobs  in rank order
+     * @param  array<int, int>  $used  moulds already taken in each shift by open work lists
+     * @return array<int, array<int, int>> order index => [shift => moulds]
+     */
+    private function runQueue(MouldingStation $station, array $jobs, array $used): array
+    {
+        $rate = (int) $station->moulds_per_shift;
+        $perShift = PlannerRules::get('patterns_per_shift');
+        $minRun = min(PlannerRules::get('min_run_moulds'), $rate);
+        $runs = [];
+        foreach ($jobs as $n => $job) {
+            $key = PlannerRules::get('group_same_pattern') ? $job['pattern'] : $n;
+            $runs[$key] ??= ['left' => 0, 'jobs' => []];
+            $runs[$key]['left'] += $job['moulds'];
+            $runs[$key]['jobs'][] = ['order' => $job['order'], 'left' => $job['moulds']];
+        }
+
+        $out = [];
+        $take = function (string|int $key, int $moulds, int $shift) use (&$runs, &$out): void {
+            $runs[$key]['left'] -= $moulds;
+            foreach ($runs[$key]['jobs'] as &$job) {
+                $part = min($moulds, $job['left']);
+                if ($part > 0) {
+                    [$job['left'], $moulds] = [$job['left'] - $part, $moulds - $part];
+                    $out[$job['order']][$shift] = ($out[$job['order']][$shift] ?? 0) + $part;
+                }
+            }
+        };
+        for ($shift = 0; $runs; $shift++) {
+            $cap = $rate - ($used[$shift] ?? 0);
+            $on = [];
+            while ($cap > 0 && $runs) {
+                // The runs in front of the queue, up to patterns per shift; a new one joins only if the shift can give it its minimum.
+                $admitted = [];
+                $reserved = 0;
+                foreach (array_slice($runs, 0, $perShift, true) as $key => $run) {
+                    $need = isset($on[$key]) ? 0 : max(1, min($minRun, $run['left']));
+                    if ($cap - $reserved < $need) {
+                        break;
+                    }
+                    [$admitted[], $reserved] = [$key, $reserved + $need];
+                }
+                if (! $admitted) {
+                    break;
+                }
+                foreach ($admitted as $key) {
+                    if (! isset($on[$key])) {
+                        $first = min($minRun, $runs[$key]['left']);
+                        $take($key, $first, $shift);
+                        $cap -= $first;
+                        $on[$key] = true;
+                    }
+                }
+                $open = array_values(array_filter($admitted, fn ($key) => $runs[$key]['left'] > 0));
+                $each = $open ? max(1, intdiv($cap, count($open))) : 0;
+                foreach ($open as $key) {
+                    $give = min($each, $cap, $runs[$key]['left']);
+                    if ($give > 0) {
+                        $take($key, $give, $shift);
+                        $cap -= $give;
+                    }
+                }
+                $runs = array_filter($runs, fn ($run) => $run['left'] > 0);
+            }
+        }
+
+        return $out;
     }
 
     /**
