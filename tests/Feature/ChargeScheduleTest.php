@@ -218,7 +218,8 @@ class ChargeScheduleTest extends TestCase
         $heat->update(['actual_start_at' => now()->subHours(2), 'blast_on_at' => now()->subHours(2), 'charge_rounds' => 5]);
         $this->charged($heat, $iron, 1, 100, 180);   // charge 1 is already in: 180 kg of metal
 
-        $this->get(route('heats.show', $heat))->assertOk()->assertSee('Total metal charged so far (kg)')->assertSee(route('heats.charge-rounds.total', $heat), false);
+        $this->get(route('heats.show', $heat))->assertOk()->assertDontSee('Total metal charged so far (kg)')->assertDontSee('Heat summary</h2>', false)
+            ->assertSee('Add back charges')->assertSee('Add back 4 charges')->assertSee('180.0 kg')->assertSee('1 of 5 charges')->assertSee('a charge of 180 kg every 30 min')->assertSee(route('heats.charge-rounds.backfill', $heat), false);
 
         // 800 kg is 4 charges of 180 kg (800 / 180 = 4.4). Charges 2 to 4 and the bed are missing; they carry the other 620 kg, so each is scaled up by 620 / 540.
         $this->post(route('heats.charge-rounds.total', $heat), ['total_charged_kg' => 800])->assertSessionHasNoErrors()

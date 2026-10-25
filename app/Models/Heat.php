@@ -217,6 +217,18 @@ class Heat extends Model
         return $this->belongsTo(ChargeBatch::class);
     }
 
+    /**
+     * The metal charged into the furnace, worked out from the charges recorded: every charge line of a metal material (fuel, flux,
+     * sand and binders are left out), returns included.
+     */
+    public function chargedMetalKg(): float
+    {
+        return (float) $this->materialConsumptions()->getQuery()->reorder()
+            ->join('materials', 'materials.id', '=', 'heat_material_consumptions.material_id')
+            ->whereNotIn('materials.material_type', \App\Models\Material::NON_METAL_TYPES)
+            ->sum('heat_material_consumptions.actual_qty_kg');
+    }
+
     public function materialConsumptions(): HasMany
     {
         return $this->hasMany(HeatMaterialConsumption::class)

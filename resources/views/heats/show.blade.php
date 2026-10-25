@@ -85,17 +85,6 @@
         tForm.querySelector('[data-target-cancel]').addEventListener('click', function () { openTarget(false); });
         if (document.querySelector('.error-text') && {{ $errors->has('target_metal_weight_kg') ? 'true' : 'false' }}) openTarget(true);
     }
-    // Total charged: shows how many charges the typed weight is worth.
-    var totalForm = document.querySelector('[data-per-round]');
-    if (totalForm) {
-        var per = parseFloat(totalForm.dataset.perRound), totalInput = totalForm.querySelector('[data-total-input]'), hint = totalForm.querySelector('[data-total-hint]');
-        totalInput.addEventListener('input', function () {
-            var kg = parseFloat(totalInput.value);
-            if (!kg || !per) return;
-            var n = Math.round(kg / per);
-            hint.textContent = n < 1 ? 'Less than one charge (' + Math.round(per) + ' kg of metal).' : kg.toLocaleString() + ' kg is ' + n + (n === 1 ? ' charge' : ' charges') + ' of ' + Math.round(per) + ' kg of metal.';
-        });
-    }
     // Charge due: the banner appears by itself when the scheduled time arrives; the minute poll below keeps the time current.
     var due = document.getElementById('charge-due');
     if (due) {
@@ -163,8 +152,47 @@
 @endif
 
 
+@php
+    $closedHeat = in_array($heat->status, ['CLOSED', 'CANCELLED'], true);
+    $chargedMetal = $heat->chargedMetalKg();
+    $plannedCharges = $heat->chargeRounds();
+    $doneCharges = $heat->materialConsumptions->where('charge_round', '>', 0)->pluck('charge_round')->unique()->count();
+    $kw = fn ($v, $empty = '—') => $v !== null ? \App\Support\Formats::number((float) $v, 1).' kW' : $empty;
+@endphp
+<div class="heat-facts">
+    <div class="fact">
+        <div class="muted small">Target metal</div>
+        <div data-target-view>
+            <strong>{{ $heat->target_metal_weight_kg !== null ? \App\Support\Formats::number((float) $heat->target_metal_weight_kg, 1).' kg' : '—' }}</strong>
+            @unless ($closedHeat)<button type="button" class="link-btn" data-target-edit title="Change the target metal weight">Change</button>@endunless
+        </div>
+        @unless ($closedHeat)
+            <form method="POST" action="{{ route('heats.target.update', $heat) }}" data-target-form hidden style="display:flex;gap:6px;align-items:center;margin-top:2px">@csrf @method('PUT')
+                <input name="target_metal_weight_kg" type="number" step="any" min="0.001" required value="{{ old('target_metal_weight_kg', $heat->target_metal_weight_kg !== null ? rtrim(rtrim((string) $heat->target_metal_weight_kg, '0'), '.') : '') }}" style="width:110px">
+                <button class="btn btn-small btn-primary" type="submit">Save</button><button class="btn btn-small" type="button" data-target-cancel>Cancel</button>
+            </form>
+            @error('target_metal_weight_kg')<div class="error-text">{{ $message }}</div>@enderror
+        @endunless
+    </div>
+    <div class="fact" title="Worked out from the charges recorded on the Charge tab: metal materials only">
+        <div class="muted small">Metal charged</div>
+        <strong>{{ $chargedMetal > 0 ? \App\Support\Formats::number($chargedMetal, 1).' kg' : '—' }}</strong>
+        @if ($chargedMetal > 0 && $heat->target_metal_weight_kg > 0)<span class="muted small"> · {{ \App\Support\Formats::number($chargedMetal / (float) $heat->target_metal_weight_kg * 100, 0) }}% of target</span>@endif
+        @if ($heat->chargeBatch)<div class="muted small">{{ $doneCharges }} of {{ $plannedCharges }} {{ $plannedCharges === 1 ? 'charge' : 'charges' }}</div>@endif
+    </div>
+    <div class="fact"><div class="muted small">Rated furnace power</div><strong>{{ $kw($heat->furnace?->rated_power_kw) }}</strong></div>
+    <div class="fact"><div class="muted small">Furnace operating maximum</div><strong>{{ $kw($heat->furnace?->max_operating_power_kw, 'Not set') }}</strong></div>
+    <div class="fact"><div class="muted small">Heat operating limit</div><strong>{{ $kw($heat->operating_power_limit_kw, 'Not set') }}</strong></div>
+</div>
+<style>
+    .heat-facts { display: flex; flex-wrap: wrap; gap: 8px 36px; padding: 12px 18px; margin-bottom: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+    .heat-facts .fact { min-width: 120px; }
+    .heat-facts .fact strong { font-size: 16px; }
+</style>
+
 <div class="tab-marker" data-tab-start="Overview"></div>
 <style>
+    .addback { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; margin: 4px 0 14px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--hover, #f7f8fa); }
     .heat-overview { display: grid; grid-template-columns: minmax(0, 1fr) 500px; gap: 16px; align-items: start; }
     .heat-overview > div { display: grid; gap: 16px; min-width: 0; }
     .heat-overview .panel { margin: 0; }
@@ -172,54 +200,6 @@
 </style>
 <div class="heat-overview">
 <div>
-<div class="panel">
-    <div class="panel-header"><h2>Heat summary</h2></div>
-    <div class="panel-body" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:18px">
-        <div>
-            <div class="muted small">Target metal</div>
-            <div data-target-view>
-                <strong>
-                    {{ $heat->target_metal_weight_kg !== null
-                        ? \App\Support\Formats::number((float) $heat->target_metal_weight_kg, 1).' kg'
-                        : '—' }}
-                </strong>
-                @unless (in_array($heat->status, ['CLOSED', 'CANCELLED'], true))<button type="button" class="link-btn" data-target-edit title="Change the target metal weight">Change</button>@endunless
-            </div>
-            @unless (in_array($heat->status, ['CLOSED', 'CANCELLED'], true))
-                <form method="POST" action="{{ route('heats.target.update', $heat) }}" data-target-form hidden style="display:flex;gap:6px;align-items:center;margin-top:2px">@csrf @method('PUT')
-                    <input name="target_metal_weight_kg" type="number" step="any" min="0.001" required value="{{ old('target_metal_weight_kg', $heat->target_metal_weight_kg !== null ? rtrim(rtrim((string) $heat->target_metal_weight_kg, '0'), '.') : '') }}" style="width:120px" aria-label="Target metal weight in kg"> <span class="muted small">kg</span>
-                    <button class="btn btn-small btn-primary" type="submit">Save</button><button class="btn btn-small" type="button" data-target-cancel>Cancel</button>
-                </form>
-                @error('target_metal_weight_kg')<div class="error-text">{{ $message }}</div>@enderror
-            @endunless
-        </div>
-        <div>
-            <div class="muted small">Rated furnace power</div>
-            <strong>
-                {{ $heat->furnace?->rated_power_kw !== null
-                    ? \App\Support\Formats::number((float) $heat->furnace->rated_power_kw, 1).' kW'
-                    : '—' }}
-            </strong>
-        </div>
-        <div>
-            <div class="muted small">Furnace operating maximum</div>
-            <strong>
-                {{ $heat->furnace?->max_operating_power_kw !== null
-                    ? \App\Support\Formats::number((float) $heat->furnace->max_operating_power_kw, 1).' kW'
-                    : 'Not set' }}
-            </strong>
-        </div>
-        <div>
-            <div class="muted small">Heat operating limit</div>
-            <strong>
-                {{ $heat->operating_power_limit_kw !== null
-                    ? \App\Support\Formats::number((float) $heat->operating_power_limit_kw, 1).' kW'
-                    : 'Not set' }}
-            </strong>
-        </div>
-    </div>
-</div>
-
 @include('heats._balance', ['heat' => $heat])
 @if ($heat->isCupola())
     @include('heats._timeline', ['heat' => $heat])
@@ -368,15 +348,23 @@
     </div>
     <div class="panel-body">
         @include('heats._charge-schedule', ['schedule' => $schedule])
-        @if ($heat->actual_start_at && $schedule['metal_per_round_kg'] && ! in_array($heat->status, ['CLOSED', 'CANCELLED'], true))
-            <form method="POST" action="{{ route('heats.charge-rounds.total', $heat) }}" class="form-inline" style="margin:4px 0 14px" data-per-round="{{ $schedule['metal_per_round_kg'] }}"
-                onsubmit="return confirm('Add the missing charges for this total, at their scheduled times, with the recipe quantities scaled to match? They will be marked as filled in from the total.')">@csrf
-                <div class="field"><label for="total_charged_kg">Total metal charged so far (kg)</label>
-                    <input id="total_charged_kg" name="total_charged_kg" type="number" step="any" min="0.001" required value="{{ old('total_charged_kg') }}" style="width:150px" data-total-input></div>
-                <button class="btn" type="submit">Add the missing charges</button>
-                <span class="muted small" data-total-hint>A charge is {{ \App\Support\Formats::number($schedule['metal_per_round_kg'], 0) }} kg of metal. Type the total from the scale and the missing charges are added to match.</span>
-            </form>
-            @error('total_charged_kg')<div class="alert alert-error">{{ $message }}</div>@enderror
+        @if ($heat->actual_start_at && $schedule['metal_per_round_kg'] && ! $closedHeat)
+            <div class="addback">
+                <div>
+                    <strong>Add back charges</strong>
+                    <div class="muted small">
+                        From the start ({{ $heat->actual_start_at->displayDateTime() }})
+                        @if ($schedule['interval_minutes']) at the furnace's {{ $schedule['rate']['label'] ?? 'speed' }}: a charge of {{ \App\Support\Formats::number($schedule['metal_per_round_kg'], 0) }} kg every {{ $schedule['interval_minutes'] }} min.@else the furnace speed is not set, so charge times cannot be worked out.@endif
+                        @if ($pastCount > 0) {{ $pastCount }} {{ $pastCount === 1 ? 'charge has' : 'charges have' }} come due and {{ $pastCount === 1 ? 'is' : 'are' }} not recorded.@else Every charge that has come due is recorded.@endif
+                    </div>
+                </div>
+                @if ($pastCount > 0)
+                    <form method="POST" action="{{ route('heats.charge-rounds.backfill', $heat) }}" onsubmit="return confirm(@js('Record the '.$pastCount.' charges due since the heat started, each at its scheduled time, from the recipe? They will be marked as filled in from the schedule.'))">@csrf
+                        <button class="btn btn-primary" type="submit">Add back {{ $pastCount }} {{ $pastCount === 1 ? 'charge' : 'charges' }}</button>
+                    </form>
+                @endif
+            </div>
+            @error('charge_round')<div class="alert alert-error">{{ $message }}</div>@enderror
         @endif
         <p class="muted small">The recipe quantities are filled in. Change a weight if it was different, then record. The oldest accepted lot of each material is used unless you pick another.</p>
         <form method="POST" action="{{ route('heats.charge-rounds.store', $heat) }}">
