@@ -45,8 +45,7 @@
         .sample-readings td.num, .sample-readings th.num { text-align: right; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; white-space: nowrap; }
     </style>
     <div class="panel-body">
-        <p class="muted small" style="margin-top:0">Thermal analysis and chemistry, the latest first.
-            @if ($heat->isCupola())A cupola is sampled while it melts, so each pour is judged against the sample before it, or the first one after it. A failing sample holds the lots poured in the period it covers.@endif</p>
+        @if ($heat->isCupola())<p class="muted small" style="margin:0 0 6px" title="Each pour is judged against the sample before it, or the first one after it. A failing sample holds the lots poured in the period it covers.">Latest first. Each pour is judged against the sample before it.</p>@endif
         @if ($samples->isEmpty())
             <p class="muted">No samples yet.</p>
         @else

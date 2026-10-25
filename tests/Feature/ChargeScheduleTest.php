@@ -413,8 +413,21 @@ class ChargeScheduleTest extends TestCase
             ->assertSee('Running time')->assertSee('Time remaining');
 
         // Charge 3 was due at 09:20, so it is due now; once it is in, the last charge moves on and the board follows.
-        $board->assertSee('Charge 3 is due');
+        $board->assertSee('#3 due');
         $this->charged($heat, $iron, 3, 5, 180);
         $board->dispatch('charges-changed')->assertSeeInOrder(['Charges added', '3', 'of 5'])->assertSeeInOrder(['Last charge', '#3'])->assertSeeInOrder(['Metal charged', '540']);
+    }
+
+    public function test_the_heat_heading_shows_max_and_limit_only_when_they_are_set(): void
+    {
+        [$heat] = $this->cupola();
+
+        $this->get(route('heats.show', $heat))->assertOk()->assertSee('Target')->assertSee('Rated')
+            ->assertDontSee('title="Furnace operating maximum"', false)->assertDontSee('title="Operating limit set on this heat"', false);
+
+        $heat->furnace->update(['max_operating_power_kw' => 450]);
+        $heat->update(['operating_power_limit_kw' => 400]);
+        $this->get(route('heats.show', $heat))->assertOk()->assertSee('title="Furnace operating maximum"', false)->assertSee('450.0 kW')
+            ->assertSee('title="Operating limit set on this heat"', false)->assertSee('400.0 kW');
     }
 }

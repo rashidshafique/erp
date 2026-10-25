@@ -56,20 +56,19 @@ new class extends Component
 
 <div class="hs-board" wire:poll.30s>
 <style>
-    .hs-board { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-bottom: 14px; }
-    .hs-tile { border: 1px solid var(--border); border-radius: 12px; background: var(--surface); padding: 10px 14px 11px; min-width: 0; }
-    .hs-label { font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
-    .hs-value { font: 700 28px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; font-variant-numeric: tabular-nums; letter-spacing: -.01em; margin-top: 2px; }
-    .hs-value small { font: 500 14px/1 system-ui, sans-serif; color: var(--muted); letter-spacing: 0; }
-    .hs-sub { margin-top: 3px; font-size: 12.5px; color: var(--muted); min-height: 17px; }
+    .hs-board { display: grid; grid-template-columns: repeat(auto-fit, minmax(176px, 1fr)); gap: 8px; margin-bottom: 10px; }
+    .hs-tile { position: relative; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); padding: 5px 12px 6px; min-width: 0; overflow: hidden; }
+    .hs-label { font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+    .hs-value { font: 700 20px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; font-variant-numeric: tabular-nums; letter-spacing: -.01em; white-space: nowrap; }
+    .hs-value small { font: 500 12.5px/1 system-ui, sans-serif; color: var(--muted); letter-spacing: 0; }
+    .hs-sub { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .hs-sub b { color: var(--text); font-weight: 600; }
-    .hs-bar { height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--border) 70%, transparent); overflow: hidden; margin-top: 7px; }
-    .hs-bar > span { display: block; height: 100%; border-radius: 3px; background: var(--accent); }
+    .hs-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: color-mix(in srgb, var(--border) 60%, transparent); }
+    .hs-bar > span { display: block; height: 100%; background: var(--accent); }
     .hs-tile.is-warn .hs-value { color: #b54708; }
     .hs-tile.is-bad .hs-value { color: var(--danger); }
-    .hs-tile.is-good .hs-value { color: #18794e; }
-    .hs-chip { display: inline-block; vertical-align: middle; margin-right: 6px; padding: 2px 8px; border-radius: 6px; font: 700 12px/1.4 system-ui, sans-serif; letter-spacing: 0; }
-    .hs-readings { font: 600 13px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text); }
+    .hs-chip { display: inline-block; vertical-align: middle; margin-right: 6px; padding: 1px 8px; border-radius: 6px; font: 700 12px/1.5 system-ui, sans-serif; letter-spacing: 0; }
+    .hs-readings { font: 600 12.5px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text); white-space: nowrap; }
 </style>
 
 {{-- Running time: counted in the browser from the start of the run. --}}
@@ -99,29 +98,22 @@ new class extends Component
     @else
         <div class="hs-label">Time remaining</div>
         <div class="hs-value">—</div>
-        <div class="hs-sub">{{ $heat->target_metal_weight_kg > 0 ? 'No melting speed on record for this furnace' : 'Set a target metal weight to get an estimate' }}</div>
+        <div class="hs-sub">{{ $heat->target_metal_weight_kg > 0 ? 'No melting speed on record' : 'Set a target metal weight' }}</div>
     @endif
 </div>
 @endif
 
-{{-- Charges added and the last one. --}}
-<div class="hs-tile">
+{{-- Charges added, the last one and the next. --}}
+<div class="hs-tile {{ $next && $next['state'] === 'due' ? 'is-bad' : '' }}">
     <div class="hs-label">Charges added</div>
     <div class="hs-value">{{ $done }} <small>of {{ $planned }}</small></div>
+    <div class="hs-sub">
+        @if ($lastRound !== null)Last charge <b>{{ $lastRound === 0 ? 'start-up' : '#'.$lastRound }}</b> {{ $lastAt->displayAt() }}@else No charge yet @endif
+        @if ($next && $next['state'] === 'due') · <b style="color:var(--danger)">{{ $next['round'] === 0 ? 'start-up' : '#'.$next['round'] }} due</b>
+        @elseif ($next && $next['due_at']) · next <b>{{ $next['round'] === 0 ? 'start-up' : '#'.$next['round'] }}</b> {{ $next['due_at']->displayAt() }}
+        @elseif ($done >= $planned && $done > 0) · all in @endif
+    </div>
     <div class="hs-bar"><span style="width: {{ $planned > 0 ? min(100, round($done / $planned * 100)) : 0 }}%"></span></div>
-    <div class="hs-sub">
-        @if ($next && $next['state'] === 'due')<b style="color:var(--danger)">{{ $next['round'] === 0 ? 'Start-up charge' : 'Charge '.$next['round'] }} is due</b> since {{ $next['due_at']->displayAt() }}
-        @elseif ($next && $next['due_at'])Next: <b>{{ $next['round'] === 0 ? 'start-up charge' : 'charge '.$next['round'] }}</b> at {{ $next['due_at']->displayAt() }}
-        @elseif ($bedIn || $done > 0)@if ($done >= $planned)All planned charges are in @else Start-up charge in @endif
-        @else No charge recorded yet @endif
-    </div>
-</div>
-<div class="hs-tile">
-    <div class="hs-label">Last charge</div>
-    <div class="hs-value">@if ($lastRound === null)—@elseif ($lastRound === 0)<small>Start-up</small>@else #{{ $lastRound }}@endif</div>
-    <div class="hs-sub">
-        @if ($lastAt)<b>{{ $lastAt->displayAt() }}</b> · {{ $lastAt->diffForHumans(null, true, true) }} ago @else Nothing charged yet @endif
-    </div>
 </div>
 
 {{-- Metal charged, worked out from the charges. --}}
@@ -129,8 +121,8 @@ new class extends Component
     <div class="hs-label">Metal charged</div>
     <div class="hs-value">{{ $metal > 0 ? \App\Support\Formats::number($metal, fmod($metal, 1.0) == 0.0 ? 0 : 1) : '—' }} @if ($metal > 0)<small>kg</small>@endif</div>
     @if ($heat->target_metal_weight_kg > 0)
-        <div class="hs-bar"><span style="width: {{ min(100, round($metal / (float) $heat->target_metal_weight_kg * 100)) }}%"></span></div>
         <div class="hs-sub"><b>{{ \App\Support\Formats::number($metal / (float) $heat->target_metal_weight_kg * 100, 0) }}%</b> of the {{ \App\Support\Formats::number((float) $heat->target_metal_weight_kg, 0) }} kg target</div>
+        <div class="hs-bar"><span style="width: {{ min(100, round($metal / (float) $heat->target_metal_weight_kg * 100)) }}%"></span></div>
     @else
         <div class="hs-sub">From the charges recorded</div>
     @endif
@@ -140,10 +132,7 @@ new class extends Component
 <div class="hs-tile {{ $latest && $latest['result'] === 'FAIL' ? 'is-bad' : '' }}">
     <div class="hs-label">Latest test</div>
     @if ($latest)
-        <div class="hs-value" style="font-size:22px">
-            <span class="hs-chip status {{ $latest['result'] === 'PASS' ? 'status-completed' : ($latest['result'] === 'FAIL' ? 'status-cancelled' : '') }}">{{ $latest['result'] === 'UNJUDGED' ? 'NOT JUDGED' : $latest['result'] }}</span>
-        </div>
-        <div class="hs-readings">C {{ $latest['c'] !== null ? \App\Support\Formats::number($latest['c'], 2) : '—' }} · CE {{ $latest['ce'] !== null ? \App\Support\Formats::number($latest['ce'], 2) : '—' }} · Si {{ $latest['si'] !== null ? \App\Support\Formats::number($latest['si'], 2) : '—' }}</div>
+        <div class="hs-value" style="font-size:15px"><span class="hs-chip status {{ $latest['result'] === 'PASS' ? 'status-completed' : ($latest['result'] === 'FAIL' ? 'status-cancelled' : '') }}">{{ $latest['result'] === 'UNJUDGED' ? 'NOT JUDGED' : $latest['result'] }}</span><span class="hs-readings">C {{ $latest['c'] !== null ? \App\Support\Formats::number($latest['c'], 2) : '—' }} · CE {{ $latest['ce'] !== null ? \App\Support\Formats::number($latest['ce'], 2) : '—' }} · Si {{ $latest['si'] !== null ? \App\Support\Formats::number($latest['si'], 2) : '—' }}</span></div>
         <div class="hs-sub"><b>{{ $latest['at']->displayAt() }}</b> · {{ $latest['at']->diffForHumans(null, true, true) }} ago @if ($latest['reference']) · {{ $latest['reference'] }}@endif</div>
     @else
         <div class="hs-value">—</div>

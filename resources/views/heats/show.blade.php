@@ -13,7 +13,11 @@
         @endphp
         <h1 class="heat-title">{{ $heat->heat_number }}<x-heat-light :heat="$heat" after />
         </h1>
-        <p>
+        @php
+            $closedHeat = in_array($heat->status, ['CLOSED', 'CANCELLED'], true);
+            $kw = fn ($v, $empty = '—') => $v !== null ? \App\Support\Formats::number((float) $v, 1).' kW' : $empty;
+        @endphp
+        <p class="heat-line">
             <!-- {{ $heat->furnace?->name ?? 'Unknown furnace' }}
             @unless ($heat->furnace)· {{ $heat->process_type }}@endunless
             · Heat {{ strtolower(str_replace('_', ' ', $heat->status)) }} -->
@@ -22,7 +26,19 @@
                 <span class="status" title="Furnace">{{ $heat->furnace->code }}</span>
                 <span class="status {{ ['on' => 'status-in-progress', 'idle' => 'status-completed', 'warn' => 'status-on-hold', 'off' => 'status-cancelled'][$furnaceState['tone']] }}" title="Furnace status">{{ $furnaceState['label'] }}@if ($furnaceState['heat'] && $furnaceState['heat']->id !== $heat->id) <a href="{{ route('heats.show', $furnaceState['heat']) }}">{{ $furnaceState['heat']->heat_number }}</a>@endif</span>
             @endif
-            
+            <span class="fact-sep">·</span>
+            <span class="heat-fact" data-target-view>Target <strong>{{ $heat->target_metal_weight_kg !== null ? \App\Support\Formats::number((float) $heat->target_metal_weight_kg, 1).' kg' : '—' }}</strong>@unless ($closedHeat)<button type="button" class="link-btn" data-target-edit title="Change the target metal weight">Change</button>@endunless</span>
+            @unless ($closedHeat)
+                <form method="POST" action="{{ route('heats.target.update', $heat) }}" data-target-form hidden class="heat-target-form">@csrf @method('PUT')
+                    <label for="target_metal_weight_kg">Target kg</label>
+                    <input id="target_metal_weight_kg" name="target_metal_weight_kg" type="number" step="any" min="0.001" required value="{{ old('target_metal_weight_kg', $heat->target_metal_weight_kg !== null ? rtrim(rtrim((string) $heat->target_metal_weight_kg, '0'), '.') : '') }}">
+                    <button class="btn btn-small btn-primary" type="submit">Save</button><button class="btn btn-small" type="button" data-target-cancel>Cancel</button>
+                </form>
+                @error('target_metal_weight_kg')<span class="error-text">{{ $message }}</span>@enderror
+            @endunless
+            <span class="heat-fact" title="Rated power of the furnace">Rated <strong>{{ $kw($heat->furnace?->rated_power_kw) }}</strong></span>
+            @if ($heat->furnace?->max_operating_power_kw !== null)<span class="heat-fact" title="Furnace operating maximum">Max <strong>{{ $kw($heat->furnace->max_operating_power_kw) }}</strong></span>@endif
+            @if ($heat->operating_power_limit_kw !== null)<span class="heat-fact" title="Operating limit set on this heat">Limit <strong>{{ $kw($heat->operating_power_limit_kw) }}</strong></span>@endif
         </p>
     </div>
     <div class="actions">
@@ -34,6 +50,27 @@
     </div>
 </div>
 <style>
+    .heat-line { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-top: 2px; }
+    .heat-line .status { margin: 0; }
+    .heat-line .fact-sep { color: var(--muted); }
+    .heat-fact { font-size: 12.5px; color: var(--muted); white-space: nowrap; }
+    .heat-fact strong { color: var(--text); font-weight: 600; }
+    .heat-target-form { display: inline-flex; gap: 6px; align-items: center; }
+    .heat-target-form[hidden] { display: none; }
+    .heat-target-form label { margin: 0; font-size: 12px; color: var(--muted); }
+    .heat-target-form input { width: 110px; min-height: 28px; padding: 2px 8px; }
+    /* This page keeps everything close: tighter panels, rows and fields, so more of the heat shows without scrolling. */
+    main:has(.hs-board) .page-heading { margin-bottom: 8px; align-items: center; }
+    main:has(.hs-board) .page-heading h1 { font-size: 19px; margin: 0; }
+    main:has(.hs-board) .panel, main:has(.hs-board) .metrics { margin-bottom: 10px; }
+    main:has(.hs-board) .panel-header { padding: 6px 12px; }
+    main:has(.hs-board) .panel-header h2 { font-size: 14px; }
+    main:has(.hs-board) .panel-body { padding: 8px 12px; }
+    main:has(.hs-board) th, main:has(.hs-board) td { padding: 5px 9px; }
+    main:has(.hs-board) .form-grid { gap: 8px 12px; }
+    main:has(.hs-board) .field label { margin-bottom: 2px; }
+    main:has(.hs-board) .alert { margin: 0 0 8px; padding: 6px 12px; }
+    main:has(.hs-board) .empty-state { padding: 10px; }
     .link-btn { appearance: none; border: 0; background: transparent; padding: 0 0 0 6px; font: inherit; font-size: 12px; font-weight: 600; color: var(--accent); cursor: pointer; }
     .link-btn:hover { text-decoration: underline; }
     .heat-title { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
@@ -115,30 +152,6 @@
     $kw = fn ($v, $empty = '—') => $v !== null ? \App\Support\Formats::number((float) $v, 1).' kW' : $empty;
 @endphp
 <livewire:heat-status-board :heat-id="$heat->id" />
-<div class="heat-facts">
-    <div class="fact">
-        <div class="muted small">Target metal</div>
-        <div data-target-view>
-            <strong>{{ $heat->target_metal_weight_kg !== null ? \App\Support\Formats::number((float) $heat->target_metal_weight_kg, 1).' kg' : '—' }}</strong>
-            @unless ($closedHeat)<button type="button" class="link-btn" data-target-edit title="Change the target metal weight">Change</button>@endunless
-        </div>
-        @unless ($closedHeat)
-            <form method="POST" action="{{ route('heats.target.update', $heat) }}" data-target-form hidden style="display:flex;gap:6px;align-items:center;margin-top:2px">@csrf @method('PUT')
-                <input name="target_metal_weight_kg" type="number" step="any" min="0.001" required value="{{ old('target_metal_weight_kg', $heat->target_metal_weight_kg !== null ? rtrim(rtrim((string) $heat->target_metal_weight_kg, '0'), '.') : '') }}" style="width:110px">
-                <button class="btn btn-small btn-primary" type="submit">Save</button><button class="btn btn-small" type="button" data-target-cancel>Cancel</button>
-            </form>
-            @error('target_metal_weight_kg')<div class="error-text">{{ $message }}</div>@enderror
-        @endunless
-    </div>
-    <div class="fact"><div class="muted small">Rated furnace power</div><strong>{{ $kw($heat->furnace?->rated_power_kw) }}</strong></div>
-    <div class="fact"><div class="muted small">Furnace operating maximum</div><strong>{{ $kw($heat->furnace?->max_operating_power_kw, 'Not set') }}</strong></div>
-    <div class="fact"><div class="muted small">Heat operating limit</div><strong>{{ $kw($heat->operating_power_limit_kw, 'Not set') }}</strong></div>
-</div>
-<style>
-    .heat-facts { display: flex; flex-wrap: wrap; gap: 8px 36px; padding: 12px 18px; margin-bottom: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
-    .heat-facts .fact { min-width: 120px; }
-    .heat-facts .fact strong { font-size: 16px; }
-</style>
 
 <div class="tab-marker" data-tab-start="Overview"></div>
 <style>

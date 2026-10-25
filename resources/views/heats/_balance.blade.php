@@ -6,7 +6,7 @@
     <div class="panel-header"><h2>Metal balance</h2><a class="btn btn-small" href="{{ route('heats.summary', $heat) }}">Heat summary</a></div>
     <div class="panel-body">
         @foreach ($balance['warnings'] as $warning)<div class="alert alert-warning">{{ $warning }}</div>@endforeach
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:18px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:8px 14px">
             <div><div class="muted small">Charged</div><strong>{{ $kg($balance['charged_kg'] ?: null) }}</strong></div>
             <div><div class="muted small">Tapped</div><strong>{{ $kg($balance['tapped_kg']) }}</strong></div>
             <div><div class="muted small">Poured ({{ $balance['pours'] }} {{ $balance['pours'] === 1 ? 'pour' : 'pours' }}@if ($balance['open_pours']), {{ $balance['open_pours'] }} open @endif)</div><strong>{{ $kg($balance['poured_kg'] ?: null) }}</strong>@if ($balance['poured_percent_of_charged'] !== null)<div class="muted small">{{ $balance['poured_percent_of_charged'] }} % of the charge</div>@endif</div>
