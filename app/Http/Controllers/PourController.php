@@ -49,8 +49,7 @@ class PourController extends Controller
     {
         $heats = Heat::query()
             ->with('furnace')
-            ->whereNull('closed_at')
-            ->whereNotIn('status', ['CANCELLED', 'CLOSED'])
+            ->where('status', '!=', 'CANCELLED')
             ->orderByDesc('created_at')
             ->get();
 
@@ -69,7 +68,7 @@ class PourController extends Controller
             'heat_id' => [
                 'required',
                 'uuid',
-                Rule::exists('heats', 'id'),
+                Rule::exists('heats', 'id')->where(fn ($q) => $q->where('status', '!=', 'CANCELLED')),
             ],
             'planned_at' => ['nullable', 'date'],
             'operator_name' => ['nullable', 'string', 'max:100'],

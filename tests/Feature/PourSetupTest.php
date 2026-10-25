@@ -22,12 +22,15 @@ class PourSetupTest extends TestCase
         return Heat::create($over + ['heat_number' => 'H-'.uniqid(), 'furnace_id' => $furnace->id, 'process_type' => 'INDUCTION', 'status' => 'PLANNED']);
     }
 
-    public function test_the_new_pour_form_offers_only_open_heats(): void
+    public function test_the_new_pour_form_offers_finished_heats_but_not_cancelled_ones(): void
     {
         $open = $this->heat();
-        $closed = $this->heat(['status' => 'CLOSED']);
+        $closed = $this->heat(['status' => 'CLOSED', 'closed_at' => now()]);
+        $cancelled = $this->heat(['status' => 'CANCELLED']);
 
-        $this->get(route('pours.create'))->assertOk()->assertSee($open->heat_number)->assertDontSee($closed->heat_number);
+        $this->get(route('pours.create'))->assertOk()->assertSee($open->heat_number)->assertSee($closed->heat_number)->assertDontSee($cancelled->heat_number);
+        $this->post(route('pours.store'), ['heat_id' => $closed->id])->assertSessionHasNoErrors();
+        $this->post(route('pours.store'), ['heat_id' => $cancelled->id])->assertSessionHasErrors('heat_id');
     }
 
     public function test_pours_are_numbered_in_sequence_and_need_a_heat(): void

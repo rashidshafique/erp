@@ -24,7 +24,7 @@
         @if($heats->isEmpty())
             <p>No eligible heats were found.</p>
             <p class="muted">
-                A heat must exist and must not be closed or cancelled before you can
+                A heat must exist and must not be cancelled before you can
                 create a pour against it.
             </p>
         @else
