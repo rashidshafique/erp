@@ -10,7 +10,7 @@
             <div>
                 <div class="mo-name"><a href="{{ route('patterns.show', $pattern) }}#cavities-{{ $rev->id }}">{{ $pattern->name }}</a></div>
                 <div class="mo-meta">
-                    <span class="pill pill-mono">{{ $pattern->code }} Rev {{ $rev->revision }}</span>
+                    <span class="mono">{{ $pattern->code }} Rev {{ $rev->revision }}</span>
                     @if ($rev->is_current)<span class="status status-completed">Current</span>@elseif ($rev->isSuperseded())<span class="status status-on-hold">Superseded</span>@endif
                     @if ($pattern->trashed())<span class="status status-cancelled">{{ $pattern->custody === 'RETURNED' ? 'Returned' : ($pattern->custody === 'SCRAPPED' ? 'Scrapped' : 'Archived') }}</span>@endif
                     <span class="pill">{{ $pattern->owner_type === 'FOUNDRY' ? 'Foundry-owned' : 'Owner: '.$pattern->ownerLabel() }}</span>

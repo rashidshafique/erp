@@ -10,7 +10,7 @@
 <div class="page-heading">
     <div>
         <h1>{{ $product->name }}</h1>
-        <p class="pills"><span class="pill pill-mono">{{ $product->code }}</span><span class="pill">{{ $product->product_type }}</span></p>
+        <p class="pills"><span class="mono">{{ $product->code }}</span><span class="pill">{{ $product->product_type }}</span></p>
     </div>
     <div class="actions">
         <a class="btn" href="{{ route('products.index') }}">All products</a>
@@ -78,7 +78,7 @@
             <div>
                 <div class="detail-label">Patterns</div>
                 <div class="detail-value">
-                    @forelse ($currentPatterns as $p)<a href="{{ route('patterns.show', $p) }}">{{ $p->name }}</a> <span class="pill pill-mono">{{ $p->code }}</span>@if (! $loop->last)<br>@endif
+                    @forelse ($currentPatterns as $p)<a href="{{ route('patterns.show', $p) }}">{{ $p->name }}</a> <span class="muted small mono">{{ $p->code }}</span>@if (! $loop->last)<br>@endif
                     @empty<span class="muted">None linked yet</span> @unless ($product->trashed())<a href="#" class="qd-add" data-quick="qd-link-pattern">Link a pattern</a>@endunless @endforelse
                 </div>
             </div>

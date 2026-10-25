@@ -262,7 +262,7 @@ tbody tr:hover { background: #fcfcfd; }
     font-weight: 750;
 }
 
-/* A status is a rounded rectangle (.status); any other fact about a record, such as a code, an owner or a count, is a pill. */
+/* A status is a rounded rectangle (.status); any other fact about a record, such as a type, an owner or a count, is a pill. Codes and ids stay plain text. */
 .pill {
     display: inline-flex;
     align-items: center;
