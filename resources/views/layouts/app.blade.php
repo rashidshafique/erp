@@ -47,13 +47,12 @@
 
             @include('layouts._module-nav-groups', ['position' => 'top'])
 
-            @if ($menu->showsAny(['products.index', 'patterns.index', 'casting-analyses.index', 'production-orders.index', 'lots.queue', 'moulding-runs.index', 'pours.index', 'work-lists.index', 'moulding-teams.index', 'sand-systems.index', 'mould-readiness.index']))
-            <div class="nav-group {{ request()->routeIs('products.*', 'patterns.*', 'pattern-ownership.*', 'casting-analyses.*', 'production-orders.*', 'lots.queue', 'lots.bulk-stage', 'moulding-runs.*', 'pours.*', 'work-lists.*', 'moulding-teams.*', 'sand-systems.*', 'mould-readiness.*') ? 'is-active' : '' }}">
+            @if ($menu->showsAny(['patterns.index', 'casting-analyses.index', 'production-orders.index', 'lots.queue', 'moulding-runs.index', 'pours.index', 'work-lists.index', 'moulding-teams.index', 'sand-systems.index', 'mould-readiness.index']))
+            <div class="nav-group {{ request()->routeIs('patterns.*', 'pattern-ownership.*', 'casting-analyses.*', 'production-orders.*', 'lots.queue', 'lots.bulk-stage', 'moulding-runs.*', 'pours.*', 'work-lists.*', 'moulding-teams.*', 'sand-systems.*', 'mould-readiness.*') ? 'is-active' : '' }}">
                 <button type="button" class="nav-group-toggle" aria-expanded="false">
                     <span class="nav-lab">{!! \App\Support\NavIcons::get('factory') !!}<span>Production</span>@if (($n = \App\Support\MenuCounts::sum($menuCounts, \App\Support\MenuCounts::PRODUCTION)) > 0)<span class="nav-count" title="Waiting for someone">{{ $n }}</span>@endif</span><span class="nav-chevron">›</span>
                 </button>
                 <div class="nav-submenu" hidden>
-                    @if ($menu->shows('products.index')) <a href="{{ route('products.index') }}" class="nav-link {{ request()->routeIs('products.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('box') !!}<span>Products</span></a> @endif
                     @if ($menu->shows('patterns.index')) <a href="{{ route('patterns.index') }}" class="nav-link {{ request()->routeIs('patterns.*', 'pattern-ownership.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('layers') !!}<span>Patterns</span></a> @endif
                     @if ($menu->shows('casting-analyses.index')) <a href="{{ route('casting-analyses.index') }}" class="nav-link {{ request()->routeIs('casting-analyses.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('chart-line') !!}<span>Casting analysis</span></a> @endif
                     @if ($menu->shows('production-orders.index')) <a href="{{ route('production-orders.index') }}" class="nav-link {{ request()->routeIs('production-orders.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('factory') !!}<span>Production orders</span>@if (($menuCounts['production-orders.index'] ?? 0) > 0)<span class="nav-count" title="Waiting for someone">{{ $menuCounts['production-orders.index'] }}</span>@endif</a> @endif
@@ -100,13 +99,14 @@
             </div>
             @endif
 
-            @if ($menu->showsAny(['customers.index', 'heat-plan.index']) || collect(app(\App\Domains\Core\ModuleRegistry::class)->navItems('sales'))->contains(fn ($i) => $menu->shows($i['route'])))
-            <div class="nav-group {{ request()->routeIs('customers.*', 'heat-plan.*', ...app(\App\Domains\Core\ModuleRegistry::class)->navPatterns('sales')) ? 'is-active' : '' }}">
+            @if ($menu->showsAny(['customers.index', 'products.index', 'heat-plan.index']) || collect(app(\App\Domains\Core\ModuleRegistry::class)->navItems('sales'))->contains(fn ($i) => $menu->shows($i['route'])))
+            <div class="nav-group {{ request()->routeIs('customers.*', 'products.*', 'heat-plan.*', ...app(\App\Domains\Core\ModuleRegistry::class)->navPatterns('sales')) ? 'is-active' : '' }}">
                 <button type="button" class="nav-group-toggle" aria-expanded="false">
                     <span class="nav-lab">{!! \App\Support\NavIcons::get('briefcase') !!}<span>Sales &amp; Planning</span>@if (($n = app(\App\Domains\Core\ModuleRegistry::class)->groupCount(app(\App\Domains\Core\ModuleRegistry::class)->navItems('sales'), $menu) ) > 0)<span class="nav-count" title="Waiting for someone">{{ $n }}</span>@endif</span><span class="nav-chevron">›</span>
                 </button>
                 <div class="nav-submenu" hidden>
                     @if ($menu->shows('customers.index')) <a href="{{ route('customers.index') }}" class="nav-link {{ request()->routeIs('customers.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('building') !!}<span>Customers</span></a> @endif
+                    @if ($menu->shows('products.index')) <a href="{{ route('products.index') }}" class="nav-link {{ request()->routeIs('products.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('box') !!}<span>Products</span></a> @endif
                     @foreach (app(\App\Domains\Core\ModuleRegistry::class)->navItems('sales') as $item)
                         @continue(! $menu->shows($item['route']))
                         <a href="{{ route($item['route']) }}" class="nav-link {{ request()->routeIs(...$item['active']) ? 'active' : '' }}">{!! \App\Support\NavIcons::get($item['icon']) !!}<span>{{ $item['label'] }}</span>@if (($n = app(\App\Domains\Core\ModuleRegistry::class)->navCount($item)) > 0)<span class="nav-count" title="Waiting for someone">{{ $n }}</span>@endif</a>

@@ -1,0 +1,89 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Domains\Dispatch\Models\Dispatch;
+use App\Domains\Dispatch\Models\DispatchItem;
+use App\Domains\Dispatch\Models\PackingRecord;
+use App\Domains\Dispatch\Models\PackingRecordItem;
+use App\Domains\Sales\Models\SalesOrder;
+use App\Domains\Sales\Models\SalesOrderLine;
+use App\Models\CastingLot;
+use App\Models\Customer;
+use App\Models\Product;
+use App\Models\ProductRevision;
+use App\Models\Role;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Livewire\Livewire;
+use Tests\TestCase;
+
+class ProductCatalogueTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private Product $valve;
+
+    private Product $cap;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $admin = User::factory()->create(['is_active' => true, 'must_change_password' => false]);
+        $admin->roles()->attach(Role::where('code', 'ADMIN')->value('id'));
+        $this->actingAs($admin);
+        $this->valve = Product::create(['code' => 'VALVE-1', 'name' => 'Valve body']);
+        $this->cap = Product::create(['code' => 'CAP-1', 'name' => 'Cap']);
+    }
+
+    public function test_stock_is_packed_less_dispatched_priced_at_the_latest_sales_line_and_can_be_filtered(): void
+    {
+        $revision = ProductRevision::create(['product_id' => $this->valve->id, 'revision' => 'A', 'status' => 'APPROVED']);
+        foreach (['pour_mould_assembly_id', 'production_order_id'] as $column) {
+            DB::statement("ALTER TABLE casting_lots ALTER COLUMN {$column} DROP NOT NULL");   // undone with the test's transaction
+        }
+        $lot = CastingLot::create(['lot_number' => 'LOT-1', 'product_id' => $this->valve->id, 'product_revision_id' => $revision->id, 'status' => 'OPEN', 'quantity_poured' => 10]);
+        $packed = PackingRecordItem::create(['packing_record_id' => PackingRecord::create(['packing_number' => 'PK-1', 'status' => 'DRAFT'])->id, 'casting_lot_id' => $lot->id, 'quantity_packed' => 10, 'uom' => 'PCS']);
+        $customer = Customer::create(['code' => 'ACME', 'name' => 'Acme Pumps']);
+        $dispatch = Dispatch::create(['dispatch_number' => 'DS-1', 'customer_id' => $customer->id]);
+        DispatchItem::create(['dispatch_id' => $dispatch->id, 'packing_record_item_id' => $packed->id, 'quantity_dispatched' => 4]);
+        foreach ([['SO-1', today()->subMonths(2), 100], ['SO-2', today(), 125]] as [$number, $date, $price]) {
+            $order = SalesOrder::create(['order_number' => $number, 'customer_id' => $customer->id, 'order_date' => $date, 'status' => 'CONFIRMED']);
+            SalesOrderLine::create(['sales_order_id' => $order->id, 'product_id' => $this->valve->id, 'product_revision_id' => $revision->id, 'line_number' => 1, 'ordered_qty' => 2, 'unit_price' => $price, 'uom' => 'piece']);
+        }
+
+        $list = Livewire::test('product-list');
+        $list->assertViewHas('stockValue', 6 * 125.0)->assertViewHas('outOfStock', 1)->assertViewHas('monthSales', 250.0)
+            ->assertSee('6 pcs')->assertSee('125.00');
+        $list->set('stock', 'in')->assertSee('VALVE-1')->assertDontSee('CAP-1');
+        $list->set('stock', 'out')->assertSee('CAP-1')->assertDontSee('VALVE-1');
+    }
+
+    public function test_the_status_switch_and_bulk_actions_set_products_active_or_inactive(): void
+    {
+        $list = Livewire::test('product-list')->call('toggleActive', $this->valve->id);
+        $this->assertFalse($this->valve->fresh()->active);
+
+        $list->set('selected', [$this->valve->id, $this->cap->id])->call('setActive', false)->assertSet('selected', []);
+        $this->assertFalse($this->cap->fresh()->active);
+        $list->set('selected', [$this->valve->id, $this->cap->id])->call('setActive', true);
+        $this->assertTrue($this->valve->fresh()->active && $this->cap->fresh()->active);
+    }
+
+    public function test_a_user_without_product_rights_cannot_change_status(): void
+    {
+        $this->actingAs(User::factory()->create(['is_active' => true, 'must_change_password' => false]));
+
+        Livewire::test('product-list')->call('toggleActive', $this->valve->id)->assertForbidden();
+        $this->assertTrue($this->valve->fresh()->active);
+    }
+
+    public function test_products_sit_in_the_sales_menu(): void
+    {
+        $html = $this->get(route('products.index'))->assertOk()->assertSee('Product catalogue')->getContent();
+
+        $sales = substr($html, strpos($html, '<span>Sales &amp; Planning</span>'));
+        $this->assertStringContainsString(route('products.index'), substr($sales, 0, strpos($sales, 'nav-group-toggle')));
+    }
+}

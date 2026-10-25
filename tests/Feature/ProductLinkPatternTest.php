@@ -164,8 +164,8 @@ class ProductLinkPatternTest extends TestCase
             \App\Models\CastingLot::create(['lot_number' => 'LOT-'.$at, 'product_id' => $this->product->id, 'status' => 'OPEN', 'quantity_poured' => 10, 'created_from_pour_at' => $at]);
         }
 
-        $this->get(route('products.index'))->assertOk()->assertSee('Metal grade')->assertSee('EN-GJS-500-7')->assertSee('Not set')
-            ->assertSee('Last cast')->assertSee(\Illuminate\Support\Carbon::parse('2026-10-05')->displayDate())->assertDontSee(\Illuminate\Support\Carbon::parse('2026-09-01')->displayDate());
+        $this->get(route('products.index'))->assertOk()->assertSee('EN-GJS-500-7')->assertSee('No grade')
+            ->assertSee('last cast')->assertSee(\Illuminate\Support\Carbon::parse('2026-10-05')->displayDate())->assertDontSee(\Illuminate\Support\Carbon::parse('2026-09-01')->displayDate());
     }
 
     public function test_the_product_list_filters_as_it_is_typed_pages_and_keeps_its_state_in_the_address(): void
@@ -179,7 +179,7 @@ class ProductLinkPatternTest extends TestCase
         $list->assertSee('ITEM-01')->assertDontSee('ZVALVE-1')   // 26 products, 20 to a page, by code
             ->call('gotoPage', 2)->assertSee('ZVALVE-1')->assertDontSee('ITEM-01')->assertSet('paginators.page', 2);
 
-        $list->set('search', 'zvalve')->assertSee('ZVALVE-1')->assertDontSee('ITEM-01')->assertSet('paginators.page', 1)->assertSee('Matching results');
+        $list->set('search', 'zvalve')->assertSee('ZVALVE-1')->assertDontSee('ITEM-01')->assertSet('paginators.page', 1)->assertSee('of 1');
         $list->set('search', '')->set('active', '0')->assertSee('ITEM-02')->assertDontSee('ITEM-01')->assertDontSee('ZVALVE-1');
         $list->call('resetFilters')->assertSet('search', '')->assertSet('active', '')->assertSee('ITEM-01');
 
