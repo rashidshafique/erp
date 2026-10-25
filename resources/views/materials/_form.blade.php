@@ -47,6 +47,11 @@
 </div>
 
 <div class="panel">
+    <div class="panel-header"><h2>Tax and reporting</h2></div>
+    <div class="panel-body">@include('partials.trade-fields', ['item' => $material])</div>
+</div>
+
+<div class="panel">
     <div class="panel-header"><h2>Stock</h2></div>
     <div class="panel-body"><div class="form-grid">
         <div class="field">

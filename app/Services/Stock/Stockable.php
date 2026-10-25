@@ -22,4 +22,7 @@ interface Stockable
     public function isLotTracked(): bool;
 
     public function standardCost(): ?float;
+
+    /** The line of the accounts its stock is reported in, unless a movement says otherwise. */
+    public function inventoryClass(): InventoryClass;
 }

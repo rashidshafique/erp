@@ -62,6 +62,11 @@ In priority order:
 - `Notify` sends an `AppNotice` to everyone holding a permission, or to named roles; stored with Laravel's database notifications. The bell and growl-style toasts in the top bar (`notification-center`, Livewire) poll every 10 seconds. Websockets were not used: they need Reverb or Pusher and a socket server.
 - `ReorderWatcher` raises one notice to `stores.manage` holders each time a watched material (tracked, active, minimum above zero) falls to its minimum, and re-arms when stock is back above it. It runs after every ledger receipt or issue, when a material is edited, and hourly (`stock:check-reorder`). The Reorder alerts page (Purchases) and a dashboard "Needs attention" item list the materials with a suggested order quantity.
 
+**Tax and reporting details (Pakistan first)**
+Plan for bought-in goods sold as they are, in order: (1) trade details on items, done; (2) sales lines that point at any stock item, with dispatch issuing through the ledger; (3) a tax module of rules by jurisdiction, item class and customer, starting with Pakistan sales tax; (4) e-invoice output per jurisdiction (FBR digital invoicing for Pakistan).
+- Materials and products carry `inventory_class` (raw material, finished goods, stock-in-trade, consumable, stores and spares), `tariff_code`, `tax_uom` and `origin_country` (`HasTradeDetails`). Every stock movement records the class it was posted under; the ledger takes an `inventory_class` override, so stock bought to resell reports apart from the same item bought to use.
+- `TaxJurisdiction` reads the `tax_jurisdiction` setting (default `PK`) for the tariff code's name and format: an 8-digit PCT code written 7325.1000. There is no screen for the setting yet.
+
 ### Stores: not built yet
 - Finished goods are not on the ledger. They need a decision on their stock lot (casting lot or a new stock lot) and a second registered item type.
 - Cost layers still point at `material_lots`; the ledger refuses lots of other item types until that is designed.

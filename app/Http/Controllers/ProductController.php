@@ -9,6 +9,7 @@ use App\Models\ProductionOrder;
 use App\Services\PatternCavityMap;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -49,6 +50,7 @@ class ProductController extends Controller
             'effective_from' => ['nullable', 'date'],
             'effective_to' => ['nullable', 'date', 'after_or_equal:effective_from'],
             'engineering_notes' => ['nullable', 'string'],
+            ...Product::tradeRules(),
         ]);
 
         $product = DB::transaction(function () use ($data) {
@@ -60,6 +62,7 @@ class ProductController extends Controller
                 'nominal_weight_kg' => $data['nominal_weight_kg'] ?? null,
                 'description' => $data['description'] ?? null,
                 'active' => $data['active'],
+                ...Arr::only($data, ['inventory_class', 'tariff_code', 'tax_uom', 'origin_country']),
             ]);
 
             $product->revisions()->create([
@@ -201,6 +204,7 @@ class ProductController extends Controller
             'nominal_weight_kg' => ['nullable', 'numeric', 'gt:0', 'max:99999999.9999'],
             'description' => ['nullable', 'string'],
             'active' => ['required', 'boolean'],
+            ...Product::tradeRules(),
         ]);
 
         $product->update([
@@ -210,6 +214,7 @@ class ProductController extends Controller
             'base_uom' => $data['base_uom'],
             'description' => $data['description'] ?? null,
             'active' => $data['active'],
+            ...Arr::only($data, ['inventory_class', 'tariff_code', 'tax_uom', 'origin_country']),
         ]);
         // The nominal weight is the current revision's net weight: changing it here changes that revision. Without a revision it is kept on the product.
         if ($current = $product->currentRevision()) {

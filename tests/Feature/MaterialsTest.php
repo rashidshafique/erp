@@ -48,6 +48,17 @@ class MaterialsTest extends TestCase
         $this->put(route('materials.update', $material), $this->form())->assertSessionHasNoErrors();      // keeping its own code is fine
     }
 
+    public function test_a_materials_tax_details_are_saved_with_the_pct_code_in_its_format_and_a_bad_code_refused(): void
+    {
+        $this->get(route('materials.create'))->assertOk()->assertSee('PCT code')->assertSee('Stock-in-trade');
+        $this->post(route('materials.store'), $this->form(['tariff_code' => '2505.1000x']))->assertSessionHasErrors('tariff_code');
+        $this->post(route('materials.store'), $this->form(['tariff_code' => '25051000', 'inventory_class' => 'STOCK_IN_TRADE', 'tax_uom' => 'KG', 'origin_country' => 'pk']))->assertSessionHasNoErrors();
+
+        $this->assertSame(['2505.1000', 'STOCK_IN_TRADE', 'KG', 'PK'], array_values(Material::sole()->only('tariff_code', 'inventory_class', 'tax_uom', 'origin_country')));
+        $this->assertSame('CONSUMABLE', $this->material(['material_type' => 'FUEL'])->fresh()->inventory_class);
+        $this->assertSame('RAW_MATERIAL', $this->material()->fresh()->inventory_class);
+    }
+
     public function test_the_new_lot_form_opens_and_a_lot_cannot_accept_more_than_was_received(): void
     {
         $material = $this->material();

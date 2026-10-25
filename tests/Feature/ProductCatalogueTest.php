@@ -79,6 +79,18 @@ class ProductCatalogueTest extends TestCase
         $this->assertTrue($this->valve->fresh()->active);
     }
 
+    public function test_a_product_bought_for_resale_is_saved_as_stock_in_trade_with_its_pct_code(): void
+    {
+        $this->assertSame('FINISHED_GOODS', $this->valve->fresh()->inventory_class);
+
+        $this->post(route('products.store'), ['name' => 'Ladle liner', 'product_type' => 'OTHER', 'base_uom' => 'piece', 'active' => 1, 'revision' => 'A', 'revision_status' => 'APPROVED',
+            'inventory_class' => 'STOCK_IN_TRADE', 'tariff_code' => '69022000', 'origin_country' => 'CN'])->assertSessionHasNoErrors();
+        $liner = Product::where('name', 'Ladle liner')->sole();
+        $this->assertSame(['STOCK_IN_TRADE', '6902.2000', 'CN'], array_values($liner->only('inventory_class', 'tariff_code', 'origin_country')));
+
+        Livewire::test('product-list')->assertSee('PCT code: 6902.2000');
+    }
+
     public function test_products_sit_in_the_sales_menu(): void
     {
         $html = $this->get(route('products.index'))->assertOk()->assertSee('Product catalogue')->getContent();

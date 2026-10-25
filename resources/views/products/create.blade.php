@@ -85,6 +85,11 @@
     </div>
 
     <div class="panel">
+        <div class="panel-header"><h2>Tax and reporting</h2></div>
+        <div class="panel-body">@include('partials.trade-fields', ['item' => $product])</div>
+    </div>
+
+    <div class="panel">
         <div class="panel-header"><h2>Initial product revision</h2></div>
         <div class="panel-body">
             <p class="muted small">

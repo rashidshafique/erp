@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model
 {
-    use HasUuids, SoftDeletes, \App\Models\Concerns\GeneratesCodes;
+    use HasUuids, SoftDeletes, \App\Models\Concerns\GeneratesCodes, \App\Models\Concerns\HasTradeDetails;
 
     public string $codeKind = 'product';
 
@@ -27,6 +27,12 @@ class Product extends Model
         'nominal_weight_kg' => 'decimal:4',
         'active' => 'boolean',
     ];
+
+    /** A product is a casting the foundry makes, so it is finished goods unless set as bought in for resale. */
+    public function defaultInventoryClass(): \App\Services\Stock\InventoryClass
+    {
+        return \App\Services\Stock\InventoryClass::FinishedGoods;
+    }
 
     /** The revision the product is made to now: the latest approved one, else the latest that is not obsolete, else the latest. */
     public function currentRevision(): ?ProductRevision

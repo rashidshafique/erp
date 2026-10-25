@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Models\Concerns\GeneratesCodes;
+use App\Models\Concerns\HasTradeDetails;
+use App\Services\Stock\InventoryClass;
 use App\Services\Stock\Stockable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -12,7 +14,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Material extends Model implements Stockable
 {
-    use GeneratesCodes, HasUuids, SoftDeletes;
+    use GeneratesCodes, HasTradeDetails, HasUuids, SoftDeletes;
 
     public string $codeKind = 'material';
 
@@ -49,6 +51,7 @@ class Material extends Model implements Stockable
             'standard_cost_per_uom' => ['nullable', 'numeric', 'min:0', 'max:999999999'],
             'description' => ['nullable', 'string', 'max:10000'],
             'notes' => ['nullable', 'string', 'max:10000'],
+            ...self::tradeRules(),
         ];
     }
 
@@ -193,6 +196,11 @@ class Material extends Model implements Stockable
     public function isLotTracked(): bool
     {
         return (bool) $this->requires_lot_tracking;
+    }
+
+    public function defaultInventoryClass(): InventoryClass
+    {
+        return InventoryClass::forMaterialType($this->material_type);
     }
 
     public function standardCost(): ?float

@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\ProductRevision;
 use App\Services\Planning\HeatPlanner;
 use App\Support\Formats;
+use App\Support\TaxJurisdiction;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -83,10 +84,11 @@ new class extends Component
 
         return response()->streamDownload(function () use ($products, $grades) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['Code', 'Name', 'Type', 'Grade', 'Stock (pcs)', 'Last price', 'Nominal weight (kg)', 'Status']);
+            fputcsv($out, ['Code', 'Name', 'Type', 'Inventory class', TaxJurisdiction::tariffLabel(), 'Tax unit', 'Origin', 'Grade', 'Stock (pcs)', 'Last price', 'Nominal weight (kg)', 'Status']);
             foreach ($products as $product) {
                 fputcsv($out, [
-                    $product->code, $product->name, $product->product_type, $grades[$product->id]['grade']?->code ?? '',
+                    $product->code, $product->name, $product->product_type, $product->inventoryClass()->label(), $product->tariff_code, $product->tax_uom, $product->origin_country,
+                    $grades[$product->id]['grade']?->code ?? '',
                     $product->stock_qty !== null ? (float) $product->stock_qty : '', $product->last_price !== null ? (float) $product->last_price : '',
                     $product->nominal_weight_kg !== null ? (float) $product->nominal_weight_kg : '', $product->active ? 'ACTIVE' : 'INACTIVE',
                 ]);
@@ -361,7 +363,7 @@ new class extends Component
                                     </span>
                                     <div>
                                         <a class="cat-name" href="{{ route('products.show', $product) }}">{{ $product->name }}</a>
-                                        <div class="cat-sub">@if ($g && $g['revision'])Rev {{ $g['revision']->revision }}@endif{{ isset($lastCast[$product->id]) ? ' · last cast '.$lastCast[$product->id]->displayDate() : '' }}</div>
+                                        <div class="cat-sub">@if ($product->tariff_code){{ \App\Support\TaxJurisdiction::tariffLabel() }}: {{ $product->tariff_code }} · @endif @if ($g && $g['revision'])Rev {{ $g['revision']->revision }}@endif{{ isset($lastCast[$product->id]) ? ' · last cast '.$lastCast[$product->id]->displayDate() : '' }}</div>
                                         <div class="cat-chips">
                                             @if ($sand)<span class="cat-chip">{{ $sand }}</span>@endif
                                             @if ($g && $g['grade'])<span class="cat-chip" title="{{ $g['grade']->name }}">{{ $g['grade']->code }}</span>@else<span class="cat-chip" title="Set the grade on the product's Iron grade tab">No grade</span>@endif

@@ -83,6 +83,9 @@
                 </div>
             </div>
 
+            <h3 style="margin:22px 0 10px">Tax and reporting</h3>
+            @include('partials.trade-fields', ['item' => $product])
+
             <div class="actions" style="margin-top:20px">
                 <button class="btn btn-primary" type="submit">Save changes</button>
                 <a class="btn" href="{{ route('products.show', $product) }}">Cancel</a>

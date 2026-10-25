@@ -17,6 +17,7 @@ class StockMovement extends Model
         'item_id',
         'movement_number',
         'movement_type',
+        'inventory_class',
         'material_id',
         'material_lot_id',
         'from_location_id',
@@ -40,6 +41,10 @@ class StockMovement extends Model
             if ($movement->item_id === null && $movement->material_id !== null) {
                 $movement->item_type = 'material';
                 $movement->item_id = $movement->material_id;
+            }
+            // Movements written outside the ledger are reported under their item's class.
+            if ($movement->inventory_class === null && $movement->item_type !== null) {
+                $movement->inventory_class = $movement->item()?->inventoryClass()->value;
             }
         });
     }

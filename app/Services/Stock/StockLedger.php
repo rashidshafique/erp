@@ -25,7 +25,7 @@ class StockLedger
     /**
      * Receives stock into a lot and opens its cost layer.
      *
-     * @param  array{movement_number?: string, source_type?: string|null, source_id?: string|null, receipt_lot_id?: string|null, recorded_by?: string|null, reason?: string|null, to_location_id?: string|null, occurred_at?: CarbonInterface|null}  $details
+     * @param  array{movement_number?: string, inventory_class?: InventoryClass|null, source_type?: string|null, source_id?: string|null, receipt_lot_id?: string|null, recorded_by?: string|null, reason?: string|null, to_location_id?: string|null, occurred_at?: CarbonInterface|null}  $details
      */
     public function receive(StockLot $lot, float $quantity, float $unitCost, string $uom, array $details = []): StockMovement
     {
@@ -34,7 +34,7 @@ class StockLedger
         $movement = StockMovement::create([
             'movement_number' => $details['movement_number'] ?? $this->number('RCV'),
             'movement_type' => 'RECEIPT',
-            ...$this->identity($lot),
+            ...$this->identity($lot, $details['inventory_class'] ?? null),
             'to_location_id' => $details['to_location_id'] ?? null,
             'quantity' => $quantity,
             'uom' => $uom,
@@ -65,7 +65,7 @@ class StockLedger
     /**
      * Issues stock from a lot, drawing its cost layers down oldest first. The movement carries the average cost of what it drew.
      *
-     * @param  array{movement_number?: string, source_type?: string|null, source_id?: string|null, recorded_by?: string|null, reason?: string|null, from_location_id?: string|null, occurred_at?: CarbonInterface|null}  $details
+     * @param  array{movement_number?: string, inventory_class?: InventoryClass|null, source_type?: string|null, source_id?: string|null, recorded_by?: string|null, reason?: string|null, from_location_id?: string|null, occurred_at?: CarbonInterface|null}  $details
      *
      * @throws InsufficientStockException
      */
@@ -112,7 +112,7 @@ class StockLedger
         $movement = StockMovement::create([
             'movement_number' => $details['movement_number'] ?? $this->number('ISS'),
             'movement_type' => 'ISSUE',
-            ...$this->identity($lot),
+            ...$this->identity($lot, $details['inventory_class'] ?? null),
             'from_location_id' => $fromLocation,
             'quantity' => $quantity,
             'uom' => $uom,
@@ -132,7 +132,7 @@ class StockLedger
     /**
      * Moves stock of a lot from one place to another. A null location is the stock not yet put anywhere. Quantity and cost do not change.
      *
-     * @param  array{movement_number?: string, recorded_by?: string|null, reason?: string|null, occurred_at?: CarbonInterface|null}  $details
+     * @param  array{movement_number?: string, inventory_class?: InventoryClass|null, recorded_by?: string|null, reason?: string|null, occurred_at?: CarbonInterface|null}  $details
      *
      * @throws InsufficientStockException
      */
@@ -145,7 +145,7 @@ class StockLedger
         return StockMovement::create([
             'movement_number' => $details['movement_number'] ?? $this->number('TRF'),
             'movement_type' => 'TRANSFER',
-            ...$this->identity($lot),
+            ...$this->identity($lot, $details['inventory_class'] ?? null),
             'from_location_id' => $fromLocationId,
             'to_location_id' => $toLocationId,
             'quantity' => $quantity,
@@ -234,7 +234,7 @@ class StockLedger
      *
      * @return array<string, string>
      */
-    private function identity(StockLot $lot): array
+    private function identity(StockLot $lot, ?InventoryClass $class = null): array
     {
         $item = $lot->stockItem();
         if ($item->stockItemType() !== 'material') {
@@ -246,6 +246,7 @@ class StockLedger
             'item_id' => $item->stockItemId(),
             'material_id' => $item->stockItemId(),
             'material_lot_id' => $lot->stockLotId(),
+            'inventory_class' => ($class ?? $item->inventoryClass())->value,
         ];
     }
 

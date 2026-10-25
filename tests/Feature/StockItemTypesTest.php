@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Material;
 use App\Models\MaterialLot;
 use App\Models\StockMovement;
+use App\Services\Stock\InventoryClass;
 use App\Services\Stock\StockItemTypes;
 use App\Services\Stock\StockLedger;
 use App\Services\Stock\StockLot;
@@ -70,6 +71,18 @@ class StockItemTypesTest extends TestCase
 
         $this->assertSame('material', $movement->fresh()->item_type);
         $this->assertSame($lot->material_id, $movement->fresh()->item_id);
+        $this->assertSame('RAW_MATERIAL', $movement->fresh()->inventory_class);
+    }
+
+    public function test_a_movement_is_reported_under_its_items_class_unless_posted_under_another(): void
+    {
+        $lot = $this->lot();
+        $ledger = app(StockLedger::class);
+
+        $ledger->receive($lot, 10, 100, 'kg');
+        $ledger->receive($lot, 5, 100, 'kg', ['inventory_class' => InventoryClass::StockInTrade]);
+
+        $this->assertSame(['RAW_MATERIAL', 'STOCK_IN_TRADE'], StockMovement::orderBy('quantity', 'desc')->pluck('inventory_class')->all());
     }
 
     public function test_the_database_keeps_a_material_movement_in_step_with_its_item(): void
@@ -94,6 +107,7 @@ class StockItemTypesTest extends TestCase
             public function isStockTracked(): bool { return true; }
             public function isLotTracked(): bool { return false; }
             public function standardCost(): ?float { return null; }
+            public function inventoryClass(): InventoryClass { return InventoryClass::FinishedGoods; }
         };
         $lot = new class($item) implements StockLot
         {
