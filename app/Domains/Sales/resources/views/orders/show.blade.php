@@ -90,8 +90,10 @@
                                 <div class="qd-body">
                                     <div class="alert alert-error qd-errors" role="alert" @unless (old('_quick') === 'qd-delivery-'.$l->id && $errors->has('quantity')) hidden @endunless>@if (old('_quick') === 'qd-delivery-'.$l->id)@error('quantity')<div>{{ $message }}</div>@enderror @endif</div>
                                     <div class="qd-fields">
+                                        @php $unscheduled = max(0, (float) $l->ordered_qty - (float) $l->deliveries->sum('quantity')); @endphp
+                                        <div class="help">Ordered {{ rtrim(rtrim(\App\Support\Formats::number((float) $l->ordered_qty, 3), '0'), '.') }}; still to schedule: <strong>{{ rtrim(rtrim(\App\Support\Formats::number($unscheduled, 3), '0'), '.') ?: '0' }}</strong></div>
                                         <div class="field"><label>Due</label><input name="due_date" type="date" required></div>
-                                        <div class="field"><label>Quantity</label><input name="quantity" type="number" step="any" min="0" required></div>
+                                        <div class="field"><label>Quantity</label><input name="quantity" type="number" step="any" min="0" max="{{ $unscheduled }}" value="{{ $unscheduled ?: '' }}" required></div>
                                         <div class="field"><label>Note</label><input name="notes" maxlength="200"></div>
                                     </div>
                                 </div>
