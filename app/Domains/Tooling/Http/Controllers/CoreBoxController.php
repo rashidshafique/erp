@@ -119,7 +119,7 @@ class CoreBoxController extends Controller
         return [
             'box' => $box,
             'cores' => CoreDefinition::where('status', 'ACTIVE')->orWhere('id', $box->core_definition_id)->orderBy('code')->get(),
-            'otherBoxes' => CoreBox::whereKeyNot($box->id ?? '')->orderBy('code')->get(),
+            'otherBoxes' => CoreBox::when($box->exists, fn ($q) => $q->whereKeyNot($box->id))->orderBy('code')->get(),
             'patterns' => Pattern::orderBy('code')->get(['id', 'code', 'name']),
         ];
     }

@@ -119,4 +119,16 @@ class CoreScreensTest extends TestCase
 
         $this->get(route('scan', ['code' => $box->code]))->assertRedirect(route('core-boxes.show', $box));
     }
+
+    public function test_the_forms_open_for_a_new_and_an_existing_core_and_box(): void
+    {
+        $core = $this->core();
+        $box = CoreBox::create(['core_definition_id' => $core->id, 'name' => 'Box']);
+
+        $this->get(route('cores.create'))->assertOk();
+        $this->get(route('cores.edit', $core))->assertOk();
+        $this->get(route('core-boxes.create', ['core' => $core->id]))->assertOk()->assertSee($core->name);
+        $this->get(route('core-boxes.edit', $box))->assertOk();
+        $this->get(route('core-boxes.show', $box))->assertOk();
+    }
 }
