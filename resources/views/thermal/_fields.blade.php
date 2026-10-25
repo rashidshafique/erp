@@ -57,16 +57,14 @@
 </div>
 
 <div class="tf-cups-bar">
-    <span class="bar-label">Cups run</span>
-    <label class="cup-pill"><input type="checkbox" name="show_white" value="1" data-cup-toggle="white" @checked($showWhite)><span><i class="dot dot-white"></i> White cup (Te)</span></label>
-    <label class="cup-pill"><input type="checkbox" name="show_grey" value="1" data-cup-toggle="grey" @checked($showGrey)><span><i class="dot dot-grey"></i> Grey cup (stable)</span></label>
+    <span class="bar-label">Tick a cup to enter its result; an unticked cup sends nothing</span>
     <span class="bar-actions"><button type="button" class="btn btn-small" data-all-now>All timestamps now</button><button type="button" class="link-btn" data-clear-cups>Clear</button></span>
 </div>
 
-<div class="cup-grid {{ $showWhite && $showGrey ? '' : 'single' }}">
-<section class="cup-card" data-cup="white" @unless ($showWhite) hidden @endunless>
-    <header title="The iron solidifies white, giving carbon, silicon and the liquidus and solidus."><span><i class="dot dot-white"></i> <strong>White cup</strong> <span class="mono muted">(tellurium)</span></span><span class="cup-tag">Metallurgical CE base</span></header>
-    <div class="cup-body">
+<div class="cup-grid">
+<section class="cup-card @unless ($showWhite) is-off @endunless">
+    <header title="The iron solidifies white, giving carbon, silicon and the liquidus and solidus."><label class="cup-check"><input type="checkbox" name="show_white" value="1" data-cup-toggle="white" @checked($showWhite)><i class="dot dot-white"></i> <strong>White cup</strong> <span class="mono muted">(tellurium)</span></label><span class="cup-tag">Metallurgical CE base</span></header>
+    <div class="cup-body" data-cup="white" @unless ($showWhite) hidden @endunless>
         <div class="cup-sub"><span>Solidification chemistry</span><span class="cup-verdict" data-verdict></span></div>
         <div class="tile-row">
             {!! $tile('white', 'carbon', 'Carbon (C)', 'amber', $rangeText($fixedRanges['c'] ?? []), ['min' => 0, 'max' => 5], 'c') !!}
@@ -86,9 +84,9 @@
     </div>
 </section>
 
-<section class="cup-card" data-cup="grey" @unless ($showGrey) hidden @endunless>
-    <header title="The iron solidifies grey, giving the eutectic arrest used to judge inoculation."><span><i class="dot dot-grey"></i> <strong>Grey cup</strong> <span class="mono muted">(stable, no tellurium)</span></span><span class="cup-tag tag-green">Inoculation and undercooling</span></header>
-    <div class="cup-body">
+<section class="cup-card @unless ($showGrey) is-off @endunless">
+    <header title="The iron solidifies grey, giving the eutectic arrest used to judge inoculation."><label class="cup-check"><input type="checkbox" name="show_grey" value="1" data-cup-toggle="grey" @checked($showGrey)><i class="dot dot-grey"></i> <strong>Grey cup</strong> <span class="mono muted">(stable, no tellurium)</span></label><span class="cup-tag tag-green">Inoculation and undercooling</span></header>
+    <div class="cup-body" data-cup="grey" @unless ($showGrey) hidden @endunless>
         <div class="cup-sub"><span>Eutectic temperature evolution</span></div>
         <div class="tile-row">
             {!! $tile('grey', 'te_min_c', 'TEmin (°C)', 'plain', 'Lowest eutectic') !!}

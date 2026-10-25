@@ -49,7 +49,8 @@ class RecordTestDialogTest extends TestCase
 
         $this->get(route('heats.show', $heat))->assertOk()
             ->assertSee('data-ranges=\'{"c":["3.300","3.500"],"si":["1.700","2.000"],"ce":["3.95","4.05"]}\'', false)
-            ->assertSee('3.3–3.5%')->assertSee('3.95–4.05%')->assertSee('Grade: EN-GJS-500-7 · Target CE: 3.95–4.05%')->assertSee('Cups run')->assertSee('All timestamps now')
+            ->assertSee('3.3–3.5%')->assertSee('3.95–4.05%')->assertSee('Grade: EN-GJS-500-7 · Target CE: 3.95–4.05%')->assertSee('Tick a cup to enter its result')->assertSee('All timestamps now')
+            ->assertSee('name="show_white" value="1" data-cup-toggle="white" checked', false)->assertSee('<div class="cup-body" data-cup="grey"', false)
             ->assertSee('Analyse &amp; save test', false)->assertSee('Line: '.$heat->furnace->code)->assertDontSee('Record a test on heat');
         $this->get(route('thermal.create'))->assertOk()->assertSee('name="white[carbon]"', false)->assertSee('name="grey[te_min_c]"', false);
     }

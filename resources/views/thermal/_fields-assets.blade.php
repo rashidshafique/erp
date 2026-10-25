@@ -10,10 +10,11 @@
         var root = t.closest('.tf-root');
         root.querySelectorAll('[data-cup="' + t.dataset.cupToggle + '"]').forEach(function (part) {
             part.hidden = !t.checked;
-            // A cup not run sends nothing: its fields are switched off rather than read as an empty card.
+            // An unticked cup sends nothing: its fields are switched off, not sent as an empty card.
             part.querySelectorAll('input, select, textarea').forEach(function (i) { i.disabled = !t.checked; });
         });
-        root.querySelector('.cup-grid').classList.toggle('single', root.querySelectorAll('.cup-card:not([hidden])').length < 2);
+        t.closest('.cup-card').classList.toggle('is-off', !t.checked);
+        check(root);
     }
 
     // The heat's grade ranges: fixed on the form, or those of the heat chosen in the picker.
@@ -50,7 +51,7 @@
         var b = e.target.closest('[data-now]');
         if (b) { document.getElementById(b.dataset.now).value = stamp(); return; }
         var all = e.target.closest('[data-all-now]');
-        if (all) { all.closest('.tf-root').querySelectorAll('.cup-card:not([hidden]) input[type=datetime-local]').forEach(function (i) { i.value = stamp(); }); return; }
+        if (all) { all.closest('.tf-root').querySelectorAll('.cup-card [data-cup]:not([hidden]) input[type=datetime-local]').forEach(function (i) { i.value = stamp(); }); return; }
         var clear = e.target.closest('[data-clear-cups]');
         if (clear) {
             var root = clear.closest('.tf-root');
@@ -106,10 +107,14 @@
     .dot-white { background: #f5b301; } .dot-grey { background: #22a565; }
 
     .cup-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; margin-bottom: 12px; }
-    .cup-grid.single { grid-template-columns: 1fr; }
     .cup-card { border: 1px solid var(--border); border-radius: 12px; background: var(--surface, #fff); overflow: hidden; }
     .cup-card > header { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 9px 14px; border-bottom: 1px solid var(--border); }
     .cup-card > header strong { font-size: 15px; }
+    .cup-check { display: inline-flex; align-items: center; gap: 8px; margin: 0; cursor: pointer; font-size: 14px; }
+    .cup-check input { width: 18px; height: 18px; min-height: 0; margin: 0; accent-color: var(--accent); flex: none; }
+    .cup-card.is-off { background: var(--hover, #f7f8fa); }
+    .cup-card.is-off > header { border-bottom: 0; }
+    .cup-card.is-off > header .cup-check { color: var(--muted); }
     .cup-tag { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; text-transform: uppercase; letter-spacing: .4px; padding: 3px 8px; border-radius: 6px; background: var(--hover, #f2f4f7); color: var(--muted); white-space: nowrap; }
     .cup-tag.tag-green { background: var(--tf-green); color: #18794e; }
     .cup-body { padding: 10px 14px 12px; }
@@ -149,10 +154,9 @@
     .curve-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
     .curve-grid .field { margin-top: 6px; }
 
-    .cup-grid.single .tile-row, .cup-grid.single .mini-row.mini-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
     @media (max-width: 1100px) { .tf-sample { grid-template-columns: repeat(3, minmax(0, 1fr)); } .cup-grid { grid-template-columns: 1fr; } }
     @media (max-width: 640px) {
-        .tf-sample, .tile-row, .mini-row, .mini-row.mini-6, .cup-foot, .curve-grid, .cup-grid.single .tile-row, .cup-grid.single .mini-row.mini-6 { grid-template-columns: 1fr 1fr; }
+        .tf-sample, .tile-row, .mini-row, .mini-row.mini-6, .cup-foot, .curve-grid { grid-template-columns: 1fr 1fr; }
         .tf-strip .strip-device { margin-left: 0; } .tf-strip .strip-device select { min-width: 0; }
     }
 </style>
