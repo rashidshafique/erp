@@ -251,7 +251,7 @@ class OrderPlanner
         $runs = [];
         foreach ($jobs as $n => $job) {
             $key = PlannerRules::get('group_same_pattern') ? $job['pattern'] : $n;
-            $runs[$key] ??= ['left' => 0, 'jobs' => []];
+            $runs[$key] ??= ['pattern' => $job['pattern'], 'left' => 0, 'jobs' => []];
             $runs[$key]['left'] += $job['moulds'];
             $runs[$key]['jobs'][] = ['order' => $job['order'], 'left' => $job['moulds']];
         }
@@ -267,37 +267,57 @@ class OrderPlanner
                 }
             }
         };
+        // Takes moulds for one pattern from its runs in queue order.
+        $takePattern = function (array $keys, int $moulds, int $shift) use (&$runs, $take): void {
+            foreach ($keys as $key) {
+                $part = min($moulds, $runs[$key]['left']);
+                if ($part > 0) {
+                    $take($key, $part, $shift);
+                    $moulds -= $part;
+                }
+            }
+        };
         for ($shift = 0; $runs; $shift++) {
             $cap = $rate - ($used[$shift] ?? 0);
-            $on = [];
+            $on = [];   // patterns put on in this shift
             while ($cap > 0 && $runs) {
-                // The runs in front of the queue, up to patterns per shift; a new one joins only if the shift can give it its minimum.
-                $admitted = [];
+                // The front of the queue, up to patterns per shift. Every order on a pattern already in the window shares its slot;
+                // a new pattern joins only if the shift can still give it its minimum run.
+                $slots = [];
                 $reserved = 0;
-                foreach (array_slice($runs, 0, $perShift, true) as $key => $run) {
-                    $need = isset($on[$key]) ? 0 : max(1, min($minRun, $run['left']));
-                    if ($cap - $reserved < $need) {
+                foreach ($runs as $key => $run) {
+                    if (isset($slots[$run['pattern']])) {
+                        $slots[$run['pattern']][] = $key;
+
+                        continue;
+                    }
+                    $need = isset($on[$run['pattern']]) ? 0 : max(1, min($minRun, $run['left']));
+                    if (count($slots) >= $perShift || $cap - $reserved < $need) {
                         break;
                     }
-                    [$admitted[], $reserved] = [$key, $reserved + $need];
+                    $slots[$run['pattern']] = [$key];
+                    $reserved += $need;
                 }
-                if (! $admitted) {
+                if (! $slots) {
                     break;
                 }
-                foreach ($admitted as $key) {
-                    if (! isset($on[$key])) {
-                        $first = min($minRun, $runs[$key]['left']);
-                        $take($key, $first, $shift);
+                $left = function (array $keys) use (&$runs): int {
+                    return array_sum(array_map(fn ($key) => $runs[$key]['left'], $keys));
+                };
+                foreach ($slots as $pattern => $keys) {
+                    if (! isset($on[$pattern])) {
+                        $first = min($minRun, $left($keys));
+                        $takePattern($keys, $first, $shift);
                         $cap -= $first;
-                        $on[$key] = true;
+                        $on[$pattern] = true;
                     }
                 }
-                $open = array_values(array_filter($admitted, fn ($key) => $runs[$key]['left'] > 0));
+                $open = array_filter($slots, fn ($keys) => $left($keys) > 0);
                 $each = $open ? max(1, intdiv($cap, count($open))) : 0;
-                foreach ($open as $key) {
-                    $give = min($each, $cap, $runs[$key]['left']);
+                foreach ($open as $keys) {
+                    $give = min($each, $cap, $left($keys));
                     if ($give > 0) {
-                        $take($key, $give, $shift);
+                        $takePattern($keys, $give, $shift);
                         $cap -= $give;
                     }
                 }

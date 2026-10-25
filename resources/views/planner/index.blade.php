@@ -27,16 +27,16 @@
         <div class="empty-state">Nothing to mould: every open order is covered by open work lists, or needs a pattern or a station rate.</div>
     @else
         <div class="table-wrap"><table>
-            <thead><tr><th>Station</th><th>Pattern</th><th>Order</th><th>Customer / product</th><th>Moulds</th></tr></thead>
+            <thead><tr><th>Station</th><th>Pattern</th><th>Orders</th><th>Moulds</th></tr></thead>
             <tbody>
             @foreach ($suggestion as ['station' => $station, 'rows' => $rows])
-                @foreach ($rows as $r)
+                @foreach (collect($rows)->groupBy(fn ($r) => $r['pattern']->id) as $plateRows)
+                    @php($plate = $plateRows->first()['pattern'])
                     <tr>
                         <td>@if ($loop->first)<strong>{{ $station->code }}</strong><div class="muted small">{{ $station->moulds_per_shift }} / shift</div>@endif</td>
-                        <td>{{ $r['pattern']->pattern->name }}<div class="muted small">{{ $r['pattern']->pattern->code }} {{ $r['pattern']->shortCode() }}</div></td>
-                        <td><a href="{{ route('production-orders.show', $r['order']) }}">{{ $r['order']->production_order_number }}</a></td>
-                        <td>{{ $r['order']->customerLabel() }}<div class="muted small">{{ $r['order']->product?->name }}</div></td>
-                        <td><strong>{{ $r['moulds'] }}</strong></td>
+                        <td>{{ $plate->pattern->name }}<div class="muted small">{{ $plate->pattern->code }} {{ $plate->shortCode() }}</div></td>
+                        <td>@foreach ($plateRows as $r)<div><a href="{{ route('production-orders.show', $r['order']) }}">{{ $r['order']->production_order_number }}</a> · {{ $r['order']->customerLabel() }}@if ($plateRows->count() > 1) <span class="muted small">({{ $r['moulds'] }})</span>@endif</div>@endforeach</td>
+                        <td><strong>{{ $plateRows->sum('moulds') }}</strong></td>
                     </tr>
                 @endforeach
             @endforeach

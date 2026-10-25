@@ -92,7 +92,9 @@ class PlannerTest extends TestCase
         PlannerRules::set('group_same_pattern', 0);
 
         PlannerRules::set('patterns_per_shift', 2);
-        $this->assertSame(['A' => 20, 'B' => 20], $firstShift());
+        $this->assertSame(['A' => 20, 'B' => 20], $firstShift());                            // C waits behind A on P1's share, not a share of its own
+        PlannerRules::set('patterns_per_shift', 3);
+        $this->assertSame(['A' => 20, 'B' => 20], $firstShift());                            // two plates, two shares, however many slots
         PlannerRules::set('patterns_per_shift', 1);
 
         PlannerRules::set('min_run_moulds', 15);
