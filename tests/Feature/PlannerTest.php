@@ -54,6 +54,24 @@ class PlannerTest extends TestCase
         $this->assertTrue($order['finish']->isSameDay(today()->addDays(1 + 3)));             // 10 left in shift 0, the other 10 in shift 1
     }
 
+    public function test_old_lists_and_work_for_finished_orders_hold_no_station_time(): void
+    {
+        $w = $this->world();
+        $w['st']->update(['moulds_per_shift' => 40]);
+        $this->post(route('work-lists.store'), ['list_date' => today()->subDays(3)->toDateString(), 'shift' => 'Morning']);
+        $this->post(route('work-lists.items.add', MouldingWorkList::firstOrFail()), $this->item($w, ['planned_moulds' => 40]));
+        $done = ProductionOrder::create(['production_order_number' => 'PO-S9', 'product_id' => $w['product']->id, 'product_revision_id' => $w['rev']->id,
+            'order_type' => 'STOCK', 'status' => 'RELEASED', 'planned_qty' => 100, 'uom' => 'piece']);
+        $this->post(route('work-lists.store'), ['list_date' => today()->toDateString(), 'shift' => 'Morning']);
+        $this->post(route('work-lists.items.add', MouldingWorkList::latest('created_at')->firstOrFail()), $this->item($w, ['production_order_id' => $done->id, 'planned_moulds' => 40]));
+        $done->update(['status' => 'COMPLETED']);
+
+        $order = app(OrderPlanner::class)->plan(today())['orders'][0];
+
+        $this->assertSame([0, 50], [$order['on_lists'], $order['moulds_left']]);
+        $this->assertTrue($order['finish']->isSameDay(today()->addDays(1 + 3)));             // 40 in shift 0, 10 in shift 1: the line was free
+    }
+
     public function test_the_suggestion_is_put_on_a_draft_work_list_linked_to_the_order(): void
     {
         $w = $this->world();

@@ -33,17 +33,17 @@ class OrderPlanner
      */
     public function plan(CarbonInterface $from): array
     {
-        $orders = $this->rank();
+        $orders = $this->rank($from);
         $stations = MouldingStation::where('status', 'ACTIVE')->orderBy('code')->get()->keyBy('id');
         $shiftsPerDay = PlannerRules::get('shifts_per_day');
         $after = PlannerRules::get('days_after_moulding');
 
         // Station load, shift by shift: moulds already on open lists come first.
         $load = [];
-        foreach ($this->openListMoulds()->groupBy('moulding_station_id') as $stationId => $items) {
+        foreach ($this->openListMoulds($from)->groupBy('moulding_station_id') as $stationId => $items) {
             if ($stations->has($stationId)) {
                 foreach ($items as $item) {
-                    $this->allocate($load, $stations[$stationId], $item->pattern_revision_id, (int) $item->planned_moulds);
+                    $this->allocate($load, $stations[$stationId], (int) $item->planned_moulds);
                 }
             }
         }
@@ -60,7 +60,7 @@ class OrderPlanner
                     [$row['state'], $row['note']] = ['NO_RATE', 'No active station has moulds per shift set.'];
                 } else {
                     $row['station'] = $station;
-                    $shifts = $this->allocate($load, $station, $o['pattern']->id, $o['moulds_left']);
+                    $shifts = $this->allocate($load, $station, $o['moulds_left']);
                     $first = $shifts[0];
                     if ($first['shift'] === 0) {
                         $suggestion[$station->id]['station'] = $station;
@@ -125,11 +125,11 @@ class OrderPlanner
      *
      * @return list<array{order: ProductionOrder, due: ?CarbonInterface, pattern: ?PatternRevision, moulds_left: int, on_lists: int, downstream: int, backlog: array<string, int>}>
      */
-    public function rank(): array
+    public function rank(CarbonInterface $from): array
     {
         $orders = ProductionOrder::with(['product', 'salesOrderLine.salesOrder.customer', 'salesOrderLine.deliveries'])
             ->whereIn('status', ['RELEASED', 'IN_PROGRESS'])->get();
-        $onLists = $this->openListMoulds()->groupBy('production_order_id')->map(fn ($items) => (int) $items->sum('planned_moulds'));
+        $onLists = $this->openListMoulds($from)->groupBy('production_order_id')->map(fn ($items) => (int) $items->sum('planned_moulds'));
         $shipped = DB::table('dispatch_items')->whereIn('sales_order_line_id', $orders->pluck('sales_order_line_id')->filter())
             ->selectRaw('sales_order_line_id, sum(quantity_dispatched) q')->groupBy('sales_order_line_id')->pluck('q', 'sales_order_line_id');
         $backlog = $this->backlog($orders->pluck('id'));
@@ -189,11 +189,17 @@ class OrderPlanner
         return $out;
     }
 
-    /** @return Collection<int, MouldingWorkListItem> moulds planned on open lists and not yet started */
-    private function openListMoulds(): Collection
+    /**
+     * Moulds planned on open lists from the given day on and not yet started, for orders still open (or no order).
+     * Lists left from earlier days and work for finished orders hold no station time.
+     *
+     * @return Collection<int, MouldingWorkListItem>
+     */
+    private function openListMoulds(CarbonInterface $from): Collection
     {
         return MouldingWorkListItem::where('status', 'PLANNED')->whereNull('moulding_run_id')
-            ->whereHas('workList', fn ($q) => $q->whereIn('status', ['DRAFT', 'ISSUED']))->get();
+            ->whereHas('workList', fn ($q) => $q->whereIn('status', ['DRAFT', 'ISSUED'])->whereDate('list_date', '>=', $from))
+            ->where(fn ($q) => $q->whereNull('production_order_id')->orWhereHas('productionOrder', fn ($o) => $o->whereIn('status', ['RELEASED', 'IN_PROGRESS'])))->get();
     }
 
     /**
@@ -214,12 +220,13 @@ class OrderPlanner
     }
 
     /**
-     * Load moulds onto a station from its first shift with room: no more than its moulds per shift and patterns at once in a shift.
+     * Load moulds onto a station from its first shift with room, up to its moulds per shift. Patterns at once is how many it
+     * moulds side by side, not a limit per shift: a line changes patterns during a shift, so only the mould count caps a shift.
      *
-     * @param  array<string, list<array{used: int, patterns: array<string, true>}>>  $load
+     * @param  array<string, list<int>>  $load  station id => moulds used in each shift
      * @return list<array{shift: int, moulds: int}>
      */
-    private function allocate(array &$load, MouldingStation $station, string $patternId, int $moulds): array
+    private function allocate(array &$load, MouldingStation $station, int $moulds): array
     {
         $rate = (int) $station->moulds_per_shift;
         if ($rate <= 0) {
@@ -227,16 +234,14 @@ class OrderPlanner
         }
         $shifts = [];
         for ($i = 0; $moulds > 0; $i++) {
-            $slot = $load[$station->id][$i] ?? ['used' => 0, 'patterns' => []];
-            $fits = isset($slot['patterns'][$patternId]) || count($slot['patterns']) < $station->capacity();
-            if ($fits && $slot['used'] < $rate) {
-                $take = min($moulds, $rate - $slot['used']);
-                $slot['used'] += $take;
-                $slot['patterns'][$patternId] = true;
+            $used = $load[$station->id][$i] ?? 0;
+            if ($used < $rate) {
+                $take = min($moulds, $rate - $used);
+                $used += $take;
                 $moulds -= $take;
                 $shifts[] = ['shift' => $i, 'moulds' => $take];
             }
-            $load[$station->id][$i] = $slot;
+            $load[$station->id][$i] = $used;
         }
 
         return $shifts;
