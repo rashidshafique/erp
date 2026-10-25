@@ -97,7 +97,7 @@
     @if (in_array($order->status, \App\Domains\Sales\Models\SalesOrder::OPEN, true))
         <form method="POST" action="" class="panel-body" onsubmit="this.action = this.dataset.base.replace('LINE', this.line.value)" data-base="{{ route('sales-orders.lines.deliveries.store', [$order, 'LINE']) }}">@csrf
             <div class="form-grid">
-                <div class="field"><label for="d-line">Line</label><select id="d-line" name="line">@foreach ($order->lines as $l)<option value="{{ $l->id }}">{{ $l->line_number }} · {{ $l->product?->code }}</option>@endforeach</select></div>
+                <div class="field"><label for="d-line">Line</label><select id="d-line" name="line" data-search-select>@foreach ($order->lines as $l)<option value="{{ $l->id }}" data-sub="{{ $l->product?->name }}">{{ $l->line_number }} · {{ $l->product?->code }}</option>@endforeach</select></div>
                 <div class="field"><label for="d-date">Due</label><input id="d-date" name="due_date" type="date" required value="{{ old('due_date') }}"></div>
                 <div class="field"><label for="d-qty">Quantity</label><input id="d-qty" name="quantity" type="number" step="any" min="0" required value="{{ old('quantity') }}"></div>
                 <div class="field"><label for="d-note">Note</label><input id="d-note" name="notes" maxlength="200" value="{{ old('notes') }}"></div>
