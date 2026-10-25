@@ -45,7 +45,7 @@
 
 <div class="tab-marker" data-tab-start="Lines"></div>
 <div class="panel">
-    <div class="panel-header"><h2>Lines</h2></div>
+    <div class="panel-header"><h2>Lines and delivery schedule</h2></div>
     <div class="table-wrap"><table>
         <thead><tr><th>#</th><th>Product</th><th>Rev</th><th>Ordered</th><th>Scheduled</th><th>Shipped</th><th>Production orders</th><th></th></tr></thead>
         <tbody>
@@ -66,54 +66,46 @@
                     @endif
                 </td>
             </tr>
-        @endforeach
-        </tbody>
-    </table></div>
-    @unless ($order->hasApprovedReview())<div class="panel-body muted small">Production orders can be created once the contract review is approved by both sales and quality.</div>@endunless
-</div>
-
-<div class="panel">
-    <div class="panel-header"><h2>Delivery schedule</h2></div>
-    <div class="table-wrap"><table>
-        <thead><tr><th>Line</th><th>Due</th><th>Quantity</th><th>Shipped against it</th><th>Note</th><th></th></tr></thead>
-        <tbody>
-        @foreach ($order->lines as $l)
-            @php $progress = $l->deliveryProgress((float) ($shipped[$l->id] ?? 0)); @endphp
-            @forelse ($progress as $p)
-                <tr>
-                    <td>{{ $l->line_number }}</td>
-                    <td>{{ $p['delivery']->due_date->displayDate() }} @if ($p['overdue'])<span class="status status-cancelled">overdue</span>@endif</td>
+            @php $isOpen = in_array($order->status, \App\Domains\Sales\Models\SalesOrder::OPEN, true); @endphp
+            @foreach ($l->deliveryProgress((float) ($shipped[$l->id] ?? 0)) as $p)
+                <tr class="muted">
+                    <td></td>
+                    <td colspan="2">Deliver by {{ $p['delivery']->due_date->displayDate() }} @if ($p['overdue'])<span class="status status-cancelled">overdue</span>@endif</td>
                     <td>{{ rtrim(rtrim(\App\Support\Formats::number((float) $p['delivery']->quantity, 3), '0'), '.') }}</td>
+                    <td></td>
                     <td>{{ rtrim(rtrim(\App\Support\Formats::number($p['covered'], 3), '0'), '.') ?: '0' }}</td>
                     <td>{{ $p['delivery']->notes }}</td>
-                    <td>@if (in_array($order->status, \App\Domains\Sales\Models\SalesOrder::OPEN, true))<form method="POST" action="{{ route('sales-orders.lines.deliveries.destroy', [$order, $l, $p['delivery']]) }}">@csrf @method('DELETE')<button class="btn btn-small" type="submit">Remove</button></form>@endif</td>
+                    <td>@if ($isOpen)<form method="POST" action="{{ route('sales-orders.lines.deliveries.destroy', [$order, $l, $p['delivery']]) }}">@csrf @method('DELETE')<button class="btn btn-small" type="submit">Remove</button></form>@endif</td>
                 </tr>
-            @empty
-                <tr><td>{{ $l->line_number }}</td><td colspan="5" class="muted small">One delivery{{ $l->requested_delivery_date ? ' on '.$l->requested_delivery_date->displayDate() : '' }}. Add dates below to stagger it.</td></tr>
-            @endforelse
+            @endforeach
+            @if ($isOpen)
+                <tr class="muted">
+                    <td></td>
+                    <td colspan="7">
+                        @if ($l->deliveries->isEmpty())One delivery{{ $l->requested_delivery_date ? ' on '.$l->requested_delivery_date->displayDate() : '' }}. @endif
+                        <button type="button" class="btn btn-small" data-quick="qd-delivery-{{ $l->id }}">+ Add delivery</button>
+                        <dialog id="qd-delivery-{{ $l->id }}" class="qd" aria-labelledby="qd-delivery-{{ $l->id }}-title" @if (old('_quick') === 'qd-delivery-'.$l->id && $errors->has('quantity')) data-reopen="{{ json_encode($errors->getMessages()) }}" @endif>
+                            <form method="POST" action="{{ route('sales-orders.lines.deliveries.store', [$order, $l]) }}">@csrf<input type="hidden" name="_quick" value="qd-delivery-{{ $l->id }}">
+                                <div class="qd-head"><h2 id="qd-delivery-{{ $l->id }}-title">Add a delivery · line {{ $l->line_number }}, {{ $l->product?->name }}</h2><button type="button" class="qd-x" data-close aria-label="Close">&times;</button></div>
+                                <div class="qd-body">
+                                    <div class="alert alert-error qd-errors" role="alert" @unless (old('_quick') === 'qd-delivery-'.$l->id && $errors->has('quantity')) hidden @endunless>@if (old('_quick') === 'qd-delivery-'.$l->id)@error('quantity')<div>{{ $message }}</div>@enderror @endif</div>
+                                    <div class="qd-fields">
+                                        <div class="field"><label>Due</label><input name="due_date" type="date" required></div>
+                                        <div class="field"><label>Quantity</label><input name="quantity" type="number" step="any" min="0" required></div>
+                                        <div class="field"><label>Note</label><input name="notes" maxlength="200"></div>
+                                    </div>
+                                </div>
+                                <div class="qd-foot"><button type="button" class="btn" data-close>Cancel</button><button class="btn btn-primary" type="submit">Add delivery</button></div>
+                            </form>
+                        </dialog>
+                    </td>
+                </tr>
+            @endif
         @endforeach
         </tbody>
     </table></div>
-    @if (in_array($order->status, \App\Domains\Sales\Models\SalesOrder::OPEN, true))
-        <div class="panel-body"><button type="button" class="btn" data-quick="qd-delivery">+ Add delivery</button></div>
-        @php $photos = \App\Models\Attachment::coverUrlsFor('product', $order->lines->pluck('product_id')->filter()->all()); @endphp
-        <dialog id="qd-delivery" class="qd" aria-labelledby="qd-delivery-title" @if ($errors->has('quantity')) data-reopen="{{ json_encode($errors->getMessages()) }}" @endif>
-            <form method="POST" action="" onsubmit="this.action = this.dataset.base.replace('LINE', this.line.value)" data-base="{{ route('sales-orders.lines.deliveries.store', [$order, 'LINE']) }}">@csrf
-                <div class="qd-head"><h2 id="qd-delivery-title">Add a delivery</h2><button type="button" class="qd-x" data-close aria-label="Close">&times;</button></div>
-                <div class="qd-body">
-                    <div class="alert alert-error qd-errors" role="alert" @unless ($errors->has('quantity')) hidden @endunless>@error('quantity')<div>{{ $message }}</div>@enderror</div>
-                    <div class="qd-fields">
-                        <div class="field"><label for="d-line">Line</label><select id="d-line" name="line" data-search-select="photos">@foreach ($order->lines as $l)<option value="{{ $l->id }}" data-sub="{{ $l->product?->code }} · line {{ $l->line_number }}" @isset($photos[$l->product_id]) data-img="{{ $photos[$l->product_id] }}" @endisset>{{ $l->product?->name }}</option>@endforeach</select></div>
-                        <div class="field"><label for="d-date">Due</label><input id="d-date" name="due_date" type="date" required value="{{ old('due_date') }}"></div>
-                        <div class="field"><label for="d-qty">Quantity</label><input id="d-qty" name="quantity" type="number" step="any" min="0" required value="{{ old('quantity') }}"></div>
-                        <div class="field"><label for="d-note">Note</label><input id="d-note" name="notes" maxlength="200" value="{{ old('notes') }}"></div>
-                    </div>
-                </div>
-                <div class="qd-foot"><button type="button" class="btn" data-close>Cancel</button><button class="btn btn-primary" type="submit">Add delivery</button></div>
-            </form>
-        </dialog>
-        @include('partials.quick-dialog-assets')
-    @endif
+    @include('partials.quick-dialog-assets')
+    @unless ($order->hasApprovedReview())<div class="panel-body muted small">Production orders can be created once the contract review is approved by both sales and quality.</div>@endunless
 </div>
 
 <div class="tab-marker" data-tab-start="Contract review"></div>

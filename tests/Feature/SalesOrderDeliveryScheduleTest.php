@@ -34,7 +34,7 @@ class SalesOrderDeliveryScheduleTest extends TestCase
         $this->post($url, ['due_date' => today()->addDays(70)->toDateString(), 'quantity' => 1])->assertSessionHasErrors('quantity');
 
         $this->assertSame(2, $line->deliveries()->count());
-        $this->get(route('sales-orders.show', $line->sales_order_id))->assertOk()->assertSee('Delivery schedule');
+        $this->get(route('sales-orders.show', $line->sales_order_id))->assertOk()->assertSee('Lines and delivery schedule');
     }
 
     public function test_shipped_quantity_covers_the_oldest_delivery_first_and_flags_a_late_one(): void
