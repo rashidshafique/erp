@@ -64,7 +64,7 @@
         @foreach ($order->lines as $l)
             @php $isOpen = in_array($order->status, \App\Domains\Sales\Models\SalesOrder::OPEN, true); @endphp
             @php $sched = (float) $l->productionOrders->where('status', '!=', 'CANCELLED')->sum('planned_qty'); @endphp
-            <tr>
+            <tr style="cursor:pointer">
                 <td>{{ $l->line_number }}</td>
                 <td><x-product-cell :product="$l->product" /></td>
                 <td>{{ $l->productRevision?->revision }}</td>
@@ -127,6 +127,10 @@
         document.addEventListener('click', function (e) {
             var b = e.target.closest('[data-toggle-line]');
             if (b) { set(b.dataset.toggleLine, b.getAttribute('aria-expanded') !== 'true'); return; }
+            if (e.target.closest('button, a, input, select, textarea, label, form, dialog')) { return; }
+            var row = e.target.closest('tr');
+            var rowToggle = row && row.querySelector('[data-toggle-line]');
+            if (rowToggle && ! window.getSelection().toString()) { set(rowToggle.dataset.toggleLine, rowToggle.getAttribute('aria-expanded') !== 'true'); return; }
             if (e.target === all) {
                 var open = all.dataset.state !== 'open';
                 document.querySelectorAll('[data-toggle-line]').forEach(function (t) { set(t.dataset.toggleLine, open); });
