@@ -102,10 +102,37 @@ class BillOfMaterialsTest extends TestCase
         $this->assertEqualsWithDelta(round($perProduct * 4 * 0.02, 3), $row['required'], 0.002);
     }
 
-    public function test_an_order_without_a_list_shows_no_materials_panel(): void
+    public function test_an_order_without_a_list_or_a_metal_figure_shows_no_materials_panel(): void
     {
-        $order = $this->order($this->revision(), 5);
+        $revision = $this->revision();
+        $revision->update(['net_weight_kg' => null]);
+        $order = $this->order($revision, 5);
 
+        $this->get(route('production-orders.show', $order))->assertOk()->assertDontSee('Materials needed');
+    }
+
+    public function test_the_order_shows_the_liquid_metal_to_pour_without_a_bill_line(): void
+    {
+        $revision = $this->revision();
+        $order = $this->order($revision, 4);
+        $kg = round(10 / (float) config('foundry.planner.default_yield') * 4, 3);
+
+        $metal = app(BomExploder::class)->metalFor($order);
+
+        $this->assertEqualsWithDelta($kg, $metal['kg'], 0.002);
+        $this->get(route('production-orders.show', $order))->assertOk()->assertSee('Materials needed')->assertSee('Liquid metal');
+    }
+
+    public function test_the_metal_says_why_it_is_missing_when_there_is_no_weight(): void
+    {
+        $revision = $this->revision();
+        $revision->update(['net_weight_kg' => null]);
+        $order = $this->order($revision, 4);
+
+        $metal = app(BomExploder::class)->metalFor($order);
+
+        $this->assertNull($metal['kg']);
+        $this->assertStringContainsString('cavity map or a net weight', $metal['note']);
         $this->get(route('production-orders.show', $order))->assertOk()->assertDontSee('Materials needed');
     }
 }

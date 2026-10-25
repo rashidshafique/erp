@@ -1,15 +1,23 @@
 {{-- What a production order needs of the items on its revision's bill of materials, against stock on hand. $order. --}}
 @php
     $need = app(\App\Domains\Engineering\Services\BomExploder::class)->forOrder($order);
+    $metal = app(\App\Domains\Engineering\Services\BomExploder::class)->metalFor($order);
     $bases = \App\Domains\Engineering\Models\BomLine::BASES;
     $n = fn ($v) => \App\Support\Formats::number((float) $v, 3);
 @endphp
-@if ($need->isNotEmpty())
+@if ($need->isNotEmpty() || ($metal && $metal['kg'] !== null))
 <section class="panel">
-    <div class="panel-header"><h2>Materials needed</h2><span class="muted small">From the bill of materials of revision {{ $order->productRevision?->revision }}, for {{ \App\Support\Formats::number((float) $order->planned_qty, 0) }} {{ $order->uom }}. Metal is planned separately.</span></div>
+    <div class="panel-header"><h2>Materials needed</h2><span class="muted small">From the bill of materials of revision {{ $order->productRevision?->revision }}, for {{ \App\Support\Formats::number((float) $order->planned_qty, 0) }} {{ $order->uom }}. Liquid metal is worked out from the cavity map and is not stock.</span></div>
     <div class="table-wrap"><table>
         <thead><tr><th>Item</th><th>Per</th><th>Needed</th><th>In stock</th><th>Short</th></tr></thead>
         <tbody>
+        @if ($metal && $metal['kg'] !== null)
+            <tr>
+                <td>Liquid metal{{ $metal['grade'] ? ', grade '.$metal['grade'] : '' }}</td>
+                <td colspan="2">{{ $n($metal['kg']) }} kg to pour</td>
+                <td colspan="2"><span class="muted small">{{ $metal['note'] }}</span></td>
+            </tr>
+        @endif
         @foreach ($need as $row)
             <tr>
                 <td>{{ $row['line']->material?->code }} — {{ $row['line']->material?->name }}</td>

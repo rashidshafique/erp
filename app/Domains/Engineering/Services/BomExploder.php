@@ -42,6 +42,27 @@ class BomExploder
         });
     }
 
+    /**
+     * The liquid metal an order pours: worked out by the planner, never listed on the bill, and not stock.
+     *
+     * @return array{grade: ?string, kg: ?float, note: string}|null
+     */
+    public function metalFor(ProductionOrder $order): ?array
+    {
+        $revision = $order->productRevision;
+        if (! $revision) {
+            return null;
+        }
+        $perProduct = $this->planner->metalPerProduct($revision);
+        $grade = $this->planner->gradeFor($revision, $order->customer_id ?? null)?->code;
+
+        return [
+            'grade' => $grade,
+            'kg' => $perProduct ? round($perProduct['kg'] * (float) $order->planned_qty, 3) : null,
+            'note' => $perProduct ? 'From '.$perProduct['source'].'.' : 'Needs a cavity map or a net weight to work out the metal.',
+        ];
+    }
+
     /** Moulds the planned quantity needs, from the first approved pattern revision that makes the product. */
     private function mouldsFor(ProductionOrder $order, float $planned): ?float
     {
