@@ -8,11 +8,6 @@
     $old = fn ($key, $default = null) => $mine ? old($key, $default) : $default;
     $f = fn ($cup, $k) => $old($cup.'.'.$k);
     $nowLocal = now()->format('Y-m-d\TH:i');
-    // Thermal analysis units come first and one is chosen for a new test, preferring one whose calibration is in date.
-    $isAnalyser = fn ($g) => $g->instrument_type === 'THERMAL_ANALYSER';
-    $gauges = $gauges->sortBy(fn ($g) => ($isAnalyser($g) ? '0' : '1').$g->code)->values();
-    $inDate = fn ($g) => ! in_array($g->calibrationStatus(), ['OVERDUE', 'NOT_CALIBRATED'], true);
-    $defaultGauge = $gauges->first(fn ($g) => $isAnalyser($g) && $inDate($g)) ?? $gauges->first($isAnalyser);
     // The grade's ranges each result tile is checked against, as {c: [min, max], si: …, ce: …}.
     $ranges = fn ($grade) => $grade ? array_filter(['c' => [$grade->c_min, $grade->c_max], 'si' => [$grade->si_min, $grade->si_max], 'ce' => [$grade->ce_min, $grade->ce_max]],
         fn ($r) => $r[0] !== null || $r[1] !== null) : [];
@@ -32,19 +27,23 @@
 @endphp
 
 <div class="tf tf-root" data-ranges='@json((object) $fixedRanges)'>
+@if (($fixedHeat ?? null) && ($inDialog ?? false))
+    {{-- The heat, its line, grade and target CE are in the dialog title, the analyser beside it. --}}
+    <input type="hidden" name="heat_id" value="{{ $fixedHeat->id }}">
+@else
 <div class="tf-strip">
     @if ($fixedHeat ?? null)
-        {{-- The heat, its line, grade and target CE are in the dialog title. --}}
         <input type="hidden" name="heat_id" value="{{ $fixedHeat->id }}">
+        <span class="strip-heat"><x-heat-light :heat="$fixedHeat" /> Heat <strong>{{ $fixedHeat->heat_number }}</strong></span>
     @else
         <div class="strip-pick"><label for="{{ $ip }}heat_id">Heat *</label>
             <select id="{{ $ip }}heat_id" name="heat_id" data-heat-select required><option value="">Select heat</option>
                 @foreach ($heats as $h)<option value="{{ $h->id }}" data-ranges='@json((object) $ranges($h->ironGrade))' data-info="{{ isset($heatInfo) ? $heatInfo($h) : '' }}" @selected($old('heat_id', $selected) === $h->id)>{{ ['red' => '🔴 ', 'orange' => '🟠 ', 'green' => '🟢 '][$h->light()] ?? '' }}{{ $h->heat_number }} — {{ $h->furnace?->code }} — {{ $h->ironGrade?->code ?? 'no grade' }}</option>@endforeach
             </select></div>
     @endif
-    <div class="strip-device"><label for="{{ $ip }}gauge_id">Analyser</label>
-        <select id="{{ $ip }}gauge_id" name="gauge_id"><option value="">—</option>@foreach ($gauges as $g)<option value="{{ $g->id }}" @selected($old('gauge_id', $defaultGauge?->id) === $g->id)>{{ $g->code }} · {{ $g->name }}@if (in_array($g->calibrationStatus(), ['OVERDUE', 'NOT_CALIBRATED'], true)) ({{ strtolower(\App\Services\Quality\CalibrationStatus::LABELS[$g->calibrationStatus()]) }})@endif</option>@endforeach</select></div>
+    @unless ($inDialog ?? false)@include('thermal._analyser', ['ip' => $ip, 'gauges' => $gauges, 'mine' => $mine])@endunless
 </div>
+@endif
 
 <div class="tf-sample">
     <div class="field"><label for="{{ $ip }}sample_reference">Sample ref</label><input id="{{ $ip }}sample_reference" name="sample_reference" maxlength="60" value="{{ $old('sample_reference') }}"></div>
@@ -56,10 +55,11 @@
     <div class="field tf-wide"><label for="{{ $ip }}notes">Condition / ladle notes</label><input id="{{ $ip }}notes" name="notes" maxlength="2000" value="{{ $old('notes') }}"></div>
 </div>
 
+@unless ($inDialog ?? false)
 <div class="tf-cups-bar">
-    <span class="bar-label">Tick a cup to enter its result; an unticked cup sends nothing</span>
     <span class="bar-actions"><button type="button" class="btn btn-small" data-all-now>All timestamps now</button><button type="button" class="link-btn" data-clear-cups>Clear</button></span>
 </div>
+@endunless
 
 <div class="cup-grid">
 <section class="cup-card @unless ($showWhite) is-off @endunless">

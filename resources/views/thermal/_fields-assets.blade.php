@@ -47,14 +47,17 @@
         }
     }
 
+    // The all-timestamps and clear buttons sit on the page bar, or in the dialog's tab row outside the form.
+    function rootOf(btn) { return btn.closest('.tf-root') || btn.closest('dialog').querySelector('.tf-root'); }
+
     document.addEventListener('click', function (e) {
         var b = e.target.closest('[data-now]');
         if (b) { document.getElementById(b.dataset.now).value = stamp(); return; }
         var all = e.target.closest('[data-all-now]');
-        if (all) { all.closest('.tf-root').querySelectorAll('.cup-card [data-cup]:not([hidden]) input[type=datetime-local]').forEach(function (i) { i.value = stamp(); }); return; }
+        if (all) { rootOf(all).querySelectorAll('.cup-card [data-cup]:not([hidden]) input[type=datetime-local]').forEach(function (i) { i.value = stamp(); }); return; }
         var clear = e.target.closest('[data-clear-cups]');
         if (clear) {
-            var root = clear.closest('.tf-root');
+            var root = rootOf(clear);
             root.querySelectorAll('.cup-card input[type=number], .cup-card input[name$="[cup_batch]"], .curve-bar textarea, .curve-bar input[type=file]').forEach(function (i) { i.value = ''; });
             check(root);
         }
@@ -93,7 +96,7 @@
     .unit-input span, .mini-input span { position: absolute; right: 9px; color: var(--muted); font-size: 12px; pointer-events: none; }
     .unit-input input { padding-right: 24px !important; }
 
-    .tf-cups-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 12px; }
+    .tf-cups-bar { display: flex; justify-content: flex-end; margin-bottom: 10px; }
     .tf-cups-bar .bar-label { font-size: 12px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--muted); }
     .cup-pill { position: relative; margin: 0; cursor: pointer; }
     .cup-pill input { position: absolute; opacity: 0; width: 1px; height: 1px; }

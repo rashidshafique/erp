@@ -49,10 +49,11 @@ class RecordTestDialogTest extends TestCase
 
         $this->get(route('heats.show', $heat))->assertOk()
             ->assertSee('data-ranges=\'{"c":["3.300","3.500"],"si":["1.700","2.000"],"ce":["3.95","4.05"]}\'', false)
-            ->assertSee('3.3–3.5%')->assertSee('3.95–4.05%')->assertSee('Grade: EN-GJS-500-7 · Target CE: 3.95–4.05%')->assertSee('Tick a cup to enter its result')->assertSee('All timestamps now')
+            ->assertSee('3.3–3.5%')->assertSee('3.95–4.05%')->assertSee('Grade: EN-GJS-500-7 · Target CE: 3.95–4.05%')->assertDontSee('Tick a cup to enter')->assertSee('All timestamps now')
+            ->assertSee('<form id="qd-record-test-thermal-form"', false)->assertSee('form="qd-record-test-thermal-form"', false)
             ->assertSee('name="show_white" value="1" data-cup-toggle="white" checked', false)->assertSee('<div class="cup-body" data-cup="grey"', false)
             ->assertSee('Analyse &amp; save test', false)->assertSee('Line: '.$heat->furnace->code)->assertDontSee('Record a test on heat');
-        $this->get(route('thermal.create'))->assertOk()->assertSee('name="white[carbon]"', false)->assertSee('name="grey[te_min_c]"', false);
+        $this->get(route('thermal.create'))->assertOk()->assertSee('name="gauge_id"', false)->assertSee('name="white[carbon]"', false)->assertSee('name="grey[te_min_c]"', false);
     }
 
     public function test_the_heat_page_offers_the_dialog_with_thermal_and_chemical_tabs_for_its_own_heat(): void
