@@ -9,7 +9,7 @@
 .dx .card .sub{font-size:12.5px;color:var(--dx-mute);margin:3px 0 0}
 .dx .chead{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
 .dx .cap{font-size:11px;font-weight:650;letter-spacing:.05em;text-transform:uppercase;color:var(--dx-mute)}
-.dx .pill{display:inline-block;font-size:11px;font-weight:650;letter-spacing:.03em;border-radius:999px;padding:2px 9px;background:#f1f5f9;color:var(--dx-sub);white-space:nowrap}
+.dx .pill{display:inline-block;font-size:11px;font-weight:650;letter-spacing:.03em;border-radius:6px;padding:2px 9px;background:#f1f5f9;color:var(--dx-sub);white-space:nowrap}
 .dx .pill.red{background:#fef2f2;color:#b91c1c}.dx .pill.amber{background:#fffbeb;color:var(--dx-amber)}.dx .pill.blue{background:color-mix(in srgb,var(--accent) 12%,#fff);color:var(--accent-hover)}.dx .pill.green{background:#ecfdf5;color:#047857}
 .dx .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);margin-right:6px;vertical-align:1px}
 .dx .btnx{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 13px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:var(--dx-ink);font-weight:550;font-size:13px;text-decoration:none}

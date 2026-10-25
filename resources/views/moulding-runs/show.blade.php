@@ -47,7 +47,7 @@
         <div class="run-kpi"><div class="run-kpi-label">Accepted</div><div class="run-kpi-value">{{ \App\Support\Formats::number($run->accepted_mould_qty) }} <span class="small" style="display:block;font-weight:400" @if ($expectedAccepted === null) title="The pattern has no cavity map" @endif>{{ $expectedAccepted ?? '—' }} castings @if ($acceptedVsPlanned !== null) · <span style="{{ $acceptedVsPlanned > 0.9 ? 'color:var(--success)' : '' }}">{{ \App\Support\Formats::number($acceptedVsPlanned * 100, 0) }}% of planned</span> @endif</span></div></div>
         <div class="run-kpi"><div class="run-kpi-label">Damaged</div><div class="run-kpi-value">{{ \App\Support\Formats::number($run->damaged_mould_qty) }}@php $remake = $run->status === 'COMPLETED' ? max(0, (int) $run->planned_mould_qty - (int) $run->accepted_mould_qty) : 0; @endphp @if ($remake > 0)<span class="small" style="display:block;font-weight:400;color:var(--danger,#b42318)">Remake {{ $remake }} moulds @if ($perMould !== null)(≈ {{ rtrim(rtrim(\App\Support\Formats::number($perMould * $remake, 1), '0'), '.') }} castings) @endif</span>@endif</div></div>
         <div class="run-kpi"><div class="run-kpi-label">Downtime</div><div class="run-kpi-value">{{ \App\Support\Formats::number($run->downtime_minutes) }} min</div></div>
-        <span class="run-kpi-chip code">Live metrics</span>
+        <span class="pill pill-accent" style="align-self:center;margin:0 8px 0 auto">Live metrics</span>
     </div>
     <div class="run-show-split">
     <div data-tab-host>
@@ -406,7 +406,6 @@
         .run-kpi:first-child { border-left: 0; }
         .run-kpi-label { font-size: 11.5px; font-weight: 400; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
         .run-kpi-value { margin-top: 2px; font-size: 20px; font-weight: 600; white-space: nowrap; }
-        .run-kpi-chip { align-self: center; margin: 0 8px 0 auto; padding: 4px 10px; border-radius: 6px; background: #e8eef5; color: #2b4a6b; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
         .run-sand-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
         .run-sand-tile { padding: 12px; border-radius: 8px; background: #eef3f9; }
         .run-sand-tile .rm-lbl { margin-bottom: 4px; font-size: 12px; font-weight: 600; color: var(--muted); }

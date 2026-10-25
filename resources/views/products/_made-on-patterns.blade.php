@@ -26,7 +26,7 @@
     .made-on .mo-photo { width: 56px; height: 56px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--muted); }
     .made-on .mo-photo img { width: 100%; height: 100%; object-fit: cover; padding: 0; min-height: 0; }
     .made-on .mo-name { font-size: 15px; font-weight: 600; }
-    .made-on .mo-meta { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+    .made-on .mo-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 4px; }
     .made-on .mo-count { text-align: right; font-size: 12px; color: var(--muted); }
     .made-on .mo-count strong { display: block; font-size: 20px; color: var(--text); }
     .mo-earlier { margin: -4px 0 0 24px; }

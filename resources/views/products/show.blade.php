@@ -10,7 +10,7 @@
 <div class="page-heading">
     <div>
         <h1>{{ $product->name }}</h1>
-        <p>{{ $product->code }} · {{ $product->product_type }}</p>
+        <p class="pills"><span class="pill pill-mono">{{ $product->code }}</span><span class="pill">{{ $product->product_type }}</span></p>
     </div>
     <div class="actions">
         <a class="btn" href="{{ route('products.index') }}">All products</a>
@@ -77,7 +77,7 @@
             <div>
                 <div class="detail-label">Patterns</div>
                 <div class="detail-value">
-                    @forelse ($currentPatterns as $p)<a href="{{ route('patterns.show', $p) }}">{{ $p->name }}</a> <span class="muted small mono">{{ $p->code }}</span>@if (! $loop->last)<br>@endif
+                    @forelse ($currentPatterns as $p)<a href="{{ route('patterns.show', $p) }}">{{ $p->name }}</a> <span class="pill pill-mono">{{ $p->code }}</span>@if (! $loop->last)<br>@endif
                     @empty<span class="muted">None linked yet</span> @unless ($product->trashed())<a href="#" class="qd-add" data-quick="qd-link-pattern">Link a pattern</a>@endunless @endforelse
                 </div>
             </div>
@@ -107,7 +107,7 @@
                 <thead><tr><th>Revision</th><th>Current grade</th><th>Type</th></tr></thead>
                 <tbody>@foreach ($product->revisions as $revision)
                     @php $current = $currentGrades[$revision->id]; @endphp
-                    <tr><td>{{ $revision->revision }} <span class="muted small">{{ $revision->status }}</span></td><td>{!! $current ? '<strong>'.e($current->code).'</strong>' : '<span class="muted">Not set</span>' !!}</td><td>{{ $current?->familyLabel() ?? '—' }}</td></tr>
+                    <tr><td>{{ $revision->revision }} <span class="status">{{ $revision->status }}</span></td><td>{!! $current ? '<strong>'.e($current->code).'</strong>' : '<span class="muted">Not set</span>' !!}</td><td>{{ $current?->familyLabel() ?? '—' }}</td></tr>
                 @endforeach</tbody>
             </table></div>
             <form method="POST" action="{{ route('products.grade', $product) }}" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-top:12px">@csrf

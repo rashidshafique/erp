@@ -250,12 +250,31 @@ tbody tr:hover { background: #fcfcfd; }
 .status {
     display: inline-block;
     padding: 4px 8px;
-    border-radius: 20px;
+    border-radius: 6px;
     background: #eef1f4;
     color: #52606b;
     font-size: 10px;
     font-weight: 750;
 }
+
+/* A status is a rounded rectangle (.status); any other fact about a record, such as a code, an owner or a count, is a pill. */
+.pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: #f7f8fa;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.5;
+    white-space: nowrap;
+}
+.pill-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }
+.pill-accent { color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); border-color: color-mix(in srgb, var(--accent) 30%, transparent); }
+.pills { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 
 .status-in-progress { background: #fff0dc; color: #8a4b08; }
 .status-completed { background: #e4f5eb; color: #176b43; }

@@ -24,11 +24,6 @@
     .pd-top { display: flex; flex-wrap: wrap; gap: 12px 20px; justify-content: space-between; align-items: flex-start; }
     .pd-title { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
     .pd-title h1 { font-size: 26px; line-height: 1.2; margin: 0 6px 0 0; }
-    .pd-badge { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; border: 1px solid var(--border); color: var(--muted); }
-    .pd-badge.ok { color: var(--success, #067647); background: color-mix(in srgb, var(--success, #067647) 10%, transparent); border-color: color-mix(in srgb, var(--success, #067647) 30%, transparent); }
-    .pd-badge.off { color: var(--danger); background: color-mix(in srgb, var(--danger) 8%, transparent); border-color: color-mix(in srgb, var(--danger) 30%, transparent); }
-    .pd-badge.owner { color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); border-color: color-mix(in srgb, var(--accent) 30%, transparent); }
-    .pd-badge.type { gap: 5px; font: 500 12px ui-monospace, SFMono-Regular, Menlo, monospace; border-radius: 6px; }
     .pd-meta { display: flex; flex-wrap: wrap; gap: 6px 22px; margin-top: 8px; font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted); }
     .pd-meta strong { color: var(--text); font-weight: 600; }
     .pd-meta .stamp { padding: 0 6px; border: 1px solid color-mix(in srgb, var(--warning, #b54708) 50%, transparent); background: color-mix(in srgb, var(--warning, #b54708) 8%, transparent); border-radius: 4px; color: var(--text); letter-spacing: .1em; }
@@ -93,9 +88,9 @@
         <div>
             <div class="pd-title">
                 <h1>{{ $pattern->name }}</h1>
-                <span class="pd-badge {{ $pattern->status === 'ACTIVE' ? 'ok' : 'off' }}">{{ $pattern->status }}</span>
-                <span class="pd-badge owner" title="Owner">{{ $pattern->owner_type === 'FOUNDRY' ? 'Foundry-owned' : 'Property of '.$pattern->ownerLabel() }}</span>
-                <span class="pd-badge type" title="{{ \App\Models\Pattern::typeName($pattern->pattern_type) }}">{!! \App\Support\MouldIcons::patternType($pattern->pattern_type, 15) !!} {{ $typeLabel }}</span>
+                <span class="status {{ $pattern->status === 'ACTIVE' ? 'status-completed' : 'status-cancelled' }}">{{ $pattern->status }}</span>
+                <span class="pill pill-accent" title="Owner">{{ $pattern->owner_type === 'FOUNDRY' ? 'Foundry-owned' : 'Property of '.$pattern->ownerLabel() }}</span>
+                <span class="pill pill-mono" title="{{ \App\Models\Pattern::typeName($pattern->pattern_type) }}">{!! \App\Support\MouldIcons::patternType($pattern->pattern_type, 15) !!} {{ $typeLabel }}</span>
             </div>
             <div class="pd-meta">
                 <span>Code: <strong>{{ $pattern->code }}</strong></span>

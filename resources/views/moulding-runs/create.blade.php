@@ -37,8 +37,6 @@
     .rm-crumb b { color:var(--accent); }
     .rm-title { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:2px 0 0; }
     .rm-title h1 { margin:0; }
-    .rm-chip { font:600 11px ui-monospace, Menlo, monospace; padding:3px 8px; border-radius:6px; background:#e8eef5; color:#2b4a6b; }
-    .rm-chip.live { background:#e6f4ec; color:var(--success); }
     .rm-actions { display:flex; gap:8px; flex-wrap:wrap; }
     .rm-strip { display:flex; flex-wrap:wrap; gap:8px 22px; padding:10px 14px; margin-bottom:16px; background:var(--surface); border:1px solid var(--border); border-radius:10px; font:600 11.5px ui-monospace, Menlo, monospace; text-transform:uppercase; letter-spacing:.03em; }
     .rm-strip span { color:var(--muted); }
@@ -95,8 +93,8 @@
             <div class="rm-crumb">Production › Moulding runs › <b>New entry (log run)</b></div>
             <div class="rm-title">
                 <h1>Record moulding run</h1>
-                <span class="rm-chip" id="rm-shift-chip">{{ strtoupper($defaults['shift']) }}</span>
-                <span class="rm-chip live">● Live station feed</span>
+                <span class="pill pill-mono" id="rm-shift-chip">{{ strtoupper($defaults['shift']) }}</span>
+                <span class="pill pill-accent">● Live station feed</span>
             </div>
         </div>
         <div class="rm-actions">
