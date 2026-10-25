@@ -72,6 +72,42 @@
     @unless ($order->hasApprovedReview())<div class="panel-body muted small">Production orders can be created once the contract review is approved by both sales and quality.</div>@endunless
 </div>
 
+<div class="panel">
+    <div class="panel-header"><h2>Delivery schedule</h2></div>
+    <div class="table-wrap"><table>
+        <thead><tr><th>Line</th><th>Due</th><th>Quantity</th><th>Shipped against it</th><th>Note</th><th></th></tr></thead>
+        <tbody>
+        @foreach ($order->lines as $l)
+            @php $progress = $l->deliveryProgress((float) ($shipped[$l->id] ?? 0)); @endphp
+            @forelse ($progress as $p)
+                <tr>
+                    <td>{{ $l->line_number }}</td>
+                    <td>{{ $p['delivery']->due_date->displayDate() }} @if ($p['overdue'])<span class="status status-cancelled">overdue</span>@endif</td>
+                    <td>{{ rtrim(rtrim(\App\Support\Formats::number((float) $p['delivery']->quantity, 3), '0'), '.') }}</td>
+                    <td>{{ rtrim(rtrim(\App\Support\Formats::number($p['covered'], 3), '0'), '.') ?: '0' }}</td>
+                    <td>{{ $p['delivery']->notes }}</td>
+                    <td>@if (in_array($order->status, \App\Domains\Sales\Models\SalesOrder::OPEN, true))<form method="POST" action="{{ route('sales-orders.lines.deliveries.destroy', [$order, $l, $p['delivery']]) }}">@csrf @method('DELETE')<button class="btn btn-small" type="submit">Remove</button></form>@endif</td>
+                </tr>
+            @empty
+                <tr><td>{{ $l->line_number }}</td><td colspan="5" class="muted small">One delivery{{ $l->requested_delivery_date ? ' on '.$l->requested_delivery_date->displayDate() : '' }}. Add dates below to stagger it.</td></tr>
+            @endforelse
+        @endforeach
+        </tbody>
+    </table></div>
+    @if (in_array($order->status, \App\Domains\Sales\Models\SalesOrder::OPEN, true))
+        <form method="POST" action="" class="panel-body" onsubmit="this.action = this.dataset.base.replace('LINE', this.line.value)" data-base="{{ route('sales-orders.lines.deliveries.store', [$order, 'LINE']) }}">@csrf
+            <div class="form-grid">
+                <div class="field"><label for="d-line">Line</label><select id="d-line" name="line">@foreach ($order->lines as $l)<option value="{{ $l->id }}">{{ $l->line_number }} · {{ $l->product?->code }}</option>@endforeach</select></div>
+                <div class="field"><label for="d-date">Due</label><input id="d-date" name="due_date" type="date" required value="{{ old('due_date') }}"></div>
+                <div class="field"><label for="d-qty">Quantity</label><input id="d-qty" name="quantity" type="number" step="any" min="0" required value="{{ old('quantity') }}"></div>
+                <div class="field"><label for="d-note">Note</label><input id="d-note" name="notes" maxlength="200" value="{{ old('notes') }}"></div>
+            </div>
+            @error('quantity')<div class="alert alert-error">{{ $message }}</div>@enderror
+            <button class="btn" type="submit">Add delivery</button>
+        </form>
+    @endif
+</div>
+
 <div class="tab-marker" data-tab-start="Contract review"></div>
 <div class="panel">
     <div class="panel-header">

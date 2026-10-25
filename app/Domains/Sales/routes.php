@@ -17,6 +17,8 @@ Route::middleware('web')->group(function () {
         Route::post('/{salesOrder}/review/acknowledge', 'acknowledge')->name('review.acknowledge');
         Route::post('/{salesOrder}/review/sign', 'sign')->name('review.sign');
         Route::post('/{salesOrder}/lines/{line}/production-order', 'productionOrder')->name('lines.production-order');
+        Route::post('/{salesOrder}/lines/{line}/deliveries', 'addDelivery')->name('lines.deliveries.store');
+        Route::delete('/{salesOrder}/lines/{line}/deliveries/{delivery}', 'removeDelivery')->name('lines.deliveries.destroy');
         Route::get('/{salesOrder}/trace', [OrderTraceController::class, 'show'])->name('trace');
     });
 });

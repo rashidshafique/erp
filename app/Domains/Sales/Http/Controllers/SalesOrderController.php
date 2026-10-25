@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\ProductRevision;
 use App\Domains\Sales\Models\SalesOrder;
 use App\Domains\Sales\Models\SalesOrderLine;
+use App\Domains\Sales\Models\SalesOrderLineDelivery;
 use App\Domains\Sales\Services\ContractReviewer;
 use App\Domains\Sales\Services\SalesOrderEditor;
 use App\Services\Orders\ProductionOrderFactory;
@@ -97,7 +98,7 @@ class SalesOrderController extends Controller
 
     public function show(SalesOrder $salesOrder): View
     {
-        $salesOrder->load(['customer', 'lines.product', 'lines.productRevision', 'lines.productionOrders']);
+        $salesOrder->load(['customer', 'lines.product', 'lines.productRevision', 'lines.productionOrders', 'lines.deliveries']);
         $review = $salesOrder->currentReview();
         $review?->load(['items.line.product']);
 
@@ -188,5 +189,34 @@ class SalesOrderController extends Controller
         $status->change($salesOrder, $data['status'], (bool) ($data['release_all'] ?? OrderRules::sendsStraightToProduction()), $data['reason'] ?? null);
 
         return back()->with('success', 'Order status updated.');
+    }
+
+    public function addDelivery(Request $request, SalesOrder $salesOrder, SalesOrderLine $line): RedirectResponse
+    {
+        abort_unless($line->sales_order_id === $salesOrder->id, 404);
+        $data = $request->validate([
+            'due_date' => ['required', 'date'],
+            'quantity' => ['required', 'numeric', 'gt:0'],
+            'notes' => ['nullable', 'string', 'max:200'],
+        ]);
+        if (! in_array($salesOrder->status, SalesOrder::OPEN, true)) {
+            return back()->withErrors(['quantity' => 'The delivery schedule of a closed order cannot change.']);
+        }
+        $room = (float) $line->ordered_qty - (float) $line->deliveries()->sum('quantity');
+        if ((float) $data['quantity'] > $room + 0.0005) {
+            return back()->withErrors(['quantity' => 'Line '.$line->line_number.' has only '.rtrim(rtrim(number_format(max($room, 0), 3, '.', ''), '0'), '.').' left to schedule.'])->withInput();
+        }
+        $line->deliveries()->create($data);
+
+        return back()->with('success', 'Delivery added to line '.$line->line_number.'.');
+    }
+
+    public function removeDelivery(SalesOrder $salesOrder, SalesOrderLine $line, SalesOrderLineDelivery $delivery): RedirectResponse
+    {
+        abort_unless($line->sales_order_id === $salesOrder->id && $delivery->sales_order_line_id === $line->id, 404);
+        abort_unless(in_array($salesOrder->status, SalesOrder::OPEN, true), 403);
+        $delivery->delete();
+
+        return back()->with('success', 'Delivery removed.');
     }
 }

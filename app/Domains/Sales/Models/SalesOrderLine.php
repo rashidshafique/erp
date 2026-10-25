@@ -50,4 +50,24 @@ class SalesOrderLine extends Model
     {
         return $this->hasMany(ProductionOrder::class);
     }
+
+    public function deliveries(): HasMany
+    {
+        return $this->hasMany(SalesOrderLineDelivery::class)->orderBy('due_date');
+    }
+
+    /**
+     * Each tranche with how much of it the shipped quantity covers, oldest tranche first.
+     *
+     * @return \Illuminate\Support\Collection<int, array{delivery: SalesOrderLineDelivery, covered: float, overdue: bool}>
+     */
+    public function deliveryProgress(float $shipped): \Illuminate\Support\Collection
+    {
+        return $this->deliveries->map(function (SalesOrderLineDelivery $delivery) use (&$shipped) {
+            $covered = min($shipped, (float) $delivery->quantity);
+            $shipped -= $covered;
+
+            return ['delivery' => $delivery, 'covered' => $covered, 'overdue' => $covered < (float) $delivery->quantity - 0.0005 && $delivery->due_date->lt(today())];
+        });
+    }
 }
