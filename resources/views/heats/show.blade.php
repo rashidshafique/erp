@@ -55,6 +55,8 @@
     .heat-line .fact-sep { color: var(--muted); }
     .heat-fact { font-size: 12.5px; color: var(--muted); white-space: nowrap; }
     .heat-fact strong { color: var(--text); font-weight: 600; }
+    .heat-fact .link-btn { padding: 0; margin-left: 8px; }
+    main:has(.hs-board) .page-heading > div:first-child { flex: 1 1 auto; min-width: 0; }
     .heat-target-form { display: inline-flex; gap: 6px; align-items: center; }
     .heat-target-form[hidden] { display: none; }
     .heat-target-form label { margin: 0; font-size: 12px; color: var(--muted); }

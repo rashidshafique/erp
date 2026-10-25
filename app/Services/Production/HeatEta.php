@@ -5,6 +5,7 @@ namespace App\Services\Production;
 use App\Models\Heat;
 use App\Support\Formats;
 use Carbon\CarbonInterface;
+use Illuminate\Support\Carbon;
 
 /**
  * When a running heat should finish: the metal still to melt (the heat's target less what has been tapped or poured) at a
@@ -40,6 +41,11 @@ class HeatEta
             return null;
         }
         ['rate' => $rate, 'source' => $source] = $measured;
+        $label = ['live' => 'live rate', 'recorded' => 'recorded average', 'rated' => 'rated speed'][$source].' '.Formats::number($rate).' kg/h';
+
+        if ($heat->isCupola()) {
+            return $this->cupolaFinish($heat, $target, $rate, $source, $label);
+        }
 
         // Without a live rate nothing has been measured yet, so the whole target is timed from the start of the run.
         $remaining = max(0.0, $target - $done);
@@ -52,8 +58,30 @@ class HeatEta
             'remaining_kg' => round($remaining, 1),
             'rate_kg_per_hour' => round($rate),
             'source' => $source,
-            'label' => ['live' => 'live rate', 'recorded' => 'recorded average', 'rated' => 'rated speed'][$source].' '.Formats::number($rate).' kg/h',
+            'label' => $label,
         ];
+    }
+
+    /**
+     * A cupola melts what it is charged, so what is left is the target less the metal charged so far, melted at the rate, plus the
+     * time the charge still in the stack needs. With every charge in, the finish is that long after the last one went in.
+     *
+     * @return array{finish_at: CarbonInterface, remaining_kg: float, rate_kg_per_hour: float, source: string, label: string}
+     */
+    private function cupolaFinish(Heat $heat, float $target, float $rate, string $source, string $label): array
+    {
+        $remaining = max(0.0, $target - $heat->chargedMetalKg());
+        $perCharge = (float) $heat->chargeBatch?->metalPerChargeKg();
+        $lagMinutes = $perCharge > 0 ? $perCharge / $rate * 60 : 0.0;
+        if ($remaining > 0) {
+            $finish = now()->addMinutes((int) ceil($remaining / $rate * 60 + $lagMinutes));
+        } else {
+            $lastCharge = $heat->materialConsumptions()->where('charge_round', '>', 0)->max('consumed_at');
+            $afterLast = $lastCharge !== null ? Carbon::parse($lastCharge)->addMinutes((int) ceil($lagMinutes)) : null;
+            $finish = $afterLast?->isFuture() ? $afterLast : now();
+        }
+
+        return ['finish_at' => $finish, 'remaining_kg' => round($remaining, 1), 'rate_kg_per_hour' => round($rate), 'source' => $source, 'label' => $label];
     }
 
     /**

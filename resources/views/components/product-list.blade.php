@@ -212,7 +212,7 @@ new class extends Component
 ?>
 
 <div class="catalog">
-<style>
+<style global>
     .catalog .metric { position: relative; }
     .catalog .metric-icon { position: absolute; top: 16px; right: 16px; width: 40px; height: 40px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--accent) 10%, transparent); color: var(--accent); }
     .catalog .metric-icon.warn { background: color-mix(in srgb, var(--warning) 14%, transparent); color: var(--warning); }

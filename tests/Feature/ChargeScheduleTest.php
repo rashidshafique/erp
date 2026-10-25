@@ -410,7 +410,7 @@ class ChargeScheduleTest extends TestCase
         $board = \Livewire\Livewire::test('heat-status-board', ['heatId' => $heat->id]);
         $board->assertSee('Charges added')->assertSeeInOrder(['Charges added', '2', 'of 5'])->assertSee('Last charge')->assertSeeInOrder(['Last charge', '#2'])
             ->assertSee('8:50 AM')->assertSeeInOrder(['Metal charged', '360', 'kg'])->assertSee('40%')->assertSee('of the 900 kg target')
-            ->assertSee('Running time')->assertSee('Time remaining');
+            ->assertSee('Running time')->assertSee('Time remaining')->assertSee('540 kg to go');   // 900 kg target less the 360 kg of metal charged
 
         // Charge 3 was due at 09:20, so it is due now; once it is in, the last charge moves on and the board follows.
         $board->assertSee('#3 due');
@@ -429,5 +429,26 @@ class ChargeScheduleTest extends TestCase
         $heat->update(['operating_power_limit_kw' => 400]);
         $this->get(route('heats.show', $heat))->assertOk()->assertSee('title="Furnace operating maximum"', false)->assertSee('450.0 kW')
             ->assertSee('title="Operating limit set on this heat"', false)->assertSee('400.0 kW');
+    }
+
+    public function test_a_cupolas_time_remaining_counts_the_metal_still_to_charge_and_the_last_charge_still_to_melt(): void
+    {
+        $this->travelTo(now()->setTime(10, 0));
+        [$heat, $iron] = $this->cupola();   // 360 kg/h and 180 kg a charge: 30 minutes a charge
+        $heat->update(['actual_start_at' => now()->subHours(3), 'blast_on_at' => now()->subHours(2), 'target_metal_weight_kg' => 900]);
+        $eta = fn () => app(\App\Services\Production\HeatEta::class)->for($heat->fresh());
+
+        $this->charged($heat, $iron, 1, 100, 180);
+        $this->charged($heat, $iron, 2, 70, 180);
+        $two = $eta();
+        $this->assertSame(540.0, $two['remaining_kg']);   // not the whole 900 kg: 360 kg are charged
+        $this->assertSame('12:00', $two['finish_at']->format('H:i'), '540 kg at 360 kg/h is 90 minutes, plus 30 for the last charge to melt.');
+
+        foreach ([3, 4, 5] as $round) {
+            $this->charged($heat, $iron, $round, 5, 180);   // the last one went in at 09:55
+        }
+        $all = $eta();
+        $this->assertSame(0.0, $all['remaining_kg']);
+        $this->assertSame('10:25', $all['finish_at']->format('H:i'), 'Everything is charged: the last charge melts 30 minutes after it went in.');
     }
 }

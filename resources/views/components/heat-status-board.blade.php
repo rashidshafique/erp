@@ -55,7 +55,7 @@ new class extends Component
 ?>
 
 <div class="hs-board" wire:poll.30s>
-<style>
+<style global>
     .hs-board { display: grid; grid-template-columns: repeat(auto-fit, minmax(176px, 1fr)); gap: 8px; margin-bottom: 10px; }
     .hs-tile { position: relative; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); padding: 5px 12px 6px; min-width: 0; overflow: hidden; }
     .hs-label { font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
