@@ -275,10 +275,12 @@
                         if (type) return [];
                         var words = q.toLowerCase().split(/\s+/), seen = {}, found = [];
                         document.querySelectorAll('#main-sidebar a.nav-link[href]').forEach(function (a) {
-                            var label = (a.textContent || '').trim();
+                            var badge = a.querySelector('.nav-count'), clone = a.cloneNode(true);
+                            clone.querySelectorAll('.nav-count').forEach(function (n) { n.remove(); });
+                            var label = (clone.textContent || '').trim(), count = badge ? (badge.textContent || '').trim() : '';
                             var hay = label.toLowerCase();
                             if (!label || seen[a.href] || a.getAttribute('href') === '#' || !words.every(function (w) { return hay.indexOf(w) !== -1; })) return;
-                            seen[a.href] = true; found.push({ code: label, name: '', label: 'Menu', url: a.href });
+                            seen[a.href] = true; found.push({ code: label, name: '', count: count, label: 'Menu', url: a.href });
                         });
                         return found.slice(0, 6);
                     }
@@ -290,7 +292,9 @@
                             row([span('scan-row-main', 'Search ' + offer.label.toLowerCase() + 's only'), span('scan-row-kind', 'Tab')], { run: pickOffer });
                         }
                         data.results.forEach(function (r) {
-                            row([span('scan-row-code', r.code), span('scan-row-name', r.name || ''), span('scan-row-kind', r.label)], { url: r.url });
+                            var shown = span('scan-row-name', r.name || '');
+                            if (r.count) { shown.appendChild(span('nav-count', r.count)); shown.title = 'Waiting for someone'; }
+                            row([span('scan-row-code', r.code), shown, span('scan-row-kind', r.label)], { url: r.url });
                         });
                         if (!data.results.length && i.value.trim()) {
                             var none = document.createElement('div'); none.className = 'scan-empty'; none.textContent = 'No direct matches. Press Enter to search.'; list.appendChild(none);
