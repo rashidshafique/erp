@@ -45,14 +45,14 @@
 
 <div class="tab-marker" data-tab-start="Lines"></div>
 <div class="panel">
-    <div class="panel-header"><h2>Lines and delivery schedule</h2><button type="button" class="btn btn-small" id="lines-toggle-all" data-state="open">Collapse all</button></div>
+    <div class="panel-header"><h2>Lines and delivery schedule</h2><button type="button" id="lines-toggle-all" data-state="open" title="Collapse all" aria-label="Collapse or expand all lines" style="border:0;background:none;padding:0 4px;cursor:pointer;color:inherit;font-size:16px;line-height:1">&#9662;</button></div>
     <div class="table-wrap"><table>
         <thead><tr><th>#</th><th>Product</th><th>Rev</th><th>Ordered</th><th>Scheduled</th><th>Shipped</th><th>Production orders</th><th></th></tr></thead>
         <tbody>
         @foreach ($order->lines as $l)
             @php $sched = (float) $l->productionOrders->where('status', '!=', 'CANCELLED')->sum('planned_qty'); @endphp
             <tr>
-                <td>{{ $l->line_number }} <button type="button" class="btn btn-small" data-toggle-line="{{ $l->id }}" aria-expanded="true" title="Show or hide the deliveries of this line">&#9662;</button></td>
+                <td>{{ $l->line_number }} <button type="button" data-toggle-line="{{ $l->id }}" aria-expanded="true" title="Show or hide the deliveries of this line" style="border:0;background:none;padding:0 4px;cursor:pointer;color:inherit;font-size:14px;line-height:1">&#9662;</button></td>
                 <td><x-product-cell :product="$l->product" /></td>
                 <td>{{ $l->productRevision?->revision }}</td>
                 <td>{{ rtrim(rtrim(\App\Support\Formats::number((float) $l->ordered_qty, 3), '0'), '.') }}</td>
@@ -120,7 +120,7 @@
                 var open = all.dataset.state !== 'open';
                 document.querySelectorAll('[data-toggle-line]').forEach(function (t) { set(t.dataset.toggleLine, open); });
                 all.dataset.state = open ? 'open' : 'closed';
-                all.textContent = open ? 'Collapse all' : 'Expand all';
+                all.innerHTML = open ? '&#9662;' : '&#9656;'; all.title = open ? 'Collapse all' : 'Expand all';
             }
         });
     })();
