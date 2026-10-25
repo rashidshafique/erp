@@ -45,14 +45,14 @@
 
 <div class="tab-marker" data-tab-start="Lines"></div>
 <div class="panel">
-    <div class="panel-header"><h2>Lines and delivery schedule</h2></div>
+    <div class="panel-header"><h2>Lines and delivery schedule</h2><button type="button" class="btn btn-small" id="lines-toggle-all" data-state="open">Collapse all</button></div>
     <div class="table-wrap"><table>
         <thead><tr><th>#</th><th>Product</th><th>Rev</th><th>Ordered</th><th>Scheduled</th><th>Shipped</th><th>Production orders</th><th></th></tr></thead>
         <tbody>
         @foreach ($order->lines as $l)
             @php $sched = (float) $l->productionOrders->where('status', '!=', 'CANCELLED')->sum('planned_qty'); @endphp
             <tr>
-                <td>{{ $l->line_number }}</td>
+                <td>{{ $l->line_number }} <button type="button" class="btn btn-small" data-toggle-line="{{ $l->id }}" aria-expanded="true" title="Show or hide the deliveries of this line">&#9662;</button></td>
                 <td><x-product-cell :product="$l->product" /></td>
                 <td>{{ $l->productRevision?->revision }}</td>
                 <td>{{ rtrim(rtrim(\App\Support\Formats::number((float) $l->ordered_qty, 3), '0'), '.') }}</td>
@@ -68,7 +68,7 @@
             </tr>
             @php $isOpen = in_array($order->status, \App\Domains\Sales\Models\SalesOrder::OPEN, true); @endphp
             @foreach ($l->deliveryProgress((float) ($shipped[$l->id] ?? 0)) as $p)
-                <tr class="muted">
+                <tr class="muted" data-line-rows="{{ $l->id }}">
                     <td></td>
                     <td colspan="2">Deliver by {{ $p['delivery']->due_date->displayDate() }} @if ($p['overdue'])<span class="status status-cancelled">overdue</span>@endif</td>
                     <td>{{ rtrim(rtrim(\App\Support\Formats::number((float) $p['delivery']->quantity, 3), '0'), '.') }}</td>
@@ -79,7 +79,7 @@
                 </tr>
             @endforeach
             @if ($isOpen)
-                <tr class="muted">
+                <tr class="muted" data-line-rows="{{ $l->id }}">
                     <td></td>
                     <td colspan="7">
                         @if ($l->deliveries->isEmpty())One delivery{{ $l->requested_delivery_date ? ' on '.$l->requested_delivery_date->displayDate() : '' }}. @endif
@@ -105,6 +105,26 @@
         </tbody>
     </table></div>
     @include('partials.quick-dialog-assets')
+    <script>
+    (function () {
+        var all = document.getElementById('lines-toggle-all');
+        function set(id, open) {
+            document.querySelectorAll('[data-line-rows="' + id + '"]').forEach(function (row) { row.hidden = !open; });
+            var b = document.querySelector('[data-toggle-line="' + id + '"]');
+            if (b) { b.setAttribute('aria-expanded', open ? 'true' : 'false'); b.innerHTML = open ? '&#9662;' : '&#9656;'; }
+        }
+        document.addEventListener('click', function (e) {
+            var b = e.target.closest('[data-toggle-line]');
+            if (b) { set(b.dataset.toggleLine, b.getAttribute('aria-expanded') !== 'true'); return; }
+            if (e.target === all) {
+                var open = all.dataset.state !== 'open';
+                document.querySelectorAll('[data-toggle-line]').forEach(function (t) { set(t.dataset.toggleLine, open); });
+                all.dataset.state = open ? 'open' : 'closed';
+                all.textContent = open ? 'Collapse all' : 'Expand all';
+            }
+        });
+    })();
+    </script>
     @unless ($order->hasApprovedReview())<div class="panel-body muted small">Production orders can be created once the contract review is approved by both sales and quality.</div>@endunless
 </div>
 
