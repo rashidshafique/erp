@@ -13,6 +13,12 @@ class CoreDefinition extends Model
 
     public string $codeKind = 'core_definition';
 
+    public const TYPES = [
+        'STANDARD' => 'Sand core',
+        'CERAMIC' => 'Ceramic core',
+        'OTHER' => 'Other',
+    ];
+
     protected $fillable = [
         'mark_code',
         'code',
@@ -32,5 +38,11 @@ class CoreDefinition extends Model
     public function coreBoxes(): HasMany
     {
         return $this->hasMany(CoreBox::class);
+    }
+
+    /** The box cavities that make this core. */
+    public function cavities(): HasMany
+    {
+        return $this->hasMany(CoreBoxCavity::class);
     }
 }

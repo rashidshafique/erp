@@ -15,6 +15,8 @@ class Breadcrumb
         'Moulding runs' => 'moulding-runs.index',
         'Thermal tests' => 'thermal.index',
         'Flasks' => 'flasks.index',
+        'Cores' => 'cores.index',
+        'Core boxes' => 'core-boxes.index',
         'Gauges' => 'gauges.index',
         'Corrective actions' => 'capa.index',
         'Furnaces' => 'furnaces.index',

@@ -1,5 +1,7 @@
 <?php
 
+use App\Domains\Tooling\Http\Controllers\CoreBoxController;
+use App\Domains\Tooling\Http\Controllers\CoreController;
 use App\Domains\Tooling\Http\Controllers\ToolController;
 use App\Domains\Tooling\Http\Controllers\ToolingLifeDashboardController;
 use App\Domains\Tooling\Http\Controllers\ToolingLifeLimitController;
@@ -61,6 +63,28 @@ Route::middleware('web')->group(function () {
         '/tooling-life/{toolingLifeLimit}',
         [ToolingLifeLimitController::class, 'update']
     )->name('tooling-life.update');
+
+    Route::prefix('cores')->name('cores.')->controller(CoreController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('/create', 'create')->name('create');
+        Route::post('/', 'store')->name('store');
+        Route::get('/{core}', 'show')->name('show')->withTrashed();
+        Route::get('/{core}/edit', 'edit')->name('edit');
+        Route::put('/{core}', 'update')->name('update');
+        Route::delete('/{core}', 'archive')->name('archive');
+        Route::post('/{core}/restore', 'restore')->name('restore')->withTrashed();
+    });
+    Route::prefix('core-boxes')->name('core-boxes.')->controller(CoreBoxController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('/create', 'create')->name('create');
+        Route::post('/', 'store')->name('store');
+        Route::get('/{coreBox}', 'show')->name('show')->withTrashed();
+        Route::get('/{coreBox}/edit', 'edit')->name('edit');
+        Route::put('/{coreBox}', 'update')->name('update');
+        Route::put('/{coreBox}/cavities', 'updateCavities')->name('cavities');
+        Route::delete('/{coreBox}', 'archive')->name('archive');
+        Route::post('/{coreBox}/restore', 'restore')->name('restore')->withTrashed();
+    });
 
     Route::get('/tools/{type}/{id}', [ToolController::class, 'show'])->where('type', '[a-z_]+')->name('tools.show');
     Route::put('/tools/{type}/{id}/mark', [ToolController::class, 'updateMark'])->where('type', '[a-z_]+')->name('tools.mark');

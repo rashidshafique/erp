@@ -11,8 +11,8 @@ class CodedRecords
     public const TYPES = [
         'product' => ['products', 'code', 'Product', 'products.show', 'name'],
         'pattern' => ['patterns', 'code', 'Pattern', 'patterns.show', 'name'],
-        'core_box' => ['core_boxes', 'code', 'Core box', null, 'name'],
-        'core_definition' => ['core_definitions', 'code', 'Core', null, 'name'],
+        'core_box' => ['core_boxes', 'code', 'Core box', 'core-boxes.show', 'name'],
+        'core_definition' => ['core_definitions', 'code', 'Core', 'cores.show', 'name'],
         'mould_configuration' => ['mould_configurations', 'code', 'Mould configuration', null, 'name'],
         'flask' => ['flasks', 'code', 'Flask', 'flasks.show', null],
         'casting_lot' => ['casting_lots', 'lot_number', 'Casting lot', 'lots.show', null],

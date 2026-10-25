@@ -113,7 +113,7 @@ class CodesAndMarksTest extends TestCase
         $this->get(route('labels.show', ['pattern', $pattern->id]))->assertOk()->assertSee('Engraved mark');
         $this->get(route('scan', ['code' => strtolower($product->code)]))->assertRedirect(route('products.show', $product->id));
         $this->get(route('scan', ['code' => $pattern->mark_code]))->assertRedirect(route('patterns.show', $pattern->id));
-        $this->get(route('scan', ['code' => $box->mark_code]))->assertRedirect(route('tools.show', ['core_box', $box->id]));
+        $this->get(route('scan', ['code' => $box->mark_code]))->assertRedirect(route('core-boxes.show', $box->id));
         $this->get(route('scan', ['code' => 'NOPE-1']))->assertOk()->assertSee('Nothing has the code');
         $this->get(route('tools.show', ['core_box', $box->id]))->assertOk()->assertSee($box->mark_code);
 

@@ -28,8 +28,8 @@ class GlobalSearch
         'heat' => ['label' => 'Heat', 'table' => 'heats', 'code' => 'heat_number', 'name' => null, 'route' => 'heats.show', 'permission' => null, 'words' => ['heat', 'heats', 'ht']],
         'pour' => ['label' => 'Pour', 'table' => 'pours', 'code' => 'pour_number', 'name' => null, 'route' => 'pours.show', 'permission' => null, 'words' => ['pour', 'pours']],
         'flask' => ['label' => 'Flask', 'table' => 'flasks', 'code' => 'code', 'name' => null, 'route' => 'flasks.show', 'permission' => null, 'words' => ['flk', 'flask', 'flasks']],
-        'core_box' => ['label' => 'Core box', 'table' => 'core_boxes', 'code' => 'code', 'name' => 'name', 'route' => null, 'permission' => null, 'words' => ['cbx', 'corebox']],
-        'core_definition' => ['label' => 'Core', 'table' => 'core_definitions', 'code' => 'code', 'name' => 'name', 'route' => null, 'permission' => null, 'words' => ['cor', 'core', 'cores']],
+        'core_box' => ['label' => 'Core box', 'table' => 'core_boxes', 'code' => 'code', 'name' => 'name', 'route' => 'core-boxes.show', 'permission' => null, 'words' => ['cbx', 'corebox']],
+        'core_definition' => ['label' => 'Core', 'table' => 'core_definitions', 'code' => 'code', 'name' => 'name', 'route' => 'cores.show', 'permission' => null, 'words' => ['cor', 'core', 'cores']],
     ];
 
     /**

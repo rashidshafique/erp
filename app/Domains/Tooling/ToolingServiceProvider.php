@@ -44,6 +44,7 @@ class ToolingServiceProvider extends ModuleServiceProvider
     protected function navItems(): array
     {
         return [
+            ['group' => 'equipment', 'label' => 'Cores & core boxes', 'route' => 'cores.index', 'icon' => 'grid', 'active' => ['cores.*', 'core-boxes.*']],
             ['group' => 'equipment', 'label' => 'Maintenance dashboard', 'route' => 'tooling-maintenance.dashboard', 'icon' => 'dashboard', 'active' => ['tooling-maintenance.dashboard']],
             ['group' => 'equipment', 'label' => 'Maintenance records', 'route' => 'tooling-maintenance.index', 'icon' => 'wrench', 'active' => ['tooling-maintenance.index', 'tooling-maintenance.show', 'tooling-maintenance.edit'],
                 'count' => fn (): int => ToolingMaintenanceRecord::whereIn('status', ['OPEN', 'IN_PROGRESS'])->count()],
@@ -62,6 +63,8 @@ class ToolingServiceProvider extends ModuleServiceProvider
     {
         return [
             ['pattern' => 'tooling-*', 'permission' => 'tooling.manage'],
+            ['pattern' => 'cores.*', 'permission' => 'tooling.manage'],
+            ['pattern' => 'core-boxes.*', 'permission' => 'tooling.manage'],
             ['pattern' => 'tools.*', 'permission' => 'tooling.manage'],
         ];
     }
