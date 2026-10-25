@@ -26,6 +26,7 @@
                 <span class="status" title="Furnace">{{ $heat->furnace->code }}</span>
                 <span class="status {{ ['on' => 'status-in-progress', 'idle' => 'status-completed', 'warn' => 'status-on-hold', 'off' => 'status-cancelled'][$furnaceState['tone']] }}" title="Furnace status">{{ $furnaceState['label'] }}@if ($furnaceState['heat'] && $furnaceState['heat']->id !== $heat->id) <a href="{{ route('heats.show', $furnaceState['heat']) }}">{{ $furnaceState['heat']->heat_number }}</a>@endif</span>
             @endif
+            @if ($heat->outcomeLabel())<span class="status {{ $heat->drop_outcome === 'FINISHED' ? 'status-completed' : 'status-cancelled' }}" title="{{ $heat->drop_outcome === 'PREMATURE' ? 'Dropped early: '.$heat->drop_reason : 'The campaign was finished' }}">{{ $heat->outcomeLabel() }}</span>@endif
             <span class="fact-sep">·</span>
             <span class="heat-fact" data-target-view>Target <strong>{{ $heat->target_metal_weight_kg !== null ? \App\Support\Formats::number((float) $heat->target_metal_weight_kg, 1).' kg' : '—' }}</strong>@unless ($closedHeat)<button type="button" class="link-btn" data-target-edit title="Change the target metal weight">Change</button>@endunless</span>
             @unless ($closedHeat)
@@ -494,7 +495,7 @@
     </div>
 </div>
 
-@if(!in_array($heat->status, ['CLOSED', 'CANCELLED'], true))
+@if($heat->status !== 'CANCELLED')
     <div class="panel">
         <div class="panel-header">
             <h2>Post charge to inventory</h2>

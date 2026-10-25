@@ -72,7 +72,7 @@ class HeatLightTest extends TestCase
 
         $done = Heat::create(['heat_number' => 'H-DONE', 'furnace_id' => $furnace->id, 'process_type' => 'INDUCTION', 'status' => 'CLOSED',
             'actual_start_at' => now()->subHours(5), 'tapped_at' => now()->subHours(5)->addMinutes(50)]);
-        $this->get(route('heats.show', $done))->assertOk()->assertSee('Ran for')->assertSee('0:50:00')
+        $this->get(route('heats.show', $done))->assertOk()->assertSee('Ran for')->assertSee('0h 50m')
             ->assertSee('>Melting', false)->assertSee($running->heat_number);
 
         $furnace->update(['status' => 'MAINTENANCE']);

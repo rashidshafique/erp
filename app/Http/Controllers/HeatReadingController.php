@@ -460,9 +460,9 @@ class HeatReadingController extends Controller
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if (in_array($lockedHeat->status, ['CLOSED', 'CANCELLED'], true)) {
+            if ($lockedHeat->status === 'CANCELLED') {
                 throw ValidationException::withMessages([
-                    'posted_by' => 'A closed or cancelled heat cannot be posted.',
+                    'posted_by' => 'A cancelled heat cannot be posted.',
                 ]);
             }
 

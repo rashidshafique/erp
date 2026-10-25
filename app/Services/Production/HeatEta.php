@@ -63,6 +63,17 @@ class HeatEta
     }
 
     /**
+     * The rate a campaign is planned at, in kg per hour: the furnace's recorded average, else its rated speed. Unlike rate() it never
+     * takes the heat's own measured speed, so a finished run is not judged against itself.
+     */
+    public function plannedRate(Heat $heat): ?float
+    {
+        $heat->loadMissing('furnace');
+
+        return $this->recordedRate($heat) ?? ((float) $heat->furnace?->nominal_melting_rate_kg_per_hour > 0 ? (float) $heat->furnace->nominal_melting_rate_kg_per_hour : null);
+    }
+
+    /**
      * A cupola melts what it is charged, so what is left is the target less the metal charged so far, melted at the rate, plus the
      * time the charge still in the stack needs. With every charge in, the finish is that long after the last one went in.
      *

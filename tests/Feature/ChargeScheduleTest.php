@@ -305,7 +305,7 @@ class ChargeScheduleTest extends TestCase
         $this->assertSame([], $heat->fresh()->skippedChargeRounds());
     }
 
-    public function test_entries_cannot_be_changed_on_a_closed_heat_or_after_the_charge_is_posted_or_through_another_heat(): void
+    public function test_entries_cannot_be_changed_on_a_cancelled_heat_or_after_the_charge_is_posted_or_through_another_heat(): void
     {
         [$heat, $iron] = $this->cupola();
         $other = Heat::create(['heat_number' => 'H-OTHER', 'furnace_id' => $heat->furnace_id, 'process_type' => 'CUPOLA', 'status' => 'MELTING']);
@@ -319,7 +319,7 @@ class ChargeScheduleTest extends TestCase
         $this->get(route('heats.show', $heat))->assertOk()->assertDontSee(route('heats.charge-entries.destroy', [$heat, $entry]), false);
         \App\Models\HeatChargePosting::where('heat_id', $heat->id)->delete();
 
-        $heat->update(['status' => 'CLOSED']);
+        $heat->update(['status' => 'CANCELLED']);
         $this->put(route('heats.charge-entries.update', [$heat, $entry]), ['actual_qty_kg' => 10])->assertSessionHasErrors('actual_qty_kg');
         $this->delete(route('heats.charge-entries.destroy', [$heat, $entry]))->assertSessionHasErrors('actual_qty_kg');
         $this->assertSame(180.0, (float) $entry->fresh()->actual_qty_kg);
@@ -352,7 +352,7 @@ class ChargeScheduleTest extends TestCase
         \Livewire\Livewire::test('heat-status-board', ['heatId' => $heat->id])->assertSee('150.5')->dispatch('charges-changed')->assertSee('150.5');
     }
 
-    public function test_an_entry_is_removed_in_place_and_a_closed_heat_refuses_it(): void
+    public function test_an_entry_is_removed_in_place_and_a_cancelled_heat_refuses_it(): void
     {
         [$heat, $iron] = $this->cupola();
         $this->charged($heat, $iron, 1, 30, 180);
@@ -363,9 +363,9 @@ class ChargeScheduleTest extends TestCase
         $this->assertSame(0, HeatMaterialConsumption::where('heat_id', $heat->id)->count());
 
         $this->charged($heat, $iron, 2, 10, 180);
-        $heat->update(['status' => 'CLOSED']);
+        $heat->update(['status' => 'CANCELLED']);
         \Livewire\Livewire::test('heat-charge-history', ['heatId' => $heat->id])->call('remove', HeatMaterialConsumption::where('heat_id', $heat->id)->value('id'))
-            ->assertSet('problem', 'Charges cannot be changed on a closed or cancelled heat.');
+            ->assertSet('problem', 'Charges cannot be changed on a cancelled heat.');
         $this->assertSame(1, HeatMaterialConsumption::where('heat_id', $heat->id)->count());
     }
 
@@ -458,5 +458,27 @@ class ChargeScheduleTest extends TestCase
 
         $this->get(route('heats.show', $heat))->assertOk()
             ->assertSeeInOrder(['data-tab-start="Charge"', 'class="charge-cols"', 'class="charge-history-col"', 'wire:name="heat-charge-history"', 'class="charge-other-col"', 'Charge recipe and planned materials', 'Post charge to inventory', 'data-tab-start="Furnace readings"'], false);
+    }
+
+    public function test_a_finished_heat_still_posts_its_charge_and_keeps_its_history_editable_until_it_is_posted(): void
+    {
+        [$heat, $iron] = $this->cupola();
+        $this->charged($heat, $iron, 1, 30, 180);
+        $heat->update(['status' => 'CLOSED']);
+        $entry = HeatMaterialConsumption::where('heat_id', $heat->id)->sole();
+        $lot = MaterialLot::where('material_id', $iron->id)->first();
+        $entry->update(['material_lot_id' => $lot->id]);   // posting issues the metal from the lot it came from, which has to hold it
+        app(\App\Services\Stock\StockLedger::class)->receive($lot, 1000, 50, 'kg');
+
+        $this->get(route('heats.show', $heat))->assertOk()->assertSee('Post charge to inventory')->assertSee(route('heats.charge-postings.store', $heat), false)->assertSee('click a weight to change it');
+        \Livewire\Livewire::test('heat-charge-history', ['heatId' => $heat->id])->call('edit', $entry->id)->set('weight', '175')->call('save')->assertSet('problem', null);
+        $this->assertSame(175.0, (float) $entry->fresh()->actual_qty_kg);
+
+        $this->post(route('heats.charge-postings.store', $heat), ['posted_by' => 'Stores'])->assertSessionHasNoErrors();
+        $this->assertTrue($heat->chargePosting()->exists());
+        \Livewire\Livewire::test('heat-charge-history', ['heatId' => $heat->id])->assertDontSee('click a weight to change it');
+
+        $heat->update(['status' => 'CANCELLED']);
+        $this->get(route('heats.show', $heat))->assertOk()->assertDontSee('Post charge to inventory');
     }
 }

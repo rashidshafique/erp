@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Heat;
+use App\Services\Production\BottomDrop;
 use App\Services\Production\CupolaTimeline;
+use Illuminate\Support\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -11,7 +13,7 @@ use Illuminate\Validation\ValidationException;
 class HeatTimelineController extends Controller
 {
     /** Records the light-up, blast on, first tap and bottom drop of a cupola heat. A blank clears a time. */
-    public function update(Request $request, Heat $heat, CupolaTimeline $timeline): RedirectResponse
+    public function update(Request $request, Heat $heat, CupolaTimeline $timeline, BottomDrop $drop): RedirectResponse
     {
         abort_unless($heat->loadMissing('furnace')->isCupola(), 404);
         $messages = array_fill_keys(array_map(fn ($f) => $f.'.before_or_equal', ['actual_start_at', 'blast_on_at', 'first_tap_at', 'dropped_at']), 'That time is in the future. Enter the time it actually happened.');
@@ -34,8 +36,39 @@ class HeatTimelineController extends Controller
             $previous = $field;
         }
 
-        $timeline->save($heat, collect($times)->map(fn ($v) => filled($v) ? $v : null)->all());
+        $times = collect($times)->map(fn ($v) => filled($v) ? $v : null)->all();
 
-        return back()->with('success', 'Timeline saved.');
+        // The bottom drop ends the campaign: a run that reaches the set share of its expected time is finished; a shorter one has to say
+        // whether the campaign finished or was dropped early, and why.
+        $outcome = $heat->drop_outcome;
+        $judged = null;
+        $dropChanged = false;
+        $dropSent = array_key_exists('dropped_at', $times);
+        if ($dropSent && $times['dropped_at'] === null) {
+            $outcome = null;
+        } elseif ($dropSent && $heat->dropped_at?->format('Y-m-d H:i') !== Carbon::parse($times['dropped_at'])->format('Y-m-d H:i')) {
+            $start = filled($times['blast_on_at'] ?? null) ? $times['blast_on_at'] : ($times['actual_start_at'] ?? null);
+            $start ??= ($heat->blast_on_at ?? $heat->actual_start_at)?->toDateTimeString();
+            $judged = $drop->assess($heat, $start ? Carbon::parse($start) : null, Carbon::parse($times['dropped_at']));
+            $outcome = 'FINISHED';
+            $dropChanged = true;
+            if ($judged && ! $judged['within']) {
+                $answer = $request->input('drop_outcome');
+                if (! in_array($answer, ['FINISHED', 'PREMATURE'], true)) {
+                    return back()->withInput()->with('drop_check', $judged);
+                }
+                $outcome = $answer;
+                if ($outcome === 'PREMATURE' && mb_strlen(trim((string) $request->input('drop_reason'))) < 3) {
+                    return back()->withInput()->with('drop_check', $judged)->withErrors(['drop_reason' => 'Say why the campaign was dropped early.']);
+                }
+            }
+        }
+
+        $timeline->save($heat, $times);
+        if ($dropChanged || ($dropSent && $times['dropped_at'] === null)) {
+            $drop->record($heat->refresh(), $judged, $outcome, $request->string('drop_reason')->limit(1000, '')->toString());
+        }
+
+        return back()->with('success', 'Timeline saved.'.($outcome === 'PREMATURE' ? ' Recorded as dropped prematurely.' : ''));
     }
 }

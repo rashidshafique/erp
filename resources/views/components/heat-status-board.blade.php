@@ -67,8 +67,9 @@ new class extends Component
     .hs-bar > span { display: block; height: 100%; background: var(--accent); }
     .hs-tile.is-warn .hs-value { color: #b54708; }
     .hs-tile.is-bad .hs-value { color: var(--danger); }
-    .hs-chip { display: inline-block; vertical-align: middle; margin-right: 6px; padding: 1px 8px; border-radius: 6px; font: 700 12px/1.5 system-ui, sans-serif; letter-spacing: 0; }
-    .hs-readings { font: 600 12.5px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text); white-space: nowrap; }
+    .hs-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .hs-chip { display: inline-block; vertical-align: middle; margin: -1px 0 0; padding: 1px 8px; border-radius: 6px; font: 700 10.8px/1.5 system-ui, sans-serif; letter-spacing: 0; }
+    .hs-readings { text-align: left; font: 600 12.5px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text); white-space: nowrap; }
 </style>
 
 {{-- Running time: counted in the browser from the start of the run. --}}
@@ -76,10 +77,10 @@ new class extends Component
 <div class="hs-tile" title="Furnace running time for this heat, from {{ $run['start']->displayAt() }}"
     x-data="{ since: {{ $run['start']->getTimestampMs() }}, running: {{ $run['running'] ? 'true' : 'false' }}, now: Date.now(), end: {{ ($run['end'] ?? null) ? $run['end']->getTimestampMs() : 'null' }},
         get s() { return Math.max(0, Math.floor(((this.running ? this.now : (this.end ?? this.now)) - this.since) / 1000)); },
-        get text() { const p = (n) => String(n).padStart(2, '0'); return Math.floor(this.s / 3600) + ':' + p(Math.floor(this.s / 60) % 60) + ':' + p(this.s % 60); } }"
+        get text() { const p = (n) => String(n).padStart(2, '0'); return this.running ? Math.floor(this.s / 3600) + ':' + p(Math.floor(this.s / 60) % 60) + ':' + p(this.s % 60) : Math.floor(this.s / 3600) + 'h ' + p(Math.floor(this.s / 60) % 60) + 'm'; } }"
     x-init="if (running) setInterval(() => now = Date.now(), 1000)">
     <div class="hs-label">{{ $run['running'] ? 'Running time' : 'Ran for' }}</div>
-    <div class="hs-value" x-text="text">{{ \App\Support\Formats::clock((int) $run['start']->diffInSeconds($run['end'] ?? now(), true)) }}</div>
+    <div class="hs-value" x-text="text">@if ($run['running']){{ \App\Support\Formats::clock((int) $run['start']->diffInSeconds(now(), true)) }}@else{{ intdiv($ranMinutes = (int) $run['start']->diffInMinutes($run['end'] ?? now(), true), 60) }}h {{ str_pad((string) ($ranMinutes % 60), 2, '0', STR_PAD_LEFT) }}m @endif</div>
     <div class="hs-sub">Started <b>{{ $run['start']->displayAt() }}</b></div>
 </div>
 @endif
@@ -128,11 +129,14 @@ new class extends Component
     @endif
 </div>
 
-{{-- The latest test. --}}
+{{-- The latest test: the verdict sits top right, the readings and time are left-aligned. --}}
 <div class="hs-tile {{ $latest && $latest['result'] === 'FAIL' ? 'is-bad' : '' }}">
-    <div class="hs-label">Latest test</div>
+    <div class="hs-head">
+        <div class="hs-label">Latest test</div>
+        @if ($latest)<span class="hs-chip status {{ $latest['result'] === 'PASS' ? 'status-completed' : ($latest['result'] === 'FAIL' ? 'status-cancelled' : '') }}">{{ $latest['result'] === 'UNJUDGED' ? 'NOT JUDGED' : $latest['result'] }}</span>@endif
+    </div>
     @if ($latest)
-        <div class="hs-value" style="font-size:15px"><span class="hs-chip status {{ $latest['result'] === 'PASS' ? 'status-completed' : ($latest['result'] === 'FAIL' ? 'status-cancelled' : '') }}">{{ $latest['result'] === 'UNJUDGED' ? 'NOT JUDGED' : $latest['result'] }}</span><span class="hs-readings">C {{ $latest['c'] !== null ? \App\Support\Formats::number($latest['c'], 2) : '—' }} · CE {{ $latest['ce'] !== null ? \App\Support\Formats::number($latest['ce'], 2) : '—' }} · Si {{ $latest['si'] !== null ? \App\Support\Formats::number($latest['si'], 2) : '—' }}</span></div>
+        <div class="hs-readings">C {{ $latest['c'] !== null ? \App\Support\Formats::number($latest['c'], 2) : '—' }} · CE {{ $latest['ce'] !== null ? \App\Support\Formats::number($latest['ce'], 2) : '—' }} · Si {{ $latest['si'] !== null ? \App\Support\Formats::number($latest['si'], 2) : '—' }}</div>
         <div class="hs-sub"><b>{{ $latest['at']->displayAt() }}</b> · {{ $latest['at']->diffForHumans(null, true, true) }} ago @if ($latest['reference']) · {{ $latest['reference'] }}@endif</div>
     @else
         <div class="hs-value">—</div>

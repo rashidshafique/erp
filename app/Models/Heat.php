@@ -39,6 +39,10 @@ class Heat extends Model
         'held_at',
         'charge_rounds',
         'skipped_charge_rounds',
+        'drop_outcome',
+        'drop_reason',
+        'drop_expected_minutes',
+        'drop_actual_minutes',
     ];
 
     protected function casts(): array
@@ -73,6 +77,12 @@ class Heat extends Model
         $recorded = (int) ($this->relationLoaded('materialConsumptions') ? $this->materialConsumptions->max('charge_round') : $this->materialConsumptions()->max('charge_round'));
 
         return max(1, $planned, $recorded);
+    }
+
+    /** How the campaign ended, for a closed cupola heat that had its bottom drop judged: "Finished" or "Dropped prematurely". */
+    public function outcomeLabel(): ?string
+    {
+        return $this->drop_outcome === null ? null : ($this->drop_outcome === 'FINISHED' ? 'Finished' : 'Dropped prematurely');
     }
 
     /** The charges someone removed on purpose; the schedule does not add them back. @return list<int> */

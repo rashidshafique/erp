@@ -8,8 +8,8 @@ use App\Support\Formats;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Corrects or removes a charge entry on a heat, for the charge history screen. Entries are fixed once the heat is closed or its
- * charge has been posted to inventory. Removing the last entry of a charge marks that charge skipped, so the schedule does not
+ * Corrects or removes a charge entry on a heat, for the charge history screen. Entries stay open to correction, on a finished (closed)
+ * heat too, until the charge is posted to inventory; a cancelled heat's are fixed. Removing the last entry of a charge marks that charge skipped, so the schedule does not
  * add it back by itself.
  */
 class ChargeEntryEditor
@@ -17,7 +17,7 @@ class ChargeEntryEditor
     /** Whether the heat's entries can still be changed. */
     public function open(Heat $heat): bool
     {
-        return ! in_array($heat->status, ['CLOSED', 'CANCELLED'], true) && ! $heat->chargePosting()->exists();
+        return $heat->status !== 'CANCELLED' && ! $heat->chargePosting()->exists();
     }
 
     /** Sets the weight of an entry; its cost follows at the same price per kg. */
@@ -61,8 +61,8 @@ class ChargeEntryEditor
     private function assertEditable(Heat $heat, HeatMaterialConsumption $entry): void
     {
         abort_unless($entry->heat_id === $heat->id, 404);
-        if (in_array($heat->status, ['CLOSED', 'CANCELLED'], true)) {
-            throw ValidationException::withMessages(['actual_qty_kg' => 'Charges cannot be changed on a closed or cancelled heat.']);
+        if ($heat->status === 'CANCELLED') {
+            throw ValidationException::withMessages(['actual_qty_kg' => 'Charges cannot be changed on a cancelled heat.']);
         }
         if ($heat->chargePosting()->exists()) {
             throw ValidationException::withMessages(['actual_qty_kg' => 'The charge has been posted to inventory, so its entries can no longer be changed.']);

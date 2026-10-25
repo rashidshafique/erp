@@ -33,6 +33,7 @@ class PouringRules
             'FREE' => 'Treat them like any other lot',
         ], 'HOLD'],
         'lightup_to_first_charge_minutes' => ['charging.lightup_to_first_charge_minutes', 'Cupola: minutes from light-up to the first metal charge (the bed burns first; a recorded blast-on time takes over)', null, '60'],
+        'drop_finished_percent' => ['pouring.drop_finished_percent', 'Cupola: percent of the expected run time at the bottom drop that counts as finished without asking (a shorter run asks whether the campaign finished or was dropped early)', null, '90'],
         'test_interval_minutes' => ['pouring.test_interval_minutes', 'Minutes between samples while a cupola is running (reminder only)', null, '30'],
         'auto_charge' => ['charging.auto', 'Charges that come due on a running heat', [
             'AUTO' => 'Record them automatically every minute, from the recipe, at the time the furnace speed puts them due',

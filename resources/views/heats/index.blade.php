@@ -47,7 +47,7 @@
                         <td><x-heat-light :heat="$heat" /><strong>{{ $heat->heat_number }}</strong></td>
                         <td>{{ $heat->furnace?->name ?? '—' }}</td>
                         <td>{{ $heat->furnace?->furnace_type ?? $heat->process_type }}</td>
-                        <td><span class="status">{{ $heat->status }}</span></td>
+                        <td><span class="status {{ $heat->drop_outcome === 'FINISHED' ? 'status-completed' : ($heat->drop_outcome === 'PREMATURE' ? 'status-cancelled' : '') }}" @if ($heat->drop_reason) title="{{ $heat->drop_reason }}" @endif>{{ $heat->outcomeLabel() ?? $heat->status }}</span></td>
                         <td>
                             {{ $heat->target_metal_weight_kg !== null
                                 ? \App\Support\Formats::number((float) $heat->target_metal_weight_kg, 1).' kg'
