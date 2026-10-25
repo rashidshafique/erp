@@ -57,15 +57,15 @@
 
 <div class="tab-marker" data-tab-start="Lines"></div>
 <div class="panel">
-    <div class="panel-header"><h2>Lines and delivery schedule</h2><button type="button" id="lines-toggle-all" data-state="open" title="Collapse all" aria-label="Collapse or expand all lines" style="border:0;background:none;padding:0 4px;cursor:pointer;color:inherit;font-size:16px;line-height:1">&#9662;</button></div>
+    <div class="panel-header"><h2>Lines and delivery schedule</h2></div>
     <div class="table-wrap"><table>
-        <thead><tr><th>#</th><th>Product</th><th>Rev</th><th>Ordered</th><th>Scheduled</th><th>Shipped</th><th>Production orders</th><th></th></tr></thead>
+        <thead><tr><th>#</th><th>Product</th><th>Rev</th><th>Ordered</th><th>Scheduled</th><th>Shipped</th><th>Production orders</th><th style="text-align:right"><button type="button" id="lines-toggle-all" data-state="open" title="Collapse all" aria-label="Collapse or expand all lines" style="border:0;background:none;padding:0 4px;cursor:pointer;color:inherit;font-size:20px;line-height:1">&#9662;</button></th></tr></thead>
         <tbody>
         @foreach ($order->lines as $l)
             @php $isOpen = in_array($order->status, \App\Domains\Sales\Models\SalesOrder::OPEN, true); @endphp
             @php $sched = (float) $l->productionOrders->where('status', '!=', 'CANCELLED')->sum('planned_qty'); @endphp
             <tr>
-                <td>{{ $l->line_number }} <button type="button" data-toggle-line="{{ $l->id }}" aria-expanded="true" title="Show or hide the deliveries of this line" style="border:0;background:none;padding:0 4px;cursor:pointer;color:inherit;font-size:14px;line-height:1">&#9662;</button></td>
+                <td>{{ $l->line_number }}</td>
                 <td><x-product-cell :product="$l->product" /></td>
                 <td>{{ $l->productRevision?->revision }}</td>
                 <td>{{ rtrim(rtrim(\App\Support\Formats::number((float) $l->ordered_qty, 3), '0'), '.') }}</td>
@@ -73,7 +73,7 @@
                 <td>{{ rtrim(rtrim(\App\Support\Formats::number((float) ($shipped[$l->id] ?? 0), 3), '0'), '.') ?: '0' }}</td>
                 <td>@forelse ($l->productionOrders as $po)<a href="{{ route('production-orders.show', $po) }}" class="mono">{{ $po->production_order_number }}</a> <span class="muted small">{{ strtolower(str_replace('_', ' ', $po->status)) }}</span>@if (! $loop->last)<br>@endif @empty — @endforelse</td>
                 <td>
-                    <div style="display:flex;gap:6px;flex-wrap:wrap">
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:flex-end">
                     @if ($sched < (float) $l->ordered_qty - 0.0005)
                         <form method="POST" action="{{ route('sales-orders.lines.production-order', [$order, $l]) }}">@csrf
                             <button class="btn" type="submit" @disabled(! $order->hasApprovedReview())>+ Production Order</button></form>
@@ -97,6 +97,7 @@
                             </form>
                         </dialog>
                     @endif
+                    <button type="button" data-toggle-line="{{ $l->id }}" aria-expanded="true" title="Show or hide the deliveries of this line" style="border:0;background:none;padding:0 4px;cursor:pointer;color:inherit;font-size:20px;line-height:1">&#9662;</button>
                     </div>
                 </td>
             </tr>
