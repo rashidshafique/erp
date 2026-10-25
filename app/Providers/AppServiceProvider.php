@@ -34,6 +34,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(ModuleRegistry::class);
         $this->app->singletonIf(PeopleDirectory::class, NoPeopleDirectory::class);
         $this->app->singletonIf(\App\Domains\Core\Contracts\TaxCalculator::class, \App\Domains\Core\FlatRateTax::class);
+        $this->app->singleton(\App\Domains\Core\Tax\TaxJurisdictions::class);
         $this->app->singleton(StockItemTypes::class, function () {
             $types = new StockItemTypes;
             $types->register('material', Material::class);

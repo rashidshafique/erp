@@ -1,4 +1,4 @@
-{{-- Tax and reporting details of a stock or sales item: inventory class, tariff code, tax unit and country of origin.
+{{-- Tax and reporting details of a stock or sales item: inventory class, goods or service, tariff code, tax unit and country of origin.
      $item (a Material or Product, may be unsaved). --}}
 @php $tariffLabel = \App\Support\TaxJurisdiction::tariffLabel(); @endphp
 <div class="form-grid">
@@ -11,6 +11,16 @@
         </select>
         <div class="help">The line of the accounts its stock and cost are reported in. Goods bought to sell as they are are stock-in-trade.</div>
         @error('inventory_class')<div class="error">{{ $message }}</div>@enderror
+    </div>
+    <div class="field">
+        <label for="supply_type">Goods or service</label>
+        <select id="supply_type" name="supply_type">
+            @foreach (['GOODS' => 'Goods', 'SERVICE' => 'Service'] as $value => $label)
+                <option value="{{ $value }}" @selected(old('supply_type', $item->supply_type ?: 'GOODS') === $value)>{{ $label }}</option>
+            @endforeach
+        </select>
+        <div class="help">Goods and services can be taxed by different authorities at different rates.</div>
+        @error('supply_type')<div class="error">{{ $message }}</div>@enderror
     </div>
     <div class="field">
         <label for="tariff_code">{{ $tariffLabel }}</label>

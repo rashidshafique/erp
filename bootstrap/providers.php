@@ -15,6 +15,7 @@ use App\Domains\Parties\PartiesServiceProvider;
 use App\Domains\QuickFlow\QuickFlowServiceProvider;
 use App\Domains\Sales\SalesServiceProvider;
 use App\Domains\Purchasing\PurchasingServiceProvider;
+use App\Domains\Tax\TaxServiceProvider;
 use App\Domains\Tooling\ToolingServiceProvider;
 use App\Providers\AppServiceProvider;
 
@@ -36,4 +37,5 @@ return [
     PurchasingServiceProvider::class,
     InventoryServiceProvider::class,
     ToolingServiceProvider::class,
+    TaxServiceProvider::class,
 ];

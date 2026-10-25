@@ -65,7 +65,15 @@ In priority order:
 **Tax and reporting details (Pakistan first)**
 Plan for bought-in goods sold as they are, in order: (1) trade details on items, done; (2) sales lines that point at any stock item, with dispatch issuing through the ledger; (3) a tax module of rules by jurisdiction, item class and customer, starting with Pakistan sales tax; (4) e-invoice output per jurisdiction (FBR digital invoicing for Pakistan).
 - Materials and products carry `inventory_class` (raw material, finished goods, stock-in-trade, consumable, stores and spares), `tariff_code`, `tax_uom` and `origin_country` (`HasTradeDetails`). Every stock movement records the class it was posted under; the ledger takes an `inventory_class` override, so stock bought to resell reports apart from the same item bought to use.
-- `TaxJurisdiction` reads the `tax_jurisdiction` setting (default `PK`) for the tariff code's name and format: an 8-digit PCT code written 7325.1000. There is no screen for the setting yet.
+- `TaxJurisdiction` reads the `tax_jurisdiction` setting (default `PK`) for the tariff code's name and format: an 8-digit PCT code written 7325.1000. It asks the installed country pack first.
+- Invoices, bills and purchase orders get their taxes from the `TaxCalculator` contract (core). `FlatRateTax` is the default (one percent per line, as before).
+- Taxation module (`app/Domains/Tax`, Settings > Taxation):
+  - A country is a `Jurisdiction` pack registered in `TaxJurisdictions`; Pakistan is the first.
+  - Data is kept as rows: `tax_authorities` (FBR federal; SRB, PRA, KPRA and BRA provincial), `tax_components` (dated rates, charged or withheld, based on net, gross or another tax) and `tax_rules` (side, supply type, place of supply, party status, withholding agent, inventory class, code prefix, then the taxes to add).
+  - "Load defaults" fills the starting set. A rate change starts a new dated row.
+  - Partners get a Tax panel (`party_tax_profiles`) through the new `ModuleRegistry::panels('party.show')` hook.
+  - Items carry `supply_type` (goods or service).
+- Not yet: the rule-based calculator (phase 3), so the rules don't change any document yet. Also not yet: registers, and FBR digital invoicing.
 
 ### Stores: not built yet
 - Finished goods are not on the ledger. They need a decision on their stock lot (casting lot or a new stock lot) and a second registered item type.

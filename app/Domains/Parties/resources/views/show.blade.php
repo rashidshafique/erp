@@ -29,4 +29,8 @@
         @unless ($party->supplier)<form method="POST" action="{{ route('parties.roles.add', [$party, 'supplier']) }}" style="display:inline">@csrf<button class="btn" type="submit">Make a supplier</button></form>@endunless
     </p>
 </div></div>
+
+@foreach (app(\App\Domains\Core\ModuleRegistry::class)->panels('party.show') as $panel)
+    @include($panel, ['party' => $party])
+@endforeach
 @endsection

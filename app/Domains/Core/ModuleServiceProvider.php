@@ -163,6 +163,16 @@ abstract class ModuleServiceProvider extends ServiceProvider
         return [];
     }
 
+    /**
+     * Views this module shows on core pages, as place => view; the page includes each with its own data.
+     *
+     * @return array<string, string>
+     */
+    protected function panels(): array
+    {
+        return [];
+    }
+
     public function register(): void
     {
         $aliases = $this->classAliases();
@@ -232,6 +242,9 @@ abstract class ModuleServiceProvider extends ServiceProvider
         }
         if ($this->codeKinds() !== []) {
             $registry->addCodeKinds($this->codeKinds());
+        }
+        foreach ($this->panels() as $slot => $view) {
+            $registry->addPanel($slot, $view);
         }
     }
 }

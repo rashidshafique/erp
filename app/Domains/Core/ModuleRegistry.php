@@ -31,6 +31,9 @@ class ModuleRegistry
     /** @var array<string, array{0: string, 1: string, 2: int, 3: string}> */
     private array $codeKinds = [];
 
+    /** @var array<string, list<string>> */
+    private array $panels = [];
+
     public function __construct(private ModuleAccess $access) {}
 
     public function addModule(string $name, string $label, string $description): void
@@ -149,5 +152,21 @@ class ModuleRegistry
     public function codeKinds(): array
     {
         return $this->codeKinds;
+    }
+
+    /** Adds a view a module shows on a core page, at the named place on it (such as `party.show`). */
+    public function addPanel(string $slot, string $view): void
+    {
+        $this->panels[$slot][] = $view;
+    }
+
+    /**
+     * The module views to show at a place on a core page; the page includes each with its own data.
+     *
+     * @return list<string>
+     */
+    public function panels(string $slot): array
+    {
+        return $this->panels[$slot] ?? [];
     }
 }

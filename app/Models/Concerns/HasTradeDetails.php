@@ -2,12 +2,13 @@
 
 namespace App\Models\Concerns;
 
+use App\Domains\Core\Tax\TaxLine;
 use App\Services\Stock\InventoryClass;
 use App\Support\TaxJurisdiction;
 use Illuminate\Validation\Rule;
 
 /**
- * The tax and reporting details every stock or sales item carries: inventory class, customs tariff code, the unit tax documents
+ * The tax and reporting details every stock or sales item carries: inventory class, goods or service, customs tariff code, the unit tax documents
  * count it in, and country of origin. A blank class takes the item's default; the tariff code is kept in the jurisdiction's format.
  */
 trait HasTradeDetails
@@ -15,6 +16,9 @@ trait HasTradeDetails
     public static function bootHasTradeDetails(): void
     {
         static::saving(function (self $item) {
+            if (blank($item->supply_type)) {
+                $item->supply_type = TaxLine::GOODS;
+            }
             if (blank($item->inventory_class)) {
                 $item->inventory_class = $item->defaultInventoryClass()->value;
             }
@@ -26,7 +30,7 @@ trait HasTradeDetails
 
     public function initializeHasTradeDetails(): void
     {
-        $this->mergeFillable(['inventory_class', 'tariff_code', 'tax_uom', 'origin_country']);
+        $this->mergeFillable(['inventory_class', 'supply_type', 'tariff_code', 'tax_uom', 'origin_country']);
     }
 
     /** The class an item takes when none is chosen. */
@@ -42,6 +46,7 @@ trait HasTradeDetails
     {
         return [
             'inventory_class' => ['nullable', Rule::enum(InventoryClass::class)],
+            'supply_type' => ['nullable', Rule::in([TaxLine::GOODS, TaxLine::SERVICE])],
             'tariff_code' => ['nullable', 'string', 'max:20', function (string $attribute, mixed $value, \Closure $fail) {
                 if (filled($value) && ! TaxJurisdiction::isValidTariff((string) $value)) {
                     $fail('Enter the '.TaxJurisdiction::tariffLabel().' as '.TaxJurisdiction::tariffExample().'.');

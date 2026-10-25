@@ -62,7 +62,7 @@ class ProductController extends Controller
                 'nominal_weight_kg' => $data['nominal_weight_kg'] ?? null,
                 'description' => $data['description'] ?? null,
                 'active' => $data['active'],
-                ...Arr::only($data, ['inventory_class', 'tariff_code', 'tax_uom', 'origin_country']),
+                ...Arr::only($data, ['inventory_class', 'supply_type', 'tariff_code', 'tax_uom', 'origin_country']),
             ]);
 
             $product->revisions()->create([
@@ -214,7 +214,7 @@ class ProductController extends Controller
             'base_uom' => $data['base_uom'],
             'description' => $data['description'] ?? null,
             'active' => $data['active'],
-            ...Arr::only($data, ['inventory_class', 'tariff_code', 'tax_uom', 'origin_country']),
+            ...Arr::only($data, ['inventory_class', 'supply_type', 'tariff_code', 'tax_uom', 'origin_country']),
         ]);
         // The nominal weight is the current revision's net weight: changing it here changes that revision. Without a revision it is kept on the product.
         if ($current = $product->currentRevision()) {
