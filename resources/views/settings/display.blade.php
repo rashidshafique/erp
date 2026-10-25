@@ -24,6 +24,7 @@
 <div class="field"><label>Numbers</label><select name="number">@foreach(\App\Support\Formats::NUMBERS as $k => $f)<option value="{{ $k }}" @selected($fmt['number'] === $k)>{{ $f['label'] }}</option>@endforeach</select></div>
 <div class="field"><label>Currency symbol or code</label><input name="currency" maxlength="8" value="{{ old('currency', $fmt['currency']) }}" style="max-width:120px"></div>
 <div class="field"><label>Currency position</label><select name="currency_position"><option value="after" @selected($fmt['currency_position'] === 'after')>After the amount (1,500.00 PKR)</option><option value="before" @selected($fmt['currency_position'] === 'before')>Before the amount (PKR 1,500.00)</option></select></div>
+<div class="field"><label>Decimal places in typed numbers</label><select name="decimals">@foreach (\App\Support\Formats::DECIMALS as $d)<option value="{{ $d }}" @selected($fmt['decimals'] === $d)>{{ $d === 0 ? 'Whole numbers only' : $d.' ('.number_format(1, $d).')' }}</option>@endforeach</select><div class="help">Any number box accepts whole numbers and decimals; places beyond this are rounded off when you leave the box.</div></div>
 </div>
 <div class="help">Applies to every screen and every person. Only how things are shown changes; saved records are untouched. Date boxes in forms follow your browser's own format.</div>
 </div></div>

@@ -47,11 +47,11 @@
         </div>
         <div>
             <label for="target_metal_weight_kg">Target tapped metal (kg)</label>
-            <input id="target_metal_weight_kg" name="target_metal_weight_kg" type="number" min="0.001" step="0.001" class="form-control" value="{{ old('target_metal_weight_kg') }}">
+            <input id="target_metal_weight_kg" name="target_metal_weight_kg" type="number" min="0.001" step="any" class="form-control" value="{{ old('target_metal_weight_kg') }}">
         </div>
         <div>
             <label for="target_total_charge_weight_kg">Target total charge (kg)</label>
-            <input id="target_total_charge_weight_kg" name="target_total_charge_weight_kg" type="number" min="0.001" step="0.001" class="form-control" value="{{ old('target_total_charge_weight_kg') }}">
+            <input id="target_total_charge_weight_kg" name="target_total_charge_weight_kg" type="number" min="0.001" step="any" class="form-control" value="{{ old('target_total_charge_weight_kg') }}">
             <small class="muted" id="charge-weight-help">Required for percentage recipes. Fixed-kg recipes calculate this total automatically.</small>
         </div>
         <div>
@@ -96,12 +96,12 @@
                     </td>
                     <td><input name="items[{{ $i }}][component_role]" class="form-control" required value="{{ $item['component_role'] ?? 'CHARGE' }}"></td>
                     <td><select name="items[{{ $i }}][charge_stage]" class="form-control"><option value="ROUND">Every charge</option><option value="BED" @selected(($item['charge_stage'] ?? 'ROUND') === 'BED')>Start-up only</option></select></td>
-                    <td><input name="items[{{ $i }}][target_qty_kg]" type="number" min="0.001" step="0.001" class="form-control fixed-qty" value="{{ $item['target_qty_kg'] ?? '' }}"></td>
-                    <td><input name="items[{{ $i }}][target_percent]" type="number" min="0.001" max="100" step="0.0001" class="form-control percentage" value="{{ $item['target_percent'] ?? '' }}"></td>
+                    <td><input name="items[{{ $i }}][target_qty_kg]" type="number" min="0.001" step="any" class="form-control fixed-qty" value="{{ $item['target_qty_kg'] ?? '' }}"></td>
+                    <td><input name="items[{{ $i }}][target_percent]" type="number" min="0.001" max="100" step="any" class="form-control percentage" value="{{ $item['target_percent'] ?? '' }}"></td>
                     <td class="calculated-kg muted">—</td>
                     <td class="calculated-percent muted">—</td>
-                    <td><input name="items[{{ $i }}][minimum_qty_kg]" type="number" min="0" step="0.001" class="form-control" value="{{ $item['minimum_qty_kg'] ?? '' }}"></td>
-                    <td><input name="items[{{ $i }}][maximum_qty_kg]" type="number" min="0.001" step="0.001" class="form-control" value="{{ $item['maximum_qty_kg'] ?? '' }}"></td>
+                    <td><input name="items[{{ $i }}][minimum_qty_kg]" type="number" min="0" step="any" class="form-control" value="{{ $item['minimum_qty_kg'] ?? '' }}"></td>
+                    <td><input name="items[{{ $i }}][maximum_qty_kg]" type="number" min="0.001" step="any" class="form-control" value="{{ $item['maximum_qty_kg'] ?? '' }}"></td>
                     <td style="text-align:center"><input type="checkbox" name="items[{{ $i }}][is_required]" value="1" @checked(($item['is_required'] ?? '0') == '1')></td>
                     <td><input name="items[{{ $i }}][notes]" class="form-control" value="{{ $item['notes'] ?? '' }}"></td>
                     <td>@include('partials.icon-button', ['type' => 'delete', 'word' => 'Remove', 'buttonType' => 'button', 'class' => 'remove-component'])</td>
@@ -229,12 +229,12 @@
             <td><select name="items[${index}][material_id]" class="form-control" required><option value="">Select material</option>${options}</select></td>
             <td><input name="items[${index}][component_role]" class="form-control" required value="CHARGE" maxlength="40"></td>
             <td><select name="items[${index}][charge_stage]" class="form-control"><option value="ROUND">Every charge</option><option value="BED">Start-up only</option></select></td>
-            <td><input name="items[${index}][target_qty_kg]" type="number" min="0.001" step="0.001" class="form-control fixed-qty"></td>
-            <td><input name="items[${index}][target_percent]" type="number" min="0.001" max="100" step="0.0001" class="form-control percentage"></td>
+            <td><input name="items[${index}][target_qty_kg]" type="number" min="0.001" step="any" class="form-control fixed-qty"></td>
+            <td><input name="items[${index}][target_percent]" type="number" min="0.001" max="100" step="any" class="form-control percentage"></td>
             <td class="calculated-kg muted">—</td>
             <td class="calculated-percent muted">—</td>
-            <td><input name="items[${index}][minimum_qty_kg]" type="number" min="0" step="0.001" class="form-control"></td>
-            <td><input name="items[${index}][maximum_qty_kg]" type="number" min="0.001" step="0.001" class="form-control"></td>
+            <td><input name="items[${index}][minimum_qty_kg]" type="number" min="0" step="any" class="form-control"></td>
+            <td><input name="items[${index}][maximum_qty_kg]" type="number" min="0.001" step="any" class="form-control"></td>
             <td style="text-align:center"><input type="checkbox" name="items[${index}][is_required]" value="1" checked></td>
             <td><input name="items[${index}][notes]" class="form-control" maxlength="2000"></td>
             <td>@include('partials.icon-button', ['type' => 'delete', 'word' => 'Remove', 'buttonType' => 'button', 'class' => 'remove-component'])</td>`;

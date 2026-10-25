@@ -50,15 +50,15 @@
 </div>
 <div class="field">
     <label for="length_mm">Length (mm)</label>
-    <input id="length_mm" name="length_mm" type="number" min="0.01" step="0.01" value="{{ old('length_mm', $pattern->length_mm) }}">
+    <input id="length_mm" name="length_mm" type="number" min="0.01" step="any" value="{{ old('length_mm', $pattern->length_mm) }}">
 </div>
 <div class="field">
     <label for="width_mm">Width (mm)</label>
-    <input id="width_mm" name="width_mm" type="number" min="0.01" step="0.01" value="{{ old('width_mm', $pattern->width_mm) }}">
+    <input id="width_mm" name="width_mm" type="number" min="0.01" step="any" value="{{ old('width_mm', $pattern->width_mm) }}">
 </div>
 <div class="field">
     <label for="height_mm">Height (mm)</label>
-    <input id="height_mm" name="height_mm" type="number" min="0.01" step="0.01" value="{{ old('height_mm', $pattern->height_mm) }}">
+    <input id="height_mm" name="height_mm" type="number" min="0.01" step="any" value="{{ old('height_mm', $pattern->height_mm) }}">
 </div>
 @if (! empty($withSand))
     @include('patterns._sand')

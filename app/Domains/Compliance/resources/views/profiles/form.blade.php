@@ -23,7 +23,7 @@
                 @elseif ($type === 'rank')
                     <label for="s_{{ $key }}">{{ $label }}</label><select id="s_{{ $key }}" name="settings[{{ $key }}]">@foreach ($options as $k => $l)<option value="{{ $k }}" @selected($value === $k)>{{ $l }}</option>@endforeach</select>
                 @else
-                    <label for="s_{{ $key }}">{{ $label }}</label><input id="s_{{ $key }}" type="number" step="0.01" min="0" name="settings[{{ $key }}]" value="{{ $value }}">
+                    <label for="s_{{ $key }}">{{ $label }}</label><input id="s_{{ $key }}" type="number" step="any" min="0" name="settings[{{ $key }}]" value="{{ $value }}">
                 @endif
                 @if ($help)<div class="help">{{ $help }}</div>@endif
             </div>

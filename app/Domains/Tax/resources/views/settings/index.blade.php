@@ -68,7 +68,7 @@
         <td class="small">{{ $c->base === 'NET' ? 'Value before tax' : ($c->base === 'GROSS' ? 'Value with tax' : ($componentCodes[$c->base] ?? $c->base)) }}</td>
         <td class="small">{{ $c->effective_from->displayDate() }}</td>
         <td><form method="POST" action="{{ route('tax.components.rate', $c) }}" style="display:flex;gap:6px;flex-wrap:wrap">@csrf
-            <input type="number" name="rate" step="0.001" min="0" max="100" required placeholder="%" style="width:80px" aria-label="New rate for {{ $c->name }}">
+            <input type="number" name="rate" step="any" min="0" max="100" required placeholder="%" style="width:80px" aria-label="New rate for {{ $c->name }}">
             <input type="date" name="effective_from" required aria-label="From">
             <button class="btn btn-small">Set</button></form></td>
     </tr>

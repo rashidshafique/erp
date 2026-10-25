@@ -70,12 +70,12 @@
                 <div class="field">
                     <label for="pattern_weight_kg">Pattern / plate weight (kg)</label>
                     <input id="pattern_weight_kg" name="pattern_weight_kg"
-                           type="number" min="0.0001" step="0.0001"
+                           type="number" min="0.0001" step="any"
                            value="{{ old('pattern_weight_kg') }}">
                 </div>
                 <div class="field">
                     <label for="shrinkage_percent">Shrinkage allowance (%)</label>
-                    <input id="shrinkage_percent" name="shrinkage_percent" type="number" min="0" max="9.999" step="0.001" value="{{ old('shrinkage_percent') }}" placeholder="e.g. 1.0">
+                    <input id="shrinkage_percent" name="shrinkage_percent" type="number" min="0" max="9.999" step="any" value="{{ old('shrinkage_percent') }}" placeholder="e.g. 1.0">
                 </div>
                 <div class="field">
                     <label for="tolerance_grade">Casting tolerance grade (ISO 8062 CT)</label>

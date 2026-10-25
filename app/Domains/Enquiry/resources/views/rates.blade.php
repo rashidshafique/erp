@@ -6,7 +6,7 @@
 <form method="POST" action="{{ route('settings.quotation.update') }}">@csrf @method('PUT')
 <div class="panel"><div class="panel-body"><div class="form-grid">
 @foreach ($labels as $k => [$label, $help])
-<div class="field"><label for="r_{{ $k }}">{{ $label }}</label><input id="r_{{ $k }}" type="number" step="0.01" min="0" name="{{ $k }}" value="{{ old($k, $rates[$k]) }}" required>@if ($help)<div class="help">{{ $help }}</div>@endif</div>
+<div class="field"><label for="r_{{ $k }}">{{ $label }}</label><input id="r_{{ $k }}" type="number" step="any" min="0" name="{{ $k }}" value="{{ old($k, $rates[$k]) }}" required>@if ($help)<div class="help">{{ $help }}</div>@endif</div>
 @endforeach
 </div></div></div>
 <p><button class="btn btn-primary" type="submit">Save rates</button></p></form>

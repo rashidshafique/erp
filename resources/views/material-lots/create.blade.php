@@ -58,17 +58,17 @@
         </div>
         <div class="field">
             <label for="received_qty">Received quantity ({{ $material->base_uom }}) *</label>
-            <input id="received_qty" name="received_qty" type="number" min="0" step="0.001"
+            <input id="received_qty" name="received_qty" type="number" min="0" step="any"
                    required value="{{ old('received_qty', '0') }}">
         </div>
         <div class="field">
             <label for="accepted_qty">Accepted quantity ({{ $material->base_uom }}) *</label>
-            <input id="accepted_qty" name="accepted_qty" type="number" min="0" step="0.001"
+            <input id="accepted_qty" name="accepted_qty" type="number" min="0" step="any"
                    required value="{{ old('accepted_qty', '0') }}">
         </div>
         <div class="field">
             <label for="unit_cost">Cost per {{ $material->base_uom }}</label>
-            <input id="unit_cost" name="unit_cost" type="number" min="0" step="0.0001"
+            <input id="unit_cost" name="unit_cost" type="number" min="0" step="any"
                    value="{{ old('unit_cost') }}">
         </div>
         <div class="field">

@@ -37,13 +37,16 @@ class Formats
 
     private static ?array $cache = null;
 
-    /** @return array{date:string,time:string,number:string,currency:string,currency_position:string} */
+    /** The most decimal places a typed number keeps, whatever the field; extra places are rounded off. */
+    public const DECIMALS = [0, 1, 2, 3, 4, 5, 6];
+
+    /** @return array{date:string,time:string,number:string,currency:string,currency_position:string,decimals:int} */
     public static function all(): array
     {
         if (self::$cache !== null) {
             return self::$cache;
         }
-        $default = ['date' => 'dMY', 'time' => '24', 'number' => 'us', 'currency' => (string) config('quotation.currency', ''), 'currency_position' => 'after'];
+        $default = ['date' => 'dMY', 'time' => '24', 'number' => 'us', 'currency' => (string) config('quotation.currency', ''), 'currency_position' => 'after', 'decimals' => 4];
         try {
             $set = [
                 'date' => (string) AppSetting::getValue('format.date', $default['date']),
@@ -51,6 +54,7 @@ class Formats
                 'number' => (string) AppSetting::getValue('format.number', $default['number']),
                 'currency' => (string) AppSetting::getValue('format.currency', $default['currency']),
                 'currency_position' => (string) AppSetting::getValue('format.currency_position', $default['currency_position']),
+                'decimals' => (int) AppSetting::getValue('format.decimals', (string) $default['decimals']),
             ];
         } catch (\Throwable) {
             return self::$cache = $default;
@@ -59,8 +63,15 @@ class Formats
         $set['time'] = isset(self::TIMES[$set['time']]) ? $set['time'] : $default['time'];
         $set['number'] = isset(self::NUMBERS[$set['number']]) ? $set['number'] : $default['number'];
         $set['currency_position'] = $set['currency_position'] === 'before' ? 'before' : 'after';
+        $set['decimals'] = in_array($set['decimals'], self::DECIMALS, true) ? $set['decimals'] : $default['decimals'];
 
         return self::$cache = $set;
+    }
+
+    /** How many decimal places a typed number keeps. */
+    public static function decimals(): int
+    {
+        return self::all()['decimals'];
     }
 
     public static function flush(): void

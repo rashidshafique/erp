@@ -154,11 +154,11 @@ new class extends Component
                 <select id="mv-lot" wire:model.live="lotId"><option value="">— choose —</option>@foreach ($lots as $lot)<option value="{{ $lot->id }}">{{ $lot->lot_number }}</option>@endforeach</select>
                 @error('lotId')<div class="error">{{ $message }}</div>@enderror
                 @if ($lotId)<div class="muted small">On hand: {{ \App\Support\Formats::number($onHand, 3) }} kg</div>@endif</div>
-            <div class="field"><label for="mv-qty">Quantity (kg)</label><input id="mv-qty" type="number" step="0.001" wire:model="quantity">
+            <div class="field"><label for="mv-qty">Quantity (kg)</label><input id="mv-qty" type="number" step="any" wire:model="quantity">
                 @error('quantity')<div class="error">{{ $message }}</div>@enderror</div>
 
             @if ($kind === 'ADJUST_IN')
-                <div class="field"><label for="mv-cost">Cost per kg (PKR)</label><input id="mv-cost" type="number" step="0.0001" wire:model="unitCost">
+                <div class="field"><label for="mv-cost">Cost per kg (PKR)</label><input id="mv-cost" type="number" step="any" wire:model="unitCost">
                     @error('unitCost')<div class="error">{{ $message }}</div>@enderror</div>
             @endif
 

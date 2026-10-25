@@ -125,7 +125,7 @@
                 <div class="field">
                     <label for="service_life_quantity">Expected service life</label>
                     <input id="service_life_quantity" name="service_life_quantity" type="number"
-                           min="0.001" step="0.001"
+                           min="0.001" step="any"
                            value="{{ old('service_life_quantity', $limit->service_life_quantity) }}"
                            placeholder="e.g. 50000">
                     <small>Leave blank if no service-life limit is defined.</small>
@@ -135,7 +135,7 @@
                 <div class="field">
                     <label for="inspection_interval_quantity">Inspection interval</label>
                     <input id="inspection_interval_quantity" name="inspection_interval_quantity" type="number"
-                           min="0.001" step="0.001"
+                           min="0.001" step="any"
                            value="{{ old('inspection_interval_quantity', $limit->inspection_interval_quantity) }}"
                            placeholder="e.g. 5000">
                     <small>Usage units between inspections.</small>
@@ -154,7 +154,7 @@
                 <div class="field">
                     <label for="usage_at_last_inspection">Cumulative usage at last inspection</label>
                     <input id="usage_at_last_inspection" name="usage_at_last_inspection" type="number"
-                           min="0" step="0.001"
+                           min="0" step="any"
                            value="{{ old('usage_at_last_inspection', $limit->usage_at_last_inspection ?? 0) }}">
                     <small>Enter the lifetime usage counter at the last inspection, not just the interval usage.</small>
                     @error('usage_at_last_inspection') <div class="error">{{ $message }}</div> @enderror

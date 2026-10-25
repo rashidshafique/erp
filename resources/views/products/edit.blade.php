@@ -63,7 +63,7 @@
                 <div class="field">
                     <label for="nominal_weight_kg">Nominal weight (kg)</label>
                     <input id="nominal_weight_kg" name="nominal_weight_kg" type="number"
-                           step="0.0001" min="0"
+                           step="any" min="0"
                            value="{{ old('nominal_weight_kg', $product->nominal_weight_kg) }}">
                     @error('nominal_weight_kg')<div class="error-text">{{ $message }}</div>@enderror
                     <div class="help">{{ $product->currentRevision() ? 'This is the net weight of revision '.$product->currentRevision()->revision.', the one the product is made to now. Changing it changes that revision.' : 'The first revision starts with this weight.' }}</div>

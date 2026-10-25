@@ -81,7 +81,7 @@
                 <div>
                     <label for="target_metal_weight_kg">Target metal weight (kg)</label>
                     <input id="target_metal_weight_kg" name="target_metal_weight_kg"
-                           type="number" min="0.001" step="0.001"
+                           type="number" min="0.001" step="any"
                            value="{{ old('target_metal_weight_kg') }}"
                            style="display:block;width:100%;padding:11px;border:1px solid var(--border);border-radius:7px;font:inherit">
                     <small class="muted">Optional. Set it later on the heat if it is not known yet.</small>
@@ -90,7 +90,7 @@
                 <div id="power-limit-field">
                     <label for="operating_power_limit_kw">Heat operating power limit (kW)</label>
                     <input id="operating_power_limit_kw" name="operating_power_limit_kw"
-                           type="number" min="0.001" step="0.001"
+                           type="number" min="0.001" step="any"
                            value="{{ old('operating_power_limit_kw') }}"
                            style="display:block;width:100%;padding:11px;border:1px solid var(--border);border-radius:7px;font:inherit">
                     <small id="power-limit-help" class="muted">
@@ -101,7 +101,7 @@
                 <div>
                     <label for="target_temperature_c">Target temperature (°C)</label>
                     <input id="target_temperature_c" name="target_temperature_c"
-                           type="number" min="0.001" step="0.01"
+                           type="number" min="0.001" step="any"
                            value="{{ old('target_temperature_c') }}"
                            style="display:block;width:100%;padding:11px;border:1px solid var(--border);border-radius:7px;font:inherit">
                     <small class="muted" id="temperature-hint">Optional. Choose an iron grade to see a suggested temperature.</small>

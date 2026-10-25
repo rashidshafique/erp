@@ -187,7 +187,7 @@
             </div>
             @unless (in_array($heat->status, ['CLOSED', 'CANCELLED'], true))
                 <form method="POST" action="{{ route('heats.target.update', $heat) }}" data-target-form hidden style="display:flex;gap:6px;align-items:center;margin-top:2px">@csrf @method('PUT')
-                    <input name="target_metal_weight_kg" type="number" step="0.001" min="0.001" required value="{{ old('target_metal_weight_kg', $heat->target_metal_weight_kg !== null ? rtrim(rtrim((string) $heat->target_metal_weight_kg, '0'), '.') : '') }}" style="width:120px" aria-label="Target metal weight in kg"> <span class="muted small">kg</span>
+                    <input name="target_metal_weight_kg" type="number" step="any" min="0.001" required value="{{ old('target_metal_weight_kg', $heat->target_metal_weight_kg !== null ? rtrim(rtrim((string) $heat->target_metal_weight_kg, '0'), '.') : '') }}" style="width:120px" aria-label="Target metal weight in kg"> <span class="muted small">kg</span>
                     <button class="btn btn-small btn-primary" type="submit">Save</button><button class="btn btn-small" type="button" data-target-cancel>Cancel</button>
                 </form>
                 @error('target_metal_weight_kg')<div class="error-text">{{ $message }}</div>@enderror
@@ -372,7 +372,7 @@
             <form method="POST" action="{{ route('heats.charge-rounds.total', $heat) }}" class="form-inline" style="margin:4px 0 14px" data-per-round="{{ $schedule['metal_per_round_kg'] }}"
                 onsubmit="return confirm('Add the missing charges for this total, at their scheduled times, with the recipe quantities scaled to match? They will be marked as filled in from the total.')">@csrf
                 <div class="field"><label for="total_charged_kg">Total metal charged so far (kg)</label>
-                    <input id="total_charged_kg" name="total_charged_kg" type="number" step="0.001" min="0.001" required value="{{ old('total_charged_kg') }}" style="width:150px" data-total-input></div>
+                    <input id="total_charged_kg" name="total_charged_kg" type="number" step="any" min="0.001" required value="{{ old('total_charged_kg') }}" style="width:150px" data-total-input></div>
                 <button class="btn" type="submit">Add the missing charges</button>
                 <span class="muted small" data-total-hint>A charge is {{ \App\Support\Formats::number($schedule['metal_per_round_kg'], 0) }} kg of metal. Type the total from the scale and the missing charges are added to match.</span>
             </form>
@@ -389,7 +389,7 @@
                     @php $lots = $acceptedLots->where('material_id', $item->material_id); @endphp
                     <tr>
                         <td>{{ $item->material?->code }} — {{ $item->material?->name }}<input type="hidden" name="lines[{{ $i }}][material_id]" value="{{ $item->material_id }}"></td>
-                        <td><input name="lines[{{ $i }}][actual_qty_kg]" type="number" step="0.001" min="0" style="width:110px" value="{{ old('lines.'.$i.'.actual_qty_kg', $item->per_charge_qty_kg !== null ? round($item->per_charge_qty_kg, 3) : '') }}"></td>
+                        <td><input name="lines[{{ $i }}][actual_qty_kg]" type="number" step="any" min="0" style="width:110px" value="{{ old('lines.'.$i.'.actual_qty_kg', $item->per_charge_qty_kg !== null ? round($item->per_charge_qty_kg, 3) : '') }}"></td>
                         <td><select name="lines[{{ $i }}][material_lot_id]" style="min-width:160px"><option value="">Oldest lot</option>@foreach($lots as $lot)<option value="{{ $lot->id }}">{{ $lot->lot_number }}</option>@endforeach</select></td>
                     </tr>
                 @endforeach
@@ -489,13 +489,13 @@
                     <div>
                         <label for="charge_actual_qty">Actual quantity (kg) *</label>
                         <input id="charge_actual_qty" name="actual_qty_kg" type="number"
-                               min="0.001" step="0.001" required value="{{ old('actual_qty_kg') }}"
+                               min="0.001" step="any" required value="{{ old('actual_qty_kg') }}"
                                style="display:block;width:100%;padding:11px;border:1px solid var(--border);border-radius:7px;font:inherit">
                     </div>
                     <div id="charge_transfer_cost_field" style="display:none">
                         <label for="charge_transfer_cost">Internal return transfer cost (PKR/kg) *</label>
                         <input id="charge_transfer_cost" name="transfer_cost_per_kg" type="number"
-                               min="0.0001" step="0.0001" value="{{ old('transfer_cost_per_kg') }}"
+                               min="0.0001" step="any" value="{{ old('transfer_cost_per_kg') }}"
                                style="display:block;width:100%;padding:11px;border:1px solid var(--border);border-radius:7px;font:inherit">
                     </div>
                     <div>
@@ -683,13 +683,13 @@ document.addEventListener('DOMContentLoaded', function () {
                     <div>
                         <label for="actual_power_kw">Actual power (kW)</label>
                         <input id="actual_power_kw" name="actual_power_kw" type="number"
-                               min="0" step="0.001" value="{{ old('actual_power_kw') }}"
+                               min="0" step="any" value="{{ old('actual_power_kw') }}"
                                style="display:block;width:100%;padding:11px;border:1px solid var(--border);border-radius:7px;font:inherit">
                     </div>
                     <div>
                         <label for="cumulative_energy_kwh">Cumulative energy (kWh)</label>
                         <input id="cumulative_energy_kwh" name="cumulative_energy_kwh" type="number"
-                               min="0" step="0.001" value="{{ old('cumulative_energy_kwh') }}"
+                               min="0" step="any" value="{{ old('cumulative_energy_kwh') }}"
                                style="display:block;width:100%;padding:11px;border:1px solid var(--border);border-radius:7px;font:inherit">
                     </div>
                     <div>

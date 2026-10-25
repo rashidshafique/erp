@@ -25,7 +25,7 @@
                 <div class="field"><label for="{{ $ip }}tested_at">Tested at</label><input id="{{ $ip }}tested_at" name="tested_at" type="datetime-local" value="{{ $old('tested_at') }}"></div>
                 @foreach (\App\Services\Quality\ChemistryJudge::COLUMNS as $key => $col)
                     <div class="field"><label for="{{ $ip }}{{ $col }}">{{ \App\Models\IronGrade::ELEMENTS[$key] }} % <span class="muted small">{{ $limitText($key) }}</span></label>
-                        <input id="{{ $ip }}{{ $col }}" name="{{ $col }}" type="number" step="0.0001" min="0" max="100" value="{{ $old($col) }}"></div>
+                        <input id="{{ $ip }}{{ $col }}" name="{{ $col }}" type="number" step="any" min="0" max="100" value="{{ $old($col) }}"></div>
                 @endforeach
                 <div class="field field-full"><label for="{{ $ip }}chem_notes">Notes</label><input id="{{ $ip }}chem_notes" name="notes" maxlength="2000" value="{{ $old('notes') }}"></div>
 </div>

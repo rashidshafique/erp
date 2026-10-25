@@ -123,10 +123,10 @@
             <div class="field"><label>Iron family</label><select name="family">@foreach (['AUTO' => 'Let the analyser choose', 'GREY' => 'Grey iron', 'DUCTILE' => 'Ductile iron'] as $k => $l)<option value="{{ $k }}" @selected($a->family_requested === $k)>{{ $l }}</option>@endforeach</select></div>
             <div class="field"><label>Iron grade</label><select name="iron_grade_id"><option value="">— none —</option>@foreach (\App\Models\IronGrade::where('status', 'ACTIVE')->whereIn('family', ['GREY', 'DUCTILE'])->orderBy('code')->get(['id', 'code']) as $g)<option value="{{ $g->id }}" @selected($a->iron_grade_id === $g->id)>{{ $g->code }}</option>@endforeach</select></div>
             <div class="field"><label>Minimum tensile (MPa)</label><input type="number" name="min_tensile" value="{{ $o['min_tensile'] ?? '' }}"></div>
-            <div class="field"><label>Minimum elongation (%)</label><input type="number" step="0.5" name="min_elongation" value="{{ $o['min_elongation'] ?? '' }}"></div>
+            <div class="field"><label>Minimum elongation (%)</label><input type="number" step="any" name="min_elongation" value="{{ $o['min_elongation'] ?? '' }}"></div>
             <div class="field"><label>Feeder type</label><select name="feeder">@foreach (['AUTO' => 'Automatic', 'CONVENTIONAL' => 'Sand riser', 'INSULATED' => 'Insulating sleeve', 'EXOTHERMIC' => 'Exothermic sleeve'] as $k => $l)<option value="{{ $k }}" @selected(($o['feeder'] ?? 'AUTO') === $k)>{{ $l }}</option>@endforeach</select></div>
-            <div class="field"><label>Minutes from treatment to last mould</label><input type="number" step="0.5" name="pour_window_min" value="{{ $o['pour_window_min'] ?? 10 }}"></div>
-            <div class="field"><label>Chvorinov B (min/cm²)</label><input type="number" step="0.05" name="b_override" value="{{ $o['b_override'] ?? '' }}" placeholder="Default"></div>
+            <div class="field"><label>Minutes from treatment to last mould</label><input type="number" step="any" name="pour_window_min" value="{{ $o['pour_window_min'] ?? 10 }}"></div>
+            <div class="field"><label>Chvorinov B (min/cm²)</label><input type="number" step="any" name="b_override" value="{{ $o['b_override'] ?? '' }}" placeholder="Default"></div>
             <div class="field" style="align-self:end"><button class="btn btn-primary" type="submit">Run again</button></div>
         </form>
     </div>

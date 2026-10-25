@@ -38,8 +38,8 @@
                     @foreach ($revisions as $r)<option value="{{ $r->id }}" data-sub="{{ $r->product?->code }} · rev {{ $r->revision }}" @isset($photos[$r->product_id]) data-img="{{ $photos[$r->product_id] }}" @endisset @selected(old("lines.$i.product_revision_id") === $r->id)>{{ $r->product?->name }}</option>@endforeach
                     @foreach ($bareProducts as $bp)<option value="product:{{ $bp->id }}" data-sub="{{ $bp->code }} · no revision yet" @isset($photos[$bp->id]) data-img="{{ $photos[$bp->id] }}" @endisset @selected(old("lines.$i.product_revision_id") === 'product:'.$bp->id)>{{ $bp->name }}</option>@endforeach
                 </select></td>
-                <td><input name="lines[{{ $i }}][ordered_qty]" type="number" step="0.001" min="0.001" value="{{ old("lines.$i.ordered_qty") }}"></td>
-                <td><input name="lines[{{ $i }}][unit_price]" type="number" step="0.01" min="0" value="{{ old("lines.$i.unit_price") }}"></td>
+                <td><input name="lines[{{ $i }}][ordered_qty]" type="number" step="any" min="0.001" value="{{ old("lines.$i.ordered_qty") }}"></td>
+                <td><input name="lines[{{ $i }}][unit_price]" type="number" step="any" min="0" value="{{ old("lines.$i.unit_price") }}"></td>
                 <td><input name="lines[{{ $i }}][requested_delivery_date]" type="date" value="{{ old("lines.$i.requested_delivery_date") }}"></td>
             </tr>
         @endfor

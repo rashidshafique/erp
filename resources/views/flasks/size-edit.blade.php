@@ -13,7 +13,7 @@
     <div class="panel"><div class="panel-body"><div class="form-grid">
         <div class="field"><label for="name">Name *</label><input id="name" name="name" required maxlength="100" value="{{ old('name', $size->name) }}"></div>
         @foreach (['inside_length_mm' => 'Inside length (mm)', 'inside_width_mm' => 'Inside width (mm)', 'cope_depth_mm' => 'Cope depth (mm)', 'drag_depth_mm' => 'Drag depth (mm)', 'pin_centres_mm' => 'Pin centres (mm)'] as $field => $label)
-            <div class="field"><label for="{{ $field }}">{{ $label }}</label><input id="{{ $field }}" type="number" name="{{ $field }}" min="1" step="0.01" value="{{ old($field, $size->{$field} !== null ? rtrim(rtrim((string) $size->{$field}, '0'), '.') : '') }}"></div>
+            <div class="field"><label for="{{ $field }}">{{ $label }}</label><input id="{{ $field }}" type="number" name="{{ $field }}" min="1" step="any" value="{{ old($field, $size->{$field} !== null ? rtrim(rtrim((string) $size->{$field}, '0'), '.') : '') }}"></div>
         @endforeach
         <div class="field"><label for="status">Status *</label><select id="status" name="status">@foreach (['ACTIVE', 'INACTIVE'] as $st)<option @selected(old('status', $size->status) === $st)>{{ $st }}</option>@endforeach</select></div>
         <div class="field field-full"><label for="notes">Notes</label><textarea id="notes" name="notes" rows="2" maxlength="2000">{{ old('notes', $size->notes) }}</textarea></div>

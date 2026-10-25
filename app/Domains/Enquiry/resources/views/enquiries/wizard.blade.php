@@ -79,7 +79,7 @@
             </select>@error('material_text')<div class="error-text">{{ $message }}</div>@enderror</div>
         <div class="field" id="materialNewField" hidden><label for="material_new">New grade</label><input id="material_new" name="material_new" value="{{ old('material_new') }}" placeholder="e.g. EN-GJS-500-7" disabled>@error('material_new')<div class="error-text">{{ $message }}</div>@enderror</div>
         <div class="field"><label>Iron family</label><select name="family"><option value="">— decide later —</option><option value="GREY" @selected(old('family') === 'GREY')>Grey iron</option><option value="DUCTILE" @selected(old('family') === 'DUCTILE')>Ductile iron</option></select></div>
-        <div class="field"><label>Weight, kg (if known)</label><input type="number" step="0.001" min="0" name="weight_kg" value="{{ old('weight_kg') }}"><div class="help">Left blank, our own product weight is used for repeats. A casting analysis replaces it later.</div></div>
+        <div class="field"><label>Weight, kg (if known)</label><input type="number" step="any" min="0" name="weight_kg" value="{{ old('weight_kg') }}"><div class="help">Left blank, our own product weight is used for repeats. A casting analysis replaces it later.</div></div>
         <div class="field"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="heat_treatment" value="1" @checked(old('heat_treatment'))> Heat treated</label><label style="display:flex;gap:8px;align-items:center;margin-top:6px"><input type="checkbox" name="ndt" value="1" @checked(old('ndt'))> NDT required</label></div>
     </div>
 </div></div>
@@ -88,7 +88,7 @@
     <div class="form-grid">
         <div class="field"><label>First batch</label><input type="number" min="0" name="first_batch_qty" value="{{ old('first_batch_qty') }}"><div class="help">The quantity the quotation will price.</div></div>
         <div class="field"><label>Yearly quantity</label><input type="number" min="0" name="annual_qty" value="{{ old('annual_qty') }}"></div>
-        <div class="field"><label>Target price each</label><input type="number" step="0.01" min="0" name="target_price" value="{{ old('target_price') }}"></div>
+        <div class="field"><label>Target price each</label><input type="number" step="any" min="0" name="target_price" value="{{ old('target_price') }}"></div>
         <div class="field"><label>Quote needed by</label><input type="date" name="due_on" value="{{ old('due_on') }}"></div>
         <div class="field"><label>Their reference</label><input name="customer_reference" value="{{ old('customer_reference') }}"></div>
         <div class="field"><label>Contact for this request</label><input name="contact_name" value="{{ old('contact_name') }}" placeholder="Defaults to the customer's contact"></div>

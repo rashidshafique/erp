@@ -69,7 +69,7 @@
                     @include('maintenance::gauges._select', ['id' => 'pour_gauge', 'label' => 'Pyrometer', 'types' => ['THERMOCOUPLE']])
                     <div class="field">
                         <label for="total_poured_weight_kg">Total poured weight (kg) *</label>
-                        <input id="total_poured_weight_kg" name="total_poured_weight_kg" type="number" step="0.1" min="0.1" required value="{{ old('total_poured_weight_kg') }}">
+                        <input id="total_poured_weight_kg" name="total_poured_weight_kg" type="number" step="any" min="0.1" required value="{{ old('total_poured_weight_kg') }}">
                         @error('total_poured_weight_kg')<div class="error-text">{{ $message }}</div>@enderror
                     </div>
                     <div class="field field-full">

@@ -381,6 +381,23 @@
     </div>
 </div>
 
+<script>
+// Number boxes take any value within their limits; places beyond the site's decimal setting are rounded off when a box is left.
+(() => {
+    const places = {{ \App\Support\Formats::decimals() }};
+    document.addEventListener('change', (e) => {
+        const box = e.target;
+        if (!(box instanceof HTMLInputElement) || box.type !== 'number' || box.value === '' || (box.step && box.step !== 'any')) return;
+        const typed = Number(box.value);
+        const kept = Number(typed.toFixed(places));
+        if (Number.isFinite(typed) && kept !== typed) {
+            box.value = String(kept);
+            box.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+    }, true);
+})();
+</script>
+
 <script data-erp-form-behavior>
 (() => {
     'use strict';

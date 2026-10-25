@@ -34,10 +34,10 @@
     <td><strong>{{ $l->line_no }}. {{ $l->item->description }}</strong><div class="muted small">{{ $l->basis }}</div>@if ($toolingNotes[$l->id]['note'] ?? null)<div class="small {{ $toolingNotes[$l->id]['warning'] ? 'text-danger' : 'muted' }}">{{ $toolingNotes[$l->id]['note'] }}</div>@endif</td>
     <td class="num">@if ($draft)<input class="q-in" type="number" min="1" name="lines[{{ $l->id }}][qty]" value="{{ $l->qty }}">@else{{ $l->qty }}@endif</td>
     <td class="num">{{ $n($l->weight_kg, 2) }}</td><td class="num">{{ $n($l->poured_kg, 2) }}</td>
-    <td class="num">@if ($draft)<input class="q-in" type="number" step="0.1" min="0" name="lines[{{ $l->id }}][scrap_pct]" value="{{ $l->scrap_pct }}">@else{{ $n($l->scrap_pct, 1) }}@endif</td>
+    <td class="num">@if ($draft)<input class="q-in" type="number" step="any" min="0" name="lines[{{ $l->id }}][scrap_pct]" value="{{ $l->scrap_pct }}">@else{{ $n($l->scrap_pct, 1) }}@endif</td>
     <td class="num">{{ $n($l->unit_cost) }}</td>
-    <td class="num">@if ($draft)<input class="q-in" type="number" step="0.1" min="0" name="lines[{{ $l->id }}][margin_pct]" value="{{ $l->margin_pct }}">@else{{ $n($l->margin_pct, 1) }}@endif</td>
-    <td class="num">@if ($draft)<input class="q-in" type="number" step="0.01" min="0" name="lines[{{ $l->id }}][price_override]" value="{{ $l->price_override }}" placeholder="{{ $n($l->breakdown['calculated_price'] ?? 0) }}">@else{{ $l->price_override ? $n($l->price_override) : '—' }}@endif</td>
+    <td class="num">@if ($draft)<input class="q-in" type="number" step="any" min="0" name="lines[{{ $l->id }}][margin_pct]" value="{{ $l->margin_pct }}">@else{{ $n($l->margin_pct, 1) }}@endif</td>
+    <td class="num">@if ($draft)<input class="q-in" type="number" step="any" min="0" name="lines[{{ $l->id }}][price_override]" value="{{ $l->price_override }}" placeholder="{{ $n($l->breakdown['calculated_price'] ?? 0) }}">@else{{ $l->price_override ? $n($l->price_override) : '—' }}@endif</td>
     <td class="num"><strong>{{ $n($l->unit_price) }}</strong></td>
     <td class="num"><span class="{{ $l->effective_margin_pct < $min ? 'text-danger' : '' }}">{{ $n($l->effective_margin_pct, 1) }}%</span></td>
 </tr>

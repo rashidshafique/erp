@@ -20,12 +20,12 @@
                 <tbody>
                 @foreach (\App\Models\IronGrade::ELEMENTS as $k => $label)
                     <tr><td>{{ $label }}</td>
-                        <td><input name="{{ $k }}_min" type="number" step="0.001" value="{{ old($k.'_min', $grade->{$k.'_min'}) }}"></td>
-                        <td><input name="{{ $k }}_max" type="number" step="0.001" value="{{ old($k.'_max', $grade->{$k.'_max'}) }}"></td></tr>
+                        <td><input name="{{ $k }}_min" type="number" step="any" value="{{ old($k.'_min', $grade->{$k.'_min'}) }}"></td>
+                        <td><input name="{{ $k }}_max" type="number" step="any" value="{{ old($k.'_max', $grade->{$k.'_max'}) }}"></td></tr>
                 @endforeach
                     <tr><td>CE (C + Si/3)</td>
-                        <td><input name="ce_min" type="number" step="0.01" value="{{ old('ce_min', $grade->ce_min) }}"></td>
-                        <td><input name="ce_max" type="number" step="0.01" value="{{ old('ce_max', $grade->ce_max) }}"></td></tr>
+                        <td><input name="ce_min" type="number" step="any" value="{{ old('ce_min', $grade->ce_min) }}"></td>
+                        <td><input name="ce_max" type="number" step="any" value="{{ old('ce_max', $grade->ce_max) }}"></td></tr>
                     <tr><td>Tapping temperature °C</td>
                         <td><input name="tap_temp_min_c" type="number" value="{{ old('tap_temp_min_c', $grade->tap_temp_min_c) }}"></td>
                         <td><input name="tap_temp_max_c" type="number" value="{{ old('tap_temp_max_c', $grade->tap_temp_max_c) }}"></td></tr>
@@ -48,7 +48,7 @@
         <form method="POST" action="{{ route('iron-grades.window', $grade) }}">@csrf @method('PUT')
             <div class="form-grid">
                 @foreach (['tl_min_c' => 'TL min °C', 'tl_max_c' => 'TL max °C', 'ce_min' => 'CE from TL min', 'ce_max' => 'CE from TL max', 'te_min_floor_c' => 'TEmin at least °C', 'recal_min_c' => 'Recalescence min °C', 'recal_max_c' => 'Recalescence max °C', 'solidus_min_c' => 'Solidus at least °C'] as $k => $l)
-                    <div class="field"><label for="w_{{ $k }}">{{ $l }}</label><input id="w_{{ $k }}" name="{{ $k }}" type="number" step="0.1" value="{{ old($k, $window->{$k}) }}"></div>
+                    <div class="field"><label for="w_{{ $k }}">{{ $l }}</label><input id="w_{{ $k }}" name="{{ $k }}" type="number" step="any" value="{{ old($k, $window->{$k}) }}"></div>
                 @endforeach
                 <div class="field field-full"><label for="w_notes">Notes</label><input id="w_notes" name="notes" maxlength="1000" value="{{ old('notes', $window->notes) }}"></div>
             </div>
@@ -66,7 +66,7 @@
             @php $startCe = ['ce_min' => $grade->ce_min, 'ce_max' => $grade->ce_max]; @endphp
             <div class="form-grid">
                 @foreach (['tl_min_c' => 'TL min °C', 'tl_max_c' => 'TL max °C', 'ce_min' => 'CE from TL min', 'ce_max' => 'CE from TL max', 'solidus_min_c' => 'Solidus at least °C'] as $k => $l)
-                    <div class="field"><label for="ww_{{ $k }}">{{ $l }}</label><input id="ww_{{ $k }}" name="{{ $k }}" type="number" step="0.01" value="{{ old($k, $whiteWindow->exists ? $whiteWindow->{$k} : ($startCe[$k] ?? null)) }}"></div>
+                    <div class="field"><label for="ww_{{ $k }}">{{ $l }}</label><input id="ww_{{ $k }}" name="{{ $k }}" type="number" step="any" value="{{ old($k, $whiteWindow->exists ? $whiteWindow->{$k} : ($startCe[$k] ?? null)) }}"></div>
                 @endforeach
                 <div class="field field-full"><label for="ww_notes">Notes</label><input id="ww_notes" name="notes" maxlength="1000" value="{{ old('notes', $whiteWindow->notes) }}"></div>
             </div>

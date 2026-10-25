@@ -45,12 +45,14 @@ class DisplaySettingsController extends Controller
             'number' => ['required', Rule::in(array_keys(Formats::NUMBERS))],
             'currency' => ['nullable', 'string', 'max:8'],
             'currency_position' => ['required', Rule::in(['before', 'after'])],
+            'decimals' => ['nullable', 'integer', Rule::in(Formats::DECIMALS)],
         ]);
         AppSetting::setValue('format.date', $d['date'], 'How dates are shown');
         AppSetting::setValue('format.time', $d['time'], 'How times are shown');
         AppSetting::setValue('format.number', $d['number'], 'Decimal and thousands separators');
         AppSetting::setValue('format.currency', trim((string) ($d['currency'] ?? '')), 'Currency symbol or code');
         AppSetting::setValue('format.currency_position', $d['currency_position'], 'Currency before or after the amount');
+        AppSetting::setValue('format.decimals', (string) ($d['decimals'] ?? Formats::decimals()), 'The most decimal places a typed number keeps');
         Formats::flush();
 
         return back()->with('success', 'Formats saved.');

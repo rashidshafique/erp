@@ -280,9 +280,9 @@ new class extends Component
                     <select id="m-type" wire:model="form.material_type">@foreach (\App\Models\Material::TYPES as $key => $label)<option value="{{ $key }}">{{ $label }}</option>@endforeach</select></div>
                 <div class="field"><label for="m-uom">Unit <span class="required">*</span></label>
                     <select id="m-uom" wire:model="form.base_uom">@foreach (\App\Models\Material::UNITS as $unit)<option value="{{ $unit }}">{{ $unit }}</option>@endforeach</select></div>
-                <div class="field"><label for="m-min">Minimum stock</label><input id="m-min" type="number" min="0" step="0.001" wire:model="form.minimum_stock_qty"><div class="help">Alerts when stock falls to this.</div></div>
-                <div class="field"><label for="m-reorder">Reorder quantity</label><input id="m-reorder" type="number" min="0" step="0.001" wire:model="form.reorder_qty"></div>
-                <div class="field"><label for="m-cost">Standard cost per unit (PKR)</label><input id="m-cost" type="number" min="0" step="0.0001" wire:model="form.standard_cost_per_uom"></div>
+                <div class="field"><label for="m-min">Minimum stock</label><input id="m-min" type="number" min="0" step="any" wire:model="form.minimum_stock_qty"><div class="help">Alerts when stock falls to this.</div></div>
+                <div class="field"><label for="m-reorder">Reorder quantity</label><input id="m-reorder" type="number" min="0" step="any" wire:model="form.reorder_qty"></div>
+                <div class="field"><label for="m-cost">Standard cost per unit (PKR)</label><input id="m-cost" type="number" min="0" step="any" wire:model="form.standard_cost_per_uom"></div>
                 <div class="field"><label for="m-status">Status</label>
                     <select id="m-status" wire:model="form.status"><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option></select></div>
                 <div class="field field-full"><label class="check-field"><input type="checkbox" wire:model="form.is_stock_tracked"> Track inventory stock</label></div>

@@ -146,19 +146,19 @@ $oldValues = [
                 </div>
                 <div>
                     <label for="labour_hours">Labour hours</label>
-                    <input type="number" min="0" step="0.01" name="labour_hours" id="labour_hours" value="{{ old('labour_hours', $record->labour_hours ?? 0) }}">
+                    <input type="number" min="0" step="any" name="labour_hours" id="labour_hours" value="{{ old('labour_hours', $record->labour_hours ?? 0) }}">
                 </div>
                 <div>
                     <label for="downtime_hours">Tooling downtime (hours)</label>
-                    <input type="number" min="0" step="0.01" name="downtime_hours" id="downtime_hours" value="{{ old('downtime_hours', $record->downtime_hours ?? 0) }}">
+                    <input type="number" min="0" step="any" name="downtime_hours" id="downtime_hours" value="{{ old('downtime_hours', $record->downtime_hours ?? 0) }}">
                 </div>
                 <div>
                     <label for="parts_cost">Parts cost (PKR)</label>
-                    <input type="number" min="0" step="0.01" name="parts_cost" id="parts_cost" value="{{ old('parts_cost', $record->parts_cost ?? 0) }}">
+                    <input type="number" min="0" step="any" name="parts_cost" id="parts_cost" value="{{ old('parts_cost', $record->parts_cost ?? 0) }}">
                 </div>
                 <div>
                     <label for="other_cost">Other cost (PKR)</label>
-                    <input type="number" min="0" step="0.01" name="other_cost" id="other_cost" value="{{ old('other_cost', $record->other_cost ?? 0) }}">
+                    <input type="number" min="0" step="any" name="other_cost" id="other_cost" value="{{ old('other_cost', $record->other_cost ?? 0) }}">
                 </div>
                 <div>
                     <label for="next_inspection_due_on">Next inspection due</label>

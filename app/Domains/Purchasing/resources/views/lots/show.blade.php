@@ -14,7 +14,7 @@
     <div class="panel"><div class="panel-header"><h2>Acceptance</h2></div><div class="panel-body">
         @forelse ($blockers as $blocker)<div class="alert alert-warning">{{ $blocker }}</div>@empty<p class="muted">The incoming rules are met. The lot can be accepted.</p>@endforelse
         <form method="POST" action="{{ route('incoming.lots.accept', $lot) }}">@csrf
-            <div class="field"><label for="accepted_qty">Accepted quantity ({{ $material->base_uom }}) *</label><input id="accepted_qty" type="number" step="0.001" min="0" name="accepted_qty" required value="{{ old('accepted_qty', (float) $lot->received_qty) }}" style="max-width:200px"></div>
+            <div class="field"><label for="accepted_qty">Accepted quantity ({{ $material->base_uom }}) *</label><input id="accepted_qty" type="number" step="any" min="0" name="accepted_qty" required value="{{ old('accepted_qty', (float) $lot->received_qty) }}" style="max-width:200px"></div>
             <button class="btn btn-primary" type="submit" @disabled($blockers)>Accept lot</button>
         </form>
     </div></div>

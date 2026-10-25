@@ -107,7 +107,7 @@
                 </div>
                 <div class="field">
                     <label for="min_elongation">Minimum elongation (%)</label>
-                    <input id="min_elongation" type="number" step="0.5" min="0" name="min_elongation" value="{{ old('min_elongation') }}">
+                    <input id="min_elongation" type="number" step="any" min="0" name="min_elongation" value="{{ old('min_elongation') }}">
                 </div>
             </div>
             <details style="margin-top:14px">
@@ -123,12 +123,12 @@
                     </div>
                     <div class="field">
                         <label for="pour_window_min">Minutes from Mg treatment to last mould</label>
-                        <input id="pour_window_min" type="number" step="0.5" min="1" max="60" name="pour_window_min" value="{{ old('pour_window_min', 10) }}">
+                        <input id="pour_window_min" type="number" step="any" min="1" max="60" name="pour_window_min" value="{{ old('pour_window_min', 10) }}">
                         <div class="help">Used for Mg fade (0.001 % per minute in a pouring ladle).</div>
                     </div>
                     <div class="field">
                         <label for="b_override">Chvorinov constant B (min/cm²)</label>
-                        <input id="b_override" type="number" step="0.05" min="0.3" max="6" name="b_override" value="{{ old('b_override') }}" placeholder="Default for the iron family">
+                        <input id="b_override" type="number" step="any" min="0.3" max="6" name="b_override" value="{{ old('b_override') }}" placeholder="Default for the iron family">
                         <div class="help">Calibrate from your own pours to turn the freezing times into real minutes.</div>
                     </div>
                 </div>

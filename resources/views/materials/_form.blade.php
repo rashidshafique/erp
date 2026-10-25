@@ -40,7 +40,7 @@
         </div>
         <div class="field">
             <label for="standard_cost_per_uom">Standard cost per unit (PKR)</label>
-            <input id="standard_cost_per_uom" name="standard_cost_per_uom" type="number" min="0" step="0.0001" value="{{ old('standard_cost_per_uom', $material->standard_cost_per_uom) }}">
+            <input id="standard_cost_per_uom" name="standard_cost_per_uom" type="number" min="0" step="any" value="{{ old('standard_cost_per_uom', $material->standard_cost_per_uom) }}">
             @error('standard_cost_per_uom')<div class="error">{{ $message }}</div>@enderror
         </div>
     </div></div>
@@ -56,13 +56,13 @@
     <div class="panel-body"><div class="form-grid">
         <div class="field">
             <label for="minimum_stock_qty">Minimum stock quantity</label>
-            <input id="minimum_stock_qty" name="minimum_stock_qty" type="number" min="0" step="0.001" value="{{ old('minimum_stock_qty', $material->minimum_stock_qty) }}">
+            <input id="minimum_stock_qty" name="minimum_stock_qty" type="number" min="0" step="any" value="{{ old('minimum_stock_qty', $material->minimum_stock_qty) }}">
             <div class="help">Everyone who manages stores is told when stock falls to this.</div>
             @error('minimum_stock_qty')<div class="error">{{ $message }}</div>@enderror
         </div>
         <div class="field">
             <label for="reorder_qty">Reorder quantity</label>
-            <input id="reorder_qty" name="reorder_qty" type="number" min="0" step="0.001" value="{{ old('reorder_qty', $material->reorder_qty) }}">
+            <input id="reorder_qty" name="reorder_qty" type="number" min="0" step="any" value="{{ old('reorder_qty', $material->reorder_qty) }}">
             <div class="help">The suggested order size. Blank orders back up to the minimum.</div>
             @error('reorder_qty')<div class="error">{{ $message }}</div>@enderror
         </div>
@@ -94,7 +94,7 @@
                 <tr>
                     <td><strong>{{ $label }}</strong></td>
                     @foreach (['nominal_pct' => 'Typical', 'min_pct' => 'Lowest', 'max_pct' => 'Highest', 'recovery_pct' => 'Recovery'] as $field => $name)
-                        <td><input type="number" step="0.0001" min="0" max="{{ $field === 'recovery_pct' ? 300 : 100 }}" style="width:110px" name="chemistry[{{ $key }}][{{ $field }}]" aria-label="{{ $label }} {{ strtolower($name) }}"
+                        <td><input type="number" step="any" min="0" max="{{ $field === 'recovery_pct' ? 300 : 100 }}" style="width:110px" name="chemistry[{{ $key }}][{{ $field }}]" aria-label="{{ $label }} {{ strtolower($name) }}"
                                    value="{{ old("chemistry.{$key}.{$field}", $row?->{$field} !== null ? rtrim(rtrim((string) $row->{$field}, '0'), '.') : '') }}"@if ($field === 'recovery_pct') placeholder="100"@endif></td>
                     @endforeach
                 </tr>

@@ -60,7 +60,7 @@
 
                 <div class="field">
                     <label for="nominal_weight_kg">Nominal casting weight (kg)</label>
-                    <input id="nominal_weight_kg" type="number" step="0.0001" min="0"
+                    <input id="nominal_weight_kg" type="number" step="any" min="0"
                            name="nominal_weight_kg" value="{{ old('nominal_weight_kg') }}">
                     <div class="help">Nominal finished-product weight, not total metal poured.</div>
                     @error('nominal_weight_kg')<div class="error-text">{{ $message }}</div>@enderror
@@ -118,7 +118,7 @@
 
                 <div class="field">
                     <label for="net_weight_kg">Net weight for this revision (kg)</label>
-                    <input id="net_weight_kg" type="number" step="0.0001" min="0"
+                    <input id="net_weight_kg" type="number" step="any" min="0"
                            name="net_weight_kg" value="{{ old('net_weight_kg') }}">
                 </div>
 

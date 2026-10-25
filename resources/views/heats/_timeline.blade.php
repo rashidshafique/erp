@@ -22,7 +22,7 @@
             @endforeach
             <div class="field">
                 <label for="tl-tapped">Metal tapped (kg)</label>
-                <input id="tl-tapped" type="number" name="actual_tapped_weight_kg" min="0" step="0.1" value="{{ old('actual_tapped_weight_kg', $heat->actual_tapped_weight_kg) }}">
+                <input id="tl-tapped" type="number" name="actual_tapped_weight_kg" min="0" step="any" value="{{ old('actual_tapped_weight_kg', $heat->actual_tapped_weight_kg) }}">
             </div>
             <div><button class="btn btn-primary" type="submit">Save timeline</button></div>
         </form>

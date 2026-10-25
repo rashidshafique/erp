@@ -34,7 +34,7 @@
 
             <div class="field">
                 <label for="planned_qty">Planned quantity <span class="required">*</span></label>
-                <input id="planned_qty" type="number" name="planned_qty" min="0.001" step="0.001" value="{{ old('planned_qty', $order ? (float) $order->planned_qty : null) }}" required>
+                <input id="planned_qty" type="number" name="planned_qty" min="0.001" step="any" value="{{ old('planned_qty', $order ? (float) $order->planned_qty : null) }}" required>
                 @error('planned_qty')<div class="error-text">{{ $message }}</div>@enderror
             </div>
 
