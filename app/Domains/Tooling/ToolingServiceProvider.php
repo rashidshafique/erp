@@ -59,10 +59,16 @@ class ToolingServiceProvider extends ModuleServiceProvider
         ];
     }
 
+    protected function panels(): array
+    {
+        return ['product.show' => 'tooling::product-cores-panel'];
+    }
+
     protected function permissionRoutes(): array
     {
         return [
             ['pattern' => 'tooling-*', 'permission' => 'tooling.manage'],
+            ['pattern' => 'core-requirements.*', 'permission' => 'tooling.manage'],
             ['pattern' => 'cores.*', 'permission' => 'tooling.manage'],
             ['pattern' => 'core-boxes.*', 'permission' => 'tooling.manage'],
             ['pattern' => 'tools.*', 'permission' => 'tooling.manage'],

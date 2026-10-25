@@ -49,6 +49,24 @@
         </tbody>
     </table></div>
 </div>
+<div class="panel"><div class="panel-header"><h2>Needed by</h2>@unless ($core->trashed())<button type="button" class="btn btn-small" data-quick="qd-core-need">+ Product</button>@endunless</div>
+    <div class="table-wrap"><table>
+        <thead><tr><th>Product</th><th>Revision</th><th>Per casting</th><th></th></tr></thead>
+        <tbody>
+        @forelse ($core->requirements()->with('productRevision.product')->get() as $n)
+            <tr>
+                <td><x-item :name="$n->productRevision->product->name" :code="$n->productRevision->product->code" :href="route('products.show', $n->productRevision->product)" /></td>
+                <td class="mono">Rev {{ $n->productRevision->revision }}</td>
+                <td>{{ $n->quantity_per_casting }}</td>
+                <td><form method="POST" action="{{ route('core-requirements.destroy', $n) }}" onsubmit="return confirm('Remove this product from the core?')">@csrf @method('DELETE')<button class="btn btn-small" type="submit">Remove</button></form></td>
+            </tr>
+        @empty
+            <tr><td colspan="4" class="muted">No product needs this core yet.</td></tr>
+        @endforelse
+        </tbody>
+    </table></div>
+</div>
+@include('partials.quick-dialog', ['id' => 'qd-core-need', 'title' => 'Product that needs '.$core->code, 'action' => route('core-requirements.store'), 'submit' => 'Add product', 'fields' => 'tooling::_requirement-fields'])
 <div class="tab-marker" data-tab-start="Files & history"></div>
 @include('attachments._panel', ['type' => 'core_definition', 'id' => $core->id])
 @include('audit._history', ['type' => 'CoreDefinition', 'id' => $core->id])

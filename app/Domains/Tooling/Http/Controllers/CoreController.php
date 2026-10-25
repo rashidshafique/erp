@@ -5,6 +5,7 @@ namespace App\Domains\Tooling\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\CoreBoxCavity;
 use App\Models\CoreDefinition;
+use App\Models\ProductRevision;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -44,6 +45,7 @@ class CoreController extends Controller
 
         return view('tooling::cores.show', [
             'core' => $core,
+            'productRevisions' => ProductRevision::with('product')->where('status', '!=', 'OBSOLETE')->get()->sortBy(fn ($r) => [$r->product->code, $r->revision]),
             'cavities' => CoreBoxCavity::where('core_definition_id', $core->id)->with('coreBox')->orderBy('cavity_number')->get()->groupBy('core_box_id'),
         ]);
     }

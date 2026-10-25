@@ -2,6 +2,7 @@
 
 use App\Domains\Tooling\Http\Controllers\CoreBoxController;
 use App\Domains\Tooling\Http\Controllers\CoreController;
+use App\Domains\Tooling\Http\Controllers\CoreRequirementController;
 use App\Domains\Tooling\Http\Controllers\ToolController;
 use App\Domains\Tooling\Http\Controllers\ToolingLifeDashboardController;
 use App\Domains\Tooling\Http\Controllers\ToolingLifeLimitController;
@@ -85,6 +86,9 @@ Route::middleware('web')->group(function () {
         Route::delete('/{coreBox}', 'archive')->name('archive');
         Route::post('/{coreBox}/restore', 'restore')->name('restore')->withTrashed();
     });
+
+    Route::post('/core-requirements', [CoreRequirementController::class, 'store'])->name('core-requirements.store');
+    Route::delete('/core-requirements/{requirement}', [CoreRequirementController::class, 'destroy'])->name('core-requirements.destroy');
 
     Route::get('/tools/{type}/{id}', [ToolController::class, 'show'])->where('type', '[a-z_]+')->name('tools.show');
     Route::put('/tools/{type}/{id}/mark', [ToolController::class, 'updateMark'])->where('type', '[a-z_]+')->name('tools.mark');

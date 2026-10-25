@@ -45,4 +45,16 @@ class CoreDefinition extends Model
     {
         return $this->hasMany(CoreBoxCavity::class);
     }
+
+    /** The product revisions that need this core. */
+    public function requirements(): HasMany
+    {
+        return $this->hasMany(CoreRequirement::class);
+    }
+
+    /** Whether an active core box makes this core. */
+    public function hasActiveBox(): bool
+    {
+        return $this->cavities()->whereHas('coreBox', fn ($q) => $q->where('status', 'ACTIVE'))->exists();
+    }
 }
