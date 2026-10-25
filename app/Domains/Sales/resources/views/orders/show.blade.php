@@ -50,6 +50,7 @@
         <thead><tr><th>#</th><th>Product</th><th>Rev</th><th>Ordered</th><th>Scheduled</th><th>Shipped</th><th>Production orders</th><th></th></tr></thead>
         <tbody>
         @foreach ($order->lines as $l)
+            @php $isOpen = in_array($order->status, \App\Domains\Sales\Models\SalesOrder::OPEN, true); @endphp
             @php $sched = (float) $l->productionOrders->where('status', '!=', 'CANCELLED')->sum('planned_qty'); @endphp
             <tr>
                 <td>{{ $l->line_number }} <button type="button" data-toggle-line="{{ $l->id }}" aria-expanded="true" title="Show or hide the deliveries of this line" style="border:0;background:none;padding:0 4px;cursor:pointer;color:inherit;font-size:14px;line-height:1">&#9662;</button></td>
@@ -60,30 +61,13 @@
                 <td>{{ rtrim(rtrim(\App\Support\Formats::number((float) ($shipped[$l->id] ?? 0), 3), '0'), '.') ?: '0' }}</td>
                 <td>@forelse ($l->productionOrders as $po)<a href="{{ route('production-orders.show', $po) }}" class="mono">{{ $po->production_order_number }}</a> <span class="muted small">{{ strtolower(str_replace('_', ' ', $po->status)) }}</span>@if (! $loop->last)<br>@endif @empty — @endforelse</td>
                 <td>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap">
                     @if ($sched < (float) $l->ordered_qty - 0.0005)
                         <form method="POST" action="{{ route('sales-orders.lines.production-order', [$order, $l]) }}">@csrf
-                            <button class="btn" type="submit" @disabled(! $order->hasApprovedReview())>Create production order</button></form>
+                            <button class="btn" type="submit" @disabled(! $order->hasApprovedReview())>+ Production Order</button></form>
                     @endif
-                </td>
-            </tr>
-            @php $isOpen = in_array($order->status, \App\Domains\Sales\Models\SalesOrder::OPEN, true); @endphp
-            @foreach ($l->deliveryProgress((float) ($shipped[$l->id] ?? 0)) as $p)
-                <tr class="muted" data-line-rows="{{ $l->id }}">
-                    <td></td>
-                    <td colspan="2">Deliver by {{ $p['delivery']->due_date->displayDate() }} @if ($p['overdue'])<span class="status status-cancelled">overdue</span>@endif</td>
-                    <td>{{ rtrim(rtrim(\App\Support\Formats::number((float) $p['delivery']->quantity, 3), '0'), '.') }}</td>
-                    <td></td>
-                    <td>{{ rtrim(rtrim(\App\Support\Formats::number($p['covered'], 3), '0'), '.') ?: '0' }}</td>
-                    <td>{{ $p['delivery']->notes }}</td>
-                    <td>@if ($isOpen)<form method="POST" action="{{ route('sales-orders.lines.deliveries.destroy', [$order, $l, $p['delivery']]) }}">@csrf @method('DELETE')<button class="btn btn-small" type="submit">Remove</button></form>@endif</td>
-                </tr>
-            @endforeach
-            @if ($isOpen)
-                <tr class="muted" data-line-rows="{{ $l->id }}">
-                    <td></td>
-                    <td colspan="7">
-                        @if ($l->deliveries->isEmpty())One delivery{{ $l->requested_delivery_date ? ' on '.$l->requested_delivery_date->displayDate() : '' }}. @endif
-                        <button type="button" class="btn btn-small" data-quick="qd-delivery-{{ $l->id }}">+ Add delivery</button>
+                    @if ($isOpen)
+                        <button type="button" class="btn" data-quick="qd-delivery-{{ $l->id }}">+ Add delivery</button>
                         <dialog id="qd-delivery-{{ $l->id }}" class="qd" aria-labelledby="qd-delivery-{{ $l->id }}-title" @if (old('_quick') === 'qd-delivery-'.$l->id && $errors->has('quantity')) data-reopen="{{ json_encode($errors->getMessages()) }}" @endif>
                             <form method="POST" action="{{ route('sales-orders.lines.deliveries.store', [$order, $l]) }}">@csrf<input type="hidden" name="_quick" value="qd-delivery-{{ $l->id }}">
                                 <div class="qd-head"><h2 id="qd-delivery-{{ $l->id }}-title">Add a delivery · line {{ $l->line_number }}, {{ $l->product?->name }}</h2><button type="button" class="qd-x" data-close aria-label="Close">&times;</button></div>
@@ -100,9 +84,21 @@
                                 <div class="qd-foot"><button type="button" class="btn" data-close>Cancel</button><button class="btn btn-primary" type="submit">Add delivery</button></div>
                             </form>
                         </dialog>
-                    </td>
+                    @endif
+                    </div>
+                </td>
+            </tr>
+            @foreach ($l->deliveryProgress((float) ($shipped[$l->id] ?? 0)) as $p)
+                <tr class="muted" data-line-rows="{{ $l->id }}">
+                    <td></td>
+                    <td colspan="2">Deliver by {{ $p['delivery']->due_date->displayDate() }} @if ($p['overdue'])<span class="status status-cancelled">overdue</span>@endif</td>
+                    <td>{{ rtrim(rtrim(\App\Support\Formats::number((float) $p['delivery']->quantity, 3), '0'), '.') }}</td>
+                    <td></td>
+                    <td>{{ rtrim(rtrim(\App\Support\Formats::number($p['covered'], 3), '0'), '.') ?: '0' }}</td>
+                    <td>{{ $p['delivery']->notes }}</td>
+                    <td>@if ($isOpen)<form method="POST" action="{{ route('sales-orders.lines.deliveries.destroy', [$order, $l, $p['delivery']]) }}">@csrf @method('DELETE')<button class="btn btn-small" type="submit">Remove</button></form>@endif</td>
                 </tr>
-            @endif
+            @endforeach
         @endforeach
         </tbody>
     </table></div>
