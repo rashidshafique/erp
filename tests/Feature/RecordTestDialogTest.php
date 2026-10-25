@@ -41,6 +41,19 @@ class RecordTestDialogTest extends TestCase
             ->assertSee('<option value="'.$analyser->id.'" selected', false);
     }
 
+    public function test_the_thermal_form_shows_the_heats_grade_ranges_on_its_result_tiles_and_a_picker_carries_each_heats(): void
+    {
+        $grade = IronGrade::where('code', 'EN-GJS-500-7')->firstOrFail();
+        $grade->update(['c_min' => 3.3, 'c_max' => 3.5, 'si_min' => 1.7, 'si_max' => 2.0, 'ce_min' => 3.95, 'ce_max' => 4.05]);
+        $heat = $this->heat();
+
+        $this->get(route('heats.show', $heat))->assertOk()
+            ->assertSee('data-ranges=\'{"c":["3.300","3.500"],"si":["1.700","2.000"],"ce":["3.95","4.05"]}\'', false)
+            ->assertSee('3.3–3.5%')->assertSee('3.95–4.05%')->assertSee('Grade: EN-GJS-500-7 · Target CE: 3.95–4.05%')->assertSee('Cups run')->assertSee('All timestamps now')
+            ->assertSee('Analyse &amp; save test', false)->assertSee('Line: '.$heat->furnace->code)->assertDontSee('Record a test on heat');
+        $this->get(route('thermal.create'))->assertOk()->assertSee('name="white[carbon]"', false)->assertSee('name="grey[te_min_c]"', false);
+    }
+
     public function test_the_heat_page_offers_the_dialog_with_thermal_and_chemical_tabs_for_its_own_heat(): void
     {
         $heat = $this->heat();

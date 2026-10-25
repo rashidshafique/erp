@@ -1,4 +1,5 @@
-{{-- The fields of a thermal test: sample details, then a white (tellurium) and a grey (stable) cup card. Used by the record page and
+{{-- The fields of a thermal test: a heat strip, the sample details, the cups run, then a white (tellurium) and a grey (stable) cup
+     card with the key results as large tiles checked live against the heat's grade, and the cooling curves. Used by the record page and
      by the record-test dialog. $ip prefixes every id so the form can sit on a page with other forms; $mine is true when the old
      input belongs to this form; $fixedHeat locks the heat, otherwise $heats and $selected fill a heat picker; $gauges. --}}
 @php
@@ -12,81 +13,119 @@
     $gauges = $gauges->sortBy(fn ($g) => ($isAnalyser($g) ? '0' : '1').$g->code)->values();
     $inDate = fn ($g) => ! in_array($g->calibrationStatus(), ['OVERDUE', 'NOT_CALIBRATED'], true);
     $defaultGauge = $gauges->first(fn ($g) => $isAnalyser($g) && $inDate($g)) ?? $gauges->first($isAnalyser);
-    $timeFields = fn (string $p, string $k) => '<div class="cup-times">'
-        .'<div class="field"><div class="lbl-row"><label for="'.$ip.$p.'_taken">Sample taken</label><button type="button" class="now-link" data-now="'.$ip.$p.'_taken">now</button></div><input id="'.$ip.$p.'_taken" name="'.$k.'[taken_at]" type="datetime-local" value="'.e($old($k.'.taken_at', $nowLocal)).'"></div>'
-        .'<div class="field"><div class="lbl-row"><label for="'.$ip.$p.'_start">Test started</label><button type="button" class="now-link" data-now="'.$ip.$p.'_start">now</button></div><input id="'.$ip.$p.'_start" name="'.$k.'[test_started_at]" type="datetime-local" value="'.e($old($k.'.test_started_at')).'"></div>'
-        .'<div class="field"><div class="lbl-row"><label for="'.$ip.$p.'_end">Test finished</label><button type="button" class="now-link" data-now="'.$ip.$p.'_end">now</button></div><input id="'.$ip.$p.'_end" name="'.$k.'[test_finished_at]" type="datetime-local" value="'.e($old($k.'.test_finished_at')).'"></div>'
-        .'<div class="field"><label for="'.$ip.$p.'_batch">Cup batch</label><input id="'.$ip.$p.'_batch" name="'.$k.'[cup_batch]" maxlength="60" value="'.e($old($k.'.cup_batch')).'"></div>'
-        .'</div>';
-@endphp
-
-<div class="tf tf-root">
-<div class="tf-grid tf-cols-4 tf-sample">
-    @if ($fixedHeat ?? null)
-        <div class="field"><label>Heat</label><input type="hidden" name="heat_id" value="{{ $fixedHeat->id }}"><div class="static-value"><x-heat-light :heat="$fixedHeat" />{{ $fixedHeat->heat_number }} <span class="muted small">{{ $fixedHeat->furnace?->code }} · {{ $fixedHeat->ironGrade?->code ?? 'no grade' }}</span></div></div>
-    @else
-    <div class="field"><label for="{{ $ip }}heat_id">Heat *</label>
-        <select id="{{ $ip }}heat_id" name="heat_id" data-heat-select required><option value="">Select heat</option>
-            @foreach ($heats as $h)<option value="{{ $h->id }}" @selected($old('heat_id', $selected) === $h->id)>{{ ['red' => '🔴 ', 'orange' => '🟠 ', 'green' => '🟢 '][$h->light()] ?? '' }}{{ $h->heat_number }} — {{ $h->furnace?->code }} — {{ $h->ironGrade?->code ?? 'no grade' }}</option>@endforeach
-        </select></div>
-    @endif
-    <div class="field"><label for="{{ $ip }}sample_reference">Sample reference</label><input id="{{ $ip }}sample_reference" name="sample_reference" maxlength="60" value="{{ $old('sample_reference') }}"></div>
-    <div class="field"><label for="{{ $ip }}stage">Stage *</label>
-        <select id="{{ $ip }}stage" name="stage">@foreach (['BASE' => 'Base iron (before treatment)', 'POST_TREATMENT' => 'After treatment / inoculation', 'PRE_POUR' => 'Pre-pour check'] as $k => $l)<option value="{{ $k }}" @selected($old('stage', 'POST_TREATMENT') === $k)>{{ $l }}</option>@endforeach</select></div>
-    <div class="field"><label for="{{ $ip }}taken_by">Taken by</label><input id="{{ $ip }}taken_by" name="taken_by" maxlength="100" value="{{ $old('taken_by', auth()->user()?->name) }}"></div>
-    <div class="field"><label for="{{ $ip }}sample_point">Sampled from</label><select id="{{ $ip }}sample_point" name="sample_point"><option value="">—</option>@foreach (\App\Models\ThermalAnalysisTest::SAMPLE_POINTS as $k => $l)<option value="{{ $k }}" @selected($old('sample_point') === $k)>{{ $l }}</option>@endforeach</select></div>
-    <div class="field"><label for="{{ $ip }}gauge_id">Analyser from the register</label><select id="{{ $ip }}gauge_id" name="gauge_id"><option value="">—</option>@foreach ($gauges as $g)<option value="{{ $g->id }}" @selected($old('gauge_id', $defaultGauge?->id) === $g->id)>{{ $g->code }} · {{ $g->name }}@if (in_array($g->calibrationStatus(), ['OVERDUE', 'NOT_CALIBRATED'], true)) ({{ strtolower(\App\Services\Quality\CalibrationStatus::LABELS[$g->calibrationStatus()]) }})@endif</option>@endforeach</select></div>
-    <div class="field"><label for="{{ $ip }}inoculant_added_pct">Inoculant added (%)</label><input id="{{ $ip }}inoculant_added_pct" name="inoculant_added_pct" type="number" step="any" min="0" max="2" value="{{ $old('inoculant_added_pct') }}"></div>
-    <div class="field"><label for="{{ $ip }}notes">Notes</label><input id="{{ $ip }}notes" name="notes" maxlength="2000" value="{{ $old('notes') }}"></div>
-</div>
-
-@php
+    // The grade's ranges each result tile is checked against, as {c: [min, max], si: …, ce: …}.
+    $ranges = fn ($grade) => $grade ? array_filter(['c' => [$grade->c_min, $grade->c_max], 'si' => [$grade->si_min, $grade->si_max], 'ce' => [$grade->ce_min, $grade->ce_max]],
+        fn ($r) => $r[0] !== null || $r[1] !== null) : [];
+    $fixedRanges = ($fixedHeat ?? null) ? $ranges($fixedHeat->ironGrade) : [];
+    $rangeText = fn (array $r, string $unit = '%') => $r === [] ? 'No grade range' : rtrim(rtrim((string) ($r[0] ?? '…'), '0'), '.').'–'.rtrim(rtrim((string) ($r[1] ?? '…'), '0'), '.').$unit;
+    $time = fn (string $p, string $k, string $field, string $label, ?string $default = null) => '<div class="cup-time"><label for="'.$ip.$p.'_'.$field.'">'.$label
+        .' <button type="button" class="now-link" data-now="'.$ip.$p.'_'.$field.'">now</button></label><input id="'.$ip.$p.'_'.$field.'" name="'.$k.'['.$field.']" type="datetime-local" value="'.e($old($k.'.'.$field, $default)).'"></div>';
+    $tile = fn (string $cup, string $key, string $label, string $tone, string $hint, array $attrs = [], ?string $spec = null) => '<div class="tf-tile tone-'.$tone.'"'.($spec ? ' data-spec-tile="'.$spec.'"' : '').'>'
+        .'<div class="tile-top"><label for="'.$ip.$cup[0].'_'.$key.'">'.$label.'</label><span class="tile-badge" data-badge></span></div>'
+        .'<input id="'.$ip.$cup[0].'_'.$key.'" name="'.$cup.'['.$key.']" type="number" step="any"'.collect($attrs)->map(fn ($v, $a) => ' '.$a.'="'.e($v).'"')->implode('').' value="'.e($f($cup, $key)).'"'.($spec ? ' data-spec="'.$spec.'"' : '').'>'
+        .'<div class="tile-hint"'.($spec ? ' data-range-for="'.$spec.'"' : '').'>'.e($hint).'</div></div>';
+    $small = fn (string $cup, string $key, string $label, string $sub, string $unit = '°C', array $attrs = []) => '<div class="tf-mini"><div><label for="'.$ip.$cup[0].'_'.$key.'">'.$label.'</label><small>'.e($sub).'</small></div>'
+        .'<span class="mini-input"><input id="'.$ip.$cup[0].'_'.$key.'" name="'.$cup.'['.$key.']" type="number" step="any"'.collect($attrs)->map(fn ($v, $a) => ' '.$a.'="'.e($v).'"')->implode('').' value="'.e($f($cup, $key)).'"><span>'.$unit.'</span></span></div>';
     $submitted = $mine && count(old()) > 0;
     $showWhite = $submitted ? old('show_white') === '1' : true;
     $showGrey = $submitted ? old('show_grey') === '1' : true;
 @endphp
-<div class="cup-toggles">
-    <span class="muted small">Cups run:</span>
-    <label class="check-field"><input type="checkbox" name="show_white" value="1" data-cup-toggle="white" @checked($showWhite)> White cup <span class="muted small">(tellurium)</span></label>
-    <label class="check-field"><input type="checkbox" name="show_grey" value="1" data-cup-toggle="grey" @checked($showGrey)> Grey cup <span class="muted small">(stable)</span></label>
+
+<div class="tf tf-root" data-ranges='@json((object) $fixedRanges)'>
+<div class="tf-strip">
+    @if ($fixedHeat ?? null)
+        {{-- The heat, its line, grade and target CE are in the dialog title. --}}
+        <input type="hidden" name="heat_id" value="{{ $fixedHeat->id }}">
+    @else
+        <div class="strip-pick"><label for="{{ $ip }}heat_id">Heat *</label>
+            <select id="{{ $ip }}heat_id" name="heat_id" data-heat-select required><option value="">Select heat</option>
+                @foreach ($heats as $h)<option value="{{ $h->id }}" data-ranges='@json((object) $ranges($h->ironGrade))' data-info="{{ isset($heatInfo) ? $heatInfo($h) : '' }}" @selected($old('heat_id', $selected) === $h->id)>{{ ['red' => '🔴 ', 'orange' => '🟠 ', 'green' => '🟢 '][$h->light()] ?? '' }}{{ $h->heat_number }} — {{ $h->furnace?->code }} — {{ $h->ironGrade?->code ?? 'no grade' }}</option>@endforeach
+            </select></div>
+    @endif
+    <div class="strip-device"><label for="{{ $ip }}gauge_id">Analyser</label>
+        <select id="{{ $ip }}gauge_id" name="gauge_id"><option value="">—</option>@foreach ($gauges as $g)<option value="{{ $g->id }}" @selected($old('gauge_id', $defaultGauge?->id) === $g->id)>{{ $g->code }} · {{ $g->name }}@if (in_array($g->calibrationStatus(), ['OVERDUE', 'NOT_CALIBRATED'], true)) ({{ strtolower(\App\Services\Quality\CalibrationStatus::LABELS[$g->calibrationStatus()]) }})@endif</option>@endforeach</select></div>
+</div>
+
+<div class="tf-sample">
+    <div class="field"><label for="{{ $ip }}sample_reference">Sample ref</label><input id="{{ $ip }}sample_reference" name="sample_reference" maxlength="60" value="{{ $old('sample_reference') }}"></div>
+    <div class="field"><label for="{{ $ip }}stage">Sampling stage *</label>
+        <select id="{{ $ip }}stage" name="stage">@foreach (['BASE' => 'Base iron (before treatment)', 'POST_TREATMENT' => 'After treatment / inoculation', 'PRE_POUR' => 'Pre-pour check'] as $k => $l)<option value="{{ $k }}" @selected($old('stage', 'POST_TREATMENT') === $k)>{{ $l }}</option>@endforeach</select></div>
+    <div class="field"><label for="{{ $ip }}sample_point">Sampled from</label><select id="{{ $ip }}sample_point" name="sample_point"><option value="">—</option>@foreach (\App\Models\ThermalAnalysisTest::SAMPLE_POINTS as $k => $l)<option value="{{ $k }}" @selected($old('sample_point') === $k)>{{ $l }}</option>@endforeach</select></div>
+    <div class="field"><label for="{{ $ip }}inoculant_added_pct">Inoculant added</label><span class="unit-input"><input id="{{ $ip }}inoculant_added_pct" name="inoculant_added_pct" type="number" step="any" min="0" max="2" value="{{ $old('inoculant_added_pct') }}"><span>%</span></span></div>
+    <div class="field"><label for="{{ $ip }}taken_by">Technician</label><input id="{{ $ip }}taken_by" name="taken_by" maxlength="100" value="{{ $old('taken_by', auth()->user()?->name) }}"></div>
+    <div class="field tf-wide"><label for="{{ $ip }}notes">Condition / ladle notes</label><input id="{{ $ip }}notes" name="notes" maxlength="2000" value="{{ $old('notes') }}"></div>
+</div>
+
+<div class="tf-cups-bar">
+    <span class="bar-label">Cups run</span>
+    <label class="cup-pill"><input type="checkbox" name="show_white" value="1" data-cup-toggle="white" @checked($showWhite)><span><i class="dot dot-white"></i> White cup (Te)</span></label>
+    <label class="cup-pill"><input type="checkbox" name="show_grey" value="1" data-cup-toggle="grey" @checked($showGrey)><span><i class="dot dot-grey"></i> Grey cup (stable)</span></label>
+    <span class="bar-actions"><button type="button" class="btn btn-small" data-all-now>All timestamps now</button><button type="button" class="link-btn" data-clear-cups>Clear</button></span>
 </div>
 
 <div class="cup-grid {{ $showWhite && $showGrey ? '' : 'single' }}">
-<div class="panel" data-cup="white" @unless ($showWhite) hidden @endunless><div class="panel-header" title="The iron solidifies white, giving carbon, silicon and the liquidus and solidus."><h2>White cup <span class="muted small">(tellurium)</span></h2></div><div class="panel-body">
-    {!! $timeFields('w', 'white') !!}
-    <div class="tf-grid tf-cols-3">
-        <div class="field"><label for="{{ $ip }}w_c">Carbon % (C)</label><input id="{{ $ip }}w_c" name="white[carbon]" type="number" step="any" min="0" max="5" value="{{ $f('white', 'carbon') }}"></div>
-        <div class="field"><label for="{{ $ip }}w_ce">CE (analyser)</label><input id="{{ $ip }}w_ce" title="Left empty, CE is calculated from TL and recorded as calculated." name="white[ce]" type="number" step="any" min="2" max="6" value="{{ $f('white', 'ce') }}"></div>
-        <div class="field"><label for="{{ $ip }}w_si">Silicon % (Si)</label><input id="{{ $ip }}w_si" title="Left empty, the latest chemistry reading is used." name="white[silicon]" type="number" step="any" min="0" max="6" value="{{ $f('white', 'silicon') }}"></div>
-        <div class="field"><label for="{{ $ip }}w_tl">TL, liquidus (°C)</label><input id="{{ $ip }}w_tl" name="white[tl_c]" type="number" step="any" value="{{ $f('white', 'tl_c') }}"></div>
-        <div class="field"><label for="{{ $ip }}w_ts">TS, solidus (°C)</label><input id="{{ $ip }}w_ts" name="white[solidus_c]" type="number" step="any" value="{{ $f('white', 'solidus_c') }}"></div>
-        <div class="field"><label for="{{ $ip }}w_peak">Peak temperature (°C)</label><input id="{{ $ip }}w_peak" title="Highest temperature in the cup." name="white[peak_temp_c]" type="number" step="any" value="{{ $f('white', 'peak_temp_c') }}"></div>
+<section class="cup-card" data-cup="white" @unless ($showWhite) hidden @endunless>
+    <header title="The iron solidifies white, giving carbon, silicon and the liquidus and solidus."><span><i class="dot dot-white"></i> <strong>White cup</strong> <span class="mono muted">(tellurium)</span></span><span class="cup-tag">Metallurgical CE base</span></header>
+    <div class="cup-body">
+        <div class="cup-sub"><span>Solidification chemistry</span><span class="cup-verdict" data-verdict></span></div>
+        <div class="tile-row">
+            {!! $tile('white', 'carbon', 'Carbon (C)', 'amber', $rangeText($fixedRanges['c'] ?? []), ['min' => 0, 'max' => 5], 'c') !!}
+            {!! $tile('white', 'ce', 'Carbon eq. (CE)', 'blue', $rangeText($fixedRanges['ce'] ?? []), ['min' => 2, 'max' => 6, 'title' => 'Left empty, CE is calculated from TL and recorded as calculated.'], 'ce') !!}
+            {!! $tile('white', 'silicon', 'Silicon (Si)', 'green', $rangeText($fixedRanges['si'] ?? []), ['min' => 0, 'max' => 6, 'title' => 'Left empty, the latest chemistry reading is used.'], 'si') !!}
+        </div>
+        <div class="cup-sub"><span>Thermal inflection points</span></div>
+        <div class="mini-row">
+            {!! $small('white', 'tl_c', 'TL liquidus', 'First arrest') !!}
+            {!! $small('white', 'solidus_c', 'TS solidus', 'End of freezing') !!}
+            {!! $small('white', 'peak_temp_c', 'Peak temp', 'Highest recorded', '°C', ['title' => 'Highest temperature in the cup.']) !!}
+        </div>
+        <footer class="cup-foot">
+            <div class="cup-batch"><label for="{{ $ip }}w_cup_batch">Cup batch</label><input id="{{ $ip }}w_cup_batch" name="white[cup_batch]" maxlength="60" value="{{ $f('white', 'cup_batch') }}"></div>
+            {!! $time('w', 'white', 'taken_at', 'Sampled', $nowLocal) !!}{!! $time('w', 'white', 'test_started_at', 'Start') !!}{!! $time('w', 'white', 'test_finished_at', 'End') !!}
+        </footer>
     </div>
-    <details class="curve-box" @if ($f('white', 'curve_text')) open @endif><summary>Full cooling curve (optional)</summary>
-        <div class="field"><label for="{{ $ip }}w_file">CSV file (seconds, temperature °C)</label><input id="{{ $ip }}w_file" name="white[curve_file]" type="file" accept=".csv,.txt"></div>
-        <div class="field"><label for="{{ $ip }}w_text">…or paste the curve</label><textarea id="{{ $ip }}w_text" name="white[curve_text]" rows="3" placeholder="0,1320.0&#10;0.5,1319.1&#10;…">{{ $f('white', 'curve_text') }}</textarea></div>
-        <span class="muted small">At least 40 readings. Anything you key in above is used in place of the value detected from the curve.</span>
-    </details>
-</div></div>
+</section>
 
-<div class="panel" data-cup="grey" @unless ($showGrey) hidden @endunless><div class="panel-header" title="The iron solidifies grey, giving the eutectic arrest used to judge inoculation."><h2>Grey cup <span class="muted small">(stable, no tellurium)</span></h2></div><div class="panel-body">
-    {!! $timeFields('g', 'grey') !!}
-    <div class="tf-grid tf-cols-3">
-        <div class="field"><label for="{{ $ip }}g_tl">TL, liquidus (°C)</label><input id="{{ $ip }}g_tl" name="grey[tl_c]" type="number" step="any" value="{{ $f('grey', 'tl_c') }}"></div>
-        <div class="field"><label for="{{ $ip }}g_ts">TS, solidus (°C)</label><input id="{{ $ip }}g_ts" name="grey[solidus_c]" type="number" step="any" value="{{ $f('grey', 'solidus_c') }}"></div>
-        <div class="field"><label for="{{ $ip }}g_temin">TEmin (°C)</label><input id="{{ $ip }}g_temin" name="grey[te_min_c]" type="number" step="any" value="{{ $f('grey', 'te_min_c') }}"></div>
-        <div class="field"><label for="{{ $ip }}g_temax">TEmax (°C)</label><input id="{{ $ip }}g_temax" name="grey[te_max_c]" type="number" step="any" value="{{ $f('grey', 'te_max_c') }}"></div>
-        <div class="field"><label for="{{ $ip }}g_recal">Recalescence (°C)</label><input id="{{ $ip }}g_recal" title="Left empty, it is worked out as TEmax − TEmin." name="grey[recalescence_c]" type="number" step="any" value="{{ $f('grey', 'recalescence_c') }}"></div>
-        <div class="field"><label for="{{ $ip }}g_peak">Peak temperature (°C)</label><input id="{{ $ip }}g_peak" name="grey[peak_temp_c]" type="number" step="any" value="{{ $f('grey', 'peak_temp_c') }}"></div>
-        <div class="field"><label for="{{ $ip }}g_c">Carbon % (C)</label><input id="{{ $ip }}g_c" name="grey[carbon]" type="number" step="any" min="0" max="5" value="{{ $f('grey', 'carbon') }}"></div>
-        <div class="field"><label for="{{ $ip }}g_ce">CE (analyser)</label><input id="{{ $ip }}g_ce" title="Left empty, CE is calculated from TL and recorded as calculated." name="grey[ce]" type="number" step="any" min="2" max="6" value="{{ $f('grey', 'ce') }}"></div>
-        <div class="field"><label for="{{ $ip }}g_si">Silicon % (Si)</label><input id="{{ $ip }}g_si" title="Left empty, the white cup's Si is used." name="grey[silicon]" type="number" step="any" min="0" max="6" value="{{ $f('grey', 'silicon') }}"></div>
+<section class="cup-card" data-cup="grey" @unless ($showGrey) hidden @endunless>
+    <header title="The iron solidifies grey, giving the eutectic arrest used to judge inoculation."><span><i class="dot dot-grey"></i> <strong>Grey cup</strong> <span class="mono muted">(stable, no tellurium)</span></span><span class="cup-tag tag-green">Inoculation and undercooling</span></header>
+    <div class="cup-body">
+        <div class="cup-sub"><span>Eutectic temperature evolution</span></div>
+        <div class="tile-row">
+            {!! $tile('grey', 'te_min_c', 'TEmin (°C)', 'plain', 'Lowest eutectic') !!}
+            {!! $tile('grey', 'te_max_c', 'TEmax (°C)', 'plain', 'Highest after recalescence') !!}
+            {!! $tile('grey', 'recalescence_c', 'Recalescence ΔT', 'amber', 'Blank: TEmax − TEmin', ['title' => 'Left empty, it is worked out as TEmax − TEmin.', 'data-recalescence' => '1']) !!}
+        </div>
+        <div class="cup-sub"><span>Thermal transitions and chemistry cross-check</span></div>
+        <div class="mini-row mini-6">
+            {!! $small('grey', 'tl_c', 'TL liquidus', 'First arrest') !!}
+            {!! $small('grey', 'solidus_c', 'TS solidus', 'End of freezing') !!}
+            {!! $small('grey', 'peak_temp_c', 'Peak temp', 'Highest recorded') !!}
+            {!! $small('grey', 'carbon', 'Carbon', 'C', '%', ['min' => 0, 'max' => 5]) !!}
+            {!! $small('grey', 'ce', 'CE', 'Analyser', '%', ['min' => 2, 'max' => 6, 'title' => 'Left empty, CE is calculated from TL and recorded as calculated.']) !!}
+            {!! $small('grey', 'silicon', 'Silicon', 'Blank: white cup', '%', ['min' => 0, 'max' => 6, 'title' => "Left empty, the white cup's Si is used."]) !!}
+        </div>
+        <footer class="cup-foot">
+            <div class="cup-batch"><label for="{{ $ip }}g_cup_batch">Cup batch</label><input id="{{ $ip }}g_cup_batch" name="grey[cup_batch]" maxlength="60" value="{{ $f('grey', 'cup_batch') }}"></div>
+            {!! $time('g', 'grey', 'taken_at', 'Sampled', $nowLocal) !!}{!! $time('g', 'grey', 'test_started_at', 'Start') !!}{!! $time('g', 'grey', 'test_finished_at', 'End') !!}
+        </footer>
     </div>
-    <details class="curve-box" @if ($f('grey', 'curve_text')) open @endif><summary>Full cooling curve (optional)</summary>
-        <div class="field"><label for="{{ $ip }}g_file">CSV file (seconds, temperature °C)</label><input id="{{ $ip }}g_file" name="grey[curve_file]" type="file" accept=".csv,.txt"></div>
-        <div class="field"><label for="{{ $ip }}g_text">…or paste the curve</label><textarea id="{{ $ip }}g_text" name="grey[curve_text]" rows="3" placeholder="0,1320.0&#10;0.5,1319.1&#10;…">{{ $f('grey', 'curve_text') }}</textarea></div>
-        <span class="muted small">At least 40 readings. <a href="{{ route('thermal.sample') }}">Download a sample curve</a> to try it. Anything you key in above is used in place of the value detected from the curve.</span>
-    </details>
-</div></div>
+</section>
 </div>
+
+<details class="curve-bar" @if ($f('white', 'curve_text') || $f('grey', 'curve_text')) open @endif>
+    <summary><span>Solidification cooling curves</span> <span class="muted small">optional · a CSV of seconds and °C per cup, or pasted readings</span></summary>
+    <div class="curve-grid">
+        <div data-cup="white" @unless ($showWhite) hidden @endunless>
+            <strong class="small">White cup</strong>
+            <div class="field"><label for="{{ $ip }}w_file">CSV file (seconds, temperature °C)</label><input id="{{ $ip }}w_file" name="white[curve_file]" type="file" accept=".csv,.txt"></div>
+            <div class="field"><label for="{{ $ip }}w_text">…or paste the curve</label><textarea id="{{ $ip }}w_text" name="white[curve_text]" rows="3" placeholder="0,1320.0&#10;0.5,1319.1&#10;…">{{ $f('white', 'curve_text') }}</textarea></div>
+        </div>
+        <div data-cup="grey" @unless ($showGrey) hidden @endunless>
+            <strong class="small">Grey cup</strong>
+            <div class="field"><label for="{{ $ip }}g_file">CSV file (seconds, temperature °C)</label><input id="{{ $ip }}g_file" name="grey[curve_file]" type="file" accept=".csv,.txt"></div>
+            <div class="field"><label for="{{ $ip }}g_text">…or paste the curve</label><textarea id="{{ $ip }}g_text" name="grey[curve_text]" rows="3" placeholder="0,1320.0&#10;0.5,1319.1&#10;…">{{ $f('grey', 'curve_text') }}</textarea></div>
+        </div>
+    </div>
+    <p class="muted small">At least 40 readings. <a href="{{ route('thermal.sample') }}">Download a sample curve</a> to try it. Anything keyed in above is used in place of the value detected from the curve.</p>
+</details>
 </div>
