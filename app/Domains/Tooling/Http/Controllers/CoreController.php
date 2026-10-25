@@ -2,6 +2,7 @@
 
 namespace App\Domains\Tooling\Http\Controllers;
 
+use App\Domains\Tooling\Services\CoreLotService;
 use App\Http\Controllers\Controller;
 use App\Models\CoreBoxCavity;
 use App\Models\CoreDefinition;
@@ -14,7 +15,7 @@ use Illuminate\View\View;
 /** The cores the foundry makes: what each is, which core boxes make it and which products need it. */
 class CoreController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request, CoreLotService $lots): View
     {
         $cores = CoreDefinition::query()
             ->when($request->boolean('archived'), fn ($q) => $q->onlyTrashed())
@@ -24,7 +25,7 @@ class CoreController extends Controller
             ->withCount(['cavities as boxes_count' => fn ($q) => $q->select(\DB::raw('count(distinct core_box_id)'))])
             ->orderBy('code')->paginate(50)->withQueryString();
 
-        return view('tooling::cores.index', ['cores' => $cores]);
+        return view('tooling::cores.index', ['cores' => $cores, 'onHand' => $lots->onHand()]);
     }
 
     public function create(): View

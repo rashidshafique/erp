@@ -2,6 +2,7 @@
 
 use App\Domains\Tooling\Http\Controllers\CoreBoxController;
 use App\Domains\Tooling\Http\Controllers\CoreController;
+use App\Domains\Tooling\Http\Controllers\CoreLotController;
 use App\Domains\Tooling\Http\Controllers\CoreRequirementController;
 use App\Domains\Tooling\Http\Controllers\ToolController;
 use App\Domains\Tooling\Http\Controllers\ToolingLifeDashboardController;
@@ -86,6 +87,18 @@ Route::middleware('web')->group(function () {
         Route::delete('/{coreBox}', 'archive')->name('archive');
         Route::post('/{coreBox}/restore', 'restore')->name('restore')->withTrashed();
     });
+
+    Route::prefix('core-lots')->name('core-lots.')->controller(CoreLotController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('/create', 'create')->name('create');
+        Route::post('/', 'store')->name('store');
+        Route::get('/{coreLot}', 'show')->name('show');
+        Route::put('/{coreLot}/location', 'location')->name('location');
+        Route::put('/{coreLot}/check', 'check')->name('check');
+        Route::post('/{coreLot}/take', 'take')->name('take');
+    });
+    Route::get('/settings/cores', [CoreLotController::class, 'editRules'])->name('settings.cores.edit');
+    Route::put('/settings/cores', [CoreLotController::class, 'updateRules'])->name('settings.cores');
 
     Route::post('/core-requirements', [CoreRequirementController::class, 'store'])->name('core-requirements.store');
     Route::delete('/core-requirements/{requirement}', [CoreRequirementController::class, 'destroy'])->name('core-requirements.destroy');

@@ -45,10 +45,18 @@ class ToolingServiceProvider extends ModuleServiceProvider
     {
         return [
             ['group' => 'equipment', 'label' => 'Cores & core boxes', 'route' => 'cores.index', 'icon' => 'grid', 'active' => ['cores.*', 'core-boxes.*']],
+            ['group' => 'equipment', 'label' => 'Core stock', 'route' => 'core-lots.index', 'icon' => 'layers', 'active' => ['core-lots.*', 'settings.cores*']],
             ['group' => 'equipment', 'label' => 'Maintenance dashboard', 'route' => 'tooling-maintenance.dashboard', 'icon' => 'dashboard', 'active' => ['tooling-maintenance.dashboard']],
             ['group' => 'equipment', 'label' => 'Maintenance records', 'route' => 'tooling-maintenance.index', 'icon' => 'wrench', 'active' => ['tooling-maintenance.index', 'tooling-maintenance.show', 'tooling-maintenance.edit'],
                 'count' => fn (): int => ToolingMaintenanceRecord::whereIn('status', ['OPEN', 'IN_PROGRESS'])->count()],
             ['group' => 'equipment', 'label' => 'Tooling life', 'route' => 'tooling-life.dashboard', 'icon' => 'gauge', 'active' => ['tooling-life.*']],
+        ];
+    }
+
+    protected function settingsLinks(): array
+    {
+        return [
+            ['section' => 'Foundry', 'label' => 'Core rules', 'route' => 'settings.cores.edit', 'active' => ['settings.cores*']],
         ];
     }
 
@@ -69,6 +77,7 @@ class ToolingServiceProvider extends ModuleServiceProvider
         return [
             ['pattern' => 'tooling-*', 'permission' => 'tooling.manage'],
             ['pattern' => 'core-requirements.*', 'permission' => 'tooling.manage'],
+            ['pattern' => 'core-lots.*', 'permission' => 'moulding.operate'],
             ['pattern' => 'cores.*', 'permission' => 'tooling.manage'],
             ['pattern' => 'core-boxes.*', 'permission' => 'tooling.manage'],
             ['pattern' => 'tools.*', 'permission' => 'tooling.manage'],

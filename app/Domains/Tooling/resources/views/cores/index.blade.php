@@ -22,7 +22,7 @@
         <div class="empty-state"><strong>No cores found</strong><p>Add a core, then the core box that makes it.</p><a class="btn btn-primary" href="{{ route('cores.create') }}">+ New core</a></div>
     @else
         <div class="table-wrap"><table>
-            <thead><tr><th>Core</th><th>Type</th><th>Process</th><th>Weight</th><th>Core boxes</th><th>Status</th><th></th></tr></thead>
+            <thead><tr><th>Core</th><th>Type</th><th>Process</th><th>Weight</th><th>Core boxes</th><th>On hand</th><th>Status</th><th></th></tr></thead>
             <tbody>
             @foreach ($cores as $core)
                 <tr>
@@ -31,6 +31,7 @@
                     <td>{{ $core->process_type ?: '—' }}</td>
                     <td>{{ $core->nominal_weight_kg !== null ? rtrim(rtrim($core->nominal_weight_kg, '0'), '.').' kg' : '—' }}</td>
                     <td>{{ $core->boxes_count }}</td>
+                    <td>@if (($onHand[$core->id] ?? 0) > 0)<a href="{{ route('core-lots.index', ['core' => $core->id]) }}">{{ $onHand[$core->id] }}</a>@else 0 @endif</td>
                     <td><span class="status {{ $core->status === 'ACTIVE' ? 'status-completed' : 'status-cancelled' }}">{{ $core->status }}</span></td>
                     <td style="white-space:nowrap"><a href="{{ route('cores.show', $core) }}">Open →</a>@if ($archived)<form method="POST" action="{{ route('cores.restore', $core) }}" style="display:inline;margin-left:8px">@csrf<button class="btn btn-small" type="submit">Restore</button></form>@endif</td>
                 </tr>
