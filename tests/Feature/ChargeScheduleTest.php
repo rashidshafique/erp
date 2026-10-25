@@ -451,4 +451,12 @@ class ChargeScheduleTest extends TestCase
         $this->assertSame(0.0, $all['remaining_kg']);
         $this->assertSame('10:25', $all['finish_at']->format('H:i'), 'Everything is charged: the last charge melts 30 minutes after it went in.');
     }
+
+    public function test_the_charge_tab_has_the_history_on_the_left_and_every_other_panel_on_the_right(): void
+    {
+        [$heat] = $this->cupola();
+
+        $this->get(route('heats.show', $heat))->assertOk()
+            ->assertSeeInOrder(['data-tab-start="Charge"', 'class="charge-cols"', 'class="charge-history-col"', 'wire:name="heat-charge-history"', 'class="charge-other-col"', 'Charge recipe and planned materials', 'Post charge to inventory', 'data-tab-start="Furnace readings"'], false);
+    }
 }

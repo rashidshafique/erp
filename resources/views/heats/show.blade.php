@@ -181,6 +181,17 @@
 @include('heats._tests', ['heat' => $heat])
 
 <div class="tab-marker" data-tab-start="Charge"></div>
+<style>
+    .charge-cols { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+    .charge-cols > div { min-width: 0; }
+    @media (max-width: 1250px) { .charge-cols { grid-template-columns: minmax(0, 1fr); } }
+</style>
+<div class="charge-cols">
+<div class="charge-history-col">
+@error('actual_qty_kg')<div class="alert alert-error">{{ $message }}</div>@enderror
+<livewire:heat-charge-history :heat-id="$heat->id" />
+</div>
+<div class="charge-other-col">
 @include('heats._charge-prediction', ['heat' => $heat, 'plannedChargeItems' => $plannedChargeItems])
 <div class="panel">
     <div class="panel-header"><h2>Charge recipe and planned materials</h2></div>
@@ -483,8 +494,6 @@
     </div>
 </div>
 
-@error('actual_qty_kg')<div class="alert alert-error">{{ $message }}</div>@enderror
-<livewire:heat-charge-history :heat-id="$heat->id" />
 @if(!in_array($heat->status, ['CLOSED', 'CANCELLED'], true))
     <div class="panel">
         <div class="panel-header">
@@ -541,6 +550,8 @@
         </div>
     </div>
 @endif
+</div>
+</div>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const type = document.getElementById('charge_consumption_type');
