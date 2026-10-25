@@ -72,7 +72,7 @@ class HeatLightTest extends TestCase
 
         $done = Heat::create(['heat_number' => 'H-DONE', 'furnace_id' => $furnace->id, 'process_type' => 'INDUCTION', 'status' => 'CLOSED',
             'actual_start_at' => now()->subHours(5), 'tapped_at' => now()->subHours(5)->addMinutes(50)]);
-        $this->get(route('heats.show', $done))->assertOk()->assertSee('Ran for')->assertSee('50 min')
+        $this->get(route('heats.show', $done))->assertOk()->assertSee('Ran for')->assertSee('0:50:00')
             ->assertSee('>Melting', false)->assertSee($running->heat_number);
 
         $furnace->update(['status' => 'MAINTENANCE']);
@@ -105,7 +105,7 @@ class HeatLightTest extends TestCase
         $this->assertSame(['live', '11:10', 1400.0], [$live['source'], $live['finish_at']->format('H:i'), $live['remaining_kg']]);
 
         $this->getJson(route('heats.eta', $heat))->assertOk()->assertJson(['running' => true, 'eta' => ['time' => '11:10', 'overdue' => false]]);
-        $this->get(route('heats.show', $heat))->assertOk()->assertSee('Finish ETA')->assertSee('>11:10<', false);
+        $this->get(route('heats.show', $heat))->assertOk()->assertSee('Time remaining')->assertSee('Finish about')->assertSee('11:10 AM')->assertSee('1,400 kg to go')->assertSeeLivewire('heat-status-board');
     }
 
     public function test_there_is_no_finish_estimate_without_a_target_a_running_heat_or_a_rate(): void

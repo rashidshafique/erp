@@ -261,7 +261,7 @@ class ChargeScheduleTest extends TestCase
         $heat->update(['actual_start_at' => now()->subHours(2), 'blast_on_at' => now()->subHours(2)]);
         $this->charged($heat, $iron, 1, 100, 180);
 
-        $this->get(route('heats.show', $heat))->assertOk()->assertSee('Add back charges')->assertSee('Add back 4 charges')->assertSee('180.0 kg')->assertSee('1 of 5 charges')
+        $this->get(route('heats.show', $heat))->assertOk()->assertSee('Add back charges')->assertSee('Add back 4 charges')->assertSee('Metal charged')->assertSee('20%')->assertSee('of the 900 kg target')
             ->assertSee('a charge of 180 kg every 30 min')->assertSee('Charges are also added automatically every minute');
     }
 
@@ -334,7 +334,7 @@ class ChargeScheduleTest extends TestCase
         $entry = HeatMaterialConsumption::where('heat_id', $heat->id)->sole();
         $history = fn () => \Livewire\Livewire::test('heat-charge-history', ['heatId' => $heat->id]);
 
-        $this->get(route('heats.show', $heat))->assertOk()->assertSeeLivewire('heat-charge-history')->assertSeeLivewire('heat-charged-metal')->assertSee('click a weight to change it');
+        $this->get(route('heats.show', $heat))->assertOk()->assertSeeLivewire('heat-charge-history')->assertSeeLivewire('heat-status-board')->assertSee('click a weight to change it');
 
         $list = $history()->assertSee('Material type')->assertSee('Pig Iron')->call('edit', $entry->id)->assertSet('editing', $entry->id)->assertSet('weight', '180');
         $list->set('weight', '150.5')->call('save')->assertSet('editing', null)->assertDispatched('charges-changed')->assertSee('150.500');
@@ -349,7 +349,7 @@ class ChargeScheduleTest extends TestCase
         $history()->call('edit', $entry->id)->set('weight', 'abc')->call('save')->assertSet('problem', 'Enter the weight as a number.');
         $history()->call('edit', $entry->id)->call('cancel')->assertSet('editing', null);
         $this->assertSame(150.5, (float) $entry->fresh()->actual_qty_kg);
-        \Livewire\Livewire::test('heat-charged-metal', ['heatId' => $heat->id])->assertSee('150.5 kg')->dispatch('charges-changed')->assertSee('150.5 kg');
+        \Livewire\Livewire::test('heat-status-board', ['heatId' => $heat->id])->assertSee('150.5')->dispatch('charges-changed')->assertSee('150.5');
     }
 
     public function test_an_entry_is_removed_in_place_and_a_closed_heat_refuses_it(): void
@@ -394,5 +394,27 @@ class ChargeScheduleTest extends TestCase
 
         $heat->update(['blast_on_at' => now()->subHours(2)->subMinutes(20)]);   // blast on at 07:40 wins over the rule
         $this->assertSame('07:40', $due()[1]);
+    }
+
+    public function test_the_status_board_shows_charges_added_the_last_charge_the_metal_charged_and_the_next_charge(): void
+    {
+        $this->travelTo(now()->setTime(10, 0));
+        [$heat, $iron, $coke] = $this->cupola();
+        $coke->update(['material_type' => 'FUEL']);   // fuel is not metal
+        $heat->update(['actual_start_at' => now()->subHours(3), 'blast_on_at' => now()->subHours(2), 'target_metal_weight_kg' => 900]);   // 5 charges of 180 kg, one every 30 minutes
+        $this->charged($heat, $coke, 0, 120, 100);   // the bed, 08:00
+        $this->charged($heat, $iron, 1, 100, 180);   // 08:20
+        $this->charged($heat, $coke, 1, 100, 25);
+        $this->charged($heat, $iron, 2, 70, 180);    // 08:50
+
+        $board = \Livewire\Livewire::test('heat-status-board', ['heatId' => $heat->id]);
+        $board->assertSee('Charges added')->assertSeeInOrder(['Charges added', '2', 'of 5'])->assertSee('Last charge')->assertSeeInOrder(['Last charge', '#2'])
+            ->assertSee('8:50 AM')->assertSeeInOrder(['Metal charged', '360', 'kg'])->assertSee('40%')->assertSee('of the 900 kg target')
+            ->assertSee('Running time')->assertSee('Time remaining');
+
+        // Charge 3 was due at 09:20, so it is due now; once it is in, the last charge moves on and the board follows.
+        $board->assertSee('Charge 3 is due');
+        $this->charged($heat, $iron, 3, 5, 180);
+        $board->dispatch('charges-changed')->assertSeeInOrder(['Charges added', '3', 'of 5'])->assertSeeInOrder(['Last charge', '#3'])->assertSeeInOrder(['Metal charged', '540']);
     }
 }

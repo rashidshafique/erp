@@ -25,22 +25,6 @@
             
         </p>
     </div>
-    @if ($run['running'] || $runMinutes !== null)
-    <div class="heat-clock" aria-label="Furnace timers">
-        <div class="clock-cell" title="Furnace running time for this heat{{ $run['start'] ? ', from '.$run['start']->displayAt() : '' }}">
-            <div class="clock-label">{{ $run['running'] ? 'Running time' : 'Ran for' }}</div>
-            <div class="clock-val" id="heat-run" @if ($run['running']) data-run-since="{{ $run['start']->toIso8601String() }}" @endif>{{ $run['running'] ? \App\Support\Formats::clock((int) $run['start']->diffInSeconds(now(), true)) : \App\Support\Formats::duration($runMinutes) }}</div>
-        </div>
-        @if ($run['running'])
-            <div class="clock-cell clock-eta" id="heat-eta" data-eta-url="{{ route('heats.eta', $heat) }}" @unless ($finish) hidden @endunless
-                title="Estimated finish, from the heat's target metal and the melting rate ({{ $finish['basis'] ?? '' }}). Refreshed every minute.">
-                <div class="clock-label" data-eta-label>{{ ($finish['overdue'] ?? false) ? 'Overdue, was due' : 'Finish ETA' }}</div>
-                <div class="clock-val" data-eta-time>{{ $finish['time'] ?? '' }}</div>
-                <div class="clock-sub" data-eta-in>{{ $finish ? (($finish['overdue'] ?? false) ? '' : 'in '.$finish['in']) : '' }}</div>
-            </div>
-        @endif
-    </div>
-    @endif
     <div class="actions">
         <a class="btn" href="{{ route('heats.index') }}">Back to heats</a>
         @if (! in_array($heat->status, ['CLOSED', 'CANCELLED'], true))
@@ -50,14 +34,6 @@
     </div>
 </div>
 <style>
-    .heat-clock { display: flex; gap: 0; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); margin-left: auto; margin-right: 16px; align-self: center; }
-    .clock-cell { padding: 8px 20px; min-width: 150px; }
-    .clock-cell + .clock-cell { border-left: 1px solid var(--border); }
-    .clock-label { font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
-    .clock-val { font: 700 30px/1.15 ui-monospace, SFMono-Regular, Menlo, monospace; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
-    .clock-eta .clock-val { color: #b54708; }
-    .clock-sub { font-size: 12px; color: var(--muted); min-height: 15px; }
-    @media (max-width: 900px) { .heat-clock { order: 3; margin: 8px 0 0; width: 100%; } .clock-cell { flex: 1; min-width: 0; } }
     .link-btn { appearance: none; border: 0; background: transparent; padding: 0 0 0 6px; font: inherit; font-size: 12px; font-weight: 600; color: var(--accent); cursor: pointer; }
     .link-btn:hover { text-decoration: underline; }
     .heat-title { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
@@ -66,17 +42,6 @@
 </style>
 <script>
 (function () {
-    var run = document.getElementById('heat-run'), eta = document.getElementById('heat-eta');
-    function pad(n) { return String(n).padStart(2, '0'); }
-    // Running time: counted in the browser from the start time, so it moves every second without asking the server.
-    if (run && run.dataset.runSince) {
-        var since = new Date(run.dataset.runSince);
-        (function tick() {
-            var s = Math.max(0, Math.floor((Date.now() - since) / 1000));
-            run.textContent = Math.floor(s / 3600) + ':' + pad(Math.floor(s / 60) % 60) + ':' + pad(s % 60);
-            setTimeout(tick, 1000 - (Date.now() % 1000));
-        })();
-    }
     // Target metal: the figure turns into a small form in place.
     var tView = document.querySelector('[data-target-view]'), tForm = document.querySelector('[data-target-form]');
     if (tView && tForm) {
@@ -94,27 +59,20 @@
             setTimeout(watch, 1000);
         })();
     }
-    // Finish estimate: asked of the server once a minute, since it depends on the metal tapped or poured so far.
-    if (eta) {
-        function refresh() {
-            fetch(eta.dataset.etaUrl, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
-                .then(function (r) { return r.ok ? r.json() : null; })
-                .then(function (d) {
-                    if (!d) return;
-                    if (due && d.charge_due_at) due.dataset.dueAt = d.charge_due_at;
-                    if (!d.running) { location.reload(); return; }
-                    eta.hidden = !d.eta;
-                    if (d.eta) {
-                        eta.querySelector('[data-eta-label]').textContent = d.eta.overdue ? 'Overdue, was due' : 'Finish ETA';
-                        eta.querySelector('[data-eta-time]').textContent = d.eta.time;
-                        eta.querySelector('[data-eta-in]').textContent = d.eta.overdue ? '' : 'in ' + d.eta.in;
-                        eta.title = 'Estimated finish, from the heat\'s target metal and the melting rate (' + d.eta.basis + '). Refreshed every minute.';
-                    }
-                })
-                .catch(function () {});
-        }
-        setInterval(refresh, 60000);
-    }
+    // Once a minute the server is asked when the next charge is due, so the banner follows a changed rate or charge; a heat that has
+    // stopped running reloads the page.
+    @if ($run['running'])
+    setInterval(function () {
+        fetch(@js(route('heats.eta', $heat)), { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (d) {
+                if (!d) return;
+                if (due && d.charge_due_at) due.dataset.dueAt = d.charge_due_at;
+                if (!d.running) location.reload();
+            })
+            .catch(function () {});
+    }, 60000);
+    @endif
 })();
 </script>
 
@@ -156,6 +114,7 @@
     $closedHeat = in_array($heat->status, ['CLOSED', 'CANCELLED'], true);
     $kw = fn ($v, $empty = '—') => $v !== null ? \App\Support\Formats::number((float) $v, 1).' kW' : $empty;
 @endphp
+<livewire:heat-status-board :heat-id="$heat->id" />
 <div class="heat-facts">
     <div class="fact">
         <div class="muted small">Target metal</div>
@@ -171,7 +130,6 @@
             @error('target_metal_weight_kg')<div class="error-text">{{ $message }}</div>@enderror
         @endunless
     </div>
-    <livewire:heat-charged-metal :heat-id="$heat->id" />
     <div class="fact"><div class="muted small">Rated furnace power</div><strong>{{ $kw($heat->furnace?->rated_power_kw) }}</strong></div>
     <div class="fact"><div class="muted small">Furnace operating maximum</div><strong>{{ $kw($heat->furnace?->max_operating_power_kw, 'Not set') }}</strong></div>
     <div class="fact"><div class="muted small">Heat operating limit</div><strong>{{ $kw($heat->operating_power_limit_kw, 'Not set') }}</strong></div>

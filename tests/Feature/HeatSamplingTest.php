@@ -78,6 +78,19 @@ class HeatSamplingTest extends TestCase
         $this->assertStringNotContainsString(now()->displayShortDate().', 2:05 PM', $page->getContent());
     }
 
+    public function test_the_latest_test_comes_first_in_the_lists_and_on_the_status_board(): void
+    {
+        $heat = $this->cupolaHeat();
+        HeatChemistryReading::create(['heat_id' => $heat->id, 'reading_number' => 1, 'carbon_percent' => 3.1, 'silicon_percent' => 1.5, 'carbon_equivalent' => 3.6, 'is_accepted' => true,
+            'tested_at' => now()->subHours(2), 'sample_reference' => 'FIRST']);
+        HeatChemistryReading::create(['heat_id' => $heat->id, 'reading_number' => 2, 'carbon_percent' => 3.42, 'silicon_percent' => 1.85, 'carbon_equivalent' => 4.01, 'is_accepted' => false,
+            'tested_at' => now()->subMinutes(10), 'sample_reference' => 'LATEST']);
+
+        $this->get(route('heats.show', $heat))->assertOk()->assertSeeInOrder(['class="sample-readings"', 'LATEST', 'FIRST'], false);
+        \Livewire\Livewire::test('heat-status-board', ['heatId' => $heat->id])->assertSeeInOrder(['Latest test', 'FAIL', 'C 3.42', 'CE 4.01', 'Si 1.85', 'LATEST'])->assertDontSee('FIRST');
+        \Livewire\Livewire::test('heat-status-board', ['heatId' => $this->cupolaHeat()->id])->assertSee('No test yet');
+    }
+
     public function test_the_next_sample_is_due_after_the_interval_and_overdue_after_it(): void
     {
         PouringRules::set('test_interval_minutes', '30');

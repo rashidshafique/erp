@@ -45,7 +45,7 @@
         .sample-readings td.num, .sample-readings th.num { text-align: right; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; white-space: nowrap; }
     </style>
     <div class="panel-body">
-        <p class="muted small" style="margin-top:0">Thermal analysis and chemistry in the order they were taken.
+        <p class="muted small" style="margin-top:0">Thermal analysis and chemistry, the latest first.
             @if ($heat->isCupola())A cupola is sampled while it melts, so each pour is judged against the sample before it, or the first one after it. A failing sample holds the lots poured in the period it covers.@endif</p>
         @if ($samples->isEmpty())
             <p class="muted">No samples yet.</p>
@@ -53,7 +53,7 @@
             <div class="table-wrap"><table class="sample-readings">
                 <thead><tr><th>Taken</th>@if ($showType)<th>Type</th>@endif<th>Reference</th><th class="num">C %</th><th class="num">CE</th><th class="num">Si %</th><th>Result</th></tr></thead>
                 <tbody>
-                @foreach ($samples as $s)
+                @foreach ($samples->reverse() as $s)
                     <tr>
                         <td>{{ $takenAt($s['at']) }}@if ($heat->first_tap_at)<div class="muted small">{{ (int) $heat->first_tap_at->diffInMinutes($s['at'], false) }} min from first tap</div>@endif</td>
                         @if ($showType)<td>{{ $s['kind'] === 'THERMAL' ? 'Thermal analysis' : 'Chemistry' }}</td>@endif

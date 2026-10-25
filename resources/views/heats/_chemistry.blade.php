@@ -21,7 +21,7 @@
                 @foreach (\App\Services\Quality\ChemistryJudge::COLUMNS as $key => $col)<th>{{ \App\Models\IronGrade::ELEMENTS[$key] }}<div class="muted small">{{ $limitText($key) }}</div></th>@endforeach
                 <th>CE</th><th>Result</th><th></th></tr></thead>
             <tbody>
-            @foreach ($readings as $r)
+            @foreach ($readings->sortByDesc(fn ($r) => $r->tested_at ?? $r->created_at) as $r)
                 @php $v = $judge->judge($grade, $r->only(array_values(\App\Services\Quality\ChemistryJudge::COLUMNS)), $r->carbon_equivalent !== null ? (float) $r->carbon_equivalent : null); @endphp
                 <tr>
                     <td>{{ $r->reading_number }}</td>
