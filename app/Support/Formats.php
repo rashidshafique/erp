@@ -106,6 +106,12 @@ class Formats
         return $d ? self::date($d).' '.self::time($d) : '';
     }
 
+    /** A moment as the heat screens show it: today's as the 12-hour time alone ("2:05 PM"), earlier ones with their date as well. */
+    public static function at(?CarbonInterface $d): string
+    {
+        return $d === null ? '' : ($d->isToday() ? '' : self::shortDate($d).', ').$d->format('g:i A');
+    }
+
     /** Seconds as a running clock, "1:05:09". */
     public static function clock(int $seconds): string
     {
@@ -141,7 +147,7 @@ class Formats
         };
     }
 
-    /** Teaches Carbon the display formats: $date->displayDate(), displayDateTime(), displayTime(), displayShortDate(). */
+    /** Teaches Carbon the display formats: $date->displayDate(), displayDateTime(), displayTime(), displayShortDate(), displayAt(). */
     public static function registerCarbonMacros(): void
     {
         foreach ([Carbon::class, CarbonImmutable::class] as $class) {
@@ -150,6 +156,7 @@ class Formats
             $class::macro('displayTime', fn () => Formats::time($this));
             $class::macro('displayDateTime', fn () => Formats::dateTime($this));
             $class::macro('displayShortDateTime', fn () => Formats::shortDateTime($this));
+            $class::macro('displayAt', fn () => Formats::at($this));
         }
     }
 }

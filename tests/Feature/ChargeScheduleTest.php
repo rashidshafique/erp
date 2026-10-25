@@ -272,7 +272,6 @@ class ChargeScheduleTest extends TestCase
         $this->charged($heat, $iron, 1, 30, 180);
         $entry = HeatMaterialConsumption::where('heat_id', $heat->id)->sole();
 
-        $this->get(route('heats.show', $heat))->assertOk()->assertSee(route('heats.charge-entries.update', [$heat, $entry]), false);
         $this->put(route('heats.charge-entries.update', [$heat, $entry]), ['actual_qty_kg' => 150.5])->assertSessionHasNoErrors();
 
         $entry->refresh();
@@ -298,9 +297,9 @@ class ChargeScheduleTest extends TestCase
 
         $this->artisan('heats:add-due-charges')->assertSuccessful();
         $this->assertSame([0, 2], HeatMaterialConsumption::where('heat_id', $heat->id)->pluck('charge_round')->unique()->sort()->values()->all(), 'The skipped charge stays out; the others come in.');
-        $this->get(route('heats.show', $heat))->assertSee('Removed on purpose')->assertSee(route('heats.charge-rounds.restore', [$heat, 1]), false);
-
-        $this->post(route('heats.charge-rounds.restore', [$heat, 1]))->assertSessionHasNoErrors();
+        $this->get(route('heats.show', $heat))->assertSeeLivewire('heat-skipped-charges');
+        \Livewire\Livewire::test('heat-skipped-charges', ['heatId' => $heat->id])->assertSee('Removed on purpose')->assertSee('Charge 1: restore')->call('restore', 1)
+            ->assertDispatched('charges-changed')->assertDontSee('Removed on purpose');
         $this->artisan('heats:add-due-charges')->assertSuccessful();
         $this->assertTrue(HeatMaterialConsumption::where('heat_id', $heat->id)->where('charge_round', 1)->exists());
         $this->assertSame([], $heat->fresh()->skippedChargeRounds());
@@ -324,6 +323,60 @@ class ChargeScheduleTest extends TestCase
         $this->put(route('heats.charge-entries.update', [$heat, $entry]), ['actual_qty_kg' => 10])->assertSessionHasErrors('actual_qty_kg');
         $this->delete(route('heats.charge-entries.destroy', [$heat, $entry]))->assertSessionHasErrors('actual_qty_kg');
         $this->assertSame(180.0, (float) $entry->fresh()->actual_qty_kg);
-        $this->get(route('heats.show', $heat))->assertOk()->assertDontSee(route('heats.charge-entries.update', [$heat, $entry]), false);
+        \Livewire\Livewire::test('heat-charge-history', ['heatId' => $heat->id])->assertDontSee('click a weight to change it')->assertDontSee('wire:click="edit', false);
+    }
+
+    public function test_a_weight_is_changed_in_place_from_the_charge_history_without_leaving_the_page(): void
+    {
+        $this->actingAs(User::factory()->create(['name' => 'Melter Ali']));
+        [$heat, $iron] = $this->cupola();
+        $this->charged($heat, $iron, 1, 30, 180);
+        $entry = HeatMaterialConsumption::where('heat_id', $heat->id)->sole();
+        $history = fn () => \Livewire\Livewire::test('heat-charge-history', ['heatId' => $heat->id]);
+
+        $this->get(route('heats.show', $heat))->assertOk()->assertSeeLivewire('heat-charge-history')->assertSeeLivewire('heat-charged-metal')->assertSee('click a weight to change it');
+
+        $list = $history()->assertSee('Material type')->assertSee('Pig Iron')->call('edit', $entry->id)->assertSet('editing', $entry->id)->assertSet('weight', '180');
+        $list->set('weight', '150.5')->call('save')->assertSet('editing', null)->assertDispatched('charges-changed')->assertSee('150.500');
+        $this->assertSame([150.5, 7525.0], [(float) $entry->fresh()->actual_qty_kg, (float) $entry->fresh()->actual_total_cost]);
+        $this->assertStringContainsString('Weight changed from 180.000 kg to 150.500 kg by Melter Ali', $entry->fresh()->notes);
+
+        // Enter and the click away both save; the second finds nothing to do.
+        $list->call('save')->assertSet('editing', null);
+        $this->assertSame(150.5, (float) $entry->fresh()->actual_qty_kg);
+
+        $history()->call('edit', $entry->id)->set('weight', '0')->call('save')->assertSet('problem', 'Enter a weight above zero.');
+        $history()->call('edit', $entry->id)->set('weight', 'abc')->call('save')->assertSet('problem', 'Enter the weight as a number.');
+        $history()->call('edit', $entry->id)->call('cancel')->assertSet('editing', null);
+        $this->assertSame(150.5, (float) $entry->fresh()->actual_qty_kg);
+        \Livewire\Livewire::test('heat-charged-metal', ['heatId' => $heat->id])->assertSee('150.5 kg')->dispatch('charges-changed')->assertSee('150.5 kg');
+    }
+
+    public function test_an_entry_is_removed_in_place_and_a_closed_heat_refuses_it(): void
+    {
+        [$heat, $iron] = $this->cupola();
+        $this->charged($heat, $iron, 1, 30, 180);
+        $entry = HeatMaterialConsumption::where('heat_id', $heat->id)->sole();
+
+        \Livewire\Livewire::test('heat-charge-history', ['heatId' => $heat->id])->call('remove', $entry->id)->assertDispatched('charges-changed')
+            ->assertSet('notice', 'Charge entry removed. Charge 1 will not be added automatically; restore it from the Charge tab if it should be.')->assertSee('No actual charge entries');
+        $this->assertSame(0, HeatMaterialConsumption::where('heat_id', $heat->id)->count());
+
+        $this->charged($heat, $iron, 2, 10, 180);
+        $heat->update(['status' => 'CLOSED']);
+        \Livewire\Livewire::test('heat-charge-history', ['heatId' => $heat->id])->call('remove', HeatMaterialConsumption::where('heat_id', $heat->id)->value('id'))
+            ->assertSet('problem', 'Charges cannot be changed on a closed or cancelled heat.');
+        $this->assertSame(1, HeatMaterialConsumption::where('heat_id', $heat->id)->count());
+    }
+
+    public function test_the_heat_page_shows_todays_times_in_12_hours_and_earlier_ones_with_their_date(): void
+    {
+        [$heat, $iron] = $this->cupola();
+        $this->travelTo(now()->setTime(15, 5));
+        $this->charged($heat, $iron, 1, 30, 180);                                                  // 2:35 PM today
+        HeatMaterialConsumption::where('heat_id', $heat->id)->update(['consumed_at' => now()->setTime(14, 35)]);
+        $this->charged($heat, $iron, 2, 60 * 26, 180);                                              // yesterday
+
+        $page = \Livewire\Livewire::test('heat-charge-history', ['heatId' => $heat->id])->assertSee('2:35 PM')->assertSee(now()->subDay()->displayShortDate().', ')->assertDontSee('14:35');
     }
 }

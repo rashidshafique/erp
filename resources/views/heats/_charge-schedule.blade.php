@@ -19,9 +19,9 @@
         @foreach ($shown as $r)
             <tr>
                 <td>{{ $r['round'] === 0 ? 'Start-up (bed)' : 'Charge '.$r['round'] }}</td>
-                <td>{{ $r['due_at']?->format('H:i') ?? '—' }}</td>
+                <td>{{ $r['due_at']?->displayAt() ?? '—' }}</td>
                 <td>
-                    @if ($r['state'] === 'done')<span class="status status-completed">Charged {{ $r['recorded_at']->format('H:i') }}</span>
+                    @if ($r['state'] === 'done')<span class="status status-completed">Charged {{ $r['recorded_at']->displayAt() }}</span>
                     @elseif ($r['state'] === 'due')<span class="status status-in-progress">Due{{ $r['minutes'] !== null && $r['minutes'] < 0 ? ', '.abs($r['minutes']).' min ago' : ' now' }}</span>
                     @elseif ($r['state'] === 'upcoming')<span class="status">in {{ \App\Support\Formats::duration($r['minutes']) }}</span>
                     @elseif ($r['state'] === 'projected')<span class="muted small">projected, counted from the charge before</span>

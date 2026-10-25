@@ -5,7 +5,7 @@
     $showType = false;   // the Type column (thermal or chemistry) is hidden for now; switch on to show it again
     $reading = fn (?float $v) => $v === null ? '—' : \App\Support\Formats::number($v, 2);
     // Today's samples show the time alone, 12-hour; earlier ones show their date as well.
-    $takenAt = fn ($at) => $at->isToday() ? $at->format('g:i A') : $at->displayShortDate().', '.$at->format('g:i A');
+    $takenAt = fn ($at) => $at->displayAt();
     $badge = ['PASS' => ['status-completed', 'PASS'], 'FAIL' => ['status-cancelled', 'FAIL'], 'UNJUDGED' => ['', 'NOT JUDGED']];
 @endphp
 <div class="panel" id="sampling">

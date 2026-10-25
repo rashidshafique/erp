@@ -26,7 +26,7 @@
                 <tr>
                     <td>{{ $r->reading_number }}</td>
                     <td>{{ str_replace('_', ' ', $r->sample_stage) }}<div class="muted small">{{ $r->sample_reference }}</div></td>
-                    <td>{{ $r->tested_at?->displayShortDateTime() }}<div class="muted small">{{ $r->tested_by }}</div></td>
+                    <td>{{ $r->tested_at?->displayAt() }}<div class="muted small">{{ $r->tested_by }}</div></td>
                     @foreach (\App\Services\Quality\ChemistryJudge::COLUMNS as $key => $col)<td>{{ $r->$col !== null ? rtrim(rtrim(\App\Support\Formats::number((float) $r->$col, 3), '0'), '.') : '—' }}</td>@endforeach
                     <td>{{ $r->carbon_equivalent !== null ? \App\Support\Formats::number((float) $r->carbon_equivalent, 2) : '—' }}</td>
                     <td>

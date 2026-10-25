@@ -27,7 +27,7 @@
     </div>
     @if ($run['running'] || $runMinutes !== null)
     <div class="heat-clock" aria-label="Furnace timers">
-        <div class="clock-cell" title="Furnace running time for this heat{{ $run['start'] ? ', from '.$run['start']->displayDateTime() : '' }}">
+        <div class="clock-cell" title="Furnace running time for this heat{{ $run['start'] ? ', from '.$run['start']->displayAt() : '' }}">
             <div class="clock-label">{{ $run['running'] ? 'Running time' : 'Ran for' }}</div>
             <div class="clock-val" id="heat-run" @if ($run['running']) data-run-since="{{ $run['start']->toIso8601String() }}" @endif>{{ $run['running'] ? \App\Support\Formats::clock((int) $run['start']->diffInSeconds(now(), true)) : \App\Support\Formats::duration($runMinutes) }}</div>
         </div>
@@ -122,7 +122,7 @@
     @include('partials.record-test-dialog', ['id' => 'qd-record-test', 'heat' => $heat])
 @endunless
 @if ($heat->hold_reason)
-    <div class="alert alert-error"><strong>{{ $heat->lightLabel() }}</strong> since {{ $heat->held_at?->displayDateTime() }}: {{ $heat->hold_note }}
+    <div class="alert alert-error"><strong>{{ $heat->lightLabel() }}</strong> since {{ $heat->held_at?->displayAt() }}: {{ $heat->hold_note }}
         <form method="POST" action="{{ route('heats.resume', $heat) }}" style="display:inline">@csrf<button class="btn" type="submit">Take off hold</button></form></div>
 @elseif (! in_array($heat->status, ['CLOSED', 'CANCELLED'], true))
     @include('partials.quick-dialog', ['id' => 'qd-hold', 'title' => 'Put heat '.$heat->heat_number.' on hold', 'action' => route('heats.hold', $heat), 'submit' => 'Put on hold', 'fields' => 'heats._quick-hold'])
@@ -132,7 +132,7 @@
 @if ($nextCharge && $nextCharge['state'] !== 'waiting' && ! $heat->hold_reason && ! in_array($heat->status, ['CLOSED', 'CANCELLED'], true))
     <div class="alert alert-warning" id="charge-due" data-due-at="{{ $nextCharge['due_at']?->toIso8601String() }}" @if ($nextCharge['state'] !== 'due') hidden @endif>
         <strong>{{ $nextCharge['round'] === 0 ? 'The start-up charge is due' : 'Charge '.$nextCharge['round'].' is due' }}</strong>
-        (scheduled {{ $nextCharge['due_at']?->format('H:i') }}): {{ $dueLines }}.
+        (scheduled {{ $nextCharge['due_at']?->displayAt() }}): {{ $dueLines }}.
         <form method="POST" action="{{ route('heats.charge-rounds.confirm', $heat) }}" style="display:inline">@csrf
             <button class="btn btn-primary" type="submit" title="Records these weights from the recipe, with the oldest accepted lot of each material, as charged now">Confirm {{ $nextCharge['round'] === 0 ? 'start-up charge' : 'charge '.$nextCharge['round'] }} from the recipe</button></form>
         @if (($pastCount ?? 0) >= 2)
@@ -154,9 +154,6 @@
 
 @php
     $closedHeat = in_array($heat->status, ['CLOSED', 'CANCELLED'], true);
-    $chargedMetal = $heat->chargedMetalKg();
-    $plannedCharges = $heat->chargeRounds();
-    $doneCharges = $heat->materialConsumptions->where('charge_round', '>', 0)->pluck('charge_round')->unique()->count();
     $kw = fn ($v, $empty = '—') => $v !== null ? \App\Support\Formats::number((float) $v, 1).' kW' : $empty;
 @endphp
 <div class="heat-facts">
@@ -174,12 +171,7 @@
             @error('target_metal_weight_kg')<div class="error-text">{{ $message }}</div>@enderror
         @endunless
     </div>
-    <div class="fact" title="Worked out from the charges recorded on the Charge tab: metal materials only">
-        <div class="muted small">Metal charged</div>
-        <strong>{{ $chargedMetal > 0 ? \App\Support\Formats::number($chargedMetal, 1).' kg' : '—' }}</strong>
-        @if ($chargedMetal > 0 && $heat->target_metal_weight_kg > 0)<span class="muted small"> · {{ \App\Support\Formats::number($chargedMetal / (float) $heat->target_metal_weight_kg * 100, 0) }}% of target</span>@endif
-        @if ($heat->chargeBatch)<div class="muted small">{{ $doneCharges }} of {{ $plannedCharges }} {{ $plannedCharges === 1 ? 'charge' : 'charges' }}</div>@endif
-    </div>
+    <livewire:heat-charged-metal :heat-id="$heat->id" />
     <div class="fact"><div class="muted small">Rated furnace power</div><strong>{{ $kw($heat->furnace?->rated_power_kw) }}</strong></div>
     <div class="fact"><div class="muted small">Furnace operating maximum</div><strong>{{ $kw($heat->furnace?->max_operating_power_kw, 'Not set') }}</strong></div>
     <div class="fact"><div class="muted small">Heat operating limit</div><strong>{{ $kw($heat->operating_power_limit_kw, 'Not set') }}</strong></div>
@@ -192,9 +184,6 @@
 
 <div class="tab-marker" data-tab-start="Overview"></div>
 <style>
-    .entry-edit { display: inline-block; position: relative; vertical-align: middle; }
-    .entry-edit > summary { list-style: none; }
-    .entry-edit[open] > form { position: absolute; right: 0; top: 30px; z-index: 5; width: 220px; padding: 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); box-shadow: 0 8px 24px rgb(15 23 42 / 18%); display: grid; gap: 6px; }
     .addback { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; margin: 4px 0 14px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--hover, #f7f8fa); }
     .heat-overview { display: grid; grid-template-columns: minmax(0, 1fr) 500px; gap: 16px; align-items: start; }
     .heat-overview > div { display: grid; gap: 16px; min-width: 0; }
@@ -356,7 +345,7 @@
                 <div>
                     <strong>Add back charges</strong>
                     <div class="muted small">
-                        From the start ({{ $heat->actual_start_at->displayDateTime() }})
+                        From the start ({{ $heat->actual_start_at->displayAt() }})
                         @if ($schedule['interval_minutes']) at the furnace's {{ $schedule['rate']['label'] ?? 'speed' }}: a charge of {{ \App\Support\Formats::number($schedule['metal_per_round_kg'], 0) }} kg every {{ $schedule['interval_minutes'] }} min.@else the furnace speed is not set, so charge times cannot be worked out.@endif
                         @if (\App\Support\PouringRules::autoCharges()) <em>Charges are also added automatically every minute as they come due.</em>@endif
                         @if ($pastCount > 0) {{ $pastCount }} {{ $pastCount === 1 ? 'charge has' : 'charges have' }} come due and {{ $pastCount === 1 ? 'is' : 'are' }} not recorded.@else Every charge that has come due is recorded.@endif
@@ -370,13 +359,7 @@
             </div>
             @error('charge_round')<div class="alert alert-error">{{ $message }}</div>@enderror
         @endif
-        @if ($heat->skippedChargeRounds() !== [] && ! $closedHeat)
-            <p class="small" style="margin:0 0 14px">Removed on purpose, so not added automatically:
-                @foreach ($heat->skippedChargeRounds() as $skippedRound)
-                    <form method="POST" action="{{ route('heats.charge-rounds.restore', [$heat, $skippedRound]) }}" style="display:inline">@csrf<button class="btn btn-small" type="submit" title="Put it back on the schedule">{{ $skippedRound === 0 ? 'Start-up charge' : 'Charge '.$skippedRound }}: restore</button></form>
-                @endforeach
-            </p>
-        @endif
+        <livewire:heat-skipped-charges :heat-id="$heat->id" />
         <p class="muted small">The recipe quantities are filled in. Change a weight if it was different, then record. The oldest accepted lot of each material is used unless you pick another.</p>
         <form method="POST" action="{{ route('heats.charge-rounds.store', $heat) }}">
             @csrf
@@ -527,62 +510,8 @@
     </div>
 </div>
 
-@php $canChangeEntries = ! $closedHeat && ! $chargeIsPosted; @endphp
 @error('actual_qty_kg')<div class="alert alert-error">{{ $message }}</div>@enderror
-<div class="panel">
-    <div class="panel-header">
-        <h2>Actual charge history</h2>
-        <span class="muted small">{{ $heat->materialConsumptions->count() }} entries</span>
-    </div>
-    <div class="table-wrap">
-        <table>
-            <thead>
-                <tr>
-                    <th>#</th><th>Type</th><th>Material</th><th>Lot / reference</th>
-                    <th>Round</th><th>Quantity kg</th><th>Cost PKR/kg</th><th>Total cost PKR</th>
-                    <th>Recorded at</th><th>Operator</th>@if ($canChangeEntries)<th></th>@endif
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($heat->materialConsumptions as $entry)
-                    @php
-                        $entryUnitCost = $entry->actual_qty_kg > 0
-                            ? (float) $entry->actual_total_cost / (float) $entry->actual_qty_kg
-                            : null;
-                    @endphp
-                    <tr>
-                        <td>{{ $entry->sequence }}</td>
-                        <td>{{ str_replace('_', ' ', $entry->consumption_type) }}</td>
-                        <td>{{ $entry->material?->code }} — {{ $entry->material?->name }}</td>
-                        <td>{{ $entry->materialLot?->lot_number ?? $entry->source_reference ?? '—' }}</td>
-                        <td>{{ $entry->charge_round === null ? '—' : ($entry->charge_round === 0 ? 'Start-up' : $entry->charge_round) }}</td>
-                        <td>{{ \App\Support\Formats::number((float) $entry->actual_qty_kg, 3) }}</td>
-                        <td>{{ $entryUnitCost !== null ? \App\Support\Formats::number($entryUnitCost, 4) : '—' }}</td>
-                        <td>{{ \App\Support\Formats::number((float) $entry->actual_total_cost, 2) }}</td>
-                        <td>{{ $entry->consumed_at?->displayDateTime() ?? '—' }}</td>
-                        <td>{{ $entry->recorded_by }}</td>
-                        @if ($canChangeEntries)
-                            <td style="white-space:nowrap">
-                                <details class="entry-edit"><summary class="icon-btn icon-btn-edit" title="Change the weight" aria-label="Change the weight of {{ $entry->material?->name }}">{!! \App\Support\NavIcons::get('pencil', 16) !!}</summary>
-                                    <form method="POST" action="{{ route('heats.charge-entries.update', [$heat, $entry]) }}">@csrf @method('PUT')
-                                        <label class="small muted" for="qty-{{ $entry->id }}">{{ $entry->material?->name }}, kg</label>
-                                        <input id="qty-{{ $entry->id }}" name="actual_qty_kg" type="number" step="any" min="0.001" required value="{{ rtrim(rtrim((string) $entry->actual_qty_kg, '0'), '.') }}">
-                                        <button class="btn btn-small btn-primary" type="submit">Save</button>
-                                    </form>
-                                </details>
-                                <form method="POST" action="{{ route('heats.charge-entries.destroy', [$heat, $entry]) }}" style="display:inline">@csrf @method('DELETE')
-                                    @include('partials.icon-button', ['type' => 'delete', 'name' => $entry->material?->name, 'confirm' => 'Remove '.($entry->material?->name ?? 'this entry').' ('.\App\Support\Formats::number((float) $entry->actual_qty_kg, 3).' kg) from the charges?'])
-                                </form>
-                            </td>
-                        @endif
-                    </tr>
-                @empty
-                    <tr><td colspan="{{ $canChangeEntries ? 11 : 10 }}" class="muted">No actual charge entries recorded yet.</td></tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
-</div>
+<livewire:heat-charge-history :heat-id="$heat->id" />
 @if(!in_array($heat->status, ['CLOSED', 'CANCELLED'], true))
     <div class="panel">
         <div class="panel-header">
@@ -822,7 +751,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     @forelse($heat->powerReadings as $reading)
                         <tr>
                             <td>{{ $reading->reading_number }}</td>
-                            <td>{{ $reading->recorded_at?->displayDateTime() }}</td>
+                            <td>{{ $reading->recorded_at?->displayAt() }}</td>
                             <td>
                                 {{ $reading->actual_power_kw !== null
                                     ? \App\Support\Formats::number((float) $reading->actual_power_kw, 3).' kW'
@@ -867,7 +796,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     @forelse($heat->processReadings as $reading)
                         <tr>
                             <td>{{ $reading->reading_number }}</td>
-                            <td>{{ $reading->recorded_at?->displayDateTime() }}</td>
+                            <td>{{ $reading->recorded_at?->displayAt() }}</td>
                             <td>{{ $reading->parameter_code }}</td>
                             <td>{{ $reading->numeric_value }} {{ $reading->unit }}</td>
                             <td>{{ $reading->recorded_by }}</td>

@@ -19,7 +19,7 @@
             <thead><tr><th>Date</th><th>Kind</th><th>Sample</th><th>Results</th><th>Result</th></tr></thead>
             <tbody>
             @foreach ($sets as $s)
-                <tr><td>{{ $s->taken_at->displayShortDateTime() }}</td><td>{{ $s->kind }}</td>
+                <tr><td>{{ $s->taken_at->displayAt() }}</td><td>{{ $s->kind }}</td>
                     <td>{{ $s->sample_reference }}<div class="muted small">{{ \App\Services\Quality\Measurements::SAMPLE_TYPES[$s->sample_type] ?? '' }}</div></td>
                     <td>@foreach ($s->measurements as $m){{ $m->name }}: <strong>{{ $m->value !== null ? rtrim(rtrim(number_format($m->value, 4, '.', ''), '0'), '.') : $m->text_value }}</strong> {{ $m->unit }}@if($m->passed === false) <span style="color:var(--danger)">✘</span>@elseif($m->passed) ✔@endif<br>@endforeach</td>
                     <td><span class="status {{ $s->result === 'PASS' ? 'status-completed' : ($s->result === 'FAIL' ? 'status-cancelled' : '') }}">{{ $s->result }}</span></td></tr>
