@@ -126,7 +126,7 @@
     @unless ($order->hasApprovedReview())<div class="panel-body muted small">Production orders can be created once the contract review is approved by both sales and quality.</div>@endunless
 </div>
 
-<div class="tab-marker" data-tab-start="Contract review"></div>
+<div class="tab-marker" data-tab-start="Contract review" data-tab-warn="{{ $review ? $review->items->where('severity', 'WARN')->whereNull('acknowledgement')->count() : 0 }}" data-tab-block="{{ $review ? $review->items->where('severity', 'BLOCK')->count() : 0 }}"></div>
 <div class="panel">
     <div class="panel-header">
         <h2>Contract review{{ $review ? ' '.$review->review_number : '' }}</h2>

@@ -1,11 +1,15 @@
 {{-- Turns long detail pages into tabs. A page opts in by dropping <div class="tab-marker" data-tab-start="Name"></div>
-     in front of each section; everything up to the next marker belongs to that tab. Alerts always stay on top. --}}
+     in front of each section; everything up to the next marker belongs to that tab. Alerts always stay on top.
+     Optional data-tab-warn / data-tab-block counts show as yellow / red badges on the tab. --}}
 <style>
     .tabbar { display: flex; gap: 2px; flex-wrap: wrap; border-bottom: 2px solid var(--border); margin: 6px 0 18px; position: sticky; top: 0; background: var(--page); z-index: 5; padding-top: 4px; }
     .tabbar button { appearance: none; border: 0; background: transparent; padding: 10px 16px; font: inherit; font-weight: 600; color: var(--muted); cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; border-radius: 6px 6px 0 0; }
     .tabbar button:hover { color: var(--text); background: var(--surface); }
     .tabbar button[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); background: var(--surface); }
     .tabbar button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+    .tab-count { display: inline-block; min-width: 18px; margin-left: 6px; padding: 0 6px; border-radius: 999px; font-size: 11px; line-height: 1.6; text-align: center; color: #fff; }
+    .tab-count-warn { background: #d4a017; color: #3d2c00; }
+    .tab-count-block { background: var(--danger); }
     .tab-pane[hidden] { display: none; }
     @media print { .tabbar { display: none; } .tab-pane[hidden] { display: block; } }
 </style>
@@ -29,6 +33,13 @@
             pane.className = 'tab-pane'; pane.setAttribute('role', 'tabpanel'); pane.hidden = true;
             var btn = document.createElement('button');
             btn.type = 'button'; btn.setAttribute('role', 'tab'); btn.textContent = name;
+            [['data-tab-warn', 'warn', 'Warnings'], ['data-tab-block', 'block', 'Blocks']].forEach(function (c) {
+                var n = parseInt(el.getAttribute(c[0]), 10);
+                if (!n) return;
+                var b = document.createElement('span');
+                b.className = 'tab-count tab-count-' + c[1]; b.title = c[2]; b.textContent = n;
+                btn.appendChild(b);
+            });
             current = { name: name, pane: pane, btn: btn, slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-') };
             tabs.push(current); nav.appendChild(btn);
             return;
