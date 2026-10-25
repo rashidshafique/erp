@@ -14,10 +14,12 @@
             ? ['#d93025', '217,48,37', $reviewBlocks.' blocked in the contract review']
             : ($reviewWarns > 0
                 ? ['#f29900', '242,153,0', $reviewWarns.' '.($reviewWarns === 1 ? 'warning' : 'warnings').' in the contract review']
-                : ['#1e8e3e', '30,142,62', 'Contract review is clear']);
+                : ($review->status === 'APPROVED'
+                    ? ['#1e8e3e', '30,142,62', 'Contract review approved by sales and quality']
+                    : ['#1e8e3e', '30,142,62', 'Contract review is clear, waiting for sign-off by '.collect(['sales' => $review->sales_signed_at, 'quality' => $review->quality_signed_at])->filter(fn ($signed) => ! $signed)->keys()->implode(' and '), true]));
     }
 @endphp
-<div><h1>{{ $order->order_number }}@if ($reviewLight)<span class="heat-light" title="{{ $reviewLight[2] }}" aria-label="{{ $reviewLight[2] }}" style="--hl:{{ $reviewLight[0] }};--hl-rgb:{{ $reviewLight[1] }};margin-left:8px"></span>@endif</h1><p>{{ $order->customer?->code }} — {{ $order->customer?->name }}</p></div>
+<div><h1>{{ $order->order_number }}@if ($reviewLight)<span class="heat-light" title="{{ $reviewLight[2] }}" aria-label="{{ $reviewLight[2] }}" style="--hl:{{ $reviewLight[0] }};--hl-rgb:{{ $reviewLight[1] }};margin-left:8px;{{ ($reviewLight[3] ?? false) ? 'opacity:.4;box-shadow:none' : '' }}"></span>@endif</h1><p>{{ $order->customer?->code }} — {{ $order->customer?->name }}</p></div>
     <div class="actions">
         @if (in_array($order->status, \App\Domains\Sales\Models\SalesOrder::OPEN, true))<a class="btn" href="{{ route('sales-orders.edit', $order) }}">Edit</a>@endif
         <a class="btn" href="{{ route('sales-orders.trace', $order) }}">Trace to dispatch</a>
