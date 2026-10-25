@@ -16,6 +16,11 @@
 @endphp
 <style>
     .made-on { display: grid; gap: 10px; }
+    @media (min-width: 1024px) { .made-on { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; } .made-on .made-on { grid-template-columns: minmax(0, 1fr); } }
+    .made-on .mo-row { position: relative; }
+    .made-on .mo-row:hover { border-color: var(--accent, var(--border)); }
+    .made-on .mo-name a::after { content: ''; position: absolute; inset: 0; border-radius: 10px; }
+    .made-on .mo-photo { position: relative; z-index: 1; }
     .made-on .mo-row { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: 12px 16px; align-items: center; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; }
     .made-on .mo-row.old { opacity: .75; }
     .made-on .mo-photo { width: 56px; height: 56px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--muted); }
@@ -37,6 +42,7 @@
         @else
             <div class="made-on">
                 @foreach ($patterns as $revisions)
+                    <div class="mo-item">
                     @include('products._made-on-row', ['g' => $revisions->first()])
                     @if ($revisions->count() > 1)
                         <details class="mo-earlier">
@@ -48,6 +54,7 @@
                             </div>
                         </details>
                     @endif
+                    </div>
                 @endforeach
             </div>
         @endif

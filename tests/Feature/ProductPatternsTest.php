@@ -31,7 +31,8 @@ class ProductPatternsTest extends TestCase
             ->assertSee('<a href="'.route('patterns.show', $pattern).'">Valve body plate</a>', false)
             ->assertSee(route('patterns.show', $pattern).'#cavities-'.$current->id, false)
             ->assertSeeInOrder(['P-0123 Rev 1', 'Current', '3 cavities', '<strong>3</strong>per mould', '1 earlier revision', 'P-0123 Rev 0', 'Superseded'], false)
-            ->assertSee('<details class="mo-earlier">', false);
+            ->assertSee('<details class="mo-earlier">', false)
+            ->assertSee('<div class="mo-item">', false);
     }
 
     public function test_a_pattern_with_one_revision_has_nothing_folded(): void
