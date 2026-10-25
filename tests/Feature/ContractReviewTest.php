@@ -42,6 +42,20 @@ class ContractReviewTest extends TestCase
         return $review->items->where('severity', $sev)->pluck('check_code')->all();
     }
 
+    public function test_order_is_flagged_as_changed_only_after_an_edit_or_line_change_following_the_review(): void
+    {
+        $order = $this->order();
+        $review = app(ContractReviewer::class)->evaluate($order);
+        $this->assertFalse($order->changedSince($review));
+
+        $order->update(['status' => 'CONFIRMED']);
+        $this->assertFalse($order->changedSince($review), 'A status change is not a content change.');
+
+        $this->travel(5)->minutes();
+        $order->lines()->first()->update(['ordered_qty' => 120]);
+        $this->assertTrue($order->changedSince($review));
+    }
+
     public function test_clean_order_passes_with_expected_warnings_only(): void
     {
         $review = app(ContractReviewer::class)->evaluate($this->order());

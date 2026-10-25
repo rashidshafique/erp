@@ -149,6 +149,9 @@
         <h2>Contract review{{ $review ? ' '.$review->review_number : '' }}</h2>
         @if ($review)@php $openWarns = $review->items->where('severity', 'WARN')->whereNull('acknowledgement')->count(); @endphp<span>@if (($n = $review->items->where('severity', 'BLOCK')->count()) > 0)<span class="nav-count" style="float:none" title="Blocks">{{ $n }} blocked</span> @endif @if ($openWarns > 0)<span class="nav-count" style="float:none" title="Warnings not yet acknowledged">{{ $openWarns }} {{ $openWarns === 1 ? 'warning' : 'warnings' }}</span> @endif<span class="status {{ $review->status === 'APPROVED' ? 'status-completed' : ($review->verdict === 'BLOCK' ? 'status-cancelled' : 'status-on-hold') }}">{{ $review->status }} · {{ $review->verdict }}</span></span>@endif
     </div>
+    @if ($review && $order->changedSince($review))
+        <div class="alert alert-warning" style="margin:12px">This order was changed after the last contract review ({{ $review->evaluated_at->displayDateTime() }}). Re-run the review to check the changes.</div>
+    @endif
     @if (! $review)
         <div class="empty-state">No review yet. Run the contract review to check the order against specifications, customer requirements, grade, furnaces, thermal window, pattern and control plan.</div>
     @else

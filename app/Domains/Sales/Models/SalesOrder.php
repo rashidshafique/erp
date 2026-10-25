@@ -2,6 +2,7 @@
 
 namespace App\Domains\Sales\Models;
 
+use App\Models\AuditLog;
 use App\Models\Customer;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -64,6 +65,19 @@ class SalesOrder extends Model
     public function currentReview(): ?ContractReview
     {
         return $this->contractReviews()->where('status', '!=', 'SUPERSEDED')->orderByDesc('review_number')->first();
+    }
+
+    /**
+     * True when the order was edited, or a line or delivery was added or changed, after the review was run.
+     * Status changes do not count.
+     */
+    public function changedSince(ContractReview $review): bool
+    {
+        $since = $review->evaluated_at;
+
+        return AuditLog::where('entity_type', 'SalesOrder')->where('entity_id', $this->id)->where('action', 'EDITED')->where('occurred_at', '>', $since)->exists()
+            || $this->lines()->where('updated_at', '>', $since)->exists()
+            || SalesOrderLineDelivery::whereIn('sales_order_line_id', $this->lines()->select('id'))->where('updated_at', '>', $since)->exists();
     }
 
     public function hasApprovedReview(): bool
