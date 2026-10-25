@@ -55,6 +55,11 @@
     <div class="metric"><div class="metric-label">Customer reference</div><div class="metric-value" style="font-size:21px">{{ $order->customer_reference ?: '—' }}</div></div>
 </div>
 
+@if ($review && $order->changedSince($review))
+    <form method="POST" action="{{ route('sales-orders.review', $order) }}">@csrf
+        <button type="submit" class="alert alert-warning" style="display:block;width:100%;text-align:left;font:inherit;cursor:pointer" title="Re-run the contract review">This order was changed after the last contract review ({{ $review->evaluated_at->displayDateTime() }}). <strong>Click here to re-run the review.</strong></button></form>
+@endif
+
 <div class="tab-marker" data-tab-start="Lines"></div>
 <div class="panel">
     <div class="panel-header"><h2>Lines and delivery schedule</h2></div>
@@ -149,9 +154,6 @@
         <h2>Contract review{{ $review ? ' '.$review->review_number : '' }}</h2>
         @if ($review)@php $openWarns = $review->items->where('severity', 'WARN')->whereNull('acknowledgement')->count(); @endphp<span>@if (($n = $review->items->where('severity', 'BLOCK')->count()) > 0)<span class="nav-count" style="float:none" title="Blocks">{{ $n }} blocked</span> @endif @if ($openWarns > 0)<span class="nav-count" style="float:none" title="Warnings not yet acknowledged">{{ $openWarns }} {{ $openWarns === 1 ? 'warning' : 'warnings' }}</span> @endif<span class="status {{ $review->status === 'APPROVED' ? 'status-completed' : ($review->verdict === 'BLOCK' ? 'status-cancelled' : 'status-on-hold') }}">{{ $review->status }} · {{ $review->verdict }}</span></span>@endif
     </div>
-    @if ($review && $order->changedSince($review))
-        <div class="alert alert-warning" style="margin:12px">This order was changed after the last contract review ({{ $review->evaluated_at->displayDateTime() }}). Re-run the review to check the changes.</div>
-    @endif
     @if (! $review)
         <div class="empty-state">No review yet. Run the contract review to check the order against specifications, customer requirements, grade, furnaces, thermal window, pattern and control plan.</div>
     @else
