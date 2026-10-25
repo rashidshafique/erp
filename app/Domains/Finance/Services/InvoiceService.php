@@ -2,12 +2,16 @@
 
 namespace App\Domains\Finance\Services;
 
+use App\Domains\Core\Contracts\TaxCalculator;
+use App\Domains\Core\Tax\TaxContext;
+use App\Domains\Core\Tax\TaxLine;
 use App\Domains\Dispatch\Models\Dispatch;
 use App\Domains\Finance\Models\Invoice;
 use App\Domains\Finance\Models\InvoiceLine;
 use App\Domains\Finance\Models\TaxRate;
 use App\Models\Customer;
 use App\Domains\Sales\Models\SalesOrder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -45,13 +49,18 @@ class InvoiceService
             }
 
             $rates = TaxRate::whereIn('id', array_filter(array_column($lines, 'tax_rate_id')))->get()->keyBy('id');
+            $taxLines = array_map(fn ($l) => new TaxLine(
+                round(round((float) $l['quantity'], 3) * round((float) $l['unit_price'], 4), 2),
+                (float) ($rates[$l['tax_rate_id'] ?? null]->rate_percent ?? 0),
+            ), $lines);
+            $taxes = app(TaxCalculator::class)->calculate(new TaxContext(TaxContext::SALE, Carbon::parse($head['invoice_date']), $customer->party_id), $taxLines);
             [$subtotal, $tax] = [0.0, 0.0];
             foreach ($lines as $i => $l) {
                 $qty = round((float) $l['quantity'], 3);
                 $price = round((float) $l['unit_price'], 4);
-                $percent = (float) ($rates[$l['tax_rate_id'] ?? null]->rate_percent ?? 0);
-                $net = round($qty * $price, 2);
-                $lineTax = round($net * $percent / 100, 2);
+                $percent = $taxes->chargedRate($i);
+                $net = $taxLines[$i]->net;
+                $lineTax = $taxes->charged($i);
                 InvoiceLine::create([
                     'invoice_id' => $invoice->id, 'line_number' => $i + 1, 'description' => trim($l['description']), 'quantity' => $qty, 'uom' => $l['uom'] ?? null,
                     'unit_price' => $price, 'tax_rate_id' => $l['tax_rate_id'] ?? null, 'tax_percent' => $percent, 'line_net' => $net, 'line_tax' => $lineTax,

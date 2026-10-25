@@ -2,6 +2,9 @@
 
 namespace App\Domains\Purchasing\Services;
 
+use App\Domains\Core\Contracts\TaxCalculator;
+use App\Domains\Core\Tax\TaxContext;
+use App\Domains\Core\Tax\TaxLine;
 use App\Domains\Purchasing\Models\PurchaseOrder;
 use App\Domains\Purchasing\Models\PurchaseOrderLine;
 use App\Domains\Purchasing\Models\Supplier;
@@ -10,6 +13,7 @@ use App\Models\MaterialLot;
 use App\Notifications\AppNotice;
 use App\Services\Notifications\Notify;
 use App\Support\Formats;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -36,7 +40,7 @@ class PurchaseOrderService
             throw new InvalidArgumentException("{$supplier->name} is ".strtolower(Supplier::STATUSES[$supplier->approval_status]).' and cannot be ordered from.');
         }
 
-        return DB::transaction(function () use ($head, $lines, $order) {
+        return DB::transaction(function () use ($head, $lines, $order, $supplier) {
             $head += ['order_date' => today()->toDateString(), 'currency' => Formats::all()['currency']];
             if ($order === null) {
                 $order = PurchaseOrder::create($head + ['status' => 'DRAFT']);
@@ -44,16 +48,23 @@ class PurchaseOrderService
                 $order->update($head);
                 $order->lines()->delete();
             }
-            [$subtotal, $tax] = [0.0, 0.0];
             foreach ($lines as $i => $l) {
-                $qty = round((float) ($l['ordered_qty'] ?? 0), 3);
-                if ($qty <= 0) {
+                if (round((float) ($l['ordered_qty'] ?? 0), 3) <= 0) {
                     throw new InvalidArgumentException('Line '.($i + 1).' needs a quantity.');
                 }
+            }
+            $taxLines = array_map(fn ($l) => new TaxLine(
+                round(round((float) $l['ordered_qty'], 3) * round((float) ($l['unit_price'] ?? 0), 4), 2),
+                round((float) ($l['tax_percent'] ?? 0), 3),
+            ), $lines);
+            $taxes = app(TaxCalculator::class)->calculate(new TaxContext(TaxContext::PURCHASE, Carbon::parse($head['order_date']), $supplier->party_id), $taxLines);
+            [$subtotal, $tax] = [0.0, 0.0];
+            foreach ($lines as $i => $l) {
+                $qty = round((float) $l['ordered_qty'], 3);
                 $price = round((float) ($l['unit_price'] ?? 0), 4);
-                $percent = round((float) ($l['tax_percent'] ?? 0), 3);
-                $net = round($qty * $price, 2);
-                $lineTax = round($net * $percent / 100, 2);
+                $percent = $taxes->chargedRate($i);
+                $net = $taxLines[$i]->net;
+                $lineTax = $taxes->charged($i);
                 $order->lines()->create([
                     'line_number' => $i + 1, 'material_id' => ($l['material_id'] ?? null) ?: null, 'description' => trim($l['description']), 'ordered_qty' => $qty,
                     'uom' => $l['uom'] ?? null, 'unit_price' => $price, 'tax_percent' => $percent, 'line_net' => $net, 'line_tax' => $lineTax,

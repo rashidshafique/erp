@@ -2,11 +2,15 @@
 
 namespace App\Domains\Finance\Services;
 
+use App\Domains\Core\Contracts\TaxCalculator;
+use App\Domains\Core\Tax\TaxContext;
+use App\Domains\Core\Tax\TaxLine;
 use App\Domains\Finance\Models\SupplierBill;
 use App\Domains\Finance\Models\SupplierBillLine;
 use App\Domains\Purchasing\Models\PurchaseOrder;
 use App\Domains\Purchasing\Models\PurchaseOrderLine;
 use App\Domains\Purchasing\Models\Supplier;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -43,16 +47,23 @@ class BillService
                 $bill->update($head);
                 $bill->lines()->delete();
             }
-            [$subtotal, $tax] = [0.0, 0.0];
             foreach ($lines as $i => $l) {
-                $qty = round((float) ($l['quantity'] ?? 0), 3);
-                if ($qty <= 0) {
+                if (round((float) ($l['quantity'] ?? 0), 3) <= 0) {
                     throw new InvalidArgumentException('Line '.($i + 1).' needs a quantity.');
                 }
+            }
+            $taxLines = array_map(fn ($l) => new TaxLine(
+                round(round((float) $l['quantity'], 3) * round((float) ($l['unit_price'] ?? 0), 4), 2),
+                round((float) ($l['tax_percent'] ?? 0), 3),
+            ), $lines);
+            $taxes = app(TaxCalculator::class)->calculate(new TaxContext(TaxContext::PURCHASE, Carbon::parse($head['bill_date']), $supplier->party_id), $taxLines);
+            [$subtotal, $tax] = [0.0, 0.0];
+            foreach ($lines as $i => $l) {
+                $qty = round((float) $l['quantity'], 3);
                 $price = round((float) ($l['unit_price'] ?? 0), 4);
-                $percent = round((float) ($l['tax_percent'] ?? 0), 3);
-                $net = round($qty * $price, 2);
-                $lineTax = round($net * $percent / 100, 2);
+                $percent = $taxes->chargedRate($i);
+                $net = $taxLines[$i]->net;
+                $lineTax = $taxes->charged($i);
                 SupplierBillLine::create([
                     'supplier_bill_id' => $bill->id, 'line_number' => $i + 1, 'description' => trim($l['description']), 'quantity' => $qty, 'uom' => $l['uom'] ?? null,
                     'unit_price' => $price, 'tax_percent' => $percent, 'line_net' => $net, 'line_tax' => $lineTax, 'purchase_order_line_id' => ($l['purchase_order_line_id'] ?? null) ?: null,
