@@ -32,6 +32,11 @@ Updated 2026-10-23.
 - Supplier side: purchase orders in Purchasing (draft, issue with optional approval, receive into quarantine lots, over-receipt rule); supplier bills and credit notes in Finance entered from a PO or free, posted as `BILL-<year>-0001` with a duplicate check on the supplier's number, 3-way match against the PO (off, warn or block, with a tolerance), supplier payments spread over bills, payables ageing and supplier statements. Permissions `purchasing.manage` (role Buyer) and `finance.manage`.
 - Not built: bill price differences feeding back into lot cost, advance-to-supplier offsets on a bill, general ledger and posting, bank reconciliation, financial reports, tax returns, e-invoicing. Order agreed: ledger next.
 
+**Bill of materials (`app/Domains/Engineering`, level 1, 2026-10-25)**
+- Each product revision has a list of materials with a quantity and a basis: per casting, per mould or per kg poured. Metal is not listed; the planner works it out from the cavity map. Panel on the product page; a revision with no list can copy another revision's.
+- A production order shows the need (list times planned quantity) against stock on hand. Per mould needs an approved pattern with a cavity map; per kg poured uses the planner's metal per product. Display only: nothing is reserved or issued.
+- Not built: contract review check, scrap allowance, issue and backflush through the ledger, cores as made items, costing roll-up.
+
 ## Missing / next
 1. HR and the first part of Stores are done; Sales split done (sales orders and contract review in `app/Domains/Sales`; customers, production orders and the melting plan stay in core). Melting, pouring and moulding stay in core.
 2. Empty module folders still to fill or remove: Commercial, Costing, Engineering, MRP, Melting, Moulding, Pouring, Product, Production, Quality, Sand, Traceability.

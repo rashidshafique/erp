@@ -106,6 +106,12 @@ class ProductRevision extends Model
         return $this->hasMany(PatternRevisionCavity::class);
     }
 
+    /** @return HasMany<\App\Domains\Engineering\Models\BomLine, $this> */
+    public function bomLines(): HasMany
+    {
+        return $this->hasMany(\App\Domains\Engineering\Models\BomLine::class);
+    }
+
     public function manufacturingMethods(): HasMany
     {
         return $this->hasMany(ManufacturingMethod::class);

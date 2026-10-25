@@ -5,6 +5,7 @@ use App\Domains\Cameras\CamerasServiceProvider;
 use App\Domains\Compliance\ComplianceServiceProvider;
 use App\Domains\Dispatch\DispatchServiceProvider;
 use App\Domains\Documents\DocumentsServiceProvider;
+use App\Domains\Engineering\EngineeringServiceProvider;
 use App\Domains\Enquiry\EnquiryServiceProvider;
 use App\Domains\Finance\FinanceServiceProvider;
 use App\Domains\Hr\HrServiceProvider;
@@ -28,6 +29,7 @@ return [
     SalesServiceProvider::class,
     DispatchServiceProvider::class,
     DocumentsServiceProvider::class,
+    EngineeringServiceProvider::class,
     EnquiryServiceProvider::class,
     FinanceServiceProvider::class,
     HrServiceProvider::class,

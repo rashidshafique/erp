@@ -236,6 +236,7 @@
 
 
 @include('products._extra-steps', ['product' => $product])
+@foreach (app(\App\Domains\Core\ModuleRegistry::class)->panels('product.show') as $panel)@include($panel, ['product' => $product])@endforeach
 @include('control-plans._panel', ['product' => $product])
 <div class="tab-marker" data-tab-start="Patterns"></div>
 @include('products._made-on-patterns', ['product' => $product])

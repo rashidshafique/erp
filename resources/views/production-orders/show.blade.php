@@ -50,6 +50,8 @@
         @endif
     </div>
 
+    @foreach (app(\App\Domains\Core\ModuleRegistry::class)->panels('production-order.show') as $panel)@include($panel, ['order' => $order])@endforeach
+
     <section class="panel">
         <div class="panel-header"><h2>Moulding runs</h2><span class="muted small">{{ $runs->count() }}</span></div>
         @if ($runs->isEmpty())
