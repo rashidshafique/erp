@@ -90,7 +90,9 @@ class HeatSamplingTest extends TestCase
         $due = $samples->due($heat->fresh());
         $this->assertFalse($due['overdue']);
         $this->assertSame(20, $due['minutes_left']);
-        $this->get(route('heats.show', $heat))->assertOk()->assertSee('Next sample due in 20 min');
+        $this->get(route('heats.show', $heat))->assertOk()->assertSee('Next sample due in 20 min')
+            ->assertSee('data-sample-clock data-since="'.$heat->fresh()->chemistryReadings()->first()->tested_at->toIso8601String().'" data-interval="30" data-has-last="1"', false);
+        $this->assertSame($heat->first_tap_at->toIso8601String(), app(HeatSamples::class)->due($this->cupolaHeat(['first_tap_at' => $heat->first_tap_at]))['since_at']->toIso8601String(), 'With no sample yet the count starts at the run.');
     }
 
     public function test_no_reminder_before_the_cupola_runs_after_the_bottom_drop_or_on_other_furnaces(): void

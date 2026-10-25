@@ -48,7 +48,7 @@ class HeatSamples
     /**
      * Whether the next sample is due on a running cupola.
      *
-     * @return ?array{last: ?Carbon, minutes_since: int, interval: int, overdue: bool, minutes_left: int}
+     * @return ?array{last: ?Carbon, since_at: Carbon, minutes_since: int, interval: int, overdue: bool, minutes_left: int}
      */
     public function due(Heat $heat): ?array
     {
@@ -63,7 +63,7 @@ class HeatSamples
         $last = $this->timeline($heat)->last()['at'] ?? null;
         $since = (int) ($last ?? $started)->diffInMinutes(now());
 
-        return ['last' => $last, 'minutes_since' => $since, 'interval' => $interval, 'overdue' => $since > $interval, 'minutes_left' => $interval - $since];
+        return ['last' => $last, 'since_at' => $last ?? $started, 'minutes_since' => $since, 'interval' => $interval, 'overdue' => $since > $interval, 'minutes_left' => $interval - $since];
     }
 
     /**

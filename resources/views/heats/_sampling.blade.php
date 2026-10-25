@@ -13,9 +13,26 @@
         <h2>Samples</h2>
         <span style="display:inline-flex;align-items:center;gap:8px">
         @if ($due)
-            <span class="status {{ $due['overdue'] ? 'status-cancelled' : 'status-completed' }}">
+            {{-- A live counter: the browser counts from the last sample (or the start of the run) and flips to overdue by itself. --}}
+            <span class="status sample-clock {{ $due['overdue'] ? 'status-cancelled' : 'status-completed' }}" data-sample-clock data-since="{{ $due['since_at']->toIso8601String() }}" data-interval="{{ $due['interval'] }}" data-has-last="{{ $due['last'] ? 1 : 0 }}" role="timer" aria-live="off">
                 @if ($due['overdue']){{ $due['last'] ? 'Sample overdue by '.abs($due['minutes_left']).' min' : 'No sample yet, '.$due['minutes_since'].' min into the run' }}@else Next sample due in {{ $due['minutes_left'] }} min @endif
             </span>
+            <script>
+            (function () {
+                var el = document.querySelector('[data-sample-clock]');
+                if (!el) return;
+                var since = Date.parse(el.dataset.since), interval = parseInt(el.dataset.interval, 10) * 60, hasLast = el.dataset.hasLast === '1';
+                var span = function (s) { var m = Math.floor(s / 60), r = s % 60; return (m >= 60 ? Math.floor(m / 60) + ' h ' + (m % 60) : m) + ' min ' + String(r).padStart(2, '0') + ' s'; };
+                function tick() {
+                    var elapsed = Math.max(0, Math.floor((Date.now() - since) / 1000)), over = elapsed > interval;
+                    el.textContent = over ? (hasLast ? 'Sample overdue by ' + span(elapsed - interval) : 'No sample yet, ' + span(elapsed) + ' into the run') : 'Next sample due in ' + span(interval - elapsed);
+                    el.classList.toggle('status-cancelled', over);
+                    el.classList.toggle('status-completed', !over);
+                }
+                tick();
+                setInterval(tick, 1000);
+            })();
+            </script>
         @endif
         @unless (in_array($heat->status, ['CLOSED', 'CANCELLED'], true))
             <button type="button" class="btn btn-small sample-add" data-quick="qd-record-test" data-test-shortcut title="Record a test sample (press T)" aria-label="Record a test sample">+ Test <kbd>T</kbd></button>
@@ -23,6 +40,7 @@
         </span>
     </div>
     <style>
+        .sample-clock { font-variant-numeric: tabular-nums; }
         .sample-add kbd { margin-left: 6px; padding: 0 5px; border: 1px solid var(--border); border-radius: 4px; background: var(--hover, #f2f4f7); color: var(--muted); font: 600 11px/16px ui-monospace, Menlo, monospace; }
         .sample-readings td.num, .sample-readings th.num { text-align: right; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; white-space: nowrap; }
     </style>
