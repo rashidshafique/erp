@@ -14,7 +14,12 @@ use Illuminate\Support\Collection;
  */
 class HeatSamples
 {
-    /** @return Collection<int, array{kind: string, at: Carbon, reference: ?string, result: string, detail: ?string, id: string}> oldest first */
+    /**
+     * Each sample carries the carbon, carbon equivalent and silicon it gave (percent, null when not recorded): a thermal test's carbon
+     * as reported by the analyser or else worked out from TL, and its silicon as used; a chemistry reading's own figures.
+     *
+     * @return Collection<int, array{kind: string, at: Carbon, reference: ?string, result: string, detail: ?string, id: string, c: ?float, ce: ?float, si: ?float}> oldest first
+     */
     public function timeline(Heat $heat): Collection
     {
         $thermal = $heat->thermalTests()->get()->map(fn ($t) => [
@@ -23,14 +28,21 @@ class HeatSamples
                 'PASS' => 'PASS', 'FAIL' => 'FAIL', default => 'UNJUDGED'
             },
             'detail' => $t->result === 'FAIL' ? implode(' ', $t->findings ?? []) : null, 'id' => (string) $t->id,
+            'c' => $this->number($t->carbon_reported_pct ?? $t->carbon_from_tl), 'ce' => $this->number($t->ce_from_tl), 'si' => $this->number($t->silicon_used),
         ]);
         $chemistry = $heat->chemistryReadings()->get()->map(fn ($r) => [
             'kind' => 'CHEMISTRY', 'at' => $r->tested_at ?? $r->created_at, 'reference' => $r->sample_reference ?: ('Reading '.$r->reading_number),
             'result' => $r->is_accepted === null ? 'UNJUDGED' : ($r->is_accepted ? 'PASS' : 'FAIL'),
             'detail' => null, 'id' => (string) $r->id,
+            'c' => $this->number($r->carbon_percent), 'ce' => $this->number($r->carbon_equivalent), 'si' => $this->number($r->silicon_percent),
         ]);
 
         return $thermal->concat($chemistry)->filter(fn ($s) => $s['at'] !== null)->sortBy(fn ($s) => $s['at']->getTimestamp())->values();
+    }
+
+    private function number(mixed $value): ?float
+    {
+        return $value === null || $value === '' ? null : (float) $value;
     }
 
     /**

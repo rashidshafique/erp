@@ -2,6 +2,10 @@
     $sampling = app(\App\Services\Production\HeatSamples::class);
     $samples = $sampling->timeline($heat);
     $due = $sampling->due($heat);
+    $showType = false;   // the Type column (thermal or chemistry) is hidden for now; switch on to show it again
+    $reading = fn (?float $v) => $v === null ? '—' : \App\Support\Formats::number($v, 2);
+    // Today's samples show the time alone, 12-hour; earlier ones show their date as well.
+    $takenAt = fn ($at) => $at->isToday() ? $at->format('g:i A') : $at->displayShortDate().', '.$at->format('g:i A');
     $badge = ['PASS' => ['status-completed', 'PASS'], 'FAIL' => ['status-cancelled', 'FAIL'], 'UNJUDGED' => ['', 'NOT JUDGED']];
 @endphp
 <div class="panel" id="sampling">
@@ -14,13 +18,13 @@
             </span>
         @endif
         @unless (in_array($heat->status, ['CLOSED', 'CANCELLED'], true))
-            <button type="button" class="sample-plus" data-quick="qd-record-test" title="Record a test sample" aria-label="Record a test sample">+</button>
+            <button type="button" class="btn btn-small sample-add" data-quick="qd-record-test" data-test-shortcut title="Record a test sample (press T)" aria-label="Record a test sample">+ Test <kbd>T</kbd></button>
         @endunless
         </span>
     </div>
     <style>
-        .sample-plus { width: 26px; height: 26px; padding: 0; border-radius: 50%; border: 1px solid var(--accent); background: var(--surface); color: var(--accent); font: 600 18px/1 inherit; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
-        .sample-plus:hover { background: var(--accent); color: #fff; }
+        .sample-add kbd { margin-left: 6px; padding: 0 5px; border: 1px solid var(--border); border-radius: 4px; background: var(--hover, #f2f4f7); color: var(--muted); font: 600 11px/16px ui-monospace, Menlo, monospace; }
+        .sample-readings td.num, .sample-readings th.num { text-align: right; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; white-space: nowrap; }
     </style>
     <div class="panel-body">
         <p class="muted small" style="margin-top:0">Thermal analysis and chemistry in the order they were taken.
@@ -28,20 +32,34 @@
         @if ($samples->isEmpty())
             <p class="muted">No samples yet.</p>
         @else
-            <div class="table-wrap"><table>
-                <thead><tr><th>Taken</th><th>Type</th><th>Reference</th><th>Result</th></tr></thead>
+            <div class="table-wrap"><table class="sample-readings">
+                <thead><tr><th>Taken</th>@if ($showType)<th>Type</th>@endif<th>Reference</th><th class="num">C %</th><th class="num">CE</th><th class="num">Si %</th><th>Result</th></tr></thead>
                 <tbody>
                 @foreach ($samples as $s)
                     <tr>
-                        <td>{{ $s['at']->displayShortDateTime() }}@if ($heat->first_tap_at)<div class="muted small">{{ (int) $heat->first_tap_at->diffInMinutes($s['at'], false) }} min from first tap</div>@endif</td>
-                        <td>{{ $s['kind'] === 'THERMAL' ? 'Thermal analysis' : 'Chemistry' }}</td>
+                        <td>{{ $takenAt($s['at']) }}@if ($heat->first_tap_at)<div class="muted small">{{ (int) $heat->first_tap_at->diffInMinutes($s['at'], false) }} min from first tap</div>@endif</td>
+                        @if ($showType)<td>{{ $s['kind'] === 'THERMAL' ? 'Thermal analysis' : 'Chemistry' }}</td>@endif
                         <td>{{ $s['reference'] ?: '—' }}</td>
+                        <td class="num">{{ $reading($s['c']) }}</td><td class="num">{{ $reading($s['ce']) }}</td><td class="num">{{ $reading($s['si']) }}</td>
                         <td><span class="status {{ $badge[$s['result']][0] }}" @if ($s['detail']) title="{{ $s['detail'] }}" @endif>{{ $badge[$s['result']][1] }}</span></td>
                     </tr>
                 @endforeach
                 </tbody>
             </table></div>
         @endif
+
+        @unless (in_array($heat->status, ['CLOSED', 'CANCELLED'], true))
+        <script>
+        // T opens the record-a-test dialog, unless typing in a field, holding a modifier key or another dialog is open.
+        document.addEventListener('keydown', function (e) {
+            if ((e.key || '').toLowerCase() !== 't' || e.metaKey || e.ctrlKey || e.altKey || e.defaultPrevented) return;
+            var t = e.target;
+            if (t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable) || document.querySelector('dialog[open]')) return;
+            var opener = document.querySelector('[data-test-shortcut]');
+            if (opener) { e.preventDefault(); opener.click(); }
+        });
+        </script>
+        @endunless
 
         @php $flagged = $heat->pours()->whereNotNull('containment_note')->orderBy('started_at')->get(); @endphp
         @if ($flagged->isNotEmpty())

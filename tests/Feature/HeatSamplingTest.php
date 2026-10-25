@@ -56,6 +56,28 @@ class HeatSamplingTest extends TestCase
         $this->assertSame(['FAIL', 'PASS'], $timeline->pluck('result')->all());
     }
 
+    public function test_the_samples_panel_shows_c_ce_and_si_with_the_time_in_12_hours_and_the_date_only_when_not_today(): void
+    {
+        $heat = $this->cupolaHeat();
+        HeatChemistryReading::create(['heat_id' => $heat->id, 'reading_number' => 1, 'carbon_percent' => 3.42, 'silicon_percent' => 1.85, 'carbon_equivalent' => 4.01,
+            'is_accepted' => true, 'tested_at' => now()->setTime(14, 5), 'sample_reference' => 'TODAY']);
+        HeatChemistryReading::create(['heat_id' => $heat->id, 'reading_number' => 2, 'carbon_percent' => 3.1, 'is_accepted' => true,
+            'tested_at' => now()->subDay()->setTime(9, 30), 'sample_reference' => 'OLDER']);
+        ThermalAnalysisTest::create(['heat_id' => $heat->id, 'stage' => 'POST_TREATMENT', 'cup_type' => 'WHITE', 'taken_at' => now()->setTime(15, 20), 'sample_reference' => 'TH-1',
+            'carbon_from_tl' => 3.55, 'ce_from_tl' => 3.98, 'silicon_used' => 2.1, 'result' => 'PASS', 'curve' => [], 'entry_mode' => 'CURVE']);
+
+        $timeline = app(HeatSamples::class)->timeline($heat);
+        $this->assertSame([3.1, 3.42, 3.55], $timeline->pluck('c')->all());
+        $this->assertSame([null, 4.01, 3.98], $timeline->pluck('ce')->all());
+
+        $page = $this->get(route('heats.show', $heat))->assertOk()->assertSee('<th class="num">C %</th><th class="num">CE</th><th class="num">Si %</th>', false)
+            ->assertSee('2:05 PM')->assertSee('3:20 PM')->assertSee(now()->subDay()->displayShortDate().', 9:30 AM')
+            ->assertSee('<td class="num">3.42</td><td class="num">4.01</td><td class="num">1.85</td>', false)
+            ->assertSee('<td class="num">3.10</td><td class="num">—</td><td class="num">—</td>', false)
+            ->assertSee('<th>Taken</th><th>Reference</th>', false)->assertDontSee('<th>Taken</th><th>Type</th>', false);
+        $this->assertStringNotContainsString(now()->displayShortDate().', 2:05 PM', $page->getContent());
+    }
+
     public function test_the_next_sample_is_due_after_the_interval_and_overdue_after_it(): void
     {
         PouringRules::set('test_interval_minutes', '30');
