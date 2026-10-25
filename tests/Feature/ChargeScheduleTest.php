@@ -97,7 +97,7 @@ class ChargeScheduleTest extends TestCase
     public function test_one_click_is_refused_on_a_closed_heat_and_once_every_planned_charge_is_in(): void
     {
         [$heat, $iron, $coke] = $this->cupola();
-        $heat->update(['charge_rounds' => 1]);
+        $heat->update(['target_metal_weight_kg' => 180]);   // one charge of 180 kg is all the target needs
         $this->charged($heat, $coke, 0, 50, 100);
         $this->charged($heat, $iron, 1, 40, 180);
 
@@ -210,49 +210,58 @@ class ChargeScheduleTest extends TestCase
         $this->post(route('heats.store'), array_merge($form, ['already_started' => 1, 'planned_start_at' => '']))->assertSessionHasErrors('planned_start_at');
     }
 
-    public function test_the_missing_charges_are_added_from_the_total_metal_charged_scaled_to_match_it(): void
-    {
-        $this->actingAs(User::factory()->create(['name' => 'Melter Ali']));
-        $this->travelTo(now()->setTime(10, 0));
-        [$heat, $iron, $coke] = $this->cupola();
-        $heat->update(['actual_start_at' => now()->subHours(2), 'blast_on_at' => now()->subHours(2), 'charge_rounds' => 5]);
-        $this->charged($heat, $iron, 1, 100, 180);   // charge 1 is already in: 180 kg of metal
-
-        $this->get(route('heats.show', $heat))->assertOk()->assertDontSee('Total metal charged so far (kg)')->assertDontSee('Heat summary</h2>', false)
-            ->assertSee('Add back charges')->assertSee('Add back 4 charges')->assertSee('180.0 kg')->assertSee('1 of 5 charges')->assertSee('a charge of 180 kg every 30 min')->assertSee(route('heats.charge-rounds.backfill', $heat), false);
-
-        // 800 kg is 4 charges of 180 kg (800 / 180 = 4.4). Charges 2 to 4 and the bed are missing; they carry the other 620 kg, so each is scaled up by 620 / 540.
-        $this->post(route('heats.charge-rounds.total', $heat), ['total_charged_kg' => 800])->assertSessionHasNoErrors()
-            ->assertSessionHas('success', fn ($m) => str_contains($m, '4 missing charges added from 800'));
-
-        $metal = HeatMaterialConsumption::where('heat_id', $heat->id)->where('charge_round', '>', 0)->where('material_id', $iron->id)->sum('actual_qty_kg');
-        $this->assertEqualsWithDelta(800.0, (float) $metal, 0.01, 'The metal recorded comes to the total.');
-        $round3 = HeatMaterialConsumption::where('heat_id', $heat->id)->where('charge_round', 3)->get();
-        $this->assertEqualsWithDelta(206.667, (float) $round3->firstWhere('material_id', $iron->id)->actual_qty_kg, 0.001);
-        $this->assertEqualsWithDelta(28.704, (float) $round3->firstWhere('material_id', $coke->id)->actual_qty_kg, 0.001, 'Coke is scaled with the charge.');
-        $this->assertSame(['09:20'], $round3->map(fn ($c) => $c->consumed_at->format('H:i'))->unique()->values()->all(), 'Counted from charge 1, put in at 08:20: charge 2 at 08:50, charge 3 at 09:20.');
-        $this->assertStringContainsString('Filled in from the total metal charged', $round3->first()->notes);
-        $this->assertSame(100.0, (float) HeatMaterialConsumption::where('heat_id', $heat->id)->where('charge_round', 0)->sum('actual_qty_kg'), 'The start-up charge is added at the recipe weight.');
-        $this->assertSame(0, HeatMaterialConsumption::where('heat_id', $heat->id)->where('charge_round', 5)->count(), 'Nothing is added beyond the charges the total is worth.');
-
-        $this->post(route('heats.charge-rounds.total', $heat), ['total_charged_kg' => 800])->assertSessionHasErrors('total_charged_kg');
-    }
-
-    public function test_a_total_is_refused_when_the_heat_is_not_on_has_no_charge_in_it_or_is_below_what_is_recorded(): void
+    public function test_the_scheduler_records_each_due_charge_at_its_time_from_the_furnace_speed_and_only_once(): void
     {
         $this->travelTo(now()->setTime(10, 0));
         [$heat, $iron] = $this->cupola();
+        $heat->update(['actual_start_at' => now()->subHours(2), 'blast_on_at' => now()->subHours(2)]);   // 08:00 light-up and blast; a charge every 30 minutes
+        $this->charged($heat, $iron, 1, 100, 180);   // charge 1 went in by hand at 08:20
 
-        $this->post(route('heats.charge-rounds.total', $heat), ['total_charged_kg' => 0])->assertSessionHasErrors('total_charged_kg');
-        $this->post(route('heats.charge-rounds.total', $heat), ['total_charged_kg' => 50])->assertSessionHasErrors('total_charged_kg');   // under one charge
+        $this->artisan('heats:add-due-charges')->assertSuccessful();
 
-        $this->charged($heat, $iron, 1, 30, 360);
-        $this->post(route('heats.charge-rounds.total', $heat), ['total_charged_kg' => 360])->assertSessionHasErrors('total_charged_kg');   // two charges' worth is already in round 1
-        $this->assertSame(1, HeatMaterialConsumption::where('heat_id', $heat->id)->count());
+        $times = HeatMaterialConsumption::where('heat_id', $heat->id)->where('material_id', $iron->id)->orderBy('charge_round')->get()->mapWithKeys(fn ($c) => [$c->charge_round => $c->consumed_at->format('H:i')]);
+        $this->assertSame([1 => '08:20', 2 => '08:50', 3 => '09:20', 4 => '09:50'], $times->all());
+        $this->assertSame(100.0, (float) HeatMaterialConsumption::where('heat_id', $heat->id)->where('charge_round', 0)->sum('actual_qty_kg'), 'The start-up charge goes in at the start.');
+        $this->assertSame('Auto (furnace speed)', HeatMaterialConsumption::where('heat_id', $heat->id)->where('charge_round', 3)->first()->recorded_by);
+        $this->assertStringContainsString('not observed', HeatMaterialConsumption::where('heat_id', $heat->id)->where('charge_round', 3)->first()->notes);
 
-        $heat->update(['actual_start_at' => null]);
-        $this->post(route('heats.charge-rounds.total', $heat), ['total_charged_kg' => 900])->assertSessionHasErrors('total_charged_kg');
-        $heat->update(['actual_start_at' => now()->subHour(), 'status' => 'CLOSED']);
-        $this->post(route('heats.charge-rounds.total', $heat), ['total_charged_kg' => 900])->assertSessionHasErrors('total_charged_kg');
+        $count = HeatMaterialConsumption::where('heat_id', $heat->id)->count();
+        $this->artisan('heats:add-due-charges')->assertSuccessful();
+        $this->assertSame($count, HeatMaterialConsumption::where('heat_id', $heat->id)->count(), 'Nothing is due the second time.');
+
+        $this->travelTo(now()->addMinutes(31));   // 10:31: charge 5 comes due at 10:20
+        $this->artisan('heats:add-due-charges')->assertSuccessful();
+        $this->assertSame('10:20', HeatMaterialConsumption::where('heat_id', $heat->id)->where('charge_round', 5)->first()->consumed_at->format('H:i'));
+    }
+
+    public function test_the_scheduler_leaves_heats_on_hold_closed_or_not_started_and_obeys_the_rule(): void
+    {
+        $this->travelTo(now()->setTime(10, 0));
+        [$heat] = $this->cupola();
+        $heat->update(['actual_start_at' => now()->subHours(2), 'blast_on_at' => now()->subHours(2)]);
+        $count = fn () => HeatMaterialConsumption::where('heat_id', $heat->id)->count();
+
+        \App\Support\PouringRules::set('auto_charge', 'MANUAL');
+        $this->artisan('heats:add-due-charges')->assertSuccessful();
+        $this->assertSame(0, $count(), 'Switched to manual, nothing is added.');
+
+        \App\Support\PouringRules::set('auto_charge', 'AUTO');
+        foreach ([['hold_reason' => 'RED'], ['status' => 'CLOSED'], ['actual_start_at' => null]] as $change) {
+            $heat->update($change + ['hold_reason' => null, 'status' => 'MELTING', 'actual_start_at' => now()->subHours(2)]);
+            $heat->update($change);
+            $this->artisan('heats:add-due-charges')->assertSuccessful();
+            $this->assertSame(0, $count(), 'No charge is added: '.json_encode($change));
+        }
+    }
+
+    public function test_the_page_offers_to_add_back_charges_and_shows_the_metal_charged_from_them(): void
+    {
+        $this->travelTo(now()->setTime(10, 0));
+        [$heat, $iron] = $this->cupola();
+        $heat->update(['actual_start_at' => now()->subHours(2), 'blast_on_at' => now()->subHours(2)]);
+        $this->charged($heat, $iron, 1, 100, 180);
+
+        $this->get(route('heats.show', $heat))->assertOk()->assertSee('Add back charges')->assertSee('Add back 4 charges')->assertSee('180.0 kg')->assertSee('1 of 5 charges')
+            ->assertSee('a charge of 180 kg every 30 min')->assertSee('Charges are also added automatically every minute');
     }
 }

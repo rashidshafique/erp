@@ -33,6 +33,10 @@ class PouringRules
             'FREE' => 'Treat them like any other lot',
         ], 'HOLD'],
         'test_interval_minutes' => ['pouring.test_interval_minutes', 'Minutes between samples while a cupola is running (reminder only)', null, '30'],
+        'auto_charge' => ['charging.auto', 'Charges that come due on a running heat', [
+            'AUTO' => 'Record them automatically every minute, from the recipe, at the time the furnace speed puts them due',
+            'MANUAL' => 'Wait for someone to confirm each charge (or add them back by hand)',
+        ], 'AUTO'],
         'containment' => ['pouring.containment', 'When a sample comes back out of limits', [
             'HOLD' => 'Hold the lots poured in the affected period',
             'NOTE' => 'Only flag the affected pours; do not hold lots',
@@ -52,6 +56,12 @@ class PouringRules
         }
 
         return isset($options[$value]) ? $value : $default;
+    }
+
+    /** Whether due charges are recorded by the scheduler without anyone confirming them. */
+    public static function autoCharges(): bool
+    {
+        return self::get('auto_charge') === 'AUTO';
     }
 
     public static function set(string $rule, string $value): void

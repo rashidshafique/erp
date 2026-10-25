@@ -32,13 +32,28 @@ class CupolaChargeRoundsTest extends TestCase
         return [$heat, $iron, $coke];
     }
 
-    public function test_rounds_default_to_the_target_over_the_recipe_metal_and_can_be_changed(): void
+    public function test_planned_charges_are_the_target_over_the_recipe_metal_rounded_up_and_never_below_those_recorded(): void
     {
-        [$heat] = $this->setUpCupola();
+        [$heat, $iron] = $this->setUpCupola();   // 900 kg at 180 kg a charge
         $this->assertSame(5, $heat->chargeRounds());
 
-        $this->put(route('heats.charge-rounds.update', $heat), ['charge_rounds' => 17])->assertRedirect();
-        $this->assertSame(17, $heat->fresh()->chargeRounds());
+        $heat->update(['target_metal_weight_kg' => 950]);
+        $this->assertSame(6, $heat->fresh()->chargeRounds(), 'A part charge is a charge.');
+
+        // Charge 7 is recorded although the target needs six: the plan never drops below what has gone in.
+        HeatMaterialConsumption::create(['heat_id' => $heat->id, 'material_id' => $iron->id, 'sequence' => 1, 'consumption_type' => 'RAW_MATERIAL', 'actual_qty_kg' => 180,
+            'consumed_at' => now(), 'recorded_by' => 'Ali', 'charge_round' => 7]);
+        $this->assertSame(7, $heat->fresh()->chargeRounds());
+    }
+
+    public function test_a_heat_has_no_field_to_type_the_planned_charges_over_or_a_total_charged(): void
+    {
+        [$heat] = $this->setUpCupola();
+
+        $this->get(route('heats.show', $heat))->assertOk()->assertDontSee('Planned charges on this heat')->assertDontSee('Total metal charged so far')
+            ->assertSee('5 planned charges: the target of 900 kg over 180 kg of metal per charge');
+        $this->assertFalse(\Illuminate\Support\Facades\Route::has('heats.charge-rounds.update'));
+        $this->assertFalse(\Illuminate\Support\Facades\Route::has('heats.charge-rounds.total'));
     }
 
     public function test_bed_then_each_round_is_recorded_with_the_recipe_quantities_and_the_plan_is_multiplied(): void
@@ -70,20 +85,17 @@ class CupolaChargeRoundsTest extends TestCase
         $this->assertSame(1, HeatMaterialConsumption::where('heat_id', $heat->id)->count());
     }
 
-    public function test_the_target_metal_can_be_changed_and_a_cupolas_planned_charges_follow_it_unless_set_by_hand(): void
+    public function test_the_target_metal_can_be_changed_and_a_cupolas_planned_charges_follow_it(): void
     {
         [$heat] = $this->setUpCupola();   // 900 kg of metal at 180 kg a charge: 5 charges
-        $heat->update(['charge_rounds' => 5]);
 
         $this->get(route('heats.show', $heat))->assertOk()->assertSee('data-target-edit title=', false)->assertSee(route('heats.target.update', $heat), false);
         $this->put(route('heats.target.update', $heat), ['target_metal_weight_kg' => 1800])->assertSessionHasNoErrors()
             ->assertSessionHas('success', fn ($m) => str_contains($m, 'Planned charges changed from 5 to 10'));
-        $this->assertSame([1800.0, 10], [(float) $heat->fresh()->target_metal_weight_kg, $heat->fresh()->charge_rounds]);
+        $this->assertSame([1800.0, 10], [(float) $heat->fresh()->target_metal_weight_kg, $heat->fresh()->chargeRounds()]);
 
-        // Planned charges set by hand stay as they are.
-        $heat->update(['charge_rounds' => 12]);
         $this->put(route('heats.target.update', $heat), ['target_metal_weight_kg' => 900])->assertSessionHasNoErrors();
-        $this->assertSame([900.0, 12], [(float) $heat->fresh()->target_metal_weight_kg, $heat->fresh()->charge_rounds]);
+        $this->assertSame(5, $heat->fresh()->chargeRounds());
     }
 
     public function test_the_target_metal_must_be_positive_and_cannot_be_changed_on_a_closed_heat(): void

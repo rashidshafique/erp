@@ -61,18 +61,31 @@ class Heat extends Model
     }
 
     /** A cupola melts continuously and taps as it goes, so it is run on a timeline rather than as one batch. */
-    /** How many times the recipe is charged: the figure set on the heat, else the target metal over the recipe's metal weight (cupolas only). */
+    /**
+     * How many times the recipe is charged: the target metal weight over the recipe's metal weight per charge, rounded up (cupolas).
+     * Never fewer than the charges already recorded. A heat with no target or recipe uses the figure saved on it, else one.
+     */
     public function chargeRounds(): int
     {
-        return max(1, (int) ($this->charge_rounds ?: $this->defaultChargeRounds()));
+        $planned = $this->targetChargeRounds() ?? ((int) $this->charge_rounds ?: 1);
+        $recorded = (int) ($this->relationLoaded('materialConsumptions') ? $this->materialConsumptions->max('charge_round') : $this->materialConsumptions()->max('charge_round'));
+
+        return max(1, $planned, $recorded);
     }
 
-    public function defaultChargeRounds(): int
+    /** The charges the target needs, or null when the heat is not a cupola or has no target or recipe weight to work it from. */
+    public function targetChargeRounds(): ?int
     {
-        $perRound = (float) $this->chargeBatch?->target_metal_weight_kg;
+        $perRound = (float) $this->chargeBatch?->metalPerChargeKg();
         $target = (float) $this->target_metal_weight_kg;
 
-        return $this->isCupola() && $perRound > 0 && $target > 0 ? (int) ceil($target / $perRound) : 1;
+        return $this->isCupola() && $perRound > 0 && $target > 0 ? (int) ceil($target / $perRound) : null;
+    }
+
+    /** The charges a new heat plans for: what the target needs, else one. */
+    public function defaultChargeRounds(): int
+    {
+        return $this->targetChargeRounds() ?? 1;
     }
 
     /**

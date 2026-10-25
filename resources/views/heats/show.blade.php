@@ -355,6 +355,7 @@
                     <div class="muted small">
                         From the start ({{ $heat->actual_start_at->displayDateTime() }})
                         @if ($schedule['interval_minutes']) at the furnace's {{ $schedule['rate']['label'] ?? 'speed' }}: a charge of {{ \App\Support\Formats::number($schedule['metal_per_round_kg'], 0) }} kg every {{ $schedule['interval_minutes'] }} min.@else the furnace speed is not set, so charge times cannot be worked out.@endif
+                        @if (\App\Support\PouringRules::autoCharges()) <em>Charges are also added automatically every minute as they come due.</em>@endif
                         @if ($pastCount > 0) {{ $pastCount }} {{ $pastCount === 1 ? 'charge has' : 'charges have' }} come due and {{ $pastCount === 1 ? 'is' : 'are' }} not recorded.@else Every charge that has come due is recorded.@endif
                     </div>
                 </div>
@@ -390,13 +391,8 @@
             @if($errors->has('lines') || $errors->has('charge_round') || $errors->has('material_lot_id'))<div class="alert alert-error">{{ $errors->first('lines') ?: ($errors->first('charge_round') ?: $errors->first('material_lot_id')) }}</div>@endif
             <button class="btn btn-primary" type="submit">{{ $nextRound === 0 ? 'Record start-up charge' : 'Record charge '.$nextRound }}</button>
         </form>
-        @if($heat->isCupola() || $chargeRounds > 1)
-            <form method="POST" action="{{ route('heats.charge-rounds.update', $heat) }}" class="form-inline" style="margin-top:14px">
-                @csrf @method('PUT')
-                <div class="field"><label for="charge_rounds">Planned charges on this heat</label><input id="charge_rounds" name="charge_rounds" type="number" min="1" max="500" value="{{ $chargeRounds }}" style="width:90px"></div>
-                <button class="btn" type="submit">Update</button>
-                <span class="muted small">Worked out from the target metal weight; raise it as the campaign runs on.</span>
-            </form>
+        @if ($heat->targetChargeRounds() !== null)
+            <p class="muted small" style="margin-top:14px">{{ $chargeRounds }} planned charges: the target of {{ \App\Support\Formats::number((float) $heat->target_metal_weight_kg, 0) }} kg over {{ \App\Support\Formats::number((float) $heat->chargeBatch->metalPerChargeKg(), 0) }} kg of metal per charge. Change the target above to change them.</p>
         @endif
     </div>
 </div>

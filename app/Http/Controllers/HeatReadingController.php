@@ -41,8 +41,8 @@ class HeatReadingController extends Controller
     }
 
     /**
-     * Changes the target metal weight of a heat that is not closed. A cupola's planned charges follow the new target, unless
-     * someone had set them by hand or more charges are already in than the new target needs.
+     * Changes the target metal weight of a heat that is not closed. A cupola's planned charges follow it (the target over the
+     * recipe's metal per charge), though never below the charges already recorded.
      */
     public function updateTarget(Request $request, Heat $heat): RedirectResponse
     {
@@ -52,20 +52,12 @@ class HeatReadingController extends Controller
         $data = $request->validate(['target_metal_weight_kg' => ['required', 'numeric', 'gt:0', 'max:999999999']]);
         $heat->loadMissing('furnace', 'chargeBatch.items', 'materialConsumptions');
 
-        $followsTarget = $heat->isCupola() && (int) $heat->charge_rounds === $heat->defaultChargeRounds();
         $before = $heat->chargeRounds();
         $heat->update($data);
+        $after = $heat->chargeRounds();
 
-        $note = '';
-        if ($followsTarget) {
-            $charged = (int) $heat->materialConsumptions->max('charge_round');
-            $heat->update(['charge_rounds' => max($heat->defaultChargeRounds(), $charged, 1)]);
-            if ($heat->charge_rounds !== $before) {
-                $note = " Planned charges changed from {$before} to {$heat->charge_rounds}.";
-            }
-        }
-
-        return back()->with('success', 'Target metal set to '.\App\Support\Formats::number((float) $data['target_metal_weight_kg'], 1).' kg.'.$note);
+        return back()->with('success', 'Target metal set to '.\App\Support\Formats::number((float) $data['target_metal_weight_kg'], 1).' kg.'
+            .($heat->isCupola() && $after !== $before ? " Planned charges changed from {$before} to {$after}." : ''));
     }
 
     /** How many charges would already be due for a heat started at a past time: the question the create form asks. */

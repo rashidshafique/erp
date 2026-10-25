@@ -10,3 +10,4 @@ Artisan::command('inspire', function () {
 
 
 Schedule::command('stock:check-reorder')->hourly();
+Schedule::command('heats:add-due-charges')->everyMinute()->withoutOverlapping();
