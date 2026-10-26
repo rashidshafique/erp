@@ -55,7 +55,8 @@ class SalesOrderStaggeredDeliveryTest extends TestCase
         $order = SalesOrder::firstOrFail();
         $line = $order->lines()->first();
         [$first, $second] = $line->deliveries->all();
-        $this->get(route('sales-orders.edit', $order))->assertOk()->assertSee('name="lines[0][deliveries][0][id]" value="'.$first->id.'"', false);
+        $this->get(route('sales-orders.create'))->assertOk()->assertDontSee('name="lines[0][staggered]"', false);
+        $this->get(route('sales-orders.edit', $order))->assertOk()->assertSee('name="lines[0][staggered]"', false)->assertSee('name="lines[0][deliveries][0][id]" value="'.$first->id.'"', false);
 
         $edit = fn (array $row) => $this->put(route('sales-orders.update', $order), ['customer_id' => $order->customer_id, 'order_date' => today()->toDateString(), 'reason' => 'Customer moved dates',
             'lines' => [['id' => $line->id, 'ordered_qty' => 100] + $row]]);

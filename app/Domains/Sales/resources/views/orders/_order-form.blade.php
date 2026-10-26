@@ -49,10 +49,13 @@
     .so-more .so-top { margin-top: 12px; }
     .so-thumb { width: 34px; height: 34px; border-radius: 6px; object-fit: cover; background: color-mix(in srgb, var(--border) 70%, transparent); display: inline-flex; align-items: center; justify-content: center; color: var(--muted); }
     .so-lines { margin-top: 14px; }
-    .so-grid { display: grid; grid-template-columns: 26px 46px minmax(180px, 1fr) 150px 18px 110px 46px 130px 34px; gap: 10px; align-items: center; }
-    .so-noprice .so-grid { grid-template-columns: 26px 46px minmax(180px, 1fr) 110px 46px 34px; }
-    .so-lines-head { padding: 0 0 8px; border-bottom: 1px solid var(--border); color: var(--muted); font-size: 13.5px; }
+    .so-grid { display: grid; grid-template-columns: 26px 46px minmax(180px, 1fr) 70px 120px 150px 130px 34px; gap: 10px; align-items: center; }
+    .so-noprice .so-grid { grid-template-columns: 26px 46px minmax(180px, 1fr) 70px 120px 34px; }
+    .so-lines-head { padding: 9px 8px; border: 1px solid var(--border); border-radius: 8px 8px 0 0; background: color-mix(in srgb, var(--border) 35%, transparent); color: var(--muted); font-size: 12.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
+    .so-lines-head .so-head-product { grid-column: 1 / 4; padding-left: 4px; }
     .so-lines-head .so-right { text-align: right; }
+    .so-lines [data-lines] { border: 1px solid var(--border); border-top: 0; border-radius: 0 0 8px 8px; padding: 0 8px; }
+    .so-lines [data-lines] .so-line:last-child { border-bottom: 0; }
     .so-line { border-bottom: 1px solid var(--border); padding: 10px 0; }
     .so-line .so-thumb { width: 46px; height: 46px; }
     .so-caret { border: 0; background: none; color: var(--accent); cursor: pointer; font-size: 13px; padding: 4px; transition: transform .15s; }
@@ -62,7 +65,6 @@
     .so-money { position: relative; }
     .so-money input { width: 100%; padding-right: 48px; }
     .so-money span { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 13px; pointer-events: none; }
-    .so-times { color: var(--muted); text-align: center; }
     .so-qty { width: 100%; }
     .so-uom { color: var(--muted); font-size: 13px; }
     .so-total { text-align: right; font-variant-numeric: tabular-nums; }
@@ -93,7 +95,8 @@
         .so-top { grid-template-columns: 1fr; }
         .so-grid { grid-template-columns: 22px 1fr 110px 34px; row-gap: 8px; }
         .so-lines-head { display: none; }
-        .so-line .so-thumb, .so-times, .so-uom { display: none; }
+        .so-lines [data-lines] { border-top: 1px solid var(--border); border-radius: 8px; }
+        .so-line .so-thumb, .so-uom { display: none; }
         .so-line .so-prod { grid-column: 2 / 4; }
         .so-line .so-money { grid-column: 2; }
         .so-line .so-qty { grid-column: 3; }
@@ -132,7 +135,7 @@
     </details>
 
     <div class="so-lines">
-        <div class="so-grid so-lines-head"><span></span><span></span><span>Product</span>@if ($prices)<span>Price</span><span></span>@endif<span>Quantity</span><span></span>@if ($prices)<span class="so-right">Total</span>@endif<span></span></div>
+        <div class="so-grid so-lines-head" aria-hidden="true"><span class="so-head-product">Product</span><span>UOM</span><span>Qty</span>@if ($prices)<span>Price</span><span class="so-right">Total</span>@endif<span></span></div>
         <div data-lines>
             @foreach ($formLines as $i => $l)
                 @include('sales::orders._create-line', ['i' => $i, 'value' => $l['value'], 'p' => $l['p'], 'line' => $l['line'], 'record' => $l['record'], 'catalogue' => $catalogue, 'currency' => $money['currency'], 'prices' => $prices])
@@ -221,10 +224,11 @@
         row.dataset.pieces = String(total);
     }
     function previewAll() { linesBox.querySelectorAll('[data-line]').forEach(preview); }
-    // Staggered deliveries: shown only on a one-off line with the box ticked; hidden rows are disabled so they are not sent or required.
+    // Staggered deliveries (saved lines only): shown on a one-off line with the box ticked; hidden rows are disabled so they are not sent or required.
     var nextDelivery = 1000;
     function stagger(row) {
         var pick = row.querySelector('[data-repeat]'), tick = row.querySelector('[data-stagger]'), box = row.querySelector('[data-deliveries]');
+        if (!tick) return;
         var on = !pick.value && tick.checked;
         row.querySelector('[data-stagger-field]').hidden = !!pick.value;
         box.hidden = !on;
@@ -242,7 +246,9 @@
         added.querySelector('input[type=date]').focus();
     }
     function unscheduled(row) {
-        var out = row.querySelector('[data-unscheduled]'), ordered = parseFloat(row.querySelector('[data-qty]').value) || 0, scheduled = 0;
+        var out = row.querySelector('[data-unscheduled]');
+        if (!out) return;
+        var ordered = parseFloat(row.querySelector('[data-qty]').value) || 0, scheduled = 0;
         row.querySelectorAll('[data-delivery-qty]').forEach(function (i) { scheduled += parseFloat(i.value) || 0; });
         var left = Math.round((ordered - scheduled) * 1000) / 1000;
         row.dataset.unscheduled = String(left);
