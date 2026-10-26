@@ -34,14 +34,14 @@ class FinanceServiceProvider extends ModuleServiceProvider
     protected function navGroups(): array
     {
         return [[
-            'key' => 'finance', 'label' => 'Finance', 'icon' => 'wallet', 'active' => ['invoices.*', 'receipts.*', 'receivables.*', 'bills.*', 'supplier-payments.*', 'payables.*', 'finance.*'],
+            'key' => 'finance', 'label' => 'Finance', 'icon' => 'banknote', 'active' => ['invoices.*', 'receipts.*', 'receivables.*', 'bills.*', 'supplier-payments.*', 'payables.*', 'finance.*'],
             'items' => [
                 ['label' => 'Invoices', 'route' => 'invoices.index', 'icon' => 'file-text', 'active' => ['invoices.*'], 'count' => fn (): int => Invoice::where('status', 'DRAFT')->count()],
-                ['label' => 'Receipts', 'route' => 'receipts.index', 'icon' => 'receipt', 'active' => ['receipts.*']],
-                ['label' => 'Receivables', 'route' => 'receivables.index', 'icon' => 'clock', 'active' => ['receivables.*']],
-                ['label' => 'Supplier bills', 'route' => 'bills.index', 'icon' => 'file-text', 'active' => ['bills.*'], 'count' => fn (): int => SupplierBill::where('status', 'DRAFT')->count()],
-                ['label' => 'Supplier payments', 'route' => 'supplier-payments.index', 'icon' => 'receipt', 'active' => ['supplier-payments.*']],
-                ['label' => 'Payables', 'route' => 'payables.index', 'icon' => 'clock', 'active' => ['payables.*']],
+                ['label' => 'Receipts', 'route' => 'receipts.index', 'icon' => 'arrow-down-circle', 'active' => ['receipts.*']],
+                ['label' => 'Receivables', 'route' => 'receivables.index', 'icon' => 'inbox', 'active' => ['receivables.*']],
+                ['label' => 'Supplier bills', 'route' => 'bills.index', 'icon' => 'receipt', 'active' => ['bills.*'], 'count' => fn (): int => SupplierBill::where('status', 'DRAFT')->count()],
+                ['label' => 'Supplier payments', 'route' => 'supplier-payments.index', 'icon' => 'arrow-up-circle', 'active' => ['supplier-payments.*']],
+                ['label' => 'Payables', 'route' => 'payables.index', 'icon' => 'hourglass', 'active' => ['payables.*']],
             ],
         ]];
     }

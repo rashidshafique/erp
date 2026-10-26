@@ -42,7 +42,7 @@ class InventoryServiceProvider extends ModuleServiceProvider
             ['group' => 'purchases', 'label' => 'Reorder alerts', 'route' => 'stock-reorder.index', 'icon' => 'alert', 'active' => ['stock-reorder.*'],
                 'count' => fn (): int => app(StockLevels::class)->needingReorder()->count()],
             ['group' => 'purchases', 'label' => 'Stock by location', 'route' => 'stock-balances.index', 'icon' => 'package', 'active' => ['stock-balances.*', 'stock-movements.record']],
-            ['group' => 'purchases', 'label' => 'Stock locations', 'route' => 'stock-locations.index', 'icon' => 'package', 'active' => ['stock-locations.*']],
+            ['group' => 'purchases', 'label' => 'Stock locations', 'route' => 'stock-locations.index', 'icon' => 'map-pin', 'active' => ['stock-locations.*']],
         ];
     }
 }

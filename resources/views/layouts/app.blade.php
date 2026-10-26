@@ -55,15 +55,15 @@
                 <div class="nav-submenu" hidden>
                     @if ($menu->shows('patterns.index')) <a href="{{ route('patterns.index') }}" class="nav-link {{ request()->routeIs('patterns.*', 'pattern-ownership.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('layers') !!}<span>Patterns</span></a> @endif
                     @if ($menu->shows('casting-analyses.index')) <a href="{{ route('casting-analyses.index') }}" class="nav-link {{ request()->routeIs('casting-analyses.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('chart-line') !!}<span>Casting analysis</span></a> @endif
-                    @if ($menu->shows('production-orders.index')) <a href="{{ route('production-orders.index') }}" class="nav-link {{ request()->routeIs('production-orders.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('factory') !!}<span>Production orders</span>@if (($menuCounts['production-orders.index'] ?? 0) > 0)<span class="nav-count" title="Waiting for someone">{{ $menuCounts['production-orders.index'] }}</span>@endif</a> @endif
-                    @if ($menu->shows('planner.index')) <a href="{{ route('planner.index') }}" class="nav-link {{ request()->routeIs('planner.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('calendar') !!}<span>Planner</span></a> @endif
+                    @if ($menu->shows('production-orders.index')) <a href="{{ route('production-orders.index') }}" class="nav-link {{ request()->routeIs('production-orders.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('ticket') !!}<span>Production orders</span>@if (($menuCounts['production-orders.index'] ?? 0) > 0)<span class="nav-count" title="Waiting for someone">{{ $menuCounts['production-orders.index'] }}</span>@endif</a> @endif
+                    @if ($menu->shows('planner.index')) <a href="{{ route('planner.index') }}" class="nav-link {{ request()->routeIs('planner.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('gantt') !!}<span>Planner</span></a> @endif
                     @if ($menu->shows('lots.queue')) <a href="{{ route('lots.queue') }}" class="nav-link {{ request()->routeIs('lots.queue') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('list') !!}<span>Production queue</span></a> @endif
-                    @if ($menu->shows('moulding-runs.index')) <a href="{{ route('moulding-runs.index') }}" class="nav-link {{ request()->routeIs('moulding-runs.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('grid') !!}<span>Moulding runs</span>@if (($menuCounts['moulding-runs.index'] ?? 0) > 0)<span class="nav-count" title="Waiting for someone">{{ $menuCounts['moulding-runs.index'] }}</span>@endif</a> @endif
-                    @if ($menu->shows('pours.index')) <a href="{{ route('pours.index') }}" class="nav-link {{ request()->routeIs('pours.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('flame') !!}<span>Pour register</span>@if (($menuCounts['pours.index'] ?? 0) > 0)<span class="nav-count" title="Waiting for someone">{{ $menuCounts['pours.index'] }}</span>@endif</a> @endif
+                    @if ($menu->shows('moulding-runs.index')) <a href="{{ route('moulding-runs.index') }}" class="nav-link {{ request()->routeIs('moulding-runs.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('mould') !!}<span>Moulding runs</span>@if (($menuCounts['moulding-runs.index'] ?? 0) > 0)<span class="nav-count" title="Waiting for someone">{{ $menuCounts['moulding-runs.index'] }}</span>@endif</a> @endif
+                    @if ($menu->shows('pours.index')) <a href="{{ route('pours.index') }}" class="nav-link {{ request()->routeIs('pours.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('pour') !!}<span>Pour register</span>@if (($menuCounts['pours.index'] ?? 0) > 0)<span class="nav-count" title="Waiting for someone">{{ $menuCounts['pours.index'] }}</span>@endif</a> @endif
                     @if ($menu->shows('work-lists.index')) <a href="{{ route('work-lists.index') }}" class="nav-link {{ request()->routeIs('work-lists.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('clipboard') !!}<span>Moulding work lists</span></a> @endif
                     @if ($menu->shows('moulding-teams.index')) <a href="{{ route('moulding-teams.index') }}" class="nav-link {{ request()->routeIs('moulding-teams.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('users') !!}<span>Teams &amp; stations</span></a> @endif
                     @if ($menu->shows('sand-systems.index')) <a href="{{ route('sand-systems.index') }}" class="nav-link {{ request()->routeIs('sand-systems.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('mountain') !!}<span>Sand systems</span></a> @endif
-                    @if ($menu->shows('mould-readiness.index')) <a href="{{ route('mould-readiness.index') }}" class="nav-link {{ request()->routeIs('mould-readiness.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('check-circle') !!}<span>Mould readiness</span>@if (($menuCounts['mould-readiness.index'] ?? 0) > 0)<span class="nav-count" title="Waiting for someone">{{ $menuCounts['mould-readiness.index'] }}</span>@endif</a> @endif
+                    @if ($menu->shows('mould-readiness.index')) <a href="{{ route('mould-readiness.index') }}" class="nav-link {{ request()->routeIs('mould-readiness.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('clipboard-check') !!}<span>Mould readiness</span>@if (($menuCounts['mould-readiness.index'] ?? 0) > 0)<span class="nav-count" title="Waiting for someone">{{ $menuCounts['mould-readiness.index'] }}</span>@endif</a> @endif
                 </div>
             </div>
             @endif
@@ -74,7 +74,7 @@
                     <span class="nav-lab">{!! \App\Support\NavIcons::get('flame') !!}<span>Melting</span>@if (($n = app(\App\Domains\Core\ModuleRegistry::class)->groupCount(app(\App\Domains\Core\ModuleRegistry::class)->navItems('melting'), $menu) ) > 0)<span class="nav-count" title="Waiting for someone">{{ $n }}</span>@endif</span><span class="nav-chevron">›</span>
                 </button>
                 <div class="nav-submenu" hidden>
-                    @if ($menu->shows('heats.index')) <a href="{{ route('heats.index') }}" class="nav-link {{ request()->routeIs('heats.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('flask') !!}<span>Melting heats</span></a> @endif
+                    @if ($menu->shows('heats.index')) <a href="{{ route('heats.index') }}" class="nav-link {{ request()->routeIs('heats.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('crucible') !!}<span>Melting heats</span></a> @endif
                     @if ($menu->shows('furnaces.index')) <a href="{{ route('furnaces.index') }}" class="nav-link {{ request()->routeIs('furnaces.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('zap') !!}<span>Furnaces</span></a> @endif
                     @foreach (app(\App\Domains\Core\ModuleRegistry::class)->navItems('melting') as $item)
                         @continue(! $menu->shows($item['route']))
@@ -87,7 +87,7 @@
             @if ($menu->showsAny(['materials.index', 'charge-batches.index']) || collect(app(\App\Domains\Core\ModuleRegistry::class)->navItems('purchases'))->contains(fn ($i) => $menu->shows($i['route'])))
             <div class="nav-group {{ request()->routeIs('materials.*', 'charge-batches.*', ...app(\App\Domains\Core\ModuleRegistry::class)->navPatterns('purchases')) ? 'is-active' : '' }}">
                 <button type="button" class="nav-group-toggle" aria-expanded="false">
-                    <span class="nav-lab">{!! \App\Support\NavIcons::get('package') !!}<span>Purchases</span>@if (($n = app(\App\Domains\Core\ModuleRegistry::class)->groupCount(app(\App\Domains\Core\ModuleRegistry::class)->navItems('purchases'), $menu) ) > 0)<span class="nav-count" title="Waiting for someone">{{ $n }}</span>@endif</span><span class="nav-chevron">›</span>
+                    <span class="nav-lab">{!! \App\Support\NavIcons::get('shopping-cart') !!}<span>Purchases</span>@if (($n = app(\App\Domains\Core\ModuleRegistry::class)->groupCount(app(\App\Domains\Core\ModuleRegistry::class)->navItems('purchases'), $menu) ) > 0)<span class="nav-count" title="Waiting for someone">{{ $n }}</span>@endif</span><span class="nav-chevron">›</span>
                 </button>
                 <div class="nav-submenu" hidden>
                     @if ($menu->shows('materials.index')) <a href="{{ route('materials.index') }}" class="nav-link {{ request()->routeIs('materials.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('package') !!}<span>Materials</span></a> @endif
@@ -123,7 +123,7 @@
                     <span class="nav-lab">{!! \App\Support\NavIcons::get('check-circle') !!}<span>Quality</span>@if (($n = app(\App\Domains\Core\ModuleRegistry::class)->groupCount(app(\App\Domains\Core\ModuleRegistry::class)->navItems('quality'), $menu) + \App\Support\MenuCounts::sum($menuCounts, \App\Support\MenuCounts::QUALITY)) > 0)<span class="nav-count" title="Waiting for someone">{{ $n }}</span>@endif</span><span class="nav-chevron">›</span>
                 </button>
                 <div class="nav-submenu" hidden>
-                    @if ($menu->shows('quick-qc.index')) <a href="{{ route('quick-qc.index') }}" class="nav-link {{ request()->routeIs('quick-qc.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('search-check') !!}<span>Quick QC</span></a> @endif
+                    @if ($menu->shows('quick-qc.index')) <a href="{{ route('quick-qc.index') }}" class="nav-link {{ request()->routeIs('quick-qc.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('check-verified') !!}<span>Quick QC</span></a> @endif
                     @if ($menu->shows('lots.index')) <a href="{{ route('lots.index') }}" class="nav-link {{ request()->routeIs('lots.index', 'lots.show', 'lots.certificate') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('tag') !!}<span>Casting lots</span></a> @endif
                     @if ($menu->shows('inspections.index')) <a href="{{ route('inspections.index') }}" class="nav-link {{ request()->routeIs('inspections.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('search-check') !!}<span>Inspections</span>@if (($menuCounts['inspections.index'] ?? 0) > 0)<span class="nav-count" title="Lots waiting for inspection and inspections still open">{{ $menuCounts['inspections.index'] }}</span>@endif</a> @endif
                     @if ($menu->shows('ncrs.index')) <a href="{{ route('ncrs.index') }}" class="nav-link {{ request()->routeIs('ncrs.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('alert') !!}<span>Nonconformance</span>@if (($menuCounts['ncrs.index'] ?? 0) > 0)<span class="nav-count" title="Waiting for someone">{{ $menuCounts['ncrs.index'] }}</span>@endif</a> @endif
@@ -131,7 +131,7 @@
                         @continue(! $menu->shows($item['route']))
                         <a href="{{ route($item['route']) }}" class="nav-link {{ request()->routeIs(...$item['active']) ? 'active' : '' }}">{!! \App\Support\NavIcons::get($item['icon']) !!}<span>{{ $item['label'] }}</span>@if (($n = app(\App\Domains\Core\ModuleRegistry::class)->navCount($item)) > 0)<span class="nav-count" title="Waiting for someone">{{ $n }}</span>@endif</a>
                     @endforeach
-                    @if ($menu->shows('reports.yield')) <a href="{{ route('reports.yield') }}" class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('bars') !!}<span>Yield &amp; scrap</span></a> @endif
+                    @if ($menu->shows('reports.yield')) <a href="{{ route('reports.yield') }}" class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('pie-chart') !!}<span>Yield &amp; scrap</span></a> @endif
                     @if ($menu->shows('defects.index')) <a href="{{ route('defects.index') }}" class="nav-link {{ request()->routeIs('defects.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('bug') !!}<span>Defect list</span></a> @endif
                 </div>
             </div>
@@ -145,7 +145,7 @@
                 <div class="nav-submenu" hidden>
                     @if ($menu->shows('iron-grades.index')) <a href="{{ route('iron-grades.index') }}" class="nav-link {{ request()->routeIs('iron-grades.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('hexagon') !!}<span>Iron grades</span></a> @endif
                     @if ($menu->shows('thermal.index')) <a href="{{ route('thermal.index') }}" class="nav-link {{ request()->routeIs('thermal.index', 'thermal.show') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('thermometer') !!}<span>Thermal tests</span></a> @endif
-                    @if ($menu->shows('sand-tests.index')) <a href="{{ route('sand-tests.index') }}" class="nav-link {{ request()->routeIs('sand-tests.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('mountain') !!}<span>Sand lab</span></a> @endif
+                    @if ($menu->shows('sand-tests.index')) <a href="{{ route('sand-tests.index') }}" class="nav-link {{ request()->routeIs('sand-tests.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('microscope') !!}<span>Sand lab</span></a> @endif
                 </div>
             </div>
             @endif
@@ -156,7 +156,7 @@
                     <span class="nav-lab">{!! \App\Support\NavIcons::get('wrench') !!}<span>Equipment &amp; Tooling</span>@if (($n = app(\App\Domains\Core\ModuleRegistry::class)->groupCount(app(\App\Domains\Core\ModuleRegistry::class)->navItems('equipment'), $menu) ) > 0)<span class="nav-count" title="Waiting for someone">{{ $n }}</span>@endif</span><span class="nav-chevron">›</span>
                 </button>
                 <div class="nav-submenu" hidden>
-                    @if ($menu->shows('flasks.index')) <a href="{{ route('flasks.index') }}" class="nav-link {{ request()->routeIs('flasks.*', 'flask-sizes.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('grid') !!}<span>Flasks</span></a> @endif
+                    @if ($menu->shows('flasks.index')) <a href="{{ route('flasks.index') }}" class="nav-link {{ request()->routeIs('flasks.*', 'flask-sizes.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('cube') !!}<span>Flasks</span></a> @endif
                     @foreach (app(\App\Domains\Core\ModuleRegistry::class)->navItems('equipment') as $item)
                         @continue(! $menu->shows($item['route']))
                         <a href="{{ route($item['route']) }}" class="nav-link {{ request()->routeIs(...$item['active']) ? 'active' : '' }}">{!! \App\Support\NavIcons::get($item['icon']) !!}<span>{{ $item['label'] }}</span>@if (($n = app(\App\Domains\Core\ModuleRegistry::class)->navCount($item)) > 0)<span class="nav-count" title="Waiting for someone">{{ $n }}</span>@endif</a>
@@ -168,7 +168,7 @@
         </nav>
 
         <div class="sidebar-bottom">
-            <a href="{{ route('help.new-customer') }}" class="nav-link {{ request()->routeIs('help.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('book') !!}<span>Help: new customer</span></a>
+            <a href="{{ route('help.new-customer') }}" class="nav-link {{ request()->routeIs('help.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('help-circle') !!}<span>Help: new customer</span></a>
             @if (\App\Support\SettingsNav::canOpen())
                 <a href="{{ route('settings.edit') }}" class="nav-link {{ \App\Support\SettingsNav::isSettingsPage() ? 'active' : '' }}">{!! \App\Support\NavIcons::get('settings') !!}<span>Settings</span></a>
             @endif

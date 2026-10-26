@@ -41,8 +41,8 @@ class PurchasingServiceProvider extends ModuleServiceProvider
     protected function navItems(): array
     {
         return [
-            ['group' => 'purchases', 'label' => 'Suppliers', 'route' => 'suppliers.index', 'icon' => 'truck', 'active' => ['suppliers.*']],
-            ['group' => 'purchases', 'label' => 'Purchase orders', 'route' => 'purchase-orders.index', 'icon' => 'receipt', 'active' => ['purchase-orders.*'],
+            ['group' => 'purchases', 'label' => 'Suppliers', 'route' => 'suppliers.index', 'icon' => 'store', 'active' => ['suppliers.*']],
+            ['group' => 'purchases', 'label' => 'Purchase orders', 'route' => 'purchase-orders.index', 'icon' => 'clipboard', 'active' => ['purchase-orders.*'],
                 'count' => fn (): int => PurchaseOrder::where('status', 'DRAFT')->count()],
         ];
     }

@@ -33,7 +33,7 @@ class CamerasServiceProvider extends ModuleServiceProvider
             'key' => 'cameras', 'label' => 'Cameras', 'icon' => 'camera', 'active' => ['cameras.*'],
             'items' => [
                 ['label' => 'Live view', 'route' => 'cameras.index', 'icon' => 'monitor', 'active' => ['cameras.index', 'cameras.snapshot', 'cameras.stream']],
-                ['label' => 'Camera setup', 'route' => 'cameras.setup', 'icon' => 'grid', 'active' => ['cameras.setup', 'cameras.dvrs.*', 'cameras.channels.*', 'cameras.update', 'cameras.destroy']],
+                ['label' => 'Camera setup', 'route' => 'cameras.setup', 'icon' => 'sliders', 'active' => ['cameras.setup', 'cameras.dvrs.*', 'cameras.channels.*', 'cameras.update', 'cameras.destroy']],
             ],
         ]];
     }

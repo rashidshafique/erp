@@ -53,11 +53,11 @@ class LedgerServiceProvider extends ModuleServiceProvider
             'items' => [
                 ['label' => 'Journals', 'route' => 'ledger.journals.index', 'icon' => 'file-text', 'active' => ['ledger.journals.*']],
                 ['label' => 'Chart of accounts', 'route' => 'ledger.accounts.index', 'icon' => 'list', 'active' => ['ledger.accounts.*']],
-                ['label' => 'Bank accounts', 'route' => 'ledger.banks.index', 'icon' => 'credit-card', 'active' => ['ledger.banks.*', 'ledger.reconciliations.*']],
-                ['label' => 'Trial balance', 'route' => 'ledger.trial-balance', 'icon' => 'bars', 'active' => ['ledger.trial-balance']],
-                ['label' => 'Profit and loss', 'route' => 'ledger.profit-and-loss', 'icon' => 'bars', 'active' => ['ledger.profit-and-loss']],
-                ['label' => 'Balance sheet', 'route' => 'ledger.balance-sheet', 'icon' => 'bars', 'active' => ['ledger.balance-sheet']],
-                ['label' => 'General ledger', 'route' => 'ledger.general-ledger', 'icon' => 'file-text', 'active' => ['ledger.general-ledger']],
+                ['label' => 'Bank accounts', 'route' => 'ledger.banks.index', 'icon' => 'bank', 'active' => ['ledger.banks.*', 'ledger.reconciliations.*']],
+                ['label' => 'Trial balance', 'route' => 'ledger.trial-balance', 'icon' => 'list-check', 'active' => ['ledger.trial-balance']],
+                ['label' => 'Profit and loss', 'route' => 'ledger.profit-and-loss', 'icon' => 'trending-up', 'active' => ['ledger.profit-and-loss']],
+                ['label' => 'Balance sheet', 'route' => 'ledger.balance-sheet', 'icon' => 'scale', 'active' => ['ledger.balance-sheet']],
+                ['label' => 'General ledger', 'route' => 'ledger.general-ledger', 'icon' => 'book-open', 'active' => ['ledger.general-ledger']],
             ],
         ]];
     }

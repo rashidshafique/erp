@@ -31,7 +31,7 @@ class DocumentsServiceProvider extends ModuleServiceProvider
     protected function navItems(): array
     {
         return [
-            ['group' => 'quality', 'label' => 'Controlled documents', 'route' => 'documents.index', 'icon' => 'book', 'active' => ['documents.*'],
+            ['group' => 'quality', 'label' => 'Controlled documents', 'route' => 'documents.index', 'icon' => 'folder', 'active' => ['documents.*'],
                 'count' => fn (): int => ControlledDocumentRevision::where('status', 'IN_REVIEW')->count()],
         ];
     }

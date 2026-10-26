@@ -146,7 +146,7 @@ class HrServiceProvider extends ModuleServiceProvider
         return [[
             'key' => 'hr', 'label' => 'People (HR)', 'icon' => 'users', 'active' => ['hr.*', 'directory.*', 'leave.*'],
             'items' => [
-                ['label' => 'People overview', 'route' => 'hr.dashboard', 'icon' => 'users', 'active' => ['hr.dashboard']],
+                ['label' => 'People overview', 'route' => 'hr.dashboard', 'icon' => 'dashboard', 'active' => ['hr.dashboard']],
                 ['label' => 'Employees', 'route' => 'hr.employees.index', 'icon' => 'id-card', 'active' => ['hr.employees.*']],
                 ['label' => 'Attendance & overtime', 'route' => 'hr.attendance', 'icon' => 'clock', 'active' => ['hr.attendance*']],
                 ['label' => 'Roster, shifts & holidays', 'route' => 'hr.roster', 'icon' => 'calendar', 'active' => ['hr.roster*', 'hr.shifts.*', 'hr.holidays.*']],
@@ -155,10 +155,10 @@ class HrServiceProvider extends ModuleServiceProvider
                 ['label' => 'My leave & approvals', 'route' => 'leave.my', 'icon' => 'calendar-minus', 'active' => ['leave.*']],
                 ['label' => 'My payslips', 'route' => 'payslips.my', 'icon' => 'receipt', 'active' => ['payslips.*']],
                 ['label' => 'Org chart', 'route' => 'hr.orgchart', 'icon' => 'network', 'active' => ['hr.orgchart*']],
-                ['label' => 'Directory & reporting lines', 'route' => 'directory.index', 'icon' => 'network', 'active' => ['directory.*']],
+                ['label' => 'Directory & reporting lines', 'route' => 'directory.index', 'icon' => 'list', 'active' => ['directory.*']],
                 ['label' => 'Exits & clearance', 'route' => 'hr.exits.index', 'icon' => 'log-out', 'active' => ['hr.exits.*']],
                 ['label' => 'HR policies', 'route' => 'hr.policies.index', 'icon' => 'book', 'active' => ['hr.policies.*']],
-                ['label' => 'Organisation setup', 'route' => 'hr.organisation', 'icon' => 'building', 'active' => ['hr.organisation*', 'hr.checklist.*']],
+                ['label' => 'Organisation setup', 'route' => 'hr.organisation', 'icon' => 'sliders', 'active' => ['hr.organisation*', 'hr.checklist.*']],
             ],
         ]];
     }
