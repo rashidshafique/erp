@@ -97,7 +97,7 @@
             @endforeach
             <div><button class="btn" type="submit">Save</button></div>
         </form>
-        <p class="muted small">Projected finish = the day the order's last moulds are made, plus the days from moulding to finished. Stations are loaded up to their moulds per shift, after the moulds already on work lists from this day on; a pattern goes to its preferred station when that has a rate.</p>
+        <p class="muted small">Projected finish = the day the order's last moulds are made, plus the days from moulding to finished. Stations are loaded up to their moulds per shift, after the moulds already on work lists from this day on; a pattern goes to its preferred station when that has a rate. A station that moulds several patterns at once shares its shift among at least that many.</p>
     </div>
 </div>
 @endsection

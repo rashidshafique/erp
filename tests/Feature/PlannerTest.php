@@ -99,6 +99,12 @@ class PlannerTest extends TestCase
 
         PlannerRules::set('min_run_moulds', 15);
         $this->assertSame(['A' => 30], $firstShift());                                       // 10 left is less than B's minimum run
+        PlannerRules::set('min_run_moulds', 0);
+
+        $w['st']->update(['station_type' => 'FLOOR', 'max_patterns' => 2]);
+        $this->assertSame(['A' => 20, 'B' => 20], $firstShift());                            // a station moulding two at once takes two patterns
+        $w['st']->update(['station_type' => 'AUTOMATED_LINE']);
+        $this->assertSame(['A' => 30, 'B' => 10], $firstShift());                            // a line is one at a time, whatever is stored
     }
 
     private function plate(string $code, \App\Models\MouldingStation $station): array

@@ -264,8 +264,9 @@ class OrderPlanner
 
     /**
      * Work a station's queue shift by shift. Jobs are grouped into runs of one plate (later orders on the same plate join the first
-     * when grouping is on). A shift is shared by up to "patterns per shift" runs in queue order; a run starting in a shift gets at
-     * least the minimum run (or what it needs), and a run that cannot have that waits for the next shift rather than being skipped.
+     * when grouping is on). A shift is shared by up to "patterns per shift" runs in queue order, or as many as the station moulds at
+     * once when that is more; a run starting in a shift gets at least the minimum run (or what it needs), and a run that cannot have
+     * that waits for the next shift rather than being skipped.
      *
      * @param  list<array{order: int, pattern: string, moulds: int}>  $jobs  in rank order
      * @param  array<int, int>  $used  moulds already taken in each shift by open work lists
@@ -274,7 +275,7 @@ class OrderPlanner
     private function runQueue(MouldingStation $station, array $jobs, array $used): array
     {
         $rate = (int) $station->moulds_per_shift;
-        $perShift = PlannerRules::get('patterns_per_shift');
+        $perShift = max(PlannerRules::get('patterns_per_shift'), $station->capacity());
         $minRun = min(PlannerRules::get('min_run_moulds'), $rate);
         $runs = [];
         foreach ($jobs as $n => $job) {
