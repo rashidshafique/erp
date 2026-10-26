@@ -155,7 +155,12 @@
                             <input name="cover_reference" value="{{ $assignment->cover_reference }}" maxlength="40" placeholder="cover" style="width:80px;min-height:24px;padding:1px 6px;font-size:12px" aria-label="Cover used on {{ $assignment->mouldAssembly?->assembly_number }}">
                             <input type="number" name="weights_count" value="{{ $assignment->weights_count }}" min="0" max="100" placeholder="wts" style="width:56px;min-height:24px;padding:1px 6px;font-size:12px" aria-label="Weights on {{ $assignment->mouldAssembly?->assembly_number }}">
                             <button class="btn btn-small" type="submit">Save</button></form>
-                            @if ($assignment->mouldAssembly?->is_flaskless)<div class="muted small">flaskless</div>@endif</td>
+                            @if ($assignment->mouldAssembly?->is_flaskless)<div class="muted small">flaskless</div>
+                            @elseif ($assignment->mouldAssembly)
+                                @php [$flaskDefault, $flaskFrom] = app(\App\Services\Production\FlaskManager::class)->mouldDefault($assignment->mouldAssembly); @endphp
+                                <div style="margin-top:4px">@if ($pour->status !== 'COMPLETED')@include('flasks._freed-select', ['action' => route('pours.assemblies.flasks', [$pour, $assignment]), 'value' => $assignment->mouldAssembly->flasks_freed, 'default' => $flaskDefault, 'from' => $flaskFrom, 'label' => 'Flasks freed for '.$assignment->mouldAssembly->assembly_number])
+                                @else<span class="muted small">Flasks freed {{ strtolower(\App\Services\Production\FlaskManager::freedLabel($assignment->mouldAssembly->flasks_freed ?? $flaskDefault)) }}</span>@endif</div>
+                            @endif</td>
                         <td>@if ($pour->status !== 'COMPLETED')<form method="POST" action="{{ route('pours.assemblies.detach', [$pour, $assignment]) }}" onsubmit="return confirm('Remove this mould from the pour?')">@csrf @method('DELETE')@include('partials.icon-button', ['type' => 'delete', 'word' => 'Remove'])</form>@endif</td>
                     </tr>
                 @empty

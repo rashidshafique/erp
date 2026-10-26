@@ -335,6 +335,9 @@ Route::post('/moulding-runs/{mouldingRun}/assemblies', [MouldingRunController::c
 Route::post('/pours/{pour}/assemblies', [PourController::class, 'attachAssemblies'])->name('pours.assemblies.attach');
 Route::delete('/pours/{pour}/assemblies/{row}', [PourController::class, 'detachAssembly'])->name('pours.assemblies.detach');
 Route::put('/pours/{pour}/assemblies/{row}/cover', [PourController::class, 'coverAssembly'])->name('pours.assemblies.cover');
+Route::put('/pours/{pour}/assemblies/{row}/flasks', [\App\Http\Controllers\FlaskFreedController::class, 'pourMould'])->name('pours.assemblies.flasks');
+Route::put('/moulding-runs/{run}/flasks', [\App\Http\Controllers\FlaskFreedController::class, 'run'])->name('moulding-runs.flasks');
+Route::put('/work-lists/{list}/items/{item}/flasks', [\App\Http\Controllers\FlaskFreedController::class, 'workListItem'])->name('work-lists.items.flasks');
 
 // ---- Pattern ownership ----
 Route::controller(PatternOwnershipController::class)->group(function () {

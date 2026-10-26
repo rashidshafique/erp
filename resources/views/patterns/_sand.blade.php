@@ -27,6 +27,14 @@
     station.addEventListener('change', label); label();
 })();
 </script>
+<div class="field" data-keep>
+    <label for="flasks_freed">Flasks freed</label>
+    <select id="flasks_freed" name="flasks_freed" style="max-width:260px">
+        <option value="">As its sand system says</option>
+        @foreach (\App\Services\Production\FlaskManager::FREED as $key => $text)<option value="{{ $key }}" @selected(old('flasks_freed', $pattern->flasks_freed) === $key)>{{ $text }}</option>@endforeach
+    </select>
+    <div class="help">At pour: the flask is stripped and the sand cake handled without it. Work lists, runs and the pour start from this and can change it.</div>
+</div>
 <div class="field">
     <label>Also works on</label>
     <div style="display:flex;gap:14px;flex-wrap:wrap">

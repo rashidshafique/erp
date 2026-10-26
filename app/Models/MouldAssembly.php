@@ -24,6 +24,7 @@ class MouldAssembly extends Model
         'notes',
         'is_flaskless',
         'flask_size_id',
+        'flasks_freed',
     ];
 
     protected $casts = [

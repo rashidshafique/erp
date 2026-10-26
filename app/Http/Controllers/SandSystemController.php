@@ -79,7 +79,7 @@ class SandSystemController extends Controller
         return back()->with('success', "Sand system {$sandSystem->name} deleted.");
     }
 
-    /** @return array{name: string, system_type: string, status?: string, sort_order?: ?int, description?: ?string, main_sand_id?: ?string, sand_ids?: array<int, string>} */
+    /** @return array{name: string, system_type: string, status?: string, sort_order?: ?int, description?: ?string, flasks_freed?: ?string, main_sand_id?: ?string, sand_ids?: array<int, string>} */
     private function validated(Request $request, ?SandSystem $sandSystem = null): array
     {
         $baseSand = Rule::exists('base_sands', 'id')->whereNull('deleted_at');
@@ -89,6 +89,7 @@ class SandSystemController extends Controller
             'status' => [$sandSystem ? 'required' : 'nullable', Rule::in(['ACTIVE', 'INACTIVE'])],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:100000'],
             'description' => ['nullable', 'string', 'max:1000'],
+            'flasks_freed' => ['nullable', Rule::in(['POUR', 'SHAKEOUT'])],
             'main_sand_id' => ['nullable', 'uuid', $baseSand],
             'sand_ids' => ['nullable', 'array'],
             'sand_ids.*' => ['uuid', $baseSand],
@@ -98,6 +99,6 @@ class SandSystemController extends Controller
             throw ValidationException::withMessages(['name' => "There is already a sand system called {$data['name']}."]);
         }
 
-        return array_filter($data, fn ($v, $k) => $v !== null || $k === 'description', ARRAY_FILTER_USE_BOTH);
+        return array_filter($data, fn ($v, $k) => $v !== null || in_array($k, ['description', 'flasks_freed'], true), ARRAY_FILTER_USE_BOTH);
     }
 }

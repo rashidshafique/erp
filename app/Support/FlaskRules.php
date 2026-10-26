@@ -18,7 +18,7 @@ class FlaskRules
             'FIXED' => 'Fixed pairs only: a flask goes only with its partner',
             'MIXED' => 'Pairs where a partner is set, otherwise any: a flask with a partner goes only with it; flasks without one go with any other flask without one',
         ], 'ANY'],
-        'release' => ['flasks.release', 'When flasks are freed', [
+        'release' => ['flasks.release', 'When flasks are freed, unless the sand system, pattern, work list, run or pour says otherwise', [
             'SHAKEOUT' => 'At shakeout of the castings',
             'POUR' => 'As soon as the mould is poured',
             'MANUAL' => 'Only by "Release flasks"',

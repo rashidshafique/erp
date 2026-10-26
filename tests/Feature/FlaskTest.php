@@ -294,6 +294,37 @@ class FlaskTest extends TestCase
         $this->assertSame(8, ToolingUsageRecord::where('tooling_type', 'FLASK')->count());
     }
 
+    public function test_when_flasks_are_freed_follows_sand_pattern_run_and_mould(): void
+    {
+        $size = $this->makeSize('600 × 500');
+        $this->flasks($size, 'ANY', 8);
+        $this->assertSame('POUR', \App\Models\SandSystem::where('name', 'Sheera')->value('flasks_freed'), 'Sheera is stripped at pour out of the box');
+        $run = $this->makeRun([$size], accepted: 4);
+        $run->update(['sand_system' => 'Sheera']);
+        [$bySand, $byPattern, $byRun, $byMould] = $this->assemble($run, 4)->all();
+        $held = fn (MouldAssembly $mould) => Flask::where('current_mould_assembly_id', $mould->id)->count();
+        $pour = fn (MouldAssembly $mould) => $mould->fresh()->update(['status' => 'POURED']);
+
+        $pour($bySand);
+        $this->assertSame(0, $held($bySand), 'Sheera strips the flask at pour');
+
+        $run->patternRevision->pattern->update(['flasks_freed' => 'SHAKEOUT']);
+        $pour($byPattern);
+        $this->assertSame(2, $held($byPattern), 'the pattern overrides its sand');
+
+        $this->put(route('moulding-runs.flasks', $run), ['flasks_freed' => 'POUR'])->assertSessionHasNoErrors();
+        $pour($byRun);
+        $this->assertSame(0, $held($byRun), 'the run overrides the pattern');
+
+        $byMould->update(['flasks_freed' => 'SHAKEOUT']);
+        $pour($byMould);
+        $this->assertSame(2, $held($byMould), 'the mould overrides its run');
+
+        $lot = new CastingLot;
+        $lot->setRelation('pourMouldAssembly', (new PourMouldAssembly)->setRelation('mouldAssembly', $byMould->fresh()));
+        $this->assertSame(2, app(FlaskManager::class)->shakenOut($lot));
+    }
+
     public function test_a_flask_is_swapped_for_the_one_actually_used(): void
     {
         $size = $this->makeSize('600 × 500');

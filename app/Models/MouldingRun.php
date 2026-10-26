@@ -39,6 +39,7 @@ class MouldingRun extends Model
         'completed_at',
         'moulding_method',
         'sand_system',
+        'flasks_freed',
         'operator_name',
         'team_name',
         'moulding_team_id',

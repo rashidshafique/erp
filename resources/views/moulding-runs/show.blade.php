@@ -146,6 +146,12 @@
                 </div>
 
                 <div>
+                    @php [$flaskDefault, $flaskFrom] = app(\App\Services\Production\FlaskManager::class)->runDefault($run); @endphp
+                    <div class="detail-label">Flasks freed</div>
+                    <div class="detail-value">@include('flasks._freed-select', ['action' => route('moulding-runs.flasks', $run), 'value' => $run->flasks_freed, 'default' => $flaskDefault, 'from' => $flaskFrom, 'label' => 'Flasks freed for this run'])</div>
+                </div>
+
+                <div>
                     <div class="detail-label">Operator</div>
                     <div class="detail-value">{{ $run->operator_name ?: '—' }}</div>
                 </div>

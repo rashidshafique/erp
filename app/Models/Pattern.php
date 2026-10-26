@@ -62,6 +62,7 @@ class Pattern extends Model
         'pattern_type',
         'sand_system',
         'preferred_moulding_station_id',
+        'flasks_freed',
         'compatible_sands',
         'sand_note',
         'status',

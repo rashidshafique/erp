@@ -152,6 +152,7 @@ class PatternController extends Controller
             'preferred_moulding_station_id' => ['nullable', 'uuid', 'exists:moulding_stations,id'],
             'compatible_sands' => ['nullable', 'array'], 'compatible_sands.*' => [Rule::in(SandSystem::allNames())],
             'sand_note' => ['nullable', 'string', 'max:1000'],
+            'flasks_freed' => ['nullable', Rule::in(['POUR', 'SHAKEOUT'])],
 
             'revision' => ['required', 'string', 'max:20'],
             'revision_status' => ['required', Rule::in(['DRAFT', 'APPROVED', 'OBSOLETE'])],
@@ -188,6 +189,7 @@ class PatternController extends Controller
                 'preferred_moulding_station_id' => $data['preferred_moulding_station_id'] ?? null,
                 'compatible_sands' => $this->otherSands($data),
                 'sand_note' => $data['sand_note'] ?? null,
+                'flasks_freed' => $data['flasks_freed'] ?? null,
             ]);
             $pattern->withoutMark = true;
             $pattern->save();
@@ -363,9 +365,9 @@ class PatternController extends Controller
             'sand_system' => ['nullable', Rule::in(SandSystem::allNames())],
             'preferred_moulding_station_id' => ['nullable', 'uuid', 'exists:moulding_stations,id'],
             'compatible_sands' => ['nullable', 'array'], 'compatible_sands.*' => [Rule::in(SandSystem::allNames())],
-            'sand_note' => ['nullable', 'string', 'max:1000'],
+            'sand_note' => ['nullable', 'string', 'max:1000'], 'flasks_freed' => ['nullable', Rule::in(['POUR', 'SHAKEOUT'])],
         ]);
-        $pattern->update(['sand_system' => $data['sand_system'] ?? null, 'preferred_moulding_station_id' => $data['preferred_moulding_station_id'] ?? null, 'compatible_sands' => $this->otherSands($data), 'sand_note' => $data['sand_note'] ?? null]);
+        $pattern->update(['sand_system' => $data['sand_system'] ?? null, 'preferred_moulding_station_id' => $data['preferred_moulding_station_id'] ?? null, 'compatible_sands' => $this->otherSands($data), 'sand_note' => $data['sand_note'] ?? null, 'flasks_freed' => $data['flasks_freed'] ?? null]);
 
         return back()->with('success', 'Sand system saved for '.$pattern->code.'.');
     }

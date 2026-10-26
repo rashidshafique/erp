@@ -15,7 +15,7 @@
 @endphp
 
 <div class="tab-marker" data-tab-start="Sand systems"></div>
-<div class="panel"><div class="table-wrap"><table><thead><tr><th>Order</th><th>Name</th><th>Type</th><th>Sands</th><th>Description</th><th>Status</th><th>Used by</th><th></th></tr></thead><tbody>
+<div class="panel"><div class="table-wrap"><table><thead><tr><th>Order</th><th>Name</th><th>Type</th><th>Sands</th><th>Description</th><th title="When a mould's flasks are free again; patterns, work lists, runs and pours can change it">Flasks freed</th><th>Status</th><th>Used by</th><th></th></tr></thead><tbody>
 @forelse($sandSystems as $sd)
 @php
     $used = $sandUsage[$sd->id] ?? []; $main = $sd->mainSand(); $rowKey = 'sd-'.$sd->id; $editing = old('_row') === $rowKey; $f = 'f-'.$rowKey;
@@ -33,13 +33,14 @@
     <details @if($picked) open @endif><summary>Also uses</summary>
     @foreach($sandChoices($sd) as $b)<label><input form="{{ $f }}" type="checkbox" name="sand_ids[]" value="{{ $b->id }}" @checked(in_array($b->id, $picked, true))> {{ $b->name }}</label>@endforeach</details></div></td>
 <td class="col-desc"><span class="ro clip" title="{{ $sd->description }}">{{ $sd->description ?: '—' }}</span><span class="ed"><input form="{{ $f }}" name="description" value="{{ $val('description', $sd->description) }}" maxlength="1000" style="width:100%"></span></td>
+<td><span class="ro">{{ $sd->flasks_freed ? \App\Services\Production\FlaskManager::FREED[$sd->flasks_freed] : 'Flask board rule' }}</span><span class="ed"><select form="{{ $f }}" name="flasks_freed" style="width:150px"><option value="">Flask board rule</option>@foreach(\App\Services\Production\FlaskManager::FREED as $k => $l)<option value="{{ $k }}" @selected($val('flasks_freed', $sd->flasks_freed) === $k)>{{ $l }}</option>@endforeach</select></span></td>
 <td><span class="ro"><span class="status {{ $chip($sd->status) }}">{{ $sd->status }}</span></span><span class="ed"><select form="{{ $f }}" name="status" style="width:110px"><option @selected($val('status', $sd->status)==='ACTIVE')>ACTIVE</option><option @selected($val('status', $sd->status)==='INACTIVE')>INACTIVE</option></select></span></td>
 <td class="small" style="max-width:150px">{{ $used ? collect($used)->map(fn ($n, $what) => "$n $what")->implode(', ') : '—' }}</td>
 <td style="white-space:nowrap">
     <span class="ro ro-act">@include('partials.icon-button', ['type' => 'edit', 'name' => $sd->name, 'buttonType' => 'button', 'data' => ['row-edit' => true]])@unless($used)@include('partials.icon-button', ['type' => 'delete', 'name' => $sd->name, 'form' => 'del-sand-'.$sd->id, 'confirm' => "Delete {$sd->name}?"])@endunless</span>
     <span class="ed ed-act"><button type="submit" form="{{ $f }}" class="btn btn-small btn-primary">Save</button><button type="button" form="{{ $f }}" class="btn btn-small" data-row-cancel>Cancel</button></span></td></tr>
 @empty
-<tr><td colspan="8" class="muted" style="padding:16px">No sand systems yet. Press “+ Add sand system” to add the first one.</td></tr>
+<tr><td colspan="9" class="muted" style="padding:16px">No sand systems yet. Press “+ Add sand system” to add the first one.</td></tr>
 @endforelse
 </tbody></table></div>
 @foreach($sandSystems as $sd)

@@ -9,7 +9,9 @@ use App\Models\MouldAssembly;
 use App\Models\MouldingRun;
 use App\Models\MouldingStation;
 use App\Models\MouldLayer;
+use App\Models\Pattern;
 use App\Models\PatternRevision;
+use App\Models\SandSystem;
 use App\Models\ToolingMaintenanceRecord;
 use App\Models\ToolingUsageRecord;
 use App\Support\FlaskRules;
@@ -244,23 +246,72 @@ class FlaskManager
         return $flasks->count();
     }
 
-    /** Follows a mould's status: scrapped and cancelled moulds give their flasks back, poured ones too under the "at pour" rule. */
+    public const FREED = ['POUR' => 'At pour (flask stripped)', 'SHAKEOUT' => 'At shakeout'];
+
+    /**
+     * When flasks are freed for a pattern moulded in a sand: the pattern's own setting, else the sand system's, else the flask
+     * board rule (which may also be "only by Release flasks").
+     */
+    public function freedAt(?Pattern $pattern, ?string $sand): string
+    {
+        return $this->patternDefault($pattern, $sand)[0];
+    }
+
+    /** When a mould's flasks are freed: set on the mould at the pour, else its run, else its work list row, else the pattern and sand. */
+    public function freedFor(MouldAssembly $mould): string
+    {
+        return $mould->flasks_freed ?? $this->mouldDefault($mould)[0];
+    }
+
+    /** @return array{0: string, 1: string} what applies to a pattern in a sand, and where that comes from */
+    public function patternDefault(?Pattern $pattern, ?string $sand): array
+    {
+        if ($pattern?->flasks_freed) {
+            return [$pattern->flasks_freed, 'pattern'];
+        }
+        $bySand = $sand ? SandSystem::where('name', $sand)->value('flasks_freed') : null;
+
+        return $bySand ? [$bySand, $sand] : [FlaskRules::get('release'), 'flask board'];
+    }
+
+    /** @return array{0: string, 1: string} what applies to a run when it sets nothing itself */
+    public function runDefault(MouldingRun $run): array
+    {
+        $item = $run->workListItem;
+
+        return $item?->flasks_freed ? [$item->flasks_freed, 'work list'] : $this->patternDefault($run->patternRevision?->pattern, $run->sand_system);
+    }
+
+    /** @return array{0: string, 1: string} what applies to a mould when it sets nothing itself */
+    public function mouldDefault(MouldAssembly $mould): array
+    {
+        $run = $mould->mouldingRun;
+        if (! $run) {
+            return [FlaskRules::get('release'), 'flask board'];
+        }
+
+        return $run->flasks_freed ? [$run->flasks_freed, 'run'] : $this->runDefault($run);
+    }
+
+    /** A short label for a freed-at value, for the default choice of a select. */
+    public static function freedLabel(string $value): string
+    {
+        return self::FREED[$value] ?? 'Only by Release flasks';
+    }
+
+    /** Follows a mould's status: scrapped and cancelled moulds give their flasks back, poured ones too when they are freed at pour. */
     public function mouldStatusChanged(MouldAssembly $mould): void
     {
         if (in_array($mould->status, ['SCRAPPED', 'CANCELLED'], true)
-            || ($mould->status === 'POURED' && FlaskRules::get('release') === 'POUR')) {
+            || ($mould->status === 'POURED' && $this->freedFor($mould) === 'POUR')) {
             $this->releaseMould($mould);
         }
     }
 
-    /** Shakeout of a lot gives back the flasks of the mould its castings came from, under the "at shakeout" rule. */
+    /** Shakeout of a lot gives back the flasks still held by the moulds its castings came from, unless they are released only by hand. */
     public function shakenOut(CastingLot $lot): int
     {
-        if (FlaskRules::get('release') !== 'SHAKEOUT') {
-            return 0;
-        }
-
-        return $lot->mouldAssemblies()->sum(fn (MouldAssembly $mould) => $this->releaseMould($mould));
+        return $lot->mouldAssemblies()->sum(fn (MouldAssembly $mould) => $this->freedFor($mould) === 'MANUAL' ? 0 : $this->releaseMould($mould));
     }
 
     private function giveBack(Flask $flask, string $referenceType, string $referenceId, string $note): void

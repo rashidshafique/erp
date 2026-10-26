@@ -361,9 +361,10 @@ class WorkListStationsTest extends TestCase
         $this->assertSame('Sheera', $p->sand_system);
         $this->assertSame(['Alphaset'], $p->compatible_sands);                                                      // its own sand is not repeated
 
-        $this->put(route('patterns.sand', $p), ['sand_system' => 'Greensand', 'compatible_sands' => ['Sheera'], 'sand_note' => 'Wider taper'])->assertSessionHasNoErrors();
+        $this->put(route('patterns.sand', $p), ['sand_system' => 'Greensand', 'compatible_sands' => ['Sheera'], 'sand_note' => 'Wider taper', 'flasks_freed' => 'POUR'])->assertSessionHasNoErrors();
         $p->refresh();
         $this->assertSame('Greensand', $p->sand_system);
+        $this->assertSame('POUR', $p->flasks_freed);
         $this->assertSame(['Sheera'], $p->compatible_sands);
         $this->get(route('patterns.show', $p))->assertOk()->assertSee('Made for sand')->assertSee('also works on Sheera')->assertSee('Wider taper');
         $this->put(route('patterns.sand', $p), ['sand_system' => 'Mud'])->assertSessionHasErrors('sand_system');
