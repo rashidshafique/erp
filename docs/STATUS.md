@@ -40,13 +40,14 @@ Updated 2026-10-26.
   - Settings > Ledger accounts: account per posting role, payment method map, tax authority map, closed-to date, "post what is missing" (also `ledger:post-missing`) for documents from before the ledger.
   - Manual journals (reverse, never edit), journal list, trial balance, account ledger with running balance, ledger link on each document. Permission `ledger.manage` (role ACCOUNTS).
   - Not posted yet: withheld tax (receivables keep the full total), stock movements and cost of sales (periodic for now), receipt allocations (not needed: both sides sit in receivables).
-- Left, in order:
-  2. Financial reports: profit and loss, balance sheet, general ledger by account.
-  3. Bank and cash: bank accounts, reconciliation against a statement.
-  4. Withheld tax settled against the withholding certificate (receivables still count the full total).
-  5. Advance-to-supplier offsets on a bill; bill price differences feeding back into lot cost.
-  6. Purchase-side tax rules (bills and POs still use the typed percent); tax registers per authority and tax returns.
-  7. E-invoicing (FBR digital invoicing for Pakistan).
+  - Financial statements (2026-10-26, read only): profit and loss over a period with the cost-of-sales group (Settings > Ledger accounts, 5000 by default, or none) before gross profit, beside the period before or a year earlier; balance sheet as at a date with profit not yet closed under equity, beside a second date; general ledger of every account that moved or carries a balance. All printable.
+  - Bank accounts and reconciliation (2026-10-26): bank details on an asset ledger account (or a new one under the bank group); a statement opens on the last reconciled balance, lines up to its date are ticked as cleared and it finishes at a nil difference; bank charges or profit on the statement are posted and ticked in one step; the latest statement can be opened again. Journals are never changed (cleared lines live in `ledger_reconciliation_lines`). Not built: statement import from a bank file.
+- Tax register (Finance > Tax register, 2026-10-26, read only): output tax on issued invoices or input tax on posted bills over a period, per authority, tax and rate and per document with registration numbers and tariff code; credit notes negative by their own date, voids left out; CSV download for the return.
+- Left, in order (each changes how existing documents count, so they wait for a decision):
+  1. Withheld tax settled against the withholding certificate (receivables still count the full total).
+  2. Advance-to-supplier offsets on a bill; bill price differences feeding back into lot cost.
+  3. Purchase-side tax rules (bills and POs still use the typed percent, so the input tax register has no authority) and tax returns.
+  4. E-invoicing (FBR digital invoicing for Pakistan): calls FBR's service, needs credentials.
 
 **Bill of materials (`app/Domains/Engineering`, level 1, 2026-10-25)**
 - Each product revision has a list of materials with a quantity and a basis: per casting, per mould or per kg poured. Metal is not listed; the planner works it out from the cavity map. Panel on the product page; a revision with no list can copy another revision's.
@@ -73,7 +74,7 @@ In priority order:
 1. **Stores/Inventory** (next in the module split): stock ledger, bins, issues, GRN, stock valuation.
 2. **Costing** (`Costing` is empty): actual versus standard cost per casting (metal, energy, labour, fettling).
 3. **MRP and scheduling** (`MRP`, `Production` are empty): material requirements planning, finite capacity scheduling.
-4. **Finance** (in progress): invoicing, receivables, supplier bills, payables and the double-entry general ledger are in; still to do, in order: P&L and balance sheet, bank reconciliation, withheld tax settlement, supplier advances, purchase-side tax and returns, e-invoicing (list under Finance in Done).
+4. **Finance** (in progress): invoicing, receivables, supplier bills, payables, the double-entry general ledger, P&L, balance sheet, bank reconciliation and the tax register are in; still to do, in order: withheld tax settlement, supplier advances, purchase-side tax and returns, e-invoicing (list under Finance in Done).
 5. **Outside processing and machining routings**: subcontract flow, machining steps.
 6. **Reporting and BI**: management dashboards, customer scorecards, statutory report exports.
 7. **Integration**: EDI, e-invoicing and tax filing for the target market, barcode and device input.
@@ -106,7 +107,7 @@ Plan for bought-in goods sold as they are, in order: (1) trade details on items,
 - Not yet:
   - Receivables still count the full total; withheld tax needs settling against the withholding certificate.
   - Credit notes are taxed at the original invoice's date with the rules in force then.
-  - Registers per authority, and FBR digital invoicing.
+  - FBR digital invoicing (the register per authority is done, under Finance).
 
 ### Stores: not built yet
 - Finished goods are not on the stock ledger. They need a decision on their stock lot (casting lot or a new stock lot) and a second registered item type.
@@ -116,4 +117,5 @@ Plan for bought-in goods sold as they are, in order: (1) trade details on items,
 - Movement types have no module hook yet; `StockMovementTypes::register()` is called directly.
 
 ### Menu
+Icons come from the free Untitled UI set (MIT), copied into `NavIcons` as inline SVG; factory, flame, sand, mould, crucible and planner are drawn by hand in the same style.
 Quick flow sits above Production (module nav groups take `'position' => 'top'`). Melting holds heats and furnaces; materials, charge recipes, suppliers and stock screens are under Purchases. Finished goods, packing and dispatch are under Sales & Planning.
