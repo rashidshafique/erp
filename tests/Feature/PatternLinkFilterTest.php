@@ -40,6 +40,16 @@ class PatternLinkFilterTest extends TestCase
             ->assertSee($bare->code)->assertSee($empty->code)->assertDontSee($linked->name);
     }
 
+    public function test_fix_button_filters_to_unlinked_and_open_keeps_the_filter(): void
+    {
+        $bare = $this->pattern('P-1');
+
+        $this->get(route('patterns.index'))->assertOk()
+            ->assertSee('Fix 1 unlinked pattern')->assertSee(route('patterns.index', ['link' => 'unlinked']), false);
+        $this->get(route('patterns.index', ['link' => 'unlinked']))->assertOk()
+            ->assertDontSee('Fix 1 unlinked pattern')->assertSee(route('patterns.show', ['pattern' => $bare, 'link' => 'unlinked']), false);
+    }
+
     public function test_previous_and_next_stay_inside_the_unlinked_set(): void
     {
         $a = $this->pattern('P-1');

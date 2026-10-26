@@ -14,6 +14,9 @@
             <form method="POST" action="{{ route('patterns.first-revisions.store') }}" style="display:inline" onsubmit="return confirm(@js('Create Rev 0 for the '.$withoutRevision.' '.($withoutRevision === 1 ? 'pattern' : 'patterns').' that have no revision? Each gets a current, approved Rev 0 with the mould arrangement its type is usually used for.'))">@csrf
                 <button class="btn" type="submit" title="Patterns that already have a revision are not touched">Create Rev 0 for {{ $withoutRevision }} {{ $withoutRevision === 1 ? 'pattern' : 'patterns' }} without a revision</button></form>
         @endif
+        @if ($unlinkedPatterns > 0 && request('link') !== 'unlinked')
+            <a class="btn" href="{{ route('patterns.index', ['link' => 'unlinked']) }}" title="Lists the patterns with no cavity linked to a product; open one and use ← → to go through them">Fix {{ $unlinkedPatterns }} unlinked {{ $unlinkedPatterns === 1 ? 'pattern' : 'patterns' }}</a>
+        @endif
         <a class="btn" href="{{ route('pattern-ownership.index') }}" style="display:inline-flex;align-items:center;gap:6px">{!! \App\Support\NavIcons::get('users', 15) !!}Pattern ownership</a> <a class="btn" href="{{ route('imports.create', ['entity' => 'pattern']) }}">Import</a> <a class="btn btn-primary" href="{{ route('patterns.create') }}">+ New pattern</a>
     </div>
 </div>
@@ -128,7 +131,7 @@
                                 </span>
                             </td>
                             <td class="small">{{ $pattern->owner_type === 'FOUNDRY' ? 'Foundry' : $pattern->ownerLabel() }}@if ($pattern->custody !== 'IN_STORE')<div class="muted">{{ \App\Models\Pattern::CUSTODIES[$pattern->custody] ?? $pattern->custody }}</div>@endif</td>
-                            <td style="white-space:nowrap"><a href="{{ route('patterns.show', $pattern) }}">Open →</a>@if ($archived)<form method="POST" action="{{ route('patterns.restore', $pattern) }}" style="display:inline;margin-left:8px">@csrf<button class="btn btn-small" type="submit">Restore</button></form>@endif</td>
+                            <td style="white-space:nowrap"><a href="{{ route('patterns.show', array_filter(['pattern' => $pattern, 'link' => request('link') === 'unlinked' ? 'unlinked' : null])) }}">Open →</a>@if ($archived)<form method="POST" action="{{ route('patterns.restore', $pattern) }}" style="display:inline;margin-left:8px">@csrf<button class="btn btn-small" type="submit">Restore</button></form>@endif</td>
                         </tr>
                     @endforeach
                 </tbody>
