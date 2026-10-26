@@ -56,16 +56,22 @@ class SalesOrderController extends Controller
     }
 
     /** @return array<string, array<int, mixed>> */
-    private static function repeatRules(): array
+    private static function scheduleRules(): array
     {
         return [
             'lines.*.repeat_every' => ['nullable', Rule::in(array_keys(SalesOrderLine::REPEATS))],
             'lines.*.repeat_from' => ['nullable', 'date'],
             'lines.*.repeat_until' => ['nullable', 'date', 'after_or_equal:lines.*.repeat_from'],
+            'lines.*.staggered' => ['nullable', 'boolean'],
+            'lines.*.deliveries' => ['nullable', 'array', 'max:100'],
+            'lines.*.deliveries.*.id' => ['nullable', 'uuid'],
+            'lines.*.deliveries.*.due_date' => ['required', 'date'],
+            'lines.*.deliveries.*.quantity' => ['required', 'numeric', 'gt:0', 'max:999999999'],
+            'lines.*.deliveries.*.notes' => ['nullable', 'string', 'max:200'],
         ];
     }
 
-    public function store(Request $request, SalesOrderStatus $status, RepeatingLines $repeating): RedirectResponse
+    public function store(Request $request, SalesOrderStatus $status, RepeatingLines $repeating, SalesOrderEditor $editor): RedirectResponse
     {
         $request->merge(['lines' => array_values(array_filter((array) $request->input('lines', []), fn ($l) => ! empty($l['product_revision_id'])))]);
 
@@ -80,9 +86,9 @@ class SalesOrderController extends Controller
             'lines.*.ordered_qty' => ['required', 'numeric', 'gt:0', 'max:999999999'],
             'lines.*.unit_price' => ['nullable', 'numeric', 'min:0'],
             'lines.*.requested_delivery_date' => ['nullable', 'date'],
-        ] + self::repeatRules());
+        ] + self::scheduleRules());
 
-        $order = DB::transaction(function () use ($data, $repeating) {
+        $order = DB::transaction(function () use ($data, $repeating, $editor) {
             $order = SalesOrder::create([
                 'order_number' => SalesOrder::nextNumber(),
                 'customer_id' => $data['customer_id'], 'order_date' => $data['order_date'],
@@ -99,6 +105,8 @@ class SalesOrderController extends Controller
                 ] + $repeat);
                 if ($line->repeats()) {
                     $repeating->topUp($line);
+                } elseif (! empty($l['staggered'])) {
+                    $editor->stagger($line, $l['deliveries'] ?? []);
                 }
             }
 
@@ -130,7 +138,7 @@ class SalesOrderController extends Controller
         if (! $editor->isEditable($salesOrder)) {
             return redirect()->route('sales-orders.show', $salesOrder)->withErrors(['order' => 'A closed order cannot be edited.']);
         }
-        $salesOrder->load(['lines.product', 'lines.productionOrders']);
+        $salesOrder->load(['lines.product', 'lines.productionOrders', 'lines.deliveries']);
 
         return view('sales::orders.edit', ['order' => $salesOrder, 'needsReason' => $editor->needsReason($salesOrder)] + $this->create()->getData());
     }
@@ -153,7 +161,7 @@ class SalesOrderController extends Controller
             'lines.*.ordered_qty' => ['required', 'numeric', 'gt:0', 'max:999999999'],
             'lines.*.unit_price' => ['nullable', 'numeric', 'min:0'],
             'lines.*.requested_delivery_date' => ['nullable', 'date'],
-        ] + self::repeatRules());
+        ] + self::scheduleRules());
         $reviewStale = $editor->update($salesOrder, $data, $data['reason'] ?? null);
 
         return redirect()->route('sales-orders.show', $salesOrder)->with('success', "Order {$salesOrder->order_number} updated.".($reviewStale ? ' The lines changed after the contract review was approved, so run the review again.' : ''));

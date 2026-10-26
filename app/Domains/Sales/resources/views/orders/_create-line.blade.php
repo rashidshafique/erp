@@ -1,9 +1,11 @@
 {{-- One line of the sales order form: $i (index, or __I__ in the template), $value (revision id or product:<id>), $p (name, sub,
      img, price, uom), $line (input values), $record (the saved line when editing, else null), $currency, $prices (show the price). The caret opens the line's
-     own delivery date. A saved line with production orders keeps its product and cannot be removed. --}}
+     own delivery date, repeat settings and staggered deliveries. A saved line with production orders keeps its product and cannot be removed. --}}
 @php
     $repeats = ! empty($line['repeat_every']);
-    $hasDate = ! empty($line['requested_delivery_date']) || $repeats;
+    $staggered = ! $repeats && ! empty($line['staggered']);
+    $deliveries = array_values((array) ($line['deliveries'] ?? []));
+    $hasDate = ! empty($line['requested_delivery_date']) || $repeats || $staggered;
     $locked = $record && $record->productionOrders->where('status', '!=', 'CANCELLED')->isNotEmpty();
     // What the preview adds the new deliveries to: deliveries before today on a repeating line, else what was already shipped.
     $kept = ! $record ? 0 : ($record->repeats() ? (float) $record->deliveries->where('due_date', '<', today())->sum('quantity')
@@ -34,10 +36,20 @@
             <option value="">No, one order</option>
             @foreach (\App\Domains\Sales\Models\SalesOrderLine::REPEATS as $key => $label)<option value="{{ $key }}" @selected(($line['repeat_every'] ?? '') === $key)>{{ $label }}</option>@endforeach
         </select></div>
+        <label class="so-check" data-stagger-field @if ($repeats) hidden @endif><input type="hidden" name="lines[{{ $i }}][staggered]" value="0"><input type="checkbox" name="lines[{{ $i }}][staggered]" value="1" data-stagger @checked($staggered)> Staggered deliveries</label>
         <div class="field" data-repeat-field @unless ($repeats) hidden @endunless><label>First delivery</label><input type="date" name="lines[{{ $i }}][repeat_from]" value="{{ $line['repeat_from'] ?? '' }}"></div>
         <div class="field" data-repeat-field @unless ($repeats) hidden @endunless><label>Until (optional)</label><input type="date" name="lines[{{ $i }}][repeat_until]" value="{{ $line['repeat_until'] ?? '' }}"></div>
-        <span class="muted small" data-repeat-note @if ($repeats) hidden @endif>Leave empty to use the order's requested delivery. Staggered deliveries are set on the order once it is saved.</span>
+        <span class="muted small" data-repeat-note @if ($repeats) hidden @endif>Leave empty to use the order's requested delivery. Tick staggered deliveries to split the quantity over several dates.</span>
         <span class="muted small" data-repeat-field @unless ($repeats) hidden @endunless>No PO each time: the quantity box is the quantity of each delivery, and the next deliveries are added on their own. The line's total is its deliveries, so a one-off quantity is replaced; for a one-off as well, add the product again as a second line. Stopping keeps the deliveries already scheduled.</span>
+    </div>
+    <div class="so-deliveries" data-deliveries @unless ($staggered) hidden @endunless>
+        <div data-delivery-rows>
+            @foreach ($deliveries as $d => $row)
+                @include('sales::orders._line-delivery', ['i' => $i, 'd' => $d, 'row' => $row, 'off' => ! $staggered])
+            @endforeach
+        </div>
+        <div class="so-delivery-foot"><button type="button" class="btn btn-small" data-add-delivery>+ Add delivery</button><span class="muted small" data-unscheduled aria-live="polite"></span></div>
+        <template data-delivery-template>@include('sales::orders._line-delivery', ['i' => $i, 'd' => '__D__', 'row' => [], 'off' => false])</template>
     </div>
     <div class="so-preview" data-repeat-preview @unless ($repeats) hidden @endunless aria-live="polite"></div>
 </div>

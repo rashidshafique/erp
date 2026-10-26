@@ -27,7 +27,9 @@
         })->filter()->values()
         : ($order?->lines ?? collect())->map(fn ($line) => ['value' => $line->product_revision_id, 'p' => $catalogue[$line->product_revision_id] ?? $fromLine($line), 'record' => $line,
             'line' => ['ordered_qty' => $trim($line->repeats() ? $line->repeat_qty : $line->ordered_qty), 'unit_price' => $trim($line->unit_price), 'requested_delivery_date' => $line->requested_delivery_date?->toDateString(),
-                'repeat_every' => $line->repeat_every, 'repeat_from' => $line->repeat_from?->toDateString(), 'repeat_until' => $line->repeat_until?->toDateString()]])->values();
+                'repeat_every' => $line->repeat_every, 'repeat_from' => $line->repeat_from?->toDateString(), 'repeat_until' => $line->repeat_until?->toDateString(),
+                'staggered' => ! $line->repeats() && $line->deliveries->isNotEmpty(),
+                'deliveries' => $line->repeats() ? [] : $line->deliveries->map(fn ($d) => ['id' => $d->id, 'due_date' => $d->due_date->toDateString(), 'quantity' => $trim($d->quantity), 'notes' => $d->notes])->all()]])->values();
 @endphp
 <style>
     .so-head { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
@@ -81,6 +83,12 @@
     .so-remove:hover { background: color-mix(in srgb, var(--danger, #b42318) 12%, transparent); color: var(--danger, #b42318); }
     .so-extra { margin: 10px 0 2px 82px; display: flex; gap: 14px; flex-wrap: wrap; align-items: end; }
     .so-extra .field { margin: 0; }
+    .so-check { display: inline-flex; align-items: center; gap: 6px; min-height: 38px; margin: 0; font-weight: 500; cursor: pointer; }
+    .so-deliveries { margin: 10px 0 2px 82px; max-width: 640px; }
+    .so-delivery { display: grid; grid-template-columns: 160px 120px minmax(120px, 1fr) 34px; gap: 8px; align-items: center; margin-bottom: 6px; }
+    .so-delivery input { width: 100%; }
+    .so-delivery-foot { display: flex; gap: 12px; align-items: center; }
+    .so-delivery-foot .is-over { color: var(--danger, #b42318); font-weight: 600; }
     .so-preview { margin: 8px 0 2px 82px; padding: 8px 12px; border-radius: 8px; background: color-mix(in srgb, var(--accent) 8%, transparent); font-size: 13.5px; }
     .so-preview.is-jump { background: color-mix(in srgb, var(--danger, #b42318) 10%, transparent); }
     .so-preview strong { font-variant-numeric: tabular-nums; }
@@ -100,7 +108,9 @@
         .so-line .so-money { grid-column: 2; }
         .so-line .so-qty { grid-column: 3; }
         .so-line .so-total { grid-column: 2 / 4; }
-        .so-extra, .so-preview { margin-left: 32px; }
+        .so-extra, .so-preview, .so-deliveries { margin-left: 32px; }
+        .so-delivery { grid-template-columns: 1fr 90px 34px; }
+        .so-delivery input[name$="[notes]"] { grid-column: 1 / 3; grid-row: 2; }
         .so-bottom { grid-template-columns: 1fr; }
     }
 </style>
@@ -257,6 +267,34 @@
         row.dataset.pieces = String(total);
     }
     function previewAll() { linesBox.querySelectorAll('[data-line]').forEach(preview); }
+    // Staggered deliveries: shown only on a one-off line with the box ticked; hidden rows are disabled so they are not sent or required.
+    var nextDelivery = 1000;
+    function stagger(row) {
+        var pick = row.querySelector('[data-repeat]'), tick = row.querySelector('[data-stagger]'), box = row.querySelector('[data-deliveries]');
+        var on = !pick.value && tick.checked;
+        row.querySelector('[data-stagger-field]').hidden = !!pick.value;
+        box.hidden = !on;
+        box.querySelectorAll('[data-delivery-rows] input').forEach(function (i) { i.disabled = !on; });
+        if (on && !box.querySelector('[data-delivery-row]')) addDelivery(row);
+        unscheduled(row);
+    }
+    function addDelivery(row) {
+        var holder = document.createElement('div');
+        holder.innerHTML = row.querySelector('[data-delivery-template]').innerHTML.replace(/__D__/g, String(nextDelivery++)).trim();
+        var added = holder.firstElementChild, qty = added.querySelector('[data-delivery-qty]'), left = parseFloat(row.dataset.unscheduled);
+        if (left > 0) qty.value = left;
+        row.querySelector('[data-delivery-rows]').appendChild(added);
+        unscheduled(row);
+        added.querySelector('input[type=date]').focus();
+    }
+    function unscheduled(row) {
+        var out = row.querySelector('[data-unscheduled]'), ordered = parseFloat(row.querySelector('[data-qty]').value) || 0, scheduled = 0;
+        row.querySelectorAll('[data-delivery-qty]').forEach(function (i) { scheduled += parseFloat(i.value) || 0; });
+        var left = Math.round((ordered - scheduled) * 1000) / 1000;
+        row.dataset.unscheduled = String(left);
+        out.textContent = left < 0 ? 'Over the ordered ' + num(ordered) + ' by ' + num(-left) : 'Still to schedule: ' + num(left) + ' of ' + num(ordered);
+        out.classList.toggle('is-over', left < 0);
+    }
     function add(button) {
         var html = tpl.innerHTML.replace(/__I__/g, String(next++));
         var holder = document.createElement('div'); holder.innerHTML = html.trim();
@@ -283,7 +321,7 @@
     results.addEventListener('mousedown', function (e) { if (e.target.closest('a')) return; e.preventDefault(); });
     results.addEventListener('click', function (e) { var b = e.target.closest('.so-item'); if (b) add(b); });
     document.addEventListener('click', function (e) { if (!e.target.closest('[data-picker]')) close(); });
-    linesBox.addEventListener('input', function (e) { var row = e.target.closest('[data-line]'); if (row) preview(row); recalc(); });
+    linesBox.addEventListener('input', function (e) { var row = e.target.closest('[data-line]'); if (row) { preview(row); unscheduled(row); } recalc(); });
     linesBox.addEventListener('change', function (e) {
         var row = e.target.closest('[data-line]'); if (!row) return;
         var pick = e.target.closest('[data-repeat]');
@@ -291,12 +329,15 @@
             row.querySelectorAll('[data-repeat-field]').forEach(function (el) { el.hidden = !pick.value; });
             row.querySelector('[data-repeat-note]').hidden = !!pick.value;
         }
+        if (pick || e.target.closest('[data-stagger]')) stagger(row);
         preview(row); recalc();
     });
     ['order_date', 'requested_delivery_date'].forEach(function (id) { form.querySelector('#' + id).addEventListener('change', function () { previewAll(); recalc(); }); });
     linesBox.addEventListener('click', function (e) {
         var row = e.target.closest('[data-line]'); if (!row) return;
         if (e.target.closest('[data-remove]')) { row.remove(); recalc(); return; }
+        if (e.target.closest('[data-add-delivery]')) { addDelivery(row); return; }
+        if (e.target.closest('[data-remove-delivery]')) { e.target.closest('[data-delivery-row]').remove(); unscheduled(row); return; }
         if (e.target.closest('[data-toggle]')) {
             var open = row.classList.toggle('is-open');
             row.querySelector('[data-extra]').hidden = !open;
@@ -307,6 +348,7 @@
         if (!linesBox.querySelector('[data-line]')) { e.preventDefault(); find.focus(); open(); alert('Add at least one product to the order.'); }
     });
     previewAll();
+    linesBox.querySelectorAll('[data-line]').forEach(unscheduled);
     recalc();
 })();
 </script>

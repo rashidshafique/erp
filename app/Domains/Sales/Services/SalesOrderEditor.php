@@ -71,12 +71,16 @@ class SalesOrderEditor
                     ] + $repeat);
                     $kept[] = $new->id;
                     $repeated[] = $new;
+                    if (! $new->repeats() && ! empty($row['staggered'])) {
+                        $this->stagger($new, $row['deliveries'] ?? []);
+                    }
                     $notes[] = "Line added: {$rev->product?->code} x {$row['ordered_qty']}".($repeat['repeat_every'] ? ' '.strtolower(SalesOrderLine::REPEATS[$repeat['repeat_every']]) : '');
                     $linesChanged = true;
 
                     continue;
                 }
                 $kept[] = $line->id;
+                $wasRepeating = $line->repeats();
                 // A repeating line, or one being stopped, keeps the quantity it has scheduled; the box sets each future delivery instead.
                 $quantity = $repeat['repeat_every'] || $line->repeats() ? $line->ordered_qty : $row['ordered_qty'];
                 $attributes = ['ordered_qty' => $quantity, 'unit_price' => $row['unit_price'] ?? null, 'requested_delivery_date' => $row['requested_delivery_date'] ?? null] + $repeat;
@@ -111,6 +115,12 @@ class SalesOrderEditor
                     }
                     $linesChanged = $linesChanged || $line->isDirty(['ordered_qty', 'product_revision_id', 'repeat_every', 'repeat_qty']) || $plan !== null;
                     $line->save();
+                }
+                // A one-off line's staggered deliveries are on the form; a line just stopped repeating keeps the deliveries it had.
+                if (! $wasRepeating && ! $line->repeats() && array_key_exists('staggered', $row)) {
+                    $staggerNotes = $this->stagger($line, ! empty($row['staggered']) ? ($row['deliveries'] ?? []) : []);
+                    $notes = [...$notes, ...$staggerNotes];
+                    $linesChanged = $linesChanged || $staggerNotes !== [];
                 }
                 if ($plan) {
                     $replanned[] = [$line, $plan];
@@ -153,6 +163,48 @@ class SalesOrderEditor
 
             return $linesChanged && $order->hasApprovedReview();
         });
+    }
+
+    /**
+     * Sets a one-off line's staggered deliveries from the form: a row with a saved delivery's id changes it, a new row adds one, and
+     * saved deliveries left off are removed, so no rows means the line is delivered in one go on its date. The deliveries cannot add
+     * up to more than the line's ordered quantity; what is left over stays to schedule.
+     *
+     * @param  array<int, array{id?: ?string, due_date: string, quantity: mixed, notes?: ?string}>  $rows
+     * @return list<string> What changed, for the order's history.
+     */
+    public function stagger(SalesOrderLine $line, array $rows): array
+    {
+        $scheduled = round(collect($rows)->sum(fn ($row) => (float) $row['quantity']), 3);
+        if ($scheduled > (float) $line->ordered_qty + 0.0005) {
+            $this->refuse("Line {$line->line_number}'s deliveries add up to ".Formats::number($scheduled).', more than the '.Formats::number((float) $line->ordered_qty).' ordered.');
+        }
+        $saved = $line->deliveries()->get()->keyBy('id');
+        $label = fn ($delivery) => Formats::number((float) $delivery->quantity).' for '.$delivery->due_date->format('j M Y');
+        $notes = [];
+        $kept = [];
+        foreach ($rows as $row) {
+            $values = ['due_date' => $row['due_date'], 'quantity' => $row['quantity'], 'notes' => ($row['notes'] ?? null) ?: null];
+            $delivery = $saved->get($row['id'] ?? '');
+            if (! $delivery) {
+                $notes[] = "Line {$line->line_number}: delivery of ".$label($line->deliveries()->create($values)).' added';
+
+                continue;
+            }
+            $kept[] = $delivery->id;
+            $was = $label($delivery);
+            $delivery->fill($values);
+            if ($delivery->isDirty(['due_date', 'quantity'])) {
+                $notes[] = "Line {$line->line_number}: delivery of {$was} → ".$label($delivery);
+            }
+            $delivery->save();
+        }
+        foreach ($saved->except($kept) as $gone) {
+            $gone->delete();
+            $notes[] = "Line {$line->line_number}: delivery of ".$label($gone).' removed';
+        }
+
+        return $notes;
     }
 
     /**
