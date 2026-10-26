@@ -60,10 +60,10 @@ new class extends Component
         @forelse ($rows as $row)
             <tr wire:key="ro-{{ $row['material']->id }}">
                 <td><a href="{{ route('materials.show', $row['material']) }}">{{ $row['material']->code }}</a> · {{ $row['material']->name }}@if ($row['out']) <strong style="color:var(--danger)">· out of stock</strong>@endif</td>
-                <td>{{ \App\Support\Formats::number($row['on_hand'], 3) }} {{ $row['material']->base_uom }}</td>
-                <td>{{ \App\Support\Formats::number($row['minimum'], 3) }}</td>
-                <td>{{ \App\Support\Formats::number(max($row['shortfall'], 0), 3) }}</td>
-                <td><strong>{{ \App\Support\Formats::number($row['suggested'], 3) }}</strong> {{ $row['material']->base_uom }}</td>
+                <td>{{ \App\Support\Formats::number($row['on_hand'], \App\Support\Formats::decimals()) }} {{ $row['material']->base_uom }}</td>
+                <td>{{ \App\Support\Formats::number($row['minimum'], \App\Support\Formats::decimals()) }}</td>
+                <td>{{ \App\Support\Formats::number(max($row['shortfall'], 0), \App\Support\Formats::decimals()) }}</td>
+                <td><strong>{{ \App\Support\Formats::number($row['suggested'], \App\Support\Formats::decimals()) }}</strong> {{ $row['material']->base_uom }}</td>
                 <td class="muted small">{{ $row['material']->reorder_alerted_at ? \Illuminate\Support\Carbon::parse($row['material']->reorder_alerted_at)->diffForHumans() : 'not yet' }}</td>
                 <td><a class="btn btn-small" href="{{ route('materials.lots.create', $row['material']) }}">+ Record lot</a></td>
             </tr>

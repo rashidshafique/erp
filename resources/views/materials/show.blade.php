@@ -22,7 +22,7 @@
     <div class="metric"><div class="metric-label">On hand</div><div class="metric-value" style="font-size:20px">{{ $material->is_stock_tracked ? \App\Support\Formats::number($onHand, 3).' '.$material->base_uom : 'Not tracked' }}</div>@if ($material->minimum_stock_qty !== null)<div class="metric-note">minimum {{ \App\Support\Formats::number((float) $material->minimum_stock_qty, 3) }}</div>@endif</div>
     <div class="metric"><div class="metric-label">Lot records</div><div class="metric-value">{{ $material->lots->count() }}</div></div>
     <div class="metric"><div class="metric-label">Recipe components</div><div class="metric-value">{{ $material->charge_batch_items_count }}</div></div>
-    <div class="metric"><div class="metric-label">Standard cost</div><div class="metric-value" style="font-size:20px">{{ $material->standard_cost_per_uom !== null ? \App\Support\Formats::number((float)$material->standard_cost_per_uom, 4).' PKR/'.$material->base_uom : 'Not set' }}</div></div>
+    <div class="metric"><div class="metric-label">Standard cost</div><div class="metric-value" style="font-size:20px">{{ $material->standard_cost_per_uom !== null ? \App\Support\Formats::number((float)$material->standard_cost_per_uom, \App\Support\Formats::decimals()).' PKR/'.$material->base_uom : 'Not set' }}</div></div>
 </div>
 
 @if ($material->description || $material->notes)
