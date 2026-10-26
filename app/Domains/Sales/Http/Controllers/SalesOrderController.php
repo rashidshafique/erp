@@ -48,6 +48,9 @@ class SalesOrderController extends Controller
             'revisions' => ProductRevision::with('product')->whereIn('status', ['APPROVED', 'ACTIVE'])->get()
                 ->sortBy(fn ($r) => $r->product?->code.' '.$r->revision)->values(),
             'bareProducts' => Product::withoutRevision()->orderBy('code')->get(),
+            // The last price each product was sold at, offered as the starting price of a new line.
+            'lastPrices' => DB::table('sales_order_lines')->whereNotNull('unit_price')->selectRaw('DISTINCT ON (product_id) product_id, unit_price')
+                ->orderBy('product_id')->orderByDesc('created_at')->pluck('unit_price', 'product_id'),
         ]);
     }
 
