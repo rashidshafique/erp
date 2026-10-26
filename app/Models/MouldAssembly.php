@@ -25,11 +25,13 @@ class MouldAssembly extends Model
         'is_flaskless',
         'flask_size_id',
         'flasks_freed',
+        'holds_flask_set',
     ];
 
     protected $casts = [
         'assembled_at' => 'datetime',
         'is_flaskless' => 'boolean',
+        'holds_flask_set' => 'boolean',
     ];
 
     protected static function booted(): void

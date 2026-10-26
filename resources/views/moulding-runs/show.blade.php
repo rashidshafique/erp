@@ -299,11 +299,11 @@
         </div>
     </section>
 
-    @if ($flaskInfo['held']->isNotEmpty())
+    @if ($flaskInfo['held']->isNotEmpty() || $run->flask_sets_held > 0)
         <section class="panel" id="run-flasks">
-            <div class="panel-header"><h2>Flasks held by this run</h2><span class="muted small">{{ $flaskInfo['held']->count() }} flasks for the moulds made, under the "runs claim by count" rule</span></div>
+            <div class="panel-header"><h2>Flasks held by this run</h2><span class="muted small">@if ($run->flask_sets_held > 0){{ $run->flask_sets_held }} counted sets of {{ $run->flaskSize?->name }}@else{{ $flaskInfo['held']->count() }} flasks @endif for the moulds made, under the "runs claim by count" rule</span></div>
             <div class="panel-body">
-                <p class="small" style="margin-top:0">@foreach ($flaskInfo['held'] as $f)<a class="mono" href="{{ route('flasks.show', $f) }}">{{ $f->label() }}</a>@if (! $loop->last), @endif @endforeach</p>
+                @if ($flaskInfo['held']->isNotEmpty())<p class="small" style="margin-top:0">@foreach ($flaskInfo['held'] as $f)<a class="mono" href="{{ route('flasks.show', $f) }}">{{ $f->label() }}</a>@if (! $loop->last), @endif @endforeach</p>@endif
                 <form method="POST" action="{{ route('moulding-runs.release-flasks', $run) }}" onsubmit="return confirm('Release all flasks held by this run? Each counts one use.')">@csrf<button class="btn" type="submit">Release flasks</button></form>
             </div>
         </section>

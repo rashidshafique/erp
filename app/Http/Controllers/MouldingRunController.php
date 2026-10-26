@@ -275,7 +275,9 @@ class MouldingRunController extends Controller
             $flaskInfo['sizes'] = $flasks->sizesFor($mouldingRun->patternRevision, $mouldingRun->station);
             $sections = (int) ($mouldingRun->mouldConfiguration?->nominal_layer_count ?? $mouldingRun->patternRevision->layers_per_mould ?? 2);
             $open = max(0, (int) $mouldingRun->accepted_mould_qty - $mouldingRun->mouldAssemblies->count());
-            $flaskInfo['free'] = $open ? count($flasks->pick($flaskInfo['sizes'], $open, $flasks->layerTypes($sections))['sets']) : null;
+            $counted = $flaskInfo['sizes']->isNotEmpty() && $flaskInfo['sizes']->every(fn ($size) => $flasks->isCountOnly($size));
+            $flaskInfo['free'] = ! $open ? null : ($counted ? min($open, (int) $flaskInfo['sizes']->max(fn ($size) => $flasks->freeSets($size)))
+                : count($flasks->pick($flaskInfo['sizes'], $open, $flasks->layerTypes($sections))['sets']));
             $flaskInfo['open'] = $open;
         }
         $configurations = MouldConfiguration::where('is_active', true)->orderBy('code')->get();

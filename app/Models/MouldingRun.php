@@ -40,6 +40,8 @@ class MouldingRun extends Model
         'moulding_method',
         'sand_system',
         'flasks_freed',
+        'flask_sets_held',
+        'flask_size_id',
         'operator_name',
         'team_name',
         'moulding_team_id',
@@ -135,6 +137,11 @@ class MouldingRun extends Model
     public function station(): BelongsTo
     {
         return $this->belongsTo(MouldingStation::class, 'moulding_station_id');
+    }
+
+    public function flaskSize(): BelongsTo
+    {
+        return $this->belongsTo(FlaskSize::class)->withTrashed();
     }
 
     public function workListItem(): BelongsTo

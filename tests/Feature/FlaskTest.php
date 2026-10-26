@@ -325,6 +325,42 @@ class FlaskTest extends TestCase
         $this->assertSame(2, app(FlaskManager::class)->shakenOut($lot));
     }
 
+    public function test_a_size_kept_by_count_gives_moulds_and_runs_sets_from_what_is_owned(): void
+    {
+        $size = $this->makeSize('10 × 13');
+        $this->put(route('flask-sizes.update', $size), ['name' => '10 × 13', 'status' => 'ACTIVE', 'sets_owned' => 3])->assertSessionHasNoErrors();
+        $manager = app(FlaskManager::class);
+        $run = $this->makeRun([$size->fresh()], accepted: 4);
+
+        $this->expectsShortage(fn () => $this->assemble($run, 4));
+        FlaskRules::set('shortage', 'WARN');
+        [$first] = $this->assemble($run, 4)->all();
+
+        $this->assertSame(3, MouldAssembly::where('holds_flask_set', true)->count());
+        $this->assertSame(0, $manager->freeSets($size->fresh()));
+        $this->get(route('flasks.index'))->assertOk()->assertSeeInOrder(['Sets owned', '3', '0', '3']);
+        $first->update(['status' => 'SCRAPPED']);
+        $this->assertSame(1, $manager->freeSets($size->fresh()));
+
+        FlaskRules::set('run_claims', 'COUNT');
+        $byCount = $this->makeRun([$size->fresh()], accepted: 1);
+        $manager->runChanged($byCount);
+        $this->assertSame(1, $byCount->fresh()->flask_sets_held);
+        $this->assertSame(0, $manager->freeSets($size->fresh()));
+        $this->post(route('moulding-runs.release-flasks', $byCount))->assertSessionHasNoErrors();
+        $this->assertSame(1, $manager->freeSets($size->fresh()));
+    }
+
+    private function expectsShortage(\Closure $make): void
+    {
+        try {
+            $make();
+            $this->fail('Expected the flask shortage to block.');
+        } catch (\InvalidArgumentException $e) {
+            $this->assertStringContainsString('10 × 13: 3 of 3 sets free', $e->getMessage());
+        }
+    }
+
     public function test_a_flask_is_swapped_for_the_one_actually_used(): void
     {
         $size = $this->makeSize('600 × 500');

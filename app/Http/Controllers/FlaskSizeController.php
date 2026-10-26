@@ -45,7 +45,9 @@ class FlaskSizeController extends Controller
             'name' => ['required', 'string', 'max:100'],
             'inside_length_mm' => $mm, 'inside_width_mm' => $mm, 'cope_depth_mm' => $mm, 'drag_depth_mm' => $mm, 'pin_centres_mm' => $mm,
             'notes' => ['nullable', 'string', 'max:2000'], 'is_block' => ['nullable', 'boolean'],
+            'sets_owned' => ['nullable', 'integer', 'min:0', 'max:100000'],
         ]);
+        $data['sets_owned'] = $data['sets_owned'] ?? null;
         $data['is_block'] = $request->boolean('is_block');
         $data['name'] = FlaskSize::tidyName($data['name']);
         if (FlaskSize::nameTaken($data['name'], $size?->id)) {

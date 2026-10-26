@@ -197,6 +197,16 @@ class FlaskManager
         }
         $layers = MouldLayer::whereIn('mould_assembly_id', $moulds->pluck('id'))->orderBy('layer_number')->get()->groupBy('mould_assembly_id');
         $types = $layers->first()?->pluck('layer_type')->all() ?? [];
+        $sizes = $this->sizesFor($revision, $run->station);
+        if ($sizes->isNotEmpty() && $sizes->every(fn (FlaskSize $size) => $this->isCountOnly($size))) {
+            $counted = $this->pickCounted($sizes, $moulds->count());
+            if ($counted['short'] > 0) {
+                $this->shortage($revision, $run->station, $types, $moulds->count(), $counted['sets']);
+            }
+            MouldAssembly::whereIn('id', $moulds->values()->take($counted['sets'])->pluck('id'))->update(['flask_size_id' => $counted['size']->id, 'holds_flask_set' => true]);
+
+            return;
+        }
         $picked = $this->pick($this->sizesFor($revision, $run->station), $moulds->count(), $types, lock: true);
         if ($picked['short'] > 0) {
             $this->shortage($revision, $run->station, $types, $moulds->count(), count($picked['sets']));
@@ -223,6 +233,9 @@ class FlaskManager
             $message = "No flask size is set for {$revision->code}".($station ? " that station {$station->code} handles" : '').'. Set the sizes it fits on the pattern, and the sizes the station handles.';
         } else {
             $free = $sizes->map(function (FlaskSize $size) {
+                if ($this->isCountOnly($size)) {
+                    return "{$size->name}: {$this->freeSets($size)} of {$size->sets_owned} sets free";
+                }
                 $counts = Flask::where('flask_size_id', $size->id)->where('status', 'AVAILABLE')->selectRaw('position, count(*) n')->groupBy('position')->pluck('n', 'position');
 
                 return $size->name.': '.($counts->isEmpty() ? 'none free' : $counts->map(fn ($n, $p) => $n.' '.strtolower($p))->implode(', ').' free');
@@ -242,8 +255,61 @@ class FlaskManager
         foreach ($flasks as $flask) {
             $this->giveBack($flask, 'MOULD_ASSEMBLY', $mould->id, "Mould {$mould->assembly_number} knocked out.");
         }
+        // A counted set has no flask records: the mould just stops holding it.
+        $counted = MouldAssembly::whereKey($mould->id)->where('holds_flask_set', true)->update(['holds_flask_set' => false]);
 
-        return $flasks->count();
+        return $flasks->count() + $counted * max(1, $mould->layers()->count());
+    }
+
+    /** A size kept by count: it has a number of sets owned and no flask of it is registered. */
+    public function isCountOnly(FlaskSize $size): bool
+    {
+        return $size->sets_owned !== null && ! $size->is_block && ! Flask::where('flask_size_id', $size->id)->exists();
+    }
+
+    /** Counted sets of a size in moulds or held by runs. */
+    public function setsInUse(FlaskSize $size): int
+    {
+        return MouldAssembly::where('flask_size_id', $size->id)->where('holds_flask_set', true)->count()
+            + (int) MouldingRun::where('flask_size_id', $size->id)->sum('flask_sets_held');
+    }
+
+    /**
+     * Free sets of a size: owned less in use for a counted size; for registered flasks, the sets the free ones make up
+     * for a $types mould (cope and drag by default).
+     */
+    public function freeSets(FlaskSize $size, array $types = ['DRAG', 'COPE']): int
+    {
+        if ($this->isCountOnly($size)) {
+            return max(0, (int) $size->sets_owned - $this->setsInUse($size));
+        }
+        $free = Flask::where('flask_size_id', $size->id)->where('status', 'AVAILABLE')->count();
+
+        return $free ? count($this->pick(collect([$size]), intdiv($free, max(1, count($types))), $types)['sets']) : 0;
+    }
+
+    /**
+     * Counted sets for $moulds moulds, in the first count-only size with enough free (the designed-for size first), else the one
+     * with the most. Serialised per size so two runs cannot take the same sets.
+     *
+     * @param  Collection<int, FlaskSize>  $sizes
+     * @return array{size: ?FlaskSize, sets: int, short: int}
+     */
+    private function pickCounted(Collection $sizes, int $moulds): array
+    {
+        $best = ['size' => null, 'sets' => 0, 'short' => $moulds];
+        foreach ($sizes as $size) {
+            \Illuminate\Support\Facades\DB::select('SELECT pg_advisory_xact_lock(hashtext(?))', ['flask-sets-'.$size->id]);
+            $got = min($moulds, $this->freeSets($size));
+            if ($got > $best['sets'] || ! $best['size']) {
+                $best = ['size' => $size, 'sets' => $got, 'short' => $moulds - $got];
+            }
+            if ($got === $moulds) {
+                break;
+            }
+        }
+
+        return $best;
     }
 
     public const FREED = ['POUR' => 'At pour (flask stripped)', 'SHAKEOUT' => 'At shakeout'];
@@ -387,6 +453,12 @@ class FlaskManager
             return;
         }
         $types = $this->layerTypes((int) ($run->patternRevision->layers_per_mould ?: 2));
+        $sizes = $this->sizesFor($run->patternRevision, $run->station);
+        if ($sizes->isNotEmpty() && $sizes->every(fn (FlaskSize $size) => $this->isCountOnly($size))) {
+            $this->runChangedCounted($run, $sizes, $types);
+
+            return;
+        }
         $held = Flask::where('current_moulding_run_id', $run->id)->lockForUpdate()->get();
         $sets = intdiv($held->count(), count($types));
         $want = max(0, (int) $run->moulds_made_qty);
@@ -422,7 +494,37 @@ class FlaskManager
         foreach ($flasks as $flask) {
             $this->giveBack($flask, 'MOULDING_RUN', $run->id, "Run {$run->run_number} knocked out.");
         }
+        $sets = (int) MouldingRun::whereKey($run->id)->value('flask_sets_held');
+        if ($sets > 0) {
+            MouldingRun::whereKey($run->id)->update(['flask_sets_held' => 0]);
+        }
 
-        return $flasks->count();
+        return $flasks->count() + $sets * count($this->layerTypes((int) ($run->patternRevision?->layers_per_mould ?: 2)));
+    }
+
+    /**
+     * A run on count-only sizes holds one counted set per mould made: more are taken as it makes more, surplus goes back.
+     *
+     * @param  Collection<int, FlaskSize>  $sizes
+     */
+    private function runChangedCounted(MouldingRun $run, Collection $sizes, array $types): void
+    {
+        $held = (int) MouldingRun::whereKey($run->id)->lockForUpdate()->value('flask_sets_held');
+        $want = max(0, (int) $run->moulds_made_qty);
+        if ($want <= $held) {
+            MouldingRun::whereKey($run->id)->update(['flask_sets_held' => $want]);
+
+            return;
+        }
+        $size = $held > 0 && $run->flask_size_id ? $sizes->firstWhere('id', $run->flask_size_id) : null;
+        $counted = $this->pickCounted($size ? collect([$size]) : $sizes, $want - $held);
+        if ($counted['short'] > 0) {
+            try {
+                $this->shortage($run->patternRevision, $run->station, $types, $want - $held, $counted['sets']);
+            } catch (InvalidArgumentException $e) {
+                throw ValidationException::withMessages(['flasks' => "Run {$run->run_number}: ".$e->getMessage()]);
+            }
+        }
+        MouldingRun::whereKey($run->id)->update(['flask_sets_held' => $held + $counted['sets'], 'flask_size_id' => $counted['size']?->id ?? $run->flask_size_id]);
     }
 }
