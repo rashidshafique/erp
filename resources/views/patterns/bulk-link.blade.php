@@ -45,9 +45,10 @@
                                     <select name="rows[{{ $i }}][pattern_id]" data-search-select aria-label="Pattern">
                                         <option value="">Skip</option>
                                         @foreach ($patterns as $p)
-                                            <option value="{{ $p->id }}" data-sub="{{ $p->code }}" @selected(old("rows.$i.pattern_id", $row['pattern']->id) === $p->id)>{{ $p->name }}</option>
+                                            <option value="{{ $p->id }}" data-sub="{{ $p->code }}" data-type="{{ \App\Models\Pattern::typeName($p->pattern_type, true) }}" @selected(old("rows.$i.pattern_id", $row['pattern']->id) === $p->id)>{{ $p->name }}</option>
                                         @endforeach
                                     </select>
+                                    <div class="muted small" data-pattern-type>{{ \App\Models\Pattern::typeName($row['pattern']->pattern_type, true) }}</div>
                                     @error("rows.$i.pattern_id")<div class="error-text">{{ $message }}</div>@enderror
                                 </td>
                                 <td>
@@ -95,7 +96,10 @@
                 select.value = keep || choice.preselected || '';
             }
             document.querySelectorAll('[data-bulk-row]').forEach(function (row) {
-                var product = row.querySelector('[data-product]'), revision = row.querySelector('[data-revision]');
+                var product = row.querySelector('[data-product]'), revision = row.querySelector('[data-revision]'), pattern = row.querySelector('select[name$="[pattern_id]"]');
+                function showType() { var o = pattern.options[pattern.selectedIndex]; row.querySelector('[data-pattern-type]').textContent = o && o.dataset.type || ''; }
+                showType();
+                pattern.addEventListener('change', showType);
                 product.innerHTML = products;
                 product.value = product.dataset.value || '';
                 fillRevisions(row, revision.dataset.value);
