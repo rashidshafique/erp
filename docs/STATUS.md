@@ -1,12 +1,14 @@
 # Project status
 
-Updated 2026-10-23.
+Updated 2026-10-26.
 
 ## Done
 
 **Order to pour (Stage 2, see STAGE2.md)**
 - Customers, sales orders, contract review, production orders, melting plan, iron grades, thermal analysis, pouring gate, trace to dispatch.
-- Repeating order lines (2026-10-26): a line can repeat every week or month with no new PO. Each period adds a delivery and grows the ordered quantity, up to the "repeat ahead" order rule (4, 8 or 13 weeks), daily via `sales:repeat-deliveries`. Invoice per dispatch as usual. Not done: forecast grid per period, shortfall carry-over, production orders made per period, standing order or blanket documents.
+- Repeating order lines (2026-10-26, paused to finish Finance first):
+  - Done: a line repeats every week or month with no new PO. Each period adds a delivery of the line's quantity and grows the ordered quantity, scheduled up to the "repeat ahead" order rule (4, 8 or 13 weeks) and topped up daily by `sales:repeat-deliveries`. Editing the quantity changes future deliveries; stopping keeps what is scheduled. An order with a line still repeating is not closed by a dispatch. Invoice per dispatch as usual.
+  - Left, in order: (1) a forecast grid on the order to change the quantity of each period; (2) a shortfall carried into the next period when a period ships short; (3) one production order per period instead of one per line; (4) standing-order and blanket-order documents (a blanket order agrees a total over a span and is called off in releases).
 
 **Production**
 - Moulding runs: bulk entry, three-step record screen, KPI strip, mould hardness, stations, sand test from a run.
@@ -32,7 +34,14 @@ Updated 2026-10-23.
 - Sales invoices and credit notes raised from a dispatch, a sales order or with free lines (never tied to dispatch); draft, issue (numbered `INV-<year>-0001`), void, print.
 - Customer receipts spread over invoices (rest stays on account), ageing report, customer statement, tax rates and defaults under Settings > Invoicing & tax. Permission `finance.manage`, role ACCOUNTS.
 - Supplier side: purchase orders in Purchasing (draft, issue with optional approval, receive into quarantine lots, over-receipt rule); supplier bills and credit notes in Finance entered from a PO or free, posted as `BILL-<year>-0001` with a duplicate check on the supplier's number, 3-way match against the PO (off, warn or block, with a tolerance), supplier payments spread over bills, payables ageing and supplier statements. Permissions `purchasing.manage` (role Buyer) and `finance.manage`.
-- Not built: bill price differences feeding back into lot cost, advance-to-supplier offsets on a bill, general ledger and posting, bank reconciliation, financial reports, tax returns, e-invoicing. Order agreed: ledger next.
+- Left, in order (being worked on now, 2026-10-26):
+  1. General ledger: chart of accounts, journals, automatic posting from invoices, credit notes, receipts, bills and supplier payments, manual journals, trial balance.
+  2. Financial reports: profit and loss, balance sheet, general ledger by account.
+  3. Bank and cash: bank accounts, reconciliation against a statement.
+  4. Withheld tax settled against the withholding certificate (receivables still count the full total).
+  5. Advance-to-supplier offsets on a bill; bill price differences feeding back into lot cost.
+  6. Purchase-side tax rules (bills and POs still use the typed percent); tax registers per authority and tax returns.
+  7. E-invoicing (FBR digital invoicing for Pakistan).
 
 **Bill of materials (`app/Domains/Engineering`, level 1, 2026-10-25)**
 - Each product revision has a list of materials with a quantity and a basis: per casting, per mould or per kg poured. Metal is not listed; the planner works it out from the cavity map. Panel on the product page; a revision with no list can copy another revision's.
@@ -59,7 +68,7 @@ In priority order:
 1. **Stores/Inventory** (next in the module split): stock ledger, bins, issues, GRN, stock valuation.
 2. **Costing** (`Costing` is empty): actual versus standard cost per casting (metal, energy, labour, fettling).
 3. **MRP and scheduling** (`MRP`, `Production` are empty): material requirements planning, finite capacity scheduling.
-4. **Finance** (biggest gap): invoicing and receivables are in; still to do: AP and supplier bills, general ledger, tax returns, bank reconciliation. Decide build a thin version or integrate an accounting package.
+4. **Finance** (biggest gap): invoicing, receivables, supplier bills and payables are in; the list still to do is under Finance in Done.
 5. **Outside processing and machining routings**: subcontract flow, machining steps.
 6. **Reporting and BI**: management dashboards, customer scorecards, statutory report exports.
 7. **Integration**: EDI, e-invoicing and tax filing for the target market, barcode and device input.
