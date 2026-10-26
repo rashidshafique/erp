@@ -1,0 +1,65 @@
+<?php
+
+namespace App\Domains\Ledger\Http\Controllers;
+
+use App\Domains\Core\ModuleRegistry;
+use App\Domains\Ledger\Models\LedgerAccount;
+use App\Domains\Ledger\Services\LedgerSettings;
+use App\Domains\Ledger\Services\PostingRules;
+use App\Http\Controllers\Controller;
+use App\Models\AppSetting;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\View\View;
+use InvalidArgumentException;
+
+class LedgerSettingsController extends Controller
+{
+    public function edit(): View
+    {
+        $chosen = [];
+        foreach (array_keys(LedgerSettings::ROLES) as $role) {
+            try {
+                $chosen[$role] = LedgerSettings::account($role)->id;
+            } catch (InvalidArgumentException) {
+                $chosen[$role] = null;
+            }
+        }
+        $authorities = app(ModuleRegistry::class)->isEnabled('tax') && class_exists(\App\Domains\Tax\Models\TaxAuthority::class)
+            ? \App\Domains\Tax\Models\TaxAuthority::orderBy('code')->get(['code', 'name']) : collect();
+
+        return view('ledger::settings.edit', [
+            'accounts' => LedgerAccount::postable()->orderBy('code')->get(), 'chosen' => $chosen, 'methods' => LedgerSettings::methodMap(),
+            'authorities' => $authorities, 'taxMap' => LedgerSettings::taxMap(), 'closedTo' => LedgerSettings::closedTo(),
+        ]);
+    }
+
+    public function update(Request $request): RedirectResponse
+    {
+        $d = $request->validate([
+            'roles' => ['array'], 'roles.*' => ['nullable', 'uuid', 'exists:ledger_accounts,id'],
+            'methods' => ['array'], 'methods.*.name' => ['nullable', 'string', 'max:30'], 'methods.*.account_id' => ['nullable', 'uuid', 'exists:ledger_accounts,id'],
+            'tax' => ['array'], 'tax.*' => ['nullable', 'uuid', 'exists:ledger_accounts,id'], 'closed_to' => ['nullable', 'date'],
+        ]);
+        foreach (LedgerSettings::ROLES as $role => [$label]) {
+            if (array_key_exists($role, $d['roles'] ?? [])) {
+                AppSetting::setValue('ledger.account.'.$role, (string) ($d['roles'][$role] ?? ''), 'Ledger account for: '.$label);
+            }
+        }
+        $methods = collect($d['methods'] ?? [])->filter(fn ($m) => filled($m['name'] ?? null) && filled($m['account_id'] ?? null))
+            ->mapWithKeys(fn ($m) => [mb_strtolower(trim($m['name'])) => $m['account_id']])->all();
+        AppSetting::setValue(LedgerSettings::METHODS, json_encode($methods), 'Ledger account for each payment method');
+        AppSetting::setValue(LedgerSettings::TAX_ACCOUNTS, json_encode(array_filter($d['tax'] ?? [])), 'Ledger account for the tax of each authority');
+        AppSetting::setValue(LedgerSettings::CLOSED_TO, (string) ($d['closed_to'] ?? ''), 'Books closed to this date');
+
+        return back()->with('success', 'Ledger settings saved.');
+    }
+
+    public function postMissing(PostingRules $rules): RedirectResponse
+    {
+        $result = $rules->postMissing();
+        $back = back()->with('success', "Posted {$result['posted']} documents to the ledger.");
+
+        return $result['skipped'] === [] ? $back : $back->withErrors(['ledger' => 'Not posted: '.implode(' ', array_slice($result['skipped'], 0, 10))]);
+    }
+}

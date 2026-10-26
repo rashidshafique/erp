@@ -2,6 +2,7 @@
 
 namespace App\Domains\Finance\Services;
 
+use App\Domains\Finance\Events\DocumentPosted;
 use App\Domains\Finance\Models\SupplierBill;
 use App\Domains\Finance\Models\SupplierPayment;
 use Illuminate\Support\Facades\DB;
@@ -33,6 +34,7 @@ class SupplierPaymentService
                 'paid_on' => $head['paid_on'], 'amount' => $amount, 'method' => $head['method'] ?? null, 'reference' => $head['reference'] ?? null, 'notes' => $head['notes'] ?? null,
             ]);
             $this->allocate($payment, $allocations);
+            event(new DocumentPosted($payment));
 
             return $payment->fresh('allocations');
         });

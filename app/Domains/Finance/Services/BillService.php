@@ -5,6 +5,8 @@ namespace App\Domains\Finance\Services;
 use App\Domains\Core\Contracts\TaxCalculator;
 use App\Domains\Core\Tax\TaxContext;
 use App\Domains\Core\Tax\TaxLine;
+use App\Domains\Finance\Events\DocumentPosted;
+use App\Domains\Finance\Events\DocumentVoided;
 use App\Domains\Finance\Models\SupplierBill;
 use App\Domains\Finance\Models\SupplierBillLine;
 use App\Domains\Purchasing\Models\PurchaseOrder;
@@ -67,6 +69,7 @@ class BillService
                 SupplierBillLine::create([
                     'supplier_bill_id' => $bill->id, 'line_number' => $i + 1, 'description' => trim($l['description']), 'quantity' => $qty, 'uom' => $l['uom'] ?? null,
                     'unit_price' => $price, 'tax_percent' => $percent, 'line_net' => $net, 'line_tax' => $lineTax, 'purchase_order_line_id' => ($l['purchase_order_line_id'] ?? null) ?: null,
+                    'account_id' => ($l['account_id'] ?? null) ?: null,
                 ]);
                 $subtotal += $net;
                 $tax += $lineTax;
@@ -131,6 +134,7 @@ class BillService
             }
             $due = $bill->due_date ?? ($bill->isCreditNote() ? null : $bill->bill_date->copy()->addDays(FinanceRules::daysFromTerms($bill->payment_terms)));
             $bill->update(['bill_number' => $this->numbers->nextNumber(self::PREFIXES[$bill->kind], 'supplier_bills', 'bill_number'), 'status' => 'POSTED', 'posted_at' => now(), 'due_date' => $due]);
+            event(new DocumentPosted($bill));
 
             return $bill->fresh();
         });
@@ -145,7 +149,10 @@ class BillService
         if (! $bill->isCreditNote() && ($bill->paid() > 0 || $bill->credited() > 0)) {
             throw new InvalidArgumentException('Payments or credit notes are recorded against this bill; void or reverse those first.');
         }
-        $bill->update(['status' => 'VOID', 'voided_at' => now(), 'void_reason' => $reason]);
+        DB::transaction(function () use ($bill, $reason) {
+            $bill->update(['status' => 'VOID', 'voided_at' => now(), 'void_reason' => $reason]);
+            event(new DocumentVoided($bill));
+        });
 
         return $bill->fresh();
     }

@@ -11,5 +11,6 @@
 <form method="POST" action="{{ route('receipts.allocate', $receipt) }}">@csrf<div class="panel"><div class="panel-header"><h2>Put the rest on invoices</h2></div><div class="table-wrap"><table><thead><tr><th>Invoice</th><th>Owing</th><th>Pay now</th></tr></thead><tbody>
 @foreach ($open as $i)<tr><td><a href="{{ route('invoices.show', $i) }}">{{ $i->invoice_number }}</a></td><td>{{ $m($i->balance()) }}</td><td><input type="number" step="any" min="0" max="{{ $i->balance() }}" name="alloc[{{ $i->id }}]" style="width:130px"></td></tr>@endforeach</tbody></table></div><div class="panel-body"><button class="btn btn-primary">Save</button></div></div></form>
 @endif
+@foreach (app(\App\Domains\Core\ModuleRegistry::class)->panels('finance.document') as $panel)@include($panel, ['document' => $receipt])@endforeach
 @include('attachments._panel', ['type' => 'receipt', 'id' => $receipt->id])
 @endsection

@@ -76,7 +76,7 @@ class BillController extends Controller
         if ($bill->status !== 'DRAFT') {
             return redirect()->route('bills.show', $bill)->withErrors(['bill' => 'Only a draft can be changed.']);
         }
-        $lines = $bill->lines->map(fn ($l) => $l->only(['description', 'quantity', 'uom', 'unit_price', 'tax_percent', 'purchase_order_line_id']))->all();
+        $lines = $bill->lines->map(fn ($l) => $l->only(['description', 'quantity', 'uom', 'unit_price', 'tax_percent', 'purchase_order_line_id', 'account_id']))->all();
 
         return view('finance::bills.form', $this->formData($bill, $bill->only(['supplier_id', 'purchase_order_id', 'payment_terms', 'currency']), $lines) + ['notice' => null]);
     }
@@ -155,9 +155,24 @@ class BillController extends Controller
 
         return [
             'bill' => $bill, 'head' => $head,
-            'lines' => $lines ?: [['description' => '', 'quantity' => 1, 'uom' => '', 'unit_price' => 0, 'tax_percent' => $default, 'purchase_order_line_id' => null]],
-            'suppliers' => Supplier::orderedByName()->get(), 'currency' => $bill?->currency ?? ($head['currency'] ?? null) ?: FinanceRules::currency(),
+            'lines' => $lines ?: [['description' => '', 'quantity' => 1, 'uom' => '', 'unit_price' => 0, 'tax_percent' => $default, 'purchase_order_line_id' => null, 'account_id' => null]],
+            'suppliers' => Supplier::orderedByName()->get(), 'ledgerAccounts' => self::ledgerAccounts(), 'currency' => $bill?->currency ?? ($head['currency'] ?? null) ?: FinanceRules::currency(),
         ];
+    }
+
+    /**
+     * The accounts a bill line can be charged to when the general ledger is on: costs and expenses, then the rest.
+     *
+     * @return \Illuminate\Support\Collection<int, array{id: string, label: string}>
+     */
+    private static function ledgerAccounts(): \Illuminate\Support\Collection
+    {
+        if (! app(\App\Domains\Core\ModuleRegistry::class)->isEnabled('ledger')) {
+            return collect();
+        }
+
+        return \App\Domains\Ledger\Models\LedgerAccount::postable()->orderByRaw("type <> 'EXPENSE'")->orderBy('code')->get()
+            ->map(fn ($a) => ['id' => $a->id, 'label' => $a->label()]);
     }
 
     /** @return array<string, mixed> */
@@ -176,7 +191,7 @@ class BillController extends Controller
         return array_values($request->validate([
             'lines' => ['required', 'array', 'min:1'], 'lines.*.description' => ['nullable', 'string', 'max:300'], 'lines.*.quantity' => ['nullable', 'numeric', 'gt:0'],
             'lines.*.uom' => ['nullable', 'string', 'max:20'], 'lines.*.unit_price' => ['nullable', 'numeric', 'min:0'], 'lines.*.tax_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'lines.*.purchase_order_line_id' => ['nullable', 'uuid'],
+            'lines.*.purchase_order_line_id' => ['nullable', 'uuid'], 'lines.*.account_id' => ['nullable', 'uuid'],
         ])['lines']);
     }
 }

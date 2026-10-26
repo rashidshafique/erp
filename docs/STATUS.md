@@ -34,8 +34,13 @@ Updated 2026-10-26.
 - Sales invoices and credit notes raised from a dispatch, a sales order or with free lines (never tied to dispatch); draft, issue (numbered `INV-<year>-0001`), void, print.
 - Customer receipts spread over invoices (rest stays on account), ageing report, customer statement, tax rates and defaults under Settings > Invoicing & tax. Permission `finance.manage`, role ACCOUNTS.
 - Supplier side: purchase orders in Purchasing (draft, issue with optional approval, receive into quarantine lots, over-receipt rule); supplier bills and credit notes in Finance entered from a PO or free, posted as `BILL-<year>-0001` with a duplicate check on the supplier's number, 3-way match against the PO (off, warn or block, with a tolerance), supplier payments spread over bills, payables ageing and supplier statements. Permissions `purchasing.manage` (role Buyer) and `finance.manage`.
-- Left, in order (being worked on now, 2026-10-26):
-  1. General ledger: chart of accounts, journals, automatic posting from invoices, credit notes, receipts, bills and supplier payments, manual journals, trial balance.
+- General ledger (`app/Domains/Ledger`, module "General ledger", 2026-10-26): full double entry. Every journal balances and goes through `Ledger::post`, which also refuses group or switched-off accounts and dates on or before "books closed to".
+  - Chart of accounts seeded in local style (`DefaultChart`, 1000 assets to 7000 finance costs); accounts and sub-accounts can be added anywhere, but not under an account that already has postings; groups roll up.
+  - Finance fires `DocumentPosted` / `DocumentVoided` inside its transactions; the ledger posts (`PostingRules`) or reverses on the void date. A refusal undoes the document. Invoice: Dr receivables, Cr sales and tax per authority. Bill: Dr each line's account (new optional Account column on bill lines) and input tax, Cr payables. Receipt and payment: cash or bank by method. Credit notes the other way.
+  - Settings > Ledger accounts: account per posting role, payment method map, tax authority map, closed-to date, "post what is missing" (also `ledger:post-missing`) for documents from before the ledger.
+  - Manual journals (reverse, never edit), journal list, trial balance, account ledger with running balance, ledger link on each document. Permission `ledger.manage` (role ACCOUNTS).
+  - Not posted yet: withheld tax (receivables keep the full total), stock movements and cost of sales (periodic for now), receipt allocations (not needed: both sides sit in receivables).
+- Left, in order:
   2. Financial reports: profit and loss, balance sheet, general ledger by account.
   3. Bank and cash: bank accounts, reconciliation against a statement.
   4. Withheld tax settled against the withholding certificate (receivables still count the full total).

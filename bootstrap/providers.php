@@ -10,6 +10,7 @@ use App\Domains\Enquiry\EnquiryServiceProvider;
 use App\Domains\Finance\FinanceServiceProvider;
 use App\Domains\Hr\HrServiceProvider;
 use App\Domains\Inventory\InventoryServiceProvider;
+use App\Domains\Ledger\LedgerServiceProvider;
 use App\Domains\Licensing\LicensingServiceProvider;
 use App\Domains\Maintenance\MaintenanceServiceProvider;
 use App\Domains\Parties\PartiesServiceProvider;
@@ -32,6 +33,7 @@ return [
     EngineeringServiceProvider::class,
     EnquiryServiceProvider::class,
     FinanceServiceProvider::class,
+    LedgerServiceProvider::class,
     HrServiceProvider::class,
     MaintenanceServiceProvider::class,
     PartiesServiceProvider::class,

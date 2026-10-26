@@ -40,6 +40,7 @@
 <div class="panel"><div class="panel-body"><form method="POST" action="{{ route('bills.void', $bill) }}" style="display:flex;gap:8px;flex-wrap:wrap">@csrf
 <input name="reason" placeholder="Why this {{ strtolower($label) }} is void" maxlength="300" required style="min-width:300px;flex:1"><button class="btn" onclick="return confirm('Void this {{ strtolower($label) }}? The number stays used.')">Void</button></form></div></div>
 @endif
+@foreach (app(\App\Domains\Core\ModuleRegistry::class)->panels('finance.document') as $panel)@include($panel, ['document' => $bill])@endforeach
 @include('attachments._panel', ['type' => 'supplier_bill', 'id' => $bill->id])
 @include('audit._history', ['type' => 'SupplierBill', 'id' => $bill->id])
 @endsection

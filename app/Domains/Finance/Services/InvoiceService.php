@@ -7,6 +7,8 @@ use App\Domains\Core\Tax\TaxAmount;
 use App\Domains\Core\Tax\TaxContext;
 use App\Domains\Core\Tax\TaxLine;
 use App\Domains\Dispatch\Models\Dispatch;
+use App\Domains\Finance\Events\DocumentPosted;
+use App\Domains\Finance\Events\DocumentVoided;
 use App\Domains\Finance\Models\Invoice;
 use App\Domains\Finance\Models\InvoiceLine;
 use App\Domains\Finance\Models\TaxRate;
@@ -97,6 +99,7 @@ class InvoiceService
             }
             $due = $invoice->due_date ?? ($invoice->isCreditNote() ? null : $invoice->invoice_date->copy()->addDays(FinanceRules::daysFromTerms($invoice->payment_terms)));
             $invoice->update(['invoice_number' => $this->nextNumber($invoice->kind), 'status' => 'ISSUED', 'issued_at' => now(), 'due_date' => $due]);
+            event(new DocumentPosted($invoice));
 
             return $invoice->fresh();
         });
@@ -111,7 +114,10 @@ class InvoiceService
         if (! $invoice->isCreditNote() && ($invoice->paid() > 0 || $invoice->credited() > 0)) {
             throw new InvalidArgumentException('Payments or credit notes are recorded against this invoice; void or reverse those first, or raise a credit note instead.');
         }
-        $invoice->update(['status' => 'VOID', 'voided_at' => now(), 'void_reason' => $reason]);
+        DB::transaction(function () use ($invoice, $reason) {
+            $invoice->update(['status' => 'VOID', 'voided_at' => now(), 'void_reason' => $reason]);
+            event(new DocumentVoided($invoice));
+        });
 
         return $invoice->fresh();
     }
