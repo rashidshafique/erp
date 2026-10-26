@@ -11,6 +11,7 @@ use App\Support\Formats;
 use App\Support\OrderRules;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Keeps a repeating order line scheduled for customers who take a weekly or monthly quantity without sending a PO each time. Each
@@ -101,6 +102,66 @@ class RepeatingLines
             $line->update(['ordered_qty' => $plan['keep'], 'repeated_to' => $plan['repeated_to']]);
         });
         $this->topUp($line);
+    }
+
+    /**
+     * Sets the quantity of each period still to come on a repeating line, as the customer's forecast moves. A period set to nothing is
+     * removed and not added back. The line's total follows its periods, so it cannot go below released production or shipments, and a
+     * period that grows or shrinks more than SalesOrderEditor::JUMP times is saved only once confirmed. On a live order with the
+     * straight-to-production flow, a higher total is released at once.
+     *
+     * @param  array<string, mixed>  $quantities  Delivery id => new quantity.
+     * @return int Periods changed.
+     */
+    public function forecast(SalesOrderLine $line, array $quantities, bool $confirmed): int
+    {
+        return DB::transaction(function () use ($line, $quantities, $confirmed) {
+            $line = SalesOrderLine::with('salesOrder')->lockForUpdate()->findOrFail($line->id);
+            if (! $line->repeats() || ! in_array($line->salesOrder->status, SalesOrder::OPEN, true)) {
+                throw ValidationException::withMessages(['forecast' => 'Only a repeating line on an open order has a forecast to change.']);
+            }
+            $upcoming = $line->deliveries()->where('due_date', '>=', today())->get()->keyBy('id');
+            $before = (float) $line->ordered_qty;
+            $total = $before;
+            $changes = [];
+            $jumps = [];
+            foreach ($quantities as $id => $quantity) {
+                $delivery = $upcoming->get($id) ?? throw ValidationException::withMessages(['forecast' => 'A period on the form is no longer to come on line '.$line->line_number.'. Reload the page and try again.']);
+                $was = (float) $delivery->quantity;
+                $quantity = round((float) $quantity, 3);
+                if (abs($quantity - $was) < 0.0005) {
+                    continue;
+                }
+                $changes[] = [$delivery, $was, $quantity];
+                $total += $quantity - $was;
+                if ($was > 0 && $quantity > 0 && ($quantity > $was * SalesOrderEditor::JUMP || $quantity < $was / SalesOrderEditor::JUMP)) {
+                    $jumps[] = $delivery->due_date->format('j M').' goes from '.Formats::number($was).' to '.Formats::number($quantity);
+                }
+            }
+            if ($changes === []) {
+                return 0;
+            }
+            $total = round($total, 3);
+            if ($message = $this->belowFloor($line, $total)) {
+                throw ValidationException::withMessages(['forecast' => $message]);
+            }
+            if ($jumps !== [] && ! $confirmed) {
+                throw ValidationException::withMessages(['confirm_jump' => 'Please check: on line '.$line->line_number.' '.implode('; ', $jumps).'. If that is right, tick "Yes, these quantities are right" and save again.']);
+            }
+
+            $notes = [];
+            foreach ($changes as [$delivery, $was, $quantity]) {
+                $quantity > 0 ? $delivery->update(['quantity' => $quantity]) : $delivery->delete();
+                $notes[] = $delivery->due_date->format('j M').' '.Formats::number($was).' → '.($quantity > 0 ? Formats::number($quantity) : 'removed');
+            }
+            $line->update(['ordered_qty' => $total]);
+            $this->log($line, 'Line '.$line->line_number.' forecast changed: '.implode(', ', $notes).'; ordered '.Formats::number($before).' → '.Formats::number($total));
+            if ($total > $before && $line->salesOrder->status === 'IN_PRODUCTION' && OrderRules::sendsStraightToProduction()) {
+                app(ProductionOrderFactory::class)->releaseForLine($line);
+            }
+
+            return count($changes);
+        });
     }
 
     /**

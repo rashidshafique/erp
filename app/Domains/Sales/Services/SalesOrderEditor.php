@@ -18,7 +18,7 @@ use Illuminate\Validation\ValidationException;
 class SalesOrderEditor
 {
     /** A line whose total grows or shrinks more than this many times is saved only once the user confirms it. */
-    private const JUMP = 3;
+    public const JUMP = 3;
 
     public function isEditable(SalesOrder $order): bool
     {

@@ -19,6 +19,7 @@ Route::middleware('web')->group(function () {
         Route::post('/{salesOrder}/lines/{line}/production-order', 'productionOrder')->name('lines.production-order');
         Route::post('/{salesOrder}/lines/{line}/deliveries', 'addDelivery')->name('lines.deliveries.store');
         Route::delete('/{salesOrder}/lines/{line}/deliveries/{delivery}', 'removeDelivery')->name('lines.deliveries.destroy');
+        Route::put('/{salesOrder}/lines/{line}/forecast', 'forecast')->name('lines.forecast');
         Route::get('/{salesOrder}/trace', [OrderTraceController::class, 'show'])->name('trace');
     });
 });

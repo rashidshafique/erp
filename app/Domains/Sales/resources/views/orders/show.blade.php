@@ -105,6 +105,31 @@
                                 <div class="qd-foot"><button type="button" class="btn" data-close>Cancel</button><button class="btn btn-primary" type="submit">Add delivery</button></div>
                             </form>
                         </dialog>
+                        @php $upcoming = $l->repeats() ? $l->deliveries->filter(fn ($d) => $d->due_date->gte(today())) : collect(); @endphp
+                        @if ($upcoming->isNotEmpty())
+                            @php $fid = 'qd-forecast-'.$l->id; $fail = old('_quick') === $fid && $errors->any(); @endphp
+                            <button type="button" class="btn" data-quick="{{ $fid }}">Change forecast</button>
+                            <dialog id="{{ $fid }}" class="qd" aria-labelledby="{{ $fid }}-title" data-forecast @if ($fail) data-reopen="{{ json_encode($errors->getMessages()) }}" @endif>
+                                <form method="POST" action="{{ route('sales-orders.lines.forecast', [$order, $l]) }}">@csrf @method('PUT')<input type="hidden" name="_quick" value="{{ $fid }}">
+                                    <div class="qd-head"><h2 id="{{ $fid }}-title">Forecast · line {{ $l->line_number }}, {{ $l->product?->name }}</h2><button type="button" class="qd-x" data-close aria-label="Close">&times;</button></div>
+                                    <div class="qd-body">
+                                        <div class="alert alert-error qd-errors" role="alert" @unless ($fail) hidden @endunless>@if ($fail)@foreach ($errors->all() as $message)<div>{{ $message }}</div>@endforeach @endif</div>
+                                        <p class="help" style="margin-top:0">Set the quantity of each period still to come. 0 removes the period; it is not added back. Periods before today stay as they are.</p>
+                                        <table>
+                                            <thead><tr><th>Due</th><th style="text-align:right">Quantity</th></tr></thead>
+                                            <tbody>
+                                            @foreach ($upcoming as $d)
+                                                <tr><td>{{ $d->due_date->displayDate() }}</td>
+                                                    <td style="text-align:right"><input name="quantities[{{ $d->id }}]" type="number" step="any" min="0" value="{{ old('quantities.'.$d->id, rtrim(rtrim(number_format((float) $d->quantity, 3, '.', ''), '0'), '.')) }}" aria-label="Quantity due {{ $d->due_date->displayDate() }}" style="width:120px;text-align:right" required></td></tr>
+                                            @endforeach
+                                            </tbody>
+                                            <tfoot><tr><th>Line total</th><th style="text-align:right" data-forecast-total data-fixed="{{ (float) $l->ordered_qty - (float) $upcoming->sum('quantity') }}">{{ rtrim(rtrim(\App\Support\Formats::number((float) $l->ordered_qty, 3), '0'), '.') }}</th></tr></tfoot>
+                                        </table>
+                                    </div>
+                                    <div class="qd-foot">@if ($fail && $errors->has('confirm_jump'))<label style="margin:0 auto 0 0;align-self:center"><input type="checkbox" name="confirm_jump" value="1"> Yes, these quantities are right</label>@endif<button type="button" class="btn" data-close>Cancel</button><button class="btn btn-primary" type="submit">Save forecast</button></div>
+                                </form>
+                            </dialog>
+                        @endif
                     @endif
                     <button type="button" data-toggle-line="{{ $l->id }}" aria-expanded="true" title="Show or hide the deliveries of this line" style="border:0;background:none;padding:0 4px;cursor:pointer;color:inherit;font-size:20px;line-height:1">&#9662;</button>
                     </div>
@@ -127,6 +152,13 @@
     @include('partials.quick-dialog-assets')
     <script>
     (function () {
+        document.addEventListener('input', function (e) {
+            var dlg = e.target.closest('dialog[data-forecast]');
+            if (! dlg) { return; }
+            var cell = dlg.querySelector('[data-forecast-total]'), total = parseFloat(cell.dataset.fixed) || 0;
+            dlg.querySelectorAll('input[name^="quantities"]').forEach(function (i) { total += parseFloat(i.value) || 0; });
+            cell.textContent = total.toLocaleString(undefined, { maximumFractionDigits: 3 });
+        });
         var all = document.getElementById('lines-toggle-all');
         function set(id, open) {
             document.querySelectorAll('[data-line-rows="' + id + '"]').forEach(function (row) { row.hidden = !open; });

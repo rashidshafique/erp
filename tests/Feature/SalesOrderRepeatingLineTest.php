@@ -134,6 +134,39 @@ class SalesOrderRepeatingLineTest extends TestCase
         $this->edit($order, $line, ['ordered_qty' => 1000])->assertSessionHasNoErrors();
     }
 
+    public function test_the_forecast_sets_each_period_still_to_come_and_the_line_total_follows(): void
+    {
+        OrderRules::set('repeat_ahead', '4');
+        $order = $this->createOrder(['repeat_every' => 'WEEK', 'repeat_from' => today()->subWeek()->toDateString()]);
+        $line = $order->lines()->first();
+        [$past, $first, $second] = $line->deliveries()->get()->all();
+        $this->get(route('sales-orders.show', $order))->assertOk()->assertSee('Change forecast')->assertSee('name="quantities['.$first->id.']"', false)->assertDontSee('name="quantities['.$past->id.']"', false);
+
+        $this->put(route('sales-orders.lines.forecast', [$order, $line]), ['quantities' => [$past->id => 10]])->assertSessionHasErrors('forecast');
+        $this->put(route('sales-orders.lines.forecast', [$order, $line]), ['quantities' => [$first->id => 70, $second->id => 0]])->assertSessionHasNoErrors();
+
+        $this->assertEquals([50, 70, 50, 50, 50], $line->deliveries()->pluck('quantity')->map(fn ($q) => (float) $q)->all());
+        $this->assertEquals(270, $line->refresh()->ordered_qty);
+        $this->assertStringContainsString('Line 1 forecast changed: '.$first->due_date->format('j M').' 50 → 70, '.$second->due_date->format('j M').' 50 → removed; ordered 300 → 270', $this->history($order));
+    }
+
+    public function test_a_forecast_cannot_go_below_released_production_and_a_big_jump_needs_confirming(): void
+    {
+        OrderRules::set('repeat_ahead', '4');
+        $order = $this->createOrder(['repeat_every' => 'WEEK', 'repeat_from' => today()->toDateString()]);
+        $line = $order->lines()->first();
+        $first = $line->deliveries()->first();
+        app(\App\Services\Orders\ProductionOrderFactory::class)->forSalesLine($line, null, quick: true);
+
+        $this->put(route('sales-orders.lines.forecast', [$order, $line]), ['quantities' => [$first->id => 0]])->assertSessionHasErrors('forecast');
+        $this->put(route('sales-orders.lines.forecast', [$order, $line]), ['quantities' => [$first->id => 500]])
+            ->assertSessionHasErrors(['confirm_jump' => 'Please check: on line 1 '.$first->due_date->format('j M').' goes from 50 to 500. If that is right, tick "Yes, these quantities are right" and save again.']);
+        $this->assertEquals(250, $line->refresh()->ordered_qty);
+
+        $this->put(route('sales-orders.lines.forecast', [$order, $line]), ['quantities' => [$first->id => 500], 'confirm_jump' => 1])->assertSessionHasNoErrors();
+        $this->assertEquals([500, 700], [(float) $first->refresh()->quantity, (float) $line->refresh()->ordered_qty]);
+    }
+
     public function test_removing_a_delivery_from_a_repeating_line_lowers_its_total_and_shows_on_the_order_history(): void
     {
         OrderRules::set('repeat_ahead', '4');

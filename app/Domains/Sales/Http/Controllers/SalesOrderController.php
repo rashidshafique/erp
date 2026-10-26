@@ -231,6 +231,19 @@ class SalesOrderController extends Controller
         return back()->with('success', 'Delivery added to line '.$line->line_number.'.');
     }
 
+    public function forecast(Request $request, SalesOrder $salesOrder, SalesOrderLine $line, RepeatingLines $repeating): RedirectResponse
+    {
+        abort_unless($line->sales_order_id === $salesOrder->id, 404);
+        $data = $request->validate([
+            'quantities' => ['required', 'array'],
+            'quantities.*' => ['required', 'numeric', 'min:0', 'max:999999999'],
+            'confirm_jump' => ['nullable', 'boolean'],
+        ]);
+        $changed = $repeating->forecast($line, $data['quantities'], ! empty($data['confirm_jump']));
+
+        return back()->with('success', $changed ? 'Forecast of line '.$line->line_number.' updated: '.$changed.' '.str('period')->plural($changed).' changed.' : 'Nothing changed on line '.$line->line_number.'.');
+    }
+
     public function removeDelivery(SalesOrder $salesOrder, SalesOrderLine $line, SalesOrderLineDelivery $delivery): RedirectResponse
     {
         abort_unless($line->sales_order_id === $salesOrder->id && $delivery->sales_order_line_id === $line->id, 404);
