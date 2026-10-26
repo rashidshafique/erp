@@ -20,7 +20,7 @@ Updated 2026-10-26.
 - Patterns: revisions, cavity map, ownership, preferred station.
 
 **Domain modules (`app/Domains`)**
-- Maintenance (gauges, calibration), Tooling, HR and payroll, CAPA, Dispatch and packing (finished goods), Enquiry and quotations, Purchasing, Documents, Compliance, Parties, QuickFlow.
+- Maintenance (gauges, calibration), Tooling, HR and payroll, CAPA, Dispatch and packing (finished goods), Enquiry and quotations, Purchasing, Documents, Compliance, Parties, QuickFlow, Sales, Inventory (stores), Engineering (bill of materials), Finance (invoicing, bills and payments), General ledger, Taxation.
 - Licensing unit with the module toggle page, module hooks (nav, permissions, approvals, schedule, search, codes).
 
 **Platform**
@@ -65,7 +65,7 @@ Updated 2026-10-26.
 
 ## Gap list: Synchro ERP / B&L Odyssey parity
 
-Estimate (2026-10-23): about 60-70% of foundry-specific functionality, 20-30% of a full ERP. Based on general knowledge of both products, not checked against current vendor feature lists.
+Estimate (2026-10-23, before Finance): about 60-70% of foundry-specific functionality, 20-30% of a full ERP. Since then invoicing, payables and the general ledger have been added. Based on general knowledge of both products, not checked against current vendor feature lists.
 
 Covered: order to pour, metallurgy and thermal, moulding, sand, patterns, tooling, quality and CAPA, casting lots, packing and dispatch, HR and payroll, approvals, audit, module licensing and per-rule process depth.
 
@@ -73,7 +73,7 @@ In priority order:
 1. **Stores/Inventory** (next in the module split): stock ledger, bins, issues, GRN, stock valuation.
 2. **Costing** (`Costing` is empty): actual versus standard cost per casting (metal, energy, labour, fettling).
 3. **MRP and scheduling** (`MRP`, `Production` are empty): material requirements planning, finite capacity scheduling.
-4. **Finance** (biggest gap): invoicing, receivables, supplier bills and payables are in; the list still to do is under Finance in Done.
+4. **Finance** (in progress): invoicing, receivables, supplier bills, payables and the double-entry general ledger are in; still to do, in order: P&L and balance sheet, bank reconciliation, withheld tax settlement, supplier advances, purchase-side tax and returns, e-invoicing (list under Finance in Done).
 5. **Outside processing and machining routings**: subcontract flow, machining steps.
 6. **Reporting and BI**: management dashboards, customer scorecards, statutory report exports.
 7. **Integration**: EDI, e-invoicing and tax filing for the target market, barcode and device input.
@@ -109,8 +109,8 @@ Plan for bought-in goods sold as they are, in order: (1) trade details on items,
   - Registers per authority, and FBR digital invoicing.
 
 ### Stores: not built yet
-- Finished goods are not on the ledger. They need a decision on their stock lot (casting lot or a new stock lot) and a second registered item type.
-- Cost layers still point at `material_lots`; the ledger refuses lots of other item types until that is designed.
+- Finished goods are not on the stock ledger. They need a decision on their stock lot (casting lot or a new stock lot) and a second registered item type.
+- Cost layers still point at `material_lots`; the stock ledger refuses lots of other item types until that is designed. Stock is not posted to the general ledger either (periodic: purchases are expensed, inventory adjusted by journal).
 - The unused `inventory_reservations` table has no screens.
 - Existing lot stock has no location; it shows as "not put anywhere" until transferred.
 - Movement types have no module hook yet; `StockMovementTypes::register()` is called directly.

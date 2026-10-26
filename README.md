@@ -1,6 +1,6 @@
 # Foundry ERP
 
-Laravel ERP for iron foundries: enquiry and quotation, sales orders with contract review, melting plan, heats and thermal analysis, moulding and sand lab, pouring with a thermal gate, casting lots, inspection and NCRs, packing and dispatch, plus HR and payroll, maintenance, tooling, CAPA and controlled documents.
+Laravel ERP for iron foundries: enquiry and quotation, sales orders with contract review, melting plan, heats and thermal analysis, moulding and sand lab, pouring with a thermal gate, casting lots, inspection and NCRs, packing and dispatch, purchasing and stores, plus invoicing, supplier bills, payments and a double-entry general ledger, taxation (Pakistan first), HR and payroll, maintenance, tooling, CAPA and controlled documents.
 
 Optional parts live as modules in `app/Domains/` and can be switched on or off from the modules settings page.
 
