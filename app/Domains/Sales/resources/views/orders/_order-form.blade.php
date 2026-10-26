@@ -5,6 +5,7 @@
 @php
     $photos = \App\Models\Attachment::coverUrlsFor('product', $revisions->pluck('product_id')->merge($bareProducts->pluck('id'))->all());
     $money = \App\Support\Formats::all();
+    $prices = \App\Support\OrderRules::showsPrices();
     // Everything that can be ordered, keyed by the value a line posts: a revision id, or "product:<id>" for a product with no revision yet.
     $catalogue = $revisions->mapWithKeys(fn ($r) => [$r->id => [
         'name' => $r->product?->name, 'sub' => $r->product?->code.' · rev '.$r->revision, 'img' => $photos[$r->product_id] ?? null,
@@ -59,6 +60,7 @@
     .so-thumb { width: 34px; height: 34px; border-radius: 6px; object-fit: cover; background: color-mix(in srgb, var(--border) 70%, transparent); display: inline-flex; align-items: center; justify-content: center; color: var(--muted); }
     .so-lines { margin-top: 14px; }
     .so-grid { display: grid; grid-template-columns: 26px 46px minmax(180px, 1fr) 150px 18px 110px 46px 130px 34px; gap: 10px; align-items: center; }
+    .so-noprice .so-grid { grid-template-columns: 26px 46px minmax(180px, 1fr) 110px 46px 34px; }
     .so-lines-head { padding: 0 0 8px; border-bottom: 1px solid var(--border); color: var(--muted); font-size: 13.5px; }
     .so-lines-head .so-right { text-align: right; }
     .so-line { border-bottom: 1px solid var(--border); padding: 10px 0; }
@@ -106,7 +108,7 @@
 @if ($catalogue->isEmpty())
     <div class="alert alert-error">There are no products to order yet. Add a product first.</div>
 @else
-<form method="POST" action="{{ $action }}" id="so-form">
+<form method="POST" action="{{ $action }}" id="so-form" @class(['so-noprice' => ! $prices])>
 @csrf @if ($order) @method('PUT') @endif
 <div class="so-card"><div class="so-body">
     <h2>Order detail</h2>
@@ -139,7 +141,7 @@
                         @if ($p['img'])<img class="so-thumb" src="{{ $p['img'] }}" alt="" loading="lazy">@else<span class="so-thumb" aria-hidden="true">&#9638;</span>@endif
                         <span>{{ $p['name'] }}</span>
                         <span class="so-sub">{{ $p['sub'] }}@if ($p['kg']) · {{ rtrim(rtrim(number_format((float) $p['kg'], 2), '0'), '.') }} kg @endif</span>
-                        <span class="so-price">@if ($p['price'] !== null)last {{ \App\Support\Formats::money($p['price']) }}@endif</span>
+                        <span class="so-price">@if ($prices && $p['price'] !== null)last {{ \App\Support\Formats::money($p['price']) }}@endif</span>
                     </button>
                 @endforeach
                 <div class="so-empty" data-no-match hidden>No product matches.</div>
@@ -148,10 +150,10 @@
     </div>
 
     <div class="so-lines">
-        <div class="so-grid so-lines-head"><span></span><span></span><span>Product</span><span>Price</span><span></span><span>Quantity</span><span></span><span class="so-right">Total</span><span></span></div>
+        <div class="so-grid so-lines-head"><span></span><span></span><span>Product</span>@if ($prices)<span>Price</span><span></span>@endif<span>Quantity</span><span></span>@if ($prices)<span class="so-right">Total</span>@endif<span></span></div>
         <div data-lines>
             @foreach ($formLines as $i => $l)
-                @include('sales::orders._create-line', ['i' => $i, 'value' => $l['value'], 'p' => $l['p'], 'line' => $l['line'], 'record' => $l['record'], 'currency' => $money['currency']])
+                @include('sales::orders._create-line', ['i' => $i, 'value' => $l['value'], 'p' => $l['p'], 'line' => $l['line'], 'record' => $l['record'], 'currency' => $money['currency'], 'prices' => $prices])
             @endforeach
         </div>
         <div class="so-empty" data-no-lines @if ($formLines->isNotEmpty()) hidden @endif>No products yet. Type above to add the first one.</div>
@@ -163,7 +165,7 @@
         <div class="so-summary" aria-live="polite">
             <div><span>Lines</span><span data-count>0</span></div>
             <div><span>Pieces</span><span data-pieces>0</span></div>
-            <div class="so-grand"><span>Total</span><span data-grand>—</span></div>
+            @if ($prices)<div class="so-grand"><span>Total</span><span data-grand>—</span></div>@endif
         </div>
     </div>
 </div>
@@ -171,7 +173,7 @@
 </div>
 </form>
 
-<template id="so-line-template">@include('sales::orders._create-line', ['i' => '__I__', 'value' => '', 'p' => ['name' => '', 'sub' => '', 'img' => null, 'price' => null, 'uom' => 'pcs'], 'line' => [], 'record' => null, 'currency' => $money['currency']])</template>
+<template id="so-line-template">@include('sales::orders._create-line', ['i' => '__I__', 'value' => '', 'p' => ['name' => '', 'sub' => '', 'img' => null, 'price' => null, 'uom' => 'pcs'], 'line' => [], 'record' => null, 'currency' => $money['currency'], 'prices' => $prices])</template>
 
 <script>
 (function () {
@@ -203,14 +205,14 @@
     function recalc() {
         var total = 0, pieces = 0, rows = linesBox.querySelectorAll('[data-line]');
         rows.forEach(function (row) {
-            var q = parseFloat(row.querySelector('[data-qty]').value) || 0, p = parseFloat(row.querySelector('[data-price]').value);
+            var q = parseFloat(row.querySelector('[data-qty]').value) || 0, priceBox = row.querySelector('[data-price]'), p = priceBox ? parseFloat(priceBox.value) : NaN;
             pieces += q;
-            row.querySelector('[data-total]').textContent = isNaN(p) ? '—' : fmt(q * p);
+            if (priceBox) row.querySelector('[data-total]').textContent = isNaN(p) ? '—' : fmt(q * p);
             if (!isNaN(p)) total += q * p;
         });
         form.querySelector('[data-count]').textContent = rows.length;
         form.querySelector('[data-pieces]').textContent = pieces.toLocaleString();
-        form.querySelector('[data-grand]').textContent = rows.length ? fmt(total) : '—';
+        if (form.querySelector('[data-grand]')) form.querySelector('[data-grand]').textContent = rows.length ? fmt(total) : '—';
         form.querySelector('[data-no-lines]').hidden = rows.length > 0;
     }
     function add(button) {
@@ -221,7 +223,7 @@
         row.querySelector('[data-name]').textContent = d.name;
         row.querySelector('[data-sub]').textContent = d.sub;
         row.querySelector('[data-uom]').textContent = d.uom;
-        if (d.price) row.querySelector('[data-price]').value = d.price;
+        if (d.price && row.querySelector('[data-price]')) row.querySelector('[data-price]').value = d.price;
         if (d.img) { var img = document.createElement('img'); img.className = 'so-thumb'; img.src = d.img; img.alt = ''; row.querySelector('.so-thumb').replaceWith(img); }
         linesBox.appendChild(row);
         find.value = ''; close(); recalc();

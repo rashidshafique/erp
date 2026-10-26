@@ -1,5 +1,5 @@
 {{-- One line of the sales order form: $i (index, or __I__ in the template), $value (revision id or product:<id>), $p (name, sub,
-     img, price, uom), $line (input values), $record (the saved line when editing, else null), $currency. The caret opens the line's
+     img, price, uom), $line (input values), $record (the saved line when editing, else null), $currency, $prices (show the price). The caret opens the line's
      own delivery date. A saved line with production orders keeps its product and cannot be removed. --}}
 @php
     $hasDate = ! empty($line['requested_delivery_date']);
@@ -12,11 +12,16 @@
         <div class="so-prod"><strong data-name>{{ $p['name'] }}</strong><small data-sub>{{ $p['sub'] }}</small>@if ($locked)<small class="muted" style="display:block">Has production orders: cannot go below what is scheduled or shipped</small>@endif</div>
         @if ($record)<input type="hidden" name="lines[{{ $i }}][id]" value="{{ $record->id }}">@endif
         <input type="hidden" name="lines[{{ $i }}][product_revision_id]" value="{{ $value }}" data-value>
+        @if ($prices)
         <label class="so-money"><input type="number" name="lines[{{ $i }}][unit_price]" step="any" min="0" value="{{ array_key_exists('unit_price', $line) ? $line['unit_price'] : $p['price'] }}" aria-label="Unit price" data-price><span>{{ $currency ?: 'price' }}</span></label>
         <span class="so-times" aria-hidden="true">&times;</span>
+        @else
+        {{-- Prices are hidden: a saved price is sent back unchanged so editing never clears it. --}}
+        <input type="hidden" name="lines[{{ $i }}][unit_price]" value="{{ $line['unit_price'] ?? '' }}">
+        @endif
         <input class="so-qty" type="number" name="lines[{{ $i }}][ordered_qty]" step="any" min="0.001" required value="{{ $line['ordered_qty'] ?? '' }}" placeholder="Qty" aria-label="Quantity" data-qty>
         <span class="so-uom" data-uom>{{ $p['uom'] }}</span>
-        <span class="so-total" data-total>—</span>
+        @if ($prices)<span class="so-total" data-total>—</span>@endif
         @if ($locked)<span></span>@else<button type="button" class="so-remove" data-remove aria-label="Remove line">&times;</button>@endif
     </div>
     <div class="so-extra" data-extra @unless ($hasDate) hidden @endunless>

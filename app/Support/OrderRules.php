@@ -30,6 +30,10 @@ class OrderRules
             'WARN' => 'Warn: contract review notes it, and the order can still be approved',
             'ENFORCED' => 'Enforced: contract review fails until the delivery date allows the standard lead time',
         ], 'WARN'],
+        'prices' => ['orders.prices', 'Prices on sales orders', [
+            'HIDE' => 'Hidden: orders are entered without prices; an invoice is priced when it is raised',
+            'SHOW' => 'Shown: each line has a unit price and the order shows its total',
+        ], 'HIDE'],
     ];
 
     public static function get(string $rule): string
@@ -45,6 +49,11 @@ class OrderRules
         }
 
         return isset($options[$value]) ? $value : $default;
+    }
+
+    public static function showsPrices(): bool
+    {
+        return self::get('prices') === 'SHOW';
     }
 
     public static function set(string $rule, string $value): void

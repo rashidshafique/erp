@@ -39,7 +39,7 @@ class SalesOrderEditTest extends TestCase
         $line = $order->lines()->first();
         $this->get(route('sales-orders.edit', $order))->assertOk()->assertDontSee('Reason for the change')
             ->assertSee('name="lines[0][id]" value="'.$line->id.'"', false)->assertSee('name="lines[0][ordered_qty]" step="any" min="0.001" required value="10"', false)
-            ->assertSee('name="lines[0][unit_price]" step="any" min="0" value=""', false)->assertSee('data-remove aria-label="Remove line"', false);
+            ->assertSee('<input type="hidden" name="lines[0][unit_price]" value="">', false)->assertSee('data-remove aria-label="Remove line"', false);
 
         $this->put(route('sales-orders.update', $order), $this->payload($order, ['ordered_qty' => 25], ['customer_reference' => 'PO-9']))->assertSessionHasNoErrors();
 
@@ -48,6 +48,17 @@ class SalesOrderEditTest extends TestCase
         $edit = AuditLog::where('entity_type', 'SalesOrder')->where('entity_id', $order->id)->where('action', 'EDITED')->firstOrFail();
         $this->assertStringContainsString('ordered_qty: 10', $edit->changeSet()['summary']['new']);
         $this->assertTrue(AuditLog::where('entity_type', 'SalesOrderLine')->where('action', 'UPDATED')->exists());
+    }
+
+    public function test_a_saved_price_is_kept_when_prices_are_hidden(): void
+    {
+        $order = $this->order();
+        $order->lines()->first()->update(['unit_price' => 42.5]);
+
+        $this->get(route('sales-orders.edit', $order))->assertSee('<input type="hidden" name="lines[0][unit_price]" value="42.5">', false);
+        $this->put(route('sales-orders.update', $order), $this->payload($order, ['ordered_qty' => 11, 'unit_price' => '42.5']))->assertSessionHasNoErrors();
+
+        $this->assertEquals(42.5, $order->lines()->first()->unit_price);
     }
 
     public function test_a_confirmed_order_needs_a_reason_which_is_kept_in_the_log(): void
