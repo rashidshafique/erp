@@ -30,7 +30,7 @@
         <div class="panel-body">
             <div class="form-grid" data-progressive="3">
                 <div class="field">
-                    <label for="code">Product code</label>
+                    <label for="code">Code</label>
                     <input id="code" name="code" maxlength="40"
                            value="{{ old('code') }}" placeholder="Leave blank to generate: {{ app(\App\Services\Codes\CodeGenerator::class)->preview('product') }}">
                     <div class="help">Use your established part-number convention.</div>
@@ -38,14 +38,14 @@
                 </div>
 
                 <div class="field">
-                    <label for="name">Product name <span class="required">*</span></label>
+                    <label for="name">Name <span class="required">*</span></label>
                     <input id="name" name="name" required maxlength="255"
                            value="{{ old('name') }}" placeholder="e.g. Gas valve body">
                     @error('name')<div class="error-text">{{ $message }}</div>@enderror
                 </div>
 
                 <div class="field">
-                    <label for="product_type">Product type <span class="required">*</span></label>
+                    <label for="product_type">Type <span class="required">*</span></label>
                     <select id="product_type" name="product_type" required>
                         @foreach (['CASTING' => 'Casting', 'CORE' => 'Core', 'OTHER' => 'Other'] as $value => $label)
                             <option value="{{ $value }}" @selected(old('product_type', 'CASTING') === $value)>
@@ -75,7 +75,7 @@
                 </div>
 
                 <div class="field">
-                    <label for="active">Product status <span class="required">*</span></label>
+                    <label for="active">Status <span class="required">*</span></label>
                     <select id="active" name="active" required>
                         <option value="1" @selected(old('active', '1') === '1')>Active</option>
                         <option value="0" @selected(old('active') === '0')>Inactive</option>
