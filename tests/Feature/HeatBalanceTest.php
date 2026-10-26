@@ -47,7 +47,7 @@ class HeatBalanceTest extends TestCase
         $warnings = app(HeatBalance::class)->for($heat->fresh())['warnings'];
 
         $this->assertCount(1, $warnings);
-        $this->assertStringContainsString('more metal was poured (700.0 kg) than was tapped (500.0 kg)', strtolower($warnings[0]));
+        $this->assertStringContainsString('more metal was poured (700.0000 kg) than was tapped (500.0000 kg)', strtolower($warnings[0]));
     }
 
     public function test_the_heat_page_and_summary_page_show_the_balance(): void
@@ -56,7 +56,7 @@ class HeatBalanceTest extends TestCase
         $pour = $this->pour($heat, 'COMPLETED', 800, firstIron: true);
         $pour->update(['containment_note' => 'Chemistry S-9 at 10:00 was out of limits; lots held.', 'ladle_reference' => 'L2']);
 
-        $this->get(route('heats.show', $heat))->assertOk()->assertSee('Metal balance')->assertSee('800.0 kg');
+        $this->get(route('heats.show', $heat))->assertOk()->assertSee('Metal balance')->assertSee('800.0000 kg');
         $this->get(route('heats.summary', $heat))->assertOk()->assertSee($pour->pour_number)->assertSee('First iron')->assertSee('Containment: Chemistry S-9')->assertSee('ladle L2');
     }
 

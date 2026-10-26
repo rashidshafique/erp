@@ -115,7 +115,7 @@ class ChargeScheduleTest extends TestCase
         $heat->update(['actual_start_at' => now()->subMinutes(60), 'blast_on_at' => now()->subMinutes(40)]);
 
         $page = $this->get(route('heats.show', $heat))->assertOk()->assertSee('id="charge-due"', false)->assertSee('The start-up charge is due')
-            ->assertSee('Coke 100.0 kg')->assertSee(route('heats.charge-rounds.confirm', $heat), false)->assertSee('A charge is due every');
+            ->assertSee('Coke 100.0000 kg')->assertSee(route('heats.charge-rounds.confirm', $heat), false)->assertSee('A charge is due every');
         $this->assertDoesNotMatchRegularExpression('/id="charge-due" data-due-at="[^"]+"\s+hidden/', $page->getContent());
 
         $this->charged($heat, $coke, 0, 55, 100);
@@ -276,7 +276,7 @@ class ChargeScheduleTest extends TestCase
 
         $entry->refresh();
         $this->assertSame([150.5, 7525.0], [(float) $entry->actual_qty_kg, (float) $entry->actual_total_cost]);   // 150.5 kg at 50 a kg
-        $this->assertStringContainsString('Weight changed from 180.000 kg to 150.500 kg by Melter Ali', $entry->notes);
+        $this->assertStringContainsString('Weight changed from 180.0000 kg to 150.5000 kg by Melter Ali', $entry->notes);
         $this->assertEqualsWithDelta(150.5, $heat->fresh()->chargedMetalKg(), 0.001);
         $this->put(route('heats.charge-entries.update', [$heat, $entry]), ['actual_qty_kg' => 0])->assertSessionHasErrors('actual_qty_kg');
     }
@@ -339,7 +339,7 @@ class ChargeScheduleTest extends TestCase
         $list = $history()->assertSee('Material type')->assertSee('Pig Iron')->call('edit', $entry->id)->assertSet('editing', $entry->id)->assertSet('weight', '180');
         $list->set('weight', '150.5')->call('save')->assertSet('editing', null)->assertDispatched('charges-changed')->assertSee('150.500');
         $this->assertSame([150.5, 7525.0], [(float) $entry->fresh()->actual_qty_kg, (float) $entry->fresh()->actual_total_cost]);
-        $this->assertStringContainsString('Weight changed from 180.000 kg to 150.500 kg by Melter Ali', $entry->fresh()->notes);
+        $this->assertStringContainsString('Weight changed from 180.0000 kg to 150.5000 kg by Melter Ali', $entry->fresh()->notes);
 
         // Enter and the click away both save; the second finds nothing to do.
         $list->call('save')->assertSet('editing', null);
@@ -427,8 +427,8 @@ class ChargeScheduleTest extends TestCase
 
         $heat->furnace->update(['max_operating_power_kw' => 450]);
         $heat->update(['operating_power_limit_kw' => 400]);
-        $this->get(route('heats.show', $heat))->assertOk()->assertSee('title="Furnace operating maximum"', false)->assertSee('450.0 kW')
-            ->assertSee('title="Operating limit set on this heat"', false)->assertSee('400.0 kW');
+        $this->get(route('heats.show', $heat))->assertOk()->assertSee('title="Furnace operating maximum"', false)->assertSee('450.0000 kW')
+            ->assertSee('title="Operating limit set on this heat"', false)->assertSee('400.0000 kW');
     }
 
     public function test_a_cupolas_time_remaining_counts_the_metal_still_to_charge_and_the_last_charge_still_to_melt(): void

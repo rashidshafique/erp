@@ -126,7 +126,7 @@ class CustomFields
 
         return match ($d->data_type) {
             'BOOLEAN' => $value ? 'Yes' : 'No',
-            'NUMBER' => rtrim(rtrim(number_format((float) $value, 4, '.', ''), '0'), '.').($d->unit ? ' '.$d->unit : ''),
+            'NUMBER' => \App\Support\Formats::number((float) $value, 2).($d->unit ? ' '.$d->unit : ''),
             default => (string) $value,
         };
     }

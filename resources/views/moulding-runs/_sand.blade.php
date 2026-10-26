@@ -10,7 +10,7 @@
     <div class="table-wrap"><table><thead><tr><th>When</th><th>Linked to</th><th>Results</th><th>Result</th></tr></thead><tbody>
     @forelse ($linkedTests as $test)
         <tr><td>{{ $test->taken_at->displayShortDateTime() }}</td><td>{{ $test->moulding_run_id === $run->id ? 'This run' : 'Pattern' }}</td>
-            <td>@foreach ($test->measurements as $m){{ $m->name }}: <strong>{{ rtrim(rtrim(number_format((float) $m->value, 4, '.', ''), '0'), '.') }}</strong> {{ $m->unit }}<br>@endforeach</td>
+            <td>@foreach ($test->measurements as $m){{ $m->name }}: <strong>{{ \App\Support\Formats::number((float) $m->value, 2) }}</strong> {{ $m->unit }}<br>@endforeach</td>
             <td><span class="status {{ $test->result === 'PASS' ? 'status-completed' : ($test->result === 'FAIL' ? 'status-cancelled' : '') }}">{{ $test->result }}</span></td></tr>
     @empty
         <tr><td colspan="4" class="muted">No sand test is linked to this run or its pattern yet.</td></tr>

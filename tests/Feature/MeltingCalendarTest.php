@@ -140,7 +140,7 @@ class MeltingCalendarTest extends TestCase
 
         $page = $this->get(route('help.new-customer', ['customer' => $customer->id]))->assertOk()->assertSee('Product ordered by Acme Pumps')->assertSee('PUMP-1');
         $this->assertSame(1, substr_count($page->getContent(), 'status-cancelled'), 'Only the missing pattern link shows as missing.');
-        $page->assertSee('EN-GJL-200')->assertSee('10.00 kg')->assertSee('Released');
+        $page->assertSee('EN-GJL-200')->assertSee('10.0000 kg')->assertSee('Released');
 
         $pattern = Pattern::create(['code' => 'P-0900', 'name' => 'Flaskless plate', 'pattern_type' => 'VERTICAL_PLATES', 'status' => 'ACTIVE', 'owner_type' => 'CUSTOMER', 'owner_customer_id' => $customer->id]);
         $pattern->revisions()->create(['revision' => '0', 'status' => 'APPROVED', 'cavities_per_mould' => 2])->cavityMap()->create(

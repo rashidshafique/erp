@@ -2,7 +2,7 @@
 @section('title', 'Taxation')
 @section('content')
 @php
-    $pct = fn ($r) => rtrim(rtrim(number_format((float) $r, 3), '0'), '.').'%';
+    $pct = fn ($r) => \App\Support\Formats::number((float) $r, 2).'%';
     $regions = $pack?->regions() ?? [];
     $statuses = $pack?->partyStatuses() ?? [];
 @endphp

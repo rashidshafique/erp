@@ -159,7 +159,7 @@
         for (const m of [1, 2, 5, 10]) if (raw <= m * mag) return m * mag;
         return 10 * mag;
     }
-    const fmt = v => Number.isInteger(v) ? String(v) : v.toFixed(Math.abs(v) < 10 ? 2 : 1);
+    const fmt = v => Number.isInteger(v) ? String(v) : v.toFixed(window.decimalPlaces);
 
     function draw() {
         const [lo, hi] = range;
@@ -215,8 +215,8 @@
             const yr = v => r0 + (r1 - r0) * (1 - (v - rLo) / (rHi - rLo));
             out += `<rect x="${L}" y="${r0}" width="${W - L - R}" height="${r1 - r0}" fill="none" stroke="var(--border)"/>`;
             out += `<line x1="${L}" x2="${W - R}" y1="${yr(0).toFixed(1)}" y2="${yr(0).toFixed(1)}" stroke="#d6dbe3"/>`;
-            out += `<text x="${L - 6}" y="${(yr(rHi) + 10).toFixed(1)}" text-anchor="end" font-size="10" fill="#5b6675">${rHi.toFixed(1)}</text>`;
-            out += `<text x="${L - 6}" y="${(yr(rLo)).toFixed(1)}" text-anchor="end" font-size="10" fill="#5b6675">${rLo.toFixed(1)}</text>`;
+            out += `<text x="${L - 6}" y="${(yr(rHi) + 10).toFixed(1)}" text-anchor="end" font-size="10" fill="#5b6675">${rHi.toFixed(window.decimalPlaces)}</text>`;
+            out += `<text x="${L - 6}" y="${(yr(rLo)).toFixed(1)}" text-anchor="end" font-size="10" fill="#5b6675">${rLo.toFixed(window.decimalPlaces)}</text>`;
             out += `<text x="${W - R + 4}" y="${r0 + 10}" font-size="11" fill="#2f7d4f">dT/dt °C/s</text>`;
             const rl = pts.map((p, i) => `${x(p[0]).toFixed(1)},${Math.max(r0, Math.min(r1, yr(rate[i]))).toFixed(1)}`).join(' ');
             out += `<clipPath id="cc-clip2"><rect x="${L}" y="${r0}" width="${W - L - R}" height="${r1 - r0}"/></clipPath>`;
@@ -247,7 +247,7 @@
         g.querySelector('#cc-vl').setAttribute('x1', xx); g.querySelector('#cc-vl').setAttribute('x2', xx);
         const dot = g.querySelector('#cc-dot'); dot.setAttribute('cx', xx); dot.setAttribute('cy', yy);
         const tip = g.querySelector('#cc-tip');
-        tip.textContent = `${p[1].toFixed(1)} °C · ${p[0].toFixed(1)} s · ${rate[best].toFixed(2)} °C/s`;
+        tip.textContent = `${p[1].toFixed(window.decimalPlaces)} °C · ${p[0].toFixed(window.decimalPlaces)} s · ${rate[best].toFixed(window.decimalPlaces)} °C/s`;
         const right = xx > m.W - m.R - 190;
         tip.setAttribute('x', right ? xx - 8 : xx + 8); tip.setAttribute('text-anchor', right ? 'end' : 'start');
         tip.setAttribute('y', Math.max(m.T + 12, yy - 8));

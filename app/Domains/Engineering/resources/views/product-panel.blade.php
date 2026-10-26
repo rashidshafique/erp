@@ -28,7 +28,7 @@
                             @if ($canEdit)
                                 <td>{{ $line->material?->code }} — {{ $line->material?->name }}</td>
                                 <td colspan="3"><form id="bom-{{ $line->id }}" method="POST" action="{{ route('bom.update', $line) }}" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">@csrf @method('PUT')
-                                    <input name="quantity" type="number" step="any" min="0.0001" required value="{{ rtrim(rtrim((string) $line->quantity, '0'), '.') }}" style="width:110px" aria-label="Quantity"> <span class="muted small">{{ $line->material?->base_uom }}</span>
+                                    <input name="quantity" type="number" step="any" min="0" required value="{{ rtrim(rtrim((string) $line->quantity, '0'), '.') }}" style="width:110px" aria-label="Quantity"> <span class="muted small">{{ $line->material?->base_uom }}</span>
                                     <select name="basis" aria-label="Basis">@foreach ($bases as $key => $label)<option value="{{ $key }}" @selected($line->basis === $key)>{{ $label }}</option>@endforeach</select>
                                     <input name="notes" maxlength="300" value="{{ $line->notes }}" placeholder="Notes" style="flex:1;min-width:140px" aria-label="Notes">
                                     <button class="btn btn-small" type="submit">Save</button></form></td>
@@ -47,7 +47,7 @@
             @if ($canEdit)
                 <form method="POST" action="{{ route('bom.store', $revision) }}" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin:8px 0 16px">@csrf
                     <div class="field"><label>Add item</label><select name="material_id" data-search-select required><option value="">Select item</option>@foreach ($materials as $m)<option value="{{ $m->id }}" data-sub="{{ $m->base_uom }}">{{ $m->code }} — {{ $m->name }}</option>@endforeach</select></div>
-                    <div class="field"><label>Quantity</label><input name="quantity" type="number" step="any" min="0.0001" required style="width:110px"></div>
+                    <div class="field"><label>Quantity</label><input name="quantity" type="number" step="any" min="0" required style="width:110px"></div>
                     <div class="field"><label>Basis</label><select name="basis">@foreach ($bases as $key => $label)<option value="{{ $key }}">{{ $label }}</option>@endforeach</select></div>
                     <div class="field" style="flex:1;min-width:140px"><label>Notes</label><input name="notes" maxlength="300"></div>
                     <button class="btn btn-primary" type="submit">Add</button>

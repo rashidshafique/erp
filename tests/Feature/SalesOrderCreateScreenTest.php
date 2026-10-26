@@ -38,7 +38,7 @@ class SalesOrderCreateScreenTest extends TestCase
             ['product_revision_id' => $rev->id, 'ordered_qty' => 7, 'unit_price' => 50, 'requested_delivery_date' => today()->addWeek()->toDateString()],
         ]])->assertSessionHasErrors('customer_id');
 
-        $this->followingRedirects()->get(route('sales-orders.create'))->assertSee('name="lines[0][ordered_qty]" step="any" min="0.001" required value="7"', false)
+        $this->followingRedirects()->get(route('sales-orders.create'))->assertSee('name="lines[0][ordered_qty]" step="any" min="0" required value="7"', false)
             ->assertSee('value="'.today()->addWeek()->toDateString().'"', false);
     }
 }

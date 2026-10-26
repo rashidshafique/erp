@@ -91,7 +91,7 @@ class TaxSettingsController extends Controller
             return back()->withErrors(['rate' => $e->getMessage()]);
         }
 
-        return back()->with('success', "{$component->name} is ".rtrim(rtrim(number_format((float) $d['rate'], 3), '0'), '.')."% from {$d['effective_from']}.");
+        return back()->with('success', "{$component->name} is ".\App\Support\Formats::number((float) $d['rate'], 2)."% from {$d['effective_from']}.");
     }
 
     public function storeRule(Request $request): RedirectResponse

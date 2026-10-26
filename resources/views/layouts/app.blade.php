@@ -390,6 +390,7 @@
 // Number boxes take any value within their limits; places beyond the site's decimal setting are rounded off when a box is left.
 (() => {
     const places = {{ \App\Support\Formats::decimals() }};
+    window.decimalPlaces = places;
     document.addEventListener('change', (e) => {
         const box = e.target;
         if (!(box instanceof HTMLInputElement) || box.type !== 'number' || box.value === '' || (box.step && box.step !== 'any')) return;

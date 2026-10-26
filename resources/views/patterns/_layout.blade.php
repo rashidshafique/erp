@@ -38,7 +38,7 @@
             <div class="field" title="Cavities on one level."><label for="cv-{{ $revision->id }}">Cavities per level</label><input id="cv-{{ $revision->id }}" type="number" name="cavities_per_mould" min="1" max="10000" value="{{ $val('cavities_per_mould') }}"></div>
             <div class="field"><label for="ru-{{ $revision->id }}">Runners / level (kg)</label><input id="ru-{{ $revision->id }}" type="number" name="runner_weight_per_level_kg" min="0" step="any" value="{{ $val('runner_weight_per_level_kg') }}"></div>
             <div class="field" title="Shared by the whole mould."><label for="sp-{{ $revision->id }}">Sprue and basin (kg)</label><input id="sp-{{ $revision->id }}" type="number" name="sprue_weight_kg" min="0" step="any" value="{{ $val('sprue_weight_kg') }}"></div>
-            <div class="field" title="Optional: the whole tree or stack on the scale. Used instead of the sum."><label for="wt-{{ $revision->id }}">Weighed total (kg)</label><input id="wt-{{ $revision->id }}" type="number" name="poured_weight_per_mould_kg" min="0.001" step="any" value="{{ $val('poured_weight_per_mould_kg') }}"></div>
+            <div class="field" title="Optional: the whole tree or stack on the scale. Used instead of the sum."><label for="wt-{{ $revision->id }}">Weighed total (kg)</label><input id="wt-{{ $revision->id }}" type="number" name="poured_weight_per_mould_kg" min="0" step="any" value="{{ $val('poured_weight_per_mould_kg') }}"></div>
             <details class="lf-flasks lf-full" @if ($mine) open @endif>
                 <summary>Flask sizes <span class="muted">({{ $revision->flaskSizes->count() ?: 'none' }} fit)</span></summary>
                 @include('patterns._flask-sizes-field', ['revision' => $revision, 'mine' => $mine])

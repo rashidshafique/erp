@@ -19,7 +19,7 @@
 <div><button class="btn btn-primary">Save test</button></div></form></div></details></div></div>
 
 @php
-    $fmt = fn ($v, $d = 4) => rtrim(rtrim(number_format((float) $v, $d, '.', ''), '0'), '.');
+    $fmt = fn ($v, $d = 4) => \App\Support\Formats::number((float) $v, 2);
     $recent = $sets->concat($mouldSets)->sortByDesc('taken_at')->take(30);
 @endphp
 <div class="panel"><div class="panel-header"><h2>Recent tests &amp; measurements</h2><span class="muted small">Showing last {{ $recent->count() }} entries</span></div><div class="table-wrap"><table data-col-filter><thead><tr><th>When</th><th>Type</th><th>Sand system</th><th>Point / Mould</th><th>Shift / Run</th><th>Tested by</th><th style="text-align:right">Results</th></tr></thead><tbody>

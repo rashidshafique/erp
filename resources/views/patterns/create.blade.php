@@ -70,7 +70,7 @@
                 <div class="field">
                     <label for="pattern_weight_kg">Pattern / plate weight (kg)</label>
                     <input id="pattern_weight_kg" name="pattern_weight_kg"
-                           type="number" min="0.0001" step="any"
+                           type="number" min="0" step="any"
                            value="{{ old('pattern_weight_kg') }}">
                 </div>
                 <div class="field">

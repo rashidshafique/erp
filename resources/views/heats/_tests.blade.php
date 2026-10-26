@@ -21,7 +21,7 @@
             @foreach ($sets->sortByDesc('taken_at') as $s)
                 <tr><td>{{ $s->taken_at->displayAt() }}</td><td>{{ $s->kind }}</td>
                     <td>{{ $s->sample_reference }}<div class="muted small">{{ \App\Services\Quality\Measurements::SAMPLE_TYPES[$s->sample_type] ?? '' }}</div></td>
-                    <td>@foreach ($s->measurements as $m){{ $m->name }}: <strong>{{ $m->value !== null ? rtrim(rtrim(number_format($m->value, 4, '.', ''), '0'), '.') : $m->text_value }}</strong> {{ $m->unit }}@if($m->passed === false) <span style="color:var(--danger)">✘</span>@elseif($m->passed) ✔@endif<br>@endforeach</td>
+                    <td>@foreach ($s->measurements as $m){{ $m->name }}: <strong>{{ $m->value !== null ? \App\Support\Formats::number($m->value, 2) : $m->text_value }}</strong> {{ $m->unit }}@if($m->passed === false) <span style="color:var(--danger)">✘</span>@elseif($m->passed) ✔@endif<br>@endforeach</td>
                     <td><span class="status {{ $s->result === 'PASS' ? 'status-completed' : ($s->result === 'FAIL' ? 'status-cancelled' : '') }}">{{ $s->result }}</span></td></tr>
             @endforeach
             </tbody>

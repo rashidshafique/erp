@@ -142,11 +142,12 @@ class Formats
         return $minutes < 60 ? $minutes.' min' : intdiv($minutes, 60).' h '.str_pad((string) ($minutes % 60), 2, '0', STR_PAD_LEFT).' min';
     }
 
+    /** A whole number when $decimals is 0; any decimal number shows the places set under Display, whatever $decimals asks for. */
     public static function number(float|int|string|null $value, int $decimals = 0): string
     {
         $n = self::NUMBERS[self::all()['number']];
 
-        return number_format((float) $value, $decimals, $n['dec'], $n['thou']);
+        return number_format((float) $value, $decimals > 0 ? self::decimals() : 0, $n['dec'], $n['thou']);
     }
 
     public static function money(float|int|string|null $value, int $decimals = 2): string

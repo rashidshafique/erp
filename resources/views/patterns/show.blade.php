@@ -15,7 +15,7 @@
     $sections = (int) ($current?->layers_per_mould ?? 2);
     $station = $pattern->preferredStation;
     $cooling = $current?->min_cooling_minutes;
-    $mm = fn ($v) => $v === null ? '—' : rtrim(rtrim(number_format((float) $v, 2, '.', ''), '0'), '.');
+    $mm = fn ($v) => $v === null ? '—' : \App\Support\Formats::number((float) $v, 2);
     $canEditInPlace = ! $pattern->trashed() && \App\Http\Middleware\EnforceAccess::allows(auth()->user(), 'patterns.update');
     $editingInPlace = $canEditInPlace && old('_inplace') !== null && $errors->any();
 @endphp

@@ -27,7 +27,7 @@
 </div>
 @if ($bill->status === 'VOID')<div class="panel-body muted">Voided {{ $bill->voided_at?->displayShortDateTime() }}: {{ $bill->void_reason }}</div>@endif</div>
 <div class="panel"><div class="table-wrap"><table><thead><tr><th>#</th><th>Description</th><th>Qty</th><th>Price</th><th>Tax</th><th class="num">Amount</th></tr></thead><tbody>
-@foreach ($bill->lines as $l)<tr><td>{{ $l->line_number }}</td><td>{{ $l->description }}</td><td>{{ \App\Support\Formats::number($l->quantity, 3) }} {{ $l->uom }}</td><td>{{ $m($l->unit_price) }}</td><td>{{ $l->tax_percent > 0 ? rtrim(rtrim(number_format($l->tax_percent, 3), '0'), '.').'%' : '—' }}</td><td class="num">{{ $m($l->line_net) }}</td></tr>@endforeach
+@foreach ($bill->lines as $l)<tr><td>{{ $l->line_number }}</td><td>{{ $l->description }}</td><td>{{ \App\Support\Formats::number($l->quantity, 3) }} {{ $l->uom }}</td><td>{{ $m($l->unit_price) }}</td><td>{{ $l->tax_percent > 0 ? \App\Support\Formats::number($l->tax_percent, 2).'%' : '—' }}</td><td class="num">{{ $m($l->line_net) }}</td></tr>@endforeach
 </tbody><tfoot><tr><td colspan="5" class="num muted">Subtotal</td><td class="num">{{ $m($bill->subtotal) }}</td></tr><tr><td colspan="5" class="num muted">Tax</td><td class="num">{{ $m($bill->tax_total) }}</td></tr><tr><th colspan="5" class="num">Total</th><th class="num">{{ $m($bill->total) }}</th></tr></tfoot></table></div>
 @if ($bill->notes)<div class="panel-body small">{{ $bill->notes }}</div>@endif</div>
 @if ($bill->allocations->isNotEmpty() || $bill->creditNotes->isNotEmpty())

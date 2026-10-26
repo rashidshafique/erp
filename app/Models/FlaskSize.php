@@ -39,7 +39,7 @@ class FlaskSize extends Model
     /** "600 × 500 · 150/150" from the dimensions that are recorded. */
     public function dimensions(): string
     {
-        $mm = fn ($v) => $v === null ? null : rtrim(rtrim(number_format((float) $v, 2, '.', ''), '0'), '.');
+        $mm = fn ($v) => $v === null ? null : \App\Support\Formats::number((float) $v, 2);
         $inside = $this->inside_length_mm || $this->inside_width_mm ? $mm($this->inside_length_mm).' × '.$mm($this->inside_width_mm) : null;
         $depths = $this->cope_depth_mm || $this->drag_depth_mm ? ($mm($this->cope_depth_mm) ?? '?').'/'.($mm($this->drag_depth_mm) ?? '?') : null;
 

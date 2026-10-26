@@ -3,7 +3,7 @@
 @php
     $mouldTests = \App\Models\MeasurementSet::with('measurements', 'mouldAssembly')->where('kind', 'MOULD')->where('moulding_run_id', $run->id)->orderByDesc('taken_at')->limit(15)->get();
     $spots = \App\Http\Controllers\MouldTestController::SPOTS;
-    $fmt = fn ($v) => rtrim(rtrim(number_format((float) $v, 2, '.', ''), '0'), '.');
+    $fmt = fn ($v) => \App\Support\Formats::number((float) $v, 2);
 @endphp
 <section class="panel" id="mould-hardness">
     <div class="panel-header"><h2>Mould hardness (B scale)</h2><span class="muted small">Taken on the compacted mould; limits are set per sand system in the Sand lab.</span></div>

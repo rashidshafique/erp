@@ -19,7 +19,7 @@
         {{-- Prices are hidden: a saved price is sent back unchanged so editing never clears it. --}}
         <input type="hidden" name="lines[{{ $i }}][unit_price]" value="{{ $line['unit_price'] ?? '' }}">
         @endif
-        <input class="so-qty" type="number" name="lines[{{ $i }}][ordered_qty]" step="any" min="0.001" required value="{{ $line['ordered_qty'] ?? '' }}" placeholder="Qty" aria-label="Quantity" data-qty>
+        <input class="so-qty" type="number" name="lines[{{ $i }}][ordered_qty]" step="any" min="0" required value="{{ $line['ordered_qty'] ?? '' }}" placeholder="Qty" aria-label="Quantity" data-qty>
         <span class="so-uom" data-uom>{{ $p['uom'] }}</span>
         @if ($prices)<span class="so-total" data-total>—</span>@endif
         @if ($locked)<span></span>@else<button type="button" class="so-remove" data-remove aria-label="Remove line">&times;</button>@endif

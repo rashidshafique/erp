@@ -140,7 +140,7 @@
                     <button type="button" class="so-item" role="option" value="{{ $value }}" data-name="{{ $p['name'] }}" data-sub="{{ $p['sub'] }}" data-img="{{ $p['img'] }}" data-price="{{ $p['price'] }}" data-uom="{{ $p['uom'] }}">
                         @if ($p['img'])<img class="so-thumb" src="{{ $p['img'] }}" alt="" loading="lazy">@else<span class="so-thumb" aria-hidden="true">&#9638;</span>@endif
                         <span>{{ $p['name'] }}</span>
-                        <span class="so-sub">{{ $p['sub'] }}@if ($p['kg']) · {{ rtrim(rtrim(number_format((float) $p['kg'], 2), '0'), '.') }} kg @endif</span>
+                        <span class="so-sub">{{ $p['sub'] }}@if ($p['kg']) · {{ \App\Support\Formats::number((float) $p['kg'], 2) }} kg @endif</span>
                         <span class="so-price">@if ($prices && $p['price'] !== null)last {{ \App\Support\Formats::money($p['price']) }}@endif</span>
                     </button>
                 @endforeach

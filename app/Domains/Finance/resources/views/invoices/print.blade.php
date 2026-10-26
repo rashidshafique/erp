@@ -9,7 +9,7 @@ h1 { font-size: 22px; margin: 0 0 4px; } table { border-collapse: collapse; widt
 </style></head><body>
 @php
     $n = fn ($v) => \App\Support\Formats::number((float) $v, 2);
-    $pct = fn ($v) => rtrim(rtrim(number_format((float) $v, 3), '0'), '.').'%';
+    $pct = fn ($v) => \App\Support\Formats::number((float) $v, 2).'%';
     $brand = \App\Support\UiSettings::brand()['name'];
     $withCodes = $invoice->lines->contains(fn ($l) => filled($l->tariff_code));
     $breakdown = $invoice->taxBreakdown();

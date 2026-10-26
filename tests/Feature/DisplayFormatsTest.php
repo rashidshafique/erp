@@ -31,7 +31,18 @@ class DisplayFormatsTest extends TestCase
 
         $this->assertSame('18 Oct 2026', $d->displayDate());
         $this->assertSame('18 Oct 2026 14:30', $d->displayDateTime());
-        $this->assertSame('1,234.50', Formats::number(1234.5, 2));
+        $this->assertSame('1,234.5000', Formats::number(1234.5, 2));
+    }
+
+    public function test_every_decimal_number_shows_the_places_set_under_display_and_whole_numbers_stay_whole(): void
+    {
+        AppSetting::setValue('format.decimals', '2');
+        Formats::flush();
+
+        $this->assertSame('1.23', Formats::number(1.23456, 4));
+        $this->assertSame('7.50', Formats::number(7.5, 1));
+        $this->assertSame('8', Formats::number(7.5));
+        $this->assertStringStartsWith('1,234.50', Formats::money(1234.5));
     }
 
     public function test_saved_formats_change_dates_numbers_and_money(): void
@@ -43,8 +54,8 @@ class DisplayFormatsTest extends TestCase
         $d = Carbon::parse('2026-10-18 14:30');
         $this->assertSame('10/18/2026 2:30 PM', $d->displayDateTime());
         $this->assertSame('10/18', $d->displayShortDate());
-        $this->assertSame('1.234,50', Formats::number(1234.5, 2));
-        $this->assertSame('EUR 1.234,50', Formats::money(1234.5));
+        $this->assertSame('1.234,5000', Formats::number(1234.5, 2));
+        $this->assertSame('EUR 1.234,5000', Formats::money(1234.5));
         $this->assertSame('eu', AppSetting::getValue('format.number'));
     }
 

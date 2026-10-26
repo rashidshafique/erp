@@ -10,7 +10,7 @@
     <label>Matching tolerance (%)<input type="number" step="any" min="0" max="100" name="bill_tolerance" value="{{ old('bill_tolerance', $billTolerance) }}" required></label>
 </div><div class="panel-body"><button class="btn btn-primary">Save</button></div></div></form>
 <div class="panel"><div class="panel-header"><h2>Tax rates</h2></div><div class="table-wrap"><table><thead><tr><th>Name</th><th>Rate</th><th>Default</th><th>On</th><th></th></tr></thead><tbody>
-@forelse ($rates as $r)<tr><td>{{ $r->name }}</td><td>{{ rtrim(rtrim(number_format($r->rate_percent, 3), '0'), '.') }}%</td>
+@forelse ($rates as $r)<tr><td>{{ $r->name }}</td><td>{{ \App\Support\Formats::number($r->rate_percent, 2) }}%</td>
 <td><input type="hidden" name="is_default" value="0" form="rate-{{ $r->id }}"><input type="checkbox" name="is_default" value="1" form="rate-{{ $r->id }}" @checked($r->is_default)></td><td><input type="hidden" name="is_active" value="0" form="rate-{{ $r->id }}"><input type="checkbox" name="is_active" value="1" form="rate-{{ $r->id }}" @checked($r->is_active)></td>
 <td><form id="rate-{{ $r->id }}" method="POST" action="{{ route('finance.tax-rates.update', $r) }}">@csrf @method('PUT')<button class="btn btn-small">Save</button></form></td></tr>
 @empty<tr><td colspan="5" class="muted">No tax rate yet. Invoice lines carry no tax until you add one.</td></tr>@endforelse</tbody></table></div>

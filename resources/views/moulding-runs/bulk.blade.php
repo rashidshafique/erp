@@ -168,7 +168,7 @@
         rowsOf().forEach(function (tr) { made += parseInt((field(tr, 'moulds_made_qty') || {}).value, 10) || 0; rej += parseInt((field(tr, 'damaged_mould_qty') || {}).value, 10) || 0; });
         form.querySelector('[data-total-made]').textContent = made;
         form.querySelector('[data-total-rejected]').textContent = rej;
-        form.querySelector('[data-total-pct]').textContent = made > 0 ? (100 * rej / made).toFixed(1) + ' % rejected' : '';
+        form.querySelector('[data-total-pct]').textContent = made > 0 ? (100 * rej / made).toFixed(window.decimalPlaces) + ' % rejected' : '';
     }
     function addRow(values, after) {
         var key = 'n' + Date.now().toString(36) + (n++);

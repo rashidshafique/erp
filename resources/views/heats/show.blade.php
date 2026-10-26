@@ -32,7 +32,7 @@
             @unless ($closedHeat)
                 <form method="POST" action="{{ route('heats.target.update', $heat) }}" data-target-form hidden class="heat-target-form">@csrf @method('PUT')
                     <label for="target_metal_weight_kg">Target kg</label>
-                    <input id="target_metal_weight_kg" name="target_metal_weight_kg" type="number" step="any" min="0.001" required value="{{ old('target_metal_weight_kg', $heat->target_metal_weight_kg !== null ? rtrim(rtrim((string) $heat->target_metal_weight_kg, '0'), '.') : '') }}">
+                    <input id="target_metal_weight_kg" name="target_metal_weight_kg" type="number" step="any" min="0" required value="{{ old('target_metal_weight_kg', $heat->target_metal_weight_kg !== null ? rtrim(rtrim((string) $heat->target_metal_weight_kg, '0'), '.') : '') }}">
                     <button class="btn btn-small btn-primary" type="submit">Save</button><button class="btn btn-small" type="button" data-target-cancel>Cancel</button>
                 </form>
                 @error('target_metal_weight_kg')<span class="error-text">{{ $message }}</span>@enderror
@@ -451,13 +451,13 @@
                     <div>
                         <label for="charge_actual_qty">Actual quantity (kg) *</label>
                         <input id="charge_actual_qty" name="actual_qty_kg" type="number"
-                               min="0.001" step="any" required value="{{ old('actual_qty_kg') }}"
+                               min="0" step="any" required value="{{ old('actual_qty_kg') }}"
                                style="display:block;width:100%;padding:11px;border:1px solid var(--border);border-radius:7px;font:inherit">
                     </div>
                     <div id="charge_transfer_cost_field" style="display:none">
                         <label for="charge_transfer_cost">Internal return transfer cost (PKR/kg) *</label>
                         <input id="charge_transfer_cost" name="transfer_cost_per_kg" type="number"
-                               min="0.0001" step="any" value="{{ old('transfer_cost_per_kg') }}"
+                               min="0" step="any" value="{{ old('transfer_cost_per_kg') }}"
                                style="display:block;width:100%;padding:11px;border:1px solid var(--border);border-radius:7px;font:inherit">
                     </div>
                     <div>

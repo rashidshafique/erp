@@ -200,7 +200,7 @@ class ShopFloorFlowTest extends TestCase
         $this->assertSame(1, (int) $w['po']->fresh()->completed_qty);
         $this->assertSame(1, (int) $w['po']->fresh()->rejected_qty);
         $this->get(route('lots.certificate', $lot))->assertOk()->assertSee('Material and inspection certificate')->assertSee('Visual');
-        $this->get(route('reports.yield'))->assertOk()->assertSee('Metal yield')->assertSee('55.4')->assertSee('Sand inclusion')->assertSee('Inclusions or structural anomalies')->assertSee('No team recorded');   // 9 good x 40 kg of 650 kg poured
+        $this->get(route('reports.yield'))->assertOk()->assertSee('Metal yield')->assertSee('55.38')->assertSee('Sand inclusion')->assertSee('Inclusions or structural anomalies')->assertSee('No team recorded');   // 9 good x 40 kg of 650 kg poured
         $this->get(route('defects.index'))->assertOk()->assertSee('SAND-INCL');
         $d = QualityDefect::where('code', 'SAND-INCL')->firstOrFail();
         $this->assertSame('G', $d->icf_group);

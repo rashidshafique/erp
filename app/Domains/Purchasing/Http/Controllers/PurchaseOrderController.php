@@ -96,7 +96,7 @@ class PurchaseOrderController extends Controller
     public function issue(PurchaseOrder $purchaseOrder, PurchaseOrderService $service, ApprovalGate $gate): RedirectResponse
     {
         $message = null;
-        $label = 'Purchase order to '.$purchaseOrder->supplier?->name.' for '.number_format($purchaseOrder->total, 2);
+        $label = 'Purchase order to '.$purchaseOrder->supplier?->name.' for '.\App\Support\Formats::number($purchaseOrder->total, 2);
         if (! $gate->passes('purchase_order.issue', 'PurchaseOrder', (string) $purchaseOrder->id, $label, $message)) {
             return back()->with('info', $message);
         }

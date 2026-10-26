@@ -38,7 +38,7 @@ class SalesOrderEditTest extends TestCase
         $order = $this->order();
         $line = $order->lines()->first();
         $this->get(route('sales-orders.edit', $order))->assertOk()->assertDontSee('Reason for the change')
-            ->assertSee('name="lines[0][id]" value="'.$line->id.'"', false)->assertSee('name="lines[0][ordered_qty]" step="any" min="0.001" required value="10"', false)
+            ->assertSee('name="lines[0][id]" value="'.$line->id.'"', false)->assertSee('name="lines[0][ordered_qty]" step="any" min="0" required value="10"', false)
             ->assertSee('<input type="hidden" name="lines[0][unit_price]" value="">', false)->assertSee('data-remove aria-label="Remove line"', false);
 
         $this->put(route('sales-orders.update', $order), $this->payload($order, ['ordered_qty' => 25], ['customer_reference' => 'PO-9']))->assertSessionHasNoErrors();

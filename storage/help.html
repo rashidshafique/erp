@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>New customer checklist — Foundry ERP</title>
         
-        <link rel="stylesheet" href="http://erp/css/app-base.css?v=1792433481">
-    <link rel="stylesheet" href="http://erp/css/app-compact.css?v=1792467807">    <link rel="stylesheet" href="http://erp/css/app-overrides.css?v=1792670494">
+        <link rel="stylesheet" href="http://erp/css/app-base.css?v=1792939115">
+    <link rel="stylesheet" href="http://erp/css/app-compact.css?v=1792937436">    <link rel="stylesheet" href="http://erp/css/app-overrides.css?v=1792949118">
     
     <style>
         :root {
@@ -29,23 +29,46 @@
                         <span class="brand-name">Foundry ERP</span><span class="brand-mark" aria-hidden="true">F</span>            <small>OPERATIONS PLATFORM</small>
         </a>
 
-                <nav class="sidebar-nav" aria-label="Main navigation">
+                        <nav class="sidebar-nav" aria-label="Main navigation">
             <a href="http://erp" class="nav-link nav-top "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg><span>Dashboard</span></a>
              <a href="http://erp/calendar" class="nav-link nav-top "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Calendar</span></a> 
+            <div class="nav-group ">
+        <button type="button" class="nav-group-toggle" aria-expanded="false">
+            <span class="nav-lab"><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M16 5h2a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2M9 12h6M9 16h6"/></svg><span>Quick flow</span></span><span class="nav-chevron">›</span>
+        </button>
+        <div class="nav-submenu" hidden>
+                                                <a href="http://erp/quick/next-heat" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Next heat</span></a>
+                                                                <a href="http://erp/quick/floor" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M16 5h2a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2M9 12h6M9 16h6"/></svg><span>Moulds made / poured</span></a>
+                                                                <a href="http://erp/quick/orders/new" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M16 5h2a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2M9 12h6M9 16h6"/></svg><span>New order</span></a>
+                                    </div>
+    </div>
+
                         <div class="nav-group ">
                 <button type="button" class="nav-group-toggle" aria-expanded="false">
                     <span class="nav-lab"><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21V10l6 3v-3l6 3V6h3v15z"/><path d="M3 21h18"/></svg><span>Production</span></span><span class="nav-chevron">›</span>
                 </button>
                 <div class="nav-submenu" hidden>
-                     <a href="http://erp/products" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg><span>Products</span></a>                      <a href="http://erp/patterns" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></svg><span>Patterns</span></a>                      <a href="http://erp/casting-analyses" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg><span>Casting analysis</span></a>                      <a href="http://erp/production-orders" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21V10l6 3v-3l6 3V6h3v15z"/><path d="M3 21h18"/></svg><span>Production orders</span></a>                      <a href="http://erp/moulding-runs" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Moulding runs</span></a>                      <a href="http://erp/pours" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1 3 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-5 1-9z"/></svg><span>Pour register</span></a>                      <a href="http://erp/work-lists" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M16 5h2a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2M9 12h6M9 16h6"/></svg><span>Moulding work lists</span></a>                      <a href="http://erp/moulding-teams" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14c2.5.5 3.5 2.5 3.5 6"/></svg><span>Teams &amp; stations</span></a>                      <a href="http://erp/sand-systems" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20 9 8l4 7 3-4 5 9z"/></svg><span>Sand systems</span></a>                      <a href="http://erp/mould-readiness" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg><span>Mould readiness</span></a>                 </div>
+                     <a href="http://erp/patterns" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></svg><span>Patterns</span></a>                      <a href="http://erp/casting-analyses" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg><span>Casting analysis</span></a>                      <a href="http://erp/production-orders" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21V10l6 3v-3l6 3V6h3v15z"/><path d="M3 21h18"/></svg><span>Production orders</span></a>                      <a href="http://erp/planner" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Planner</span></a>                      <a href="http://erp/lots/queue" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg><span>Production queue</span></a>                      <a href="http://erp/moulding-runs" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Moulding runs</span></a>                      <a href="http://erp/pours" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1 3 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-5 1-9z"/></svg><span>Pour register</span></a>                      <a href="http://erp/work-lists" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M16 5h2a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2M9 12h6M9 16h6"/></svg><span>Moulding work lists</span></a>                      <a href="http://erp/moulding-teams" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14c2.5.5 3.5 2.5 3.5 6"/></svg><span>Teams &amp; stations</span></a>                      <a href="http://erp/sand-systems" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20 9 8l4 7 3-4 5 9z"/></svg><span>Sand systems</span></a>                      <a href="http://erp/mould-readiness" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg><span>Mould readiness</span></a>                 </div>
             </div>
             
                         <div class="nav-group ">
                 <button type="button" class="nav-group-toggle" aria-expanded="false">
-                    <span class="nav-lab"><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1 3 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-5 1-9z"/></svg><span>Melting &amp; Materials</span></span><span class="nav-chevron">›</span>
+                    <span class="nav-lab"><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1 3 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-5 1-9z"/></svg><span>Melting</span></span><span class="nav-chevron">›</span>
                 </button>
                 <div class="nav-submenu" hidden>
-                     <a href="http://erp/heats" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6M10 3v6L4.5 19a1.5 1.5 0 0 0 1.3 2h12.4a1.5 1.5 0 0 0 1.3-2L14 9V3"/><path d="M7.5 15h9"/></svg><span>Melting heats</span></a>                      <a href="http://erp/furnaces" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg><span>Furnaces</span></a>                      <a href="http://erp/materials" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 9.4 7.5 4.2M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg><span>Materials</span></a>                                                                     <a href="http://erp/suppliers" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6h12v10H2zM14 9h4l4 4v3h-8z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg><span>Suppliers</span></a>
+                     <a href="http://erp/heats" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6M10 3v6L4.5 19a1.5 1.5 0 0 0 1.3 2h12.4a1.5 1.5 0 0 0 1.3-2L14 9V3"/><path d="M7.5 15h9"/></svg><span>Melting heats</span></a>                      <a href="http://erp/furnaces" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg><span>Furnaces</span></a>                                     </div>
+            </div>
+            
+                        <div class="nav-group ">
+                <button type="button" class="nav-group-toggle" aria-expanded="false">
+                    <span class="nav-lab"><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 9.4 7.5 4.2M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg><span>Purchases</span></span><span class="nav-chevron">›</span>
+                </button>
+                <div class="nav-submenu" hidden>
+                     <a href="http://erp/materials" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 9.4 7.5 4.2M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg><span>Materials</span></a>                                                                     <a href="http://erp/suppliers" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6h12v10H2zM14 9h4l4 4v3h-8z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg><span>Suppliers</span></a>
+                                                                    <a href="http://erp/purchase-orders" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg><span>Purchase orders</span></a>
+                                                                    <a href="http://erp/stock-reorder" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17h.01"/></svg><span>Reorder alerts</span></a>
+                                                                    <a href="http://erp/stock-balances" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 9.4 7.5 4.2M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg><span>Stock by location</span></a>
+                                                                    <a href="http://erp/stock-locations" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 9.4 7.5 4.2M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg><span>Stock locations</span></a>
                                          <a href="http://erp/charge-recipes" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 6 2 2 4-4M3 14l2 2 4-4M13 6h8M13 14h8M13 20h8"/></svg><span>Charge recipes</span></a>                 </div>
             </div>
             
@@ -54,9 +77,13 @@
                     <span class="nav-lab"><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 13h18"/></svg><span>Sales &amp; Planning</span></span><span class="nav-chevron">›</span>
                 </button>
                 <div class="nav-submenu" hidden>
-                     <a href="http://erp/customers" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2"/></svg><span>Customers</span></a>                                                                     <a href="http://erp/enquiries" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg><span>Enquiries &amp; quotes</span></a>
+                     <a href="http://erp/customers" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2"/></svg><span>Customers</span></a>                      <a href="http://erp/products" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg><span>Products</span></a>                                                                     <a href="http://erp/sales-orders" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg><span>Sales orders</span></a>
+                                                                    <a href="http://erp/finished-goods" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v12h14V8M10 12h4"/></svg><span>Finished goods</span></a>
+                                                                    <a href="http://erp/packing" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 9.4 7.5 4.2M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg><span>Packing</span></a>
+                                                                    <a href="http://erp/dispatches" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6h12v10H2zM14 9h4l4 4v3h-8z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg><span>Dispatch</span></a>
+                                                                    <a href="http://erp/enquiries" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg><span>Enquiries &amp; quotes</span></a>
                                                                     <a href="http://erp/partners" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14c2.5.5 3.5 2.5 3.5 6"/></svg><span>Business partners</span></a>
-                                         <a href="http://erp/sales-orders" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg><span>Sales orders</span></a>                      <a href="http://erp/heat-plan" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Melting plan</span></a>                 </div>
+                                         <a href="http://erp/heat-plan" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Melting plan</span></a>                 </div>
             </div>
             
                         <div class="nav-group ">
@@ -64,7 +91,7 @@
                     <span class="nav-lab"><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg><span>Quality</span></span><span class="nav-chevron">›</span>
                 </button>
                 <div class="nav-submenu" hidden>
-                     <a href="http://erp/lots/queue" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg><span>Production queue</span></a>                      <a href="http://erp/quick-qc" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3M8 11l2 2 3-4"/></svg><span>Quick QC</span></a>                      <a href="http://erp/lots" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12V3h9l9 9-9 9z"/><circle cx="7.5" cy="7.5" r="1"/></svg><span>Casting lots</span></a>                      <a href="http://erp/inspections" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3M8 11l2 2 3-4"/></svg><span>Inspections</span></a>                      <a href="http://erp/ncrs" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17h.01"/></svg><span>Nonconformance</span></a>                                                                     <a href="http://erp/corrective-actions" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg><span>Corrective actions</span></a>
+                     <a href="http://erp/quick-qc" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3M8 11l2 2 3-4"/></svg><span>Quick QC</span></a>                      <a href="http://erp/lots" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12V3h9l9 9-9 9z"/><circle cx="7.5" cy="7.5" r="1"/></svg><span>Casting lots</span></a>                      <a href="http://erp/inspections" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3M8 11l2 2 3-4"/></svg><span>Inspections</span></a>                      <a href="http://erp/ncrs" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17h.01"/></svg><span>Nonconformance</span></a>                                                                     <a href="http://erp/corrective-actions" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg><span>Corrective actions</span></a>
                                                                     <a href="http://erp/documents" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v17H6.5A2.5 2.5 0 0 0 4 21.5z"/><path d="M4 21.5V4.5"/></svg><span>Controlled documents</span></a>
                                          <a href="http://erp/reports/yield" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18M6 21V11M11 21V5M16 21v-7"/></svg><span>Yield &amp; scrap</span></a>                      <a href="http://erp/defects" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="8" height="11" rx="4"/><path d="M9 8a3 3 0 0 1 6 0M4 12h4M16 12h4M5 6l3 3M19 6l-3 3M5 19l3-3M19 19l-3-3"/></svg><span>Defect list</span></a>                 </div>
             </div>
@@ -83,6 +110,8 @@
                 </button>
                 <div class="nav-submenu" hidden>
                      <a href="http://erp/flasks" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Flasks</span></a>                                                                     <a href="http://erp/gauges" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 18a8 8 0 1 1 16 0"/><path d="m12 18 4-6"/></svg><span>Gauges &amp; calibration</span></a>
+                                                                    <a href="http://erp/cores" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Cores &amp; core boxes</span></a>
+                                                                    <a href="http://erp/core-lots" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></svg><span>Core stock</span></a>
                                                                     <a href="http://erp/tooling-maintenance/dashboard" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg><span>Maintenance dashboard</span></a>
                                                                     <a href="http://erp/tooling-maintenance" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.5-.5-.5-2.5z"/></svg><span>Maintenance records</span></a>
                                                                     <a href="http://erp/tooling-life" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 18a8 8 0 1 1 16 0"/><path d="m12 18 4-6"/></svg><span>Tooling life</span></a>
@@ -99,12 +128,15 @@
     </div>
             <div class="nav-group ">
         <button type="button" class="nav-group-toggle" aria-expanded="false">
-            <span class="nav-lab"><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6h12v10H2zM14 9h4l4 4v3h-8z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg><span>Dispatch</span></span><span class="nav-chevron">›</span>
+            <span class="nav-lab"><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h13v4"/><path d="M3 7v11a2 2 0 0 0 2 2h15V9H5a2 2 0 0 1-2-2z"/><circle cx="16.5" cy="14.5" r="1"/></svg><span>Finance</span></span><span class="nav-chevron">›</span>
         </button>
         <div class="nav-submenu" hidden>
-                                                <a href="http://erp/finished-goods" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v12h14V8M10 12h4"/></svg><span>Finished goods</span></a>
-                                                                <a href="http://erp/packing" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 9.4 7.5 4.2M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg><span>Packing</span></a>
-                                                                <a href="http://erp/dispatches" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6h12v10H2zM14 9h4l4 4v3h-8z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg><span>Dispatch</span></a>
+                                                <a href="http://erp/invoices" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg><span>Invoices</span></a>
+                                                                <a href="http://erp/receipts" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg><span>Receipts</span></a>
+                                                                <a href="http://erp/receivables" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Receivables</span></a>
+                                                                <a href="http://erp/bills" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg><span>Supplier bills</span></a>
+                                                                <a href="http://erp/supplier-payments" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg><span>Supplier payments</span></a>
+                                                                <a href="http://erp/payables" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Payables</span></a>
                                     </div>
     </div>
             <div class="nav-group ">
@@ -125,16 +157,6 @@
                                                                 <a href="http://erp/hr/exits" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg><span>Exits &amp; clearance</span></a>
                                                                 <a href="http://erp/hr/policies" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v17H6.5A2.5 2.5 0 0 0 4 21.5z"/><path d="M4 21.5V4.5"/></svg><span>HR policies</span></a>
                                                                 <a href="http://erp/hr/organisation" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2"/></svg><span>Organisation setup</span></a>
-                                    </div>
-    </div>
-            <div class="nav-group ">
-        <button type="button" class="nav-group-toggle" aria-expanded="false">
-            <span class="nav-lab"><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M16 5h2a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2M9 12h6M9 16h6"/></svg><span>Quick flow</span></span><span class="nav-chevron">›</span>
-        </button>
-        <div class="nav-submenu" hidden>
-                                                <a href="http://erp/quick/next-heat" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Next heat</span></a>
-                                                                <a href="http://erp/quick/floor" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M16 5h2a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2M9 12h6M9 16h6"/></svg><span>Moulds made / poured</span></a>
-                                                                <a href="http://erp/quick/orders/new" class="nav-link "><svg class="nav-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M16 5h2a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2M9 12h6M9 16h6"/></svg><span>New order</span></a>
                                     </div>
     </div>
         </nav>
@@ -161,11 +183,28 @@
             <script>
             (function () {
                 var back = document.getElementById('crumb-back');
+                var trail = document.querySelector('.breadcrumb strong');
+                var key = function (url) { return 'crumb:' + url.split('#')[0]; };
+                try { if (trail) sessionStorage.setItem(key(location.href), trail.textContent.trim()); } catch (e) {}
                 if (!back || !document.referrer) return;
                 try {
                     var from = new URL(document.referrer);
                     if (from.origin !== location.origin || from.href === location.href || /\/(edit|create|new)$/.test(from.pathname)) return;
+                    if (new URL(back.href, location.href).href === from.href) return;
                     back.href = from.href;
+                    var title = sessionStorage.getItem(key(from.href));
+                    if (!title || !trail) return;
+                    back.title = back.ariaLabel = 'Back to ' + title;
+                    var prev = document.createElement('a');
+                    prev.className = 'crumb-prev';
+                    prev.href = from.href;
+                    prev.textContent = title.split(' / ').pop();
+                    prev.title = 'Back to ' + title;
+                    var sep = document.createElement('span');
+                    sep.className = 'crumb-sep';
+                    sep.textContent = ' ‹ ';
+                    trail.parentNode.insertBefore(prev, trail);
+                    trail.parentNode.insertBefore(sep, trail);
                 } catch (e) {}
             })();
             </script>
@@ -211,10 +250,12 @@
                         if (type) return [];
                         var words = q.toLowerCase().split(/\s+/), seen = {}, found = [];
                         document.querySelectorAll('#main-sidebar a.nav-link[href]').forEach(function (a) {
-                            var label = (a.textContent || '').trim();
+                            var badge = a.querySelector('.nav-count'), clone = a.cloneNode(true);
+                            clone.querySelectorAll('.nav-count').forEach(function (n) { n.remove(); });
+                            var label = (clone.textContent || '').trim(), count = badge ? (badge.textContent || '').trim() : '';
                             var hay = label.toLowerCase();
                             if (!label || seen[a.href] || a.getAttribute('href') === '#' || !words.every(function (w) { return hay.indexOf(w) !== -1; })) return;
-                            seen[a.href] = true; found.push({ code: label, name: '', label: 'Menu', url: a.href });
+                            seen[a.href] = true; found.push({ code: label, name: '', count: count, label: 'Menu', url: a.href });
                         });
                         return found.slice(0, 6);
                     }
@@ -226,7 +267,9 @@
                             row([span('scan-row-main', 'Search ' + offer.label.toLowerCase() + 's only'), span('scan-row-kind', 'Tab')], { run: pickOffer });
                         }
                         data.results.forEach(function (r) {
-                            row([span('scan-row-code', r.code), span('scan-row-name', r.name || ''), span('scan-row-kind', r.label)], { url: r.url });
+                            var shown = span('scan-row-name', r.name || '');
+                            if (r.count) { shown.appendChild(span('nav-count', r.count)); shown.title = 'Waiting for someone'; }
+                            row([span('scan-row-code', r.code), shown, span('scan-row-kind', r.label)], { url: r.url });
                         });
                         if (!data.results.length && i.value.trim()) {
                             var none = document.createElement('div'); none.className = 'scan-empty'; none.textContent = 'No direct matches. Press Enter to search.'; list.appendChild(none);
@@ -268,7 +311,7 @@
                     });
                 })();
             </script>
-            <div class="topbar-date">Fri, 23 Oct 2026
+                        <div class="topbar-date">Mon, 26 Oct 2026
             </div>
         </header>
 
@@ -280,7 +323,7 @@
 <div class="panel"><div class="panel-body">
     <form method="GET" action="http://erp/help/new-customer" data-no-toolbar style="display:flex;gap:10px;align-items:end;flex-wrap:wrap">
         <div class="field"><label for="customer">Check a customer</label>
-            <select id="customer" name="customer" data-search-select><option value="">Choose a customer…</option><option value="01a1684b-3011-73cd-b96d-acf892fac52e" selected>Acme Pumps</option></select></div>
+            <select id="customer" name="customer" data-search-select><option value="">Choose a customer…</option><option value="01a176d6-684d-7026-b87a-b886bdfc0b18" selected>Acme Pumps</option></select></div>
         <button class="btn btn-primary" type="submit">Show their progress</button>
     </form>
     <style>
@@ -378,10 +421,10 @@
                         <div class="table-wrap" style="margin-top:12px"><table>
                 <thead><tr><th>Product ordered by Acme Pumps</th><th>Revision</th><th>Iron grade</th><th title="Metal to melt for one piece, as the melting plan counts it">Metal per piece</th><th>Pattern with a cavity</th><th>Pattern owner</th><th>Open order</th></tr></thead>
                 <tbody>                    <tr>
-                        <td><a href="http://erp/products/01a1684b-3017-729e-bcd0-ebb02b427b81"><strong>Pump body</strong></a><div class="muted small mono">PUMP-1</div></td>
+                        <td><a href="http://erp/products/01a176d6-6853-71f5-ae83-5eea72b216fa"><strong>Pump body</strong></a><div class="muted small mono">PUMP-1</div></td>
                         <td><span class="status status-completed">Done</span></td>
                         <td><span class="status status-completed">EN-GJL-200</span></td>
-                        <td><span class="status status-completed">10.00 kg</span></td>
+                        <td><span class="status status-completed">10.0000 kg</span></td>
                         <td><span class="status status-completed">Flaskless plate</span></td>
                         <td><span class="status status-completed">Customer's</span></td>
                         <td><span class="status status-completed">Released</span></td>
@@ -444,6 +487,24 @@
                     </main>
     </div>
 </div>
+
+<script>
+// Number boxes take any value within their limits; places beyond the site's decimal setting are rounded off when a box is left.
+(() => {
+    const places = 4;
+    window.decimalPlaces = places;
+    document.addEventListener('change', (e) => {
+        const box = e.target;
+        if (!(box instanceof HTMLInputElement) || box.type !== 'number' || box.value === '' || (box.step && box.step !== 'any')) return;
+        const typed = Number(box.value);
+        const kept = Number(typed.toFixed(places));
+        if (Number.isFinite(typed) && kept !== typed) {
+            box.value = String(kept);
+            box.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+    }, true);
+})();
+</script>
 
 <script data-erp-form-behavior>
 (() => {
@@ -721,6 +782,9 @@ document.addEventListener('DOMContentLoaded', () => {
     .tabbar button:hover { color: var(--text); background: var(--surface); }
     .tabbar button[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); background: var(--surface); }
     .tabbar button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+    .tab-count { display: inline-block; min-width: 18px; margin-left: 6px; padding: 0 7px; border-radius: 6px; font-size: 11px; font-weight: 600; line-height: 1.6; text-align: center; }
+    .tab-count-warn { background: #fff3cd; color: #7a5b00; }
+    .tab-count-block { background: #fce8e6; color: #a12820; }
     .tab-pane[hidden] { display: none; }
     @media print { .tabbar { display: none; } .tab-pane[hidden] { display: block; } }
 </style>
@@ -744,6 +808,13 @@ document.addEventListener('DOMContentLoaded', () => {
             pane.className = 'tab-pane'; pane.setAttribute('role', 'tabpanel'); pane.hidden = true;
             var btn = document.createElement('button');
             btn.type = 'button'; btn.setAttribute('role', 'tab'); btn.textContent = name;
+            [['data-tab-warn', 'warn', 'Warnings'], ['data-tab-block', 'block', 'Blocks']].forEach(function (c) {
+                var n = parseInt(el.getAttribute(c[0]), 10);
+                if (!n) return;
+                var b = document.createElement('span');
+                b.className = 'tab-count tab-count-' + c[1]; b.title = c[2]; b.textContent = n;
+                btn.appendChild(b);
+            });
             current = { name: name, pane: pane, btn: btn, slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-') };
             tabs.push(current); nav.appendChild(btn);
             return;

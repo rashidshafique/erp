@@ -33,7 +33,7 @@
         <td><select :name="`lines[${i}][supply_type]`" x-model="l.supply_type"><option value="GOODS">Goods</option><option value="SERVICE">Service</option></select><input type="hidden" :name="`lines[${i}][inventory_class]`" :value="l.inventory_class ?? ''"></td>
         <td><input :name="`lines[${i}][tariff_code]`" x-model="l.tariff_code" maxlength="20" style="width:110px"></td>
     @endif
-    <td><select :name="`lines[${i}][tax_rate_id]`" x-model="l.tax_rate_id"><option value="">No tax</option>@foreach ($taxRates as $t)<option value="{{ $t->id }}">{{ $t->name }} ({{ rtrim(rtrim(number_format($t->rate_percent, 3), '0'), '.') }}%)</option>@endforeach</select></td>
+    <td><select :name="`lines[${i}][tax_rate_id]`" x-model="l.tax_rate_id"><option value="">No tax</option>@foreach ($taxRates as $t)<option value="{{ $t->id }}">{{ $t->name }} ({{ \App\Support\Formats::number($t->rate_percent, 2) }}%)</option>@endforeach</select></td>
     <td class="num" x-text="money(net(l))"></td>
     <td><button type="button" class="btn btn-small" @click="lines.splice(i, 1)" x-show="lines.length > 1" aria-label="Remove line">✕</button></td>
 </tr></template>

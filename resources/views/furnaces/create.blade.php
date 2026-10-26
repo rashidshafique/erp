@@ -59,20 +59,20 @@
                 <div>
                     <label for="rated_capacity_kg">Rated capacity (kg)</label>
                     <input id="rated_capacity_kg" name="rated_capacity_kg" type="number"
-                           min="0.001" step="any" value="{{ old('rated_capacity_kg') }}"
+                           min="0" step="any" value="{{ old('rated_capacity_kg') }}"
                            style="display:block;width:100%;padding:11px;border:1px solid var(--border);border-radius:7px;font:inherit">
                 </div>
                 <div>
                     <label for="nominal_melting_rate_kg_per_hour">Nominal melting rate (kg/h)</label>
                     <input id="nominal_melting_rate_kg_per_hour" name="nominal_melting_rate_kg_per_hour"
-                           type="number" min="0.001" step="any"
+                           type="number" min="0" step="any"
                            value="{{ old('nominal_melting_rate_kg_per_hour') }}"
                            style="display:block;width:100%;padding:11px;border:1px solid var(--border);border-radius:7px;font:inherit">
                 </div>
                 <div>
                     <label for="rated_power_kw">Rated power (kW)</label>
                     <input id="rated_power_kw" name="rated_power_kw" type="number"
-                           min="0.001" step="any" value="{{ old('rated_power_kw') }}"
+                           min="0" step="any" value="{{ old('rated_power_kw') }}"
                            style="display:block;width:100%;padding:11px;border:1px solid var(--border);border-radius:7px;font:inherit">
                 </div>
                 <div>

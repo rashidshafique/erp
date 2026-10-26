@@ -196,9 +196,9 @@
             if (! $m || $m->value === null) {
                 return ['—', null];
             }
-            $range = $m->min_value !== null || $m->max_value !== null ? 'Opt: '.rtrim(rtrim(number_format((float) $m->min_value, 2, '.', ''), '0'), '.').'–'.rtrim(rtrim(number_format((float) $m->max_value, 2, '.', ''), '0'), '.').($m->unit ? ' '.$m->unit : '') : null;
+            $range = $m->min_value !== null || $m->max_value !== null ? 'Opt: '.\App\Support\Formats::number((float) $m->min_value, 2).'–'.\App\Support\Formats::number((float) $m->max_value, 2).($m->unit ? ' '.$m->unit : '') : null;
 
-            return [rtrim(rtrim(number_format((float) $m->value, 2, '.', ''), '0'), '.').($m->unit ? ' '.$m->unit : ''), $range];
+            return [\App\Support\Formats::number((float) $m->value, 2).($m->unit ? ' '.$m->unit : ''), $range];
         };
     @endphp
     <section class="panel">
@@ -213,7 +213,7 @@
                     <div class="run-sand-tile"><div class="rm-lbl">{{ $title }}</div><strong class="code">{{ $text }}</strong>@if ($range)<span class="code muted small"> ({{ $range }})</span>@endif</div>
                 @endforeach
                 @php($hardness = \App\Models\MeasurementSet::with('measurements')->where('kind', 'MOULD')->where('moulding_run_id', $run->id)->orderByDesc('taken_at')->first()?->measurements->firstWhere('characteristic_key', 'hardness_b_avg'))
-                <div class="run-sand-tile"><div class="rm-lbl">Mould hardness (B, avg)</div><strong class="code">{{ $hardness ? rtrim(rtrim(number_format((float) $hardness->value, 2, '.', ''), '0'), '.') : '—' }}</strong></div>
+                <div class="run-sand-tile"><div class="rm-lbl">Mould hardness (B, avg)</div><strong class="code">{{ $hardness ? \App\Support\Formats::number((float) $hardness->value, 2) : '—' }}</strong></div>
             </div>
         </div>
     </section>

@@ -32,13 +32,13 @@
 @foreach ($taxChecks['blocks'] as $problem)<div class="alert alert-error">{{ $problem }}</div>@endforeach
 @foreach ($taxChecks['warnings'] as $problem)<div class="alert alert-warning">{{ $problem }}</div>@endforeach
 <div class="panel"><div class="table-wrap"><table><thead><tr><th>#</th><th>Description</th><th>Qty</th><th>Price</th><th>Tax</th><th class="num">Amount</th></tr></thead><tbody>
-@foreach ($invoice->lines as $l)<tr><td>{{ $l->line_number }}</td><td>{{ $l->description }}</td><td>{{ \App\Support\Formats::number($l->quantity, 3) }} {{ $l->uom }}</td><td>{{ $m($l->unit_price) }}</td><td>{{ $l->tax_percent > 0 ? rtrim(rtrim(number_format($l->tax_percent, 3), '0'), '.').'%' : '—' }}</td><td class="num">{{ $m($l->line_net) }}</td></tr>@endforeach
+@foreach ($invoice->lines as $l)<tr><td>{{ $l->line_number }}</td><td>{{ $l->description }}</td><td>{{ \App\Support\Formats::number($l->quantity, 3) }} {{ $l->uom }}</td><td>{{ $m($l->unit_price) }}</td><td>{{ $l->tax_percent > 0 ? \App\Support\Formats::number($l->tax_percent, 2).'%' : '—' }}</td><td class="num">{{ $m($l->line_net) }}</td></tr>@endforeach
 </tbody><tfoot><tr><td colspan="5" class="num muted">Subtotal</td><td class="num">{{ $m($invoice->subtotal) }}</td></tr><tr><td colspan="5" class="num muted">Tax</td><td class="num">{{ $m($invoice->tax_total) }}</td></tr><tr><th colspan="5" class="num">Total</th><th class="num">{{ $m($invoice->total) }}</th></tr></tfoot></table></div>
 @if ($invoice->notes)<div class="panel-body small">{{ $invoice->notes }}</div>@endif</div>
 @php $breakdown = $invoice->taxBreakdown(); @endphp
 @if ($breakdown->count() > 1 || $breakdown->contains(fn ($t) => $t['authority'] || $t['withheld']))
 <div class="panel"><div class="panel-header"><h2>Taxes</h2></div><div class="table-wrap"><table><thead><tr><th>Tax</th><th>Authority</th><th class="num">Rate</th><th class="num">On</th><th class="num">Amount</th></tr></thead><tbody>
-@foreach ($breakdown as $t)<tr><td>{{ $t['label'] }}@if ($t['withheld']) <span class="muted small">withheld by the customer</span>@endif</td><td>{{ $t['authority'] ?? '—' }}</td><td class="num">{{ rtrim(rtrim(number_format($t['rate'], 3), '0'), '.') }}%</td><td class="num">{{ $m($t['base']) }}</td><td class="num">{{ $m($t['amount']) }}</td></tr>@endforeach
+@foreach ($breakdown as $t)<tr><td>{{ $t['label'] }}@if ($t['withheld']) <span class="muted small">withheld by the customer</span>@endif</td><td>{{ $t['authority'] ?? '—' }}</td><td class="num">{{ \App\Support\Formats::number($t['rate'], 2) }}%</td><td class="num">{{ $m($t['base']) }}</td><td class="num">{{ $m($t['amount']) }}</td></tr>@endforeach
 </tbody></table></div></div>
 @endif
 @if ($invoice->allocations->isNotEmpty() || $invoice->creditNotes->isNotEmpty())

@@ -1,6 +1,6 @@
 @php
     $lifeClass = ['OK' => 'status-completed', 'APPROACHING_LIMIT' => 'status-on-hold'];
-    $qty = fn ($v) => rtrim(rtrim(number_format((float) $v, 3, '.', ','), '0'), '.');
+    $qty = fn ($v) => \App\Support\Formats::number((float) $v, 2);
     $overdue = $toolLife['nextInspection'] && $toolLife['nextInspection']->isPast();
 @endphp
 <div class="panel">

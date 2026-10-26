@@ -140,7 +140,7 @@ new class extends Component
                         <td>{{ $entry->charge_round === null ? '—' : ($entry->charge_round === 0 ? 'Start-up' : $entry->charge_round) }}</td>
                         <td class="num">
                             @if ($canChange && $editing === $entry->id)
-                                <input class="qty-input" type="number" step="any" min="0.001" wire:model="weight" wire:keydown.enter.prevent="save" wire:keydown.escape="cancel" wire:blur="save"
+                                <input class="qty-input" type="number" step="any" min="0" wire:model="weight" wire:keydown.enter.prevent="save" wire:keydown.escape="cancel" wire:blur="save"
                                     x-init="$nextTick(() => { $el.focus(); $el.select(); })" aria-label="Weight of {{ $entry->material?->name }} in kg">
                             @elseif ($canChange)
                                 <span class="qty-edit" wire:click="edit('{{ $entry->id }}')" title="Click to change the weight" role="button" tabindex="0" wire:keydown.enter="edit('{{ $entry->id }}')">{{ \App\Support\Formats::number((float) $entry->actual_qty_kg, 3) }}</span>

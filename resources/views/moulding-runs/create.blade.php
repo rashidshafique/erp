@@ -500,14 +500,14 @@ document.addEventListener('DOMContentLoaded', function () {
     function update() {
         const m = num(made), a = num(accepted), d = num(damaged), accounted = a + d, valid = accounted <= m;
         const yieldPct = m > 0 ? a / m * 100 : null;
-        text('mould-yield', yieldPct === null ? '—' : yieldPct.toFixed(2) + '%');
-        text('rm-defect-rate', m > 0 ? (d / m * 100).toFixed(2) + '%' : '—');
+        text('mould-yield', yieldPct === null ? '—' : yieldPct.toFixed(window.decimalPlaces) + '%');
+        text('rm-defect-rate', m > 0 ? (d / m * 100).toFixed(window.decimalPlaces) + '%' : '—');
         text('mould-unaccounted', Math.max(0, m - accounted));
         text('mould-accounted', accounted);
         document.getElementById('rm-yield-bar').style.width = (yieldPct ?? 0) + '%';
         text('rm-stage-moulding', a + ' sound / active');
         text('rm-t-made', m + ' total produced');
-        text('rm-t-ok', a + ' accepted' + (yieldPct === null ? '' : ' (' + yieldPct.toFixed(1) + '%)'));
+        text('rm-t-ok', a + ' accepted' + (yieldPct === null ? '' : ' (' + yieldPct.toFixed(window.decimalPlaces) + '%)'));
         text('rm-t-bad', d + ' rejected');
         text('rm-t-down', num(downtime) + 'm downtime');
         message.textContent = valid

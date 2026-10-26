@@ -60,7 +60,7 @@
 
 <div class="panel"><div class="panel-header"><h2>Life &amp; maintenance</h2><span class="muted small"><a href="{{ route('tooling-life.dashboard') }}">Life limits</a> · <a href="{{ route('tooling-maintenance.index') }}">Maintenance register</a></span></div>
     <div class="panel-body">
-        @if ($life)<p>Service life limit: {{ rtrim(rtrim(number_format((float) $life->service_life_quantity, 3, '.', ''), '0'), '.') }} {{ strtolower(str_replace('_', ' ', $life->usage_unit)) }}.</p>
+        @if ($life)<p>Service life limit: {{ \App\Support\Formats::number((float) $life->service_life_quantity, 2) }} {{ strtolower(str_replace('_', ' ', $life->usage_unit)) }}.</p>
         @else<p class="muted small" style="margin:0 0 10px">No service-life limit is set. <a href="{{ route('tooling-life.create') }}">Set one</a> to count cores made against the box's rated life.</p>@endif
     </div>
     <div class="table-wrap"><table><thead><tr><th>Record</th><th>Activity</th><th>Status</th><th>Reported</th></tr></thead><tbody>

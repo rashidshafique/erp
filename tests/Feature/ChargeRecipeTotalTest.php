@@ -97,6 +97,6 @@ class ChargeRecipeTotalTest extends TestCase
             ->assertOk()
             ->assertSee('1,200.000')
             ->assertSee('800.000')
-            ->assertSee('2,000.000 kg');
+            ->assertSee('2,000.0000 kg');
     }
 }

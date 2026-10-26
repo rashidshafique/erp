@@ -15,7 +15,7 @@
         @foreach ($productRevisions as $pr)<option value="{{ $pr->id }}" data-sub="{{ $pr->product?->code }} rev {{ $pr->revision }}" @isset($photos[$pr->product_id]) data-img="{{ $photos[$pr->product_id] }}" @endisset @selected($value('product_revision_id') === $pr->id)>{{ $pr->product?->name ?: 'Product unavailable' }}@isset($manyRevisions[$pr->product_id]) · rev {{ $pr->revision }}@endisset</option>@endforeach
         @foreach ($bareProducts as $bp)<option value="product:{{ $bp->id }}" data-sub="{{ $bp->code }} · no revision yet" @isset($photos[$bp->id]) data-img="{{ $photos[$bp->id] }}" @endisset @selected($value('product_revision_id') === 'product:'.$bp->id)>{{ $bp->name }}</option>@endforeach
     </select></td>
-    <td><input type="number" name="{{ $name('casting_weight_kg') }}" min="0.0001" step="any" value="{{ $kg($value('casting_weight_kg')) }}" class="cg-num {{ $error('casting_weight_kg') ? 'bad' : '' }}" aria-label="Casting weight, cavity {{ $n }}"></td>
+    <td><input type="number" name="{{ $name('casting_weight_kg') }}" min="0" step="any" value="{{ $kg($value('casting_weight_kg')) }}" class="cg-num {{ $error('casting_weight_kg') ? 'bad' : '' }}" aria-label="Casting weight, cavity {{ $n }}"></td>
     <td class="cg-dup">
         {{-- Role, component, pieces, poured weight and notes are kept in these fields and edited in the details dialog. --}}
         <input type="hidden" name="{{ $name('cavity_role') }}" value="{{ $role }}">

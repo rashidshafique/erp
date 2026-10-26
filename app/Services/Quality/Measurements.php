@@ -96,7 +96,7 @@ class Measurements
                         $ok = ($row['min'] === null || $v >= $row['min']) && ($row['max'] === null || $v <= $row['max']);
                         $m['passed'] = $ok;
                         if (! $ok) {
-                            $failed[] = $row['name'].' '.rtrim(rtrim(number_format($v, 4, '.', ''), '0'), '.').' is '.($row['min'] !== null && $v < $row['min'] ? 'below the minimum '.$row['min'] : 'above the maximum '.$row['max']).($row['unit'] ? ' '.$row['unit'] : '');
+                            $failed[] = $row['name'].' '.\App\Support\Formats::number($v, 2).' is '.($row['min'] !== null && $v < $row['min'] ? 'below the minimum '.$row['min'] : 'above the maximum '.$row['max']).($row['unit'] ? ' '.$row['unit'] : '');
                         }
                     }
                 } else {

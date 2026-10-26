@@ -27,7 +27,7 @@ class ProductionOrderFactory
             $open = (float) $line->ordered_qty - $already;
             $qty = $qty ?? $open;
             if ($qty <= 0 || $qty > $open + 0.0005) {
-                throw ValidationException::withMessages(['qty' => 'Only '.rtrim(rtrim(number_format(max(0, $open), 3, '.', ''), '0'), '.').' is left to schedule on this line.']);
+                throw ValidationException::withMessages(['qty' => 'Only '.\App\Support\Formats::number(max(0, $open), 2).' is left to schedule on this line.']);
             }
 
             return ProductionOrder::create([

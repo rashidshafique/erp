@@ -207,7 +207,7 @@ class SalesOrderController extends Controller
         }
         $room = (float) $line->ordered_qty - (float) $line->deliveries()->sum('quantity');
         if ((float) $data['quantity'] > $room + 0.0005) {
-            return back()->withErrors(['quantity' => 'Line '.$line->line_number.' has only '.rtrim(rtrim(number_format(max($room, 0), 3, '.', ''), '0'), '.').' left to schedule.'])->withInput();
+            return back()->withErrors(['quantity' => 'Line '.$line->line_number.' has only '.\App\Support\Formats::number(max($room, 0), 2).' left to schedule.'])->withInput();
         }
         $line->deliveries()->create($data);
 

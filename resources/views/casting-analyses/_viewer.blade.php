@@ -125,7 +125,7 @@
             if (near) ctx.fill(); ctx.stroke();
             if (near) { ctx.fillStyle = '#111'; ctx.fillText(h.id, mx + r + 2, my - r); }
         });
-        if (m === 'L') document.getElementById('caTimeLbl').textContent = '— ' + (tau * tMax).toFixed(1) + ' of ' + tMax.toFixed(1) + ' min';
+        if (m === 'L') document.getElementById('caTimeLbl').textContent = '— ' + (tau * tMax).toFixed(window.decimalPlaces) + ' of ' + tMax.toFixed(window.decimalPlaces) + ' min';
     }
 
     function setMode() {
@@ -146,7 +146,7 @@
     });
 
     fetch(URL_FIELD, { credentials: 'same-origin' }).then(function (r) { if (!r.ok) throw 0; return r.arrayBuffer(); })
-        .then(function (b) { field = new Uint8Array(b); st.textContent = nx + '×' + ny + '×' + nz + ' cells of ' + V.h.toFixed(1) + ' mm'; setMode(); })
+        .then(function (b) { field = new Uint8Array(b); st.textContent = nx + '×' + ny + '×' + nz + ' cells of ' + V.h.toFixed(window.decimalPlaces) + ' mm'; setMode(); })
         .catch(function () { st.textContent = 'map unavailable'; });
 
     // ---- 3-D point view ------------------------------------------------------------------------------------
