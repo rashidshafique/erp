@@ -76,7 +76,7 @@
                                 </tr>
                             @endforeach
                             <tr data-add-row>
-                                <td colspan="3"><button class="btn btn-small" type="button" data-add-line>+ Add product</button> <span class="muted small">Another product made on this pattern, in the cavities after the ones above.</span></td>
+                                <td colspan="3"><button class="btn btn-small" type="button" data-add-line>+ Add product</button></td>
                             </tr>
                         </tbody>
                     @endforeach
