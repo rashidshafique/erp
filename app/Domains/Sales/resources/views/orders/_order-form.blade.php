@@ -72,6 +72,7 @@
     .so-remove:hover { background: color-mix(in srgb, var(--danger, #b42318) 12%, transparent); color: var(--danger, #b42318); }
     .so-extra { margin: 10px 0 2px 82px; display: flex; gap: 14px; flex-wrap: wrap; align-items: end; }
     .so-extra .field { margin: 0; }
+    .so-extra[hidden], .so-delivery-foot[hidden], .so-preview[hidden] { display: none; }
     .so-check { display: inline-flex; align-items: center; gap: 6px; min-height: 38px; margin: 0; font-weight: 500; cursor: pointer; }
     .so-deliveries { margin: 10px 0 2px 82px; max-width: 640px; }
     .so-delivery { display: grid; grid-template-columns: 160px 120px minmax(120px, 1fr) 34px; gap: 8px; align-items: center; margin-bottom: 6px; }
@@ -154,7 +155,7 @@
             @if ($needsReason)<div class="field" style="margin-top:14px"><label for="reason">Reason for the change</label><input id="reason" name="reason" required minlength="5" maxlength="300" value="{{ old('reason') }}" placeholder="Why is the order being changed?"></div>@endif</div>
         <div class="so-summary" aria-live="polite">
             <div><span>Lines</span><span data-count>0</span></div>
-            <div><span>Pieces</span><span data-pieces>0</span></div>
+            <div><span>Pieces</span><span data-pieces-total>0</span></div>
             @if ($prices)<div class="so-grand"><span>Total</span><span data-grand>—</span></div>@endif
         </div>
     </div>
@@ -182,7 +183,7 @@
             if (!isNaN(p)) total += q * p;
         });
         form.querySelector('[data-count]').textContent = rows.length;
-        form.querySelector('[data-pieces]').textContent = pieces.toLocaleString();
+        form.querySelector('[data-pieces-total]').textContent = pieces.toLocaleString();
         if (form.querySelector('[data-grand]')) form.querySelector('[data-grand]').textContent = rows.length ? fmt(total) : '—';
         form.querySelector('[data-no-lines]').hidden = linesBox.querySelector('[data-line]') !== null;
     }
