@@ -12,6 +12,7 @@ use App\Domains\Sales\Models\SalesOrder;
 use App\Domains\Sales\Models\SalesOrderLine;
 use App\Domains\Sales\Models\SalesOrderLineDelivery;
 use App\Domains\Sales\Services\ContractReviewer;
+use App\Domains\Sales\Services\RepeatingLines;
 use App\Domains\Sales\Services\SalesOrderEditor;
 use App\Services\Orders\ProductionOrderFactory;
 use App\Rules\ProductRevisionChoice;
@@ -54,7 +55,17 @@ class SalesOrderController extends Controller
         ]);
     }
 
-    public function store(Request $request, SalesOrderStatus $status): RedirectResponse
+    /** @return array<string, array<int, mixed>> */
+    private static function repeatRules(): array
+    {
+        return [
+            'lines.*.repeat_every' => ['nullable', Rule::in(array_keys(SalesOrderLine::REPEATS))],
+            'lines.*.repeat_from' => ['nullable', 'date'],
+            'lines.*.repeat_until' => ['nullable', 'date', 'after_or_equal:lines.*.repeat_from'],
+        ];
+    }
+
+    public function store(Request $request, SalesOrderStatus $status, RepeatingLines $repeating): RedirectResponse
     {
         $request->merge(['lines' => array_values(array_filter((array) $request->input('lines', []), fn ($l) => ! empty($l['product_revision_id'])))]);
 
@@ -69,9 +80,9 @@ class SalesOrderController extends Controller
             'lines.*.ordered_qty' => ['required', 'numeric', 'gt:0', 'max:999999999'],
             'lines.*.unit_price' => ['nullable', 'numeric', 'min:0'],
             'lines.*.requested_delivery_date' => ['nullable', 'date'],
-        ]);
+        ] + self::repeatRules());
 
-        $order = DB::transaction(function () use ($data) {
+        $order = DB::transaction(function () use ($data, $repeating) {
             $order = SalesOrder::create([
                 'order_number' => SalesOrder::nextNumber(),
                 'customer_id' => $data['customer_id'], 'order_date' => $data['order_date'],
@@ -80,11 +91,15 @@ class SalesOrderController extends Controller
             ]);
             foreach (array_values($data['lines']) as $i => $l) {
                 $rev = ProductRevision::fromChoice($l['product_revision_id']);
-                $order->lines()->create([
+                $repeat = SalesOrderEditor::repeatAttributes($l, $order);
+                $line = $order->lines()->create([
                     'product_id' => $rev->product_id, 'product_revision_id' => $rev->id, 'line_number' => $i + 1,
-                    'ordered_qty' => $l['ordered_qty'], 'unit_price' => $l['unit_price'] ?? null, 'uom' => 'piece',
+                    'ordered_qty' => $repeat['repeat_every'] ? 0 : $l['ordered_qty'], 'unit_price' => $l['unit_price'] ?? null, 'uom' => 'piece',
                     'requested_delivery_date' => $l['requested_delivery_date'] ?? null,
-                ]);
+                ] + $repeat);
+                if ($line->repeats()) {
+                    $repeating->topUp($line);
+                }
             }
 
             return $order;
@@ -137,7 +152,7 @@ class SalesOrderController extends Controller
             'lines.*.ordered_qty' => ['required', 'numeric', 'gt:0', 'max:999999999'],
             'lines.*.unit_price' => ['nullable', 'numeric', 'min:0'],
             'lines.*.requested_delivery_date' => ['nullable', 'date'],
-        ]);
+        ] + self::repeatRules());
         $reviewStale = $editor->update($salesOrder, $data, $data['reason'] ?? null);
 
         return redirect()->route('sales-orders.show', $salesOrder)->with('success', "Order {$salesOrder->order_number} updated.".($reviewStale ? ' The lines changed after the contract review was approved, so run the review again.' : ''));

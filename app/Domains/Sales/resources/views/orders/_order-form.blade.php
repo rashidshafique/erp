@@ -26,7 +26,8 @@
             return isset($catalogue[$value]) || $line ? ['value' => $value, 'p' => $catalogue[$value] ?? $fromLine($line), 'line' => $l, 'record' => $line] : null;
         })->filter()->values()
         : ($order?->lines ?? collect())->map(fn ($line) => ['value' => $line->product_revision_id, 'p' => $catalogue[$line->product_revision_id] ?? $fromLine($line), 'record' => $line,
-            'line' => ['ordered_qty' => $trim($line->ordered_qty), 'unit_price' => $trim($line->unit_price), 'requested_delivery_date' => $line->requested_delivery_date?->toDateString()]])->values();
+            'line' => ['ordered_qty' => $trim($line->repeats() ? $line->repeat_qty : $line->ordered_qty), 'unit_price' => $trim($line->unit_price), 'requested_delivery_date' => $line->requested_delivery_date?->toDateString(),
+                'repeat_every' => $line->repeat_every, 'repeat_from' => $line->repeat_from?->toDateString(), 'repeat_until' => $line->repeat_until?->toDateString()]])->values();
 @endphp
 <style>
     .so-head { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
@@ -242,6 +243,13 @@
     results.addEventListener('click', function (e) { var b = e.target.closest('.so-item'); if (b) add(b); });
     document.addEventListener('click', function (e) { if (!e.target.closest('[data-picker]')) close(); });
     linesBox.addEventListener('input', recalc);
+    linesBox.addEventListener('change', function (e) {
+        var pick = e.target.closest('[data-repeat]'); if (!pick) return;
+        var row = pick.closest('[data-line]');
+        row.querySelectorAll('[data-repeat-field]').forEach(function (el) { el.hidden = !pick.value; });
+        row.querySelector('[data-repeat-note]').hidden = !!pick.value;
+        row.querySelector('[data-qty]').placeholder = pick.value ? 'Each time' : 'Qty';
+    });
     linesBox.addEventListener('click', function (e) {
         var row = e.target.closest('[data-line]'); if (!row) return;
         if (e.target.closest('[data-remove]')) { row.remove(); recalc(); return; }

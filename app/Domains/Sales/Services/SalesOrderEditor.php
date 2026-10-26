@@ -47,30 +47,38 @@ class SalesOrderEditor
             $notes = [];
             $linesChanged = false;
             $kept = [];
+            $repeated = [];
             $nextNumber = (int) $order->lines->max('line_number') + 1;
             foreach ($data['lines'] as $row) {
                 $line = isset($row['id']) ? $order->lines->firstWhere('id', $row['id']) : null;
                 if (isset($row['id']) && ! $line) {
                     $this->refuse('A line on the form does not belong to this order.');
                 }
+                $repeat = self::repeatAttributes($row, $order);
                 if (! $line) {
                     $rev = ProductRevision::fromChoice($row['product_revision_id']);
                     $new = $order->lines()->create([
                         'product_id' => $rev->product_id, 'product_revision_id' => $rev->id, 'line_number' => $nextNumber++,
-                        'ordered_qty' => $row['ordered_qty'], 'unit_price' => $row['unit_price'] ?? null, 'uom' => 'piece', 'requested_delivery_date' => $row['requested_delivery_date'] ?? null,
-                    ]);
+                        'ordered_qty' => $repeat['repeat_every'] ? 0 : $row['ordered_qty'], 'unit_price' => $row['unit_price'] ?? null, 'uom' => 'piece', 'requested_delivery_date' => $row['requested_delivery_date'] ?? null,
+                    ] + $repeat);
                     $kept[] = $new->id;
-                    $notes[] = "Line added: {$rev->product?->code} x {$row['ordered_qty']}";
+                    $repeated[] = $new;
+                    $notes[] = "Line added: {$rev->product?->code} x {$row['ordered_qty']}".($repeat['repeat_every'] ? ' '.strtolower(SalesOrderLine::REPEATS[$repeat['repeat_every']]) : '');
                     $linesChanged = true;
 
                     continue;
                 }
                 $kept[] = $line->id;
+                // A repeating line, or one being stopped, keeps the quantity it has scheduled; the box sets each future delivery instead.
+                $quantity = $repeat['repeat_every'] || $line->repeats() ? $line->ordered_qty : $row['ordered_qty'];
                 $floor = max((float) $started->get($line->id, collect())->sum('planned_qty'), (float) ($shipped[$line->id] ?? 0));
-                if ((float) $row['ordered_qty'] < $floor - 0.0005) {
+                if ((float) $quantity < $floor - 0.0005) {
                     $this->refuse("Line {$line->line_number} cannot go below {$floor}: that much is scheduled or shipped.");
                 }
-                $attributes = ['ordered_qty' => $row['ordered_qty'], 'unit_price' => $row['unit_price'] ?? null, 'requested_delivery_date' => $row['requested_delivery_date'] ?? null];
+                $attributes = ['ordered_qty' => $quantity, 'unit_price' => $row['unit_price'] ?? null, 'requested_delivery_date' => $row['requested_delivery_date'] ?? null] + $repeat;
+                if ($repeat['repeat_every'] && $line->repeats() && ! (($row['repeat_from'] ?? null) ?: null)) {
+                    $attributes['repeat_from'] = $line->repeat_from;
+                }
                 if (! empty($row['product_revision_id']) && $row['product_revision_id'] !== $line->product_revision_id) {
                     if ($started->has($line->id)) {
                         $this->refuse("Line {$line->line_number} has production orders, so its product cannot change.");
@@ -83,8 +91,11 @@ class SalesOrderEditor
                     foreach ($line->getDirty() as $field => $value) {
                         $notes[] = "Line {$line->line_number} {$field}: ".($line->getOriginal($field) ?? '—').' → '.($value ?? '—');
                     }
-                    $linesChanged = $linesChanged || $line->isDirty(['ordered_qty', 'product_revision_id']);
+                    $linesChanged = $linesChanged || $line->isDirty(['ordered_qty', 'product_revision_id', 'repeat_every', 'repeat_qty']);
                     $line->save();
+                }
+                if ($line->repeats()) {
+                    $repeated[] = $line;
                 }
             }
             foreach ($order->lines->whereNotIn('id', $kept) as $gone) {
@@ -104,6 +115,9 @@ class SalesOrderEditor
                 $notes[] = "{$field}: ".($order->getOriginal($field) ?? '—').' → '.($value ?? '—');
             }
             $order->save();
+            foreach ($repeated as $line) {
+                app(RepeatingLines::class)->topUp($line);
+            }
 
             if ($notes !== []) {
                 app(Audit::class)->record('EDITED', 'SalesOrder', $order->id, $order->order_number, ['summary' => ['new' => implode('; ', $notes)]], $reason);
@@ -111,6 +125,26 @@ class SalesOrderEditor
 
             return $linesChanged && $order->hasApprovedReview();
         });
+    }
+
+    /**
+     * The repeat columns from one form row. On a repeating line the quantity box is the quantity of each delivery; the first delivery
+     * falls on the given start, else the line's or the order's delivery date, else the order date.
+     *
+     * @param  array<string, mixed>  $row
+     * @return array{repeat_every: ?string, repeat_qty: mixed, repeat_from: mixed, repeat_until: mixed}
+     */
+    public static function repeatAttributes(array $row, SalesOrder $order): array
+    {
+        if (empty($row['repeat_every'])) {
+            return ['repeat_every' => null, 'repeat_qty' => null, 'repeat_from' => null, 'repeat_until' => null];
+        }
+
+        return [
+            'repeat_every' => $row['repeat_every'], 'repeat_qty' => $row['ordered_qty'],
+            'repeat_from' => ($row['repeat_from'] ?? null) ?: (($row['requested_delivery_date'] ?? null) ?: ($order->requested_delivery_date ?? $order->order_date)),
+            'repeat_until' => ($row['repeat_until'] ?? null) ?: null,
+        ];
     }
 
     private function refuse(string $message): never

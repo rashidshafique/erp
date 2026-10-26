@@ -34,6 +34,11 @@ class OrderRules
             'HIDE' => 'Hidden: orders are entered without prices; an invoice is priced when it is raised',
             'SHOW' => 'Shown: each line has a unit price and the order shows its total',
         ], 'HIDE'],
+        'repeat_ahead' => ['orders.repeat_ahead', 'How far ahead a repeating order line schedules its deliveries', [
+            '4' => '4 weeks: production sees about a month of repeat demand',
+            '8' => '8 weeks',
+            '13' => '13 weeks: a full quarter ahead',
+        ], '8'],
     ];
 
     public static function get(string $rule): string
@@ -80,5 +85,11 @@ class OrderRules
     public static function reviewRequired(): bool
     {
         return self::get('contract_review') === 'REQUIRED';
+    }
+
+    /** Days ahead of today that a repeating line keeps its deliveries scheduled. */
+    public static function repeatAheadDays(): int
+    {
+        return (int) self::get('repeat_ahead') * 7;
     }
 }

@@ -23,12 +23,53 @@ class SalesOrderLine extends Model
         'unit_price',
         'uom',
         'requested_delivery_date',
+        'repeat_every',
+        'repeat_qty',
+        'repeat_from',
+        'repeat_until',
+        'repeated_to',
         'notes',
     ];
 
+    public const REPEATS = ['WEEK' => 'Every week', 'MONTH' => 'Every month'];
+
     protected function casts(): array
     {
-        return ['ordered_qty' => 'decimal:3', 'unit_price' => 'decimal:4', 'requested_delivery_date' => 'date'];
+        return [
+            'ordered_qty' => 'decimal:3', 'unit_price' => 'decimal:4', 'requested_delivery_date' => 'date',
+            'repeat_qty' => 'decimal:3', 'repeat_from' => 'date', 'repeat_until' => 'date', 'repeated_to' => 'date',
+        ];
+    }
+
+    public function repeats(): bool
+    {
+        return $this->repeat_every !== null;
+    }
+
+    /**
+     * The next delivery date a repeating line will add, or null when it does not repeat or its end date is passed. Dates are counted
+     * from repeat_from so a month starting on the 31st keeps falling on the last day of shorter months.
+     */
+    public function nextRepeatDate(): ?\Carbon\CarbonImmutable
+    {
+        if (! $this->repeats() || ! $this->repeat_from) {
+            return null;
+        }
+        $from = $this->repeat_from->toImmutable();
+        $step = fn (int $n) => $this->repeat_every === 'MONTH' ? $from->addMonthsNoOverflow($n) : $from->addWeeks($n);
+        $n = 0;
+        while ($this->repeated_to && $step($n)->lte($this->repeated_to)) {
+            $n++;
+        }
+        $next = $step($n);
+
+        return $this->repeat_until && $next->gt($this->repeat_until) ? null : $next;
+    }
+
+    /** Whether the line will still add deliveries. */
+    public function isStillRepeating(): bool
+    {
+        return $this->nextRepeatDate() !== null;
     }
 
     public function salesOrder(): BelongsTo

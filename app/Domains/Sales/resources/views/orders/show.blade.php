@@ -76,7 +76,8 @@
                 <td>{{ $l->line_number }}</td>
                 <td><x-product-cell :product="$l->product" /></td>
                 <td>{{ $l->productRevision?->revision }}</td>
-                <td>{{ rtrim(rtrim(\App\Support\Formats::number((float) $l->ordered_qty, 3), '0'), '.') }}</td>
+                <td>{{ rtrim(rtrim(\App\Support\Formats::number((float) $l->ordered_qty, 3), '0'), '.') }}
+                    @if ($l->repeats())<br><span class="muted small">{{ rtrim(rtrim(\App\Support\Formats::number((float) $l->repeat_qty, 3), '0'), '.') }} {{ strtolower(\App\Domains\Sales\Models\SalesOrderLine::REPEATS[$l->repeat_every]) }}@if ($l->repeat_until) until {{ $l->repeat_until->displayDate() }}@endif · {{ ($next = $l->nextRepeatDate()) ? 'next added for '.$next->displayDate() : 'ended' }}</span>@endif</td>
                 <td>{{ rtrim(rtrim(\App\Support\Formats::number($sched, 3), '0'), '.') }}</td>
                 <td>{{ rtrim(rtrim(\App\Support\Formats::number((float) ($shipped[$l->id] ?? 0), 3), '0'), '.') ?: '0' }}</td>
                 <td>@forelse ($l->productionOrders as $po)<a href="{{ route('production-orders.show', $po) }}" class="mono">{{ $po->production_order_number }}</a> <span class="muted small">{{ strtolower(str_replace('_', ' ', $po->status)) }}</span>@if (! $loop->last)<br>@endif @empty — @endforelse</td>

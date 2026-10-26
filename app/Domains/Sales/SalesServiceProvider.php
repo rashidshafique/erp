@@ -3,6 +3,7 @@
 namespace App\Domains\Sales;
 
 use App\Domains\Core\ModuleServiceProvider;
+use App\Domains\Sales\Console\SalesRepeatDeliveries;
 use App\Domains\Sales\Http\Controllers\SalesOrderController;
 use App\Domains\Sales\Models\ContractReview;
 use App\Domains\Sales\Models\ContractReviewItem;
@@ -10,6 +11,7 @@ use App\Domains\Sales\Models\SalesOrder;
 use App\Domains\Sales\Models\SalesOrderLine;
 use App\Domains\Sales\Services\ContractReviewer;
 use App\Domains\Sales\Services\SalesOrderStatus;
+use Illuminate\Console\Scheduling\Schedule;
 
 /** Sales orders and their contract review, from the customer's order to the production orders it releases. Customers stay core. */
 class SalesServiceProvider extends ModuleServiceProvider
@@ -60,6 +62,16 @@ class SalesServiceProvider extends ModuleServiceProvider
         return [
             ['pattern' => 'sales-orders.*', 'permission' => 'sales.manage'],
         ];
+    }
+
+    protected function consoleCommands(): array
+    {
+        return [SalesRepeatDeliveries::class];
+    }
+
+    protected function schedule(Schedule $schedule): void
+    {
+        $schedule->command('sales:repeat-deliveries')->dailyAt('00:30');
     }
 
     protected function searchTypes(): array

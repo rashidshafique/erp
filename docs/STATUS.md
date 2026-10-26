@@ -6,6 +6,7 @@ Updated 2026-10-23.
 
 **Order to pour (Stage 2, see STAGE2.md)**
 - Customers, sales orders, contract review, production orders, melting plan, iron grades, thermal analysis, pouring gate, trace to dispatch.
+- Repeating order lines (2026-10-26): a line can repeat every week or month with no new PO. Each period adds a delivery and grows the ordered quantity, up to the "repeat ahead" order rule (4, 8 or 13 weeks), daily via `sales:repeat-deliveries`. Invoice per dispatch as usual. Not done: forecast grid per period, shortfall carry-over, production orders made per period, standing order or blanket documents.
 
 **Production**
 - Moulding runs: bulk entry, three-step record screen, KPI strip, mould hardness, stations, sand test from a run.

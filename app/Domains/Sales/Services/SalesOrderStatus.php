@@ -112,10 +112,10 @@ class SalesOrderStatus
         }
     }
 
-    /** Called after a dispatch: the order is dispatched once every line has gone out in full. */
+    /** Called after a dispatch: the order is dispatched once every line has gone out in full and no line will repeat again. */
     public function dispatched(SalesOrder $order): void
     {
-        if (in_array($order->status, ['ON_HOLD', 'CANCELLED', 'DISPATCHED'], true)) {
+        if (in_array($order->status, ['ON_HOLD', 'CANCELLED', 'DISPATCHED'], true) || $order->lines->contains(fn ($line) => $line->isStillRepeating())) {
             return;
         }
         $shipped = DB::table('dispatch_items')->whereIn('sales_order_line_id', $order->lines()->select('id'))->selectRaw('sales_order_line_id, sum(quantity_dispatched) q')->groupBy('sales_order_line_id')->pluck('q', 'sales_order_line_id');
