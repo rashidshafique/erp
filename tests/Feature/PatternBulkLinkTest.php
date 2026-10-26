@@ -29,7 +29,7 @@ class PatternBulkLinkTest extends TestCase
 
         $this->get(route('patterns.bulk-link'))->assertOk()
             ->assertSee('data-value="'.$outlet->id.'"', false)
-            ->assertSee('name="rows[0][cavities]" min="1" max="200" step="1" value="6"', false);
+            ->assertSee('name="rows[0][products][0][cavities]" min="1" max="200" step="1" value="6"', false);
     }
 
     public function test_links_every_cavity_to_the_chosen_revision_and_skips_rows_without_a_product(): void
@@ -41,8 +41,8 @@ class PatternBulkLinkTest extends TestCase
         $chosen = ProductRevision::create(['product_id' => $product->id, 'revision' => 'B', 'status' => 'DRAFT']);
 
         $this->post(route('patterns.bulk-link.store'), ['rows' => [
-            ['pattern_id' => $plate->id, 'product_id' => $product->id, 'cavities' => 4, 'product_revision_id' => $chosen->id],
-            ['pattern_id' => $skipped->id, 'product_id' => '', 'cavities' => 1],
+            ['pattern_id' => $plate->id, 'products' => [['product_id' => $product->id, 'cavities' => 4, 'product_revision_id' => $chosen->id]]],
+            ['pattern_id' => $skipped->id, 'products' => [['product_id' => '', 'cavities' => 1]]],
         ]])->assertSessionHasNoErrors();
 
         $revision = $plate->fresh()->currentRevision;
@@ -52,12 +52,40 @@ class PatternBulkLinkTest extends TestCase
         $this->assertNull($skipped->fresh()->currentRevision);
     }
 
+    public function test_several_products_take_the_cavities_in_turn(): void
+    {
+        $plate = $this->pattern('P-1', 'Grill set');
+        $grill = $this->product('PR-1', 'Grill');
+        $ring = $this->product('PR-2', 'Ring');
+
+        $this->post(route('patterns.bulk-link.store'), ['rows' => [['pattern_id' => $plate->id, 'products' => [
+            ['product_id' => $grill->id, 'cavities' => 2],
+            ['product_id' => $ring->id, 'cavities' => 3],
+        ]]]])->assertSessionHasNoErrors();
+
+        $revision = $plate->fresh()->currentRevision;
+        $this->assertSame(5, (int) $revision->cavities_per_mould);
+        $byNumber = $revision->cavityMap()->with('productRevision')->orderBy('cavity_number')->get()->mapWithKeys(fn ($c) => [$c->cavity_number => $c->productRevision->product_id]);
+        $this->assertSame([1 => $grill->id, 2 => $grill->id, 3 => $ring->id, 4 => $ring->id, 5 => $ring->id], $byNumber->all());
+    }
+
+    public function test_the_same_product_twice_on_a_pattern_is_refused(): void
+    {
+        $plate = $this->pattern('P-1', 'Hub');
+        $product = $this->product('PR-1', 'Hub');
+
+        $this->post(route('patterns.bulk-link.store'), ['rows' => [['pattern_id' => $plate->id, 'products' => [
+            ['product_id' => $product->id, 'cavities' => 1],
+            ['product_id' => $product->id, 'cavities' => 2],
+        ]]]])->assertSessionHasErrors('rows.0.products.1.product_id');
+    }
+
     public function test_a_product_without_a_revision_gets_its_first_one(): void
     {
         $plate = $this->pattern('P-1', 'Hub');
         $product = $this->product('PR-1', 'Hub');
 
-        $this->post(route('patterns.bulk-link.store'), ['rows' => [['pattern_id' => $plate->id, 'product_id' => $product->id, 'cavities' => 1]]])
+        $this->post(route('patterns.bulk-link.store'), ['rows' => [['pattern_id' => $plate->id, 'products' => [['product_id' => $product->id, 'cavities' => 1]]]]])
             ->assertSessionHasNoErrors();
 
         $this->assertSame($product->revisions()->value('id'), $plate->fresh()->currentRevision->cavityMap()->value('product_revision_id'));
@@ -70,9 +98,9 @@ class PatternBulkLinkTest extends TestCase
         $obsolete = ProductRevision::create(['product_id' => $product->id, 'revision' => 'A', 'status' => 'OBSOLETE']);
 
         $this->post(route('patterns.bulk-link.store'), ['rows' => [
-            ['pattern_id' => $plate->id, 'product_id' => $product->id, 'cavities' => 1],
-            ['pattern_id' => $plate->id, 'product_id' => $product->id, 'cavities' => 1, 'product_revision_id' => $obsolete->id],
-        ]])->assertSessionHasErrors(['rows.1.pattern_id', 'rows.1.product_revision_id']);
+            ['pattern_id' => $plate->id, 'products' => [['product_id' => $product->id, 'cavities' => 1]]],
+            ['pattern_id' => $plate->id, 'products' => [['product_id' => $product->id, 'cavities' => 1, 'product_revision_id' => $obsolete->id]]],
+        ]])->assertSessionHasErrors(['rows.1.pattern_id', 'rows.1.products.0.product_revision_id']);
 
         $this->assertNull($plate->fresh()->currentRevision);
     }

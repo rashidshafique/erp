@@ -16,8 +16,8 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 /**
- * Links the patterns that have no cavity linked to a product, many at once: one row per pattern with the product it makes,
- * how many cavities it has and the product revision. Every cavity of the row is linked to that product.
+ * Links the patterns that have no cavity linked to a product, many at once: one row per pattern with the products it makes,
+ * each with its cavity count and product revision. The products take the cavities in turn, numbered from 1.
  */
 class PatternBulkLinkController extends Controller
 {
@@ -36,9 +36,12 @@ class PatternBulkLinkController extends Controller
 
             return [
                 'pattern' => $pattern,
-                'product_id' => $matches->count() === 1 ? $matches->first()->id : null,
+                'lines' => [[
+                    'product_id' => $matches->count() === 1 ? $matches->first()->id : null,
+                    'cavities' => $pieces ?? $pattern->currentRevision?->cavities_per_mould ?? 1,
+                    'product_revision_id' => null,
+                ]],
                 'alternatives' => $matches->count() > 1 ? $matches->count() : 0,
-                'cavities' => $pieces ?? $pattern->currentRevision?->cavities_per_mould ?? 1,
             ];
         });
 
@@ -52,7 +55,7 @@ class PatternBulkLinkController extends Controller
     }
 
     /**
-     * Links every row that has both a pattern and a product. Rows without a product are skipped. Every row is checked
+     * Links every row that has a pattern and at least one product. Rows without a product are skipped. Every row is checked
      * first; nothing is saved if one fails.
      */
     public function store(Request $request, RevisionLayout $layout): RedirectResponse
@@ -60,17 +63,20 @@ class PatternBulkLinkController extends Controller
         $request->validate([
             'rows' => ['required', 'array'],
             'rows.*.pattern_id' => ['nullable', 'uuid', Rule::exists('patterns', 'id')->whereNull('deleted_at')],
-            'rows.*.product_id' => ['nullable', 'uuid', Rule::exists('products', 'id')->whereNull('deleted_at')],
-            'rows.*.cavities' => ['nullable', 'integer', 'min:1', 'max:200'],
-            'rows.*.product_revision_id' => ['nullable', 'uuid'],
+            'rows.*.products' => ['nullable', 'array'],
+            'rows.*.products.*.product_id' => ['nullable', 'uuid', Rule::exists('products', 'id')->whereNull('deleted_at')],
+            'rows.*.products.*.cavities' => ['nullable', 'integer', 'min:1', 'max:200'],
+            'rows.*.products.*.product_revision_id' => ['nullable', 'uuid'],
         ], [
             'rows.*.pattern_id.exists' => 'Choose a pattern from the list.',
-            'rows.*.product_id.exists' => 'Choose a product from the list.',
-            'rows.*.cavities.min' => 'At least 1 cavity.',
-            'rows.*.cavities.max' => 'At most 200 cavities.',
+            'rows.*.products.*.product_id.exists' => 'Choose a product from the list.',
+            'rows.*.products.*.cavities.min' => 'At least 1 cavity.',
+            'rows.*.products.*.cavities.max' => 'At most 200 cavities.',
         ]);
 
-        $rows = collect($request->input('rows'))->filter(fn ($row) => filled($row['product_id'] ?? null));
+        $rows = collect($request->input('rows'))
+            ->map(fn ($row) => ['products' => array_filter((array) ($row['products'] ?? []), fn ($line) => filled($line['product_id'] ?? null))] + $row)
+            ->filter(fn ($row) => $row['products'] !== []);
         if ($rows->isEmpty()) {
             return back()->withInput()->with('warning', 'Choose a product for at least one pattern.');
         }
@@ -81,14 +87,15 @@ class PatternBulkLinkController extends Controller
                 $pattern = Pattern::findOrFail($row['pattern_id']);
                 $revision = $pattern->currentRevision()->first()
                     ?? $pattern->addRevision(['change_description' => 'First revision, recorded when linking products in bulk']);
-                $productRevision = filled($row['product_revision_id'] ?? null)
-                    ? ProductRevision::findOrFail($row['product_revision_id'])
-                    : Product::findOrFail($row['product_id'])->linkableRevision();
-                $count = (int) ($row['cavities'] ?? 1);
-
-                $layout->save($revision, ['cavities_per_mould' => $count], 'Cavity count set when linking products in bulk.');
-                for ($n = 1; $n <= $count; $n++) {
-                    $revision->cavityMap()->create(['cavity_number' => $n, 'product_revision_id' => $productRevision->id, 'cavity_role' => 'WHOLE', 'pieces_per_product' => 1]);
+                $layout->save($revision, ['cavities_per_mould' => $this->cavityTotal($row)], 'Cavity count set when linking products in bulk.');
+                $number = 0;
+                foreach ($row['products'] as $line) {
+                    $productRevision = filled($line['product_revision_id'] ?? null)
+                        ? ProductRevision::findOrFail($line['product_revision_id'])
+                        : Product::findOrFail($line['product_id'])->linkableRevision();
+                    for ($k = 0; $k < (int) ($line['cavities'] ?? 1); $k++) {
+                        $revision->cavityMap()->create(['cavity_number' => ++$number, 'product_revision_id' => $productRevision->id, 'cavity_role' => 'WHOLE', 'pieces_per_product' => 1]);
+                    }
                 }
             }
 
@@ -99,7 +106,18 @@ class PatternBulkLinkController extends Controller
     }
 
     /**
-     * Every row to save names a pattern, once, that is still unlinked, and a product revision of its product that is not obsolete.
+     * The cavities a row fills: the sum of its products' cavity counts.
+     *
+     * @param  array<string, mixed>  $row
+     */
+    private function cavityTotal(array $row): int
+    {
+        return (int) collect($row['products'])->sum(fn ($line) => (int) ($line['cavities'] ?? 1));
+    }
+
+    /**
+     * Every row to save names a pattern, once, that is still unlinked, with no more than 200 cavities in all; each product
+     * appears once on it, with a revision of that product that is not obsolete.
      *
      * @param  Collection<int|string, array<string, mixed>>  $rows
      */
@@ -118,13 +136,23 @@ class PatternBulkLinkController extends Controller
                 $errors["rows.{$i}.pattern_id"] = 'This pattern is already linked to a product; change it on its cavity map.';
             }
             $seen[$patternId] = true;
+            if (($total = $this->cavityTotal($row)) > 200) {
+                $errors["rows.{$i}.pattern_id"] = "{$total} cavities in all; a pattern has at most 200.";
+            }
 
-            if (filled($row['product_revision_id'] ?? null)) {
-                $revision = ProductRevision::where('product_id', $row['product_id'])->find($row['product_revision_id']);
-                if (! $revision) {
-                    $errors["rows.{$i}.product_revision_id"] = 'Choose a revision of this product.';
-                } elseif ($revision->status === 'OBSOLETE') {
-                    $errors["rows.{$i}.product_revision_id"] = 'An obsolete product revision cannot be linked to a pattern cavity.';
+            $products = [];
+            foreach ($row['products'] as $j => $line) {
+                if (isset($products[$line['product_id']])) {
+                    $errors["rows.{$i}.products.{$j}.product_id"] = 'This product is already on this pattern; raise its cavity count instead.';
+                }
+                $products[$line['product_id']] = true;
+                if (filled($line['product_revision_id'] ?? null)) {
+                    $revision = ProductRevision::where('product_id', $line['product_id'])->find($line['product_revision_id']);
+                    if (! $revision) {
+                        $errors["rows.{$i}.products.{$j}.product_revision_id"] = 'Choose a revision of this product.';
+                    } elseif ($revision->status === 'OBSOLETE') {
+                        $errors["rows.{$i}.products.{$j}.product_revision_id"] = 'An obsolete product revision cannot be linked to a pattern cavity.';
+                    }
                 }
             }
         }
