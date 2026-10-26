@@ -42,6 +42,7 @@ class FinanceServiceProvider extends ModuleServiceProvider
                 ['label' => 'Supplier bills', 'route' => 'bills.index', 'icon' => 'receipt', 'active' => ['bills.*'], 'count' => fn (): int => SupplierBill::where('status', 'DRAFT')->count()],
                 ['label' => 'Supplier payments', 'route' => 'supplier-payments.index', 'icon' => 'arrow-up-circle', 'active' => ['supplier-payments.*']],
                 ['label' => 'Payables', 'route' => 'payables.index', 'icon' => 'hourglass', 'active' => ['payables.*']],
+                ['label' => 'Tax register', 'route' => 'finance.tax-register', 'icon' => 'percent', 'active' => ['finance.tax-register']],
             ],
         ]];
     }
