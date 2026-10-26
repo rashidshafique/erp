@@ -42,6 +42,7 @@ use App\Http\Controllers\MouldingRunBulkController;
 use App\Http\Controllers\MouldingRunController;
 use App\Http\Controllers\MouldReadinessController;
 use App\Http\Controllers\NcrController;
+use App\Http\Controllers\PatternBulkLinkController;
 use App\Http\Controllers\PatternCavityController;
 use App\Http\Controllers\PatternController;
 use App\Http\Controllers\PatternOwnershipController;
@@ -91,6 +92,8 @@ Route::prefix('patterns')->name('patterns.')->controller(PatternController::clas
     Route::post('/', 'store')->name('store');
     Route::post('/first-revisions', 'storeFirstRevisions')->name('first-revisions.store');
     Route::post('/quick', 'storeQuick')->name('quick');
+    Route::get('/bulk-link', [PatternBulkLinkController::class, 'create'])->name('bulk-link');
+    Route::post('/bulk-link', [PatternBulkLinkController::class, 'store'])->name('bulk-link.store');
     Route::get('/{pattern}/edit', 'edit')->name('edit');
     Route::put('/{pattern}', 'update')->name('update');
     Route::get('/{pattern}', 'show')->name('show')->withTrashed();

@@ -17,6 +17,9 @@
         @if ($unlinkedPatterns > 0 && request('link') !== 'unlinked')
             <a class="btn" href="{{ route('patterns.index', ['link' => 'unlinked']) }}" title="Lists the patterns with no cavity linked to a product; open one and use ← → to go through them">Fix {{ $unlinkedPatterns }} unlinked {{ $unlinkedPatterns === 1 ? 'pattern' : 'patterns' }}</a>
         @endif
+        @if ($unlinkedPatterns > 0)
+            <a class="btn" href="{{ route('patterns.bulk-link') }}" title="Pick the product, cavity count and product revision of every unlinked pattern on one screen">Link in bulk</a>
+        @endif
         <a class="btn" href="{{ route('pattern-ownership.index') }}" style="display:inline-flex;align-items:center;gap:6px">{!! \App\Support\NavIcons::get('users', 15) !!}Pattern ownership</a> <a class="btn" href="{{ route('imports.create', ['entity' => 'pattern']) }}">Import</a> <a class="btn btn-primary" href="{{ route('patterns.create') }}">+ New pattern</a>
     </div>
 </div>
