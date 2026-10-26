@@ -30,6 +30,8 @@ class LedgerSettings
 
     public const TAX_ACCOUNTS = 'ledger.tax_accounts';
 
+    public const COST_OF_SALES = 'ledger.cost_of_sales';
+
     /** The account for a role: the one set under Settings, else the starting chart's. */
     public static function account(string $role): LedgerAccount
     {
@@ -72,6 +74,18 @@ class LedgerSettings
     public static function taxMap(): array
     {
         return json_decode((string) AppSetting::getValue(self::TAX_ACCOUNTS, '{}'), true) ?: [];
+    }
+
+    /** The top-level expense account the profit and loss shows before gross profit: the one set under Settings, else 5000 if it is one; none when set to "none". */
+    public static function costOfSales(): ?LedgerAccount
+    {
+        $id = AppSetting::getValue(self::COST_OF_SALES);
+        if ($id === 'none') {
+            return null;
+        }
+        $account = $id ? LedgerAccount::find($id) : LedgerAccount::where('code', '5000')->first();
+
+        return $account && $account->type === 'EXPENSE' && $account->parent_id === null ? $account : null;
     }
 
     /** Nothing can be posted on or before this date. */

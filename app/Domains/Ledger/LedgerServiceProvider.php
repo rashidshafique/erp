@@ -54,6 +54,9 @@ class LedgerServiceProvider extends ModuleServiceProvider
                 ['label' => 'Journals', 'route' => 'ledger.journals.index', 'icon' => 'file-text', 'active' => ['ledger.journals.*']],
                 ['label' => 'Chart of accounts', 'route' => 'ledger.accounts.index', 'icon' => 'list', 'active' => ['ledger.accounts.*']],
                 ['label' => 'Trial balance', 'route' => 'ledger.trial-balance', 'icon' => 'bars', 'active' => ['ledger.trial-balance']],
+                ['label' => 'Profit and loss', 'route' => 'ledger.profit-and-loss', 'icon' => 'bars', 'active' => ['ledger.profit-and-loss']],
+                ['label' => 'Balance sheet', 'route' => 'ledger.balance-sheet', 'icon' => 'bars', 'active' => ['ledger.balance-sheet']],
+                ['label' => 'General ledger', 'route' => 'ledger.general-ledger', 'icon' => 'file-text', 'active' => ['ledger.general-ledger']],
             ],
         ]];
     }

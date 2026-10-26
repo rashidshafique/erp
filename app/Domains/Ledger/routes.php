@@ -20,6 +20,9 @@ Route::middleware('web')->prefix('ledger')->name('ledger.')->group(function () {
         Route::post('/{journal}/reverse', 'reverse')->name('reverse');
     });
     Route::get('/trial-balance', [LedgerReportController::class, 'trialBalance'])->name('trial-balance');
+    Route::get('/profit-and-loss', [LedgerReportController::class, 'profitAndLoss'])->name('profit-and-loss');
+    Route::get('/balance-sheet', [LedgerReportController::class, 'balanceSheet'])->name('balance-sheet');
+    Route::get('/general-ledger', [LedgerReportController::class, 'generalLedger'])->name('general-ledger');
     Route::get('/settings', [LedgerSettingsController::class, 'edit'])->name('settings');
     Route::put('/settings', [LedgerSettingsController::class, 'update'])->name('settings.update');
     Route::post('/settings/post-missing', [LedgerSettingsController::class, 'postMissing'])->name('settings.post-missing');

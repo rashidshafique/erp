@@ -31,6 +31,7 @@ class LedgerSettingsController extends Controller
         return view('ledger::settings.edit', [
             'accounts' => LedgerAccount::postable()->orderBy('code')->get(), 'chosen' => $chosen, 'methods' => LedgerSettings::methodMap(),
             'authorities' => $authorities, 'taxMap' => LedgerSettings::taxMap(), 'closedTo' => LedgerSettings::closedTo(),
+            'topExpenses' => LedgerAccount::whereNull('parent_id')->where('type', 'EXPENSE')->orderBy('code')->get(), 'costOfSales' => LedgerSettings::costOfSales()?->id,
         ]);
     }
 
@@ -40,7 +41,15 @@ class LedgerSettingsController extends Controller
             'roles' => ['array'], 'roles.*' => ['nullable', 'uuid', 'exists:ledger_accounts,id'],
             'methods' => ['array'], 'methods.*.name' => ['nullable', 'string', 'max:30'], 'methods.*.account_id' => ['nullable', 'uuid', 'exists:ledger_accounts,id'],
             'tax' => ['array'], 'tax.*' => ['nullable', 'uuid', 'exists:ledger_accounts,id'], 'closed_to' => ['nullable', 'date'],
+            'cost_of_sales' => ['nullable', 'string', 'max:36'],
         ]);
+        if ($request->has('cost_of_sales')) {
+            $cost = $d['cost_of_sales'] ?? 'none';
+            if ($cost !== 'none' && ! LedgerAccount::whereKey($cost)->whereNull('parent_id')->where('type', 'EXPENSE')->exists()) {
+                return back()->withErrors(['cost_of_sales' => 'Cost of sales must be a top-level expense account.'])->withInput();
+            }
+            AppSetting::setValue(LedgerSettings::COST_OF_SALES, $cost, 'Expense group shown before gross profit');
+        }
         foreach (LedgerSettings::ROLES as $role => [$label]) {
             if (array_key_exists($role, $d['roles'] ?? [])) {
                 AppSetting::setValue('ledger.account.'.$role, (string) ($d['roles'][$role] ?? ''), 'Ledger account for: '.$label);
