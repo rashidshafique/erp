@@ -14,9 +14,17 @@
     <a class="btn" href="{{ route('products.index') }}">Cancel</a>
 </div>
 
+<style>
+    .product-new-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+    .product-new-cols > div { min-width: 0; }
+    @media (max-width: 1100px) { .product-new-cols { grid-template-columns: minmax(0, 1fr); } }
+</style>
+
 <form method="POST" action="{{ route('products.store') }}">
     @csrf
 
+    <div class="product-new-cols">
+    <div>
     <div class="panel">
         <div class="panel-header"><h2>Product information</h2></div>
         <div class="panel-body">
@@ -62,9 +70,8 @@
                     <label for="nominal_weight_kg">Nominal casting weight (kg)</label>
                     <input id="nominal_weight_kg" type="number" step="any" min="0"
                            name="nominal_weight_kg" value="{{ old('nominal_weight_kg') }}">
-                    <div class="help">Nominal finished-product weight, not total metal poured.</div>
+                    <div class="help">Finished weight, not metal poured.</div>
                     @error('nominal_weight_kg')<div class="error-text">{{ $message }}</div>@enderror
-                    <div class="help">The first revision starts with this weight, unless you enter its net weight below. Afterwards the product follows its current revision.</div>
                 </div>
 
                 <div class="field">
@@ -88,7 +95,9 @@
         <div class="panel-header"><h2>Tax and reporting</h2></div>
         <div class="panel-body">@include('partials.trade-fields', ['item' => $product])</div>
     </div>
+    </div>
 
+    <div>
     <div class="panel">
         <div class="panel-header"><h2>Initial product revision</h2></div>
         <div class="panel-body">
@@ -141,6 +150,8 @@
                 </div>
             </div>
         </div>
+    </div>
+    </div>
     </div>
 
     <div class="actions">
