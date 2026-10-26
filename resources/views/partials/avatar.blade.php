@@ -2,6 +2,6 @@
 @php
     $initials = strtoupper(mb_substr(collect(preg_split('/\s+/', trim($user->name)))->filter()->map(fn ($w) => mb_substr($w, 0, 1))->take(2)->implode(''), 0, 2));
     $url = $user->avatarUrl();
-    $size = $size ?? null;
+    $size = is_numeric($size ?? null) ? $size : null;   // a page's own $size (e.g. a flask size in a loop) is not a pixel size
 @endphp
 <span class="sp-avatar" aria-hidden="true" @if($size) style="width:{{ $size }}px;height:{{ $size }}px;font-size:{{ (int) ($size / 2.6) }}px" @endif>{{ $initials }}@if($url)<img src="{{ $url }}" alt="" onerror="this.remove()" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit">@endif</span>
