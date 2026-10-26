@@ -15,7 +15,7 @@
 </div>
 
 <style>
-    .product-new-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+    .product-new-cols { display: grid; grid-template-columns: minmax(0, 65fr) minmax(0, 35fr); gap: 16px; align-items: start; }
     .product-new-cols > div { min-width: 0; }
     @media (max-width: 1100px) { .product-new-cols { grid-template-columns: minmax(0, 1fr); } }
 </style>
