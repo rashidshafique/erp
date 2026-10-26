@@ -36,7 +36,10 @@ class SalesOrderEditTest extends TestCase
     public function test_a_draft_order_is_edited_and_the_change_is_logged_without_a_reason(): void
     {
         $order = $this->order();
-        $this->get(route('sales-orders.edit', $order))->assertOk()->assertDontSee('Reason for the change');
+        $line = $order->lines()->first();
+        $this->get(route('sales-orders.edit', $order))->assertOk()->assertDontSee('Reason for the change')
+            ->assertSee('name="lines[0][id]" value="'.$line->id.'"', false)->assertSee('name="lines[0][ordered_qty]" step="any" min="0.001" required value="10"', false)
+            ->assertSee('name="lines[0][unit_price]" step="any" min="0" value=""', false)->assertSee('data-remove aria-label="Remove line"', false);
 
         $this->put(route('sales-orders.update', $order), $this->payload($order, ['ordered_qty' => 25], ['customer_reference' => 'PO-9']))->assertSessionHasNoErrors();
 
@@ -80,6 +83,8 @@ class SalesOrderEditTest extends TestCase
         ProductionOrder::create(['production_order_number' => 'PO-'.uniqid(), 'sales_order_line_id' => $line->id, 'product_id' => $line->product_id, 'product_revision_id' => $line->product_revision_id,
             'order_type' => 'CUSTOMER', 'status' => 'RELEASED', 'priority' => 'NORMAL', 'planned_qty' => 10, 'released_qty' => 0, 'completed_qty' => 0, 'rejected_qty' => 0, 'uom' => 'piece']);
 
+        $page = $this->get(route('sales-orders.edit', $order))->assertOk()->assertSee('Reason for the change')->assertSee('Has production orders')->getContent();
+        $this->assertSame(1, substr_count($page, 'data-remove aria-label="Remove line"'), 'only the blank line template can be removed');
         $this->put(route('sales-orders.update', $order), $this->payload($order, ['ordered_qty' => 5], ['reason' => 'Reduce the order']))->assertSessionHasErrors('order');
         $this->put(route('sales-orders.update', $order), $this->payload($order, ['ordered_qty' => 20], ['reason' => 'Increase the order']))->assertSessionHasNoErrors();
         $this->assertEquals(20, $line->refresh()->ordered_qty);
