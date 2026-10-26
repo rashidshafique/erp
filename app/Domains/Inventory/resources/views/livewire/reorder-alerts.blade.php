@@ -55,7 +55,7 @@ new class extends Component
 <div class="panel">
     <div class="panel-header"><h2>Materials at or below minimum</h2><span class="muted small">Set the minimum and reorder quantity on each material.</span></div>
     <div class="table-wrap"><table>
-        <thead><tr><th>Material</th><th>On hand</th><th>Minimum</th><th>Short by</th><th>Suggested order</th><th>Alerted</th></tr></thead>
+        <thead><tr><th>Material</th><th>On hand</th><th>Minimum</th><th>Short by</th><th>Suggested order</th><th>Alerted</th><th>Actions</th></tr></thead>
         <tbody>
         @forelse ($rows as $row)
             <tr wire:key="ro-{{ $row['material']->id }}">
@@ -65,9 +65,10 @@ new class extends Component
                 <td>{{ \App\Support\Formats::number(max($row['shortfall'], 0), 3) }}</td>
                 <td><strong>{{ \App\Support\Formats::number($row['suggested'], 3) }}</strong> {{ $row['material']->base_uom }}</td>
                 <td class="muted small">{{ $row['material']->reorder_alerted_at ? \Illuminate\Support\Carbon::parse($row['material']->reorder_alerted_at)->diffForHumans() : 'not yet' }}</td>
+                <td><a class="btn btn-small" href="{{ route('materials.lots.create', $row['material']) }}">+ Record lot</a></td>
             </tr>
         @empty
-            <tr><td colspan="6" class="muted">Nothing is at its minimum. Materials with a minimum above zero are watched.</td></tr>
+            <tr><td colspan="7" class="muted">Nothing is at its minimum. Materials with a minimum above zero are watched.</td></tr>
         @endforelse
         </tbody>
     </table></div>

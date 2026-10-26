@@ -168,7 +168,8 @@ class ReorderAlertsTest extends TestCase
         $this->lotWith(Material::where('code', 'OKMAT')->first(), 900);
 
         $this->get(route('stock-reorder.index'))->assertOk();
-        Livewire::test('inventory::reorder-alerts')->assertSee('LOWMAT')->assertDontSee('OKMAT')->set('search', 'zzz')->assertDontSee('LOWMAT')
+        Livewire::test('inventory::reorder-alerts')->assertSee('LOWMAT')->assertDontSee('OKMAT')
+            ->assertSee(route('materials.lots.create', Material::where('code', 'LOWMAT')->first()))->set('search', 'zzz')->assertDontSee('LOWMAT')
             ->set('search', '')->call('checkNow')->assertSee('Checked');
 
         $this->get(route('dashboard', ['layout' => 'command']))->assertOk()->assertSee('1 material is at or below minimum stock', false);
