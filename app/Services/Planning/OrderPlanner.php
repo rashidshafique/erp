@@ -3,11 +3,14 @@
 namespace App\Services\Planning;
 
 use App\Models\CastingLot;
+use App\Models\FlaskSize;
 use App\Models\MouldingStation;
 use App\Models\MouldingWorkList;
 use App\Models\MouldingWorkListItem;
 use App\Models\PatternRevision;
 use App\Models\ProductionOrder;
+use App\Services\Production\FlaskLoad;
+use App\Services\Production\FlaskManager;
 use App\Services\Production\LotService;
 use App\Services\Production\WorkListService;
 use App\Support\PlannerRules;
@@ -24,7 +27,19 @@ class OrderPlanner
 {
     private const PRIORITY = ['URGENT' => 0, 'HIGH' => 1, 'NORMAL' => 2, 'LOW' => 3];
 
-    public function __construct(private WorkListService $lists, private LotService $lots) {}
+    /** Shifts the planner looks ahead before giving up on an order that cannot get flasks. */
+    private const HORIZON = 5000;
+
+    /** @var array<string, int> free sets per flask size at the start */
+    private array $flaskFree = [];
+
+    /** @var array<string, array<int, int>> change in free sets per size and shift: sets taken, and given back after the turnaround */
+    private array $flaskDelta = [];
+
+    /** Shifts until a flask held to shakeout is free again; 0 means flasks do not limit the plan. */
+    private int $flaskBack = 0;
+
+    public function __construct(private WorkListService $lists, private LotService $lots, private FlaskLoad $flaskLoad, private FlaskManager $flasks) {}
 
     /**
      * The plan from a given day: every open order best first with its projection, and the suggested rows for the first shift.
@@ -37,13 +52,18 @@ class OrderPlanner
         $stations = MouldingStation::where('status', 'ACTIVE')->orderBy('code')->get()->keyBy('id');
         $shiftsPerDay = PlannerRules::get('shifts_per_day');
         $after = PlannerRules::get('days_after_moulding');
+        $hours = PlannerRules::get('flask_back_hours');
+        [$this->flaskFree, $this->flaskDelta, $this->flaskBack] = [[], [], $hours ? max(1, (int) ceil($hours * $shiftsPerDay / 24)) : 0];
 
-        // Station load, shift by shift: moulds already on open lists come first.
+        // Station load, shift by shift: moulds already on open lists come first, and take their flask sets.
         $load = [];
-        foreach ($this->openListMoulds($from)->groupBy('moulding_station_id') as $stationId => $items) {
+        foreach ($this->openListMoulds($from)->load(['patternRevision.pattern', 'station'])->groupBy('moulding_station_id') as $stationId => $items) {
             if ($stations->has($stationId)) {
                 foreach ($items as $item) {
-                    $this->allocate($load, $stations[$stationId], (int) $item->planned_moulds);
+                    $size = $this->flaskLoad->heldSize($item->patternRevision, $item->station, $item->sand_system, $item->flasks_freed)?->id;
+                    foreach ($this->allocate($load, $stations[$stationId], (int) $item->planned_moulds) as ['shift' => $shift, 'moulds' => $moulds]) {
+                        $this->useFlasks($size, $shift, $moulds);
+                    }
                 }
             }
         }
@@ -51,9 +71,12 @@ class OrderPlanner
         // Each order that needs moulds joins a station's queue, in rank order.
         $queued = collect($load)->map(fn ($shifts) => array_sum($shifts))->all();
         $jobs = [];
+        $sizeOf = [];
         foreach ($orders as $i => $o) {
             if ($o['moulds_left'] > 0 && $o['pattern'] && ($station = $this->stationFor($o['pattern'], $stations, $queued))) {
-                $jobs[$station->id][] = ['order' => $i, 'pattern' => $o['pattern']->id, 'moulds' => $o['moulds_left']];
+                $size = $this->flaskLoad->heldSize($o['pattern'], $station, $station->defaultSand());
+                $jobs[$station->id][] = ['order' => $i, 'pattern' => $o['pattern']->id, 'size' => $size?->id, 'moulds' => $o['moulds_left']];
+                $sizeOf[$i] = $size;
                 $queued[$station->id] = ($queued[$station->id] ?? 0) + $o['moulds_left'];
             }
         }
@@ -72,8 +95,13 @@ class OrderPlanner
             if ($o['moulds_left'] > 0) {
                 if (! $o['pattern']) {
                     [$row['state'], $row['note']] = ['NO_PATTERN', 'No approved pattern with a cavity map makes this product.'];
-                } elseif (! isset($shiftsOf[$i])) {
+                } elseif (! array_key_exists($i, $sizeOf)) {
                     [$row['state'], $row['note']] = ['NO_RATE', 'No active station has moulds per shift set.'];
+                } elseif (array_sum($shiftsOf[$i] ?? []) < $o['moulds_left']) {
+                    $row['station'] = $stationOf[$i] ?? null;
+                    [$row['state'], $row['note']] = $sizeOf[$i]
+                        ? ['NO_FLASKS', "Not enough {$sizeOf[$i]->name} flask sets: ".array_sum($shiftsOf[$i] ?? [])." of {$o['moulds_left']} moulds can be planned."]
+                        : ['NO_RATE', 'Too many moulds to plan at this station\'s rate.'];
                 } else {
                     $station = $row['station'] = $stationOf[$i];
                     if (isset($shiftsOf[$i][0])) {
@@ -251,7 +279,7 @@ class OrderPlanner
         $runs = [];
         foreach ($jobs as $n => $job) {
             $key = PlannerRules::get('group_same_pattern') ? $job['pattern'] : $n;
-            $runs[$key] ??= ['pattern' => $job['pattern'], 'left' => 0, 'jobs' => []];
+            $runs[$key] ??= ['pattern' => $job['pattern'], 'size' => $job['size'], 'left' => 0, 'jobs' => []];
             $runs[$key]['left'] += $job['moulds'];
             $runs[$key]['jobs'][] = ['order' => $job['order'], 'left' => $job['moulds']];
         }
@@ -277,7 +305,7 @@ class OrderPlanner
                 }
             }
         };
-        for ($shift = 0; $runs; $shift++) {
+        for ($shift = 0; $runs && $shift < self::HORIZON; $shift++) {
             $cap = $rate - ($used[$shift] ?? 0);
             $on = [];   // patterns put on in this shift
             while ($cap > 0 && $runs) {
@@ -291,7 +319,11 @@ class OrderPlanner
 
                         continue;
                     }
-                    $need = isset($on[$run['pattern']]) ? 0 : max(1, min($minRun, $run['left']));
+                    $room = $this->flaskRoom($run['size'], $shift);
+                    if ($room <= 0) {
+                        continue;   // waits for flasks; the runs behind it may go ahead
+                    }
+                    $need = isset($on[$run['pattern']]) ? 0 : max(1, min($minRun, $run['left'], $room));
                     if (count($slots) >= $perShift || $cap - $reserved < $need) {
                         break;
                     }
@@ -306,26 +338,62 @@ class OrderPlanner
                 };
                 foreach ($slots as $pattern => $keys) {
                     if (! isset($on[$pattern])) {
-                        $first = min($minRun, $left($keys));
+                        $size = $runs[$keys[0]]['size'];
+                        $first = min($minRun, $left($keys), $this->flaskRoom($size, $shift));
                         $takePattern($keys, $first, $shift);
+                        $this->useFlasks($size, $shift, $first);
                         $cap -= $first;
                         $on[$pattern] = true;
                     }
                 }
                 $open = array_filter($slots, fn ($keys) => $left($keys) > 0);
                 $each = $open ? max(1, intdiv($cap, count($open))) : 0;
+                $gave = 0;
                 foreach ($open as $keys) {
-                    $give = min($each, $cap, $left($keys));
+                    $size = $runs[$keys[0]]['size'];
+                    $give = min($each, $cap, $left($keys), $this->flaskRoom($size, $shift));
                     if ($give > 0) {
                         $takePattern($keys, $give, $shift);
+                        $this->useFlasks($size, $shift, $give);
                         $cap -= $give;
+                        $gave += $give;
                     }
+                }
+                if (! $gave && ! array_filter($slots, fn ($keys) => ! isset($on[$runs[$keys[0]]['pattern']]))) {
+                    break;   // every slot is out of flasks for this shift
                 }
                 $runs = array_filter($runs, fn ($run) => $run['left'] > 0);
             }
         }
 
         return $out;
+    }
+
+    /** Sets of a size free through a shift and the turnaround after it, so a set taken now is not promised twice; no limit without a size. */
+    private function flaskRoom(?string $sizeId, int $shift): int
+    {
+        if (! $sizeId || ! $this->flaskBack) {
+            return PHP_INT_MAX;
+        }
+        $this->flaskFree[$sizeId] ??= $this->flasks->freeSets(FlaskSize::findOrFail($sizeId));
+        $deltas = $this->flaskDelta[$sizeId] ?? [];
+        $free = $this->flaskFree[$sizeId] + array_sum(array_filter($deltas, fn ($k) => $k < $shift, ARRAY_FILTER_USE_KEY));
+        $room = PHP_INT_MAX;
+        for ($t = $shift; $t < $shift + $this->flaskBack; $t++) {
+            $free += $deltas[$t] ?? 0;
+            $room = min($room, $free);
+        }
+
+        return max(0, $room);
+    }
+
+    /** Moulds of a size made in a shift take its sets, given back after the turnaround. */
+    private function useFlasks(?string $sizeId, int $shift, int $moulds): void
+    {
+        if ($sizeId && $this->flaskBack && $moulds > 0) {
+            $this->flaskDelta[$sizeId][$shift] = ($this->flaskDelta[$sizeId][$shift] ?? 0) - $moulds;
+            $this->flaskDelta[$sizeId][$shift + $this->flaskBack] = ($this->flaskDelta[$sizeId][$shift + $this->flaskBack] ?? 0) + $moulds;
+        }
     }
 
     /**

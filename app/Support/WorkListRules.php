@@ -13,6 +13,11 @@ class WorkListRules
             'BLOCK' => 'Not allowed: the list must be issued before its runs can start',
             'ALLOW' => 'Allowed: moulders can start items from a draft list while the planner finishes it',
         ], 'BLOCK'],
+        'flask_check' => ['worklists.flask_check', 'Planned moulds needing more flask sets than are free', [
+            'WARN' => 'Warn on the list; it can still be issued',
+            'BLOCK' => 'Not allowed: the list cannot be issued until enough sets are free or rows are cut',
+            'OFF' => 'Do not check flasks on work lists',
+        ], 'WARN'],
     ];
 
     public static function get(string $rule): string

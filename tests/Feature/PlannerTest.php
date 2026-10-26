@@ -119,6 +119,51 @@ class PlannerTest extends TestCase
             'order_type' => 'STOCK', 'status' => 'RELEASED', 'planned_qty' => 30, 'uom' => 'piece', 'required_date' => today()->addDays($dueInDays)]);
     }
 
+    public function test_moulds_held_to_shakeout_are_limited_by_free_flask_sets(): void
+    {
+        $w = $this->world();                                                                   // 50 moulds needed
+        $w['st']->update(['moulds_per_shift' => 40, 'default_sand_system' => 'Greensand']);
+        $size = \App\Models\FlaskSize::create(['code' => 'FS-1', 'name' => '10 × 13', 'status' => 'ACTIVE', 'sets_owned' => 30]);
+        $w['pr']->flaskSizes()->attach($size->id, ['is_primary' => true]);
+        $first = fn () => app(OrderPlanner::class)->plan(today())['orders'][0];
+
+        $this->assertSame(40, app(OrderPlanner::class)->plan(today())['suggestion'][$w['st']->id]['rows'][0]['moulds'], 'without a turnaround time flasks do not limit the plan');
+        $this->assertTrue($first()['finish']->isSameDay(today()->addDays(1 + 3)));
+
+        PlannerRules::set('flask_back_hours', 48);                                           // sets come back two shifts after use
+        $plan = app(OrderPlanner::class)->plan(today());
+        $this->assertSame(30, $plan['suggestion'][$w['st']->id]['rows'][0]['moulds']);
+        $this->assertTrue($plan['orders'][0]['finish']->isSameDay(today()->addDays(2 + 3)));  // 30 now, the other 20 when the sets are back
+
+        $w['pr']->pattern->update(['flasks_freed' => 'POUR']);                               // stripped at pour: no set is held
+        $this->assertSame(40, app(OrderPlanner::class)->plan(today())['suggestion'][$w['st']->id]['rows'][0]['moulds']);
+
+        $w['pr']->pattern->update(['flasks_freed' => null]);
+        $size->update(['sets_owned' => 0]);
+        $this->assertSame('NO_FLASKS', $first()['state']);
+    }
+
+    public function test_a_work_list_wanting_more_flask_sets_than_are_free_warns_or_blocks_issue(): void
+    {
+        $w = $this->world();
+        $w['st']->update(['default_sand_system' => 'Greensand']);
+        $size = \App\Models\FlaskSize::create(['code' => 'FS-1', 'name' => '10 × 13', 'status' => 'ACTIVE', 'sets_owned' => 30]);
+        $w['pr']->flaskSizes()->attach($size->id, ['is_primary' => true]);
+        $this->post(route('work-lists.store'), ['list_date' => today()->toDateString(), 'shift' => 'Morning']);
+        $list = MouldingWorkList::firstOrFail();
+        $this->post(route('work-lists.items.add', $list), $this->item($w, ['planned_moulds' => 40, 'sand_system' => 'Greensand']))->assertSessionHasNoErrors();
+
+        $this->get(route('work-lists.show', $list))->assertSee('10 × 13 short by 10');
+
+        \App\Support\WorkListRules::set('flask_check', 'BLOCK');
+        $this->post(route('work-lists.issue', $list), ['issued_by' => 'Planner'])->assertSessionHasErrors('item');
+        $this->assertSame('DRAFT', $list->fresh()->status);
+
+        $list->items()->update(['flasks_freed' => 'POUR']);                                   // stripped at pour, so nothing is held
+        $this->post(route('work-lists.issue', $list), ['issued_by' => 'Planner'])->assertSessionHasNoErrors();
+        $this->assertSame('ISSUED', $list->fresh()->status);
+    }
+
     public function test_the_suggestion_is_put_on_a_draft_work_list_linked_to_the_order(): void
     {
         $w = $this->world();
@@ -145,7 +190,7 @@ class PlannerTest extends TestCase
 
     public function test_assumptions_are_saved_within_their_limits(): void
     {
-        $rest = ['patterns_per_shift' => 1, 'min_run_moulds' => 0, 'group_same_pattern' => 0];
+        $rest = ['patterns_per_shift' => 1, 'min_run_moulds' => 0, 'group_same_pattern' => 0, 'flask_back_hours' => 0];
         $this->put(route('planner.rules'), ['shifts_per_day' => 4, 'days_after_moulding' => 2] + $rest)->assertSessionHasErrors('shifts_per_day');
         $this->put(route('planner.rules'), ['shifts_per_day' => 2, 'days_after_moulding' => 5] + $rest)->assertSessionHasNoErrors();
 

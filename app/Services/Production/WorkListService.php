@@ -345,6 +345,9 @@ class WorkListService
         if (! $list->items()->exists()) {
             throw new InvalidArgumentException('Add at least one item before issuing the list.');
         }
+        if (WorkListRules::get('flask_check') === 'BLOCK' && ($short = app(FlaskLoad::class)->bySize(list: $list)->where('short', '>', 0))->isNotEmpty()) {
+            throw new InvalidArgumentException('Not enough flask sets: '.$short->map(fn ($r) => "{$r['size']->name} needs {$r['wanted']}, {$r['free']} free")->implode('; ').'. Cut rows, move them to a later list, or free flasks first.');
+        }
         $list->update(['status' => 'ISSUED', 'issued_by' => $by, 'issued_at' => now()]);
     }
 

@@ -71,6 +71,8 @@
     </div>
 </div>
 
+@include('flasks._load', ['load' => $load, 'title' => 'Sets wanted by open work lists'])
+
 <div class="tab-marker" data-tab-start="Register"></div>
 <div class="panel">
     <div class="panel-body">

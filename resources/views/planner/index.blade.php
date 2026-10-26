@@ -5,7 +5,7 @@
 
 @section('content')
 @php
-    $states = ['LATE' => ['Late', 'status-cancelled'], 'AT_RISK' => ['At risk', 'status-on-hold'], 'ON_TRACK' => ['On track', 'status-completed'], 'NO_PATTERN' => ['No pattern', ''], 'NO_RATE' => ['No station rate', '']];
+    $states = ['LATE' => ['Late', 'status-cancelled'], 'AT_RISK' => ['At risk', 'status-on-hold'], 'ON_TRACK' => ['On track', 'status-completed'], 'NO_PATTERN' => ['No pattern', ''], 'NO_RATE' => ['No station rate', ''], 'NO_FLASKS' => ['No flasks', 'status-cancelled']];
 @endphp
 <div class="page-heading">
     <div><h1>Planner</h1><p>Open production orders, earliest due first: what to mould next, when each will finish, and what is waiting downstream.</p></div>
@@ -81,6 +81,8 @@
         </table></div>
     @endif
 </div>
+
+@include('flasks._load', ['load' => $flaskLoad, 'title' => 'Flask sets', 'note' => 'Wanted = planned moulds on open work lists from this day that keep their flasks until shakeout. The plan itself limits moulds by free sets when "Hours from pouring until flasks … are free again" is above 0.'])
 
 <div class="panel">
     <div class="panel-header"><h2>Assumptions</h2></div>

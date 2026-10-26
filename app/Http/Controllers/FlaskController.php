@@ -32,7 +32,7 @@ class FlaskController extends Controller
                 ->orWhere('mark_code', 'ilike', '%'.$request->input('search').'%')->orWhere('location', 'ilike', '%'.$request->input('search').'%')))
             ->orderBy('code')->paginate(50)->withQueryString();
 
-        return view('flasks.index', ['manager' => app(FlaskManager::class), 'sizes' => $sizes, 'counts' => $counts, 'flasks' => $flasks, 'rules' => collect(FlaskRules::RULES)->map(fn ($r, $k) => FlaskRules::get($k))->all()]);
+        return view('flasks.index', ['load' => app(\App\Services\Production\FlaskLoad::class)->bySize(today()), 'manager' => app(FlaskManager::class), 'sizes' => $sizes, 'counts' => $counts, 'flasks' => $flasks, 'rules' => collect(FlaskRules::RULES)->map(fn ($r, $k) => FlaskRules::get($k))->all()]);
     }
 
     /** Adds a batch of identical flasks, e.g. 20 drags of one size; marks may be listed one per line, the rest are generated. */

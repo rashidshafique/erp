@@ -8,6 +8,8 @@
 <div class="page-heading"><div><h1>{{ $list->list_number }}</h1><p>{{ $list->list_date->format('l d M Y') }} · {{ $list->shift }} shift · <span class="status">{{ $list->status }}</span>@if($list->issued_by) · issued by {{ $list->issued_by }}@endif</p></div>
 <div class="actions"><a class="btn" href="{{ route('work-lists.print', $list) }}" target="_blank">Print for teams</a></div></div>
 @if(session("success"))<div class="alert alert-success">{{ session("success") }}</div>@endif
+@if($flaskLoad->sum('short') > 0)<div class="alert alert-error">This list wants more flask sets than are free: {{ $flaskLoad->where('short', '>', 0)->map(fn ($r) => $r['size']->name.' short by '.$r['short'])->implode('; ') }}.</div>@endif
+@include('flasks._load', ['load' => $flaskLoad, 'title' => 'Flasks for this list'])
 
 @forelse($groups as $stationId => $items)
 @php

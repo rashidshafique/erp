@@ -69,6 +69,7 @@ class WorkListController extends Controller
             'list' => $list, 'orders' => $orders, 'patterns' => $patterns, 'needed' => $needed,
             'patternPhotos' => Attachment::coversFor('pattern', $patterns->pluck('pattern_id')->unique()->values()->all()),
             'teamOf' => $stations->mapWithKeys(fn ($s) => [$s->id => $s->defaultTeam ? $s->defaultTeam->code.' — '.$s->defaultTeam->lead_name : ''])->all(), 'patternProducts' => $patternProducts, 'patternSand' => $patternSand, 'autoOrder' => $autoOrder, 'running' => $running,
+            'flaskLoad' => in_array($list->status, ['DRAFT', 'ISSUED'], true) && \App\Support\WorkListRules::get('flask_check') !== 'OFF' ? app(\App\Services\Production\FlaskLoad::class)->bySize(list: $list) : collect(),
             'stations' => $stations, 'flaskSizes' => FlaskSize::ordered()->where('status', 'ACTIVE')->get(),
             'sands' => SandSystem::choices(...$list->items()->pluck('sand_system')->all()), 'sandFor' => $stations->mapWithKeys(fn ($s) => [$s->id => $svc->sandFor($list, $s)])->all(),
         ]);

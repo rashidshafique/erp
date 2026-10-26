@@ -20,7 +20,7 @@ class PlannerController extends Controller
         $day = Carbon::parse($request->validate(['day' => ['nullable', 'date']])['day'] ?? today());
 
         return view('planner.index', $planner->plan($day) + [
-            'day' => $day, 'shifts' => WorkListController::SHIFTS,
+            'day' => $day, 'shifts' => WorkListController::SHIFTS, 'flaskLoad' => app(\App\Services\Production\FlaskLoad::class)->bySize($day),
             'rules' => collect(PlannerRules::RULES)->map(fn ($r, $key) => ['label' => $r[1], 'min' => $r[2], 'max' => $r[3], 'value' => PlannerRules::get($key)]),
         ]);
     }
