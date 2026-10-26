@@ -17,6 +17,7 @@
     $existing = $order?->lines->keyBy('id') ?? collect();
     // A line already on the order shows its own product even when that revision is no longer offered.
     $fromLine = fn ($l) => ['name' => $l->product?->name, 'sub' => $l->product?->code.' · rev '.$l->productRevision?->revision, 'img' => $photos[$l->product_id] ?? null, 'price' => null, 'uom' => $l->product?->base_uom ?: 'pcs'];
+    $blankLine = ['name' => '', 'sub' => '', 'img' => null, 'price' => null, 'uom' => 'pcs'];
     $trim = fn ($v) => $v === null ? null : rtrim(rtrim((string) $v, '0'), '.');
     $formLines = old('lines') !== null
         ? collect(old('lines'))->map(function ($l) use ($existing, $catalogue, $fromLine) {
@@ -46,20 +47,6 @@
     .so-more summary::before { content: "▸"; font-size: 12px; transition: transform .15s; }
     .so-more[open] summary::before { transform: rotate(90deg); }
     .so-more .so-top { margin-top: 12px; }
-    .so-picker { position: relative; display: flex; gap: 10px; margin-top: 20px; padding: 10px; border-radius: 10px; background: color-mix(in srgb, var(--border) 45%, transparent); }
-    .so-search { flex: 1; position: relative; }
-    .so-search input { width: 100%; min-height: 42px; padding-left: 38px; font-size: 15px; }
-    .so-search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
-    .so-browse { min-height: 42px; white-space: nowrap; }
-    .so-results { position: absolute; left: 10px; right: 10px; top: calc(100% - 6px); z-index: 30; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 16px 36px rgb(15 23 42 / 18%); overflow: hidden; }
-    .so-results-head { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--border) 25%, transparent); }
-    .so-results-head a { color: var(--accent); font-weight: 500; text-decoration: none; }
-    .so-results-list { max-height: 320px; overflow-y: auto; }
-    .so-item { display: grid; grid-template-columns: 34px 1fr auto auto; gap: 12px; align-items: center; width: 100%; padding: 8px 16px; border: 0; border-bottom: 1px solid var(--border); background: none; color: var(--text); text-align: left; font: inherit; cursor: pointer; }
-    .so-item:last-child { border-bottom: 0; }
-    .so-item[aria-selected="true"], .so-item:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
-    .so-item .so-sub { color: var(--muted); font-size: 13px; }
-    .so-item .so-price { color: var(--success, #15803d); font-weight: 600; font-size: 13px; min-width: 90px; text-align: right; }
     .so-thumb { width: 34px; height: 34px; border-radius: 6px; object-fit: cover; background: color-mix(in srgb, var(--border) 70%, transparent); display: inline-flex; align-items: center; justify-content: center; color: var(--muted); }
     .so-lines { margin-top: 14px; }
     .so-grid { display: grid; grid-template-columns: 26px 46px minmax(180px, 1fr) 150px 18px 110px 46px 130px 34px; gap: 10px; align-items: center; }
@@ -92,6 +79,9 @@
     .so-preview { margin: 8px 0 2px 82px; padding: 8px 12px; border-radius: 8px; background: color-mix(in srgb, var(--accent) 8%, transparent); font-size: 13.5px; }
     .so-preview.is-jump { background: color-mix(in srgb, var(--danger, #b42318) 10%, transparent); }
     .so-preview strong { font-variant-numeric: tabular-nums; }
+    .so-prod select { width: 100%; }
+    .so-prod select + small { display: block; margin-top: 2px; }
+    .so-add-row { display: flex; gap: 14px; align-items: center; margin-top: 12px; }
     .so-empty { padding: 26px 0; text-align: center; color: var(--muted); border-bottom: 1px solid var(--border); }
     .so-bottom { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 380px); gap: 24px; margin-top: 22px; align-items: start; }
     .so-bottom textarea { width: 100%; max-width: 480px; }
@@ -141,36 +131,19 @@
         </div>
     </details>
 
-    <div class="so-picker" data-picker>
-        <div class="so-search">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-            <input type="search" id="so-find" placeholder="Type to add product" autocomplete="off" aria-label="Type to add a product" aria-controls="so-results" aria-expanded="false">
-        </div>
-        <button type="button" class="btn so-browse" data-browse>Browse products</button>
-        <div class="so-results" id="so-results" role="listbox" hidden>
-            <div class="so-results-head"><a href="{{ route('products.create') }}" target="_blank">+ Create product</a><span class="muted small">Enter adds the highlighted product</span></div>
-            <div class="so-results-list">
-                @foreach ($catalogue as $value => $p)
-                    <button type="button" class="so-item" role="option" value="{{ $value }}" data-name="{{ $p['name'] }}" data-sub="{{ $p['sub'] }}" data-img="{{ $p['img'] }}" data-price="{{ $p['price'] }}" data-uom="{{ $p['uom'] }}">
-                        @if ($p['img'])<img class="so-thumb" src="{{ $p['img'] }}" alt="" loading="lazy">@else<span class="so-thumb" aria-hidden="true">&#9638;</span>@endif
-                        <span>{{ $p['name'] }}</span>
-                        <span class="so-sub">{{ $p['sub'] }}@if ($p['kg']) · {{ \App\Support\Formats::number((float) $p['kg'], 2) }} kg @endif</span>
-                        <span class="so-price">@if ($prices && $p['price'] !== null)last {{ \App\Support\Formats::money($p['price']) }}@endif</span>
-                    </button>
-                @endforeach
-                <div class="so-empty" data-no-match hidden>No product matches.</div>
-            </div>
-        </div>
-    </div>
-
     <div class="so-lines">
         <div class="so-grid so-lines-head"><span></span><span></span><span>Product</span>@if ($prices)<span>Price</span><span></span>@endif<span>Quantity</span><span></span>@if ($prices)<span class="so-right">Total</span>@endif<span></span></div>
         <div data-lines>
             @foreach ($formLines as $i => $l)
-                @include('sales::orders._create-line', ['i' => $i, 'value' => $l['value'], 'p' => $l['p'], 'line' => $l['line'], 'record' => $l['record'], 'currency' => $money['currency'], 'prices' => $prices])
+                @include('sales::orders._create-line', ['i' => $i, 'value' => $l['value'], 'p' => $l['p'], 'line' => $l['line'], 'record' => $l['record'], 'catalogue' => $catalogue, 'currency' => $money['currency'], 'prices' => $prices])
             @endforeach
+            {{-- A new order starts with one empty row to pick the first product in. --}}
+            @if ($formLines->isEmpty() && ! $order)
+                @include('sales::orders._create-line', ['i' => 0, 'value' => '', 'p' => $blankLine, 'line' => [], 'record' => null, 'catalogue' => $catalogue, 'currency' => $money['currency'], 'prices' => $prices])
+            @endif
         </div>
-        <div class="so-empty" data-no-lines @if ($formLines->isNotEmpty()) hidden @endif>No products yet. Type above to add the first one.</div>
+        <div class="so-empty" data-no-lines hidden>No lines yet. Add the first one below.</div>
+        <div class="so-add-row"><button type="button" class="btn" data-add-line>+ Add line</button><a href="{{ route('products.create') }}" target="_blank" class="qd-add">+ Create product</a></div>
     </div>
 
     <div class="so-bottom">
@@ -187,37 +160,18 @@
 </div>
 </form>
 
-<template id="so-line-template">@include('sales::orders._create-line', ['i' => '__I__', 'value' => '', 'p' => ['name' => '', 'sub' => '', 'img' => null, 'price' => null, 'uom' => 'pcs'], 'line' => [], 'record' => null, 'currency' => $money['currency'], 'prices' => $prices])</template>
+<template id="so-line-template">@include('sales::orders._create-line', ['i' => '__I__', 'value' => '', 'p' => $blankLine, 'line' => [], 'record' => null, 'catalogue' => $catalogue, 'currency' => $money['currency'], 'prices' => $prices])</template>
 
 <script>
 (function () {
-    var form = document.getElementById('so-form'), find = document.getElementById('so-find'), results = document.getElementById('so-results');
-    var linesBox = form.querySelector('[data-lines]'), tpl = document.getElementById('so-line-template'), items = [].slice.call(results.querySelectorAll('.so-item'));
-    var next = linesBox.children.length, active = -1, money = @json(['currency' => $money['currency'], 'before' => $money['currency_position'] === 'before']);
+    var form = document.getElementById('so-form'), linesBox = form.querySelector('[data-lines]'), tpl = document.getElementById('so-line-template');
+    var next = linesBox.children.length, money = @json(['currency' => $money['currency'], 'before' => $money['currency_position'] === 'before']);
     function fmt(n) {
         var s = n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         return money.currency ? (money.before ? money.currency + ' ' + s : s + ' ' + money.currency) : s;
     }
-    function shown() { return items.filter(function (b) { return !b.hidden; }); }
-    function highlight(i) {
-        var list = shown(); items.forEach(function (b) { b.setAttribute('aria-selected', 'false'); });
-        active = list.length ? Math.max(0, Math.min(i, list.length - 1)) : -1;
-        if (active >= 0) { list[active].setAttribute('aria-selected', 'true'); list[active].scrollIntoView({ block: 'nearest' }); }
-    }
-    function filter() {
-        var words = find.value.toLowerCase().split(/\s+/).filter(Boolean), any = false;
-        items.forEach(function (b) {
-            var text = (b.dataset.name + ' ' + b.dataset.sub).toLowerCase();
-            b.hidden = !words.every(function (w) { return text.indexOf(w) >= 0; });
-            any = any || !b.hidden;
-        });
-        results.querySelector('[data-no-match]').hidden = any;
-        highlight(0);
-    }
-    function open() { results.hidden = false; find.setAttribute('aria-expanded', 'true'); filter(); }
-    function close() { results.hidden = true; find.setAttribute('aria-expanded', 'false'); }
     function recalc() {
-        var total = 0, pieces = 0, rows = linesBox.querySelectorAll('[data-line]');
+        var total = 0, pieces = 0, rows = [].filter.call(linesBox.querySelectorAll('[data-line]'), chosen);
         rows.forEach(function (row) {
             var q = row.dataset.pieces ? parseFloat(row.dataset.pieces) : (parseFloat(row.querySelector('[data-qty]').value) || 0), priceBox = row.querySelector('[data-price]'), p = priceBox ? parseFloat(priceBox.value) : NaN;
             pieces += q;
@@ -227,7 +181,7 @@
         form.querySelector('[data-count]').textContent = rows.length;
         form.querySelector('[data-pieces]').textContent = pieces.toLocaleString();
         if (form.querySelector('[data-grand]')) form.querySelector('[data-grand]').textContent = rows.length ? fmt(total) : '—';
-        form.querySelector('[data-no-lines]').hidden = rows.length > 0;
+        form.querySelector('[data-no-lines]').hidden = linesBox.querySelector('[data-line]') !== null;
     }
     // The repeat preview: works out the same deliveries the server will schedule, so the line's new total is seen before saving.
     function day(s) { var p = (s || '').split('-'); return p.length === 3 ? new Date(+p[0], +p[1] - 1, +p[2]) : null; }
@@ -295,35 +249,31 @@
         out.textContent = left < 0 ? 'Over the ordered ' + num(ordered) + ' by ' + num(-left) : 'Still to schedule: ' + num(left) + ' of ' + num(ordered);
         out.classList.toggle('is-over', left < 0);
     }
-    function add(button) {
-        var html = tpl.innerHTML.replace(/__I__/g, String(next++));
-        var holder = document.createElement('div'); holder.innerHTML = html.trim();
-        var row = holder.firstElementChild, d = button.dataset;
-        row.querySelector('[data-value]').value = button.value;
-        row.querySelector('[data-name]').textContent = d.name;
-        row.querySelector('[data-sub]').textContent = d.sub;
-        row.querySelector('[data-uom]').textContent = d.uom;
-        if (d.price && row.querySelector('[data-price]')) row.querySelector('[data-price]').value = d.price;
-        if (d.img) { var img = document.createElement('img'); img.className = 'so-thumb'; img.src = d.img; img.alt = ''; row.querySelector('.so-thumb').replaceWith(img); }
-        linesBox.appendChild(row);
-        find.value = ''; close(); recalc();
-        row.querySelector('[data-qty]').focus();
+    // A row counts once a product is picked; an empty row is left out of the totals and not sent.
+    function chosen(row) { var p = row.querySelector('[name$="[product_revision_id]"]'); return !!(p && p.value); }
+    function addLine() {
+        var holder = document.createElement('div'); holder.innerHTML = tpl.innerHTML.replace(/__I__/g, String(next++)).trim();
+        var row = holder.firstElementChild;
+        linesBox.appendChild(row); recalc();
+        row.querySelector('[data-product]').dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
     }
-    find.addEventListener('focus', open);
-    find.addEventListener('input', open);
-    find.addEventListener('keydown', function (e) {
-        if (e.key === 'ArrowDown') { e.preventDefault(); if (results.hidden) open(); else highlight(active + 1); }
-        else if (e.key === 'ArrowUp') { e.preventDefault(); highlight(active - 1); }
-        else if (e.key === 'Enter') { e.preventDefault(); var list = shown(); if (!results.hidden && list[active]) add(list[active]); }
-        else if (e.key === 'Escape') { close(); }
-    });
-    form.querySelector('[data-browse]').addEventListener('click', function () { find.value = ''; open(); find.focus(); });
-    results.addEventListener('mousedown', function (e) { if (e.target.closest('a')) return; e.preventDefault(); });
-    results.addEventListener('click', function (e) { var b = e.target.closest('.so-item'); if (b) add(b); });
-    document.addEventListener('click', function (e) { if (!e.target.closest('[data-picker]')) close(); });
+    function pickProduct(row, select) {
+        var o = select.options[select.selectedIndex], d = o ? o.dataset : {}, thumb = row.querySelector('.so-thumb'), priceBox = row.querySelector('[data-price]');
+        row.querySelector('[data-sub]').textContent = d.sub || '';
+        row.querySelector('[data-uom]').textContent = d.uom || 'pcs';
+        row.querySelector('[data-qty]').required = !!select.value;
+        if (priceBox && d.price && !priceBox.value) priceBox.value = d.price;
+        var img = d.img ? document.createElement('img') : document.createElement('span');
+        img.className = 'so-thumb';
+        if (d.img) { img.src = d.img; img.alt = ''; } else { img.setAttribute('aria-hidden', 'true'); img.innerHTML = '&#9638;'; }
+        thumb.replaceWith(img);
+        if (select.value) row.querySelector('[data-qty]').focus();
+    }
+    form.querySelector('[data-add-line]').addEventListener('click', addLine);
     linesBox.addEventListener('input', function (e) { var row = e.target.closest('[data-line]'); if (row) { preview(row); unscheduled(row); } recalc(); });
     linesBox.addEventListener('change', function (e) {
         var row = e.target.closest('[data-line]'); if (!row) return;
+        if (e.target.matches('[data-product]')) pickProduct(row, e.target);
         var pick = e.target.closest('[data-repeat]');
         if (pick) {
             row.querySelectorAll('[data-repeat-field]').forEach(function (el) { el.hidden = !pick.value; });
@@ -345,7 +295,7 @@
         }
     });
     form.addEventListener('submit', function (e) {
-        if (!linesBox.querySelector('[data-line]')) { e.preventDefault(); find.focus(); open(); alert('Add at least one product to the order.'); }
+        if (![].some.call(linesBox.querySelectorAll('[data-line]'), chosen)) { e.preventDefault(); alert('Pick a product on at least one line.'); }
     });
     previewAll();
     linesBox.querySelectorAll('[data-line]').forEach(unscheduled);

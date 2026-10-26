@@ -23,10 +23,11 @@ class SalesOrderCreateScreenTest extends TestCase
             $this->travel(1)->minutes();
         }
 
-        $this->get(route('sales-orders.create'))->assertOk()->assertDontSee('last 135')->assertDontSee('lines[__I__][unit_price]" step="any"', false);
+        $this->get(route('sales-orders.create'))->assertOk()->assertDontSee('data-price="135.0000"', false)->assertDontSee('lines[__I__][unit_price]" step="any"', false)
+            ->assertSee('name="lines[0][product_revision_id]" data-search-select="photos"', false)->assertSee('data-add-line', false);
 
         \App\Support\OrderRules::set('prices', 'SHOW');
-        $this->get(route('sales-orders.create'))->assertOk()->assertSee('value="'.$rev->id.'" data-name="Flange" data-sub="FLG-1 · rev A"', false)->assertSee('data-price="135.0000"', false)
+        $this->get(route('sales-orders.create'))->assertOk()->assertSee('value="'.$rev->id.'" data-sub="FLG-1 · rev A"', false)->assertSee('data-price="135.0000"', false)
             ->assertSee('lines[__I__][unit_price]" step="any"', false);
     }
 
