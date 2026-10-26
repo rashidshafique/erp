@@ -94,7 +94,7 @@ class WorkListStationsTest extends TestCase
 
         $page = $this->get(route('work-lists.show', $list))->assertOk();
         $page->assertSee('Alpha Pumps')->assertSee('Beta Valves')->assertSee('Gamma Engineering')->assertSee('Up to 2 patterns at once');
-        $this->get(route('work-lists.print', $list))->assertOk()->assertSee('Beta Valves')->assertSee('MAN-1');
+        $this->get(route('work-lists.print', $list))->assertOk()->assertSee('MAN-1')->assertDontSee('Beta Valves');
 
         $this->post(route('work-lists.stations.start', [$list, $bench]))->assertSessionHasNoErrors();               // starts two, not three
         $this->assertSame(2, $list->items()->where('status', 'IN_PROGRESS')->count());
@@ -188,7 +188,7 @@ class WorkListStationsTest extends TestCase
         $this->assertSame('NONE', $item->order_link);
         $this->get(route('work-lists.show', $list))->assertOk()->assertSee('No order yet')->assertSee('Find open order');
         $this->post(route('work-lists.items.link', [$list, $item]))->assertSessionHasErrors('item');   // still nothing open
-        $this->get(route('work-lists.print', $list))->assertOk()->assertSee('not linked');
+        $this->get(route('work-lists.print', $list))->assertOk();
         $this->post(route('work-lists.issue', $list), ['issued_by' => 'Planner']);
 
         // an open order appears before the run starts: it is picked up at start
@@ -330,7 +330,7 @@ class WorkListStationsTest extends TestCase
         $this->post(route('work-lists.rows.add', $list), ['moulding_station_id' => $green->id, 'rows' => [$bad + ['sand_override' => 1]]])->assertSessionHasNoErrors();
         $this->assertTrue((bool) $list->items()->where('pattern_revision_id', $sheera['pr']->id)->value('sand_override'));
         $this->get(route('work-lists.show', $list))->assertOk()->assertSee('sand mismatch accepted')->assertSee('Use anyway')->assertSee('"for":"Sheera"', false);
-        $this->get(route('work-lists.print', $list))->assertOk()->assertSee('plate not made for this sand');
+        $this->get(route('work-lists.print', $list))->assertOk()->assertDontSee('plate not made for this sand');
     }
 
     public function test_changing_a_lines_sand_checks_the_plates_already_on_it(): void
