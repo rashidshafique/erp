@@ -7,6 +7,7 @@ use App\Domains\Sales\Models\SalesOrderLine;
 use App\Models\ProductionOrder;
 use App\Models\ProductRevision;
 use App\Services\Audit\Audit;
+use App\Support\Formats;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -16,6 +17,9 @@ use Illuminate\Validation\ValidationException;
  */
 class SalesOrderEditor
 {
+    /** A line whose total grows or shrinks more than this many times is saved only once the user confirms it. */
+    private const JUMP = 3;
+
     public function isEditable(SalesOrder $order): bool
     {
         return in_array($order->status, SalesOrder::OPEN, true);
@@ -27,7 +31,7 @@ class SalesOrderEditor
     }
 
     /**
-     * @param  array{customer_id: string, customer_reference?: ?string, order_date: string, requested_delivery_date?: ?string, notes?: ?string, lines: array<int, array<string, mixed>>}  $data
+     * @param  array{customer_id: string, customer_reference?: ?string, order_date: string, requested_delivery_date?: ?string, notes?: ?string, confirm_jump?: mixed, lines: array<int, array<string, mixed>>}  $data
      * @return bool Whether the lines changed after the contract review was approved, so the review should be run again.
      */
     public function update(SalesOrder $order, array $data, ?string $reason): bool
@@ -48,6 +52,10 @@ class SalesOrderEditor
             $linesChanged = false;
             $kept = [];
             $repeated = [];
+            $replanned = [];
+            $jumps = [];
+            $repeating = app(RepeatingLines::class);
+            $confirmed = ! empty($data['confirm_jump']);
             $nextNumber = (int) $order->lines->max('line_number') + 1;
             foreach ($data['lines'] as $row) {
                 $line = isset($row['id']) ? $order->lines->firstWhere('id', $row['id']) : null;
@@ -71,10 +79,6 @@ class SalesOrderEditor
                 $kept[] = $line->id;
                 // A repeating line, or one being stopped, keeps the quantity it has scheduled; the box sets each future delivery instead.
                 $quantity = $repeat['repeat_every'] || $line->repeats() ? $line->ordered_qty : $row['ordered_qty'];
-                $floor = max((float) $started->get($line->id, collect())->sum('planned_qty'), (float) ($shipped[$line->id] ?? 0));
-                if ((float) $quantity < $floor - 0.0005) {
-                    $this->refuse("Line {$line->line_number} cannot go below {$floor}: that much is scheduled or shipped.");
-                }
                 $attributes = ['ordered_qty' => $quantity, 'unit_price' => $row['unit_price'] ?? null, 'requested_delivery_date' => $row['requested_delivery_date'] ?? null] + $repeat;
                 if ($repeat['repeat_every'] && $line->repeats() && ! (($row['repeat_from'] ?? null) ?: null)) {
                     $attributes['repeat_from'] = $line->repeat_from;
@@ -87,16 +91,37 @@ class SalesOrderEditor
                     $attributes += ['product_id' => $rev->product_id, 'product_revision_id' => $rev->id];
                 }
                 $line->fill($attributes);
+                // Starting to repeat, or changing how a line repeats, plans its deliveries again; the new total is checked before saving.
+                $plan = $line->repeats() && ($line->getOriginal('repeat_every') === null || $line->isDirty(['repeat_every', 'repeat_qty', 'repeat_from', 'repeat_until']))
+                    ? $repeating->preview($line, (float) ($shipped[$line->id] ?? 0)) : null;
+                $total = $plan['total'] ?? (float) $line->ordered_qty;
+                $committed = ['floor' => max((float) $started->get($line->id, collect())->sum('planned_qty'), (float) ($shipped[$line->id] ?? 0)),
+                    'released' => (float) $started->get($line->id, collect())->sum('planned_qty'), 'shipped' => (float) ($shipped[$line->id] ?? 0),
+                    'orders' => $started->get($line->id, collect())->pluck('production_order_number')->all()];
+                if ($message = $repeating->belowFloor($line, $total, $committed)) {
+                    $this->refuse($message);
+                }
+                $was = (float) $line->getOriginal('ordered_qty');
+                if ($was > 0 && ($total > $was * self::JUMP || $total < $was / self::JUMP)) {
+                    $jumps[] = "line {$line->line_number} goes from ".Formats::number($was).' to '.Formats::number($total);
+                }
                 if ($line->isDirty()) {
                     foreach ($line->getDirty() as $field => $value) {
                         $notes[] = "Line {$line->line_number} {$field}: ".($line->getOriginal($field) ?? '—').' → '.($value ?? '—');
                     }
-                    $linesChanged = $linesChanged || $line->isDirty(['ordered_qty', 'product_revision_id', 'repeat_every', 'repeat_qty']);
+                    $linesChanged = $linesChanged || $line->isDirty(['ordered_qty', 'product_revision_id', 'repeat_every', 'repeat_qty']) || $plan !== null;
                     $line->save();
                 }
-                if ($line->repeats()) {
+                if ($plan) {
+                    $replanned[] = [$line, $plan];
+                    $notes[] = "Line {$line->line_number} ".($plan['converting'] ? 'now repeats' : 'replanned').': '.count($plan['dates']).' deliveries of '.Formats::number((float) $line->repeat_qty)
+                        .($plan['dates'] ? ' from '.$plan['dates'][0]->format('j M Y') : '').'; ordered '.Formats::number($was).' → '.Formats::number($total);
+                } elseif ($line->repeats()) {
                     $repeated[] = $line;
                 }
+            }
+            if ($jumps !== [] && ! $confirmed) {
+                throw ValidationException::withMessages(['confirm_jump' => 'Please check: '.implode('; ', $jumps).'. If that is right, tick "Yes, these quantities are right" and save again.']);
             }
             foreach ($order->lines->whereNotIn('id', $kept) as $gone) {
                 if ($started->has($gone->id) || (float) ($shipped[$gone->id] ?? 0) > 0) {
@@ -115,8 +140,11 @@ class SalesOrderEditor
                 $notes[] = "{$field}: ".($order->getOriginal($field) ?? '—').' → '.($value ?? '—');
             }
             $order->save();
+            foreach ($replanned as [$line, $plan]) {
+                $repeating->apply($line, $plan);
+            }
             foreach ($repeated as $line) {
-                app(RepeatingLines::class)->topUp($line);
+                $repeating->topUp($line);
             }
 
             if ($notes !== []) {

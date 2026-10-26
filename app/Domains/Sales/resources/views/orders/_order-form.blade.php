@@ -81,6 +81,9 @@
     .so-remove:hover { background: color-mix(in srgb, var(--danger, #b42318) 12%, transparent); color: var(--danger, #b42318); }
     .so-extra { margin: 10px 0 2px 82px; display: flex; gap: 14px; flex-wrap: wrap; align-items: end; }
     .so-extra .field { margin: 0; }
+    .so-preview { margin: 8px 0 2px 82px; padding: 8px 12px; border-radius: 8px; background: color-mix(in srgb, var(--accent) 8%, transparent); font-size: 13.5px; }
+    .so-preview.is-jump { background: color-mix(in srgb, var(--danger, #b42318) 10%, transparent); }
+    .so-preview strong { font-variant-numeric: tabular-nums; }
     .so-empty { padding: 26px 0; text-align: center; color: var(--muted); border-bottom: 1px solid var(--border); }
     .so-bottom { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 380px); gap: 24px; margin-top: 22px; align-items: start; }
     .so-bottom textarea { width: 100%; max-width: 480px; }
@@ -97,7 +100,7 @@
         .so-line .so-money { grid-column: 2; }
         .so-line .so-qty { grid-column: 3; }
         .so-line .so-total { grid-column: 2 / 4; }
-        .so-extra { margin-left: 32px; }
+        .so-extra, .so-preview { margin-left: 32px; }
         .so-bottom { grid-template-columns: 1fr; }
     }
 </style>
@@ -109,7 +112,7 @@
 @if ($catalogue->isEmpty())
     <div class="alert alert-error">There are no products to order yet. Add a product first.</div>
 @else
-<form method="POST" action="{{ $action }}" id="so-form" @class(['so-noprice' => ! $prices])>
+<form method="POST" action="{{ $action }}" id="so-form" @class(['so-noprice' => ! $prices]) data-today="{{ today()->toDateString() }}" data-ahead="{{ \App\Support\OrderRules::repeatAheadDays() }}">
 @csrf @if ($order) @method('PUT') @endif
 <div class="so-card"><div class="so-body">
     <h2>Order detail</h2>
@@ -170,7 +173,7 @@
         </div>
     </div>
 </div>
-<div class="so-foot"><button class="btn btn-primary" type="submit">{{ $submit }}</button><a class="btn" href="{{ $cancel }}">Cancel</a></div>
+<div class="so-foot">@error('confirm_jump')<label style="margin:0 8px 0 0;align-self:center"><input type="checkbox" name="confirm_jump" value="1"> Yes, these quantities are right</label>@enderror<button class="btn btn-primary" type="submit">{{ $submit }}</button><a class="btn" href="{{ $cancel }}">Cancel</a></div>
 </div>
 </form>
 
@@ -206,7 +209,7 @@
     function recalc() {
         var total = 0, pieces = 0, rows = linesBox.querySelectorAll('[data-line]');
         rows.forEach(function (row) {
-            var q = parseFloat(row.querySelector('[data-qty]').value) || 0, priceBox = row.querySelector('[data-price]'), p = priceBox ? parseFloat(priceBox.value) : NaN;
+            var q = row.dataset.pieces ? parseFloat(row.dataset.pieces) : (parseFloat(row.querySelector('[data-qty]').value) || 0), priceBox = row.querySelector('[data-price]'), p = priceBox ? parseFloat(priceBox.value) : NaN;
             pieces += q;
             if (priceBox) row.querySelector('[data-total]').textContent = isNaN(p) ? '—' : fmt(q * p);
             if (!isNaN(p)) total += q * p;
@@ -216,6 +219,44 @@
         if (form.querySelector('[data-grand]')) form.querySelector('[data-grand]').textContent = rows.length ? fmt(total) : '—';
         form.querySelector('[data-no-lines]').hidden = rows.length > 0;
     }
+    // The repeat preview: works out the same deliveries the server will schedule, so the line's new total is seen before saving.
+    function day(s) { var p = (s || '').split('-'); return p.length === 3 ? new Date(+p[0], +p[1] - 1, +p[2]) : null; }
+    function step(from, n, every) {
+        if (every === 'WEEK') return new Date(from.getFullYear(), from.getMonth(), from.getDate() + 7 * n);
+        var last = new Date(from.getFullYear(), from.getMonth() + n + 1, 0).getDate();
+        return new Date(from.getFullYear(), from.getMonth() + n, Math.min(from.getDate(), last));
+    }
+    function short(d) { return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }); }
+    function num(n) { return n.toLocaleString(undefined, { maximumFractionDigits: 3 }); }
+    function preview(row) {
+        var pick = row.querySelector('[data-repeat]'), out = row.querySelector('[data-repeat-preview]'), qty = parseFloat(row.querySelector('[data-qty]').value) || 0;
+        row.querySelector('[data-qty]').placeholder = pick.value ? (pick.value === 'WEEK' ? 'Each week' : 'Each month') : 'Qty';
+        if (!pick.value) { out.hidden = true; row.dataset.pieces = ''; return; }
+        var field = function (n) { var el = row.querySelector('[name$="[' + n + ']"]'); return el ? el.value : ''; };
+        var from = day(field('repeat_from') || field('requested_delivery_date') || form.querySelector('#requested_delivery_date').value || form.querySelector('#order_date').value);
+        var until = day(field('repeat_until')), today = day(form.dataset.today), horizon = new Date(today.getFullYear(), today.getMonth(), today.getDate() + (+form.dataset.ahead));
+        if (!from) { out.hidden = true; return; }
+        var was = row.dataset.wasRepeating === '1', kept = parseFloat(row.dataset.kept) || 0, ordered = parseFloat(row.dataset.ordered) || 0;
+        var force = !was || from >= today, now = [], all = 0;
+        for (var n = 0; n < 600; n++) {
+            var d = step(from, n, pick.value);
+            if (until && d > until) break;
+            if (was && d < today) continue;
+            if (d <= horizon || (force && !now.length)) now.push(d);
+            if (!until && d > horizon) break;
+            all++;
+        }
+        var total = kept + now.length * qty, every = pick.value === 'WEEK' ? 'week' : 'month';
+        var text = '<strong>' + num(qty) + '</strong> each ' + every + ': ' + now.length + ' ' + (now.length === 1 ? 'delivery' : 'deliveries')
+            + (now.length ? ' (' + short(now[0]) + (now.length > 1 ? ' to ' + short(now[now.length - 1]) : '') + ')' : '')
+            + (kept ? ' + ' + num(kept) + (was ? ' already due' : ' already shipped') : '') + ' = <strong>' + num(total) + '</strong> ordered now';
+        text += until ? ', <strong>' + num(kept + all * qty) + '</strong> by ' + short(until) + '.' : ', then ' + num(qty) + ' more each ' + every + '.';
+        var jump = ordered > 0 && (total > ordered * 3 || total < ordered / 3);
+        if (jump) text += ' This line is ' + num(ordered) + ' now: please check the quantity is for each ' + every + '.';
+        out.innerHTML = text; out.hidden = false; out.classList.toggle('is-jump', jump);
+        row.dataset.pieces = String(total);
+    }
+    function previewAll() { linesBox.querySelectorAll('[data-line]').forEach(preview); }
     function add(button) {
         var html = tpl.innerHTML.replace(/__I__/g, String(next++));
         var holder = document.createElement('div'); holder.innerHTML = html.trim();
@@ -242,14 +283,17 @@
     results.addEventListener('mousedown', function (e) { if (e.target.closest('a')) return; e.preventDefault(); });
     results.addEventListener('click', function (e) { var b = e.target.closest('.so-item'); if (b) add(b); });
     document.addEventListener('click', function (e) { if (!e.target.closest('[data-picker]')) close(); });
-    linesBox.addEventListener('input', recalc);
+    linesBox.addEventListener('input', function (e) { var row = e.target.closest('[data-line]'); if (row) preview(row); recalc(); });
     linesBox.addEventListener('change', function (e) {
-        var pick = e.target.closest('[data-repeat]'); if (!pick) return;
-        var row = pick.closest('[data-line]');
-        row.querySelectorAll('[data-repeat-field]').forEach(function (el) { el.hidden = !pick.value; });
-        row.querySelector('[data-repeat-note]').hidden = !!pick.value;
-        row.querySelector('[data-qty]').placeholder = pick.value ? 'Each time' : 'Qty';
+        var row = e.target.closest('[data-line]'); if (!row) return;
+        var pick = e.target.closest('[data-repeat]');
+        if (pick) {
+            row.querySelectorAll('[data-repeat-field]').forEach(function (el) { el.hidden = !pick.value; });
+            row.querySelector('[data-repeat-note]').hidden = !!pick.value;
+        }
+        preview(row); recalc();
     });
+    ['order_date', 'requested_delivery_date'].forEach(function (id) { form.querySelector('#' + id).addEventListener('change', function () { previewAll(); recalc(); }); });
     linesBox.addEventListener('click', function (e) {
         var row = e.target.closest('[data-line]'); if (!row) return;
         if (e.target.closest('[data-remove]')) { row.remove(); recalc(); return; }
@@ -262,6 +306,7 @@
     form.addEventListener('submit', function (e) {
         if (!linesBox.querySelector('[data-line]')) { e.preventDefault(); find.focus(); open(); alert('Add at least one product to the order.'); }
     });
+    previewAll();
     recalc();
 })();
 </script>

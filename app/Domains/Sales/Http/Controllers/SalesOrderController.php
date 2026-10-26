@@ -146,6 +146,7 @@ class SalesOrderController extends Controller
             'requested_delivery_date' => ['nullable', 'date', 'after_or_equal:order_date'],
             'notes' => ['nullable', 'string', 'max:3000'],
             'reason' => [$editor->needsReason($salesOrder) ? 'required' : 'nullable', 'string', 'min:5', 'max:300'],
+            'confirm_jump' => ['nullable', 'boolean'],
             'lines' => ['required', 'array', 'min:1', 'max:50'],
             'lines.*.id' => ['nullable', 'uuid'],
             'lines.*.product_revision_id' => ['required_without:lines.*.id', 'nullable', new ProductRevisionChoice],
@@ -225,6 +226,7 @@ class SalesOrderController extends Controller
             return back()->withErrors(['quantity' => 'Line '.$line->line_number.' has only '.\App\Support\Formats::number(max($room, 0), 2).' left to schedule.'])->withInput();
         }
         $line->deliveries()->create($data);
+        app(RepeatingLines::class)->log($line, 'Line '.$line->line_number.': delivery of '.\App\Support\Formats::number((float) $data['quantity']).' for '.\Illuminate\Support\Carbon::parse($data['due_date'])->format('j M Y').' added');
 
         return back()->with('success', 'Delivery added to line '.$line->line_number.'.');
     }
@@ -233,7 +235,23 @@ class SalesOrderController extends Controller
     {
         abort_unless($line->sales_order_id === $salesOrder->id && $delivery->sales_order_line_id === $line->id, 404);
         abort_unless(in_array($salesOrder->status, SalesOrder::OPEN, true), 403);
-        $delivery->delete();
+        $repeating = app(RepeatingLines::class);
+        $summary = 'Line '.$line->line_number.': delivery of '.\App\Support\Formats::number((float) $delivery->quantity).' for '.$delivery->due_date->format('j M Y').' removed';
+        // A repeating line's ordered quantity is its deliveries, so it shrinks with them; a one-off line keeps its quantity to schedule again.
+        if ($line->repeats()) {
+            $total = round((float) $line->ordered_qty - (float) $delivery->quantity, 3);
+            if ($message = $repeating->belowFloor($line, $total)) {
+                return back()->withErrors(['quantity' => $message]);
+            }
+            DB::transaction(function () use ($line, $delivery, $total) {
+                $delivery->delete();
+                $line->update(['ordered_qty' => $total]);
+            });
+            $summary .= '; ordered '.\App\Support\Formats::number($total + (float) $delivery->quantity).' → '.\App\Support\Formats::number($total);
+        } else {
+            $delivery->delete();
+        }
+        $repeating->log($line, $summary);
 
         return back()->with('success', 'Delivery removed.');
     }

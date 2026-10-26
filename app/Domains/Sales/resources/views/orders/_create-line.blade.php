@@ -5,8 +5,11 @@
     $repeats = ! empty($line['repeat_every']);
     $hasDate = ! empty($line['requested_delivery_date']) || $repeats;
     $locked = $record && $record->productionOrders->where('status', '!=', 'CANCELLED')->isNotEmpty();
+    // What the preview adds the new deliveries to: deliveries before today on a repeating line, else what was already shipped.
+    $kept = ! $record ? 0 : ($record->repeats() ? (float) $record->deliveries->where('due_date', '<', today())->sum('quantity')
+        : (float) \Illuminate\Support\Facades\DB::table('dispatch_items')->where('sales_order_line_id', $record->id)->sum('quantity_dispatched'));
 @endphp
-<div class="so-line {{ $hasDate ? 'is-open' : '' }}" data-line>
+<div class="so-line {{ $hasDate ? 'is-open' : '' }}" data-line data-was-repeating="{{ $record?->repeats() ? 1 : 0 }}" data-kept="{{ $kept }}" data-ordered="{{ $record ? (float) $record->ordered_qty : 0 }}">
     <div class="so-grid">
         <button type="button" class="so-caret" data-toggle aria-expanded="{{ $hasDate ? 'true' : 'false' }}" aria-label="Line details">&#9656;</button>
         @if ($p['img'])<img class="so-thumb" src="{{ $p['img'] }}" alt="">@else<span class="so-thumb" aria-hidden="true">&#9638;</span>@endif
@@ -34,6 +37,7 @@
         <div class="field" data-repeat-field @unless ($repeats) hidden @endunless><label>First delivery</label><input type="date" name="lines[{{ $i }}][repeat_from]" value="{{ $line['repeat_from'] ?? '' }}"></div>
         <div class="field" data-repeat-field @unless ($repeats) hidden @endunless><label>Until (optional)</label><input type="date" name="lines[{{ $i }}][repeat_until]" value="{{ $line['repeat_until'] ?? '' }}"></div>
         <span class="muted small" data-repeat-note @if ($repeats) hidden @endif>Leave empty to use the order's requested delivery. Staggered deliveries are set on the order once it is saved.</span>
-        <span class="muted small" data-repeat-field @unless ($repeats) hidden @endunless>No PO each time: the quantity is delivered every period and the next deliveries are added on their own. Invoice each dispatch as usual. Stopping keeps the deliveries already scheduled.</span>
+        <span class="muted small" data-repeat-field @unless ($repeats) hidden @endunless>No PO each time: the quantity box is the quantity of each delivery, and the next deliveries are added on their own. The line's total is its deliveries, so a one-off quantity is replaced; for a one-off as well, add the product again as a second line. Stopping keeps the deliveries already scheduled.</span>
     </div>
+    <div class="so-preview" data-repeat-preview @unless ($repeats) hidden @endunless aria-live="polite"></div>
 </div>
