@@ -27,7 +27,7 @@ class FoundrySize implements MenuFilter
     /** Micro shows only these routes (and the quick flow pages). */
     private const MICRO_SHOWS = [
         'dashboard', 'customers.index', 'sales-orders.index', 'products.index', 'patterns.index', 'pours.index', 'heats.index', 'furnaces.index',
-        'materials.index', 'quick-qc.index', 'lots.index', 'dispatches.index',
+        'materials.index', 'quick-qc.index', 'lots.index', 'packing.index', 'dispatches.index',
     ];
 
     /** Micro shows only these module groups. */

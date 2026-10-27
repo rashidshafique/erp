@@ -24,7 +24,7 @@ class FoundrySizeTest extends TestCase
     {
         $this->put(route('settings.size'), ['size' => 'MICRO'])->assertRedirect();
         $this->get(route('dashboard'))->assertOk()
-            ->assertSee('Moulds made / poured')->assertSee('Quick QC')->assertSee('Sales orders')
+            ->assertSee('Moulds made / poured')->assertSee('Quick QC')->assertSee('Sales orders')->assertSee(route('packing.index'), false)
             ->assertDontSee('Sand systems')->assertDontSee('Casting analysis')->assertDontSee('Controlled documents')->assertDontSee('Iron grades');
     }
 
