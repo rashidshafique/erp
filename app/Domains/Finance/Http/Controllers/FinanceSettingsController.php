@@ -15,20 +15,21 @@ class FinanceSettingsController extends Controller
 {
     public function edit(): View
     {
-        return view('finance::settings.edit', ['dueDays' => FinanceRules::dueDays(), 'currency' => FinanceRules::currency(), 'billMatch' => FinanceRules::billMatch(), 'billTolerance' => FinanceRules::billTolerance(), 'advances' => FinanceRules::advances(), 'rates' => TaxRate::orderBy('name')->get()]);
+        return view('finance::settings.edit', ['dueDays' => FinanceRules::dueDays(), 'currency' => FinanceRules::currency(), 'billMatch' => FinanceRules::billMatch(), 'billTolerance' => FinanceRules::billTolerance(), 'advances' => FinanceRules::advances(), 'billCost' => FinanceRules::billPriceToCost(), 'rates' => TaxRate::orderBy('name')->get()]);
     }
 
     public function update(Request $request): RedirectResponse
     {
         $d = $request->validate(['due_days' => ['required', 'integer', 'min:0', 'max:365'], 'currency' => ['nullable', 'string', 'max:10'],
             'bill_match' => ['sometimes', Rule::in(array_keys(FinanceRules::MATCH_OPTIONS))], 'bill_tolerance' => ['sometimes', 'numeric', 'min:0', 'max:100'],
-            'advances' => ['sometimes', Rule::in(array_keys(FinanceRules::ADVANCE_OPTIONS))]]);
+            'advances' => ['sometimes', Rule::in(array_keys(FinanceRules::ADVANCE_OPTIONS))], 'bill_cost' => ['sometimes', Rule::in(array_keys(FinanceRules::BILL_COST_OPTIONS))]]);
         AppSetting::setValue(FinanceRules::DUE_DAYS, (string) $d['due_days'], 'Days to payment on a new invoice when the customer has no terms');
         AppSetting::setValue(FinanceRules::CURRENCY, (string) ($d['currency'] ?? ''), 'Currency on a new invoice');
 
         AppSetting::setValue(FinanceRules::BILL_MATCH, $d['bill_match'] ?? FinanceRules::billMatch(), 'What happens when a supplier bill does not match its purchase order');
         AppSetting::setValue(FinanceRules::BILL_TOLERANCE, (string) ($d['bill_tolerance'] ?? FinanceRules::billTolerance()), 'Percent a supplier bill line may go over the order price or received quantity');
 
+        AppSetting::setValue(FinanceRules::BILL_COST, $d['bill_cost'] ?? FinanceRules::billPriceToCost(), 'Whether a supplier bill price becomes the cost of the lots received');
         AppSetting::setValue(FinanceRules::ADVANCES, $d['advances'] ?? FinanceRules::advances(), 'What happens to money received or paid before the invoice or bill');
 
         return back()->with('success', 'Invoicing settings saved.');

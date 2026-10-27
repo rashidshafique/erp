@@ -59,7 +59,7 @@ Updated 2026-10-27.
 - Advances (2026-10-27): a receipt can name the sales order and a supplier payment the purchase order it is an advance for. "Use money on account" on an invoice and "Use advances" on a bill put that money on it, the document's own order first and never another order's (a payment naming no order goes anywhere). Settings > Invoicing: "Money paid in advance" MANUAL (button, default) or AUTO (on issue / post). Nothing posts: both sides already sit in receivables or payables, so the balance sheet still nets advances inside them.
 - Left, in order (each changes how existing documents count, so they wait for a decision):
   1. Done: withheld tax settlement (tax certificates above).
-  2. Done: advances. Still open: bill price differences feeding back into lot cost.
+  2. Done: advances, and bill price into lot cost (2026-10-27): posting a bill line from a purchase order line re-costs that line's lots at the billed price (net of tax, weighted over its posted bills), with the stock left at the new cost; stock already used keeps its cost and the difference is recorded (`lot_cost_adjustments`, shown on the bill). A void puts the order price back. Rule under Settings > Invoicing, on by default. Supplier credit notes are not counted.
   3. Purchase-side tax rules (bills and POs still use the typed percent, so the input tax register has no authority) and tax returns.
   4. E-invoicing (FBR digital invoicing for Pakistan): calls FBR's service, needs credentials.
 
@@ -88,7 +88,7 @@ In priority order:
 1. **Stores/Inventory** (next in the module split): stock ledger, bins, issues, GRN, stock valuation.
 2. **Costing** (`Costing` is empty): actual versus standard cost per casting (metal, energy, labour, fettling).
 3. **MRP and scheduling** (`MRP`, `Production` are empty): material requirements planning, finite capacity scheduling.
-4. **Finance** (in progress): invoicing, receivables, supplier bills, payables, the double-entry general ledger, P&L, balance sheet, bank reconciliation and the tax register are in; still to do, in order: bill price differences into lot cost, purchase-side tax and returns, e-invoicing (list under Finance in Done).
+4. **Finance** (in progress): invoicing, receivables, supplier bills, payables, the double-entry general ledger, P&L, balance sheet, bank reconciliation and the tax register are in; still to do, in order: purchase-side tax and returns, e-invoicing (list under Finance in Done).
 5. **Outside processing and machining routings**: subcontract flow, machining steps.
 6. **Reporting and BI**: management dashboards, customer scorecards, statutory report exports.
 7. **Integration**: EDI, e-invoicing and tax filing for the target market, barcode and device input.

@@ -21,7 +21,7 @@ class BillService
 {
     public const PREFIXES = ['BILL' => 'BILL', 'CREDIT_NOTE' => 'SCN'];
 
-    public function __construct(private InvoiceService $numbers, private Advances $advances) {}
+    public function __construct(private InvoiceService $numbers, private Advances $advances, private LotCosting $costing) {}
 
     /**
      * Saves a draft: the head and its lines, with every amount worked out here. Pass an existing draft to replace its lines.
@@ -135,6 +135,7 @@ class BillService
             $due = $bill->due_date ?? ($bill->isCreditNote() ? null : $bill->bill_date->copy()->addDays(FinanceRules::daysFromTerms($bill->payment_terms)));
             $bill->update(['bill_number' => $this->numbers->nextNumber(self::PREFIXES[$bill->kind], 'supplier_bills', 'bill_number'), 'status' => 'POSTED', 'posted_at' => now(), 'due_date' => $due]);
             event(new DocumentPosted($bill));
+            $this->costing->refresh($bill);
             if (FinanceRules::advances() === 'AUTO') {
                 $this->advances->applyToBill($bill);
             }
@@ -155,6 +156,7 @@ class BillService
         DB::transaction(function () use ($bill, $reason) {
             $bill->update(['status' => 'VOID', 'voided_at' => now(), 'void_reason' => $reason]);
             event(new DocumentVoided($bill));
+            $this->costing->refresh($bill, 'VOIDED');
         });
 
         return $bill->fresh();

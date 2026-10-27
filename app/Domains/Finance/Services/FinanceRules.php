@@ -23,6 +23,22 @@ class FinanceRules
         'BLOCK' => 'The bill cannot be posted until it matches the order and what was received',
     ];
 
+    public const BILL_COST = 'finance.bill_price_to_cost';
+
+    /** Whether a supplier bill's price replaces the order price as the cost of the lots received on that order line. */
+    public const BILL_COST_OPTIONS = [
+        'ON' => 'The billed price becomes the cost of the lots received on that order line (what is left in stock)',
+        'OFF' => 'Lots keep the order price',
+    ];
+
+    /** @return 'ON'|'OFF' */
+    public static function billPriceToCost(): string
+    {
+        $v = (string) AppSetting::getValue(self::BILL_COST, 'ON');
+
+        return isset(self::BILL_COST_OPTIONS[$v]) ? $v : 'ON';
+    }
+
     public const ADVANCES = 'finance.apply_advances';
 
     /** What happens to money already received from a customer or paid to a supplier when their next invoice or bill counts. */
