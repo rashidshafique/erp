@@ -8,8 +8,8 @@ use Livewire\Attributes\On;
 use Livewire\Component;
 
 /**
- * What matters about a heat at a glance, above its tabs: how long it has run and how long is left, the charges in and the last
- * one, the metal charged (worked out from those charges), the next charge, and the latest test. The clocks count in the browser;
+ * What matters about a heat at a glance, above its tabs: the metal charged (worked out from the charges) and the latest test first,
+ * then how long it has run and how long is left, and the charges in with the last one and the next. The clocks count in the browser;
  * the rest is refreshed every half minute and whenever a charge is changed.
  */
 new class extends Component
@@ -73,6 +73,33 @@ new class extends Component
     .hs-readings { text-align: left; font: 600 12.5px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text); white-space: nowrap; }
 </style>
 
+{{-- Metal charged, worked out from the charges. --}}
+<div class="hs-tile">
+    <div class="hs-label">Metal charged</div>
+    <div class="hs-value">{{ $metal > 0 ? \App\Support\Formats::number($metal, fmod($metal, 1.0) == 0.0 ? 0 : 1) : '—' }} @if ($metal > 0)<small>kg</small>@endif</div>
+    @if ($heat->target_metal_weight_kg > 0)
+        <div class="hs-sub" @if ($rate) title="Melting rate: {{ ['live' => 'measured on this heat', 'recorded' => 'furnace recorded average', 'rated' => 'furnace rated speed'][$rate['source']] }}" @endif><b>{{ \App\Support\Formats::number($metal / (float) $heat->target_metal_weight_kg * 100, 0) }}%</b> of {{ \App\Support\Formats::number((float) $heat->target_metal_weight_kg, 0) }}@if ($rate) @ <b>{{ \App\Support\Formats::number($rate['rate'], 0) }}</b> kg/hr @else kg @endif</div>
+        <div class="hs-bar"><span style="width: {{ min(100, round($metal / (float) $heat->target_metal_weight_kg * 100)) }}%"></span></div>
+    @else
+        <div class="hs-sub">From the charges recorded</div>
+    @endif
+</div>
+
+{{-- The latest test: the verdict sits top right, the readings and time are left-aligned. --}}
+<div class="hs-tile {{ $latest && $latest['result'] === 'FAIL' ? 'is-bad' : '' }}">
+    <div class="hs-head">
+        <div class="hs-label">Latest test</div>
+        @if ($latest)<span class="hs-chip status {{ $latest['result'] === 'PASS' ? 'status-completed' : ($latest['result'] === 'FAIL' ? 'status-cancelled' : '') }}">{{ $latest['result'] === 'UNJUDGED' ? 'NOT JUDGED' : $latest['result'] }}</span>@endif
+    </div>
+    @if ($latest)
+        <div class="hs-readings">C {{ $latest['c'] !== null ? \App\Support\Formats::number($latest['c'], 2) : '—' }} · CE {{ $latest['ce'] !== null ? \App\Support\Formats::number($latest['ce'], 2) : '—' }} · Si {{ $latest['si'] !== null ? \App\Support\Formats::number($latest['si'], 2) : '—' }}</div>
+        <div class="hs-sub"><b>{{ $latest['at']->displayAt() }}</b> · {{ $latest['at']->diffForHumans(null, true, true) }} ago @if ($latest['reference']) · {{ $latest['reference'] }}@endif</div>
+    @else
+        <div class="hs-value">—</div>
+        <div class="hs-sub">No test yet @if ($open)· <button type="button" class="link-btn" style="padding:0" data-quick="qd-record-test">record one</button>@endif</div>
+    @endif
+</div>
+
 {{-- Running time: counted in the browser from the start of the run. --}}
 @if ($run['start'])
 <div class="hs-tile" title="Furnace running time for this heat, from {{ $run['start']->displayAt() }}"
@@ -118,30 +145,4 @@ new class extends Component
     <div class="hs-bar"><span style="width: {{ $planned > 0 ? min(100, round($done / $planned * 100)) : 0 }}%"></span></div>
 </div>
 
-{{-- Metal charged, worked out from the charges. --}}
-<div class="hs-tile">
-    <div class="hs-label">Metal charged</div>
-    <div class="hs-value">{{ $metal > 0 ? \App\Support\Formats::number($metal, fmod($metal, 1.0) == 0.0 ? 0 : 1) : '—' }} @if ($metal > 0)<small>kg</small>@endif</div>
-    @if ($heat->target_metal_weight_kg > 0)
-        <div class="hs-sub" @if ($rate) title="Melting rate: {{ ['live' => 'measured on this heat', 'recorded' => 'furnace recorded average', 'rated' => 'furnace rated speed'][$rate['source']] }}" @endif><b>{{ \App\Support\Formats::number($metal / (float) $heat->target_metal_weight_kg * 100, 0) }}%</b> of {{ \App\Support\Formats::number((float) $heat->target_metal_weight_kg, 0) }}@if ($rate) @ <b>{{ \App\Support\Formats::number($rate['rate'], 0) }}</b> kg/hr @else kg @endif</div>
-        <div class="hs-bar"><span style="width: {{ min(100, round($metal / (float) $heat->target_metal_weight_kg * 100)) }}%"></span></div>
-    @else
-        <div class="hs-sub">From the charges recorded</div>
-    @endif
-</div>
-
-{{-- The latest test: the verdict sits top right, the readings and time are left-aligned. --}}
-<div class="hs-tile {{ $latest && $latest['result'] === 'FAIL' ? 'is-bad' : '' }}">
-    <div class="hs-head">
-        <div class="hs-label">Latest test</div>
-        @if ($latest)<span class="hs-chip status {{ $latest['result'] === 'PASS' ? 'status-completed' : ($latest['result'] === 'FAIL' ? 'status-cancelled' : '') }}">{{ $latest['result'] === 'UNJUDGED' ? 'NOT JUDGED' : $latest['result'] }}</span>@endif
-    </div>
-    @if ($latest)
-        <div class="hs-readings">C {{ $latest['c'] !== null ? \App\Support\Formats::number($latest['c'], 2) : '—' }} · CE {{ $latest['ce'] !== null ? \App\Support\Formats::number($latest['ce'], 2) : '—' }} · Si {{ $latest['si'] !== null ? \App\Support\Formats::number($latest['si'], 2) : '—' }}</div>
-        <div class="hs-sub"><b>{{ $latest['at']->displayAt() }}</b> · {{ $latest['at']->diffForHumans(null, true, true) }} ago @if ($latest['reference']) · {{ $latest['reference'] }}@endif</div>
-    @else
-        <div class="hs-value">—</div>
-        <div class="hs-sub">No test yet @if ($open)· <button type="button" class="link-btn" style="padding:0" data-quick="qd-record-test">record one</button>@endif</div>
-    @endif
-</div>
 </div>
