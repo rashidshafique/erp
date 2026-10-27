@@ -144,14 +144,38 @@ class RuleBasedTax implements TaxCalculator
     }
 
     /**
-     * The tax a supplier charged on a purchase line: the typed percent, named by the matching charged taxes.
+     * The tax on a purchase line: what the supplier charged (the typed percent, named by the matching charged taxes), then what
+     * we keep back from them when we are a withholding agent.
      *
      * @return list<TaxAmount>
      */
     private function purchaseLine(TaxLine $line, array $setup): array
     {
+        $matching = $this->matching($line, $setup);
+        $charged = $this->purchaseCharged($line, $matching->where('kind', 'CHARGED'));
+        $byCode = collect($charged)->keyBy('code');
+        $withheld = [];
+        foreach ($matching->where('kind', 'WITHHELD') as $c) {
+            $base = match ($c->base) {
+                'NET' => $line->net,
+                'GROSS' => $line->net + $byCode->sum('amount'),
+                default => $byCode->has($c->base) ? $byCode[$c->base]->amount : null,
+            };
+            if ($base !== null && $base > 0) {
+                $withheld[] = new TaxAmount($c->code, $c->name, round($base, 2), (float) $c->rate, round($base * (float) $c->rate / 100, 2), true, $c->authority?->code);
+            }
+        }
+
+        return [...$charged, ...$withheld];
+    }
+
+    /**
+     * @param  Collection<int, TaxComponent>  $components  the matching charged taxes
+     * @return list<TaxAmount>
+     */
+    private function purchaseCharged(TaxLine $line, Collection $components): array
+    {
         $typed = (float) ($line->percent ?? 0);
-        $components = $this->matching($line, $setup)->where('kind', 'CHARGED');
         if ($typed <= 0 || $components->isEmpty()) {
             return $this->flat->flat($line->net, $line->percent);
         }
@@ -199,6 +223,12 @@ class RuleBasedTax implements TaxCalculator
         return array_values($amounts);
     }
 
+    /** Whether the side that pays keeps back tax: the buyer on a sale, the company itself on a purchase. */
+    private function withholds(array $setup): bool
+    {
+        return $setup['side'] === TaxContext::SALE ? (bool) $setup['profile']?->is_withholding_agent : TaxSetup::company()['withholding_agent'];
+    }
+
     /** Whether every condition of a rule holds for a line. */
     private function matches(array $conditions, TaxLine $line, array $setup): bool
     {
@@ -208,7 +238,7 @@ class RuleBasedTax implements TaxCalculator
         return (! isset($conditions['supply_type']) || $conditions['supply_type'] === $line->supplyType)
             && (! isset($conditions['regions']) || in_array($setup['region'], $conditions['regions'], true))
             && (! isset($conditions['party_status']) || in_array($profile?->tax_status, $conditions['party_status'], true))
-            && (! isset($conditions['withholding_agent']) || (bool) $conditions['withholding_agent'] === (bool) $profile?->is_withholding_agent)
+            && (! isset($conditions['withholding_agent']) || (bool) $conditions['withholding_agent'] === $this->withholds($setup))
             && (! isset($conditions['inventory_classes']) || in_array($line->inventoryClass, $conditions['inventory_classes'], true))
             && (! isset($conditions['code_prefix']) || ($digits !== '' && str_starts_with($digits, $conditions['code_prefix'])));
     }

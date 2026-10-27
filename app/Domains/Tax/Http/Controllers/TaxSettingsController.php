@@ -49,10 +49,10 @@ class TaxSettingsController extends Controller
             'region' => ['nullable', 'string', 'max:10'],
             'registrations' => ['nullable', 'array'],
             'registrations.*' => ['nullable', 'string', 'max:60'],
-            'registered' => ['nullable', 'array'],
+            'registered' => ['nullable', 'array'], 'withholding_agent' => ['nullable', 'boolean'],
         ]);
         AppSetting::setValue(TaxJurisdiction::SETTING, $d['jurisdiction'], 'The country whose tax rules apply');
-        TaxSetup::saveCompany($d['region'] ?? null, $d['registrations'] ?? []);
+        TaxSetup::saveCompany($d['region'] ?? null, $d['registrations'] ?? [], (bool) ($d['withholding_agent'] ?? false));
         TaxAuthority::where('jurisdiction', $d['jurisdiction'])->get()
             ->each(fn (TaxAuthority $a) => $a->update(['is_registered' => in_array($a->id, $d['registered'] ?? [], true)]));
 

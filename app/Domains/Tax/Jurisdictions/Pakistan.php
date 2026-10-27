@@ -7,7 +7,8 @@ use App\Domains\Core\Tax\Jurisdiction;
 /**
  * Pakistan: sales tax on goods is federal (FBR, Sales Tax Act 1990); sales tax on services is provincial, collected where the
  * service is supplied (SRB in Sindh, PRA in Punjab, KPRA in Khyber Pakhtunkhwa, BRA in Balochistan; FBR for Islamabad). Some buyers
- * are withholding agents and keep back part of the sales tax and income tax for the authority.
+ * are withholding agents and keep back part of the sales tax and income tax for the authority; when the company is one, it keeps
+ * back the same from what it pays its suppliers.
  *
  * The rates here are only a starting set and must be checked against the current Finance Act and SROs before use; each loaded
  * row carries a note saying so, and every rate is edited on the Taxation settings page, not here.
@@ -85,6 +86,7 @@ class Pakistan implements Jurisdiction
             ['code' => 'ST_SERVICES_IS', 'name' => 'Islamabad sales tax on services', 'authority' => 'FBR', 'kind' => 'CHARGED', 'rate' => 16.0, 'base' => 'NET'],
             ['code' => 'WHT_ST', 'name' => 'Sales tax withheld by the buyer', 'authority' => 'FBR', 'kind' => 'WITHHELD', 'rate' => 20.0, 'base' => 'ST_GOODS'],
             ['code' => 'WHT_IT_GOODS', 'name' => 'Income tax withheld on supply of goods', 'authority' => 'FBR', 'kind' => 'WITHHELD', 'rate' => 5.0, 'base' => 'GROSS'],
+            ['code' => 'WHT_IT_SERVICES', 'name' => 'Income tax withheld on services', 'authority' => 'FBR', 'kind' => 'WITHHELD', 'rate' => 9.0, 'base' => 'GROSS'],
         ]);
     }
 
@@ -106,6 +108,12 @@ class Pakistan implements Jurisdiction
                 'conditions' => ['supply_type' => 'GOODS', 'party_status' => ['REGISTERED'], 'withholding_agent' => true], 'components' => ['WHT_ST']],
             ['name' => 'Income tax withheld by a withholding agent', 'priority' => 90, 'side' => 'SALE',
                 'conditions' => ['supply_type' => 'GOODS', 'withholding_agent' => true], 'components' => ['WHT_IT_GOODS']],
+            ['name' => 'Sales tax we withhold from a registered supplier', 'priority' => 80, 'side' => 'PURCHASE',
+                'conditions' => ['supply_type' => 'GOODS', 'party_status' => ['REGISTERED'], 'withholding_agent' => true], 'components' => ['WHT_ST']],
+            ['name' => 'Income tax we withhold on goods bought', 'priority' => 90, 'side' => 'PURCHASE',
+                'conditions' => ['supply_type' => 'GOODS', 'withholding_agent' => true], 'components' => ['WHT_IT_GOODS']],
+            ['name' => 'Income tax we withhold on services bought', 'priority' => 91, 'side' => 'PURCHASE',
+                'conditions' => ['supply_type' => 'SERVICE', 'withholding_agent' => true], 'components' => ['WHT_IT_SERVICES']],
         ];
     }
 }

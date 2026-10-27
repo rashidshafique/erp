@@ -21,13 +21,17 @@ class TaxSetup
     {
         $saved = json_decode((string) AppSetting::getValue(self::COMPANY, ''), true) ?: [];
 
-        return ['region' => $saved['region'] ?? null, 'registrations' => $saved['registrations'] ?? []];
+        return ['region' => $saved['region'] ?? null, 'registrations' => $saved['registrations'] ?? [], 'withholding_agent' => (bool) ($saved['withholding_agent'] ?? false)];
     }
 
-    /** @param array<string, string|null> $registrations */
-    public static function saveCompany(?string $region, array $registrations): void
+    /**
+     * @param  array<string, string|null>  $registrations
+     * @param  bool  $withholdingAgent  whether the company must keep back tax from what it pays suppliers
+     */
+    public static function saveCompany(?string $region, array $registrations, bool $withholdingAgent = false): void
     {
-        AppSetting::setValue(self::COMPANY, json_encode(['region' => $region ?: null, 'registrations' => array_filter($registrations, 'filled')]), "The company's tax region and registration numbers");
+        AppSetting::setValue(self::COMPANY, json_encode(['region' => $region ?: null, 'registrations' => array_filter($registrations, 'filled'), 'withholding_agent' => $withholdingAgent]),
+            "The company's tax region, registration numbers and whether it withholds tax");
     }
 
     /** Whether the country already has taxes or rules that loading its defaults would replace. */
@@ -62,6 +66,40 @@ class TaxSetup
             foreach ($pack->defaultRules() as $r) {
                 TaxRule::create(['jurisdiction' => $code] + $r);
             }
+        });
+    }
+
+    /**
+     * Adds the pack's taxes and rules that a country loaded earlier does not have yet (by tax code and rule name), leaving
+     * everything already there as it was edited. Returns how many rows were added.
+     */
+    public function addMissing(Jurisdiction $pack): int
+    {
+        $code = $pack->code();
+        if (! $this->hasData($code)) {
+            return 0;
+        }
+
+        return DB::transaction(function () use ($pack, $code) {
+            $added = 0;
+            $authorities = TaxAuthority::where('jurisdiction', $code)->get()->keyBy('code');
+            $have = TaxComponent::where('jurisdiction', $code)->pluck('code')->unique()->all();
+            foreach ($pack->defaultComponents() as $c) {
+                if (! in_array($c['code'], $have, true) && isset($authorities[$c['authority']])) {
+                    TaxComponent::create(['jurisdiction' => $code, 'tax_authority_id' => $authorities[$c['authority']]->id, 'code' => $c['code'], 'name' => $c['name'],
+                        'kind' => $c['kind'], 'rate' => $c['rate'], 'base' => $c['base'], 'effective_from' => $c['effective_from'], 'note' => $c['note'] ?? null]);
+                    $added++;
+                }
+            }
+            $names = TaxRule::where('jurisdiction', $code)->pluck('name')->all();
+            foreach ($pack->defaultRules() as $r) {
+                if (! in_array($r['name'], $names, true)) {
+                    TaxRule::create(['jurisdiction' => $code] + $r);
+                    $added++;
+                }
+            }
+
+            return $added;
         });
     }
 

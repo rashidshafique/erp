@@ -73,7 +73,10 @@ class TaxRegister
         return $rows;
     }
 
-    /** Each bill line's tax as the supplier charged it, named by tax and authority where the rules could; older lines as one unnamed tax at their percent. */
+    /**
+     * Each bill line's tax as the supplier charged it, named by tax and authority where the rules could, and the tax we withheld
+     * from them; older lines as one unnamed tax at their percent.
+     */
     private function purchases(string $from, string $to, callable $regs): Collection
     {
         $bills = SupplierBill::with(['lines', 'supplier'])->where('status', 'POSTED')->whereBetween('bill_date', [$from, $to])->get();
@@ -90,7 +93,7 @@ class TaxRegister
                 foreach ($line->taxes ?? [['code' => 'TAX', 'label' => 'Input tax', 'authority' => null, 'rate' => $line->tax_percent, 'base' => $line->line_net, 'amount' => $line->line_tax]] as $t) {
                     $key = $t['code'].'|'.(float) $t['rate'];
                     $grouped[$key] ??= $head + ['code' => $t['code'], 'label' => $t['code'] === 'TAX' ? 'Input tax' : $t['label'], 'authority' => $t['authority'] ?? null,
-                        'rate' => (float) $t['rate'], 'base' => 0.0, 'amount' => 0.0, 'withheld' => false];
+                        'rate' => (float) $t['rate'], 'base' => 0.0, 'amount' => 0.0, 'withheld' => (bool) ($t['withheld'] ?? false)];
                     $grouped[$key]['base'] = round($grouped[$key]['base'] + $sign * (float) $t['base'], 2);
                     $grouped[$key]['amount'] = round($grouped[$key]['amount'] + $sign * (float) $t['amount'], 2);
                 }

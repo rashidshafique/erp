@@ -19,6 +19,7 @@
 <div class="panel"><div class="panel-body" style="display:flex;gap:28px;flex-wrap:wrap">
     <div><div class="muted small">Status</div><span class="status {{ $bill->status === 'POSTED' ? 'status-completed' : ($bill->status === 'VOID' ? 'status-cancelled' : 'status-on-hold') }}">{{ $bill->status }}</span></div>
     <div><div class="muted small">Total</div><strong>{{ $m($bill->total) }} {{ $cur }}</strong></div>
+    @if ($bill->tax_withheld > 0)<div><div class="muted small">We withhold for the authority</div>{{ $m($bill->tax_withheld) }}</div><div><div class="muted small">Supplier is paid</div><strong>{{ $m($bill->payableToSupplier()) }}</strong></div>@endif
     @if (! $bill->isCreditNote() && $bill->status === 'POSTED')
         <div><div class="muted small">Paid</div>{{ $m($bill->paid()) }}</div><div><div class="muted small">Credited</div>{{ $m($bill->credited()) }}</div>
         <div><div class="muted small">Owing</div><strong @if ($bill->isOverdue()) style="color:var(--danger)" @endif>{{ $m($bill->balance()) }}</strong></div>
@@ -28,7 +29,7 @@
 </div>
 @if ($bill->status === 'VOID')<div class="panel-body muted">Voided {{ $bill->voided_at?->displayShortDateTime() }}: {{ $bill->void_reason }}</div>@endif</div>
 <div class="panel"><div class="table-wrap"><table><thead><tr><th>#</th><th>Description</th><th>Qty</th><th>Price</th><th>Tax</th><th class="num">Amount</th></tr></thead><tbody>
-@foreach ($bill->lines as $l)<tr><td>{{ $l->line_number }}</td><td>{{ $l->description }}</td><td>{{ \App\Support\Formats::number($l->quantity, 3) }} {{ $l->uom }}</td><td>{{ $m($l->unit_price) }}</td><td>{{ $l->tax_percent > 0 ? \App\Support\Formats::number($l->tax_percent, 2).'%' : '—' }}@foreach (collect($l->taxes ?? [])->where('code', '!=', 'TAX') as $t)<div class="muted small">{{ $t['label'] }}{{ ($t['authority'] ?? null) ? ' · '.$t['authority'] : '' }}</div>@endforeach</td><td class="num">{{ $m($l->line_net) }}</td></tr>@endforeach
+@foreach ($bill->lines as $l)<tr><td>{{ $l->line_number }}</td><td>{{ $l->description }}</td><td>{{ \App\Support\Formats::number($l->quantity, 3) }} {{ $l->uom }}</td><td>{{ $m($l->unit_price) }}</td><td>{{ $l->tax_percent > 0 ? \App\Support\Formats::number($l->tax_percent, 2).'%' : '—' }}@foreach (collect($l->taxes ?? [])->where('code', '!=', 'TAX') as $t)<div class="muted small">{{ $t['label'] }}{{ ($t['authority'] ?? null) ? ' · '.$t['authority'] : '' }}@if ($t['withheld'] ?? false): we withhold {{ $m($t['amount']) }}@endif</div>@endforeach</td><td class="num">{{ $m($l->line_net) }}</td></tr>@endforeach
 </tbody><tfoot><tr><td colspan="5" class="num muted">Subtotal</td><td class="num">{{ $m($bill->subtotal) }}</td></tr><tr><td colspan="5" class="num muted">Tax</td><td class="num">{{ $m($bill->tax_total) }}</td></tr><tr><th colspan="5" class="num">Total</th><th class="num">{{ $m($bill->total) }}</th></tr></tfoot></table></div>
 @if ($bill->notes)<div class="panel-body small">{{ $bill->notes }}</div>@endif</div>
 @if ($bill->allocations->isNotEmpty() || $bill->creditNotes->isNotEmpty())

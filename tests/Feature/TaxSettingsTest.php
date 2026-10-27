@@ -66,7 +66,7 @@ class TaxSettingsTest extends TestCase
 
         $this->put(route('tax.company.update'), ['jurisdiction' => 'PK', 'region' => 'SD', 'registrations' => ['NTN' => '1234567-8', 'STRN' => ''], 'registered' => [$srb->id]])->assertSessionHasNoErrors();
 
-        $this->assertSame(['region' => 'SD', 'registrations' => ['NTN' => '1234567-8']], TaxSetup::company());
+        $this->assertSame(['region' => 'SD', 'registrations' => ['NTN' => '1234567-8'], 'withholding_agent' => false], TaxSetup::company());
         $this->assertSame(['SRB'], TaxAuthority::where('is_registered', true)->pluck('code')->all());
     }
 

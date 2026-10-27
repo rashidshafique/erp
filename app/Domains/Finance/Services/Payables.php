@@ -63,7 +63,7 @@ class Payables
         $entries = [];
         foreach (SupplierBill::where('supplier_id', $supplier->id)->where('status', 'POSTED')->get() as $b) {
             $entries[] = ['date' => $b->bill_date, 'at' => $b->posted_at, 'type' => $b->isCreditNote() ? 'Credit note' : 'Bill', 'number' => $b->bill_number, 'model' => $b,
-                'owed' => $b->isCreditNote() ? 0.0 : $b->total, 'paid' => $b->isCreditNote() ? $b->total : 0.0];
+                'owed' => $b->isCreditNote() ? 0.0 : $b->payableToSupplier(), 'paid' => $b->isCreditNote() ? $b->payableToSupplier() : 0.0];
         }
         foreach (SupplierPayment::where('supplier_id', $supplier->id)->get() as $p) {
             $entries[] = ['date' => $p->paid_on, 'at' => $p->created_at, 'type' => 'Payment', 'number' => $p->payment_number, 'model' => $p, 'owed' => 0.0, 'paid' => $p->amount];

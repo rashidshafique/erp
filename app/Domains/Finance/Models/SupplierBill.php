@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 /**
  * A bill from a supplier, or a credit note received from one. It can be entered from a purchase order or on its own;
@@ -22,7 +23,7 @@ class SupplierBill extends Model
     protected function casts(): array
     {
         return ['bill_date' => 'date', 'due_date' => 'date', 'posted_at' => 'datetime', 'voided_at' => 'datetime',
-            'subtotal' => 'float', 'tax_total' => 'float', 'total' => 'float'];
+            'subtotal' => 'float', 'tax_total' => 'float', 'total' => 'float', 'tax_withheld' => 'float'];
     }
 
     public function supplier(): BelongsTo { return $this->belongsTo(Supplier::class)->withTrashed(); }
@@ -37,21 +38,27 @@ class SupplierBill extends Model
         return $this->kind === 'CREDIT_NOTE';
     }
 
+    /** What the supplier is paid: the total less the tax we keep back for the authority. */
+    public function payableToSupplier(): float
+    {
+        return round($this->total - (float) $this->tax_withheld, 2);
+    }
+
     public function paid(): float
     {
         return round((float) $this->allocations()->sum('amount'), 2);
     }
 
-    /** What posted credit notes have taken off this bill. */
+    /** What posted credit notes have taken off what the supplier is owed on this bill. */
     public function credited(): float
     {
-        return round((float) $this->creditNotes()->where('status', 'POSTED')->sum('total'), 2);
+        return round((float) $this->creditNotes()->where('status', 'POSTED')->sum(DB::raw('total - tax_withheld')), 2);
     }
 
-    /** Still owed on a posted bill. */
+    /** Still owed to the supplier on a posted bill; tax we withheld is owed to the authority instead. */
     public function balance(): float
     {
-        return $this->status === 'POSTED' && ! $this->isCreditNote() ? round($this->total - $this->paid() - $this->credited(), 2) : 0.0;
+        return $this->status === 'POSTED' && ! $this->isCreditNote() ? round($this->payableToSupplier() - $this->paid() - $this->credited(), 2) : 0.0;
     }
 
     public function isOverdue(): bool

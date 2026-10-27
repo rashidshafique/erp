@@ -61,7 +61,7 @@ class BillService
                 ($l['supply_type'] ?? null) === TaxLine::SERVICE ? TaxLine::SERVICE : TaxLine::GOODS,
             ), $lines);
             $taxes = app(TaxCalculator::class)->calculate(new TaxContext(TaxContext::PURCHASE, Carbon::parse($head['bill_date']), $supplier->party_id), $taxLines);
-            [$subtotal, $tax] = [0.0, 0.0];
+            [$subtotal, $tax, $withheld] = [0.0, 0.0, 0.0];
             foreach ($lines as $i => $l) {
                 $qty = round((float) $l['quantity'], 3);
                 $price = round((float) ($l['unit_price'] ?? 0), 4);
@@ -72,12 +72,13 @@ class BillService
                     'supplier_bill_id' => $bill->id, 'line_number' => $i + 1, 'description' => trim($l['description']), 'quantity' => $qty, 'uom' => $l['uom'] ?? null,
                     'unit_price' => $price, 'tax_percent' => $percent, 'line_net' => $net, 'line_tax' => $lineTax, 'purchase_order_line_id' => ($l['purchase_order_line_id'] ?? null) ?: null,
                     'account_id' => ($l['account_id'] ?? null) ?: null, 'supply_type' => $taxLines[$i]->supplyType,
-                    'taxes' => array_map(fn (TaxAmount $t) => (array) $t, array_values(array_filter($taxes->forLine($i), fn (TaxAmount $t) => ! $t->withheld))),
+                    'taxes' => array_map(fn (TaxAmount $t) => (array) $t, $taxes->forLine($i)), 'line_withheld' => $taxes->withheld($i),
                 ]);
                 $subtotal += $net;
                 $tax += $lineTax;
+                $withheld += $taxes->withheld($i);
             }
-            $bill->update(['subtotal' => round($subtotal, 2), 'tax_total' => round($tax, 2), 'total' => round($subtotal + $tax, 2)]);
+            $bill->update(['subtotal' => round($subtotal, 2), 'tax_total' => round($tax, 2), 'total' => round($subtotal + $tax, 2), 'tax_withheld' => round($withheld, 2)]);
 
             return $bill->fresh('lines');
         });
