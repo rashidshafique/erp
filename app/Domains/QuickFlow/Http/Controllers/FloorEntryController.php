@@ -13,6 +13,7 @@ use App\Models\Pattern;
 use App\Models\Pour;
 use App\Models\ProductionOrder;
 use App\Services\Planning\OrderPlanner;
+use App\Services\Production\OneStepPour;
 use App\Services\QualityGates;
 use App\Support\PouringRules;
 use Carbon\Carbon;
@@ -97,7 +98,7 @@ class FloorEntryController extends Controller
             ->with('warning', $this->unlinkedPatternsWarning($rows));
     }
 
-    public function poured(Request $request, QualityGates $gates): RedirectResponse
+    public function poured(Request $request, QualityGates $gates, OneStepPour $pourer): RedirectResponse
     {
         $heatId = $request->validate([
             'heat_id' => ['required', 'uuid', Rule::exists('heats', 'id')->where(fn ($q) => $q->whereIn('id', $this->pourableHeats()->select('id')))],
@@ -115,25 +116,31 @@ class FloorEntryController extends Controller
         // A pour typed in afterwards belongs to the day of its rows (the latest, when they differ), at the time of entry.
         $poured = Carbon::parse(max(array_column($rows, 'entry_date')))->setTimeFrom(now());
 
-        [$moulds, $waiting] = DB::transaction(function () use ($rows, $request, $heatId, $advice, $poured, $mode) {
-            $prefix = 'P-'.$poured->format('Ymd').'-';
-            $last = Pour::where('pour_number', 'like', $prefix.'%')->lockForUpdate()->pluck('pour_number')->map(fn ($n) => (int) substr($n, strlen($prefix)))->max() ?? 0;
-            $pour = Pour::create([
-                'pour_number' => $prefix.str_pad((string) ($last + 1), 3, '0', STR_PAD_LEFT), 'heat_id' => $heatId, 'status' => 'COMPLETED',
-                'started_at' => $poured, 'completed_at' => $poured, 'operator_name' => $request->input('entered_by'),
-                'gate_mode' => $mode, 'gate_note' => $advice,
-            ]);
-            foreach ($rows as $row) {
-                $entry = QuickFloorEntry::create(['kind' => QuickFloorEntry::POURED, 'pour_id' => $pour->id, 'heat_id' => $heatId, 'entered_by' => $request->input('entered_by')] + $this->entryFields($row));
-                if ($row['production_order_id']) {
-                    $this->linker->link($entry, ProductionOrder::findOrFail($row['production_order_id']));
+        // One pour for the grid, completed with its moulds and lots; rows without an order wait and join it once linked.
+        try {
+            [$moulds, $waiting, $result] = DB::transaction(function () use ($rows, $request, $heat, $advice, $poured, $mode, $pourer) {
+                // Entries are linked first: the pour can complete an order, which then takes no more links.
+                $entries = [];
+                foreach ($rows as $row) {
+                    $entry = $entries[] = QuickFloorEntry::create(['kind' => QuickFloorEntry::POURED, 'heat_id' => $heat->id, 'entered_by' => $request->input('entered_by')] + $this->entryFields($row));
+                    if ($row['production_order_id']) {
+                        $this->linker->link($entry, ProductionOrder::findOrFail($row['production_order_id']), pourMoulds: false);
+                    }
                 }
-            }
+                $result = $pourer->record($heat, array_values(array_filter($rows, fn ($r) => $r['production_order_id'])), [
+                    'at' => $poured, 'operator' => $request->input('entered_by'), 'gate_mode' => $mode, 'gate_note' => $advice,
+                ]);
+                QuickFloorEntry::whereIn('id', collect($entries)->pluck('id'))->update(['pour_id' => $result['pour']->id]);
 
-            return [array_sum(array_column($rows, 'moulds')), count(array_filter($rows, fn ($r) => ! $r['production_order_id']))];
-        });
+                return [array_sum(array_column($rows, 'moulds')), count(array_filter($rows, fn ($r) => ! $r['production_order_id'])), $result];
+            });
+        } catch (\InvalidArgumentException $e) {   // a mould that cannot go on this heat (another grade, an order not open)
+            throw ValidationException::withMessages(['rows' => $e->getMessage()]);
+        }
+        $lots = $result['lots'] > 0 ? " {$result['lots']} casting ".($result['lots'] === 1 ? 'lot' : 'lots').' made.' : '';
 
-        return back()->with('success', "{$moulds} moulds poured from {$heat->heat_number}.".$this->waitingNote($waiting))->with('warning', trim(($advice ?? '').' '.($this->unlinkedPatternsWarning($rows) ?? '')) ?: null);
+        return back()->with('success', "{$moulds} moulds poured from {$heat->heat_number} on {$result['pour']->pour_number}.{$lots}".$this->waitingNote($waiting))
+            ->with('warning', trim(implode(' ', array_filter([$advice, ...$result['warnings'], $this->unlinkedPatternsWarning($rows)]))) ?: null);
     }
 
     /** Heats moulds can be poured from: not cancelled, and a closed one only for a couple of days so yesterday's campaign can still be entered. */

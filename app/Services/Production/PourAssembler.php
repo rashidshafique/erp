@@ -23,10 +23,10 @@ class PourAssembler
             ->where('mould_layers.mould_assembly_id', $asm->id)->where('mould_cavities.is_active', true)->sum('mould_cavities.castings_per_cavity');
     }
 
-    /** @param  array<int, string>  $assemblyIds */
-    public function attach(Pour $pour, array $assemblyIds): int
+    /** @param  array<int, string>  $assemblyIds  $late also allows a completed pour, for moulds typed in after it was recorded */
+    public function attach(Pour $pour, array $assemblyIds, bool $late = false): int
     {
-        if (! in_array($pour->status, ['PLANNED', 'IN_PROGRESS'], true)) {
+        if (! in_array($pour->status, $late ? ['PLANNED', 'IN_PROGRESS', 'COMPLETED'] : ['PLANNED', 'IN_PROGRESS'], true)) {
             throw new InvalidArgumentException('Moulds can only be added to a planned pour or one in progress.');
         }
         $pour->loadMissing('heat.ironGrade');

@@ -6,16 +6,20 @@ use App\Domains\QuickFlow\Models\QuickFloorEntry;
 use App\Domains\QuickFlow\Services\NextHeatPlan;
 use App\Models\ApprovalPolicy;
 use App\Models\ApprovalRequest;
+use App\Models\CastingLot;
 use App\Models\Customer;
 use App\Models\Furnace;
 use App\Models\Heat;
 use App\Models\IronGrade;
+use App\Models\MouldAssembly;
 use App\Models\MouldingRun;
 use App\Models\MouldingStation;
 use App\Models\Pattern;
 use App\Models\Pour;
+use App\Models\PourMouldAssembly;
 use App\Models\Product;
 use App\Models\ProductionOrder;
+use App\Support\OrderRules;
 use App\Support\PouringRules;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -172,6 +176,61 @@ class QuickFlowTest extends TestCase
         $this->assertSame(['COMPLETED', 'ADVISORY'], [Pour::firstOrFail()->status, Pour::firstOrFail()->gate_mode]);
         $row = app(NextHeatPlan::class)->orders()->first();
         $this->assertSame([40, 30, 10, 60], [$row['made'], $row['poured'], $row['awaiting'], $row['to_mould']]);
+    }
+
+    private function heat(array $shop): Heat
+    {
+        return Heat::create(['heat_number' => 'H-1', 'furnace_id' => $shop['furnace']->id, 'process_type' => 'INDUCTION', 'status' => 'MELTING', 'iron_grade_id' => $shop['grade']->id]);
+    }
+
+    public function test_a_quick_pour_puts_the_moulds_made_on_the_pour_and_makes_their_lots(): void
+    {
+        $shop = $this->shop();
+        $this->order($shop);
+        $order = ProductionOrder::firstOrFail();
+        $pattern = $this->pattern($shop);
+        $this->post(route('quick.floor.made'), ['rows' => [$this->row($pattern, 20, ['production_order_id' => $order->id])]]);
+
+        $this->post(route('quick.floor.poured'), ['heat_id' => $this->heat($shop)->id, 'rows' => [$this->row($pattern, 15, ['production_order_id' => $order->id])]])
+            ->assertSessionHasNoErrors()->assertSessionHas('success', fn ($m) => str_contains($m, 'casting lot'));
+
+        $pour = Pour::sole();
+        $this->assertSame(['COMPLETED', 15], [$pour->status, PourMouldAssembly::where('pour_id', $pour->id)->count()]);
+        $this->assertSame(30, (int) CastingLot::where('production_order_id', $order->id)->sum('quantity_poured'));
+        $this->assertSame(15, MouldAssembly::count(), 'only the moulds poured are assembled; the rest wait as accepted moulds');
+        $row = app(NextHeatPlan::class)->orders()->first();
+        $this->assertSame([40, 30, 10], [$row['made'], $row['poured'], $row['awaiting']], 'the pour counts once, by its entries');
+    }
+
+    public function test_moulds_poured_but_never_entered_as_made_are_written_as_made_and_still_get_lots(): void
+    {
+        $shop = $this->shop();
+        $this->order($shop, 10);
+        $order = ProductionOrder::firstOrFail();
+        OrderRules::set('order_completion', 'POUR');
+
+        $this->post(route('quick.floor.poured'), ['heat_id' => $this->heat($shop)->id, 'rows' => [$this->row($this->pattern($shop), 5, ['production_order_id' => $order->id])]])
+            ->assertSessionHasNoErrors();
+
+        $run = MouldingRun::sole();
+        $this->assertSame(5, $run->moulds_made_qty);
+        $this->assertStringStartsWith('Made, not entered', $run->notes);
+        $this->assertSame(10, (int) CastingLot::sum('quantity_poured'));
+        $this->assertSame('COMPLETED', $order->fresh()->status, 'ten pieces poured complete the order under complete-at-pour');
+    }
+
+    public function test_a_poured_entry_linked_later_joins_its_pour_and_gets_its_lots(): void
+    {
+        $shop = $this->shop();
+        $pattern = $this->pattern($shop);
+        $this->post(route('quick.floor.poured'), ['heat_id' => $this->heat($shop)->id, 'rows' => [$this->row($pattern, 4)]])->assertSessionHasNoErrors();
+        $this->assertSame(0, CastingLot::count());
+
+        $this->order($shop);
+
+        $this->assertNotNull(QuickFloorEntry::sole()->production_order_id, 'the entry linked itself to the new order');
+        $this->assertSame(8, (int) CastingLot::sum('quantity_poured'));
+        $this->assertSame(4, PourMouldAssembly::where('pour_id', Pour::sole()->id)->count());
     }
 
     public function test_yesterdays_moulds_and_pour_are_recorded_on_yesterday_even_from_a_heat_closed_since(): void

@@ -152,7 +152,8 @@ class NextHeatPlan
         $ids = $orders->pluck('id');
         $out = QuickFloorEntry::where('kind', QuickFloorEntry::POURED)->whereIn('production_order_id', $ids)
             ->selectRaw('production_order_id, sum(moulds * pieces_per_mould) as pieces')->groupBy('production_order_id')->pluck('pieces', 'production_order_id')->all();
-        foreach (PourMouldAssembly::whereIn('production_order_id', $ids)->selectRaw('production_order_id, sum(castings_poured_qty) as pieces')->groupBy('production_order_id')->pluck('pieces', 'production_order_id') as $id => $pieces) {
+        // Quick pours carry their moulds as well as their entries; count those by the entries only.
+        foreach (PourMouldAssembly::whereIn('production_order_id', $ids)->whereNotIn('pour_id', QuickFloorEntry::whereNotNull('pour_id')->select('pour_id'))->selectRaw('production_order_id, sum(castings_poured_qty) as pieces')->groupBy('production_order_id')->pluck('pieces', 'production_order_id') as $id => $pieces) {
             $out[$id] = ($out[$id] ?? 0) + $pieces;
         }
 

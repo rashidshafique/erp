@@ -9,7 +9,9 @@ use App\Models\ProductionOrder;
 use App\Services\PatternCavityMap;
 use App\Services\Production\WorkListService;
 use Illuminate\Support\Collection;
+use App\Models\Pour;
 use App\Services\Production\MouldAssembler;
+use App\Services\Production\OneStepPour;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -88,21 +90,22 @@ class QuickFloorLinker
      * its completed moulding run, and a released order starts. A refusal (such as a customer's pattern on another customer's
      * order) is a validation error and changes nothing.
      */
-    public function link(QuickFloorEntry $entry, ProductionOrder $order): void
+    public function link(QuickFloorEntry $entry, ProductionOrder $order, bool $pourMoulds = true): void
     {
         // Starting the order below saves it; that must not start an automatic round that links this same entry again.
         $outer = self::$linking;
         self::$linking = true;
         try {
-            $this->linkNow($entry, $order);
+            $this->linkNow($entry, $order, $pourMoulds);
         } finally {
             self::$linking = $outer;
         }
     }
 
-    private function linkNow(QuickFloorEntry $entry, ProductionOrder $order): void
+    /** $pourMoulds puts a poured entry's moulds on its pour and makes their lots; off when the pour already took them. */
+    private function linkNow(QuickFloorEntry $entry, ProductionOrder $order, bool $pourMoulds): void
     {
-        DB::transaction(function () use ($entry, $order) {
+        DB::transaction(function () use ($entry, $order, $pourMoulds) {
             $entry = QuickFloorEntry::whereKey($entry->id)->lockForUpdate()->firstOrFail();
             $order = ProductionOrder::whereKey($order->id)->lockForUpdate()->firstOrFail();
             if ($entry->production_order_id !== null) {
@@ -129,6 +132,11 @@ class QuickFloorLinker
                 }
             }
             $entry->save();
+            if ($entry->kind === QuickFloorEntry::POURED && $pourMoulds && $entry->pour_id) {
+                app(OneStepPour::class)->addToPour(Pour::findOrFail($entry->pour_id), [[
+                    'pattern_revision_id' => $entry->pattern_revision_id, 'production_order_id' => $order->id, 'moulds' => $entry->moulds, 'moulding_station_id' => $entry->moulding_station_id,
+                ]]);
+            }
         });
     }
 
