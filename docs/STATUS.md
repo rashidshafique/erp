@@ -56,9 +56,10 @@ Updated 2026-10-27.
   - Bank accounts and reconciliation (2026-10-26): bank details on an asset ledger account (or a new one under the bank group); a statement opens on the last reconciled balance, lines up to its date are ticked as cleared and it finishes at a nil difference; bank charges or profit on the statement are posted and ticked in one step; the latest statement can be opened again. Journals are never changed (cleared lines live in `ledger_reconciliation_lines`). Not built: statement import from a bank file.
 - Tax register (Finance > Tax register, 2026-10-26, read only): output tax on issued invoices or input tax on posted bills over a period, per authority, tax and rate and per document with registration numbers and tariff code; credit notes negative by their own date, voids left out; CSV download for the return.
 - Tax certificates (Finance > Tax certificates, 2026-10-27): a customer's certificate for tax it withheld, for one tax (as worked out on the invoices, or "Other" for tax the invoices did not withhold), spread over its open invoices up to what is withheld and not yet covered. It settles that part of each invoice (balance, ageing and statement count it) and posts Dr tax withheld by customers (new ledger role, 1163), Cr receivables; a void puts it back and reverses. Ageing shows what is awaiting a certificate; receipts fill only the money part; an invoice with a certificate cannot be voided.
+- Advances (2026-10-27): a receipt can name the sales order and a supplier payment the purchase order it is an advance for. "Use money on account" on an invoice and "Use advances" on a bill put that money on it, the document's own order first and never another order's (a payment naming no order goes anywhere). Settings > Invoicing: "Money paid in advance" MANUAL (button, default) or AUTO (on issue / post). Nothing posts: both sides already sit in receivables or payables, so the balance sheet still nets advances inside them.
 - Left, in order (each changes how existing documents count, so they wait for a decision):
   1. Done: withheld tax settlement (tax certificates above).
-  2. Advance-to-supplier offsets on a bill; bill price differences feeding back into lot cost.
+  2. Done: advances. Still open: bill price differences feeding back into lot cost.
   3. Purchase-side tax rules (bills and POs still use the typed percent, so the input tax register has no authority) and tax returns.
   4. E-invoicing (FBR digital invoicing for Pakistan): calls FBR's service, needs credentials.
 
@@ -87,7 +88,7 @@ In priority order:
 1. **Stores/Inventory** (next in the module split): stock ledger, bins, issues, GRN, stock valuation.
 2. **Costing** (`Costing` is empty): actual versus standard cost per casting (metal, energy, labour, fettling).
 3. **MRP and scheduling** (`MRP`, `Production` are empty): material requirements planning, finite capacity scheduling.
-4. **Finance** (in progress): invoicing, receivables, supplier bills, payables, the double-entry general ledger, P&L, balance sheet, bank reconciliation and the tax register are in; still to do, in order: supplier advances, purchase-side tax and returns, e-invoicing (list under Finance in Done).
+4. **Finance** (in progress): invoicing, receivables, supplier bills, payables, the double-entry general ledger, P&L, balance sheet, bank reconciliation and the tax register are in; still to do, in order: bill price differences into lot cost, purchase-side tax and returns, e-invoicing (list under Finance in Done).
 5. **Outside processing and machining routings**: subcontract flow, machining steps.
 6. **Reporting and BI**: management dashboards, customer scorecards, statutory report exports.
 7. **Integration**: EDI, e-invoicing and tax filing for the target market, barcode and device input.

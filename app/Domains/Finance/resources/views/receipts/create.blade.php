@@ -13,6 +13,7 @@
     <label>Amount<input type="number" step="any" min="0" name="amount" x-model.number="amount" required></label>
     <label>Method<input name="method" list="methods" value="{{ old('method') }}" maxlength="30"><datalist id="methods"><option>Bank transfer</option><option>Cheque</option><option>Cash</option></datalist></label>
     <label>Reference<input name="reference" value="{{ old('reference') }}" maxlength="100" placeholder="Cheque or transfer number"></label>
+    @if ($orders->isNotEmpty())<label>Advance for sales order<select name="sales_order_id"><option value="">— any invoice —</option>@foreach ($orders as $o)<option value="{{ $o->id }}" @selected(old('sales_order_id') === $o->id)>{{ $o->order_number }} · {{ $o->order_date?->displayShortDate() }}</option>@endforeach</select><span class="muted small">Money left on account then only goes on this order's invoices.</span></label>@endif
 </div></div>
 <div class="panel"><div class="panel-header"><h2>Invoices to pay</h2><button type="button" class="btn btn-small" style="margin-left:auto" @click="fill()">Fill oldest first</button></div>
 <div class="table-wrap"><table><thead><tr><th>Invoice</th><th>Date</th><th>Due</th><th>Owing</th><th>Pay now</th></tr></thead><tbody>

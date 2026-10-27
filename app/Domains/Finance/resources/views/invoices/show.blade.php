@@ -13,6 +13,7 @@
     <a class="btn" href="{{ route('invoices.print', $invoice) }}" target="_blank">Print</a>
     @if (! $invoice->isCreditNote())
         @if ($invoice->balance() > 0)<a class="btn btn-primary" href="{{ route('receipts.create', ['customer' => $invoice->customer_id, 'invoice' => $invoice->id]) }}">Record payment</a>@endif
+        @if ($invoice->cashDue() > 0 && ($onAccount = app(\App\Domains\Finance\Services\Advances::class)->forInvoice($invoice)->sum(fn ($r) => $r->unallocated())) > 0)<form method="POST" action="{{ route('invoices.apply-credit', $invoice) }}" style="display:inline">@csrf<button class="btn" title="Money this customer paid that is not on an invoice yet">Use money on account ({{ $m($onAccount) }})</button></form>@endif
         @if ($invoice->withheldOpen() > 0)<a class="btn" href="{{ route('withholding-certificates.create', ['customer' => $invoice->customer_id]) }}">Tax certificate</a>@endif
         <a class="btn" href="{{ route('invoices.credit', $invoice) }}">Credit note</a>
     @endif

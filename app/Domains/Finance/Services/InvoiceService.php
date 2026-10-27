@@ -100,6 +100,9 @@ class InvoiceService
             $due = $invoice->due_date ?? ($invoice->isCreditNote() ? null : $invoice->invoice_date->copy()->addDays(FinanceRules::daysFromTerms($invoice->payment_terms)));
             $invoice->update(['invoice_number' => $this->nextNumber($invoice->kind), 'status' => 'ISSUED', 'issued_at' => now(), 'due_date' => $due]);
             event(new DocumentPosted($invoice));
+            if (FinanceRules::advances() === 'AUTO') {
+                app(Advances::class)->applyToInvoice($invoice);
+            }
 
             return $invoice->fresh();
         });

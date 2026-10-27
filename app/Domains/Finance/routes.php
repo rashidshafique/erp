@@ -23,6 +23,7 @@ Route::middleware('web')->group(function () {
         Route::delete('/{invoice}', 'destroy')->name('destroy');
         Route::post('/{invoice}/issue', 'issue')->name('issue');
         Route::post('/{invoice}/void', 'void')->name('void');
+        Route::post('/{invoice}/apply-credit', 'applyCredit')->name('apply-credit');
         Route::get('/{invoice}/credit', 'credit')->name('credit');
         Route::post('/{invoice}/credit', 'storeCredit')->name('credit.store');
     });
@@ -50,6 +51,7 @@ Route::middleware('web')->group(function () {
         Route::delete('/{bill}', 'destroy')->name('destroy');
         Route::post('/{bill}/post', 'post')->name('post');
         Route::post('/{bill}/void', 'void')->name('void');
+        Route::post('/{bill}/apply-advances', 'applyAdvances')->name('apply-advances');
         Route::get('/{bill}/credit', 'credit')->name('credit');
         Route::post('/{bill}/credit', 'storeCredit')->name('credit.store');
     });

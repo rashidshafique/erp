@@ -5,11 +5,13 @@ namespace App\Domains\Finance\Http\Controllers;
 use App\Domains\Finance\Models\Receipt;
 use App\Domains\Finance\Services\ReceiptService;
 use App\Domains\Finance\Services\Receivables;
+use App\Domains\Sales\Models\SalesOrder;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use InvalidArgumentException;
 
@@ -28,6 +30,7 @@ class ReceiptController extends Controller
         return view('finance::receipts.create', [
             'customers' => Customer::orderedByName()->get(), 'customerId' => $customerId, 'open' => $customerId ? $receivables->open($customerId) : collect(),
             'invoiceId' => $request->query('invoice'),
+            'orders' => $customerId ? SalesOrder::where('customer_id', $customerId)->whereIn('status', SalesOrder::OPEN)->orderByDesc('order_date')->get(['id', 'order_number', 'order_date']) : collect(),
         ]);
     }
 
@@ -37,6 +40,7 @@ class ReceiptController extends Controller
             'customer_id' => ['required', 'uuid', 'exists:customers,id'], 'received_on' => ['required', 'date'], 'amount' => ['required', 'numeric', 'gt:0'],
             'method' => ['nullable', 'string', 'max:30'], 'reference' => ['nullable', 'string', 'max:100'], 'notes' => ['nullable', 'string', 'max:1000'],
             'alloc' => ['nullable', 'array'], 'alloc.*' => ['nullable', 'numeric', 'min:0'],
+            'sales_order_id' => ['nullable', 'uuid', Rule::exists('sales_orders', 'id')->where('customer_id', $request->input('customer_id'))],
         ]);
         try {
             $receipt = $service->record($d, $d['alloc'] ?? []);

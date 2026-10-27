@@ -2,7 +2,7 @@
 @section('title', $payment->payment_number)
 @section('content')
 @php $m = fn ($v) => \App\Support\Formats::number($v, 2); @endphp
-<div class="page-heading"><div><h1>Payment {{ $payment->payment_number }}</h1><p>{{ $payment->supplier?->name }} · {{ $payment->paid_on->displayDate() }} · {{ $payment->method }} {{ $payment->reference }}</p></div><div class="actions"><a class="btn" href="{{ route('payables.statement', $payment->supplier_id) }}">Supplier statement</a></div></div>
+<div class="page-heading"><div><h1>Payment {{ $payment->payment_number }}</h1><p>{{ $payment->supplier?->name }} · {{ $payment->paid_on->displayDate() }} · {{ $payment->method }} {{ $payment->reference }}@if ($payment->purchaseOrder) · advance for {{ $payment->purchaseOrder->po_number }}@endif</p></div><div class="actions"><a class="btn" href="{{ route('payables.statement', $payment->supplier_id) }}">Supplier statement</a></div></div>
 <div class="panel"><div class="panel-body" style="display:flex;gap:28px"><div><div class="muted small">Paid</div><strong>{{ $m($payment->amount) }}</strong></div><div><div class="muted small">On bills</div>{{ $m($payment->amount - $payment->unallocated()) }}</div><div><div class="muted small">Left as an advance</div><strong>{{ $m($payment->unallocated()) }}</strong></div></div>
 @if ($payment->notes)<div class="panel-body small">{{ $payment->notes }}</div>@endif</div>
 <div class="panel"><div class="panel-header"><h2>Settled bills</h2></div><div class="table-wrap"><table><thead><tr><th>Bill</th><th class="num">Amount</th></tr></thead><tbody>

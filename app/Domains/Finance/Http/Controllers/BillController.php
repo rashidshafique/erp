@@ -3,6 +3,7 @@
 namespace App\Domains\Finance\Http\Controllers;
 
 use App\Domains\Finance\Models\SupplierBill;
+use App\Domains\Finance\Services\Advances;
 use App\Domains\Finance\Services\BillService;
 use App\Domains\Finance\Services\FinanceRules;
 use App\Domains\Finance\Models\TaxRate;
@@ -69,6 +70,14 @@ class BillController extends Controller
         $bill->load(['supplier', 'lines', 'creditNotes', 'original', 'allocations.payment', 'purchaseOrder']);
 
         return view('finance::bills.show', ['bill' => $bill, 'issues' => $bill->status === 'DRAFT' ? $service->matchIssues($bill) : []]);
+    }
+
+    /** Puts the supplier advances on this bill. */
+    public function applyAdvances(SupplierBill $bill, Advances $advances): RedirectResponse
+    {
+        $applied = $advances->applyToBill($bill);
+
+        return back()->with('success', $applied > 0 ? 'Advances put on this bill: '.number_format($applied, 2).'.' : 'No advance could go on this bill.');
     }
 
     public function edit(SupplierBill $bill): View|RedirectResponse

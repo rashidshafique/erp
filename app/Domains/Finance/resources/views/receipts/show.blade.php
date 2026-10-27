@@ -2,7 +2,7 @@
 @section('title', $receipt->receipt_number)
 @section('content')
 @php $m = fn ($v) => \App\Support\Formats::number($v, 2); @endphp
-<div class="page-heading"><div><h1>Receipt {{ $receipt->receipt_number }}</h1><p>{{ $receipt->customer?->name }} · {{ $receipt->received_on->displayDate() }} · {{ $receipt->method }} {{ $receipt->reference }}</p></div><div class="actions"><a class="btn" href="{{ route('receivables.statement', $receipt->customer_id) }}">Customer statement</a></div></div>
+<div class="page-heading"><div><h1>Receipt {{ $receipt->receipt_number }}</h1><p>{{ $receipt->customer?->name }} · {{ $receipt->received_on->displayDate() }} · {{ $receipt->method }} {{ $receipt->reference }}@if ($receipt->salesOrder) · advance for {{ $receipt->salesOrder->order_number }}@endif</p></div><div class="actions"><a class="btn" href="{{ route('receivables.statement', $receipt->customer_id) }}">Customer statement</a></div></div>
 <div class="panel"><div class="panel-body" style="display:flex;gap:28px"><div><div class="muted small">Received</div><strong>{{ $m($receipt->amount) }}</strong></div><div><div class="muted small">On invoices</div>{{ $m($receipt->amount - $receipt->unallocated()) }}</div><div><div class="muted small">Left on account</div><strong>{{ $m($receipt->unallocated()) }}</strong></div></div>
 @if ($receipt->notes)<div class="panel-body small">{{ $receipt->notes }}</div>@endif</div>
 <div class="panel"><div class="panel-header"><h2>Paid invoices</h2></div><div class="table-wrap"><table><thead><tr><th>Invoice</th><th class="num">Amount</th></tr></thead><tbody>

@@ -11,6 +11,7 @@
     <form method="POST" action="{{ route('bills.destroy', $bill) }}" style="display:inline">@csrf @method('DELETE')<button class="btn" onclick="return confirm('Delete this draft?')">Delete</button></form>
 @elseif ($bill->status === 'POSTED' && ! $bill->isCreditNote())
     @if ($bill->balance() > 0)<a class="btn btn-primary" href="{{ route('supplier-payments.create', ['supplier' => $bill->supplier_id, 'bill' => $bill->id]) }}">Record payment</a>@endif
+    @if ($bill->balance() > 0 && ($advance = app(\App\Domains\Finance\Services\Advances::class)->forBill($bill)->sum(fn ($p) => $p->unallocated())) > 0)<form method="POST" action="{{ route('bills.apply-advances', $bill) }}" style="display:inline">@csrf<button class="btn" title="Money paid to this supplier that is not on a bill yet">Use advances ({{ $m($advance) }})</button></form>@endif
     <a class="btn" href="{{ route('bills.credit', $bill) }}">Credit note</a>
 @endif
 </div></div>

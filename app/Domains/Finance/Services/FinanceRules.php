@@ -23,6 +23,22 @@ class FinanceRules
         'BLOCK' => 'The bill cannot be posted until it matches the order and what was received',
     ];
 
+    public const ADVANCES = 'finance.apply_advances';
+
+    /** What happens to money already received from a customer or paid to a supplier when their next invoice or bill counts. */
+    public const ADVANCE_OPTIONS = [
+        'MANUAL' => 'Stays on account until someone uses it (a button on the invoice or bill)',
+        'AUTO' => 'Goes on the invoice or bill as soon as it is issued or posted, the same order\'s money first',
+    ];
+
+    /** @return 'MANUAL'|'AUTO' */
+    public static function advances(): string
+    {
+        $v = (string) AppSetting::getValue(self::ADVANCES, 'MANUAL');
+
+        return isset(self::ADVANCE_OPTIONS[$v]) ? $v : 'MANUAL';
+    }
+
     /** @return 'OFF'|'WARN'|'BLOCK' */
     public static function billMatch(): string
     {

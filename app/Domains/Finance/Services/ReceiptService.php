@@ -14,7 +14,7 @@ class ReceiptService
     public function __construct(private InvoiceService $invoices) {}
 
     /**
-     * @param  array<string, mixed>  $head  customer_id, received_on, amount, method, reference, notes
+     * @param  array<string, mixed>  $head  customer_id, received_on, amount, method, reference, notes, sales_order_id (an advance for that order)
      * @param  array<string, float|int|string>  $allocations  invoice id => amount paid by this receipt
      */
     public function record(array $head, array $allocations): Receipt
@@ -32,6 +32,7 @@ class ReceiptService
             $receipt = Receipt::create([
                 'receipt_number' => $this->invoices->nextNumber('RC', 'receipts', 'receipt_number'), 'customer_id' => $head['customer_id'],
                 'received_on' => $head['received_on'], 'amount' => $amount, 'method' => $head['method'] ?? null, 'reference' => $head['reference'] ?? null, 'notes' => $head['notes'] ?? null,
+                'sales_order_id' => $head['sales_order_id'] ?? null,
             ]);
             foreach ($allocations as $invoiceId => $part) {
                 $invoice = Invoice::whereKey($invoiceId)->lockForUpdate()->firstOrFail();

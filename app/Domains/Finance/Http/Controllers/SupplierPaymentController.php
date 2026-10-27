@@ -5,11 +5,13 @@ namespace App\Domains\Finance\Http\Controllers;
 use App\Domains\Finance\Models\SupplierPayment;
 use App\Domains\Finance\Services\Payables;
 use App\Domains\Finance\Services\SupplierPaymentService;
+use App\Domains\Purchasing\Models\PurchaseOrder;
 use App\Domains\Purchasing\Models\Supplier;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use InvalidArgumentException;
 
@@ -27,6 +29,7 @@ class SupplierPaymentController extends Controller
 
         return view('finance::supplier-payments.create', [
             'suppliers' => Supplier::orderedByName()->get(), 'supplierId' => $supplierId, 'open' => $supplierId ? $payables->open($supplierId) : collect(), 'billId' => $request->query('bill'),
+            'orders' => $supplierId ? PurchaseOrder::where('supplier_id', $supplierId)->whereIn('status', PurchaseOrder::OPEN)->orderByDesc('order_date')->get(['id', 'po_number', 'order_date']) : collect(),
         ]);
     }
 
@@ -36,6 +39,7 @@ class SupplierPaymentController extends Controller
             'supplier_id' => ['required', 'uuid', 'exists:suppliers,id'], 'paid_on' => ['required', 'date'], 'amount' => ['required', 'numeric', 'gt:0'],
             'method' => ['nullable', 'string', 'max:30'], 'reference' => ['nullable', 'string', 'max:100'], 'notes' => ['nullable', 'string', 'max:1000'],
             'alloc' => ['nullable', 'array'], 'alloc.*' => ['nullable', 'numeric', 'min:0'],
+            'purchase_order_id' => ['nullable', 'uuid', Rule::exists('purchase_orders', 'id')->where('supplier_id', $request->input('supplier_id'))],
         ]);
         try {
             $payment = $service->record($d, $d['alloc'] ?? []);

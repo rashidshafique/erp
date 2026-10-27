@@ -5,6 +5,7 @@ namespace App\Domains\Finance\Http\Controllers;
 use App\Domains\Dispatch\Models\Dispatch;
 use App\Domains\Finance\Models\Invoice;
 use App\Domains\Finance\Models\TaxRate;
+use App\Domains\Finance\Services\Advances;
 use App\Domains\Finance\Services\FinanceRules;
 use App\Domains\Finance\Services\InvoiceService;
 use App\Http\Controllers\Controller;
@@ -76,6 +77,14 @@ class InvoiceController extends Controller
         $checks = $invoice->status === 'DRAFT' && ! $invoice->isCreditNote() ? app(InvoiceService::class)->taxChecks($invoice) : ['blocks' => [], 'warnings' => []];
 
         return view('finance::invoices.show', ['invoice' => $invoice, 'taxChecks' => $checks]);
+    }
+
+    /** Puts the customer's money on account on this invoice. */
+    public function applyCredit(Invoice $invoice, Advances $advances): RedirectResponse
+    {
+        $applied = $advances->applyToInvoice($invoice);
+
+        return back()->with('success', $applied > 0 ? 'Money on account put on this invoice: '.number_format($applied, 2).'.' : 'No money on account could go on this invoice.');
     }
 
     public function print(Invoice $invoice): View

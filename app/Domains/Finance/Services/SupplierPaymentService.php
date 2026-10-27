@@ -14,7 +14,7 @@ class SupplierPaymentService
     public function __construct(private InvoiceService $numbers) {}
 
     /**
-     * @param  array<string, mixed>  $head  supplier_id, paid_on, amount, method, reference, notes
+     * @param  array<string, mixed>  $head  supplier_id, paid_on, amount, method, reference, notes, purchase_order_id (an advance for that order)
      * @param  array<string, float|int|string>  $allocations  bill id => amount settled by this payment
      */
     public function record(array $head, array $allocations): SupplierPayment
@@ -32,6 +32,7 @@ class SupplierPaymentService
             $payment = SupplierPayment::create([
                 'payment_number' => $this->numbers->nextNumber('SP', 'supplier_payments', 'payment_number'), 'supplier_id' => $head['supplier_id'],
                 'paid_on' => $head['paid_on'], 'amount' => $amount, 'method' => $head['method'] ?? null, 'reference' => $head['reference'] ?? null, 'notes' => $head['notes'] ?? null,
+                'purchase_order_id' => $head['purchase_order_id'] ?? null,
             ]);
             $this->allocate($payment, $allocations);
             event(new DocumentPosted($payment));
