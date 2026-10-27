@@ -28,6 +28,24 @@
     <p style="margin:0">Metal charged {{ $kg($balance['charged_kg']) }} · tapped {{ $kg($balance['tapped_kg']) }} · poured {{ $kg($balance['poured_kg']) }} in {{ $balance['pours'] }} {{ $balance['pours'] === 1 ? 'pour' : 'pours' }} (first iron {{ $kg($balance['first_iron_kg']) }}) · castings {{ $kg($balance['net_casting_kg']) }} net · {{ $balance['lots'] }} lots, {{ $balance['held_lots'] }} on hold.</p>
 </div></div>
 
+@if ($cokeAndFlux)
+<div class="panel"><div class="panel-header"><h2>Coke and flux</h2></div><div class="panel-body">
+    <div class="table-wrap"><table><thead><tr><th></th><th class="num">Planned</th><th class="num">Actual</th><th class="num">Difference</th><th class="num">Cost PKR</th></tr></thead><tbody>
+        @foreach ($cokeAndFlux['kinds'] as $kind)
+            <tr><td>{{ $kind['label'] }}</td><td class="num">{{ $kg($kind['planned_kg']) }}</td><td class="num">{{ $kg($kind['actual_kg']) }}</td>
+                <td class="num">{{ $kind['planned_kg'] === null ? '—' : ($kind['actual_kg'] - $kind['planned_kg'] > 0 ? '+' : '').\App\Support\Formats::number($kind['actual_kg'] - $kind['planned_kg'], 1).' kg' }}</td>
+                <td class="num">{{ \App\Support\Formats::number($kind['cost'], 2) }}</td></tr>
+        @endforeach
+    </tbody></table></div>
+    <p style="margin:10px 0 0">Coke ratio {{ $cokeAndFlux['coke_ratio'] !== null ? '1 : '.\App\Support\Formats::number($cokeAndFlux['coke_ratio'], 1) : '—' }} <span class="muted small">(kg of metal per kg of coke)</span>
+        · cost {{ $cokeAndFlux['cost_per_tonne'] !== null ? 'PKR '.\App\Support\Formats::number($cokeAndFlux['cost_per_tonne'], 2).' per tonne melted' : '—' }}</p>
+    @if ($cokeAndFlux['extras'])
+        <p class="small" style="margin:6px 0 0">Added outside the recipe: @foreach ($cokeAndFlux['extras'] as $extra){{ $loop->first ? '' : ' · ' }}{{ $extra['kind'] }} {{ $kg($extra['kg']) }} ({{ $extra['label'] }})@endforeach</p>
+    @endif
+    <p class="muted small" style="margin:6px 0 0">Planned is the recipe's coke and flux for the charges put in.</p>
+</div></div>
+@endif
+
 <div class="panel"><div class="panel-header"><h2>Samples</h2></div><div class="panel-body">
     @if ($samples->isEmpty())<p class="muted" style="margin:0">No samples were recorded.</p>@else
     <div class="table-wrap"><table><thead><tr><th>Taken</th><th>Type</th><th>Reference</th><th>Result</th></tr></thead><tbody>

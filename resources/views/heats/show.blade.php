@@ -473,6 +473,16 @@
                                style="display:block;width:100%;padding:11px;border:1px solid var(--border);border-radius:7px;font:inherit">
                     </div>
                     <div>
+                        <label for="charge_addition_reason">Reason for the extra</label>
+                        <select id="charge_addition_reason" name="addition_reason" title="Optional. Material recorded here is outside the recipe's charges; a reason shows which recipes keep needing the same fix."
+                                style="display:block;width:100%;padding:11px;border:1px solid var(--border);border-radius:7px;font:inherit">
+                            <option value="">—</option>
+                            @foreach(\App\Models\HeatMaterialConsumption::ADDITION_REASONS as $reason => $label)
+                                <option value="{{ $reason }}" @selected(old('addition_reason') === $reason)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
                         <label for="charge_source_reference">Source reference</label>
                         <input id="charge_source_reference" name="source_reference" maxlength="100"
                                value="{{ old('source_reference') }}"

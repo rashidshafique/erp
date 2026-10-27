@@ -10,6 +10,9 @@ class HeatMaterialConsumption extends Model
 {
     use HasUuids;
 
+    /** Why a material was added outside the recipe's charges. Only an entry with no charge round carries one. */
+    public const ADDITION_REASONS = ['TOP_UP' => 'Top-up', 'SLAG' => 'Slag fix', 'CHEMISTRY' => 'Chemistry fix', 'OTHER' => 'Other'];
+
     protected $fillable = [
         'heat_id',
         'material_id',
@@ -25,6 +28,7 @@ class HeatMaterialConsumption extends Model
         'recorded_by',
         'notes',
         'charge_round',
+        'addition_reason',
     ];
 
     protected function casts(): array

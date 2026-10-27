@@ -78,6 +78,7 @@ new class extends Component
         return [
             'entries' => $heat->materialConsumptions,
             'canChange' => app(ChargeEntryEditor::class)->open($heat),
+            'hasRecipe' => $heat->charge_batch_id !== null,   // with a recipe, an entry outside its charges is an extra
             'types' => Material::TYPES,
         ];
     }
@@ -114,7 +115,16 @@ new class extends Component
                         <td>{{ $types[$entry->material?->material_type] ?? \Illuminate\Support\Str::headline(strtolower((string) $entry->material?->material_type)) ?: '—' }}@if ($entry->consumption_type === 'INTERNAL_RETURN') <span class="muted small">· return</span>@endif</td>
                         <td>{{ $entry->material?->code }} — {{ $entry->material?->name }}</td>
                         <td>{{ $entry->materialLot?->lot_number ?? $entry->source_reference ?? '—' }}</td>
-                        <td>{{ $entry->charge_round === null ? '—' : ($entry->charge_round === 0 ? 'Start-up' : $entry->charge_round) }}</td>
+                        @php
+                            $round = match (true) {
+                                $entry->charge_round === 0 => 'Start-up',
+                                $entry->charge_round !== null => (string) $entry->charge_round,
+                                $hasRecipe => 'Extra',
+                                default => '—',
+                            };
+                            $reason = $round === 'Extra' && $entry->addition_reason ? (\App\Models\HeatMaterialConsumption::ADDITION_REASONS[$entry->addition_reason] ?? $entry->addition_reason) : null;
+                        @endphp
+                        <td>{{ $round }}@if ($reason) <span class="muted small">· {{ $reason }}</span>@endif</td>
                         <td class="num">
                             @if ($canChange)
                                 <span class="qty-edit" contenteditable="plaintext-only" inputmode="decimal" spellcheck="false" role="textbox" title="Click to change the weight" aria-label="Weight of {{ $entry->material?->name }} in kg"

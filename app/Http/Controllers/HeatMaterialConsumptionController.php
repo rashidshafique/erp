@@ -8,6 +8,7 @@ use App\Services\Production\ChargeEntryEditor;
 use App\Services\Production\ChargeRecorder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class HeatMaterialConsumptionController extends Controller
@@ -40,6 +41,7 @@ class HeatMaterialConsumptionController extends Controller
                 'max:999999999',
             ],
             'charge_round' => ['nullable', 'integer', 'between:0,500'],
+            'addition_reason' => ['nullable', Rule::in(array_keys(HeatMaterialConsumption::ADDITION_REASONS))],
             'recorded_by' => ['required', 'string', 'max:100'],
             'consumed_at' => ['required', 'date'],
             'source_reference' => ['nullable', 'string', 'max:100'],

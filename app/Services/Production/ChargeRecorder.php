@@ -73,6 +73,7 @@ class ChargeRecorder
                 'recorded_by' => $v['recorded_by'],
                 'notes' => $v['notes'] ?? null,
                 'charge_round' => $v['charge_round'] ?? null,
+                'addition_reason' => ($v['charge_round'] ?? null) === null ? ($v['addition_reason'] ?? null) : null,   // a recipe charge is not an extra
             ]);
         });
     }
