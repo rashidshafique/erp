@@ -168,7 +168,7 @@ class SalesOrderEditor
                 app(Audit::class)->record('EDITED', 'SalesOrder', $order->id, $order->order_number, ['summary' => ['new' => implode('; ', $notes)]], $reason);
             }
 
-            return $linesChanged && $order->hasApprovedReview();
+            return $linesChanged && $order->contractReviews()->where('status', 'APPROVED')->exists();   // the approval it had is now out of date
         });
     }
 

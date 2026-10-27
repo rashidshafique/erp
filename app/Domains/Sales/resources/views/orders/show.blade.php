@@ -203,8 +203,12 @@
                         @elseif ($review->status === 'IN_REVIEW')
                             <form method="POST" action="{{ route('sales-orders.review.sign', $order) }}">@csrf
                                 <input type="hidden" name="role" value="{{ $role }}">
-                                <input name="name" placeholder="Your name" required maxlength="100">
-                                <button class="btn btn-primary" type="submit">Sign as {{ strtolower($label) }}</button></form>
+                                @if (auth()->user())
+                                    <input type="hidden" name="name" value="{{ auth()->user()->name }}">
+                                @else
+                                    <input name="name" placeholder="Your name" required maxlength="100">
+                                @endif
+                                <button class="btn btn-primary" type="submit">Sign as {{ strtolower($label) }}{{ auth()->user() ? ' ('.auth()->user()->name.')' : '' }}</button></form>
                         @else
                             <div class="muted small">Not signed.</div>
                         @endif

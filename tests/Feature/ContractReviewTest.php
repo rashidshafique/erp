@@ -12,6 +12,7 @@ use App\Models\ProductRevision;
 use App\Models\ProductSpecification;
 use App\Domains\Sales\Models\SalesOrder;
 use App\Models\ThermalWindow;
+use App\Models\User;
 use App\Domains\Sales\Services\ContractReviewer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
@@ -149,6 +150,55 @@ class ContractReviewTest extends TestCase
         $review = $svc->sign($review, 'quality', 'Bilal');
         $this->assertSame('APPROVED', $review->status);
         $this->assertSame('CONFIRMED', $review->salesOrder->fresh()->status);
+    }
+
+    private function approved(SalesOrder $order): void
+    {
+        $svc = app(ContractReviewer::class);
+        $review = $svc->evaluate($order);
+        foreach ($review->items->where('severity', 'WARN') as $item) {
+            $svc->acknowledge($review, $item->id, 'Accepted for the first lot.');
+        }
+        $svc->sign($review->fresh(), 'sales', 'Ayesha');
+        $svc->sign($review->fresh(), 'quality', 'Bilal');
+    }
+
+    public function test_an_approved_review_goes_stale_once_the_order_is_edited(): void
+    {
+        $order = $this->order();
+        $this->approved($order);
+        $this->assertTrue($order->hasApprovedReview());
+
+        $this->travel(5)->minutes();
+        $order->lines()->first()->update(['ordered_qty' => 120]);
+        $this->assertFalse($order->fresh()->hasApprovedReview());
+    }
+
+    public function test_reviewing_a_live_order_again_keeps_it_live(): void
+    {
+        $order = $this->order();
+        $this->approved($order);
+        $order->update(['status' => 'IN_PRODUCTION']);
+
+        $this->approved($order->fresh());
+
+        $this->assertSame('IN_PRODUCTION', $order->fresh()->status);
+    }
+
+    public function test_one_person_cannot_sign_as_both_sales_and_quality(): void
+    {
+        $svc = app(ContractReviewer::class);
+        $review = $svc->evaluate($this->order());
+        foreach ($review->items->where('severity', 'WARN') as $item) {
+            $svc->acknowledge($review, $item->id, 'Accepted for the first lot.');
+        }
+        $user = User::factory()->create(['name' => 'Ayesha Khan']);
+
+        $review = $svc->sign($review->fresh(), 'sales', null, $user);
+        $this->assertSame(['Ayesha Khan', $user->id], [$review->sales_signed_by, $review->sales_signed_by_user_id]);
+
+        $this->expectException(ValidationException::class);
+        $svc->sign($review, 'quality', null, $user);
     }
 
     public function test_blocked_review_cannot_be_signed_and_new_evaluation_supersedes(): void

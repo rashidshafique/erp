@@ -193,10 +193,10 @@ class SalesOrderController extends Controller
 
     public function sign(Request $request, SalesOrder $salesOrder, ContractReviewer $reviewer): RedirectResponse
     {
-        $data = $request->validate(['role' => ['required', 'in:sales,quality'], 'name' => ['required', 'string', 'max:100']]);
+        $data = $request->validate(['role' => ['required', 'in:sales,quality'], 'name' => [$request->user() ? 'nullable' : 'required', 'string', 'max:100']]);
         $review = $salesOrder->currentReview();
         abort_unless($review, 404);
-        $r = $reviewer->sign($review, $data['role'], $data['name']);
+        $r = $reviewer->sign($review, $data['role'], $data['name'] ?? null, $request->user());
 
         return back()->with('success', $r->status === 'APPROVED' ? 'Review approved. The order is confirmed.' : ucfirst($data['role']).' sign-off recorded.');
     }

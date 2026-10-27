@@ -10,6 +10,7 @@ use App\Models\ProductSpecification;
 use App\Domains\Sales\Models\SalesOrder;
 use App\Domains\Sales\Models\SalesOrderLine;
 use App\Models\ThermalWindow;
+use App\Models\User;
 use App\Services\FurnaceEligibility;
 use App\Support\OrderRules;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,9 @@ use Illuminate\Validation\ValidationException;
 class ContractReviewer
 {
     private const OK_STATUS = ['APPROVED', 'EFFECTIVE', 'ACTIVE'];
+
+    /** Order statuses a review moves along; later ones are left as they are. */
+    private const BEFORE_LIVE = ['DRAFT', 'UNDER_REVIEW', 'CONFIRMED'];
 
     public function __construct(private FurnaceEligibility $furnaces)
     {
@@ -50,7 +54,9 @@ class ContractReviewer
             }
 
             $review->update(['verdict' => $worst, 'status' => $worst === 'BLOCK' ? 'REJECTED' : 'IN_REVIEW']);
-            $order->update(['status' => 'UNDER_REVIEW']);
+            if (in_array($order->status, self::BEFORE_LIVE, true)) {
+                $order->update(['status' => 'UNDER_REVIEW']);   // a live or held order keeps its status while it is reviewed again
+            }
 
             return $review->fresh('items');
         });
@@ -206,16 +212,17 @@ class ContractReviewer
         $item->update(['acknowledgement' => trim($reason)]);
     }
 
-    /** Sales or quality signs. Both signatures approve the review. */
-    public function sign(ContractReview $review, string $role, string $name): ContractReview
+    /** Sales or quality signs, as the signed-in user when there is one. Both signatures, by two different people, approve the review. */
+    public function sign(ContractReview $review, string $role, ?string $name, ?User $user = null): ContractReview
     {
+        $name = trim((string) ($name ?: $user?->name));
         if (! in_array($review->status, ['IN_REVIEW'], true)) {
             throw ValidationException::withMessages(['review' => 'Only a review in progress can be signed. Run a new evaluation first.']);
         }
         if ($review->verdict === 'BLOCK') {
             throw ValidationException::withMessages(['review' => 'This review has blocking findings and cannot be signed.']);
         }
-        if (strlen(trim($name)) < 2) {
+        if (strlen($name) < 2) {
             throw ValidationException::withMessages(['name' => 'Enter the name of the person signing.']);
         }
         $open = $review->items()->where('severity', 'WARN')->whereNull('acknowledgement')->count();
@@ -224,12 +231,18 @@ class ContractReviewer
         }
 
         $col = $role === 'quality' ? 'quality' : 'sales';
-        $review->update(["{$col}_signed_by" => trim($name), "{$col}_signed_at" => now()]);
+        $other = $col === 'quality' ? 'sales' : 'quality';
+        if ($user && (int) $review->{"{$other}_signed_by_user_id"} === (int) $user->id) {
+            throw ValidationException::withMessages(['review' => "You signed as {$other}, so someone else must sign as {$col}."]);
+        }
+        $review->update(["{$col}_signed_by" => $name, "{$col}_signed_by_user_id" => $user?->id, "{$col}_signed_at" => now()]);
         $review->refresh();
 
         if ($review->sales_signed_at && $review->quality_signed_at) {
             $review->update(['status' => 'APPROVED']);
-            $review->salesOrder->update(['status' => 'CONFIRMED']);
+            if (in_array($review->salesOrder->status, ['DRAFT', 'UNDER_REVIEW'], true)) {
+                $review->salesOrder->update(['status' => 'CONFIRMED']);
+            }
         }
 
         return $review;

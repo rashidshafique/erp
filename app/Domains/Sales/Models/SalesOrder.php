@@ -80,8 +80,11 @@ class SalesOrder extends Model
             || SalesOrderLineDelivery::whereIn('sales_order_line_id', $this->lines()->select('id'))->where('updated_at', '>', $since)->exists();
     }
 
+    /** True when the latest review is approved and the order has not been edited since it was run. */
     public function hasApprovedReview(): bool
     {
-        return $this->contractReviews()->where('status', 'APPROVED')->exists();
+        $latest = $this->contractReviews()->where('status', '!=', 'SUPERSEDED')->orderByDesc('review_number')->first();
+
+        return $latest?->status === 'APPROVED' && ! $this->changedSince($latest);
     }
 }

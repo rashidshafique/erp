@@ -18,8 +18,10 @@ class ContractReview extends Model
         'verdict',
         'evaluated_at',
         'sales_signed_by',
+        'sales_signed_by_user_id',
         'sales_signed_at',
         'quality_signed_by',
+        'quality_signed_by_user_id',
         'quality_signed_at',
         'notes',
     ];
