@@ -13,7 +13,7 @@
     @endif
     <div class="rule-grid">
         @foreach ($presets as $key => [$label, $description])
-            <form method="POST" action="{{ route('settings.process-depth') }}" @if ($current !== $key) onsubmit="return confirm('Apply {{ $label }} process depth? This changes the pouring, order, contract review and calibration rules.')" @endif>
+            <form method="POST" action="{{ route('settings.process-depth') }}" @if ($current !== $key) onsubmit="return confirm('Apply {{ $label }} process depth? This changes the order, shop floor, pouring, quality and calibration rules.')" @endif>
                 @csrf @method('PUT')
                 <input type="hidden" name="preset" value="{{ $key }}">
                 <h2 style="margin-top:0">{{ $label }} @if ($current === $key)<span class="status">In use</span>@endif</h2>
@@ -27,14 +27,20 @@
     @csrf @method('PUT')
     <div class="panel"><div class="panel-body">
         <h2 style="margin-top:0">Each rule</h2>
-        <div class="rule-grid">
-            @foreach ($rules as $key => [$label, $options])
-                <fieldset>
-                    <legend>{{ $label }}</legend>
-                    @foreach ($options as $value => $text)<label><input type="radio" name="{{ $key }}" value="{{ $value }}" @checked(old($key, $values[$key]) === $value)> {{ $text }}</label>@endforeach
-                </fieldset>
-            @endforeach
-        </div>
+        <p class="muted">Every rule can be changed here at any time, whatever preset or size was chosen.</p>
+        @foreach ($groups as $group => $keys)
+            <h3>{{ $group }}</h3>
+            <div class="rule-grid">
+                @foreach ($keys as $key)
+                    @php([$label, $options] = $rules[$key])
+                    <fieldset>
+                        <legend>{{ $label }}</legend>
+                        @foreach ($options as $value => $text)<label><input type="radio" name="{{ $key }}" value="{{ $value }}" @checked(old($key, $values[$key]) === $value)> {{ $text }}</label>@endforeach
+                        @if (in_array($key, $waiting, true))<p class="muted small">Needs the Quick flow module, which is switched off, so the first choice applies for now.</p>@endif
+                    </fieldset>
+                @endforeach
+            </div>
+        @endforeach
     </div></div>
     <div class="actions"><button class="btn btn-primary" type="submit">Save rules</button></div>
 </form>

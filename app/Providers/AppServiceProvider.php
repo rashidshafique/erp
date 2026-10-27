@@ -15,6 +15,7 @@ use App\Services\Audit\Audit;
 use App\Services\Stock\StockItemTypes;
 use App\Services\Stock\StockMovementTypes;
 use App\Support\Formats;
+use App\Support\RuleMenuFilter;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Event;
@@ -31,6 +32,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(Audit::class);
         $this->app->singletonIf(ModuleAccess::class, OpenModuleAccess::class);
         $this->app->singletonIf(MenuFilter::class, ShowEveryMenuEntry::class);
+        $this->app->extend(MenuFilter::class, fn (MenuFilter $filter) => $filter instanceof RuleMenuFilter ? $filter : new RuleMenuFilter($filter));
         $this->app->singleton(ModuleRegistry::class);
         $this->app->singletonIf(PeopleDirectory::class, NoPeopleDirectory::class);
         $this->app->singletonIf(\App\Domains\Core\Contracts\TaxCalculator::class, \App\Domains\Core\FlatRateTax::class);

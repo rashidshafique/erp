@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\FloorRules;
 use App\Support\ProcessDepth;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -12,7 +13,11 @@ class ProcessDepthController extends Controller
 {
     public function edit(): View
     {
-        return view('settings.process-depth', ['presets' => ProcessDepth::PRESETS, 'current' => ProcessDepth::current(), 'rules' => ProcessDepth::rules(), 'values' => ProcessDepth::values()]);
+        return view('settings.process-depth', [
+            'presets' => ProcessDepth::PRESETS, 'current' => ProcessDepth::current(), 'rules' => ProcessDepth::rules(), 'values' => ProcessDepth::values(),
+            'groups' => ProcessDepth::GROUPS,
+            'waiting' => collect(FloorRules::RULES)->keys()->filter(fn ($rule) => FloorRules::waitsForQuickFlow($rule))->values()->all(),
+        ]);
     }
 
     public function update(Request $request): RedirectResponse
