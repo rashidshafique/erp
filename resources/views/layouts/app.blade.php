@@ -380,6 +380,12 @@
                     <div class="settings-main">@yield('content')</div>
                 </div>
             @else
+                @if (request()->routeIs('dashboard') && ! \App\Support\ProcessSetup::answered() && (! auth()->user() || auth()->user()->hasPermission('settings.manage')))
+                    <div class="alert alert-success" style="display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+                        <span>Tell the system how your foundry works, and it sets the steps and checks to match.</span>
+                        <a class="btn btn-small btn-primary" href="{{ route('settings.process-setup.edit') }}">How you work</a>
+                    </div>
+                @endif
                 @yield('content')
             @endif
         </main>

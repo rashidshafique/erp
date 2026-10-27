@@ -369,6 +369,9 @@ Route::get('/settings/flasks', [FlaskController::class, 'editRules'])->name('set
 Route::put('/settings/flasks', [FlaskController::class, 'rules'])->name('settings.flasks');
 Route::get('/settings/process-depth', [\App\Http\Controllers\ProcessDepthController::class, 'edit'])->name('settings.process-depth.edit');
 Route::put('/settings/process-depth', [\App\Http\Controllers\ProcessDepthController::class, 'update'])->name('settings.process-depth');
+Route::get('/settings/how-you-work', [\App\Http\Controllers\ProcessSetupController::class, 'edit'])->name('settings.process-setup.edit');
+Route::post('/settings/how-you-work/review', [\App\Http\Controllers\ProcessSetupController::class, 'review'])->name('settings.process-setup.review');
+Route::put('/settings/how-you-work', [\App\Http\Controllers\ProcessSetupController::class, 'update'])->name('settings.process-setup');
 Route::get('/settings/work-lists', [\App\Http\Controllers\WorkListRulesController::class, 'edit'])->name('settings.work-lists.edit');
 Route::put('/settings/work-lists', [\App\Http\Controllers\WorkListRulesController::class, 'update'])->name('settings.work-lists');
 Route::get('/settings/orders', [\App\Http\Controllers\OrderRulesController::class, 'edit'])->name('settings.orders.edit');

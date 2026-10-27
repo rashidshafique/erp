@@ -6,6 +6,7 @@
 @section('content')
 <div class="page-heading">
     <div><h1>Process depth</h1><p>How much checking the shop floor goes through. A preset is only a starting point: it fills in every rule below, and each rule can then be set on its own.</p></div>
+    <div class="actions"><a class="btn" href="{{ route('settings.process-setup.edit') }}">Answer a few questions instead</a></div>
 </div>
 <div class="panel"><div class="panel-body">
     @if ($current === 'CUSTOM')

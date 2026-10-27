@@ -21,6 +21,7 @@ class SettingsNav
             'Documents' => ['settings.documents', ['settings.documents*']],
             'Custom fields' => ['custom-fields.index', ['custom-fields.*']],
             'Flask rules' => ['settings.flasks.edit', ['settings.flasks*']],
+            'How you work' => ['settings.process-setup.edit', ['settings.process-setup*']],
             'Process depth' => ['settings.process-depth.edit', ['settings.process-depth*']],
             'Order rules' => ['settings.orders.edit', ['settings.orders*']],
             'Pouring rules' => ['settings.pouring.edit', ['settings.pouring*']],
