@@ -13,6 +13,7 @@
     <a class="btn" href="{{ route('invoices.print', $invoice) }}" target="_blank">Print</a>
     @if (! $invoice->isCreditNote())
         @if ($invoice->balance() > 0)<a class="btn btn-primary" href="{{ route('receipts.create', ['customer' => $invoice->customer_id, 'invoice' => $invoice->id]) }}">Record payment</a>@endif
+        @if ($invoice->withheldOpen() > 0)<a class="btn" href="{{ route('withholding-certificates.create', ['customer' => $invoice->customer_id]) }}">Tax certificate</a>@endif
         <a class="btn" href="{{ route('invoices.credit', $invoice) }}">Credit note</a>
     @endif
 @endif
@@ -22,7 +23,7 @@
     <div><div class="muted small">Total</div><strong>{{ $m($invoice->total) }} {{ $cur }}</strong></div>
     @if ($invoice->tax_withheld > 0)<div><div class="muted small">Withheld by the customer</div>{{ $m($invoice->tax_withheld) }}</div><div><div class="muted small">Customer pays</div><strong>{{ $m($invoice->payableToUs()) }}</strong></div>@endif
     @if (! $invoice->isCreditNote() && $invoice->status === 'ISSUED')
-        <div><div class="muted small">Paid</div>{{ $m($invoice->paid()) }}</div><div><div class="muted small">Credited</div>{{ $m($invoice->credited()) }}</div>
+        <div><div class="muted small">Paid</div>{{ $m($invoice->paid()) }}</div>@if ($invoice->tax_withheld > 0)<div><div class="muted small">Withheld tax certified</div>{{ $m($invoice->withheldSettled()) }}</div>@endif<div><div class="muted small">Credited</div>{{ $m($invoice->credited()) }}</div>
         <div><div class="muted small">Owing</div><strong @if ($invoice->isOverdue()) style="color:var(--danger)" @endif>{{ $m($invoice->balance()) }}</strong></div>
     @endif
     @if ($invoice->customer_reference)<div><div class="muted small">Customer reference</div>{{ $invoice->customer_reference }}</div>@endif

@@ -27,6 +27,7 @@ class Invoice extends Model
     public function customer(): BelongsTo { return $this->belongsTo(Customer::class); }
     public function lines(): HasMany { return $this->hasMany(InvoiceLine::class)->orderBy('line_number'); }
     public function allocations(): HasMany { return $this->hasMany(ReceiptAllocation::class); }
+    public function certificateAllocations(): HasMany { return $this->hasMany(WithholdingCertificateAllocation::class); }
     public function original(): BelongsTo { return $this->belongsTo(self::class, 'original_invoice_id'); }
     public function creditNotes(): HasMany { return $this->hasMany(self::class, 'original_invoice_id')->where('kind', 'CREDIT_NOTE'); }
 
@@ -68,10 +69,32 @@ class Invoice extends Model
         return round((float) $this->creditNotes()->where('status', 'ISSUED')->sum('total'), 2);
     }
 
+    /** Withheld tax that customer certificates have settled, for one tax code or all of them. */
+    public function withheldSettled(?string $taxCode = null): float
+    {
+        return round((float) WithholdingCertificateAllocation::where('invoice_id', $this->id)
+            ->whereHas('certificate', fn ($q) => $q->where('status', 'ACTIVE')->when($taxCode, fn ($q) => $q->where('tax_code', $taxCode)))->sum('amount'), 2);
+    }
+
+    /** Tax the customer withheld that no certificate has settled yet: for one tax code, or the whole, never more than is owed. */
+    public function withheldOpen(?string $taxCode = null): float
+    {
+        $withheld = $taxCode === null ? (float) $this->tax_withheld
+            : (float) $this->taxBreakdown()->filter(fn ($t) => $t['withheld'] && $t['code'] === $taxCode)->sum('amount');
+
+        return round(max(0.0, min($withheld - $this->withheldSettled($taxCode), $this->balance())), 2);
+    }
+
+    /** What the customer still has to pay in money: the balance less the withheld tax they will cover with a certificate. */
+    public function cashDue(): float
+    {
+        return round($this->balance() - $this->withheldOpen(), 2);
+    }
+
     /** Still owed on an issued invoice. */
     public function balance(): float
     {
-        return $this->status === 'ISSUED' && ! $this->isCreditNote() ? round($this->total - $this->paid() - $this->credited(), 2) : 0.0;
+        return $this->status === 'ISSUED' && ! $this->isCreditNote() ? round($this->total - $this->paid() - $this->credited() - $this->withheldSettled(), 2) : 0.0;
     }
 
     public function isOverdue(): bool

@@ -7,6 +7,7 @@ use App\Domains\Finance\Models\Invoice;
 use App\Domains\Finance\Models\Receipt;
 use App\Domains\Finance\Models\SupplierBill;
 use App\Domains\Finance\Models\SupplierPayment;
+use App\Domains\Finance\Models\WithholdingCertificate;
 
 /** Invoicing and receivables, bills and payables: sales invoices and credit notes, customer receipts, supplier bills, supplier payments and ageing both ways. */
 class FinanceServiceProvider extends ModuleServiceProvider
@@ -34,10 +35,11 @@ class FinanceServiceProvider extends ModuleServiceProvider
     protected function navGroups(): array
     {
         return [[
-            'key' => 'finance', 'label' => 'Finance', 'icon' => 'banknote', 'active' => ['invoices.*', 'receipts.*', 'receivables.*', 'bills.*', 'supplier-payments.*', 'payables.*', 'finance.*'],
+            'key' => 'finance', 'label' => 'Finance', 'icon' => 'banknote', 'active' => ['invoices.*', 'receipts.*', 'withholding-certificates.*', 'receivables.*', 'bills.*', 'supplier-payments.*', 'payables.*', 'finance.*'],
             'items' => [
                 ['label' => 'Invoices', 'route' => 'invoices.index', 'icon' => 'file-text', 'active' => ['invoices.*'], 'count' => fn (): int => Invoice::where('status', 'DRAFT')->count()],
                 ['label' => 'Receipts', 'route' => 'receipts.index', 'icon' => 'arrow-down-circle', 'active' => ['receipts.*']],
+                ['label' => 'Tax certificates', 'route' => 'withholding-certificates.index', 'icon' => 'stamp', 'active' => ['withholding-certificates.*']],
                 ['label' => 'Receivables', 'route' => 'receivables.index', 'icon' => 'inbox', 'active' => ['receivables.*']],
                 ['label' => 'Supplier bills', 'route' => 'bills.index', 'icon' => 'receipt', 'active' => ['bills.*'], 'count' => fn (): int => SupplierBill::where('status', 'DRAFT')->count()],
                 ['label' => 'Supplier payments', 'route' => 'supplier-payments.index', 'icon' => 'arrow-up-circle', 'active' => ['supplier-payments.*']],
@@ -62,6 +64,7 @@ class FinanceServiceProvider extends ModuleServiceProvider
         return [
             ['pattern' => 'invoices.*', 'permission' => 'finance.manage'],
             ['pattern' => 'receipts.*', 'permission' => 'finance.manage'],
+            ['pattern' => 'withholding-certificates.*', 'permission' => 'finance.manage'],
             ['pattern' => 'receivables.*', 'permission' => 'finance.manage'],
             ['pattern' => 'bills.*', 'permission' => 'finance.manage'],
             ['pattern' => 'supplier-payments.*', 'permission' => 'finance.manage'],
@@ -82,6 +85,7 @@ class FinanceServiceProvider extends ModuleServiceProvider
             'receipt' => ['label' => 'Receipt', 'model' => Receipt::class, 'edit' => 'finance.manage'],
             'supplier_bill' => ['label' => 'Supplier bill', 'model' => SupplierBill::class, 'edit' => 'finance.manage'],
             'supplier_payment' => ['label' => 'Supplier payment', 'model' => SupplierPayment::class, 'edit' => 'finance.manage'],
+            'withholding_certificate' => ['label' => 'Tax certificate', 'model' => WithholdingCertificate::class, 'edit' => 'finance.manage'],
         ];
     }
 }

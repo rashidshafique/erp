@@ -19,6 +19,7 @@ class LedgerSettings
         'expense' => ['Other bill lines', '6600'],
         'input_tax' => ['Tax on supplier bills', '1161'],
         'output_tax' => ['Tax on invoices', '2140'],
+        'tax_withheld' => ['Tax customers withheld (settled by their certificates)', '1163'],
         'bank' => ['Money in and out (except cash)', '1121'],
         'cash' => ['Cash', '1110'],
         'opening_equity' => ['Opening balances', '3900'],

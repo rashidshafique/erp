@@ -6,6 +6,7 @@ use App\Domains\Finance\Models\Invoice;
 use App\Domains\Finance\Models\Receipt;
 use App\Domains\Finance\Models\SupplierBill;
 use App\Domains\Finance\Models\SupplierPayment;
+use App\Domains\Finance\Models\WithholdingCertificate;
 use App\Domains\Ledger\Models\Journal;
 use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
@@ -15,8 +16,9 @@ use InvalidArgumentException;
  * - invoice: debit receivables with the total, credit sales with each line and the tax owed to each authority (a credit note the other way);
  * - supplier bill: debit each line's account and the tax on it, credit payables with the total (a supplier credit note the other way);
  * - receipt: debit cash or bank, credit receivables with the whole amount, even the part left on account;
- * - supplier payment: debit payables, credit cash or bank.
- * Tax a customer withholds is not posted here: receivables keep the full total until it is settled against the certificate.
+ * - supplier payment: debit payables, credit cash or bank;
+ * - withholding certificate: debit tax withheld by customers, credit receivables.
+ * Tax a customer withholds is not posted with the invoice: receivables keep the full total until the customer's certificate settles it.
  */
 class PostingRules
 {
@@ -30,6 +32,7 @@ class PostingRules
             $document instanceof SupplierBill => 'supplier_bill',
             $document instanceof Receipt => 'receipt',
             $document instanceof SupplierPayment => 'supplier_payment',
+            $document instanceof WithholdingCertificate => 'withholding_certificate',
             default => throw new InvalidArgumentException('The ledger does not know how to post a '.class_basename($document).'.'),
         }, 'id' => $document->getKey()];
     }
@@ -41,6 +44,7 @@ class PostingRules
             $document instanceof SupplierBill => $this->bill($document),
             $document instanceof Receipt => $this->receipt($document),
             $document instanceof SupplierPayment => $this->payment($document),
+            $document instanceof WithholdingCertificate => $this->certificate($document),
             default => throw new InvalidArgumentException('The ledger does not know how to post a '.class_basename($document).'.'),
         };
 
@@ -120,6 +124,17 @@ class PostingRules
         ], 'Payment '.$payment->payment_number.' · '.$payment->supplier?->name.($payment->reference ? ' '.$payment->reference : '')];
     }
 
+    /** @return array{0: string, 1: list<array<string, mixed>>, 2: string} */
+    private function certificate(WithholdingCertificate $certificate): array
+    {
+        $certificate->loadMissing('customer');
+
+        return [$certificate->certificate_date->toDateString(), [
+            ['debit' => $certificate->amount, 'account_id' => LedgerSettings::account('tax_withheld')->id],
+            ['credit' => $certificate->amount, 'account_id' => LedgerSettings::account('receivables')->id, 'party_type' => 'customer', 'party_id' => $certificate->customer_id],
+        ], 'Tax certificate '.$certificate->certificate_number.' · '.$certificate->customer?->name.' '.$certificate->tax_label.' '.$certificate->reference];
+    }
+
     /**
      * Posts every counted document that has no journal yet, oldest first. Voided documents are skipped: they would only post and reverse.
      *
@@ -133,6 +148,7 @@ class PostingRules
             ->concat(SupplierBill::where('status', 'POSTED')->whereNotIn('id', $done('supplier_bill'))->get()->map(fn ($d) => [$d->bill_date, $d]))
             ->concat(Receipt::whereNotIn('id', $done('receipt'))->get()->map(fn ($d) => [$d->received_on, $d]))
             ->concat(SupplierPayment::whereNotIn('id', $done('supplier_payment'))->get()->map(fn ($d) => [$d->paid_on, $d]))
+            ->concat(WithholdingCertificate::where('status', 'ACTIVE')->whereNotIn('id', $done('withholding_certificate'))->get()->map(fn ($d) => [$d->certificate_date, $d]))
             ->sortBy(fn ($pair) => $pair[0]->toDateString());
         $posted = 0;
         $skipped = [];
@@ -141,7 +157,7 @@ class PostingRules
                 $this->post($document);
                 $posted++;
             } catch (InvalidArgumentException $e) {
-                $skipped[] = ($document->invoice_number ?? $document->bill_number ?? $document->receipt_number ?? $document->payment_number).': '.$e->getMessage();
+                $skipped[] = ($document->invoice_number ?? $document->bill_number ?? $document->receipt_number ?? $document->payment_number ?? $document->certificate_number).': '.$e->getMessage();
             }
         }
 

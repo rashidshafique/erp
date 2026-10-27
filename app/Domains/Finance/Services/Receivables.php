@@ -4,6 +4,7 @@ namespace App\Domains\Finance\Services;
 
 use App\Domains\Finance\Models\Invoice;
 use App\Domains\Finance\Models\Receipt;
+use App\Domains\Finance\Models\WithholdingCertificate;
 use App\Models\Customer;
 use Illuminate\Support\Collection;
 
@@ -30,9 +31,10 @@ class Receivables
     }
 
     /**
-     * One row per customer owing money: the amount in each age bucket, the total, and what they have paid on account.
+     * One row per customer owing money: the amount in each age bucket, the total, the part of it that is tax they withheld and
+     * still owe a certificate for, and what they have paid on account.
      *
-     * @return list<array{customer: Customer, buckets: array<string, float>, total: float, on_account: float}>
+     * @return list<array{customer: Customer, buckets: array<string, float>, total: float, withheld: float, on_account: float}>
      */
     public function ageing(): array
     {
@@ -42,7 +44,8 @@ class Receivables
             foreach ($invoices as $invoice) {
                 $buckets[$this->bucket($invoice)] += $invoice->balance();
             }
-            $rows[] = ['customer' => $invoices->first()->customer, 'buckets' => array_map(fn ($v) => round($v, 2), $buckets), 'total' => round(array_sum($buckets), 2), 'on_account' => $this->onAccount($customerId)];
+            $rows[] = ['customer' => $invoices->first()->customer, 'buckets' => array_map(fn ($v) => round($v, 2), $buckets), 'total' => round(array_sum($buckets), 2),
+                'withheld' => round($invoices->sum(fn (Invoice $i) => $i->withheldOpen()), 2), 'on_account' => $this->onAccount($customerId)];
         }
         usort($rows, fn ($a, $b) => $b['total'] <=> $a['total']);
 
@@ -56,7 +59,7 @@ class Receivables
     }
 
     /**
-     * Every invoice, credit note and receipt of a customer in date order with a running balance (positive = they owe us).
+     * Every invoice, credit note, receipt and tax certificate of a customer in date order with a running balance (positive = they owe us).
      *
      * @return array{rows: list<array<string, mixed>>, balance: float}
      */
@@ -69,6 +72,9 @@ class Receivables
         }
         foreach (Receipt::where('customer_id', $customer->id)->get() as $r) {
             $entries[] = ['date' => $r->received_on, 'at' => $r->created_at, 'type' => 'Receipt', 'number' => $r->receipt_number, 'model' => $r, 'debit' => 0.0, 'credit' => $r->amount];
+        }
+        foreach (WithholdingCertificate::where('customer_id', $customer->id)->where('status', 'ACTIVE')->get() as $c) {
+            $entries[] = ['date' => $c->certificate_date, 'at' => $c->created_at, 'type' => 'Tax certificate', 'number' => $c->certificate_number, 'model' => $c, 'debit' => 0.0, 'credit' => $c->amount];
         }
         usort($entries, fn ($a, $b) => [$a['date']->timestamp, $a['at']] <=> [$b['date']->timestamp, $b['at']]);
         $balance = 0.0;

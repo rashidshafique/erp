@@ -111,8 +111,8 @@ class InvoiceService
         if ($invoice->status !== 'ISSUED') {
             throw new InvalidArgumentException('Only an issued document can be voided.');
         }
-        if (! $invoice->isCreditNote() && ($invoice->paid() > 0 || $invoice->credited() > 0)) {
-            throw new InvalidArgumentException('Payments or credit notes are recorded against this invoice; void or reverse those first, or raise a credit note instead.');
+        if (! $invoice->isCreditNote() && ($invoice->paid() > 0 || $invoice->credited() > 0 || $invoice->withheldSettled() > 0)) {
+            throw new InvalidArgumentException('Payments, tax certificates or credit notes are recorded against this invoice; void or reverse those first, or raise a credit note instead.');
         }
         DB::transaction(function () use ($invoice, $reason) {
             $invoice->update(['status' => 'VOID', 'voided_at' => now(), 'void_reason' => $reason]);

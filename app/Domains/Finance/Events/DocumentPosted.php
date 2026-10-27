@@ -5,7 +5,7 @@ namespace App\Domains\Finance\Events;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * An invoice or credit note was issued, a supplier bill or credit note posted, or a receipt or supplier payment recorded. Fired inside
+ * An invoice or credit note was issued, a supplier bill or credit note posted, a receipt, supplier payment or withholding certificate recorded. Fired inside
  * the transaction that made it count, so a listener that refuses rolls the document back.
  */
 class DocumentPosted
