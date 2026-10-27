@@ -15,7 +15,7 @@
         @endforeach
     </select>
     <div class="fg-warn" data-fg-warn @unless ($chosen && ! $mapped) hidden @endunless>Not linked to any product. <a href="{{ $chosen ? route('patterns.show', $chosen['pattern']).'#cavity-map' : '#' }}" target="_blank" data-fg-warn-link>Link it on the pattern</a></div></td>
-    <td><input type="number" name="rows[{{ $n }}][moulds]" min="1" max="100000" class="fg-num" value="{{ $row['moulds'] ?? '' }}" aria-label="Moulds" @if ($err('moulds')) aria-invalid="true" @endif></td>
+    <td><input type="number" name="rows[{{ $n }}][moulds]" min="1" max="100000" class="fg-num" value="{{ $row['moulds'] ?? '' }}" @isset($row['planned']) placeholder="plan {{ $row['planned'] }}" title="Planned: {{ $row['planned'] }} moulds" @endisset aria-label="Moulds" @if ($err('moulds')) aria-invalid="true" @endif></td>
     <td><input type="number" name="rows[{{ $n }}][cavities]" min="1" max="1000" class="fg-num" data-fg-cavities aria-label="Cavities"
         value="{{ $mapped ? $chosen['cavities'] : ($row['cavities'] ?? '') }}" @if ($mapped) readonly title="From the pattern's cavity map" @elseif ($chosen) required placeholder="count" @endif @if ($err('cavities')) aria-invalid="true" @endif>
         <div class="fg-hint" data-fg-cavities-hint>{{ $mapped ? 'from cavity map' : '' }}</div></td>

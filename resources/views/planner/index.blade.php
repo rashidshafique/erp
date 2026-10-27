@@ -43,13 +43,20 @@
             </tbody>
         </table></div>
         <div class="panel-body">
+            @if (\App\Support\FloorRules::usesWorkLists())
             <form method="POST" action="{{ route('planner.fill') }}" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">@csrf
                 <input type="hidden" name="day" value="{{ $day->toDateString() }}">
                 <label class="small" for="plan-shift">Shift</label><select id="plan-shift" name="shift">@foreach ($shifts as $s)<option>{{ $s }}</option>@endforeach</select>
-                <label class="check-field small"><input type="checkbox" name="rebuild_melting" value="1" checked> Rebuild the melting plan after</label>
+                @if (\App\Support\FloorRules::usesMeltingPlan())<label class="check-field small"><input type="checkbox" name="rebuild_melting" value="1" checked> Rebuild the melting plan after</label>@endif
                 <button class="btn btn-primary" type="submit">Put on a work list</button>
                 <span class="muted small">Adds to the draft list for that day and shift, or starts a new one.</span>
             </form>
+            @else
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+                <a class="btn btn-primary" href="{{ route('quick.floor.index', ['plan' => $day->toDateString()]) }}">Record moulds made to this plan</a>
+                <span class="muted small">Opens the moulds made grid with this shift's patterns, orders and stations filled in.</span>
+            </div>
+            @endif
         </div>
     @endif
 </div>

@@ -12,6 +12,7 @@ use App\Models\MouldingStation;
 use App\Models\Pattern;
 use App\Models\Pour;
 use App\Models\ProductionOrder;
+use App\Services\Planning\OrderPlanner;
 use App\Services\QualityGates;
 use App\Support\PouringRules;
 use Carbon\Carbon;
@@ -35,8 +36,9 @@ class FloorEntryController extends Controller
 
     public function __construct(private NextHeatPlan $plan, private QuickFloorLinker $linker) {}
 
-    public function index(): View
+    public function index(Request $request, OrderPlanner $planner): View
     {
+        $planDay = $request->validate(['plan' => ['nullable', 'date']])['plan'] ?? null;
         $orders = $this->plan->orders();
         $patterns = $this->patternChoices($orders);
         $waiting = QuickFloorEntry::unlinked()->with(['pattern', 'patternRevision.cavityMap.productRevision', 'station', 'heat'])->orderBy('entry_date')->orderBy('created_at')->get();
@@ -50,7 +52,25 @@ class FloorEntryController extends Controller
             'heats' => $this->pourableHeats()->with(['ironGrade', 'furnace', 'thermalTests'])->orderByDesc('created_at')->limit(15)->get(),
             'waiting' => $waiting->map(fn ($e) => ['entry' => $e, 'products' => $this->linker->productsOf($e->patternRevision)]),
             'recent' => QuickFloorEntry::with(['productionOrder.product', 'heat', 'pattern', 'station'])->orderByDesc('created_at')->limit(15)->get(),
+            'plannedRows' => $planDay ? $this->plannedRows($planner, Carbon::parse($planDay)) : [],
         ]);
+    }
+
+    /**
+     * The planner's first shift for the day as grid rows: pattern, order and station, with the moulds planned shown as a hint only.
+     *
+     * @return list<array{pattern_id: string, production_order_id: string, moulding_station_id: string, planned: int}>
+     */
+    private function plannedRows(OrderPlanner $planner, Carbon $day): array
+    {
+        $rows = [];
+        foreach ($planner->plan($day)['suggestion'] as ['station' => $station, 'rows' => $planned]) {
+            foreach ($planned as $r) {
+                $rows[] = ['pattern_id' => $r['pattern']->pattern_id, 'production_order_id' => $r['order']->id, 'moulding_station_id' => $station->id, 'planned' => $r['moulds']];
+            }
+        }
+
+        return $rows;
     }
 
     public function made(Request $request): RedirectResponse

@@ -185,6 +185,21 @@ class PlannerTest extends TestCase
         $this->assertSame(20, (int) $list->items()->sum('planned_moulds'));                  // the station is full this shift
     }
 
+    public function test_without_work_lists_the_plan_fills_the_moulds_made_grid_and_moulds_are_left_to_type(): void
+    {
+        \App\Support\FloorRules::set('work_lists', 'OFF');
+        $w = $this->world();
+        $w['st']->update(['moulds_per_shift' => 20]);
+
+        $this->get(route('planner.index'))->assertOk()->assertDontSee('Put on a work list')
+            ->assertSee(route('quick.floor.index', ['plan' => today()->toDateString()]), false);
+
+        $this->get(route('quick.floor.index', ['plan' => today()->toDateString()]))->assertOk()
+            ->assertSee("Today's plan is filled in", false)->assertSee('placeholder="plan 20"', false)
+            ->assertSee('value="'.$w['order']->id.'" selected', false);
+        $this->assertSame(0, MouldingWorkList::count());
+    }
+
     public function test_orders_without_a_rated_station_are_flagged_and_nothing_is_filled(): void
     {
         $w = $this->world();

@@ -4,14 +4,15 @@
 @php
     $pouring = $kind === 'poured';
     $mine = old('_grid') === $kind;
-    $rows = $mine ? array_values((array) old('rows', [])) : [];
+    // The made grid can open on the planner's first shift: pattern, order and station filled in, moulds left to type.
+    $rows = $mine ? array_values((array) old('rows', [])) : ($kind === 'made' ? ($plannedRows ?? []) : []);
     $count = max(5, count($rows));
     $orderChoices = $pouring ? $awaiting : $orders;
     $today = today()->toDateString();
     $autoLabel = fn ($order) => $order ? 'Automatic: '.$order->production_order_number.' '.$order->product?->code : 'Automatic: none open, link later';
 @endphp
 <div class="panel fg-panel" data-floor-grid="{{ $kind }}">
-    <div class="panel-header"><h2>{{ $title }}</h2><span class="muted small">Pick the pattern and type the moulds. Cavities come from the pattern's cavity map; station, order and date are filled in.</span></div>
+    <div class="panel-header"><h2>{{ $title }}</h2><span class="muted small">@if (! $mine && $kind === 'made' && ! empty($plannedRows))Today's plan is filled in: type the moulds each pattern made, and clear the rows not run. @endif Pick the pattern and type the moulds. Cavities come from the pattern's cavity map; station, order and date are filled in.</span></div>
     <div class="panel-body">
         <form method="POST" action="{{ $action }}">@csrf<input type="hidden" name="_grid" value="{{ $kind }}">
             @if ($mine && $errors->any())<div class="alert alert-error">@foreach ($errors->all() as $e)<div>{{ $e }}</div>@endforeach</div>@endif
