@@ -205,16 +205,21 @@ class HeatPlanner
         PlannedHeat::whereIn('id', $ids)->delete();
     }
 
-    /** Remaining metal demand by grade from released production orders. */
+    /**
+     * Remaining metal demand by grade from released and started production orders. Metal already covered is the larger of what
+     * released heats were planned to melt for the order and what its poured castings took, so the two never count twice.
+     */
     private function demand(array &$skipped): array
     {
         $planned = DB::table('planned_heat_orders')
             ->join('planned_heats', 'planned_heats.id', '=', 'planned_heat_orders.planned_heat_id')
             ->where('planned_heats.status', 'RELEASED')
             ->groupBy('production_order_id')->selectRaw('production_order_id, SUM(metal_kg) as kg')->pluck('kg', 'production_order_id');
+        $poured = DB::table('casting_lots')->groupBy('production_order_id')
+            ->selectRaw('production_order_id, SUM(quantity_poured) as qty')->pluck('qty', 'production_order_id');
 
         $out = [];
-        $orders = ProductionOrder::with(['product', 'productRevision'])->where('status', 'RELEASED')->orderBy('required_date')->get();
+        $orders = ProductionOrder::with(['product', 'productRevision'])->whereIn('status', ['RELEASED', 'IN_PROGRESS'])->orderBy('required_date')->get();
         foreach ($orders as $o) {
             $rev = $o->productRevision;
             if (! $rev) {
@@ -232,7 +237,8 @@ class HeatPlanner
 
                 continue;
             }
-            $need = max(0.0, (float) $o->planned_qty * $per['kg'] - (float) ($planned[$o->id] ?? 0));
+            $covered = max((float) ($planned[$o->id] ?? 0), (float) ($poured[$o->id] ?? 0) * $per['kg']);
+            $need = max(0.0, (float) $o->planned_qty * $per['kg'] - $covered);
             if ($need < 0.001) {
                 continue;
             }

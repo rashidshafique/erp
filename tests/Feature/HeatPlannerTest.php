@@ -14,11 +14,12 @@ use App\Models\ProductRevision;
 use App\Models\ProductSpecification;
 use App\Services\Planning\HeatPlanner;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\BuildsCastingLots;
 use Tests\TestCase;
 
 class HeatPlannerTest extends TestCase
 {
-    use RefreshDatabase;
+    use BuildsCastingLots, RefreshDatabase;
 
     private function furnace(string $type, float $cap, string $code): Furnace
     {
@@ -114,6 +115,19 @@ class HeatPlannerTest extends TestCase
         $res = $planner->rebuild(today());
         $this->assertSame(0, $res['heats']);
         $this->assertSame(1, PlannedHeat::count());
+    }
+
+    public function test_a_started_order_keeps_its_unpoured_metal_in_the_plan(): void
+    {
+        $this->furnace('INDUCTION', 1000, 'IF1');
+        // 300 kg net / 0.6 yield = 500 kg per piece; 4 pieces ordered, 1 already poured, so 1500 kg is still to melt.
+        $o = $this->orderFor('EN-GJL-250', 4, 300);
+        $o->update(['status' => 'IN_PROGRESS']);
+        $this->castingLot()->update(['production_order_id' => $o->id, 'product_id' => $o->product_id, 'product_revision_id' => $o->product_revision_id, 'quantity_poured' => 1, 'quantity_good' => 1]);
+
+        app(HeatPlanner::class)->rebuild(today());
+
+        $this->assertEqualsWithDelta(1500.0, (float) PlannedHeat::sum('planned_metal_kg'), 0.01);
     }
 
     public function test_cavity_map_weights_drive_the_metal_estimate(): void
