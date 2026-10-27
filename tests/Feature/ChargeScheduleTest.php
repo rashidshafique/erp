@@ -324,7 +324,7 @@ class ChargeScheduleTest extends TestCase
         $this->put(route('heats.charge-entries.update', [$heat, $entry]), ['actual_qty_kg' => 10])->assertSessionHasErrors('actual_qty_kg');
         $this->delete(route('heats.charge-entries.destroy', [$heat, $entry]))->assertSessionHasErrors('actual_qty_kg');
         $this->assertSame(180.0, (float) $entry->fresh()->actual_qty_kg);
-        \Livewire\Livewire::test('heat-charge-history', ['heatId' => $heat->id])->assertDontSee('click a weight to change it')->assertDontSee('wire:click="edit', false);
+        \Livewire\Livewire::test('heat-charge-history', ['heatId' => $heat->id])->assertDontSee('click a weight to change it')->assertDontSee('contenteditable', false);
     }
 
     public function test_a_weight_is_changed_in_place_from_the_charge_history_without_leaving_the_page(): void
@@ -337,19 +337,18 @@ class ChargeScheduleTest extends TestCase
 
         $this->get(route('heats.show', $heat))->assertOk()->assertSeeLivewire('heat-charge-history')->assertSeeLivewire('heat-status-board')->assertSee('click a weight to change it');
 
-        $list = $history()->assertSee('Material type')->assertSee('Pig Iron')->call('edit', $entry->id)->assertSet('editing', $entry->id)->assertSet('weight', '180');
-        $list->set('weight', '150.5')->call('save')->assertSet('editing', null)->assertDispatched('charges-changed')->assertSee('150.500');
+        $history()->assertSee('Material type')->assertSee('Pig Iron')->assertSee('contenteditable="plaintext-only"', false)
+            ->call('save', $entry->id, ' 150.5 ')->assertDispatched('charges-changed')->assertSee('150.500');
         $this->assertSame([150.5, 7525.0], [(float) $entry->fresh()->actual_qty_kg, (float) $entry->fresh()->actual_total_cost]);
         $this->assertStringContainsString('Weight changed from 180.0000 kg to 150.5000 kg by Melter Ali', $entry->fresh()->notes);
 
-        // Enter and the click away both save; the second finds nothing to do.
-        $list->call('save')->assertSet('editing', null);
-        $this->assertSame(150.5, (float) $entry->fresh()->actual_qty_kg);
+        // The cell shows thousands separators, so a weight typed over it may carry them.
+        $history()->call('save', $entry->id, '1,150.5')->assertSet('problem', null);
+        $this->assertSame(1150.5, (float) $entry->fresh()->actual_qty_kg);
 
-        $history()->call('edit', $entry->id)->set('weight', '0')->call('save')->assertSet('problem', 'Enter a weight above zero.');
-        $history()->call('edit', $entry->id)->set('weight', 'abc')->call('save')->assertSet('problem', 'Enter the weight as a number.');
-        $history()->call('edit', $entry->id)->call('cancel')->assertSet('editing', null);
-        $this->assertSame(150.5, (float) $entry->fresh()->actual_qty_kg);
+        $history()->call('save', $entry->id, '0')->assertSet('problem', 'Enter a weight above zero.');
+        $history()->call('save', $entry->id, 'abc')->assertSet('problem', 'Enter the weight as a number.');
+        $this->assertSame(1150.5, (float) $entry->fresh()->actual_qty_kg);
         \Livewire\Livewire::test('heat-status-board', ['heatId' => $heat->id])->assertSee('150.5')->dispatch('charges-changed')->assertSee('150.5');
     }
 
@@ -472,7 +471,7 @@ class ChargeScheduleTest extends TestCase
         app(\App\Services\Stock\StockLedger::class)->receive($lot, 1000, 50, 'kg');
 
         $this->get(route('heats.show', $heat))->assertOk()->assertSee('Post charge to inventory')->assertSee(route('heats.charge-postings.store', $heat), false)->assertSee('click a weight to change it');
-        \Livewire\Livewire::test('heat-charge-history', ['heatId' => $heat->id])->call('edit', $entry->id)->set('weight', '175')->call('save')->assertSet('problem', null);
+        \Livewire\Livewire::test('heat-charge-history', ['heatId' => $heat->id])->call('save', $entry->id, '175')->assertSet('problem', null);
         $this->assertSame(175.0, (float) $entry->fresh()->actual_qty_kg);
 
         $this->post(route('heats.charge-postings.store', $heat), ['posted_by' => 'Stores'])->assertSessionHasNoErrors();

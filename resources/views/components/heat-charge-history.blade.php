@@ -9,17 +9,13 @@ use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 
 /**
- * The actual charge history of a heat. A weight is changed where it stands: click it, type, press Enter or click away, and only
- * this table changes. Entries can be removed from here too. Both go through the same editor as the page's own routes, so closed
- * heats and posted charges stay fixed.
+ * The actual charge history of a heat. A weight is changed where it stands: the cell itself is editable, so click it, type,
+ * press Enter or click away, and only this table changes; Escape puts it back. Entries can be removed from here too. Both go
+ * through the same editor as the page's own routes, so closed heats and posted charges stay fixed.
  */
 new class extends Component
 {
     public string $heatId;
-
-    public ?string $editing = null;
-
-    public string $weight = '';
 
     public ?string $notice = null;
 
@@ -30,40 +26,21 @@ new class extends Component
         $this->heatId = $heatId;
     }
 
-    public function edit(string $entryId): void
+    public function save(string $entryId, string $weight, ChargeEntryEditor $editor): void
     {
         $this->authorizeChanges();
-        $entry = HeatMaterialConsumption::where('heat_id', $this->heatId)->findOrFail($entryId);
-        $this->editing = $entry->id;
-        $this->weight = rtrim(rtrim((string) $entry->actual_qty_kg, '0'), '.');
-        $this->notice = $this->problem = null;
-    }
-
-    public function cancel(): void
-    {
-        $this->editing = null;
-        $this->problem = null;
-    }
-
-    public function save(ChargeEntryEditor $editor): void
-    {
-        $id = $this->editing;
-        if ($id === null) {
-            return;   // Enter and the click that follows it both arrive here; the second finds nothing to save
-        }
-        $this->authorizeChanges();
-        $this->editing = null;
         $this->notice = $this->problem = null;
         $heat = Heat::findOrFail($this->heatId);
-        $entry = HeatMaterialConsumption::where('heat_id', $heat->id)->findOrFail($id);
+        $entry = HeatMaterialConsumption::where('heat_id', $heat->id)->findOrFail($entryId);
+        $weight = str_replace([',', ' ', "\u{00A0}"], '', trim($weight));   // the cell shows the weight with thousands separators
 
-        if (! is_numeric($this->weight)) {
+        if (! is_numeric($weight)) {
             $this->problem = 'Enter the weight as a number.';
 
             return;
         }
         try {
-            $editor->reweigh($heat, $entry, (float) $this->weight, auth()->user()?->name ?? 'someone');
+            $editor->reweigh($heat, $entry, (float) $weight, auth()->user()?->name ?? 'someone');
         } catch (ValidationException $e) {
             $this->problem = $e->validator->errors()->first();
 
@@ -109,9 +86,9 @@ new class extends Component
 
 <div>
 <style>
-    .qty-edit { cursor: text; border-bottom: 1px dashed var(--muted); padding: 1px 2px; }
+    .qty-edit { cursor: text; border-bottom: 1px dashed var(--muted); padding: 1px 2px; outline: none; display: inline-block; min-width: 3ch; }
     .qty-edit:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); border-bottom-color: var(--accent); }
-    .qty-input { width: 110px; min-height: 28px; padding: 2px 6px; text-align: right; font: inherit; }
+    .qty-edit:focus { background: color-mix(in srgb, var(--accent) 14%, transparent); border-bottom: 1px solid var(--accent); }
 </style>
 @if ($problem)<div class="alert alert-error">{{ $problem }}</div>@endif
 @if ($notice)<div class="alert alert-success">{{ $notice }}</div>@endif
@@ -139,11 +116,13 @@ new class extends Component
                         <td>{{ $entry->materialLot?->lot_number ?? $entry->source_reference ?? '—' }}</td>
                         <td>{{ $entry->charge_round === null ? '—' : ($entry->charge_round === 0 ? 'Start-up' : $entry->charge_round) }}</td>
                         <td class="num">
-                            @if ($canChange && $editing === $entry->id)
-                                <input class="qty-input" type="number" step="any" min="0" wire:model="weight" wire:keydown.enter.prevent="save" wire:keydown.escape="cancel" wire:blur="save"
-                                    x-init="$nextTick(() => { $el.focus(); $el.select(); })" aria-label="Weight of {{ $entry->material?->name }} in kg">
-                            @elseif ($canChange)
-                                <span class="qty-edit" wire:click="edit('{{ $entry->id }}')" title="Click to change the weight" role="button" tabindex="0" wire:keydown.enter="edit('{{ $entry->id }}')">{{ \App\Support\Formats::number((float) $entry->actual_qty_kg, 3) }}</span>
+                            @if ($canChange)
+                                <span class="qty-edit" contenteditable="plaintext-only" inputmode="decimal" spellcheck="false" role="textbox" title="Click to change the weight" aria-label="Weight of {{ $entry->material?->name }} in kg"
+                                    x-data="{ shown: '' }"
+                                    x-on:focus="shown = $el.textContent; getSelection().selectAllChildren($el)"
+                                    x-on:keydown.enter.prevent="$el.blur()"
+                                    x-on:keydown.escape.prevent="$el.textContent = shown; $el.blur()"
+                                    x-on:blur="$el.textContent.trim() !== shown.trim() && $wire.save('{{ $entry->id }}', $el.textContent)">{{ \App\Support\Formats::number((float) $entry->actual_qty_kg, 3) }}</span>
                             @else
                                 {{ \App\Support\Formats::number((float) $entry->actual_qty_kg, 3) }}
                             @endif
