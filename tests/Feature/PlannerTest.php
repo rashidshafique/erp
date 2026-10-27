@@ -195,7 +195,7 @@ class PlannerTest extends TestCase
             ->assertSee(route('quick.floor.index', ['plan' => today()->toDateString()]), false);
 
         $this->get(route('quick.floor.index', ['plan' => today()->toDateString()]))->assertOk()
-            ->assertSee("Today's plan is filled in", false)->assertSee('placeholder="plan 20"', false)
+            ->assertSee('Pattern, order and station are filled in', false)->assertSee('placeholder="plan 20"', false)
             ->assertSee('value="'.$w['order']->id.'" selected', false);
         $this->assertSame(0, MouldingWorkList::count());
     }

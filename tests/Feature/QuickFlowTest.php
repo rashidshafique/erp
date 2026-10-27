@@ -19,6 +19,7 @@ use App\Models\Pour;
 use App\Models\PourMouldAssembly;
 use App\Models\Product;
 use App\Models\ProductionOrder;
+use App\Support\FloorRules;
 use App\Support\OrderRules;
 use App\Support\PouringRules;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -260,6 +261,19 @@ class QuickFlowTest extends TestCase
 
         $heat = Heat::firstOrFail();
         $this->assertSame(['PLANNED', '850.000', 'INDUCTION'], [$heat->status, (string) $heat->target_metal_weight_kg, $heat->process_type]);
+    }
+
+    public function test_with_quick_screens_an_order_opens_the_moulds_made_grid_on_its_pattern(): void
+    {
+        FloorRules::set('floor_screens', 'QUICK');
+        $shop = $this->shop();
+        $pattern = $this->pattern($shop);
+        $this->order($shop);
+        $order = ProductionOrder::firstOrFail();
+
+        $this->get(route('production-orders.show', $order))->assertOk()->assertSee(route('quick.floor.index', ['order' => $order->id]), false)->assertDontSee('+ Moulding run');
+        $this->get(route('quick.floor.index', ['order' => $order->id]))->assertOk()
+            ->assertSee('value="'.$pattern->id.'" data-sub', false)->assertSee('Pattern, order and station are filled in');
     }
 
     public function test_the_pages_render(): void

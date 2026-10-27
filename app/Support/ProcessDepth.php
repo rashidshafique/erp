@@ -12,17 +12,17 @@ class ProcessDepth
 {
     /** label and description of each preset */
     public const PRESETS = [
-        'BASIC' => ['Basic', 'Fast entry for a small foundry: a saved order goes straight to production; no work lists or melting plan; moulds are assembled as they are made and a pour is recorded, completed and given its lots in one step; no pouring gates, first-iron holds or calibration blocks; an order completes when its castings are poured, one lot per pour and product, and the quick QC tally raises a nonconformance only above 5% rejects.'],
-        'FULL' => ['Full', 'Every step and check in force: contract review, work lists issued before runs start, the melting plan, mould assembly and pours step by step, pouring gates, first-iron and containment holds, calibration warnings, and completion after final inspection.'],
+        'BASIC' => ['Basic', 'Fast entry for a small foundry: a saved order goes straight to production; moulds made and poured are typed into the quick grids, with no work lists or melting plan; moulds are assembled as they are made and a pour is recorded, completed and given its lots in one step; no pouring gates, first-iron holds or calibration blocks; an order completes when its castings are poured, one lot per pour and product, and the quick QC tally raises a nonconformance only above 5% rejects.'],
+        'FULL' => ['Full', 'Every step and check in force: the full shop floor screens, contract review, work lists issued before runs start, the melting plan, mould assembly and pours step by step, pouring gates, first-iron and containment holds, calibration warnings, and completion after final inspection.'],
     ];
 
     /** @var array<string, array<string, string>> rule => value, per preset */
     private const VALUES = [
         'BASIC' => ['contract_review' => 'SKIP', 'order_flow' => 'SIMPLE', 'order_completion' => 'POUR',
-            'work_lists' => 'OFF', 'start_before_issue' => 'ALLOW', 'mould_assembly' => 'AUTO', 'melting_plan' => 'OFF', 'pour_entry' => 'ONE_STEP', 'gate_cupola' => 'OFF', 'gate_induction' => 'OFF', 'gate_other' => 'OFF', 'hold_first_iron' => 'FREE', 'containment' => 'NOTE',
+            'floor_screens' => 'QUICK', 'work_lists' => 'OFF', 'start_before_issue' => 'ALLOW', 'mould_assembly' => 'AUTO', 'melting_plan' => 'OFF', 'pour_entry' => 'ONE_STEP', 'gate_cupola' => 'OFF', 'gate_induction' => 'OFF', 'gate_other' => 'OFF', 'hold_first_iron' => 'FREE', 'containment' => 'NOTE',
             'overdue_use' => 'OFF', 'ncr_threshold' => 'OVER_5', 'lot_grouping' => 'POUR'],
         'FULL' => ['contract_review' => 'REQUIRED', 'order_flow' => 'FULL', 'order_completion' => 'INSPECTION',
-            'work_lists' => 'USED', 'start_before_issue' => 'BLOCK', 'mould_assembly' => 'MANUAL', 'melting_plan' => 'USED', 'pour_entry' => 'STEPS', 'gate_cupola' => 'ADVISORY', 'gate_induction' => 'ENFORCED', 'gate_other' => 'ENFORCED', 'hold_first_iron' => 'HOLD', 'containment' => 'HOLD',
+            'floor_screens' => 'FULL', 'work_lists' => 'USED', 'start_before_issue' => 'BLOCK', 'mould_assembly' => 'MANUAL', 'melting_plan' => 'USED', 'pour_entry' => 'STEPS', 'gate_cupola' => 'ADVISORY', 'gate_induction' => 'ENFORCED', 'gate_other' => 'ENFORCED', 'hold_first_iron' => 'HOLD', 'containment' => 'HOLD',
             'overdue_use' => 'WARN', 'ncr_threshold' => 'ANY', 'lot_grouping' => 'MOULD'],
     ];
 

@@ -17,7 +17,11 @@
         <div class="actions">
             <a href="{{ route('production-orders.index') }}" class="btn">Back to orders</a>
             @if (! in_array($order->status, ['COMPLETED', 'CANCELLED'], true))
-                <a class="btn btn-primary" href="{{ route('moulding-runs.create', ['production_order_id' => $order->id]) }}">+ Moulding run</a>
+                @if (\App\Support\FloorRules::usesQuickScreens())
+                    <a class="btn btn-primary" href="{{ route('quick.floor.index', ['order' => $order->id]) }}">Record moulds made</a>
+                @else
+                    <a class="btn btn-primary" href="{{ route('moulding-runs.create', ['production_order_id' => $order->id]) }}">+ Moulding run</a>
+                @endif
             @endif
         </div>
     </div>

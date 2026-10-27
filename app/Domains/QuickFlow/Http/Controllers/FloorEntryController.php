@@ -39,7 +39,8 @@ class FloorEntryController extends Controller
 
     public function index(Request $request, OrderPlanner $planner): View
     {
-        $planDay = $request->validate(['plan' => ['nullable', 'date']])['plan'] ?? null;
+        $asked = $request->validate(['plan' => ['nullable', 'date'], 'order' => ['nullable', 'uuid']]);
+        $planDay = $asked['plan'] ?? null;
         $orders = $this->plan->orders();
         $patterns = $this->patternChoices($orders);
         $waiting = QuickFloorEntry::unlinked()->with(['pattern', 'patternRevision.cavityMap.productRevision', 'station', 'heat'])->orderBy('entry_date')->orderBy('created_at')->get();
@@ -53,8 +54,25 @@ class FloorEntryController extends Controller
             'heats' => $this->pourableHeats()->with(['ironGrade', 'furnace', 'thermalTests'])->orderByDesc('created_at')->limit(15)->get(),
             'waiting' => $waiting->map(fn ($e) => ['entry' => $e, 'products' => $this->linker->productsOf($e->patternRevision)]),
             'recent' => QuickFloorEntry::with(['productionOrder.product', 'heat', 'pattern', 'station'])->orderByDesc('created_at')->limit(15)->get(),
-            'plannedRows' => $planDay ? $this->plannedRows($planner, Carbon::parse($planDay)) : [],
+            'plannedRows' => match (true) {
+                filled($asked['order'] ?? null) => $this->orderRow($planner, $asked['order']),
+                $planDay !== null => $this->plannedRows($planner, Carbon::parse($planDay)),
+                default => [],
+            },
         ]);
+    }
+
+    /**
+     * One row for an open order, on the pattern that makes it, when opened from the order.
+     *
+     * @return list<array{pattern_id: string, production_order_id: string, moulding_station_id: ?string}>
+     */
+    private function orderRow(OrderPlanner $planner, string $orderId): array
+    {
+        $order = ProductionOrder::whereIn('status', self::OPEN)->find($orderId);
+        $revision = $order ? $planner->patternFor($order) : null;
+
+        return $revision ? [['pattern_id' => $revision->pattern_id, 'production_order_id' => $order->id, 'moulding_station_id' => $revision->pattern?->preferred_moulding_station_id]] : [];
     }
 
     /**
