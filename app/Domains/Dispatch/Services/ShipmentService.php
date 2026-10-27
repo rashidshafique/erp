@@ -37,15 +37,18 @@ class ShipmentService
         return max(0, (float) $item->quantity_packed - $this->dispatchedQty($item));
     }
 
-    /** @param array<string,int|float> $qtyByLot lot id => quantity */
-    public function pack(array $qtyByLot, array $head): PackingRecord
+    /**
+     * @param  array<string,int|float>  $qtyByLot  lot id => quantity
+     * @param  array<string,int|float|null>  $weighedByLot  lot id => net kg on the scale; a lot left out is estimated from its poured weight
+     */
+    public function pack(array $qtyByLot, array $head, array $weighedByLot = []): PackingRecord
     {
         $qtyByLot = array_filter($qtyByLot, fn ($q) => (float) $q > 0);
         if ($qtyByLot === []) {
             throw new InvalidArgumentException('Enter a quantity for at least one lot.');
         }
 
-        return DB::transaction(function () use ($qtyByLot, $head) {
+        return DB::transaction(function () use ($qtyByLot, $head, $weighedByLot) {
             $date = now()->format('Ymd');
             DB::select('SELECT pg_advisory_xact_lock(hashtext(?))', ['packing-number-'.$date]);
             $prefix = "PK-{$date}-";
@@ -72,7 +75,7 @@ class ShipmentService
                     throw new InvalidArgumentException("Lot {$lot->lot_number}: only {$room} good piece(s) are left to pack.");
                 }
                 $each = $lot->quantity_poured > 0 ? (float) $lot->net_casting_weight_kg / $lot->quantity_poured : 0;
-                $w = round($each * $qty, 3);
+                $w = (float) ($weighedByLot[$lotId] ?? 0) > 0 ? round((float) $weighedByLot[$lotId], 3) : round($each * $qty, 3);
                 $net += $w;
                 PackingRecordItem::create(['packing_record_id' => $pack->id, 'casting_lot_id' => $lot->id, 'quantity_packed' => $qty, 'net_weight_kg' => $w, 'uom' => 'PCS']);
                 if ($this->packable($lot) <= 0) {

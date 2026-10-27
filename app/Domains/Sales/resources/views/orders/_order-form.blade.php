@@ -16,8 +16,8 @@
     ]]));
     $existing = $order?->lines->keyBy('id') ?? collect();
     // A line already on the order shows its own product even when that revision is no longer offered.
-    $fromLine = fn ($l) => ['name' => $l->product?->name, 'sub' => $l->product?->code.' · rev '.$l->productRevision?->revision, 'img' => $photos[$l->product_id] ?? null, 'price' => null, 'uom' => $l->product?->base_uom ?: 'pcs'];
-    $blankLine = ['name' => '', 'sub' => '', 'img' => null, 'price' => null, 'uom' => 'pcs'];
+    $fromLine = fn ($l) => ['name' => $l->product?->name, 'sub' => $l->product?->code.' · rev '.$l->productRevision?->revision, 'img' => $photos[$l->product_id] ?? null, 'price' => null, 'uom' => $l->product?->base_uom ?: 'pcs', 'kg' => $l->pieceWeightKg() ?: null];
+    $blankLine = ['name' => '', 'sub' => '', 'img' => null, 'price' => null, 'uom' => 'pcs', 'kg' => null];
     $trim = fn ($v) => $v === null ? null : rtrim(rtrim((string) $v, '0'), '.');
     $formLines = old('lines') !== null
         ? collect(old('lines'))->map(function ($l) use ($existing, $catalogue, $fromLine) {
@@ -27,7 +27,7 @@
             return isset($catalogue[$value]) || $line ? ['value' => $value, 'p' => $catalogue[$value] ?? $fromLine($line), 'line' => $l, 'record' => $line] : null;
         })->filter()->values()
         : ($order?->lines ?? collect())->map(fn ($line) => ['value' => $line->product_revision_id, 'p' => $catalogue[$line->product_revision_id] ?? $fromLine($line), 'record' => $line,
-            'line' => ['ordered_qty' => $trim($line->repeats() ? $line->repeat_qty : $line->ordered_qty), 'unit_price' => $trim($line->unit_price), 'requested_delivery_date' => $line->requested_delivery_date?->toDateString(),
+            'line' => ['uom' => $line->isSoldByKg() ? 'kg' : 'piece', 'ordered_qty' => $trim($line->repeats() ? $line->repeat_qty : $line->ordered_qty), 'unit_price' => $trim($line->unit_price), 'requested_delivery_date' => $line->requested_delivery_date?->toDateString(),
                 'repeat_every' => $line->repeat_every, 'repeat_from' => $line->repeat_from?->toDateString(), 'repeat_until' => $line->repeat_until?->toDateString(),
                 'staggered' => ! $line->repeats() && $line->deliveries->isNotEmpty(),
                 'deliveries' => $line->repeats() ? [] : $line->deliveries->map(fn ($d) => ['id' => $d->id, 'due_date' => $d->due_date->toDateString(), 'quantity' => $trim($d->quantity), 'notes' => $d->notes])->all()]])->values();
@@ -61,7 +61,10 @@
     .so-money input { width: 100%; padding-right: 48px; }
     .so-money span { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 13px; pointer-events: none; }
     .so-qty { width: 100%; }
+    .so-qty input { width: 100%; }
+    .so-qty small { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; }
     .so-uom { color: var(--muted); font-size: 13px; }
+    .so-uom select { width: 100%; padding-left: 6px; padding-right: 4px; }
     .so-total { text-align: right; font-variant-numeric: tabular-nums; }
     .so-remove { width: 30px; height: 30px; border: 0; border-radius: 50%; background: none; color: var(--muted); font-size: 18px; cursor: pointer; }
     .so-remove:hover { background: color-mix(in srgb, var(--danger, #b42318) 12%, transparent); color: var(--danger, #b42318); }
@@ -92,7 +95,8 @@
         .so-grid { grid-template-columns: 22px 1fr 110px 34px; row-gap: 8px; }
         .so-lines-head { display: none; }
         .so-lines [data-lines] { border-top: 1px solid var(--border); border-radius: 8px; }
-        .so-line .so-thumb, .so-uom { display: none; }
+        .so-line .so-thumb { display: none; }
+        .so-line .so-uom { grid-column: 2; }
         .so-line .so-prod { grid-column: 2 / 4; }
         .so-line .so-money { grid-column: 2; }
         .so-line .so-qty { grid-column: 3; }
@@ -126,7 +130,7 @@
     </div>
 
     <div class="so-lines">
-        <div class="so-grid so-lines-head" aria-hidden="true"><span class="so-head-product">Product</span><span>UOM</span><span>Qty</span>@if ($prices)<span>Price</span><span class="so-right">Total</span>@endif<span></span></div>
+        <div class="so-grid so-lines-head" aria-hidden="true"><span class="so-head-product">Product</span><span>Unit</span><span>Qty</span>@if ($prices)<span>Price</span><span class="so-right">Total</span>@endif<span></span></div>
         <div data-lines>
             @foreach ($formLines as $i => $l)
                 @include('sales::orders._create-line', ['i' => $i, 'value' => $l['value'], 'p' => $l['p'], 'line' => $l['line'], 'record' => $l['record'], 'catalogue' => $catalogue, 'currency' => $money['currency'], 'prices' => $prices])
@@ -146,6 +150,7 @@
         <div class="so-summary" aria-live="polite">
             <div><span>Lines</span><span data-count>0</span></div>
             <div><span>Pieces</span><span data-pieces-total>0</span></div>
+            <div data-kg-row hidden><span>Kg</span><span data-kg-total>0</span></div>
             @if ($prices)<div class="so-grand"><span>Total</span><span data-grand>—</span></div>@endif
         </div>
     </div>
@@ -165,15 +170,17 @@
         return money.currency ? (money.before ? money.currency + ' ' + s : s + ' ' + money.currency) : s;
     }
     function recalc() {
-        var total = 0, pieces = 0, rows = [].filter.call(linesBox.querySelectorAll('[data-line]'), chosen);
+        var total = 0, pieces = 0, kgs = 0, rows = [].filter.call(linesBox.querySelectorAll('[data-line]'), chosen);
         rows.forEach(function (row) {
             var q = row.dataset.pieces ? parseFloat(row.dataset.pieces) : (parseFloat(row.querySelector('[data-qty]').value) || 0), priceBox = row.querySelector('[data-price]'), p = priceBox ? parseFloat(priceBox.value) : NaN;
-            pieces += q;
+            if (byKg(row)) kgs += q; else pieces += q;
             if (priceBox) row.querySelector('[data-total]').textContent = isNaN(p) ? '—' : fmt(q * p);
             if (!isNaN(p)) total += q * p;
         });
         form.querySelector('[data-count]').textContent = rows.length;
         form.querySelector('[data-pieces-total]').textContent = pieces.toLocaleString();
+        form.querySelector('[data-kg-total]').textContent = num(kgs);
+        form.querySelector('[data-kg-row]').hidden = !kgs;
         if (form.querySelector('[data-grand]')) form.querySelector('[data-grand]').textContent = rows.length ? fmt(total) : '—';
         form.querySelector('[data-no-lines]').hidden = linesBox.querySelector('[data-line]') !== null;
     }
@@ -246,6 +253,14 @@
         out.textContent = left < 0 ? 'Over the ordered ' + num(ordered) + ' by ' + num(-left) : 'Still to schedule: ' + num(left) + ' of ' + num(ordered);
         out.classList.toggle('is-over', left < 0);
     }
+    // A line sold by kg shows the whole pieces its quantity needs, from the casting's weight.
+    function byKg(row) { var u = row.querySelector('[data-unit]'); return !!(u && u.value === 'kg'); }
+    function piecesHint(row) {
+        var out = row.querySelector('[data-pcs-hint]'), each = parseFloat(row.dataset.eachKg) || 0, q = parseFloat(row.querySelector('[data-qty]').value) || 0;
+        if (!out) return;
+        out.hidden = !byKg(row);
+        out.textContent = !each ? 'No casting weight' : (q ? '≈ ' + Math.ceil(Math.round(q / each * 1e6) / 1e6).toLocaleString() + ' pcs' : num(each) + ' kg each');
+    }
     // A row counts once a product is picked; an empty row is left out of the totals and not sent.
     function chosen(row) { var p = row.querySelector('[name$="[product_revision_id]"]'); return !!(p && p.value); }
     function addLine() {
@@ -257,7 +272,10 @@
     function pickProduct(row, select) {
         var o = select.options[select.selectedIndex], d = o ? o.dataset : {}, thumb = row.querySelector('.so-thumb'), priceBox = row.querySelector('[data-price]');
         row.querySelector('[data-sub]').textContent = d.sub || '';
-        row.querySelector('[data-uom]').textContent = d.uom || 'pcs';
+        row.dataset.eachKg = d.kg || '';
+        var unit = row.querySelector('[data-unit]');
+        if (unit && select.value) unit.value = (d.uom || '').toLowerCase() === 'kg' ? 'kg' : 'piece';
+        piecesHint(row);
         row.querySelector('[data-qty]').required = !!select.value;
         if (priceBox && d.price && !priceBox.value) priceBox.value = d.price;
         var img = d.img ? document.createElement('img') : document.createElement('span');
@@ -267,7 +285,7 @@
         if (select.value) row.querySelector('[data-qty]').focus();
     }
     form.querySelector('[data-add-line]').addEventListener('click', addLine);
-    linesBox.addEventListener('input', function (e) { var row = e.target.closest('[data-line]'); if (row) { preview(row); unscheduled(row); } recalc(); });
+    linesBox.addEventListener('input', function (e) { var row = e.target.closest('[data-line]'); if (row) { preview(row); unscheduled(row); piecesHint(row); } recalc(); });
     linesBox.addEventListener('change', function (e) {
         var row = e.target.closest('[data-line]'); if (!row) return;
         if (e.target.matches('[data-product]')) pickProduct(row, e.target);
@@ -277,7 +295,7 @@
             row.querySelector('[data-repeat-note]').hidden = !!pick.value;
         }
         if (pick || e.target.closest('[data-stagger]')) stagger(row);
-        preview(row); recalc();
+        piecesHint(row); preview(row); recalc();
     });
     ['order_date', 'requested_delivery_date'].forEach(function (id) { form.querySelector('#' + id).addEventListener('change', function () { previewAll(); recalc(); }); });
     linesBox.addEventListener('click', function (e) {
@@ -295,7 +313,7 @@
         if (![].some.call(linesBox.querySelectorAll('[data-line]'), chosen)) { e.preventDefault(); alert('Pick a product on at least one line.'); }
     });
     previewAll();
-    linesBox.querySelectorAll('[data-line]').forEach(unscheduled);
+    linesBox.querySelectorAll('[data-line]').forEach(function (row) { unscheduled(row); piecesHint(row); });
     recalc();
 })();
 </script>

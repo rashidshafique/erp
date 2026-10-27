@@ -118,8 +118,12 @@ class SalesOrderStatus
         if (in_array($order->status, ['ON_HOLD', 'CANCELLED', 'DISPATCHED'], true) || $order->lines->contains(fn ($line) => $line->isStillRepeating())) {
             return;
         }
-        $shipped = DB::table('dispatch_items')->whereIn('sales_order_line_id', $order->lines()->select('id'))->selectRaw('sales_order_line_id, sum(quantity_dispatched) q')->groupBy('sales_order_line_id')->pluck('q', 'sales_order_line_id');
-        if ($order->lines->isNotEmpty() && $order->lines->every(fn ($line) => (float) ($shipped[$line->id] ?? 0) >= (float) $line->ordered_qty)) {
+        // A kg line is shipped in full by weight, or once the pieces it needs have gone out, as weighed kg can fall a little short.
+        $shipped = \App\Domains\Sales\Models\SalesOrderLine::shippedByLine($order->lines->pluck('id'));
+        $pieces = DB::table('dispatch_items')->whereIn('sales_order_line_id', $order->lines->pluck('id'))->selectRaw('sales_order_line_id, sum(quantity_dispatched) q')->groupBy('sales_order_line_id')->pluck('q', 'sales_order_line_id');
+        $done = fn ($line) => (float) ($shipped[$line->id] ?? 0) >= (float) $line->ordered_qty
+            || ($line->isSoldByKg() && (float) ($pieces[$line->id] ?? 0) >= $line->toPieces((float) $line->ordered_qty));
+        if ($order->lines->isNotEmpty() && $order->lines->every($done)) {
             $order->update(['status' => 'DISPATCHED']);
         }
     }

@@ -172,10 +172,23 @@ class RepeatingLines
     public function committed(SalesOrderLine $line): array
     {
         $orders = ProductionOrder::where('sales_order_line_id', $line->id)->where('status', '!=', 'CANCELLED')->get(['production_order_number', 'planned_qty']);
-        $released = (float) $orders->sum('planned_qty');
-        $shipped = (float) DB::table('dispatch_items')->where('sales_order_line_id', $line->id)->sum('quantity_dispatched');
 
-        return ['floor' => max($released, $shipped), 'released' => $released, 'shipped' => $shipped, 'orders' => $orders->pluck('production_order_number')->all()];
+        return $this->committedFrom($line, (float) $orders->sum('planned_qty'), (float) (SalesOrderLine::shippedByLine([$line->id])[$line->id] ?? 0), $orders->pluck('production_order_number')->all());
+    }
+
+    /**
+     * The floor from the pieces released and what was shipped in the line's unit. A kg line can go down to just above the weight
+     * one piece fewer would make, since the released pieces are what that quantity still needs.
+     *
+     * @param  list<string>  $orders
+     * @return array{floor: float, released: float, shipped: float, orders: list<string>}
+     */
+    public function committedFrom(SalesOrderLine $line, float $pieces, float $shipped, array $orders): array
+    {
+        $released = $line->fromPieces($pieces);
+        $needs = $line->isSoldByKg() && $pieces > 0 ? $line->fromPieces($pieces - 1) + 0.001 : $released;
+
+        return ['floor' => max($needs, $shipped), 'released' => $released, 'shipped' => $shipped, 'orders' => $orders];
     }
 
     /** Why a line cannot go to $quantity, naming the production orders to cancel or close first; null when it can. */

@@ -43,7 +43,7 @@ class SalesOrderEditor
             }
             $order->load('lines');
             $started = ProductionOrder::whereIn('sales_order_line_id', $order->lines->pluck('id'))->where('status', '!=', 'CANCELLED')->get()->groupBy('sales_order_line_id');
-            $shipped = DB::table('dispatch_items')->whereIn('sales_order_line_id', $order->lines->pluck('id'))->selectRaw('sales_order_line_id, sum(quantity_dispatched) q')->groupBy('sales_order_line_id')->pluck('q', 'sales_order_line_id');
+            $shipped = SalesOrderLine::shippedByLine($order->lines->pluck('id'));
             if ($data['customer_id'] !== $order->customer_id && $started->isNotEmpty()) {
                 $this->refuse('The customer cannot change once production orders exist.');
             }
@@ -67,8 +67,9 @@ class SalesOrderEditor
                     $rev = ProductRevision::fromChoice($row['product_revision_id']);
                     $new = $order->lines()->create([
                         'product_id' => $rev->product_id, 'product_revision_id' => $rev->id, 'line_number' => $nextNumber++,
-                        'ordered_qty' => $repeat['repeat_every'] ? 0 : $row['ordered_qty'], 'unit_price' => $row['unit_price'] ?? null, 'uom' => 'piece', 'requested_delivery_date' => $row['requested_delivery_date'] ?? null,
+                        'ordered_qty' => $repeat['repeat_every'] ? 0 : $row['ordered_qty'], 'unit_price' => $row['unit_price'] ?? null, 'uom' => $row['uom'] ?? 'piece', 'requested_delivery_date' => $row['requested_delivery_date'] ?? null,
                     ] + $repeat);
+                    self::requireWeight($new);
                     $kept[] = $new->id;
                     $repeated[] = $new;
                     if (! $new->repeats() && ! empty($row['staggered'])) {
@@ -84,6 +85,12 @@ class SalesOrderEditor
                 // A repeating line, or one being stopped, keeps the quantity it has scheduled; the box sets each future delivery instead.
                 $quantity = $repeat['repeat_every'] || $line->repeats() ? $line->ordered_qty : $row['ordered_qty'];
                 $attributes = ['ordered_qty' => $quantity, 'unit_price' => $row['unit_price'] ?? null, 'requested_delivery_date' => $row['requested_delivery_date'] ?? null] + $repeat;
+                if (! empty($row['uom']) && $row['uom'] !== $line->uom) {
+                    if ($started->has($line->id) || (float) ($shipped[$line->id] ?? 0) > 0) {
+                        $this->refuse("Line {$line->line_number} has production orders or shipments, so it cannot change from ".SalesOrderLine::UNITS[$line->uom === 'kg' ? 'kg' : 'piece'].' to '.SalesOrderLine::UNITS[$row['uom']].'.');
+                    }
+                    $attributes['uom'] = $row['uom'];
+                }
                 if ($repeat['repeat_every'] && $line->repeats() && ! (($row['repeat_from'] ?? null) ?: null)) {
                     $attributes['repeat_from'] = $line->repeat_from;
                 }
@@ -95,13 +102,13 @@ class SalesOrderEditor
                     $attributes += ['product_id' => $rev->product_id, 'product_revision_id' => $rev->id];
                 }
                 $line->fill($attributes);
+                self::requireWeight($line);
                 // Starting to repeat, or changing how a line repeats, plans its deliveries again; the new total is checked before saving.
                 $plan = $line->repeats() && ($line->getOriginal('repeat_every') === null || $line->isDirty(['repeat_every', 'repeat_qty', 'repeat_from', 'repeat_until']))
                     ? $repeating->preview($line, (float) ($shipped[$line->id] ?? 0)) : null;
                 $total = $plan['total'] ?? (float) $line->ordered_qty;
-                $committed = ['floor' => max((float) $started->get($line->id, collect())->sum('planned_qty'), (float) ($shipped[$line->id] ?? 0)),
-                    'released' => (float) $started->get($line->id, collect())->sum('planned_qty'), 'shipped' => (float) ($shipped[$line->id] ?? 0),
-                    'orders' => $started->get($line->id, collect())->pluck('production_order_number')->all()];
+                $committed = $repeating->committedFrom($line, (float) $started->get($line->id, collect())->sum('planned_qty'), (float) ($shipped[$line->id] ?? 0),
+                    $started->get($line->id, collect())->pluck('production_order_number')->all());
                 if ($message = $repeating->belowFloor($line, $total, $committed)) {
                     $this->refuse($message);
                 }
@@ -225,6 +232,14 @@ class SalesOrderEditor
             'repeat_from' => ($row['repeat_from'] ?? null) ?: (($row['requested_delivery_date'] ?? null) ?: ($order->requested_delivery_date ?? $order->order_date)),
             'repeat_until' => ($row['repeat_until'] ?? null) ?: null,
         ];
+    }
+
+    /** A kg line needs the casting's weight to work out the pieces to make. */
+    public static function requireWeight(SalesOrderLine $line): void
+    {
+        if ($line->isSoldByKg() && $line->pieceWeightKg() <= 0) {
+            throw ValidationException::withMessages(['lines' => "Line {$line->line_number} is sold by kg, but {$line->product?->name} has no casting weight. Set its nominal weight on the product, or sell it by pieces."]);
+        }
     }
 
     private function refuse(string $message): never

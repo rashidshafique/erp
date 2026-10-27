@@ -172,8 +172,7 @@ class OrderPlanner
         $orders = ProductionOrder::with(['product', 'salesOrderLine.salesOrder.customer', 'salesOrderLine.deliveries'])
             ->whereIn('status', ['RELEASED', 'IN_PROGRESS'])->get();
         $onLists = $this->openListMoulds($from)->groupBy('production_order_id')->map(fn ($items) => (int) $items->sum('planned_moulds'));
-        $shipped = DB::table('dispatch_items')->whereIn('sales_order_line_id', $orders->pluck('sales_order_line_id')->filter())
-            ->selectRaw('sales_order_line_id, sum(quantity_dispatched) q')->groupBy('sales_order_line_id')->pluck('q', 'sales_order_line_id');
+        $shipped = \App\Domains\Sales\Models\SalesOrderLine::shippedByLine($orders->pluck('sales_order_line_id')->filter());
         $backlog = $this->backlog($orders->pluck('id'));
 
         return $orders->map(function (ProductionOrder $order) use ($onLists, $shipped, $backlog) {

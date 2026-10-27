@@ -23,12 +23,17 @@ class ProductionOrderFactory
                 throw ValidationException::withMessages(['line' => 'The product revision on this line is not approved.']);
             }
 
+            if ($line->isSoldByKg() && $line->pieceWeightKg() <= 0) {
+                throw ValidationException::withMessages(['qty' => "Line {$line->line_number} is sold by kg, but {$line->product?->code} has no casting weight. Set its nominal weight so the pieces to make can be worked out."]);
+            }
+            // $qty and $open are in the line's unit; the production order gets the whole pieces they need.
             $already = (float) ProductionOrder::where('sales_order_line_id', $line->id)->where('status', '!=', 'CANCELLED')->sum('planned_qty');
-            $open = (float) $line->ordered_qty - $already;
+            $open = (float) $line->ordered_qty - $line->fromPieces($already);
             $qty = $qty ?? $open;
             if ($qty <= 0 || $qty > $open + 0.0005) {
                 throw ValidationException::withMessages(['qty' => 'Only '.\App\Support\Formats::number(max(0, $open), 2).' is left to schedule on this line.']);
             }
+            $qty = $line->toPieces($qty);
 
             return ProductionOrder::create([
                 'production_order_number' => $this->nextNumber(),
@@ -40,7 +45,7 @@ class ProductionOrderFactory
                 'priority' => 'NORMAL',
                 'planned_qty' => $qty,
                 'released_qty' => 0, 'completed_qty' => 0, 'rejected_qty' => 0,
-                'uom' => $line->uom ?: 'piece',
+                'uom' => 'piece',
                 'required_date' => $line->requested_delivery_date ?? $line->salesOrder->requested_delivery_date,
                 'notes' => 'Created from sales order '.$line->salesOrder->order_number.' line '.$line->line_number.'.',
             ]);
@@ -51,7 +56,7 @@ class ProductionOrderFactory
     public function releaseForLine(SalesOrderLine $line): ?ProductionOrder
     {
         $scheduled = (float) ProductionOrder::where('sales_order_line_id', $line->id)->where('status', '!=', 'CANCELLED')->sum('planned_qty');
-        if ((float) $line->ordered_qty - $scheduled <= 0.0005) {
+        if ((float) $line->ordered_qty - $line->fromPieces($scheduled) <= 0.0005) {
             return null;
         }
         $order = $this->forSalesLine($line, null, quick: true);

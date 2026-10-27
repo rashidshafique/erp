@@ -41,9 +41,54 @@ class SalesOrderLine extends Model
         ];
     }
 
+    /** The units a line can be sold in: its quantity, price and invoiced amount are all in this unit; production always makes pieces. */
+    public const UNITS = ['piece' => 'pcs', 'kg' => 'kg'];
+
     public function repeats(): bool
     {
         return $this->repeat_every !== null;
+    }
+
+    public function isSoldByKg(): bool
+    {
+        return $this->uom === 'kg';
+    }
+
+    /** The net kg of one casting: the revision's weight, else the product's nominal weight; 0 when neither is set. */
+    public function pieceWeightKg(): float
+    {
+        return (float) ($this->productRevision?->net_weight_kg ?: $this->product?->nominal_weight_kg);
+    }
+
+    /** Pieces expressed in the line's unit. */
+    public function fromPieces(float $pieces): float
+    {
+        return $this->isSoldByKg() ? round($pieces * $this->pieceWeightKg(), 3) : $pieces;
+    }
+
+    /** The whole pieces needed to make $quantity of the line's unit. */
+    public function toPieces(float $quantity): float
+    {
+        if (! $this->isSoldByKg()) {
+            return $quantity;
+        }
+        $each = $this->pieceWeightKg();
+
+        return $each > 0 ? ceil(round($quantity / $each, 6)) : 0;
+    }
+
+    /**
+     * What has been shipped on each line in the line's own unit: pieces, or for a kg line the net kg weighed at packing.
+     *
+     * @param  iterable<string>  $lineIds
+     * @return \Illuminate\Support\Collection<string, float>
+     */
+    public static function shippedByLine(iterable $lineIds): \Illuminate\Support\Collection
+    {
+        return \Illuminate\Support\Facades\DB::table('dispatch_items')->join('sales_order_lines', 'sales_order_lines.id', '=', 'dispatch_items.sales_order_line_id')
+            ->whereIn('dispatch_items.sales_order_line_id', collect($lineIds)->all())
+            ->selectRaw("dispatch_items.sales_order_line_id, sum(case when sales_order_lines.uom = 'kg' then dispatch_items.net_weight_kg else dispatch_items.quantity_dispatched end) q")
+            ->groupBy('dispatch_items.sales_order_line_id')->pluck('q', 'sales_order_line_id')->map(fn ($q) => (float) $q);
     }
 
     /**

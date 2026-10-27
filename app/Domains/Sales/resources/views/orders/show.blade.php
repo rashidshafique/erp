@@ -71,19 +71,19 @@
         <tbody>
         @foreach ($order->lines as $l)
             @php $isOpen = in_array($order->status, \App\Domains\Sales\Models\SalesOrder::OPEN, true); @endphp
-            @php $sched = (float) $l->productionOrders->where('status', '!=', 'CANCELLED')->sum('planned_qty'); @endphp
+            @php $sched = (float) $l->productionOrders->where('status', '!=', 'CANCELLED')->sum('planned_qty'); $kgUnit = $l->isSoldByKg() ? ' kg' : ''; @endphp
             <tr style="cursor:pointer">
                 <td>{{ $l->line_number }}</td>
                 <td><x-product-cell :product="$l->product" /></td>
                 <td>{{ $l->productRevision?->revision }}</td>
-                <td>{{ rtrim(rtrim(\App\Support\Formats::number((float) $l->ordered_qty, 3), '0'), '.') }}
+                <td>{{ rtrim(rtrim(\App\Support\Formats::number((float) $l->ordered_qty, 3), '0'), '.') }}{{ $kgUnit }}
                     @if ($l->repeats())<br><span class="muted small">{{ rtrim(rtrim(\App\Support\Formats::number((float) $l->repeat_qty, 3), '0'), '.') }}/{{ $l->repeat_every === 'MONTH' ? 'month' : 'week' }}@if ($l->repeat_until) till {{ $l->repeat_until->displayDate() }}@endif · {{ ($next = $l->nextRepeatDate()) ? 'next '.$next->displayDate() : 'ended' }}</span>@endif</td>
-                <td>{{ rtrim(rtrim(\App\Support\Formats::number($sched, 3), '0'), '.') }}</td>
-                <td>{{ rtrim(rtrim(\App\Support\Formats::number((float) ($shipped[$l->id] ?? 0), 3), '0'), '.') ?: '0' }}</td>
+                <td>{{ rtrim(rtrim(\App\Support\Formats::number($sched, 3), '0'), '.') }}@if ($kgUnit) pcs<br><span class="muted small">≈ {{ rtrim(rtrim(\App\Support\Formats::number($l->fromPieces($sched), 3), '0'), '.') ?: '0' }} kg</span>@endif</td>
+                <td>{{ rtrim(rtrim(\App\Support\Formats::number((float) ($shipped[$l->id] ?? 0), 3), '0'), '.') ?: '0' }}{{ $kgUnit }}</td>
                 <td>@forelse ($l->productionOrders as $po)<a href="{{ route('production-orders.show', $po) }}" class="mono">{{ $po->production_order_number }}</a> <span class="muted small">{{ strtolower(str_replace('_', ' ', $po->status)) }}</span>@if (! $loop->last)<br>@endif @empty — @endforelse</td>
                 <td>
                     <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:flex-end">
-                    @if ($sched < (float) $l->ordered_qty - 0.0005)
+                    @if ($l->fromPieces($sched) < (float) $l->ordered_qty - 0.0005)
                         <form method="POST" action="{{ route('sales-orders.lines.production-order', [$order, $l]) }}">@csrf
                             <button class="btn" type="submit" @disabled($reviewBlocksProduction) @if ($reviewBlocksProduction) title="Needs an approved contract review: sales and quality must both sign it off" @endif>+ Production Order</button></form>
                     @endif

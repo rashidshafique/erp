@@ -84,6 +84,7 @@ class SalesOrderController extends Controller
             'lines' => ['required', 'array', 'min:1', 'max:50'],
             'lines.*.product_revision_id' => ['required', new ProductRevisionChoice],
             'lines.*.ordered_qty' => ['required', 'numeric', 'gt:0', 'max:999999999'],
+            'lines.*.uom' => ['nullable', Rule::in(array_keys(SalesOrderLine::UNITS))],
             'lines.*.unit_price' => ['nullable', 'numeric', 'min:0'],
             'lines.*.requested_delivery_date' => ['nullable', 'date'],
         ] + self::scheduleRules());
@@ -100,9 +101,10 @@ class SalesOrderController extends Controller
                 $repeat = SalesOrderEditor::repeatAttributes($l, $order);
                 $line = $order->lines()->create([
                     'product_id' => $rev->product_id, 'product_revision_id' => $rev->id, 'line_number' => $i + 1,
-                    'ordered_qty' => $repeat['repeat_every'] ? 0 : $l['ordered_qty'], 'unit_price' => $l['unit_price'] ?? null, 'uom' => 'piece',
+                    'ordered_qty' => $repeat['repeat_every'] ? 0 : $l['ordered_qty'], 'unit_price' => $l['unit_price'] ?? null, 'uom' => $l['uom'] ?? 'piece',
                     'requested_delivery_date' => $l['requested_delivery_date'] ?? null,
                 ] + $repeat);
+                SalesOrderEditor::requireWeight($line);
                 if ($line->repeats()) {
                     $repeating->topUp($line);
                 } elseif (! empty($l['staggered'])) {
@@ -128,7 +130,7 @@ class SalesOrderController extends Controller
         $review = $salesOrder->currentReview();
         $review?->load(['items.line.product']);
 
-        $shipped = \Illuminate\Support\Facades\DB::table('dispatch_items')->whereIn('sales_order_line_id', $salesOrder->lines->pluck('id'))->selectRaw('sales_order_line_id, sum(quantity_dispatched) q')->groupBy('sales_order_line_id')->pluck('q', 'sales_order_line_id');
+        $shipped = SalesOrderLine::shippedByLine($salesOrder->lines->pluck('id'));
 
         return view('sales::orders.show', ['order' => $salesOrder, 'review' => $review, 'shipped' => $shipped]);
     }
@@ -159,6 +161,7 @@ class SalesOrderController extends Controller
             'lines.*.id' => ['nullable', 'uuid'],
             'lines.*.product_revision_id' => ['required_without:lines.*.id', 'nullable', new ProductRevisionChoice],
             'lines.*.ordered_qty' => ['required', 'numeric', 'gt:0', 'max:999999999'],
+            'lines.*.uom' => ['nullable', Rule::in(array_keys(SalesOrderLine::UNITS))],
             'lines.*.unit_price' => ['nullable', 'numeric', 'min:0'],
             'lines.*.requested_delivery_date' => ['nullable', 'date'],
         ] + self::scheduleRules());

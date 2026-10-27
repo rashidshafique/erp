@@ -1,5 +1,5 @@
 {{-- One line of the sales order form: $i (index, or __I__ in the template), $value (revision id or product:<id>, empty on a new
-     row), $p (name, sub, img, price, uom), $catalogue (every product that can be ordered, keyed by value), $line (input values),
+     row), $p (name, sub, img, price, uom, kg), $catalogue (every product that can be ordered, keyed by value), $line (input values),
      $record (the saved line when editing, else null), $currency, $prices (show the price). The product is picked in the row. The caret opens the line's
      own delivery date, repeat settings and, once the line is saved, its staggered deliveries. A saved line with production orders keeps its product and cannot be removed. --}}
 @php
@@ -8,11 +8,13 @@
     $deliveries = array_values((array) ($line['deliveries'] ?? []));
     $hasDate = ! empty($line['requested_delivery_date']) || $repeats || $staggered;
     $locked = $record && $record->productionOrders->where('status', '!=', 'CANCELLED')->isNotEmpty();
+    // The line's own unit when saved or posted back, else the product's base unit: kg sells by weight, anything else by the piece.
+    $unit = $line['uom'] ?? (strtolower((string) $p['uom']) === 'kg' ? 'kg' : 'piece');
     // What the preview adds the new deliveries to: deliveries before today on a repeating line, else what was already shipped.
     $kept = ! $record ? 0 : ($record->repeats() ? (float) $record->deliveries->where('due_date', '<', today())->sum('quantity')
-        : (float) \Illuminate\Support\Facades\DB::table('dispatch_items')->where('sales_order_line_id', $record->id)->sum('quantity_dispatched'));
+        : (float) (\App\Domains\Sales\Models\SalesOrderLine::shippedByLine([$record->id])[$record->id] ?? 0));
 @endphp
-<div class="so-line {{ $hasDate ? 'is-open' : '' }}" data-line data-was-repeating="{{ $record?->repeats() ? 1 : 0 }}" data-kept="{{ $kept }}" data-ordered="{{ $record ? (float) $record->ordered_qty : 0 }}">
+<div class="so-line {{ $hasDate ? 'is-open' : '' }}" data-line data-was-repeating="{{ $record?->repeats() ? 1 : 0 }}" data-kept="{{ $kept }}" data-ordered="{{ $record ? (float) $record->ordered_qty : 0 }}" data-each-kg="{{ $p['kg'] ?? '' }}">
     <div class="so-grid">
         <button type="button" class="so-caret" data-toggle aria-expanded="{{ $hasDate ? 'true' : 'false' }}" aria-label="Line details">&#9656;</button>
         @if ($p['img'])<img class="so-thumb" src="{{ $p['img'] }}" alt="">@else<span class="so-thumb" aria-hidden="true">&#9638;</span>@endif
@@ -23,15 +25,16 @@
             @else
                 <select name="lines[{{ $i }}][product_revision_id]" data-search-select="photos" data-product aria-label="Product">
                     <option value="">Select product</option>
-                    @if ($value !== '' && ! isset($catalogue[$value]))<option value="{{ $value }}" data-sub="{{ $p['sub'] }}" data-uom="{{ $p['uom'] }}" selected>{{ $p['name'] }}</option>@endif
-                    @foreach ($catalogue as $v => $c)<option value="{{ $v }}" data-sub="{{ $c['sub'] }}" @if ($c['img']) data-img="{{ $c['img'] }}" @endif @if ($prices && $c['price'] !== null) data-price="{{ $c['price'] }}" @endif data-uom="{{ $c['uom'] }}" @selected((string) $v === (string) $value)>{{ $c['name'] }}</option>@endforeach
+                    @if ($value !== '' && ! isset($catalogue[$value]))<option value="{{ $value }}" data-sub="{{ $p['sub'] }}" data-uom="{{ $p['uom'] }}" data-kg="{{ $p['kg'] ?? '' }}" selected>{{ $p['name'] }}</option>@endif
+                    @foreach ($catalogue as $v => $c)<option value="{{ $v }}" data-sub="{{ $c['sub'] }}" @if ($c['img']) data-img="{{ $c['img'] }}" @endif @if ($prices && $c['price'] !== null) data-price="{{ $c['price'] }}" @endif data-uom="{{ $c['uom'] }}" data-kg="{{ $c['kg'] }}" @selected((string) $v === (string) $value)>{{ $c['name'] }}</option>@endforeach
                 </select>
                 <small data-sub>{{ $p['sub'] }}</small>
             @endif
         </div>
         @if ($record)<input type="hidden" name="lines[{{ $i }}][id]" value="{{ $record->id }}">@endif
-        <span class="so-uom" data-uom>{{ $p['uom'] }}</span>
-        <input class="so-qty" type="number" name="lines[{{ $i }}][ordered_qty]" step="any" min="0" @required($value !== '') value="{{ $line['ordered_qty'] ?? '' }}" placeholder="{{ $repeats ? 'Each time' : 'Qty' }}" aria-label="Quantity" data-qty>
+        {{-- Production always makes pieces; a line sold by kg is priced, shipped and invoiced on the weighed net kg. --}}
+        <span class="so-uom">@if ($locked){{ \App\Domains\Sales\Models\SalesOrderLine::UNITS[$unit] }}<input type="hidden" name="lines[{{ $i }}][uom]" value="{{ $unit }}" data-unit>@else<select name="lines[{{ $i }}][uom]" aria-label="Sold by" data-unit>@foreach (\App\Domains\Sales\Models\SalesOrderLine::UNITS as $key => $label)<option value="{{ $key }}" @selected($unit === $key)>{{ $label }}</option>@endforeach</select>@endif</span>
+        <div class="so-qty"><input type="number" name="lines[{{ $i }}][ordered_qty]" step="any" min="0" @required($value !== '') value="{{ $line['ordered_qty'] ?? '' }}" placeholder="{{ $repeats ? 'Each time' : 'Qty' }}" aria-label="Quantity" data-qty><small data-pcs-hint @if ($unit !== 'kg') hidden @endif></small></div>
         @if ($prices)
         <label class="so-money"><input type="number" name="lines[{{ $i }}][unit_price]" step="any" min="0" value="{{ array_key_exists('unit_price', $line) ? $line['unit_price'] : $p['price'] }}" aria-label="Unit price" data-price><span>{{ $currency ?: 'price' }}</span></label>
         <span class="so-total" data-total>—</span>

@@ -22,7 +22,7 @@ class PackingController extends Controller
     public function create(ShipmentService $ship): View
     {
         $lots = CastingLot::with('product')->whereIn('status', ['READY', 'PACKED'])->orderBy('lot_number')->get()
-            ->map(function ($l) use ($ship) { $l->packable = $ship->packable($l); return $l; })->filter(fn ($l) => $l->packable > 0)->values();
+            ->map(function ($l) use ($ship) { $l->packable = $ship->packable($l); $l->kg_each = $l->quantity_poured > 0 ? (float) $l->net_casting_weight_kg / $l->quantity_poured : 0; return $l; })->filter(fn ($l) => $l->packable > 0)->values();
 
         return view('dispatch::packing.create', ['lots' => $lots]);
     }
@@ -30,13 +30,13 @@ class PackingController extends Controller
     public function store(Request $request, ShipmentService $ship): RedirectResponse
     {
         $d = $request->validate([
-            'qty' => ['required', 'array'], 'qty.*' => ['nullable', 'integer', 'min:0'],
+            'qty' => ['required', 'array'], 'qty.*' => ['nullable', 'integer', 'min:0'], 'kg' => ['nullable', 'array'], 'kg.*' => ['nullable', 'numeric', 'min:0', 'max:9999999'],
             'packed_by' => ['nullable', 'string', 'max:100'], 'checked_by' => ['nullable', 'string', 'max:100'],
             'package_type' => ['nullable', 'string', 'max:60'], 'storage_location' => ['nullable', 'string', 'max:60'], 'package_count' => ['nullable', 'integer', 'min:1'],
             'packaging_notes' => ['nullable', 'string', 'max:1000'],
         ]);
         try {
-            $pack = $ship->pack($d['qty'], $d);
+            $pack = $ship->pack($d['qty'], $d, $d['kg'] ?? []);
         } catch (InvalidArgumentException $e) {
             return back()->withErrors(['packing' => $e->getMessage()])->withInput();
         }

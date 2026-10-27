@@ -58,6 +58,7 @@
                             </option>
                         @endforeach
                     </select>
+                    <div class="help">Kilogram: new sales order lines sell it by weight (priced per kg, invoiced on the weighed kg). A line can still be changed to pieces.</div>
                 </div>
 
                 <div class="field">

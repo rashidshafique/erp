@@ -161,10 +161,12 @@ class InvoiceService
 
         return $dispatch->items->reject(fn ($i) => in_array($i->id, $done, true))->map(function ($i) use ($default) {
             $product = $i->salesOrderLine?->product ?? $i->packingItem?->lot?->product;
+            // A line sold by kg is invoiced on the net kg weighed at packing.
+            $byKg = (bool) $i->salesOrderLine?->isSoldByKg();
 
             return [
-                'description' => trim(($product?->code ? $product->code.' ' : '').($product?->name ?? 'Castings')), 'quantity' => (float) $i->quantity_dispatched,
-                'uom' => $i->uom ?: $i->salesOrderLine?->uom, 'unit_price' => (float) ($i->salesOrderLine?->unit_price ?? 0), 'tax_rate_id' => $default,
+                'description' => trim(($product?->code ? $product->code.' ' : '').($product?->name ?? 'Castings')), 'quantity' => $byKg ? (float) $i->net_weight_kg : (float) $i->quantity_dispatched,
+                'uom' => $byKg ? 'kg' : ($i->uom ?: $i->salesOrderLine?->uom), 'unit_price' => (float) ($i->salesOrderLine?->unit_price ?? 0), 'tax_rate_id' => $default,
                 'sales_order_line_id' => $i->sales_order_line_id, 'dispatch_item_id' => $i->id, ...$this->taxDetails($product),
             ];
         })->values()->all();

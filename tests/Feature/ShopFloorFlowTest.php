@@ -171,7 +171,8 @@ class ShopFloorFlowTest extends TestCase
         // Pack: only the one good piece
         $this->get(route('packing.create'))->assertOk()->assertSee($lot->label);
         $this->post(route('packing.store'), ['qty' => [$lot->id => 2]])->assertSessionHasErrors('packing');
-        $this->post(route('packing.store'), ['qty' => [$lot->id => 1], 'packed_by' => 'Zahid', 'storage_location' => 'Rack B2'])->assertSessionHasNoErrors();
+        $this->post(route('packing.store'), ['qty' => [$lot->id => 1], 'kg' => [$lot->id => 41.5], 'packed_by' => 'Zahid', 'storage_location' => 'Rack B2'])->assertSessionHasNoErrors();
+        $this->assertSame(41.5, (float) PackingRecordItem::firstOrFail()->net_weight_kg, 'the weighed kg replaces the estimate from the poured weight');
         $this->get(route('finished-goods.index'))->assertOk()->assertSee('Rack B2')->assertSee('Acme Pumps');
         $this->assertSame('PACKED', $lot->fresh()->status);
         $this->get(route('packing.index'))->assertOk();
@@ -180,7 +181,8 @@ class ShopFloorFlowTest extends TestCase
         PatternOwnershipRules::set('pay_off', 'AUTO');
         Pattern::where('code', 'PAT-1')->update(['owner_type' => 'PAYING_OFF', 'owner_customer_id' => $w['customer']->id, 'amortise_qty' => 1]);
 
-        // Dispatch: wrong customer refused, right customer accepted
+        // Dispatch: wrong customer refused, right customer accepted. The line is sold by kg, so it ships and invoices on the weighed kg.
+        $w['line']->update(['uom' => 'kg']);
         $this->get(route('dispatches.create'))->assertOk()->assertSee($lot->label);
         $item = PackingRecordItem::firstOrFail();
         $this->post(route('dispatches.store'), ['customer_id' => $w['other']->id, 'qty' => [$item->id => 1]])->assertSessionHasErrors('dispatch');
@@ -192,6 +194,9 @@ class ShopFloorFlowTest extends TestCase
         $this->get(route('dispatches.show', $disp))->assertOk()->assertSee('DC-1');
         $this->get(route('sales-orders.show', $w['order']))->assertOk()->assertSee('Shipped');
         $this->assertSame(1.0, (float) DB::table('dispatch_items')->where('sales_order_line_id', $w['line']->id)->sum('quantity_dispatched'));
+        $this->assertSame(41.5, \App\Domains\Sales\Models\SalesOrderLine::shippedByLine([$w['line']->id])[$w['line']->id]);
+        $invoiced = app(\App\Domains\Finance\Services\InvoiceService::class)->linesFromDispatch($disp->load('items.salesOrderLine'))[0];
+        $this->assertSame([41.5, 'kg'], [$invoiced['quantity'], $invoiced['uom']]);
         $this->get(route('finished-goods.index'))->assertOk()->assertDontSee('Rack B2');
         $this->get(route('dispatches.index'))->assertOk();
         $this->post(route('dispatches.store'), ['customer_id' => $w['customer']->id, 'qty' => [$item->id => 1]])->assertSessionHasErrors('dispatch');   // nothing left
