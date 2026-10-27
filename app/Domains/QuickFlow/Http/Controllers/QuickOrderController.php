@@ -89,11 +89,13 @@ class QuickOrderController extends Controller
                 }
             }
         }
-        $response = redirect()->route('quick.heat.index')->with('success', "Order {$order->order_number} entered and ready for planning.");
+        $warnings = array_filter([
+            $late ? 'No melting day falls in time for: '.implode(', ', array_unique($late)).'. '.MeltingCalendar::describe().' Next melting day: '.(MeltingCalendar::next()?->format('D j M') ?? 'none').'.' : null,
+            ProductionOrderFactory::awaitingApprovalNote($order),
+        ]);
 
-        return $late
-            ? $response->with('warning', 'No melting day falls in time for: '.implode(', ', array_unique($late)).'. '.MeltingCalendar::describe().' Next melting day: '.(MeltingCalendar::next()?->format('D j M') ?? 'none').'.')
-            : $response;
+        return redirect()->route('quick.heat.index')->with('success', "Order {$order->order_number} entered and ready for planning.")
+            ->with('warning', $warnings ? implode(' ', $warnings) : null);
     }
 
     private function newCustomer(string $name): Customer

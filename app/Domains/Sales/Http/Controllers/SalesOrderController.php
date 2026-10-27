@@ -118,7 +118,8 @@ class SalesOrderController extends Controller
         if (OrderRules::sendsStraightToProduction() && ! OrderRules::reviewRequired()) {
             $status->change($order, 'IN_PRODUCTION', true);
 
-            return redirect()->route('sales-orders.show', $order)->with('success', "Order {$order->order_number} saved and sent to production.");
+            return redirect()->route('sales-orders.show', $order)->with('success', "Order {$order->order_number} saved and sent to production.")
+                ->with('warning', ProductionOrderFactory::awaitingApprovalNote($order));
         }
 
         return redirect()->route('sales-orders.show', $order)->with('success', "Order {$order->order_number} saved. Run the contract review next.");
@@ -218,7 +219,7 @@ class SalesOrderController extends Controller
         ]);
         $status->change($salesOrder, $data['status'], (bool) ($data['release_all'] ?? OrderRules::sendsStraightToProduction()), $data['reason'] ?? null);
 
-        return back()->with('success', 'Order status updated.');
+        return back()->with('success', 'Order status updated.')->with('warning', ProductionOrderFactory::awaitingApprovalNote($salesOrder));
     }
 
     public function addDelivery(Request $request, SalesOrder $salesOrder, SalesOrderLine $line): RedirectResponse

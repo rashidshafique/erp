@@ -2,8 +2,11 @@
 
 namespace App\Services\Orders;
 
-use App\Models\ProductionOrder;
+use App\Domains\Sales\Models\SalesOrder;
 use App\Domains\Sales\Models\SalesOrderLine;
+use App\Models\ApprovalRequest;
+use App\Models\ProductionOrder;
+use App\Services\Approvals\ApprovalGate;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -52,7 +55,10 @@ class ProductionOrderFactory
         });
     }
 
-    /** Creates and releases a production order for whatever is still unscheduled on the line. Null when the line is fully scheduled. */
+    /**
+     * Creates and releases a production order for whatever is still unscheduled on the line. Null when the line is fully scheduled.
+     * When releasing needs approval, the order stays a draft with the request raised; it is released from its page once approved.
+     */
     public function releaseForLine(SalesOrderLine $line): ?ProductionOrder
     {
         $scheduled = (float) ProductionOrder::where('sales_order_line_id', $line->id)->where('status', '!=', 'CANCELLED')->sum('planned_qty');
@@ -60,9 +66,23 @@ class ProductionOrderFactory
             return null;
         }
         $order = $this->forSalesLine($line, null, quick: true);
+        if (! app(ApprovalGate::class)->passes('production_order.release', 'ProductionOrder', (string) $order->id, $order->production_order_number)) {
+            return $order;
+        }
         $order->update(['status' => 'RELEASED', 'released_qty' => $order->planned_qty]);
 
         return $order;
+    }
+
+    /** A note naming the sales order's production orders still in draft while their release waits for approval, or null. */
+    public static function awaitingApprovalNote(SalesOrder $salesOrder): ?string
+    {
+        $drafts = ProductionOrder::whereIn('sales_order_line_id', $salesOrder->lines()->select('id'))->where('status', 'DRAFT')->pluck('production_order_number', 'id');
+        $waiting = ApprovalRequest::where('action_key', 'production_order.release')->where('status', 'PENDING')->whereIn('subject_id', $drafts->keys()->map(fn ($id) => (string) $id))->pluck('subject_id');
+        $numbers = $drafts->only($waiting->all())->sort()->values();
+
+        return $numbers->isEmpty() ? null
+            : $numbers->implode(', ').' '.($numbers->count() === 1 ? 'waits' : 'wait').' for release approval. Release from the production order once it is approved.';
     }
 
     /** A draft stock order (no customer) for work started without an open order; the caller releases it. */

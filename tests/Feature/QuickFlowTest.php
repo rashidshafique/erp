@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Domains\QuickFlow\Models\QuickFloorEntry;
 use App\Domains\QuickFlow\Services\NextHeatPlan;
+use App\Models\ApprovalPolicy;
+use App\Models\ApprovalRequest;
 use App\Models\Customer;
 use App\Models\Furnace;
 use App\Models\Heat;
@@ -67,6 +69,17 @@ class QuickFlowTest extends TestCase
         $this->assertSame(['RELEASED', '100.000'], [$order->status, (string) $order->released_qty]);
         $this->order($shop, 50, ['iron_grade_id' => '', 'casting_weight_kg' => ''])->assertSessionHasNoErrors();
         $this->assertCount(2, ProductionOrder::all());
+    }
+
+    public function test_a_quick_order_leaves_production_in_draft_while_its_release_waits_for_approval(): void
+    {
+        $shop = $this->shop();
+        ApprovalPolicy::create(['action_key' => 'production_order.release', 'is_active' => true, 'required_approvals' => 1, 'permission' => 'approvals.decide', 'allow_self_approval' => false]);
+
+        $this->order($shop)->assertSessionHasNoErrors()->assertSessionHas('warning', fn ($w) => str_contains($w, 'waits for release approval'));
+
+        $this->assertSame('DRAFT', ProductionOrder::firstOrFail()->status);
+        $this->assertSame('PENDING', ApprovalRequest::firstOrFail()->status);
     }
 
     public function test_a_line_is_refused_when_the_product_has_no_grade_or_weight_to_plan_with(): void
