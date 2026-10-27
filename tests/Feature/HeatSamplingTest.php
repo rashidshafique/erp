@@ -86,9 +86,38 @@ class HeatSamplingTest extends TestCase
         HeatChemistryReading::create(['heat_id' => $heat->id, 'reading_number' => 2, 'carbon_percent' => 3.42, 'silicon_percent' => 1.85, 'carbon_equivalent' => 4.01, 'is_accepted' => false,
             'tested_at' => now()->subMinutes(10), 'sample_reference' => 'LATEST']);
 
-        $this->get(route('heats.show', $heat))->assertOk()->assertSeeInOrder(['class="sample-readings"', 'LATEST', 'FIRST'], false);
+        $this->get(route('heats.show', $heat))->assertOk()->assertSeeInOrder(['class="sample-readings no-row-click"', 'LATEST', 'FIRST'], false);
         \Livewire\Livewire::test('heat-status-board', ['heatId' => $heat->id])->assertSeeInOrder(['Latest test', 'FAIL', 'C 3.42', 'CE 4.01', 'Si 1.85', 'LATEST'])->assertDontSee('FIRST');
         \Livewire\Livewire::test('heat-status-board', ['heatId' => $this->cupolaHeat()->id])->assertSee('No test yet');
+    }
+
+    public function test_a_sample_opens_read_only_in_the_dialog_it_was_entered_in_and_a_fail_carries_its_reason(): void
+    {
+        $heat = $this->cupolaHeat();
+        $heat->ironGrade->update(['c_min' => 3.2, 'c_max' => 3.6]);
+        $chemistry = HeatChemistryReading::create(['heat_id' => $heat->id, 'reading_number' => 1, 'carbon_percent' => 2.9, 'is_accepted' => false, 'tested_at' => now()->subMinutes(30),
+            'sample_reference' => 'LOW-C', 'sample_stage' => 'FINAL', 'test_method' => 'SPECTROMETER']);
+        $group = (string) \Illuminate\Support\Str::uuid();
+        $cup = fn (string $type, array $extra) => ThermalAnalysisTest::create($extra + ['heat_id' => $heat->id, 'sample_group_id' => $group, 'stage' => 'POST_TREATMENT', 'cup_type' => $type,
+            'taken_at' => now()->subMinutes(10), 'sample_reference' => 'T-BAD', 'curve' => [], 'entry_mode' => 'MANUAL', 'result' => 'PASS']);
+        $cup('TELLURIUM', ['tl_c' => 1180.5, 'ce_from_tl' => 4.12]);
+        $cup('STABLE', ['te_min_c' => 1141, 'result' => 'FAIL', 'findings' => ['Eutectic too low.']]);
+
+        $timeline = app(HeatSamples::class)->timeline($heat);
+        $this->assertSame(['sample-view-'.$group], $timeline->where('kind', 'THERMAL')->pluck('view')->unique()->values()->all());
+        $this->assertSame('sample-view-'.$chemistry->id, $timeline->firstWhere('kind', 'CHEMISTRY')['view']);
+        $this->assertSame('Eutectic too low.', $timeline->where('kind', 'THERMAL')->firstWhere('result', 'FAIL')['detail']);
+        $this->assertStringContainsString('C 2.9 % is below the minimum 3.2 %', $timeline->firstWhere('kind', 'CHEMISTRY')['detail']);
+
+        $page = $this->get(route('heats.show', $heat))->assertOk()
+            ->assertSee('data-quick="sample-view-'.$group.'"', false)->assertSee('data-quick="sample-view-'.$chemistry->id.'"', false)
+            ->assertSee('data-fail-reason="Eutectic too low."', false);
+        $html = $page->getContent();
+        $this->assertSame(1, substr_count($html, '<dialog id="sample-view-'.$group.'"'));   // both cups of a sample open one dialog
+
+        // The dialogs show the saved values in the entry form's own fields, read-only.
+        $page->assertSeeInOrder(['<dialog id="sample-view-'.$group.'"', 'Eutectic too low.', '<fieldset disabled>', 'value="4.12"', 'value="1180.5"', 'value="1141"', '</dialog>'], false)
+            ->assertSeeInOrder(['<dialog id="sample-view-'.$chemistry->id.'"', 'Chemical analysis', '<fieldset disabled>', 'value="LOW-C"', 'value="2.9"', '</dialog>'], false);
     }
 
     public function test_the_next_sample_is_due_after_the_interval_and_overdue_after_it(): void

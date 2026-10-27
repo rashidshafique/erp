@@ -43,22 +43,54 @@
         .sample-clock { font-variant-numeric: tabular-nums; }
         .sample-add kbd { margin-left: 6px; padding: 0 5px; border: 1px solid var(--border); border-radius: 4px; background: var(--hover, #f2f4f7); color: var(--muted); font: 600 11px/16px ui-monospace, Menlo, monospace; }
         .sample-readings td.num, .sample-readings th.num { text-align: right; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; white-space: nowrap; }
+        .sample-readings tbody tr { cursor: pointer; }
+        .sample-readings tbody tr:hover > td { background: var(--hover, #f2f4f7); }
+        .sample-readings [data-fail-reason] { cursor: help; }
+        .fail-tip { position: fixed; z-index: 50; max-width: 320px; padding: 8px 10px; border-radius: 6px; background: #1f2933; color: #fff; font-size: 12.5px; line-height: 1.45; box-shadow: 0 4px 14px rgba(0,0,0,.18); pointer-events: none; }
     </style>
+    <script>
+    // Hovering (or tabbing to) a FAIL badge floats its reason beside it. Fixed to the window so the table's scroll box cannot clip it.
+    (function () {
+        if (window.failTipReady) return;
+        window.failTipReady = true;
+        var tip = null;
+        function hide() { if (tip) { tip.remove(); tip = null; } }
+        function show(badge) {
+            hide();
+            tip = document.createElement('div');
+            tip.className = 'fail-tip'; tip.setAttribute('role', 'tooltip'); tip.textContent = badge.dataset.failReason;
+            document.body.appendChild(tip);
+            var r = badge.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
+            var left = Math.max(8, Math.min(r.right - w, window.innerWidth - w - 8));
+            tip.style.left = left + 'px';
+            tip.style.top = (r.top - h - 6 >= 8 ? r.top - h - 6 : r.bottom + 6) + 'px';
+        }
+        ['mouseover', 'focusin'].forEach(function (ev) {
+            document.addEventListener(ev, function (e) { var b = e.target.closest && e.target.closest('[data-fail-reason]'); if (b) show(b); });
+        });
+        ['mouseout', 'focusout'].forEach(function (ev) {
+            document.addEventListener(ev, function (e) { if (e.target.closest && e.target.closest('[data-fail-reason]')) hide(); });
+        });
+        window.addEventListener('scroll', hide, true);
+    })();
+    </script>
     <div class="panel-body">
         @if ($heat->isCupola())<p class="muted small" style="margin:0 0 6px" title="Each pour is judged against the sample before it, or the first one after it. A failing sample holds the lots poured in the period it covers.">Latest first. Each pour is judged against the sample before it.</p>@endif
         @if ($samples->isEmpty())
             <p class="muted">No samples yet.</p>
         @else
-            <div class="table-wrap"><table class="sample-readings">
+            {{-- Clicking a sample opens it, read-only, in the same dialog it was entered in. --}}
+            @include('heats._sample-dialogs', ['heat' => $heat])
+            <div class="table-wrap"><table class="sample-readings no-row-click">
                 <thead><tr><th>Taken</th>@if ($showType)<th>Type</th>@endif<th>Reference</th><th class="num">C %</th><th class="num">CE</th><th class="num">Si %</th><th>Result</th></tr></thead>
                 <tbody>
                 @foreach ($samples->reverse() as $s)
-                    <tr>
-                        <td>{{ $takenAt($s['at']) }}@if ($heat->first_tap_at)<div class="muted small">{{ (int) $heat->first_tap_at->diffInMinutes($s['at'], false) }} min from first tap</div>@endif</td>
+                    <tr title="Open this sample" onclick="if (!event.target.closest('a, [data-fail-reason]') && !String(getSelection())) this.querySelector('a').click()">
+                        <td><a href="#{{ $s['view'] }}" data-quick="{{ $s['view'] }}">{{ $takenAt($s['at']) }}</a>@if ($heat->first_tap_at)<div class="muted small">{{ (int) $heat->first_tap_at->diffInMinutes($s['at'], false) }} min from first tap</div>@endif</td>
                         @if ($showType)<td>{{ $s['kind'] === 'THERMAL' ? 'Thermal analysis' : 'Chemistry' }}</td>@endif
                         <td>{{ $s['reference'] ?: '—' }}</td>
                         <td class="num">{{ $reading($s['c']) }}</td><td class="num">{{ $reading($s['ce']) }}</td><td class="num">{{ $reading($s['si']) }}</td>
-                        <td><span class="status {{ $badge[$s['result']][0] }}" @if ($s['detail']) title="{{ $s['detail'] }}" @endif>{{ $badge[$s['result']][1] }}</span></td>
+                        <td><span class="status {{ $badge[$s['result']][0] }}" @if ($s['detail']) data-fail-reason="{{ $s['detail'] }}" tabindex="0" aria-label="{{ $badge[$s['result']][1] }}: {{ $s['detail'] }}" @endif>{{ $badge[$s['result']][1] }}</span></td>
                     </tr>
                 @endforeach
                 </tbody>

@@ -1,10 +1,11 @@
 {{-- The fields of a chemical analysis: how and when the sample was taken and tested, then one box per element. Used on the heat page
      and in the record-test dialog. $heat, $ip (prefix for every id), $mine (old input belongs to this form), $limitText (element
-     key => the grade's limits as text). --}}
+     key => the grade's limits as text). $values (optional) fills the fields from a saved reading to show it read-only. --}}
 @php
     $ip = $ip ?? '';
     $mine = $mine ?? true;
-    $old = fn ($key, $default = null) => $mine ? old($key, $default) : $default;
+    $values = $values ?? null;
+    $old = fn ($key, $default = null) => $values !== null ? data_get($values, $key) : ($mine ? old($key, $default) : $default);
     $grade = $heat->ironGrade;
     $limitText = $limitText ?? function ($key) use ($grade) {
         if (! $grade) return '';

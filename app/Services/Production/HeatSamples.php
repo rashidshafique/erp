@@ -3,7 +3,9 @@
 namespace App\Services\Production;
 
 use App\Models\Heat;
+use App\Models\HeatChemistryReading;
 use App\Models\Pour;
+use App\Services\Quality\ChemistryJudge;
 use App\Support\PouringRules;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -18,7 +20,7 @@ class HeatSamples
      * Each sample carries the carbon, carbon equivalent and silicon it gave (percent, null when not recorded): a thermal test's carbon
      * as reported by the analyser or else worked out from TL, and its silicon as used; a chemistry reading's own figures.
      *
-     * @return Collection<int, array{kind: string, at: Carbon, reference: ?string, result: string, detail: ?string, id: string, c: ?float, ce: ?float, si: ?float}> oldest first
+     * @return Collection<int, array{kind: string, at: Carbon, reference: ?string, result: string, detail: ?string, id: string, view: string, c: ?float, ce: ?float, si: ?float}> oldest first
      */
     public function timeline(Heat $heat): Collection
     {
@@ -27,17 +29,25 @@ class HeatSamples
             'result' => match ($t->result) {
                 'PASS' => 'PASS', 'FAIL' => 'FAIL', default => 'UNJUDGED'
             },
-            'detail' => $t->result === 'FAIL' ? implode(' ', $t->findings ?? []) : null, 'id' => (string) $t->id,
+            'detail' => $t->result === 'FAIL' ? implode(' ', $t->findings ?? []) : null, 'id' => (string) $t->id, 'view' => 'sample-view-'.($t->sample_group_id ?? $t->id),
             'c' => $this->number($t->carbon_reported_pct ?? $t->carbon_from_tl), 'ce' => $this->number($t->ce_from_tl), 'si' => $this->number($t->silicon_used),
         ]);
         $chemistry = $heat->chemistryReadings()->get()->map(fn ($r) => [
             'kind' => 'CHEMISTRY', 'at' => $r->tested_at ?? $r->created_at, 'reference' => $r->sample_reference ?: ('Reading '.$r->reading_number),
             'result' => $r->is_accepted === null ? 'UNJUDGED' : ($r->is_accepted ? 'PASS' : 'FAIL'),
-            'detail' => null, 'id' => (string) $r->id,
+            'detail' => $r->is_accepted === false ? $this->chemistryFindings($heat, $r) : null, 'id' => (string) $r->id, 'view' => 'sample-view-'.$r->id,
             'c' => $this->number($r->carbon_percent), 'ce' => $this->number($r->carbon_equivalent), 'si' => $this->number($r->silicon_percent),
         ]);
 
         return $thermal->concat($chemistry)->filter(fn ($s) => $s['at'] !== null)->sortBy(fn ($s) => $s['at']->getTimestamp())->values();
+    }
+
+    /** Why a chemistry reading failed: the elements outside the heat's grade limits. */
+    private function chemistryFindings(Heat $heat, HeatChemistryReading $reading): string
+    {
+        $verdict = app(ChemistryJudge::class)->judge($heat->ironGrade, $reading->only(array_values(ChemistryJudge::COLUMNS)), $reading->carbon_equivalent !== null ? (float) $reading->carbon_equivalent : null);
+
+        return $verdict['ok'] === false ? implode(' ', $verdict['findings']) : 'Marked out of limits.';
     }
 
     private function number(mixed $value): ?float

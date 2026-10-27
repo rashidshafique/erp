@@ -1,11 +1,13 @@
 {{-- The fields of a thermal test: a heat strip, the sample details, the cups run, then a white (tellurium) and a grey (stable) cup
      card with the key results as large tiles checked live against the heat's grade, and the cooling curves. Used by the record page and
      by the record-test dialog. $ip prefixes every id so the form can sit on a page with other forms; $mine is true when the old
-     input belongs to this form; $fixedHeat locks the heat, otherwise $heats and $selected fill a heat picker; $gauges. --}}
+     input belongs to this form; $fixedHeat locks the heat, otherwise $heats and $selected fill a heat picker; $gauges. $values (optional)
+     fills the fields from a saved test, in the form's own field names, to show it read-only. --}}
 @php
     $ip = $ip ?? '';
     $mine = $mine ?? true;
-    $old = fn ($key, $default = null) => $mine ? old($key, $default) : $default;
+    $values = $values ?? null;
+    $old = fn ($key, $default = null) => $values !== null ? data_get($values, $key) : ($mine ? old($key, $default) : $default);
     $f = fn ($cup, $k) => $old($cup.'.'.$k);
     $nowLocal = now()->format('Y-m-d\TH:i');
     // The grade's ranges each result tile is checked against, as {c: [min, max], si: …, ce: …}.
@@ -21,9 +23,9 @@
         .'<div class="tile-hint"'.($spec ? ' data-range-for="'.$spec.'"' : '').'>'.e($hint).'</div></div>';
     $small = fn (string $cup, string $key, string $label, string $sub, string $unit = '°C', array $attrs = []) => '<div class="tf-mini"><div><label for="'.$ip.$cup[0].'_'.$key.'">'.$label.'</label><small>'.e($sub).'</small></div>'
         .'<span class="mini-input"><input id="'.$ip.$cup[0].'_'.$key.'" name="'.$cup.'['.$key.']" type="number" step="any"'.collect($attrs)->map(fn ($v, $a) => ' '.$a.'="'.e($v).'"')->implode('').' value="'.e($f($cup, $key)).'"><span>'.$unit.'</span></span></div>';
-    $submitted = $mine && count(old()) > 0;
-    $showWhite = $submitted ? old('show_white') === '1' : true;
-    $showGrey = $submitted ? old('show_grey') === '1' : true;
+    $submitted = $values !== null || ($mine && count(old()) > 0);
+    $showWhite = $submitted ? $old('show_white') === '1' : true;
+    $showGrey = $submitted ? $old('show_grey') === '1' : true;
 @endphp
 
 <div class="tf tf-root" data-ranges='@json((object) $fixedRanges)'>
