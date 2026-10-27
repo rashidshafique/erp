@@ -115,14 +115,10 @@ class SalesOrderController extends Controller
             return $order;
         });
 
-        if (OrderRules::sendsStraightToProduction() && ! OrderRules::reviewRequired()) {
-            $status->change($order, 'IN_PRODUCTION', true);
+        $done = $status->afterEntry($order);
 
-            return redirect()->route('sales-orders.show', $order)->with('success', "Order {$order->order_number} saved and sent to production.")
-                ->with('warning', ProductionOrderFactory::awaitingApprovalNote($order));
-        }
-
-        return redirect()->route('sales-orders.show', $order)->with('success', "Order {$order->order_number} saved. Run the contract review next.");
+        return redirect()->route('sales-orders.show', $order)->with('success', "Order {$order->order_number} {$done}.")
+            ->with('warning', ProductionOrderFactory::awaitingApprovalNote($order));
     }
 
     public function show(SalesOrder $salesOrder): View

@@ -204,6 +204,23 @@ class EnquiryQuotationTest extends TestCase
         $this->assertSame(1, ProductRevision::where('product_id', $p->id)->count());
     }
 
+    public function test_accepted_repeat_work_goes_straight_to_production_in_the_simple_flow(): void
+    {
+        \App\Support\OrderRules::set('order_flow', 'SIMPLE');
+        \App\Support\OrderRules::set('contract_review', 'SKIP');
+        $p = Product::create(['code' => 'PRD-R1', 'name' => 'Old part', 'product_type' => 'CASTING', 'base_uom' => 'piece', 'active' => true]);
+        ProductRevision::create(['product_id' => $p->id, 'revision' => 'C', 'status' => 'APPROVED']);
+        $e = $this->enquiry('REPEAT', ['product_id' => $p->id]);
+        $svc = app(QuotationService::class);
+        $q = $svc->create($e);
+        $svc->issue($q->fresh());
+
+        $this->post(route('quotations.accept', $q))->assertSessionHas('success', fn ($m) => str_contains($m, 'sent to production'));
+
+        $this->assertSame('IN_PRODUCTION', $q->fresh()->salesOrder->status);
+        $this->assertSame('RELEASED', \App\Models\ProductionOrder::sole()->status);
+    }
+
     public function test_customer_change_opens_a_new_revision_letter(): void
     {
         $p = Product::create(['code' => 'PRD-R2', 'name' => 'Old part', 'product_type' => 'CASTING', 'base_uom' => 'piece', 'active' => true]);

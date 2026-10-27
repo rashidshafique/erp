@@ -212,7 +212,27 @@ class ContractReviewer
         $item->update(['acknowledgement' => trim($reason)]);
     }
 
-    /** Sales or quality signs, as the signed-in user when there is one. Both signatures, by two different people, approve the review. */
+    /**
+     * A clean review (nothing to block or warn about) approved without signatures, when reviews run automatically. Returns
+     * whether it was approved.
+     */
+    public function approveIfClean(ContractReview $review, ?User $user = null): bool
+    {
+        if ($review->status !== 'IN_REVIEW' || $review->verdict !== 'PASS') {
+            return false;
+        }
+        $review->update(['status' => 'APPROVED', 'sales_signed_by' => 'Automatic: every check passed', 'sales_signed_by_user_id' => $user?->id, 'sales_signed_at' => now()]);
+        if (in_array($review->salesOrder->status, ['DRAFT', 'UNDER_REVIEW'], true)) {
+            $review->salesOrder->update(['status' => 'CONFIRMED']);
+        }
+
+        return true;
+    }
+
+    /**
+     * Sales or quality signs, as the signed-in user when there is one. Both signatures, by two different people, approve the review;
+     * when reviews run automatically one signature does.
+     */
     public function sign(ContractReview $review, string $role, ?string $name, ?User $user = null): ContractReview
     {
         $name = trim((string) ($name ?: $user?->name));
@@ -238,7 +258,7 @@ class ContractReviewer
         $review->update(["{$col}_signed_by" => $name, "{$col}_signed_by_user_id" => $user?->id, "{$col}_signed_at" => now()]);
         $review->refresh();
 
-        if ($review->sales_signed_at && $review->quality_signed_at) {
+        if (($review->sales_signed_at && $review->quality_signed_at) || OrderRules::reviewsAutomatically()) {
             $review->update(['status' => 'APPROVED']);
             if (in_array($review->salesOrder->status, ['DRAFT', 'UNDER_REVIEW'], true)) {
                 $review->salesOrder->update(['status' => 'CONFIRMED']);

@@ -4,6 +4,7 @@ namespace App\Domains\Sales\Services;
 
 use App\Domains\Sales\Models\SalesOrder;
 use App\Services\Orders\ProductionOrderFactory;
+use App\Support\OrderRules;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -38,6 +39,35 @@ class SalesOrderStatus
             'RESUME' => $this->resume($order),
             'CANCELLED' => $this->cancel($order, (string) $reason),
             'REOPEN' => $this->reopen($order),
+        };
+    }
+
+    /**
+     * What happens to an order once it is entered, under the order rules: an automatic review runs and approves itself when clean,
+     * and in the straight-to-production flow an order needing no further review goes live with every line released. Returns
+     * what was done, for the message shown.
+     */
+    public function afterEntry(SalesOrder $order): string
+    {
+        $review = null;
+        if (OrderRules::reviewsAutomatically()) {
+            $reviewer = app(ContractReviewer::class);
+            $review = $reviewer->evaluate($order);
+            $reviewer->approveIfClean($review, auth()->user());
+            $review->refresh();
+        }
+        $ready = ! OrderRules::reviewRequired() || $review?->status === 'APPROVED';
+        if ($ready && OrderRules::sendsStraightToProduction()) {
+            $this->makeLive($order->fresh(), true);
+
+            return 'sent to production';
+        }
+
+        return match (true) {
+            $review === null => OrderRules::reviewRequired() ? 'saved. Run the contract review next' : 'saved',
+            $review->status === 'APPROVED' => 'saved and its contract review passed',
+            $review->verdict === 'BLOCK' => 'saved, but the contract review found '.$review->items->where('severity', 'BLOCK')->count().' blocking problem(s) to fix first',
+            default => 'saved. The contract review has warnings: acknowledge them and approve it to go on',
         };
     }
 

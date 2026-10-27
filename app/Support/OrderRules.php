@@ -10,7 +10,8 @@ class OrderRules
     /** key => [setting, label, options (value => description), default] */
     public const RULES = [
         'contract_review' => ['orders.contract_review', 'Contract review before an order can go live', [
-            'REQUIRED' => 'Required: an order goes live only after its contract review is approved',
+            'REQUIRED' => 'Required: an order goes live only after its contract review is signed off by sales and quality',
+            'AUTO' => 'Only when something is off: the review runs when the order is saved; a clean review approves itself, warnings need one sign-off and blocks stop the order',
             'SKIP' => 'Not required: an order can be made live straight from the order page',
         ], 'REQUIRED'],
         'order_flow' => ['orders.flow', 'What saving an order does', [
@@ -82,9 +83,16 @@ class OrderRules
         return self::get('customer_requirement') === 'ENFORCED';
     }
 
+    /** An approved review is needed before production, whether signed off by hand or approved automatically. */
     public static function reviewRequired(): bool
     {
-        return self::get('contract_review') === 'REQUIRED';
+        return self::get('contract_review') !== 'SKIP';
+    }
+
+    /** The review runs on save and approves itself when clean; one sign-off clears warnings. */
+    public static function reviewsAutomatically(): bool
+    {
+        return self::get('contract_review') === 'AUTO';
     }
 
     /** Days ahead of today that a repeating line keeps its deliveries scheduled. */

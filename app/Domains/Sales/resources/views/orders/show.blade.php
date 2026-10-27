@@ -15,7 +15,7 @@
             : ($reviewWarns > 0
                 ? ['#f29900', '242,153,0', $reviewWarns.' '.($reviewWarns === 1 ? 'warning' : 'warnings').' in the contract review']
                 : ($review->status === 'APPROVED'
-                    ? ['#1e8e3e', '30,142,62', 'Contract review approved by sales and quality']
+                    ? ['#1e8e3e', '30,142,62', \App\Support\OrderRules::reviewsAutomatically() ? 'Contract review approved' : 'Contract review approved by sales and quality']
                     : ['#1e8e3e', '30,142,62', 'Contract review is clear, waiting for sign-off by '.collect(['sales' => $review->sales_signed_at, 'quality' => $review->quality_signed_at])->filter(fn ($signed) => ! $signed)->keys()->implode(' and '), true]));
     }
 @endphp
@@ -181,7 +181,7 @@
         });
     })();
     </script>
-    @if ($reviewBlocksProduction)<div class="panel-body muted small">Production orders can be created once the contract review is approved by both sales and quality.</div>@endif
+    @if ($reviewBlocksProduction)<div class="panel-body muted small">Production orders can be created once the contract review is approved{{ \App\Support\OrderRules::reviewsAutomatically() ? '' : ' by both sales and quality' }}.</div>@endif
 </div>
 
 <div class="tab-marker" data-tab-start="Contract review" data-tab-warn="{{ $review ? $review->items->where('severity', 'WARN')->whereNull('acknowledgement')->count() : 0 }}" data-tab-block="{{ $review ? $review->items->where('severity', 'BLOCK')->count() : 0 }}"></div>
@@ -195,9 +195,9 @@
     @else
         <div class="panel-body">
             <div class="form-grid">
-                @foreach (['sales' => 'Sales', 'quality' => 'Quality'] as $role => $label)
+                @foreach (\App\Support\OrderRules::reviewsAutomatically() && ! $review->quality_signed_at ? ['sales' => 'Approval'] : ['sales' => 'Sales', 'quality' => 'Quality'] as $role => $label)
                     <div class="field">
-                        <strong>{{ $label }} sign-off</strong>
+                        <strong>{{ $label === 'Approval' ? 'Approval' : $label.' sign-off' }}</strong>
                         @if ($review->{$role.'_signed_at'})
                             <div>{{ $review->{$role.'_signed_by'} }} · {{ $review->{$role.'_signed_at'}->displayDateTime() }}</div>
                         @elseif ($review->status === 'IN_REVIEW')
@@ -208,7 +208,7 @@
                                 @else
                                     <input name="name" placeholder="Your name" required maxlength="100">
                                 @endif
-                                <button class="btn btn-primary" type="submit">Sign as {{ strtolower($label) }}{{ auth()->user() ? ' ('.auth()->user()->name.')' : '' }}</button></form>
+                                <button class="btn btn-primary" type="submit">{{ $label === 'Approval' ? 'Approve' : 'Sign as '.strtolower($label) }}{{ auth()->user() ? ' ('.auth()->user()->name.')' : '' }}</button></form>
                         @else
                             <div class="muted small">Not signed.</div>
                         @endif

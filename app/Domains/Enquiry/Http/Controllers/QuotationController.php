@@ -2,6 +2,8 @@
 
 namespace App\Domains\Enquiry\Http\Controllers;
 
+use App\Domains\Sales\Services\SalesOrderStatus;
+use App\Services\Orders\ProductionOrderFactory;
 use App\Http\Controllers\Controller;
 use App\Domains\Enquiry\Models\Enquiry;
 use App\Domains\Enquiry\Models\Quotation;
@@ -126,6 +128,13 @@ class QuotationController extends Controller
             return redirect()->route('quotations.show', $quotation)->with('success', "Quotation accepted. Draft sales order {$order->order_number} was created.");
         }
 
-        return redirect()->route('sales-orders.show', $order)->with('success', 'Quotation accepted. A draft sales order was created; the contract review will hold it until the revision is approved.');
+        // New products come with a draft revision, which the order waits for; repeat work goes on as any entered order would.
+        if ($order->lines()->whereHas('productRevision', fn ($q) => $q->whereNotIn('status', ['APPROVED', 'ACTIVE']))->exists()) {
+            return redirect()->route('sales-orders.show', $order)->with('success', 'Quotation accepted. A draft sales order was created; the contract review will hold it until the revision is approved.');
+        }
+        $done = app(SalesOrderStatus::class)->afterEntry($order);
+
+        return redirect()->route('sales-orders.show', $order)->with('success', "Quotation accepted. Sales order {$order->order_number} {$done}.")
+            ->with('warning', ProductionOrderFactory::awaitingApprovalNote($order));
     }
 }
