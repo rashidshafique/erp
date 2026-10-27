@@ -1,5 +1,7 @@
 # Streamlining order-to-dispatch for small foundries
 
+Status 2026-10-27: phases 0 to 8 built and committed. Not done: a step-count pin for the Full path (only Basic is pinned); the melting plan and work lists screens still exist for Full.
+
 ## Context
 
 A small foundry going from order to dispatch today goes through: sales order (draft), contract review (run, acknowledge, two sign-offs), production order (draft, release), planner, work list (draft, issue), moulding run (draft, complete), assemble moulds, melting plan (rebuild, release heat), heat, pour (create, add moulds, start, complete), lots, QC, packing, dispatch.

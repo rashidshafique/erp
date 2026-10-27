@@ -1,6 +1,6 @@
 # Project status
 
-Updated 2026-10-26.
+Updated 2026-10-27.
 
 ## Done
 
@@ -11,6 +11,16 @@ Updated 2026-10-26.
   - Forecast (2026-10-26): "Change forecast" on a repeating line sets the quantity of each period still to come (0 removes it, past periods stay), with a live line total. The total follows, so the same floor applies, a period changing more than 3× needs confirming, a higher total is released at once on a live straight-to-production order, and the change shows on the order's history.
   - Staggered deliveries on the order form (2026-10-26): a one-off line can tick "Staggered deliveries" and list its dates, quantities and notes on the edit form once the order is saved (the new-order form leaves them out), with what is still to schedule; they cannot add up to more than ordered. Editing changes, adds or removes them (each on the history), and unticking clears them.
   - Left, in order: (1) a shortfall carried into the next period when a period ships short; (2) one production order per period instead of one per line; (3) standing-order and blanket-order documents (a blanket order agrees a total over a span and is called off in releases).
+
+**Streamlining for small foundries (2026-10-27, plan in STREAMLINE.md)**
+- Each step that can shrink is a process-depth rule (Settings > Process depth, in sections); Basic collapses it, Full keeps it. New floor rules (`FloorRules`): work lists, mould assembly, pour entry, melting plan, quick or full floor screens. A rule that leaves a screen out also takes it off the menu (`RuleMenuFilter`, wrapping the foundry size filter).
+- Contract review "only when something is off" (AUTO): runs on save, a clean review approves itself, warnings need one acknowledgement and one Approve. Accepted quotations for repeat work follow the order flow.
+- Automatic mould assembly when output is saved (all entry screens); a blocking flask shortage leaves the moulds for the run page with a warning.
+- Quick pours make lots (`OneStepPour`): waiting moulds by pattern, accepted moulds assembled as needed, a run "made, not entered" for the rest. Poured entries linked later join their pour. The full pour screen has a one-step form under the rule, opened from "Pour moulds" on the heat page.
+- Work lists off: the planner fills the quick moulds made grid instead. Quick screens: production orders open the grid on their pattern.
+- Today board (`quick.today`), start page for the floor on the quick screens. "How you work" questions (Settings) set the rules.
+- Fixes: melting plan keeps started orders; quick and straight-to-production releases respect the release approval; a review goes stale after an edit and re-review leaves a live order live; sign-offs record the user (not both roles); quick pours follow the gate mode; Micro shows Packing.
+- `StepCountTest` pins Basic at seven forms from order to dispatch. Quick pours made before 2026-10-27 have no lots (no backfill).
 
 **Production**
 - Moulding runs: bulk entry, three-step record screen, KPI strip, mould hardness, stations, sand test from a run.
@@ -63,7 +73,7 @@ Updated 2026-10-26.
 4. STAGE2.md "not built yet" is out of date: inspection and dispatch screens now exist. Still to confirm: screens to add mould assemblies to a pour and to create casting lots.
 5. ISO 9001 readiness gaps listed in `iso-9001-readiness.pdf` are not tracked against the code.
 6. Quick QC tally (`/quick-qc`) records good, rework and rejected counts per product over open lots oldest first; the NCR threshold is a process-depth rule, and every process-depth rule can now be set on its own.
-7. Lot grouping rule (`lot_grouping`: MOULD or POUR): POUR makes one lot per pour and product, with every mould kept in `casting_lot_pour_mould_assembly`. The production queue moves ticked lots through several stages at once (`lots.bulk-stage`); packing and dispatch have an all-lots tick. Not done: a DAY grouping (needs several pours per lot) and QuickFlow pours still make no lots.
+7. Lot grouping rule (`lot_grouping`: MOULD or POUR): POUR makes one lot per pour and product, with every mould kept in `casting_lot_pour_mould_assembly`. The production queue moves ticked lots through several stages at once (`lots.bulk-stage`); packing and dispatch have an all-lots tick. Not done: a DAY grouping (needs several pours per lot). QuickFlow pours make lots since 2026-10-27.
 8. README is still the stock Laravel text.
 
 ## Gap list: Synchro ERP / B&L Odyssey parity
