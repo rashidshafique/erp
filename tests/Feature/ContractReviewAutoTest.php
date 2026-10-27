@@ -87,4 +87,21 @@ class ContractReviewAutoTest extends TestCase
 
         $this->assertSame(['CONFIRMED', 0], [SalesOrder::sole()->status, ProductionOrder::count()]);
     }
+
+    public function test_when_both_must_sign_the_person_who_signed_sales_is_not_offered_the_quality_signature(): void
+    {
+        OrderRules::set('contract_review', 'REQUIRED');
+        OrderRules::set('order_flow', 'FULL');
+        $this->findings([['FURNACE', 'PASS', 'A furnace can melt it.']]);
+        $this->actingAs(User::factory()->create(['name' => 'Ayesha Khan']));
+        $this->saveOrder();
+        $order = SalesOrder::sole();
+        $this->post(route('sales-orders.review', $order));
+
+        $this->post(route('sales-orders.review.sign', $order), ['role' => 'sales'])->assertSessionHasNoErrors();
+
+        $this->get(route('sales-orders.show', $order))->assertOk()
+            ->assertDontSee('Sign as quality')
+            ->assertSee('Needs someone other than Ayesha Khan, who signed as sales.');
+    }
 }

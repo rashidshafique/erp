@@ -200,6 +200,8 @@
                         <strong>{{ $label === 'Approval' ? 'Approval' : $label.' sign-off' }}</strong>
                         @if ($review->{$role.'_signed_at'})
                             <div>{{ $review->{$role.'_signed_by'} }} · {{ $review->{$role.'_signed_at'}->displayDateTime() }}</div>
+                        @elseif ($review->status === 'IN_REVIEW' && auth()->user() && (int) $review->{($role === 'sales' ? 'quality' : 'sales').'_signed_by_user_id'} === (int) auth()->id())
+                            <div class="muted small">Needs someone other than {{ auth()->user()->name }}, who signed as {{ $role === 'sales' ? 'quality' : 'sales' }}. Working alone? Under <a href="{{ route('settings.orders.edit') }}">Settings &gt; Order rules</a>, set contract review to "Only when something is off" and one sign-off approves it.</div>
                         @elseif ($review->status === 'IN_REVIEW')
                             <form method="POST" action="{{ route('sales-orders.review.sign', $order) }}">@csrf
                                 <input type="hidden" name="role" value="{{ $role }}">
