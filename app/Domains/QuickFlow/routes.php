@@ -3,9 +3,11 @@
 use App\Domains\QuickFlow\Http\Controllers\FloorEntryController;
 use App\Domains\QuickFlow\Http\Controllers\NextHeatController;
 use App\Domains\QuickFlow\Http\Controllers\QuickOrderController;
+use App\Domains\QuickFlow\Http\Controllers\TodayController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('web')->prefix('quick')->name('quick.')->group(function () {
+    Route::get('/today', [TodayController::class, 'index'])->name('today');
     Route::get('/orders/new', [QuickOrderController::class, 'create'])->name('orders.create');
     Route::post('/orders', [QuickOrderController::class, 'store'])->name('orders.store');
     Route::get('/floor', [FloorEntryController::class, 'index'])->name('floor.index');

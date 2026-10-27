@@ -48,6 +48,14 @@ class StartPageTest extends TestCase
         $this->signIn('MOULDING_SUPERVISOR', ['MELT_SUPERVISOR'])->assertRedirect(route('heats.index'));
     }
 
+    public function test_on_the_quick_floor_screens_the_floor_lands_on_the_today_board(): void
+    {
+        \App\Support\FloorRules::set('floor_screens', 'QUICK');
+
+        $this->signIn('MOULDING_SUPERVISOR')->assertRedirect(route('quick.today'));
+        $this->get(route('quick.today'))->assertOk();
+    }
+
     public function test_moulding_falls_back_to_runs_when_quick_flow_is_off(): void
     {
         config(['modules.licensed' => ['maintenance']]);
