@@ -2,12 +2,15 @@
 
 namespace App\Domains\Finance;
 
+use App\Domains\Core\Contracts\CreditControl;
+use App\Domains\Core\ModuleRegistry;
 use App\Domains\Core\ModuleServiceProvider;
 use App\Domains\Finance\Models\Invoice;
 use App\Domains\Finance\Models\Receipt;
 use App\Domains\Finance\Models\SupplierBill;
 use App\Domains\Finance\Models\SupplierPayment;
 use App\Domains\Finance\Models\WithholdingCertificate;
+use App\Domains\Finance\Services\CreditLimits;
 
 /** Invoicing and receivables, bills and payables: sales invoices and credit notes, customer receipts, supplier bills, supplier payments and ageing both ways. */
 class FinanceServiceProvider extends ModuleServiceProvider
@@ -48,6 +51,19 @@ class FinanceServiceProvider extends ModuleServiceProvider
                 ['label' => 'Tax return', 'route' => 'finance.tax-return', 'icon' => 'scale', 'active' => ['finance.tax-return']],
             ],
         ]];
+    }
+
+    public function boot(): void
+    {
+        parent::boot();
+        if ($this->app->make(ModuleRegistry::class)->isEnabled('finance')) {
+            $this->app->singleton(CreditControl::class, CreditLimits::class);
+        }
+    }
+
+    protected function panels(): array
+    {
+        return ['party.show' => 'finance::credit-panel'];
     }
 
     protected function settingsLinks(): array

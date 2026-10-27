@@ -23,6 +23,39 @@ class FinanceRules
         'BLOCK' => 'The bill cannot be posted until it matches the order and what was received',
     ];
 
+    public const CREDIT_CHECK = 'finance.credit_check';
+
+    public const CREDIT_ORDERS = 'finance.credit_counts_orders';
+
+    public const CREDIT_OVERDUE_DAYS = 'finance.credit_overdue_days';
+
+    /** What happens when a customer is over its limit or has invoices long overdue, at contract review and at dispatch. */
+    public const CREDIT_OPTIONS = [
+        'OFF' => 'Not checked',
+        'WARN' => 'Shown at contract review and dispatch; they can go ahead',
+        'BLOCK' => 'Contract review and dispatch stop until it is paid down or released',
+    ];
+
+    /** @return 'OFF'|'WARN'|'BLOCK' */
+    public static function creditCheck(): string
+    {
+        $v = (string) AppSetting::getValue(self::CREDIT_CHECK, 'WARN');
+
+        return isset(self::CREDIT_OPTIONS[$v]) ? $v : 'WARN';
+    }
+
+    /** Whether open orders not yet invoiced count towards what a customer owes. */
+    public static function creditCountsOrders(): bool
+    {
+        return (string) AppSetting::getValue(self::CREDIT_ORDERS, '1') === '1';
+    }
+
+    /** Invoices overdue by more than this many days count against the customer; 0 leaves overdue invoices out of the check. */
+    public static function creditOverdueDays(): int
+    {
+        return max(0, (int) AppSetting::getValue(self::CREDIT_OVERDUE_DAYS, '0'));
+    }
+
     public const BILL_COST = 'finance.bill_price_to_cost';
 
     /** Whether a supplier bill's price replaces the order price as the cost of the lots received on that order line. */

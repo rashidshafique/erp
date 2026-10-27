@@ -1,6 +1,7 @@
 <?php
 
 use App\Domains\Finance\Http\Controllers\BillController;
+use App\Domains\Finance\Http\Controllers\CreditController;
 use App\Domains\Finance\Http\Controllers\FinanceSettingsController;
 use App\Domains\Finance\Http\Controllers\InvoiceController;
 use App\Domains\Finance\Http\Controllers\ReceiptController;
@@ -69,6 +70,7 @@ Route::middleware('web')->group(function () {
     Route::get('/receivables/{customer}', [ReceivablesController::class, 'statement'])->name('receivables.statement');
     Route::get('/tax-register', [TaxRegisterController::class, 'index'])->name('finance.tax-register');
     Route::get('/tax-return', [TaxReturnController::class, 'index'])->name('finance.tax-return');
+    Route::put('/customers/{customer}/credit', [CreditController::class, 'update'])->name('finance.credit.update');
     Route::get('/settings/invoicing', [FinanceSettingsController::class, 'edit'])->name('finance.settings');
     Route::put('/settings/invoicing', [FinanceSettingsController::class, 'update'])->name('finance.settings.update');
     Route::post('/settings/invoicing/tax-rates', [FinanceSettingsController::class, 'storeRate'])->name('finance.tax-rates.store');

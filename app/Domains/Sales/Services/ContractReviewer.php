@@ -2,6 +2,7 @@
 
 namespace App\Domains\Sales\Services;
 
+use App\Domains\Core\Contracts\CreditControl;
 use App\Domains\Sales\Models\ContractReview;
 use App\Models\CustomerProductRequirement;
 use App\Models\IronGrade;
@@ -44,6 +45,12 @@ class ContractReviewer
                 $this->add($review, null, 'LINES', 'BLOCK', 'The order has no lines.');
                 $worst = 'BLOCK';
             }
+            foreach ($this->checkOrder($order) as [$code, $sev, $msg]) {
+                $this->add($review, null, $code, $sev, $msg);
+                if ($rank[$sev] > $rank[$worst]) {
+                    $worst = $sev;
+                }
+            }
             foreach ($order->lines as $line) {
                 foreach ($this->checkLine($order, $line) as [$code, $sev, $msg]) {
                     $this->add($review, $line, $code, $sev, $msg);
@@ -60,6 +67,22 @@ class ContractReviewer
 
             return $review->fresh('items');
         });
+    }
+
+    /**
+     * Checks on the order as a whole: the customer's credit, with this order's value not yet invoiced added (before tax).
+     *
+     * @return array<int, array{0: string, 1: string, 2: string}>
+     */
+    public function checkOrder(SalesOrder $order): array
+    {
+        if (! $order->customer_id) {
+            return [];
+        }
+        $value = round($order->lines->sum(fn (SalesOrderLine $l) => (float) $l->ordered_qty * (float) $l->unit_price), 2);
+        $credit = app(CreditControl::class)->check($order->customer_id, $value, $order->id);
+
+        return $credit['severity'] === 'PASS' ? [] : [['CREDIT', $credit['severity'], implode(' ', $credit['messages'])]];
     }
 
     /** @return array<int, array{0: string, 1: string, 2: string}> */

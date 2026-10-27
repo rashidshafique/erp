@@ -44,6 +44,10 @@ class DispatchController extends Controller
             'vehicle_number' => ['nullable', 'string', 'max:40'], 'driver_name' => ['nullable', 'string', 'max:100'],
             'delivery_address' => ['nullable', 'string', 'max:500'], 'dispatched_by' => ['nullable', 'string', 'max:100'],
         ]);
+        $credit = app(\App\Domains\Core\Contracts\CreditControl::class)->check($d['customer_id']);
+        if ($credit['severity'] === 'BLOCK') {
+            return back()->withErrors(['dispatch' => 'Credit: '.implode(' ', $credit['messages'])])->withInput();
+        }
         \Illuminate\Support\Facades\DB::beginTransaction();
         try {
             $customer = \App\Models\Customer::find($d['customer_id']);
@@ -60,7 +64,9 @@ class DispatchController extends Controller
             return back()->withErrors(['dispatch' => $e->getMessage()])->withInput();
         }
 
-        return redirect()->route('dispatches.show', $disp)->with('success', "Dispatch {$disp->dispatch_number} recorded.");
+        $done = redirect()->route('dispatches.show', $disp)->with('success', "Dispatch {$disp->dispatch_number} recorded.");
+
+        return $credit['severity'] === 'WARN' ? $done->with('warning', 'Credit: '.implode(' ', $credit['messages'])) : $done;
     }
 
     public function show(Dispatch $dispatch): View

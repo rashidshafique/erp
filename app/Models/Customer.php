@@ -31,6 +31,12 @@ class Customer extends Model
         'active',
     ];
 
+    /** Credit fields are set by the Finance module, price list by Sales; neither is mass-assigned from the customer forms. */
+    protected function casts(): array
+    {
+        return ['credit_limit' => 'float', 'credit_hold' => 'boolean', 'credit_release_until' => 'date'];
+    }
+
     /**
      * The rules a customer is saved under, from the order form's quick add or the customer list's dialog. Codes are kept in
      * capitals, so the caller upper-cases one before checking it is unused.
