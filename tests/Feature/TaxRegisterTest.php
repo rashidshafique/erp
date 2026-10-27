@@ -81,4 +81,25 @@ class TaxRegisterTest extends TestCase
         $this->assertStringContainsString('Acme Pig Iron', $csv->streamedContent());
         $this->assertStringContainsString('(S-9)', $csv->streamedContent());
     }
+
+    public function test_input_tax_from_a_registered_supplier_is_named_by_tax_and_authority_at_the_percent_they_charged(): void
+    {
+        $supplier = Supplier::create(['name' => 'Acme Pig Iron', 'review_interval_days' => 180, 'approval_status' => 'APPROVED']);
+        PartyTaxProfile::updateOrCreate(['party_id' => $supplier->party_id], ['tax_status' => 'REGISTERED', 'region' => 'SD']);
+        $this->post(route('bills.store'), ['supplier_id' => $supplier->id, 'bill_date' => '2025-03-05', 'supplier_bill_number' => 'S-10', 'lines' => [
+            ['description' => 'Pig iron', 'quantity' => 1, 'unit_price' => 1000, 'tax_percent' => 18, 'supply_type' => 'GOODS'],
+            ['description' => 'Old-rate goods', 'quantity' => 1, 'unit_price' => 100, 'tax_percent' => 17, 'supply_type' => 'GOODS'],
+            ['description' => 'Machining', 'quantity' => 1, 'unit_price' => 500, 'tax_percent' => 15, 'supply_type' => 'SERVICE'],
+        ]])->assertSessionHasNoErrors();
+        $bill = SupplierBill::sole();
+        $this->post(route('bills.post', $bill))->assertSessionHasNoErrors();
+
+        $register = app(TaxRegister::class);
+        $summary = $register->summary($register->rows('purchases', '2025-03-01', '2025-03-31'));
+
+        $this->assertSame([['FBR', 'ST_GOODS', 17.0, 100.0, 17.0], ['FBR', 'ST_GOODS', 18.0, 1000.0, 180.0], ['SRB', 'ST_SERVICES_SD', 15.0, 500.0, 75.0]],
+            $summary->map(fn ($s) => [$s['authority'], $s['code'], $s['rate'], $s['base'], $s['amount']])->all());
+        $this->assertSame(272.0, $bill->fresh()->tax_total);
+        $this->get(route('bills.show', $bill))->assertOk()->assertSee('Sindh sales tax on services');
+    }
 }

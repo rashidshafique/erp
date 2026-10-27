@@ -85,7 +85,7 @@ class BillController extends Controller
         if ($bill->status !== 'DRAFT') {
             return redirect()->route('bills.show', $bill)->withErrors(['bill' => 'Only a draft can be changed.']);
         }
-        $lines = $bill->lines->map(fn ($l) => $l->only(['description', 'quantity', 'uom', 'unit_price', 'tax_percent', 'purchase_order_line_id', 'account_id']))->all();
+        $lines = $bill->lines->map(fn ($l) => $l->only(['description', 'quantity', 'uom', 'unit_price', 'tax_percent', 'purchase_order_line_id', 'account_id', 'supply_type']))->all();
 
         return view('finance::bills.form', $this->formData($bill, $bill->only(['supplier_id', 'purchase_order_id', 'payment_terms', 'currency']), $lines) + ['notice' => null]);
     }
@@ -200,7 +200,7 @@ class BillController extends Controller
         return array_values($request->validate([
             'lines' => ['required', 'array', 'min:1'], 'lines.*.description' => ['nullable', 'string', 'max:300'], 'lines.*.quantity' => ['nullable', 'numeric', 'gt:0'],
             'lines.*.uom' => ['nullable', 'string', 'max:20'], 'lines.*.unit_price' => ['nullable', 'numeric', 'min:0'], 'lines.*.tax_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'lines.*.purchase_order_line_id' => ['nullable', 'uuid'], 'lines.*.account_id' => ['nullable', 'uuid'],
+            'lines.*.purchase_order_line_id' => ['nullable', 'uuid'], 'lines.*.account_id' => ['nullable', 'uuid'], 'lines.*.supply_type' => ['nullable', 'in:GOODS,SERVICE'],
         ])['lines']);
     }
 }

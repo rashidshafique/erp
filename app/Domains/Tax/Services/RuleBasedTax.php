@@ -22,7 +22,9 @@ use Illuminate\Support\Facades\DB;
  * a share of a charged one or of the value with tax. A tax of an authority the company is not registered with is left off (once
  * any registration is recorded). A line no rule matches keeps the percent chosen on it.
  *
- * Purchases keep the percent typed from the supplier's document: that is the input tax actually charged.
+ * Purchases keep the percent typed from the supplier's document: that is the input tax actually charged. The rules only name it:
+ * when the typed percent comes to what the matching taxes add up to, the line carries those taxes (with their authorities);
+ * otherwise it carries one tax at the typed percent, named after the first matching tax. Nothing is named when no rule matches.
  */
 class RuleBasedTax implements TaxCalculator
 {
@@ -30,10 +32,10 @@ class RuleBasedTax implements TaxCalculator
 
     public function calculate(TaxContext $context, array $lines): TaxResult
     {
-        if ($context->side !== TaxContext::SALE) {
-            return $this->flat->calculate($context, $lines);
-        }
         $setup = $this->setupFor($context);
+        if ($context->side !== TaxContext::SALE) {
+            return new TaxResult(array_map(fn (TaxLine $line) => $this->purchaseLine($line, $setup), array_values($lines)));
+        }
 
         return new TaxResult(array_map(fn (TaxLine $line) => $this->taxLine($line, $setup)['taxes'], array_values($lines)));
     }
@@ -121,9 +123,7 @@ class RuleBasedTax implements TaxCalculator
      */
     private function taxLine(TaxLine $line, array $setup): array
     {
-        $codes = $setup['rules']->filter(fn (TaxRule $rule) => $this->matches($rule->conditions ?? [], $line, $setup))
-            ->flatMap(fn (TaxRule $rule) => $rule->components ?? [])->unique()->values();
-        $components = $codes->map(fn ($c) => $setup['components'][$c] ?? null)->filter();
+        $components = $this->matching($line, $setup);
         if ($components->isEmpty()) {
             return ['taxes' => $this->flat->flat($line->net, $line->percent), 'unregistered' => []];
         }
@@ -140,6 +140,47 @@ class RuleBasedTax implements TaxCalculator
             });
         }
 
+        return ['taxes' => $this->amounts($components, $line), 'unregistered' => array_values($unregistered)];
+    }
+
+    /**
+     * The tax a supplier charged on a purchase line: the typed percent, named by the matching charged taxes.
+     *
+     * @return list<TaxAmount>
+     */
+    private function purchaseLine(TaxLine $line, array $setup): array
+    {
+        $typed = (float) ($line->percent ?? 0);
+        $components = $this->matching($line, $setup)->where('kind', 'CHARGED');
+        if ($typed <= 0 || $components->isEmpty()) {
+            return $this->flat->flat($line->net, $line->percent);
+        }
+        $byRules = $this->amounts($components, $line);
+        $amount = round($line->net * $typed / 100, 2);
+        if (abs(array_sum(array_map(fn (TaxAmount $t) => $t->amount, $byRules)) - $amount) <= 0.01) {
+            return $byRules;
+        }
+        $first = $components->first();
+
+        return [new TaxAmount($first->code, $first->name, $line->net, $typed, $amount, false, $first->authority?->code)];
+    }
+
+    /** @return Collection<int, TaxComponent> the taxes every matching rule adds to the line, in force on the document date */
+    private function matching(TaxLine $line, array $setup): Collection
+    {
+        return $setup['rules']->filter(fn (TaxRule $rule) => $this->matches($rule->conditions ?? [], $line, $setup))
+            ->flatMap(fn (TaxRule $rule) => $rule->components ?? [])->unique()->values()
+            ->map(fn ($c) => $setup['components'][$c] ?? null)->filter()->values();
+    }
+
+    /**
+     * Each tax on the line, charged ones first so a withheld tax can be a share of a charged one or of the value with tax.
+     *
+     * @param  Collection<int, TaxComponent>  $components
+     * @return list<TaxAmount>
+     */
+    private function amounts(Collection $components, TaxLine $line): array
+    {
         $amounts = [];
         foreach ([$components->where('kind', 'CHARGED'), $components->where('kind', 'WITHHELD')] as $group) {
             foreach ($group as $c) {
@@ -155,7 +196,7 @@ class RuleBasedTax implements TaxCalculator
             }
         }
 
-        return ['taxes' => array_values($amounts), 'unregistered' => array_values($unregistered)];
+        return array_values($amounts);
     }
 
     /** Whether every condition of a rule holds for a line. */

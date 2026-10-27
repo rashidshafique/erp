@@ -73,21 +73,29 @@ class TaxRegister
         return $rows;
     }
 
-    /** Bills and purchase orders still use a typed percent per line, so each rate is one tax with no authority. */
+    /** Each bill line's tax as the supplier charged it, named by tax and authority where the rules could; older lines as one unnamed tax at their percent. */
     private function purchases(string $from, string $to, callable $regs): Collection
     {
         $bills = SupplierBill::with(['lines', 'supplier'])->where('status', 'POSTED')->whereBetween('bill_date', [$from, $to])->get();
         $rows = collect();
         foreach ($bills as $bill) {
             $sign = $bill->isCreditNote() ? -1 : 1;
-            foreach ($bill->lines->groupBy(fn ($l) => (string) (float) $l->tax_percent) as $rate => $lines) {
-                $rows->push([
-                    'date' => $bill->bill_date->toDateString(), 'number' => (string) $bill->bill_number.($bill->supplier_bill_number ? ' ('.$bill->supplier_bill_number.')' : ''),
-                    'kind' => $bill->isCreditNote() ? 'Credit note' : 'Bill', 'party' => (string) $bill->supplier?->name, 'registrations' => $regs($bill->supplier?->party_id),
-                    'url' => route('bills.show', $bill), 'tariff' => null, 'code' => 'TAX', 'label' => 'Input tax', 'authority' => null, 'rate' => (float) $rate,
-                    'base' => round($sign * $lines->sum('line_net'), 2), 'amount' => round($sign * $lines->sum('line_tax'), 2), 'withheld' => false,
-                ]);
+            $head = [
+                'date' => $bill->bill_date->toDateString(), 'number' => (string) $bill->bill_number.($bill->supplier_bill_number ? ' ('.$bill->supplier_bill_number.')' : ''),
+                'kind' => $bill->isCreditNote() ? 'Credit note' : 'Bill', 'party' => (string) $bill->supplier?->name, 'registrations' => $regs($bill->supplier?->party_id),
+                'url' => route('bills.show', $bill), 'tariff' => null,
+            ];
+            $grouped = [];
+            foreach ($bill->lines as $line) {
+                foreach ($line->taxes ?? [['code' => 'TAX', 'label' => 'Input tax', 'authority' => null, 'rate' => $line->tax_percent, 'base' => $line->line_net, 'amount' => $line->line_tax]] as $t) {
+                    $key = $t['code'].'|'.(float) $t['rate'];
+                    $grouped[$key] ??= $head + ['code' => $t['code'], 'label' => $t['code'] === 'TAX' ? 'Input tax' : $t['label'], 'authority' => $t['authority'] ?? null,
+                        'rate' => (float) $t['rate'], 'base' => 0.0, 'amount' => 0.0, 'withheld' => false];
+                    $grouped[$key]['base'] = round($grouped[$key]['base'] + $sign * (float) $t['base'], 2);
+                    $grouped[$key]['amount'] = round($grouped[$key]['amount'] + $sign * (float) $t['amount'], 2);
+                }
             }
+            $rows->push(...array_values($grouped));
         }
 
         return $rows;

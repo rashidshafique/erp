@@ -60,7 +60,7 @@ Updated 2026-10-27.
 - Left, in order (each changes how existing documents count, so they wait for a decision):
   1. Done: withheld tax settlement (tax certificates above).
   2. Done: advances, and bill price into lot cost (2026-10-27): posting a bill line from a purchase order line re-costs that line's lots at the billed price (net of tax, weighted over its posted bills), with the stock left at the new cost; stock already used keeps its cost and the difference is recorded (`lot_cost_adjustments`, shown on the bill). A void puts the order price back. Rule under Settings > Invoicing, on by default. Supplier credit notes are not counted.
-  3. Purchase-side tax rules (bills and POs still use the typed percent, so the input tax register has no authority) and tax returns.
+  3. Purchase-side tax (2026-10-27, started): bill lines are goods or a service and keep the tax the supplier charged, named by the rules (tax and authority) while the typed percent stays the amount: the matching taxes when they add up to it, else one tax at the typed percent named after the first match. The input tax register shows authorities. Still open: tax we withhold from suppliers as a withholding agent, and the tax return (output less input per authority and period).
   4. E-invoicing (FBR digital invoicing for Pakistan): calls FBR's service, needs credentials.
 
 **Bill of materials (`app/Domains/Engineering`, level 1, 2026-10-25)**

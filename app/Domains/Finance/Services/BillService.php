@@ -3,6 +3,7 @@
 namespace App\Domains\Finance\Services;
 
 use App\Domains\Core\Contracts\TaxCalculator;
+use App\Domains\Core\Tax\TaxAmount;
 use App\Domains\Core\Tax\TaxContext;
 use App\Domains\Core\Tax\TaxLine;
 use App\Domains\Finance\Events\DocumentPosted;
@@ -57,6 +58,7 @@ class BillService
             $taxLines = array_map(fn ($l) => new TaxLine(
                 round(round((float) $l['quantity'], 3) * round((float) ($l['unit_price'] ?? 0), 4), 2),
                 round((float) ($l['tax_percent'] ?? 0), 3),
+                ($l['supply_type'] ?? null) === TaxLine::SERVICE ? TaxLine::SERVICE : TaxLine::GOODS,
             ), $lines);
             $taxes = app(TaxCalculator::class)->calculate(new TaxContext(TaxContext::PURCHASE, Carbon::parse($head['bill_date']), $supplier->party_id), $taxLines);
             [$subtotal, $tax] = [0.0, 0.0];
@@ -69,7 +71,8 @@ class BillService
                 SupplierBillLine::create([
                     'supplier_bill_id' => $bill->id, 'line_number' => $i + 1, 'description' => trim($l['description']), 'quantity' => $qty, 'uom' => $l['uom'] ?? null,
                     'unit_price' => $price, 'tax_percent' => $percent, 'line_net' => $net, 'line_tax' => $lineTax, 'purchase_order_line_id' => ($l['purchase_order_line_id'] ?? null) ?: null,
-                    'account_id' => ($l['account_id'] ?? null) ?: null,
+                    'account_id' => ($l['account_id'] ?? null) ?: null, 'supply_type' => $taxLines[$i]->supplyType,
+                    'taxes' => array_map(fn (TaxAmount $t) => (array) $t, array_values(array_filter($taxes->forLine($i), fn (TaxAmount $t) => ! $t->withheld))),
                 ]);
                 $subtotal += $net;
                 $tax += $lineTax;

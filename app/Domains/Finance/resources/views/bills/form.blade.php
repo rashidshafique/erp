@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title', $bill ? 'Edit draft supplier bill' : 'New supplier bill')
 @section('content')
-@php $startLines = old('lines', $lines); @endphp
+@php $startLines = old('lines', $lines); $taxRules = app(\App\Domains\Core\ModuleRegistry::class)->isEnabled('tax'); @endphp
 <div class="page-heading"><div><h1>{{ $bill ? 'Edit draft supplier bill' : 'New supplier bill' }}</h1><p>{{ $notice ?? 'Enter what the supplier billed, free lines or filled from a purchase order. Nothing counts as owed until the bill is posted.' }}</p></div>
 @if (! $bill && Route::has('purchase-orders.index'))<div class="actions"><a class="btn" href="{{ route('purchase-orders.index', ['status' => 'RECEIVING']) }}">From a purchase order…</a></div>@endif</div>
 <form method="POST" action="{{ $bill ? route('bills.update', $bill) : route('bills.store') }}" x-data="billLines(@js($startLines))">@csrf @if ($bill) @method('PUT') @endif
@@ -14,28 +14,29 @@
     <label>Currency<input name="currency" maxlength="10" value="{{ old('currency', $currency) }}"></label>
     <label>Payment terms<input name="payment_terms" maxlength="100" value="{{ old('payment_terms', $bill?->payment_terms ?? ($head['payment_terms'] ?? '')) }}"></label>
 </div></div>
-<div class="panel"><div class="table-wrap"><table><thead><tr><th style="width:38%">Description</th><th>Qty</th><th>Unit</th><th>Price</th><th>Tax %</th>@if ($ledgerAccounts->isNotEmpty())<th>Account</th>@endif<th class="num">Amount</th><th></th></tr></thead><tbody>
+<div class="panel"><div class="table-wrap"><table><thead><tr><th style="width:38%">Description</th><th>Qty</th><th>Unit</th><th>Price</th><th>Tax %</th>@if ($taxRules)<th>Supply</th>@endif @if ($ledgerAccounts->isNotEmpty())<th>Account</th>@endif<th class="num">Amount</th><th></th></tr></thead><tbody>
 <template x-for="(l, i) in lines" :key="i"><tr>
     <td><input :name="`lines[${i}][description]`" x-model="l.description" maxlength="300" style="width:100%"><input type="hidden" :name="`lines[${i}][purchase_order_line_id]`" :value="l.purchase_order_line_id ?? ''"></td>
     <td><input type="number" step="any" min="0" :name="`lines[${i}][quantity]`" x-model.number="l.quantity" style="width:90px"></td>
     <td><input :name="`lines[${i}][uom]`" x-model="l.uom" maxlength="20" style="width:70px"></td>
     <td><input type="number" step="any" min="0" :name="`lines[${i}][unit_price]`" x-model.number="l.unit_price" style="width:110px"></td>
     <td><input type="number" step="any" min="0" max="100" :name="`lines[${i}][tax_percent]`" x-model.number="l.tax_percent" style="width:70px"></td>
+    @if ($taxRules)<td><select :name="`lines[${i}][supply_type]`" x-model="l.supply_type"><option value="GOODS">Goods</option><option value="SERVICE">Service</option></select></td>@endif
     @if ($ledgerAccounts->isNotEmpty())<td><select :name="`lines[${i}][account_id]`" x-model="l.account_id" style="max-width:200px"><option value="" x-text="l.purchase_order_line_id ? 'Purchases' : 'Default expense'"></option>@foreach ($ledgerAccounts as $a)<option value="{{ $a['id'] }}">{{ $a['label'] }}</option>@endforeach</select></td>@endif
     <td class="num" x-text="money(net(l))"></td>
     <td><button type="button" class="btn btn-small" @click="lines.splice(i, 1)" x-show="lines.length > 1" aria-label="Remove line">✕</button></td>
 </tr></template>
 </tbody>
-@php $span = $ledgerAccounts->isNotEmpty() ? 6 : 5; @endphp
+@php $span = ($ledgerAccounts->isNotEmpty() ? 6 : 5) + ($taxRules ? 1 : 0); @endphp
 <tfoot><tr><td colspan="{{ $span }}" class="num muted">Subtotal</td><td class="num" x-text="money(subtotal)"></td><td></td></tr><tr><td colspan="{{ $span }}" class="num muted">Tax</td><td class="num" x-text="money(tax)"></td><td></td></tr><tr><th colspan="{{ $span }}" class="num">Total</th><th class="num" x-text="money(subtotal + tax)"></th><td></td></tr></tfoot></table></div>
-<div class="panel-body"><button type="button" class="btn btn-small" @click="lines.push({description: '', quantity: 1, uom: '', unit_price: 0, tax_percent: lines[0]?.tax_percent ?? 0, purchase_order_line_id: null, account_id: ''})">+ Add a line</button></div></div>
+<div class="panel-body"><button type="button" class="btn btn-small" @click="lines.push({description: '', quantity: 1, uom: '', unit_price: 0, tax_percent: lines[0]?.tax_percent ?? 0, purchase_order_line_id: null, account_id: '', supply_type: 'GOODS'})">+ Add a line</button></div></div>
 <div class="panel"><div class="panel-body"><label>Notes<textarea name="notes" rows="2" maxlength="2000">{{ old('notes', $bill?->notes) }}</textarea></label></div>
 <div class="panel-body"><button class="btn btn-primary" type="submit">Save draft</button> <a class="btn" href="{{ $bill ? route('bills.show', $bill) : route('bills.index') }}">Cancel</a></div></div>
 </form>
 <script>
 function billLines(start) {
     return {
-        lines: start.map(l => ({ ...l, tax_percent: l.tax_percent ?? 0, account_id: l.account_id ?? '' })),
+        lines: start.map(l => ({ ...l, tax_percent: l.tax_percent ?? 0, account_id: l.account_id ?? '', supply_type: l.supply_type ?? 'GOODS' })),
         net(l) { return Math.round((Number(l.quantity) || 0) * (Number(l.unit_price) || 0) * 100) / 100; },
         lineTax(l) { return Math.round(this.net(l) * (Number(l.tax_percent) || 0)) / 100; },
         get subtotal() { return this.lines.reduce((n, l) => n + this.net(l), 0); },
