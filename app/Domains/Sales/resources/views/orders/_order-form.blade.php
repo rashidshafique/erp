@@ -40,13 +40,8 @@
     .so-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
     .so-body { padding: 22px 24px; }
     .so-card h2 { font-size: 17px; margin: 0 0 14px; }
-    .so-top { display: grid; grid-template-columns: minmax(220px, 2fr) repeat(2, minmax(150px, 1fr)); gap: 14px; max-width: 900px; }
+    .so-top { display: grid; grid-template-columns: minmax(220px, 2fr) repeat(2, minmax(150px, 1fr)) minmax(180px, 1.3fr); gap: 14px; max-width: 1100px; }
     .so-top .field { margin: 0; }
-    .so-more { margin: 16px 0 4px; }
-    .so-more summary { cursor: pointer; color: var(--accent); font-weight: 500; list-style: none; display: inline-flex; align-items: center; gap: 8px; }
-    .so-more summary::before { content: "▸"; font-size: 12px; transition: transform .15s; }
-    .so-more[open] summary::before { transform: rotate(90deg); }
-    .so-more .so-top { margin-top: 12px; }
     .so-thumb { width: 34px; height: 34px; border-radius: 6px; object-fit: cover; background: color-mix(in srgb, var(--border) 70%, transparent); display: inline-flex; align-items: center; justify-content: center; color: var(--muted); }
     .so-lines { margin-top: 14px; }
     .so-grid { display: grid; grid-template-columns: 26px 46px minmax(180px, 1fr) 70px 120px 150px 130px 34px; gap: 10px; align-items: center; }
@@ -127,13 +122,8 @@
             </select>@if ($started)<div class="muted small">Production orders exist, so the customer cannot change.</div>@endif</div>
         <div class="field"><label for="order_date">Order date</label><input id="order_date" name="order_date" type="date" required value="{{ old('order_date', $order?->order_date?->toDateString() ?? today()->toDateString()) }}"></div>
         <div class="field"><label for="requested_delivery_date">Requested delivery</label><input id="requested_delivery_date" name="requested_delivery_date" type="date" value="{{ old('requested_delivery_date', $order?->requested_delivery_date?->toDateString()) }}"></div>
+        <div class="field"><label for="customer_reference">Customer PO / reference</label><input id="customer_reference" name="customer_reference" maxlength="100" value="{{ old('customer_reference', $order?->customer_reference) }}"></div>
     </div>
-    <details class="so-more" @if (old('customer_reference', $order?->customer_reference)) open @endif>
-        <summary>More information</summary>
-        <div class="so-top">
-            <div class="field"><label for="customer_reference">Customer PO / reference</label><input id="customer_reference" name="customer_reference" maxlength="100" value="{{ old('customer_reference', $order?->customer_reference) }}"></div>
-        </div>
-    </details>
 
     <div class="so-lines">
         <div class="so-grid so-lines-head" aria-hidden="true"><span class="so-head-product">Product</span><span>UOM</span><span>Qty</span>@if ($prices)<span>Price</span><span class="so-right">Total</span>@endif<span></span></div>
