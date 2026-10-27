@@ -197,6 +197,7 @@ Route::prefix('pours')
         Route::get('/', 'index')->name('index');
         Route::get('/create', 'create')->name('create');
         Route::post('/', 'store')->name('store');
+        Route::post('/one-step', 'storeOneStep')->name('one-step');
         Route::get('/{pour}', 'show')->name('show');
     });
 

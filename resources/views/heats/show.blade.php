@@ -48,6 +48,9 @@
             <button type="button" class="btn" data-quick="qd-record-test">Record test</button>
             @unless ($heat->hold_reason)<button type="button" class="btn" data-quick="qd-hold">Put on hold</button>@endunless
         @endif
+        @if ($heat->status !== 'CANCELLED')
+            <a class="btn" href="{{ \App\Support\FloorRules::usesQuickScreens() ? route('quick.floor.index').'#poured' : route('pours.create', ['heat' => $heat->id]) }}">Pour moulds</a>
+        @endif
     </div>
 </div>
 <style>

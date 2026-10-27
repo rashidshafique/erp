@@ -10,9 +10,11 @@ use App\Models\PourMouldAssembly;
 use App\Services\Production\Containment;
 use App\Services\Production\CupolaTimeline;
 use App\Services\Production\LotFactory;
+use App\Services\Production\OneStepPour;
 use App\Services\Production\PourAssembler;
 use App\Services\Quality\CalibrationStatus;
 use App\Services\QualityGates;
+use App\Support\FloorRules;
 use App\Support\MenuCounts;
 use App\Support\PouringRules;
 use Illuminate\Http\RedirectResponse;
@@ -45,21 +47,75 @@ class PourController extends Controller
         ));
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         $heats = Heat::query()
             ->with('furnace')
             ->where('status', '!=', 'CANCELLED')
             ->orderByDesc('created_at')
             ->get();
+        $oneStep = FloorRules::poursInOneStep();
 
         return view('pours.create', [
             'heats' => $heats,
             'defaults' => [
                 'status' => 'PLANNED',
                 'planned_at' => now()->format('Y-m-d\TH:i'),
+                'heat_id' => $request->query('heat'),
             ],
+            'oneStep' => $oneStep,
+            'waiting' => $oneStep ? $this->waitingMoulds()->load('mouldingRun.patternRevision.pattern') : collect(),
         ]);
+    }
+
+    /** Moulds ready to pour: assembled, not on a pour, for an open order. */
+    private function waitingMoulds()
+    {
+        return MouldAssembly::with('mouldingRun.productionOrder.product')->whereDoesntHave('pourAssignment')
+            ->whereNotIn('status', ['POURED', 'SCRAPPED', 'CANCELLED'])->whereHas('mouldingRun.productionOrder', fn ($q) => $q->whereIn('status', ['RELEASED', 'IN_PROGRESS']))
+            ->orderBy('assembly_number')->limit(1000)->get();
+    }
+
+    /** The pour in one step: the heat, the moulds poured, then it is checked, completed and its lots made. */
+    public function storeOneStep(Request $request, QualityGates $gates, OneStepPour $pourer): RedirectResponse
+    {
+        $data = $request->validate([
+            'heat_id' => ['required', 'uuid', Rule::exists('heats', 'id')->where(fn ($q) => $q->where('status', '!=', 'CANCELLED'))],
+            'assembly_ids' => ['required', 'array', 'min:1'], 'assembly_ids.*' => ['uuid', 'exists:mould_assemblies,id'],
+            'pour_temperature_c' => ['nullable', 'numeric', 'between:1000,1700'],
+            'total_poured_weight_kg' => ['nullable', 'numeric', 'gt:0', 'max:999999'],
+            'out_of_window_reason' => ['nullable', 'string', 'max:500'],
+            'operator_name' => ['nullable', 'string', 'max:100'],
+            'notes' => ['nullable', 'string', 'max:5000'],
+        ], ['assembly_ids.required' => 'Tick the moulds that were poured.']);
+        $heat = Heat::with('ironGrade', 'furnace')->findOrFail($data['heat_id']);
+        $mode = PouringRules::gateMode($heat->furnace?->furnace_type ?? $heat->process_type);
+        $gate = $mode === 'OFF' ? ['ok' => true, 'reasons' => []] : $gates->pourGate($heat);
+        if (! $gate['ok'] && $mode === 'ENFORCED') {
+            return back()->withErrors(['gate' => 'The pour cannot be recorded. '.implode(' ', $gate['reasons'])])->withInput();
+        }
+        $notes = $data['notes'] ?? null;
+        $grade = $heat->ironGrade;
+        $temp = isset($data['pour_temperature_c']) ? (float) $data['pour_temperature_c'] : null;
+        if ($temp !== null && $grade && (($grade->pour_temp_min_c !== null && $temp < $grade->pour_temp_min_c) || ($grade->pour_temp_max_c !== null && $temp > $grade->pour_temp_max_c))) {
+            if (blank($data['out_of_window_reason'] ?? null)) {
+                return back()->withErrors(['pour_temperature_c' => "Pour temperature {$temp} °C is outside the {$grade->code} window ({$grade->pour_temp_min_c}-{$grade->pour_temp_max_c} °C). Give a reason to record it."])->withInput();
+            }
+            $notes = trim($notes."\nPour temperature {$temp} °C outside window, accepted: ".$data['out_of_window_reason']);
+        }
+        $waived = ! $gate['ok'] ? 'Poured without a clear check: '.implode(' ', $gate['reasons']) : null;
+        try {
+            $result = $pourer->recordMoulds($heat, $data['assembly_ids'], [
+                'operator' => $data['operator_name'] ?? null, 'gate_mode' => $mode, 'gate_note' => $waived, 'temperature' => $temp,
+                'weight' => isset($data['total_poured_weight_kg']) ? (float) $data['total_poured_weight_kg'] : null, 'notes' => $notes ?: null,
+            ]);
+        } catch (\InvalidArgumentException $e) {
+            return back()->withErrors(['assembly_ids' => $e->getMessage()])->withInput();
+        }
+
+        return redirect()->route('pours.show', $result['pour'])
+            ->with('success', "Pour {$result['pour']->pour_number} recorded and completed. {$result['lots']} casting lot(s) created.")
+            ->with('warning', trim(implode(' ', array_filter([$waived, ...$result['warnings']]))) ?: null);
     }
 
     public function store(Request $request): RedirectResponse
@@ -104,11 +160,7 @@ class PourController extends Controller
 
     public function show(Pour $pour): View
     {
-        $candidates = in_array($pour->status, ['PLANNED', 'IN_PROGRESS'], true)
-            ? MouldAssembly::with('mouldingRun.productionOrder.product')->whereDoesntHave('pourAssignment')
-                ->whereNotIn('status', ['POURED', 'SCRAPPED', 'CANCELLED'])->whereHas('mouldingRun.productionOrder', fn ($q) => $q->whereIn('status', ['RELEASED', 'IN_PROGRESS']))
-                ->orderBy('assembly_number')->limit(1000)->get()
-            : collect();
+        $candidates = in_array($pour->status, ['PLANNED', 'IN_PROGRESS'], true) ? $this->waitingMoulds() : collect();
 
         $pour->load([
             'heat.furnace',

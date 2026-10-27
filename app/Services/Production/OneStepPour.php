@@ -30,9 +30,31 @@ class OneStepPour
      */
     public function record(Heat $heat, array $rows, array $details = []): array
     {
+        return $this->pour($heat, $details, fn (Pour $pour) => $this->attachRows($pour, $rows));
+    }
+
+    /**
+     * The same, for moulds picked one by one (the pour screen's ticked moulds).
+     *
+     * @param  list<string>  $assemblyIds
+     * @param  array{at?: CarbonInterface, operator?: ?string, gate_mode?: ?string, gate_note?: ?string, temperature?: ?float, weight?: ?float, notes?: ?string}  $details
+     * @return array{pour: Pour, lots: int, warnings: list<string>}
+     */
+    public function recordMoulds(Heat $heat, array $assemblyIds, array $details = []): array
+    {
+        return $this->pour($heat, $details, function (Pour $pour) use ($assemblyIds) {
+            $this->pourAssembler->attach($pour, $assemblyIds);
+
+            return [];
+        });
+    }
+
+    /** @param  \Closure(Pour): list<string>  $attach  puts the moulds on the pour, returning any warnings */
+    private function pour(Heat $heat, array $details, \Closure $attach): array
+    {
         $at = $details['at'] ?? now();
 
-        return DB::transaction(function () use ($heat, $rows, $details, $at) {
+        return DB::transaction(function () use ($heat, $details, $at, $attach) {
             $pour = Pour::create([
                 'pour_number' => self::nextNumber($at), 'heat_id' => $heat->id, 'status' => 'IN_PROGRESS', 'started_at' => $at,
                 'operator_name' => $details['operator'] ?? null, 'gate_mode' => $details['gate_mode'] ?? null, 'gate_note' => $details['gate_note'] ?? null,
@@ -41,7 +63,7 @@ class OneStepPour
             $pour->is_first_iron = $this->timeline->onPourStart($pour);
             $pour->save();
 
-            $warnings = $this->attachRows($pour, $rows);
+            $warnings = $attach($pour);
             $pour->update([
                 'status' => 'COMPLETED', 'completed_at' => $at,
                 'pour_temperature_c' => $details['temperature'] ?? null, 'total_poured_weight_kg' => $details['weight'] ?? null,

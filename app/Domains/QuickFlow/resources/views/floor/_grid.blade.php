@@ -11,7 +11,7 @@
     $today = today()->toDateString();
     $autoLabel = fn ($order) => $order ? 'Automatic: '.$order->production_order_number.' '.$order->product?->code : 'Automatic: none open, link later';
 @endphp
-<div class="panel fg-panel" data-floor-grid="{{ $kind }}">
+<div class="panel fg-panel" data-floor-grid="{{ $kind }}" id="{{ $kind }}">
     <div class="panel-header"><h2>{{ $title }}</h2><span class="muted small">@if (! $mine && $kind === 'made' && ! empty($plannedRows))Today's plan is filled in: type the moulds each pattern made, and clear the rows not run. @endif Pick the pattern and type the moulds. Cavities come from the pattern's cavity map; station, order and date are filled in.</span></div>
     <div class="panel-body">
         <form method="POST" action="{{ $action }}">@csrf<input type="hidden" name="_grid" value="{{ $kind }}">

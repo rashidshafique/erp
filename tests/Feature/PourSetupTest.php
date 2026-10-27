@@ -22,6 +22,35 @@ class PourSetupTest extends TestCase
         return Heat::create($over + ['heat_number' => 'H-'.uniqid(), 'furnace_id' => $furnace->id, 'process_type' => 'INDUCTION', 'status' => 'PLANNED']);
     }
 
+    /** Two assembled moulds of one cavity each, for a released order, waiting to be poured. */
+    private function waitingMoulds(): \Illuminate\Support\Collection
+    {
+        $product = \App\Models\ProductRevision::create(['product_id' => \App\Models\Product::create(['code' => 'P-'.uniqid(), 'name' => 'Part'])->id, 'revision' => 'A', 'status' => 'APPROVED']);
+        $revision = \App\Models\PatternRevision::create(['pattern_id' => \App\Models\Pattern::create(['code' => 'PT-'.uniqid(), 'name' => 'Plate'])->id, 'status' => 'APPROVED', 'cavities_per_mould' => 1]);
+        $revision->cavityMap()->create(['cavity_number' => 1, 'product_revision_id' => $product->id, 'casting_weight_kg' => 5]);
+        $order = \App\Models\ProductionOrder::create(['production_order_number' => 'PO-'.uniqid(), 'product_id' => $product->product_id, 'product_revision_id' => $product->id, 'order_type' => 'STOCK', 'status' => 'RELEASED', 'planned_qty' => 10, 'uom' => 'piece']);
+        $run = \App\Models\MouldingRun::create(['run_number' => 'MR-'.uniqid(), 'production_order_id' => $order->id, 'pattern_revision_id' => $revision->id, 'run_date' => today(), 'status' => 'COMPLETED', 'moulds_made_qty' => 2, 'accepted_mould_qty' => 2]);
+        $configuration = \App\Models\MouldConfiguration::create(['code' => 'MC-1', 'name' => 'Cfg', 'mould_type' => 'COPE_DRAG', 'nominal_layer_count' => 2]);
+
+        return app(\App\Services\Production\MouldAssembler::class)->assemble($run, 2, $configuration->id);
+    }
+
+    public function test_in_one_step_the_ticked_moulds_are_poured_completed_and_given_lots(): void
+    {
+        \App\Support\FloorRules::set('pour_entry', 'ONE_STEP');
+        $moulds = $this->waitingMoulds();
+        $heat = $this->heat();
+
+        $this->get(route('pours.create', ['heat' => $heat->id]))->assertOk()->assertSee('Record pour and make lots')->assertSee($moulds->first()->assembly_number);
+        $this->post(route('pours.one-step'), ['heat_id' => $heat->id])->assertSessionHasErrors('assembly_ids');
+
+        $this->post(route('pours.one-step'), ['heat_id' => $heat->id, 'assembly_ids' => $moulds->pluck('id')->all(), 'total_poured_weight_kg' => 20])->assertSessionHasNoErrors();
+
+        $pour = Pour::sole();
+        $this->assertSame(['COMPLETED', '20.000'], [$pour->status, (string) $pour->total_poured_weight_kg]);
+        $this->assertSame(2, (int) \App\Models\CastingLot::sum('quantity_poured'));
+    }
+
     public function test_the_new_pour_form_offers_finished_heats_but_not_cancelled_ones(): void
     {
         $open = $this->heat();
