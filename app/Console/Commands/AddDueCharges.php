@@ -7,7 +7,6 @@ use App\Services\Production\ChargeRecorder;
 use App\Services\Production\ChargeSchedule;
 use App\Support\PouringRules;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -25,10 +24,10 @@ class AddDueCharges extends Command
 
         $added = 0;
         Heat::query()->whereNotNull('actual_start_at')->whereNotNull('charge_batch_id')->whereNull('dropped_at')->whereNull('hold_reason')
-            ->whereNotIn('status', ['CLOSED', 'CANCELLED'])->with(['furnace', 'chargeBatch.items', 'materialConsumptions'])->get()
+            ->whereNotIn('status', ['CLOSED', 'CANCELLED'])->get()
             ->each(function (Heat $heat) use ($schedule, $recorder, &$added) {
                 try {
-                    $added += DB::transaction(fn () => $schedule->backfill($heat, 'Auto (furnace speed)', $recorder));
+                    $added += $schedule->addDue($heat, $recorder);
                 } catch (Throwable $e) {
                     // One heat without stock for a material must not stop the others; its charges stay due for someone to confirm.
                     Log::warning("Charges not added automatically to heat {$heat->heat_number}: ".$e->getMessage());

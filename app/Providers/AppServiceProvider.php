@@ -17,6 +17,7 @@ use App\Services\Stock\StockMovementTypes;
 use App\Support\Formats;
 use App\Support\RuleMenuFilter;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\DevCommands;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\View;
@@ -53,6 +54,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Paginator::defaultView('vendor.pagination.minimal');
+        DevCommands::artisan('schedule:work', 'scheduler');   // automatic heat charges and the other scheduled jobs, under composer run dev
         Formats::registerCarbonMacros();
         View::composer('layouts.app', fn ($view) => $view->with('topbarHeats', \Schema::hasTable('heats') ? Heat::withLight() : collect()));
 

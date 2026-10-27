@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Heat;
+use App\Services\Production\ChargeRecorder;
 use App\Services\Production\ChargeSchedule;
 use App\Services\Production\HeatEta;
 use App\Services\Production\HeatSamples;
@@ -10,7 +11,7 @@ use Livewire\Component;
 /**
  * What matters about a heat at a glance, above its tabs: the metal charged (worked out from the charges) and the latest test first,
  * then how long it has run and how long is left, and the charges in with the last one and the next. The clocks count in the browser;
- * the rest is refreshed every half minute and whenever a charge is changed.
+ * the rest is refreshed every half minute and whenever a charge is changed, and each refresh records charges that came due.
  */
 new class extends Component
 {
@@ -27,6 +28,14 @@ new class extends Component
     /** @return array<string, mixed> */
     public function with(): array
     {
+        // Charges that came due since the last look go in now, so they keep pace with the furnace whether or not the scheduler runs.
+        try {
+            if (app(ChargeSchedule::class)->addDue(Heat::findOrFail($this->heatId), app(ChargeRecorder::class)) > 0) {
+                $this->dispatch('charges-changed');
+            }
+        } catch (\Throwable $e) {
+            report($e);   // a material short of stock leaves its charge due for someone to confirm
+        }
         $heat = Heat::with(['furnace', 'chargeBatch.items', 'materialConsumptions.material'])->findOrFail($this->heatId);
         $open = ! in_array($heat->status, ['CLOSED', 'CANCELLED'], true);
         $run = $heat->furnaceRun();

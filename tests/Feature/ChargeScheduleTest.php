@@ -10,6 +10,7 @@ use App\Models\Material;
 use App\Models\MaterialLot;
 use App\Models\User;
 use App\Services\Production\ChargeSchedule;
+use App\Support\PouringRules;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -17,9 +18,13 @@ class ChargeScheduleTest extends TestCase
 {
     use RefreshDatabase;
 
-    /** A cupola at 360 kg/h on a recipe of 180 kg of metal per charge: one charge every 30 minutes. */
+    /**
+     * A cupola at 360 kg/h on a recipe of 180 kg of metal per charge: one charge every 30 minutes. Charges are confirmed by hand
+     * unless a test turns automatic charging back on, since the heat's board would otherwise record them as soon as it is opened.
+     */
     private function cupola(?int $rate = 360): array
     {
+        PouringRules::set('auto_charge', 'MANUAL');
         $iron = Material::create(['code' => 'PIG', 'name' => 'Pig iron', 'material_type' => 'PIG_IRON', 'base_uom' => 'kg', 'status' => 'ACTIVE']);
         $coke = Material::create(['code' => 'COKE', 'name' => 'Coke', 'material_type' => 'COKE', 'base_uom' => 'kg', 'status' => 'ACTIVE']);
         foreach ([$iron, $coke] as $m) {
@@ -217,6 +222,7 @@ class ChargeScheduleTest extends TestCase
         [$heat, $iron] = $this->cupola();
         $heat->update(['actual_start_at' => now()->subHours(2), 'blast_on_at' => now()->subHours(2)]);   // 08:00 light-up and blast; a charge every 30 minutes
         $this->charged($heat, $iron, 1, 100, 180);   // charge 1 went in by hand at 08:20
+        PouringRules::set('auto_charge', 'AUTO');
 
         $this->artisan('heats:add-due-charges')->assertSuccessful();
 
@@ -242,7 +248,6 @@ class ChargeScheduleTest extends TestCase
         $heat->update(['actual_start_at' => now()->subHours(2), 'blast_on_at' => now()->subHours(2)]);
         $count = fn () => HeatMaterialConsumption::where('heat_id', $heat->id)->count();
 
-        \App\Support\PouringRules::set('auto_charge', 'MANUAL');
         $this->artisan('heats:add-due-charges')->assertSuccessful();
         $this->assertSame(0, $count(), 'Switched to manual, nothing is added.');
 
@@ -255,6 +260,22 @@ class ChargeScheduleTest extends TestCase
         }
     }
 
+    public function test_with_automatic_charging_the_heat_board_records_the_charges_due_without_the_scheduler(): void
+    {
+        $this->travelTo(now()->setTime(10, 0));
+        [$heat, $iron] = $this->cupola();
+        $heat->update(['actual_start_at' => now()->subHours(2), 'blast_on_at' => now()->subHours(2)]);
+        $this->charged($heat, $iron, 1, 100, 180);
+        PouringRules::set('auto_charge', 'AUTO');
+
+        \Livewire\Livewire::test('heat-status-board', ['heatId' => $heat->id])->assertDispatched('charges-changed');
+
+        $this->assertSame([0, 1, 2, 3, 4], HeatMaterialConsumption::where('heat_id', $heat->id)->pluck('charge_round')->unique()->sort()->values()->all());
+        $this->travelTo(now()->addMinutes(31));   // 10:31: charge 5 came due at 10:20
+        \Livewire\Livewire::test('heat-status-board', ['heatId' => $heat->id]);
+        $this->assertSame('10:20', HeatMaterialConsumption::where('heat_id', $heat->id)->where('charge_round', 5)->first()->consumed_at->format('H:i'));
+    }
+
     public function test_the_page_offers_to_add_back_charges_and_shows_the_metal_charged_from_them(): void
     {
         $this->travelTo(now()->setTime(10, 0));
@@ -263,7 +284,7 @@ class ChargeScheduleTest extends TestCase
         $this->charged($heat, $iron, 1, 100, 180);
 
         $this->get(route('heats.show', $heat))->assertOk()->assertSee('Add back charges')->assertSee('Add back 4 charges')->assertSee('Metal charged')->assertSee('20%')->assertSee('of 900')
-            ->assertSee('a charge of 180 kg every 30 min')->assertSee('Charges are also added automatically every minute');
+            ->assertSee('a charge of 180 kg every 30 min')->assertDontSee('Charges are also added automatically every minute');
     }
 
     public function test_the_weight_of_a_charge_entry_can_be_corrected_and_its_cost_follows_at_the_same_price(): void
@@ -296,6 +317,7 @@ class ChargeScheduleTest extends TestCase
         $this->delete(route('heats.charge-entries.destroy', [$heat, $entries[1]]))->assertSessionHas('success', fn ($m) => str_contains($m, 'Charge 1 will not be added automatically'));
         $this->assertSame([1], $heat->fresh()->skippedChargeRounds());
 
+        PouringRules::set('auto_charge', 'AUTO');
         $this->artisan('heats:add-due-charges')->assertSuccessful();
         $this->assertSame([0, 2], HeatMaterialConsumption::where('heat_id', $heat->id)->pluck('charge_round')->unique()->sort()->values()->all(), 'The skipped charge stays out; the others come in.');
         $this->get(route('heats.show', $heat))->assertSeeLivewire('heat-skipped-charges');

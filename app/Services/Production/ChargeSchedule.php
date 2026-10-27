@@ -7,6 +7,7 @@ use App\Support\PouringRules;
 use Carbon\CarbonInterface;
 use App\Models\ChargeBatch;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -122,6 +123,26 @@ class ChargeSchedule
         }
 
         return $count;
+    }
+
+    /**
+     * Under the automatic charge rule, records the charges that have come due on a running heat with a recipe, each at its time.
+     * Called every minute by the scheduler and whenever the heat's board refreshes, so charges keep going in at the furnace's
+     * speed even where the scheduler is not running. The heat row is locked, so the two never record the same charge. Returns
+     * how many were recorded; a heat on hold, dropped, not started or without a recipe gets none.
+     */
+    public function addDue(Heat $heat, ChargeRecorder $recorder): int
+    {
+        if (! PouringRules::autoCharges() || ! $heat->actual_start_at || ! $heat->charge_batch_id || $heat->dropped_at || $heat->hold_reason
+            || in_array($heat->status, ['CLOSED', 'CANCELLED'], true)) {
+            return 0;
+        }
+
+        return DB::transaction(function () use ($heat, $recorder) {
+            $heat = Heat::whereKey($heat->id)->lockForUpdate()->firstOrFail()->load(['furnace', 'chargeBatch.items', 'materialConsumptions']);
+
+            return $this->backfill($heat, 'Auto (furnace speed)', $recorder);
+        });
     }
 
     /**
