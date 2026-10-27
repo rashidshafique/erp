@@ -2,6 +2,7 @@
 
 namespace App\Domains\Finance\Services;
 
+use App\Domains\Finance\Events\DocumentPosted;
 use App\Domains\Finance\Models\Invoice;
 use App\Domains\Finance\Models\Receipt;
 use App\Domains\Finance\Models\SupplierBill;
@@ -13,7 +14,7 @@ use Illuminate\Support\Facades\DB;
 /**
  * Money a customer paid before its invoice, or we paid a supplier before its bill, put on that invoice or bill. Money that names
  * an order goes on that order's documents first and never on another order's; money that names none can go on any.
- * Nothing is posted: both the money and the document already sit in receivables or payables.
+ * Each one counts: the ledger moves the money out of customer advances into receivables, or out of advances to suppliers into payables.
  */
 class Advances
 {
@@ -53,7 +54,7 @@ class Advances
                 if ($part <= 0) {
                     break;
                 }
-                $receipt->allocations()->create(['invoice_id' => $invoice->id, 'amount' => $part]);
+                event(new DocumentPosted($receipt->allocations()->create(['invoice_id' => $invoice->id, 'amount' => $part])));
                 $applied += $part;
             }
 
@@ -75,7 +76,7 @@ class Advances
                 if ($part <= 0) {
                     break;
                 }
-                $payment->allocations()->create(['supplier_bill_id' => $bill->id, 'amount' => $part]);
+                event(new DocumentPosted($payment->allocations()->create(['supplier_bill_id' => $bill->id, 'amount' => $part])));
                 $applied += $part;
             }
 

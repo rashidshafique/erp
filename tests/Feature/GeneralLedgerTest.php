@@ -109,7 +109,7 @@ class GeneralLedgerTest extends TestCase
         $this->assertSame(['1161' => 60.0, '2110' => -860.0, '5310' => 600.0, '6600' => 200.0], $this->balances());
     }
 
-    public function test_receipts_and_payments_move_cash_or_bank_by_method_and_a_receipt_credits_its_whole_amount(): void
+    public function test_receipts_and_payments_move_cash_or_bank_by_method_and_money_not_on_a_document_is_an_advance(): void
     {
         $invoice = app(InvoiceService::class)->issue($this->draftInvoice(300));
         $supplier = $this->supplier();
@@ -119,7 +119,8 @@ class GeneralLedgerTest extends TestCase
         $this->post(route('supplier-payments.store'), ['supplier_id' => $supplier->id, 'paid_on' => '2026-10-06', 'amount' => 150, 'method' => 'Cash'])->assertSessionHasNoErrors();
         $this->post(route('supplier-payments.store'), ['supplier_id' => $supplier->id, 'paid_on' => '2026-10-06', 'amount' => 50, 'method' => 'CHEQUE'])->assertSessionHasNoErrors();
 
-        $this->assertSame(['1110' => -200.0, '1121' => 1000.0, '1130' => -400.0, '2110' => 200.0, '4100' => -600.0], $this->balances());
+        // 400 of the receipt is on no invoice and both payments on no bill: they are advances, never netted inside receivables or payables
+        $this->assertSame(['1110' => -200.0, '1121' => 1000.0, '1140' => 200.0, '2130' => -400.0, '4100' => -600.0], $this->balances());
     }
 
     public function test_a_manual_journal_must_balance_post_to_an_account_with_no_sub_accounts_and_fall_after_the_closed_date(): void

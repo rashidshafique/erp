@@ -31,6 +31,6 @@
 </div><div class="panel-body"><button class="btn btn-primary">Save</button></div></div>
 </form>
 <div class="panel"><div class="panel-header"><h2>Documents from before the ledger</h2></div><div class="panel-body"><form method="POST" action="{{ route('ledger.settings.post-missing') }}">@csrf
-<p class="muted small">Posts every issued invoice and credit note, posted bill, receipt and supplier payment that has no journal yet, each on its own date. Safe to run again.</p>
+<p class="muted small">Posts every issued invoice and credit note, posted bill, receipt and supplier payment that has no journal yet, each on its own date. Then moves money on account posted before advances were kept apart into customer advances or advances to suppliers, dated today. Safe to run again.</p>
 <button class="btn" onclick="return confirm('Post every document not yet in the ledger?')">Post what is missing</button></form></div></div>
 @endsection

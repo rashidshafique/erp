@@ -48,13 +48,16 @@ class SupplierPaymentService
         if (round(array_sum($allocations), 2) > $payment->unallocated()) {
             throw new InvalidArgumentException('That is more than what is left of this payment.');
         }
-        DB::transaction(fn () => $this->allocate($payment, $allocations));
+        DB::transaction(fn () => $this->allocate($payment, $allocations, true));
 
         return $payment->fresh('allocations');
     }
 
-    /** @param array<string, float> $allocations */
-    private function allocate(SupplierPayment $payment, array $allocations): void
+    /**
+     * @param  array<string, float>  $allocations
+     * @param  bool  $later  put on after the payment was recorded: each counts, moving it out of advances to suppliers
+     */
+    private function allocate(SupplierPayment $payment, array $allocations, bool $later = false): void
     {
         foreach ($allocations as $billId => $part) {
             $bill = SupplierBill::whereKey($billId)->lockForUpdate()->firstOrFail();
@@ -64,7 +67,10 @@ class SupplierPaymentService
             if ($part > $bill->balance()) {
                 throw new InvalidArgumentException("Bill {$bill->bill_number} has only {$bill->balance()} left to pay.");
             }
-            $payment->allocations()->create(['supplier_bill_id' => $bill->id, 'amount' => $part]);
+            $allocation = $payment->allocations()->create(['supplier_bill_id' => $bill->id, 'amount' => $part]);
+            if ($later) {
+                event(new DocumentPosted($allocation));
+            }
         }
     }
 }

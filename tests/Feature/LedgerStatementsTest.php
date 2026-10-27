@@ -98,7 +98,8 @@ class LedgerStatementsTest extends TestCase
     {
         $this->trade('2026-09-10');
         $customer = Customer::sole();
-        $this->post(route('receipts.store'), ['customer_id' => $customer->id, 'received_on' => '2026-10-05', 'amount' => 300, 'method' => 'Bank transfer'])->assertSessionHasNoErrors();
+        $this->post(route('receipts.store'), ['customer_id' => $customer->id, 'received_on' => '2026-10-05', 'amount' => 300, 'method' => 'Bank transfer',
+            'alloc' => [\App\Domains\Finance\Models\Invoice::sole()->id => 300]])->assertSessionHasNoErrors();
 
         $gl = collect(app(Statements::class)->generalLedger('2026-10-01', '2026-10-31'))->keyBy(fn ($r) => $r['account']->code);
 

@@ -50,7 +50,7 @@ class ReceiptService
         });
     }
 
-    /** Puts what is left of a receipt on more invoices of the same customer. */
+    /** Puts what is left of a receipt on more invoices of the same customer; each counts, moving it out of customer advances. */
     public function allocateRest(Receipt $receipt, array $allocations): Receipt
     {
         $allocations = array_filter(array_map(fn ($a) => round((float) $a, 2), $allocations), fn ($a) => $a > 0);
@@ -63,7 +63,7 @@ class ReceiptService
                 if ($invoice->customer_id !== $receipt->customer_id || $invoice->status !== 'ISSUED' || $invoice->isCreditNote() || $part > $invoice->balance()) {
                     throw new InvalidArgumentException("Invoice {$invoice->invoice_number} cannot take that payment.");
                 }
-                $receipt->allocations()->create(['invoice_id' => $invoice->id, 'amount' => $part]);
+                event(new DocumentPosted($receipt->allocations()->create(['invoice_id' => $invoice->id, 'amount' => $part])));
             }
         });
 

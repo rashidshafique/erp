@@ -4,8 +4,10 @@ namespace App\Domains\Ledger\Services;
 
 use App\Domains\Finance\Models\Invoice;
 use App\Domains\Finance\Models\Receipt;
+use App\Domains\Finance\Models\ReceiptAllocation;
 use App\Domains\Finance\Models\SupplierBill;
 use App\Domains\Finance\Models\SupplierPayment;
+use App\Domains\Finance\Models\SupplierPaymentAllocation;
 use App\Domains\Finance\Models\WithholdingCertificate;
 use App\Domains\Ledger\Models\Journal;
 use Illuminate\Database\Eloquent\Model;
@@ -16,8 +18,11 @@ use InvalidArgumentException;
  * - invoice: debit receivables with the total, credit sales with each line and the tax owed to each authority (a credit note the other way);
  * - supplier bill: debit each line's account and the tax on it, credit payables with the total, then move any tax we withhold from
  *   payables to what we owe the authority (a supplier credit note the other way);
- * - receipt: debit cash or bank, credit receivables with the whole amount, even the part left on account;
- * - supplier payment: debit payables, credit cash or bank;
+ * - receipt: debit cash or bank, credit receivables with the part put on invoices and customer advances with the rest;
+ * - supplier payment: credit cash or bank, debit payables with the part put on bills and advances to suppliers with the rest;
+ * - money on account put on an invoice or bill later: customer advances to receivables, or payables to advances to suppliers.
+ * Advances are kept apart from receivables and payables because IAS 1 does not allow netting a liability against an asset: money
+ * a customer paid ahead is owed back to them in goods or cash, not a smaller debt (and the same the other way for suppliers).
  * - withholding certificate: debit tax withheld by customers, credit receivables.
  * Tax a customer withholds is not posted with the invoice: receivables keep the full total until the customer's certificate settles it.
  */
@@ -34,6 +39,8 @@ class PostingRules
             $document instanceof Receipt => 'receipt',
             $document instanceof SupplierPayment => 'supplier_payment',
             $document instanceof WithholdingCertificate => 'withholding_certificate',
+            $document instanceof ReceiptAllocation => 'receipt_allocation',
+            $document instanceof SupplierPaymentAllocation => 'supplier_payment_allocation',
             default => throw new InvalidArgumentException('The ledger does not know how to post a '.class_basename($document).'.'),
         }, 'id' => $document->getKey()];
     }
@@ -46,6 +53,8 @@ class PostingRules
             $document instanceof Receipt => $this->receipt($document),
             $document instanceof SupplierPayment => $this->payment($document),
             $document instanceof WithholdingCertificate => $this->certificate($document),
+            $document instanceof ReceiptAllocation => $this->receiptAllocation($document),
+            $document instanceof SupplierPaymentAllocation => $this->paymentAllocation($document),
             default => throw new InvalidArgumentException('The ledger does not know how to post a '.class_basename($document).'.'),
         };
 
@@ -111,10 +120,13 @@ class PostingRules
     private function receipt(Receipt $receipt): array
     {
         $receipt->loadMissing('customer');
+        $party = ['party_type' => 'customer', 'party_id' => $receipt->customer_id];
+        $rest = $receipt->unallocated();
 
         return [$receipt->received_on->toDateString(), [
             ['debit' => $receipt->amount, 'account_id' => LedgerSettings::methodAccount($receipt->method)->id],
-            ['credit' => $receipt->amount, 'account_id' => LedgerSettings::account('receivables')->id, 'party_type' => 'customer', 'party_id' => $receipt->customer_id],
+            ['credit' => round($receipt->amount - $rest, 2), 'account_id' => LedgerSettings::account('receivables')->id] + $party,
+            ['credit' => $rest, 'account_id' => LedgerSettings::account('customer_advances')->id] + $party,
         ], 'Receipt '.$receipt->receipt_number.' · '.$receipt->customer?->name.($receipt->reference ? ' '.$receipt->reference : '')];
     }
 
@@ -122,11 +134,38 @@ class PostingRules
     private function payment(SupplierPayment $payment): array
     {
         $payment->loadMissing('supplier');
+        $party = ['party_type' => 'supplier', 'party_id' => $payment->supplier_id];
+        $rest = $payment->unallocated();
 
         return [$payment->paid_on->toDateString(), [
-            ['debit' => $payment->amount, 'account_id' => LedgerSettings::account('payables')->id, 'party_type' => 'supplier', 'party_id' => $payment->supplier_id],
+            ['debit' => round($payment->amount - $rest, 2), 'account_id' => LedgerSettings::account('payables')->id] + $party,
+            ['debit' => $rest, 'account_id' => LedgerSettings::account('supplier_advances')->id] + $party,
             ['credit' => $payment->amount, 'account_id' => LedgerSettings::methodAccount($payment->method)->id],
         ], 'Payment '.$payment->payment_number.' · '.$payment->supplier?->name.($payment->reference ? ' '.$payment->reference : '')];
+    }
+
+    /** @return array{0: string, 1: list<array<string, mixed>>, 2: string} money on account put on an invoice, the day it is put on */
+    private function receiptAllocation(ReceiptAllocation $allocation): array
+    {
+        $allocation->loadMissing(['receipt.customer', 'invoice']);
+        $party = ['party_type' => 'customer', 'party_id' => $allocation->receipt->customer_id];
+
+        return [$allocation->created_at->toDateString(), [
+            ['debit' => $allocation->amount, 'account_id' => LedgerSettings::account('customer_advances')->id] + $party,
+            ['credit' => $allocation->amount, 'account_id' => LedgerSettings::account('receivables')->id] + $party,
+        ], 'Receipt '.$allocation->receipt->receipt_number.' put on invoice '.$allocation->invoice?->invoice_number.' · '.$allocation->receipt->customer?->name];
+    }
+
+    /** @return array{0: string, 1: list<array<string, mixed>>, 2: string} a supplier advance put on a bill, the day it is put on */
+    private function paymentAllocation(SupplierPaymentAllocation $allocation): array
+    {
+        $allocation->loadMissing(['payment.supplier', 'bill']);
+        $party = ['party_type' => 'supplier', 'party_id' => $allocation->payment->supplier_id];
+
+        return [$allocation->created_at->toDateString(), [
+            ['debit' => $allocation->amount, 'account_id' => LedgerSettings::account('payables')->id] + $party,
+            ['credit' => $allocation->amount, 'account_id' => LedgerSettings::account('supplier_advances')->id] + $party,
+        ], 'Payment '.$allocation->payment->payment_number.' put on bill '.$allocation->bill?->bill_number.' · '.$allocation->payment->supplier?->name];
     }
 
     /** @return array{0: string, 1: list<array<string, mixed>>, 2: string} */
@@ -142,6 +181,7 @@ class PostingRules
 
     /**
      * Posts every counted document that has no journal yet, oldest first. Voided documents are skipped: they would only post and reverse.
+     * Then moves money on account posted before advances were kept apart into the advance accounts (counted with the posted).
      *
      * @return array{posted: int, skipped: list<string>}
      */
@@ -166,6 +206,12 @@ class PostingRules
             }
         }
 
-        return ['posted' => $posted, 'skipped' => $skipped];
+        try {
+            $moved = app(AdvanceReclass::class)->run();
+        } catch (InvalidArgumentException $e) {
+            [$moved, $skipped[]] = [0, 'Advances: '.$e->getMessage()];
+        }
+
+        return ['posted' => $posted + $moved, 'skipped' => $skipped];
     }
 }

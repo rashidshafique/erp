@@ -21,6 +21,8 @@ class LedgerSettings
         'output_tax' => ['Tax on invoices', '2140'],
         'tax_withheld' => ['Tax customers withheld (settled by their certificates)', '1163'],
         'withheld_from_suppliers' => ['Tax we withheld from suppliers (owed to the authority)', '2150'],
+        'customer_advances' => ['Money from customers not yet on an invoice (advances)', '2130'],
+        'supplier_advances' => ['Money paid to suppliers not yet on a bill (advances)', '1140'],
         'bank' => ['Money in and out (except cash)', '1121'],
         'cash' => ['Cash', '1110'],
         'opening_equity' => ['Opening balances', '3900'],
