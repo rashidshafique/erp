@@ -307,6 +307,7 @@ Route::prefix('thermal')->name('thermal.')->controller(ThermalTestController::cl
     Route::get('/sample-curve.csv', 'sample')->name('sample');
     Route::post('/calibrate', 'calibrate')->name('calibrate');
     Route::get('/{test}', 'show')->name('show');
+    Route::put('/{test}', 'update')->name('update');
     Route::post('/{test}/void', 'void')->name('void');
 });
 

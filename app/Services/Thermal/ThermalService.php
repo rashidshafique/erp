@@ -152,8 +152,9 @@ class ThermalService
      * carbon, silicon) plus sample details. A curve is optional: when given it is analysed, and any reading keyed in
      * (as shown by the analyser) takes precedence over the value detected from the curve.
      * A tellurium (white) cup gives TL, solidus and peak only; its eutectic values are not used.
+     * Given $existing, that cup is worked out again and updated in place (keeping who first entered it) instead of a new one made.
      */
-    public function recordCup(Heat $heat, string $cup, array $v, ?string $curveText, ?string $sampleGroupId = null): ThermalAnalysisTest
+    public function recordCup(Heat $heat, string $cup, array $v, ?string $curveText, ?string $sampleGroupId = null, ?ThermalAnalysisTest $existing = null): ThermalAnalysisTest
     {
         $num = fn ($k) => isset($v[$k]) && $v[$k] !== '' && $v[$k] !== null ? round((float) $v[$k], 1) : null;
         $white = $cup === 'TELLURIUM';
@@ -176,6 +177,9 @@ class ThermalService
         $keyed = [];
         foreach (['tl_c', 'te_min_c', 'te_max_c', 'recalescence_c', 'solidus_c', 'peak_temp_c'] as $k) {
             $keyed_v = ($white && in_array($k, ['te_min_c', 'te_max_c', 'recalescence_c'], true)) ? null : $num($k);
+            if ($keyed_v !== null && $det[$k] !== null && abs($keyed_v - (float) $det[$k]) < 0.05) {
+                $keyed_v = null;   // the curve's own reading, as an edit shows it, is not a keyed value
+            }
             $m[$k] = $keyed_v ?? $det[$k];
             if ($keyed_v !== null) {
                 $keyed[$k] = true;
@@ -240,7 +244,7 @@ class ThermalService
             $findings[] = 'Values were keyed in manually; no cooling curve is stored, so the picked points could not be checked.';
         }
 
-        return ThermalAnalysisTest::create([
+        $attributes = [
             'heat_id' => $heat->id,
             'iron_grade_id' => $heat->iron_grade_id,
             'gauge_id' => $v['gauge_id'] ?? null,
@@ -263,7 +267,14 @@ class ThermalService
             'result' => $judged['result'], 'findings' => array_merge($findings, $judged['findings']),
             'inoculant_added_pct' => $v['inoculant_added_pct'] ?? null,
             'notes' => $v['notes'] ?? null,
-        ]);
+        ];
+        if ($existing) {
+            $existing->update(\Illuminate\Support\Arr::except($attributes, ['entered_by_name']));
+
+            return $existing;
+        }
+
+        return ThermalAnalysisTest::create($attributes);
     }
 
     /** True when this grey cup comes with a white cup whose window sets a CE limit: CE is then judged on the white cup. */

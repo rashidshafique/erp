@@ -33,6 +33,7 @@
         + ['sample_stage' => $r->sample_stage, 'test_method' => $r->test_method, 'sample_reference' => $r->sample_reference, 'tested_by' => $r->tested_by,
             'gauge_id' => $r->gauge_id, 'instrument_reference' => $r->instrument_reference, 'tested_at' => $when($r->tested_at), 'notes' => $r->notes];
 
+    $canEditThermal = ! in_array($heat->status, ['CLOSED', 'CANCELLED'], true) && \App\Http\Middleware\EnforceAccess::allows(auth()->user(), 'thermal.update');
     $thermalSamples = $heat->thermalTests()->with('gauge')->get()->groupBy(fn ($t) => $t->sample_group_id ?? $t->id);
     $readings = $heat->chemistryReadings()->get();
 @endphp
@@ -47,13 +48,36 @@
     .sample-view .sv-result { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline; margin-bottom: 12px; }
     .sample-view .sv-result ul { margin: 2px 0 0; padding-left: 18px; flex-basis: 100%; }
     .sample-view .sv-device { margin: 0 12px 0 auto; font-size: 13px; color: var(--muted); }
+    .sample-view .qd-foot { display: flex; gap: 8px; align-items: center; }
+    .sample-view .sv-view-actions, .sample-view .sv-edit-actions { margin-left: auto; display: flex; gap: 8px; }
+    .sample-view .sv-edit-actions, .sample-view.is-editing .sv-view-actions { display: none; }
+    .sample-view.is-editing .sv-edit-actions { display: flex; }
+    .sample-view.is-editing .now-link { display: inline; }
+    .sample-view.is-editing .curve-bar { display: block; }
+    .sample-view [data-cup-toggle] { pointer-events: none; }
 </style>
+<script>
+// Edit unlocks a sample's fields where they stand; Cancel puts back what was saved and locks them again.
+document.addEventListener('click', function (e) {
+    var edit = e.target.closest('[data-sv-edit]'), cancel = e.target.closest('[data-sv-cancel]');
+    if (!edit && !cancel) return;
+    var dlg = e.target.closest('dialog'), form = dlg.querySelector('[data-sv-form]'), fields = dlg.querySelector('[data-sv-fields]');
+    if (cancel) { form.reset(); dlg.querySelectorAll('.tf-root').forEach(function (r) { r.dispatchEvent(new Event('input', { bubbles: true })); }); }
+    fields.disabled = !!cancel;
+    dlg.classList.toggle('is-editing', !!edit);
+    if (edit) { var box = fields.querySelector('.cup-body:not([hidden]) input[type=number]'); if (box) box.focus(); }
+});
+</script>
 @endPushOnce
 
 @foreach ($thermalSamples as $group => $cups)
-    @php $id = 'sample-view-'.$group; $ip = $id.'-'; $gauge = $cups->first()->gauge; @endphp
+    @php
+        $id = 'sample-view-'.$group; $ip = $id.'-'; $first = $cups->first(); $gauge = $first->gauge;
+        $editable = $canEditThermal && $cups->every(fn ($c) => $c->voided_at === null);
+        $mine = $editable && old('_quick') === $id;   // a save that failed reopens this dialog in edit with what was typed
+    @endphp
     @push('dialogs')
-    <dialog id="{{ $id }}" class="qd qd-wide sample-view" aria-labelledby="{{ $id }}-title">
+    <dialog id="{{ $id }}" class="qd qd-wide sample-view @if ($mine) is-editing @endif" aria-labelledby="{{ $id }}-title" @if ($mine && $errors->any()) data-reopen="{{ json_encode($errors->getMessages()) }}" @endif>
         <div class="qd-head"><h2 id="{{ $id }}-title" class="qd-heat-title">
             <span class="qd-heat"><x-heat-light :heat="$heat" /> Heat <strong>{{ $heat->heat_number }}</strong></span>
             <span class="qd-heat-meta">{{ $heatInfo }}</span>
@@ -62,6 +86,7 @@
             <button type="button" class="qd-x" data-close aria-label="Close">&times;</button></div>
         <div class="qd-tabs" role="tablist"><button type="button" role="tab" aria-selected="true">Thermal test</button></div>
         <div class="qd-body">
+            <div class="alert alert-error qd-errors" role="alert" @unless ($mine && $errors->any()) hidden @endunless>@if ($mine)@foreach ($errors->all() as $e)<div>{{ $e }}</div>@endforeach @endif</div>
             @foreach ($cups->sortBy(fn ($c) => $c->cup_type === 'TELLURIUM' ? 0 : 1) as $cup)
                 <div class="sv-result">
                     <strong>{{ $cup->cup_type === 'TELLURIUM' ? 'White cup' : 'Grey cup' }}</strong>
@@ -70,10 +95,19 @@
                     @if ($cup->findings)<ul class="small">@foreach ($cup->findings as $finding)<li>{{ $finding }}</li>@endforeach</ul>@endif
                 </div>
             @endforeach
-            <fieldset disabled>
-                @include('thermal._fields', ['ip' => $ip, 'mine' => false, 'fixedHeat' => $heat, 'heats' => collect(), 'selected' => null, 'gauges' => collect(), 'inDialog' => true, 'values' => $thermalValues($cups)])
-            </fieldset>
-            <div class="qd-foot"><a class="btn" href="{{ route('thermal.show', $cups->first()) }}">Cooling curves and full test</a><button type="button" class="btn btn-primary" data-close>Close</button></div>
+            <form method="POST" action="{{ route('thermal.update', $first) }}" enctype="multipart/form-data" data-sv-form>@csrf @method('PUT')
+                <input type="hidden" name="_quick" value="{{ $id }}"><input type="hidden" name="gauge_id" value="{{ $first->gauge_id }}">
+                {{-- The cups of a saved sample are fixed; an edit changes their readings, not which cups were run. --}}
+                <input type="hidden" name="show_white" value="{{ $cups->contains('cup_type', 'TELLURIUM') ? 1 : 0 }}"><input type="hidden" name="show_grey" value="{{ $cups->contains('cup_type', 'STABLE') ? 1 : 0 }}">
+                <fieldset @unless ($mine) disabled @endunless data-sv-fields>
+                    @include('thermal._fields', ['ip' => $ip, 'mine' => $mine, 'fixedHeat' => $heat, 'heats' => collect(), 'selected' => null, 'gauges' => collect(), 'inDialog' => true, 'values' => $mine ? null : $thermalValues($cups)])
+                </fieldset>
+                <div class="qd-foot">
+                    <a class="btn" href="{{ route('thermal.show', $first) }}">Cooling curves and full test</a>
+                    <span class="sv-view-actions">@if ($editable)<button type="button" class="btn" data-sv-edit>Edit</button>@endif<button type="button" class="btn btn-primary" data-close>Close</button></span>
+                    <span class="sv-edit-actions"><button type="button" class="btn" data-sv-cancel>Cancel</button><button class="btn btn-primary" type="submit">Analyse &amp; save changes</button></span>
+                </div>
+            </form>
         </div>
     </dialog>
     @endpush

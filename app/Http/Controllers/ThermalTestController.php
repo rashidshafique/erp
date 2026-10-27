@@ -55,41 +55,7 @@ class ThermalTestController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $reading = fn (string $max = '1400') => ['nullable', 'numeric', 'between:900,'.$max];
-        $rules = [
-            'heat_id' => ['required', 'uuid', 'exists:heats,id'],
-            'gauge_id' => ['nullable', 'uuid', Rule::exists('gauges', 'id')],
-            'sample_reference' => ['nullable', 'string', 'max:60'],
-            'stage' => ['required', 'in:BASE,POST_TREATMENT,PRE_POUR'],
-            'taken_by' => ['nullable', 'string', 'max:100'],
-            'sample_point' => ['nullable', Rule::in(array_keys(ThermalAnalysisTest::SAMPLE_POINTS))],
-            'inoculant_added_pct' => ['nullable', 'numeric', 'between:0,2'],
-            'notes' => ['nullable', 'string', 'max:2000'],
-            // Older single-cup form fields, still accepted
-            'cup_type' => ['nullable', 'in:STABLE,TELLURIUM'],
-            'silicon' => ['nullable', 'numeric', 'decimal:0,4', 'between:0,6'],
-            'curve_text' => ['nullable', 'string', 'max:400000'],
-            'curve_file' => ['nullable', 'file', 'max:2048', 'mimes:csv,txt'],
-        ];
-        foreach (['', 'white.', 'grey.'] as $prefix) {
-            foreach (['tl_c', 'te_min_c', 'te_max_c', 'solidus_c'] as $k) {
-                $rules[$prefix.$k] = $reading();
-            }
-            $rules[$prefix.'peak_temp_c'] = $reading('1700');
-            $rules[$prefix.'recalescence_c'] = ['nullable', 'numeric', 'between:0,40'];
-        }
-        foreach (['white.', 'grey.'] as $prefix) {
-            $rules[$prefix.'taken_at'] = ['nullable', 'date', 'before_or_equal:+10 minutes'];
-            $rules[$prefix.'test_started_at'] = ['nullable', 'date', 'before_or_equal:+10 minutes'];
-            $rules[$prefix.'test_finished_at'] = ['nullable', 'date', 'before_or_equal:+10 minutes', 'after_or_equal:'.$prefix.'test_started_at'];
-            $rules[$prefix.'cup_batch'] = ['nullable', 'string', 'max:60'];
-            $rules[$prefix.'carbon'] = ['nullable', 'numeric', 'decimal:0,4', 'between:0,5'];
-            $rules[$prefix.'silicon'] = ['nullable', 'numeric', 'decimal:0,4', 'between:0,6'];
-            $rules[$prefix.'ce'] = ['nullable', 'numeric', 'decimal:0,4', 'between:2,6'];
-            $rules[$prefix.'curve_text'] = ['nullable', 'string', 'max:400000'];
-            $rules[$prefix.'curve_file'] = ['nullable', 'file', 'max:2048', 'mimes:csv,txt'];
-        }
-        $data = $request->validate($rules);
+        $data = $request->validate($this->rules());
         $heat = Heat::with('ironGrade')->findOrFail($data['heat_id']);
         $calibrationWarning = app(CalibrationStatus::class)->check(filled($data['gauge_id'] ?? null) ? Gauge::find($data['gauge_id']) : null, 'gauge_id');
         $shared = array_intersect_key($data, array_flip(['gauge_id', 'sample_reference', 'stage', 'taken_by', 'sample_point', 'inoculant_added_pct', 'notes']))
@@ -146,6 +112,103 @@ class ThermalTestController extends Controller
         $redirect = $request->boolean('_dialog') ? redirect()->back() : redirect()->route('thermal.show', $first);
 
         return $redirect->with('warning', trim($held.' '.$calibrationWarning))->with('success', $n > 1 ? "Both cups saved. White cup: {$this->resultOf($first, 'TELLURIUM')}; grey cup: {$this->resultOf($first, 'STABLE')}." : "Test saved: {$first->result}.");
+    }
+
+    /**
+     * Corrects a saved sample: each of its cups is worked out again from the edited form and updated in place, so its attachments
+     * and history stay. A cup keeps its stored cooling curve unless a new one is given. The form shows the CE and carbon each cup
+     * worked out; sent back unchanged they stay worked out rather than becoming readings from a meter.
+     */
+    public function update(Request $request, ThermalAnalysisTest $test): RedirectResponse
+    {
+        $heat = Heat::with('ironGrade')->findOrFail($test->heat_id);
+        if (in_array($heat->status, ['CLOSED', 'CANCELLED'], true)) {
+            throw ValidationException::withMessages(['curve_text' => 'The tests of a closed or cancelled heat cannot be changed.']);
+        }
+        $voided = $test->voided_at !== null || ($test->sample_group_id
+            && ThermalAnalysisTest::withoutGlobalScope('notVoided')->where('sample_group_id', $test->sample_group_id)->whereNotNull('voided_at')->exists());
+        if ($voided) {
+            throw ValidationException::withMessages(['curve_text' => 'A voided test cannot be changed; record the corrected one instead.']);
+        }
+        $data = $request->validate(['heat_id' => ['nullable']] + $this->rules());
+        $shared = array_intersect_key($data, array_flip(['sample_reference', 'stage', 'taken_by', 'sample_point', 'inoculant_added_pct', 'notes']))
+            + ['gauge_id' => $request->has('gauge_id') ? ($data['gauge_id'] ?? null) : $test->gauge_id];
+        $cups = ($test->sample_group_id ? ThermalAnalysisTest::where('sample_group_id', $test->sample_group_id)->get() : collect([$test]))
+            ->sortBy(fn ($cup) => $cup->cup_type === 'TELLURIUM' ? 0 : 1);   // the white cup first: a grey cup takes its CE from it
+        $unchanged = fn ($sent, $stored) => $sent !== null && $sent !== '' && $stored !== null && abs((float) $sent - (float) $stored) < 0.00005;
+
+        try {
+            DB::transaction(function () use ($request, $data, $shared, $cups, $heat, $unchanged) {
+                foreach ($cups as $cup) {
+                    $key = $cup->cup_type === 'TELLURIUM' ? 'white' : 'grey';
+                    $vals = ($data[$key] ?? []) + $shared;
+                    $text = $request->hasFile("{$key}.curve_file") ? file_get_contents($request->file("{$key}.curve_file")->getRealPath()) : ($vals['curve_text'] ?? '');
+                    if (trim((string) $text) === '' && $cup->curve) {
+                        $text = collect($cup->curve)->map(fn ($point) => $point[0].','.$point[1])->implode("\n");
+                    }
+                    if ($cup->ce_source !== 'METER' && $unchanged($vals['ce'] ?? null, $cup->ce_from_tl)) {
+                        $vals['ce'] = null;
+                    }
+                    if ($cup->carbon_reported_pct === null && $unchanged($vals['carbon'] ?? null, $cup->carbon_from_tl)) {
+                        $vals['carbon'] = null;
+                    }
+                    $this->thermal->recordCup($heat, $cup->cup_type, $vals, $text, $cup->sample_group_id, $cup);
+                }
+            });
+        } catch (InvalidArgumentException $e) {
+            throw ValidationException::withMessages(['curve_text' => $e->getMessage()]);
+        }
+
+        $containment = app(Containment::class);
+        $held = $containment->message($containment->apply($heat));
+        $results = $cups->map(fn ($cup) => ($cup->cup_type === 'TELLURIUM' ? 'white cup ' : 'grey cup ').str_replace('_', ' ', $cup->fresh()->result))->implode(', ');
+
+        return back()->with('warning', $held)->with('success', 'Test updated: '.$results.'.');
+    }
+
+    /**
+     * The fields of a thermal test, from the twin-cup form or the older single-cup one.
+     *
+     * @return array<string, list<mixed>>
+     */
+    private function rules(): array
+    {
+        $reading = fn (string $max = '1400') => ['nullable', 'numeric', 'between:900,'.$max];
+        $rules = [
+            'heat_id' => ['required', 'uuid', 'exists:heats,id'],
+            'gauge_id' => ['nullable', 'uuid', Rule::exists('gauges', 'id')],
+            'sample_reference' => ['nullable', 'string', 'max:60'],
+            'stage' => ['required', 'in:BASE,POST_TREATMENT,PRE_POUR'],
+            'taken_by' => ['nullable', 'string', 'max:100'],
+            'sample_point' => ['nullable', Rule::in(array_keys(ThermalAnalysisTest::SAMPLE_POINTS))],
+            'inoculant_added_pct' => ['nullable', 'numeric', 'between:0,2'],
+            'notes' => ['nullable', 'string', 'max:2000'],
+            // Older single-cup form fields, still accepted
+            'cup_type' => ['nullable', 'in:STABLE,TELLURIUM'],
+            'silicon' => ['nullable', 'numeric', 'decimal:0,4', 'between:0,6'],
+            'curve_text' => ['nullable', 'string', 'max:400000'],
+            'curve_file' => ['nullable', 'file', 'max:2048', 'mimes:csv,txt'],
+        ];
+        foreach (['', 'white.', 'grey.'] as $prefix) {
+            foreach (['tl_c', 'te_min_c', 'te_max_c', 'solidus_c'] as $k) {
+                $rules[$prefix.$k] = $reading();
+            }
+            $rules[$prefix.'peak_temp_c'] = $reading('1700');
+            $rules[$prefix.'recalescence_c'] = ['nullable', 'numeric', 'between:0,40'];
+        }
+        foreach (['white.', 'grey.'] as $prefix) {
+            $rules[$prefix.'taken_at'] = ['nullable', 'date', 'before_or_equal:+10 minutes'];
+            $rules[$prefix.'test_started_at'] = ['nullable', 'date', 'before_or_equal:+10 minutes'];
+            $rules[$prefix.'test_finished_at'] = ['nullable', 'date', 'before_or_equal:+10 minutes', 'after_or_equal:'.$prefix.'test_started_at'];
+            $rules[$prefix.'cup_batch'] = ['nullable', 'string', 'max:60'];
+            $rules[$prefix.'carbon'] = ['nullable', 'numeric', 'decimal:0,4', 'between:0,5'];
+            $rules[$prefix.'silicon'] = ['nullable', 'numeric', 'decimal:0,4', 'between:0,6'];
+            $rules[$prefix.'ce'] = ['nullable', 'numeric', 'decimal:0,4', 'between:2,6'];
+            $rules[$prefix.'curve_text'] = ['nullable', 'string', 'max:400000'];
+            $rules[$prefix.'curve_file'] = ['nullable', 'file', 'max:2048', 'mimes:csv,txt'];
+        }
+
+        return $rules;
     }
 
     private function resultOf(ThermalAnalysisTest $t, string $cup): string

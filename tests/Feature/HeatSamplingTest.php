@@ -116,7 +116,7 @@ class HeatSamplingTest extends TestCase
         $this->assertSame(1, substr_count($html, '<dialog id="sample-view-'.$group.'"'));   // both cups of a sample open one dialog
 
         // The dialogs show the saved values in the entry form's own fields, read-only.
-        $page->assertSeeInOrder(['<dialog id="sample-view-'.$group.'"', 'Eutectic too low.', '<fieldset disabled>', 'value="4.12"', 'value="1180.5"', 'value="1141"', '</dialog>'], false)
+        $page->assertSeeInOrder(['<dialog id="sample-view-'.$group.'"', 'Eutectic too low.', 'data-sv-fields', 'value="4.12"', 'value="1180.5"', 'value="1141"', '</dialog>'], false)
             ->assertSeeInOrder(['<dialog id="sample-view-'.$chemistry->id.'"', 'Chemical analysis', '<fieldset disabled>', 'value="LOW-C"', 'value="2.9"', '</dialog>'], false);
     }
 
