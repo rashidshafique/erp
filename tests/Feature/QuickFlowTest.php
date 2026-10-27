@@ -16,6 +16,7 @@ use App\Models\Pattern;
 use App\Models\Pour;
 use App\Models\Product;
 use App\Models\ProductionOrder;
+use App\Support\PouringRules;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -26,6 +27,7 @@ class QuickFlowTest extends TestCase
     private function shop(): array
     {
         $furnace = Furnace::create(['code' => 'IF1', 'name' => 'Induction 1', 'furnace_type' => 'INDUCTION', 'status' => 'ACTIVE', 'rated_capacity_kg' => 1000, 'nominal_melting_rate_kg_per_hour' => 500]);
+        PouringRules::set('gate_induction', 'ADVISORY');
 
         return [
             'furnace' => $furnace, 'customer' => Customer::create(['code' => 'ACME', 'name' => 'Acme Pumps']),
@@ -141,6 +143,20 @@ class QuickFlowTest extends TestCase
         $this->assertSame(24, QuickFloorEntry::firstOrFail()->pieces(), 'The cavity map gives 2 per mould; a typed count is ignored.');
     }
 
+    public function test_an_enforced_pouring_gate_refuses_a_quick_pour_from_a_heat_without_its_checks(): void
+    {
+        $shop = $this->shop();
+        PouringRules::set('gate_induction', 'ENFORCED');
+        $this->order($shop);
+        $order = ProductionOrder::firstOrFail();
+        $heat = Heat::create(['heat_number' => 'H-1', 'furnace_id' => $shop['furnace']->id, 'process_type' => 'INDUCTION', 'status' => 'PLANNED', 'iron_grade_id' => $shop['grade']->id]);
+
+        $this->post(route('quick.floor.poured'), ['heat_id' => $heat->id, 'rows' => [$this->row($this->pattern($shop), 15, ['production_order_id' => $order->id])]])
+            ->assertSessionHasErrors('heat_id');
+
+        $this->assertSame(0, Pour::count());
+    }
+
     public function test_pouring_records_a_pour_and_warns_about_thermal_tests_without_blocking(): void
     {
         $shop = $this->shop();
@@ -151,7 +167,7 @@ class QuickFlowTest extends TestCase
         $this->post(route('quick.floor.made'), ['rows' => [$this->row($pattern, 20, ['production_order_id' => $order->id])]]);
 
         $this->post(route('quick.floor.poured'), ['heat_id' => $heat->id, 'rows' => [$this->row($pattern, 15, ['production_order_id' => $order->id])]])
-            ->assertSessionHasNoErrors()->assertSessionHas('warning', 'No thermal test has been recorded on H-1.');
+            ->assertSessionHasNoErrors()->assertSessionHas('warning', fn ($w) => str_starts_with($w, 'Poured without a clear check: No chemistry reading'));
 
         $this->assertSame(['COMPLETED', 'ADVISORY'], [Pour::firstOrFail()->status, Pour::firstOrFail()->gate_mode]);
         $row = app(NextHeatPlan::class)->orders()->first();

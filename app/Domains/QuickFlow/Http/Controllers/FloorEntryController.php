@@ -12,6 +12,8 @@ use App\Models\MouldingStation;
 use App\Models\Pattern;
 use App\Models\Pour;
 use App\Models\ProductionOrder;
+use App\Services\QualityGates;
+use App\Support\PouringRules;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -75,25 +77,31 @@ class FloorEntryController extends Controller
             ->with('warning', $this->unlinkedPatternsWarning($rows));
     }
 
-    public function poured(Request $request): RedirectResponse
+    public function poured(Request $request, QualityGates $gates): RedirectResponse
     {
         $heatId = $request->validate([
             'heat_id' => ['required', 'uuid', Rule::exists('heats', 'id')->where(fn ($q) => $q->whereIn('id', $this->pourableHeats()->select('id')))],
         ], ['heat_id.required' => 'Choose the heat the moulds were poured from.'])['heat_id'];
         $rows = $this->validatedRows($request, pouring: true);
-        $heat = Heat::with(['thermalTests', 'ironGrade'])->findOrFail($heatId);
-        $advice = $this->thermalAdvice($heat);
+        $heat = Heat::with(['thermalTests', 'ironGrade', 'furnace'])->findOrFail($heatId);
+        // The pouring gate as set for the furnace type. Pours are often typed in afterwards, so the test-age limit is not applied.
+        $mode = PouringRules::gateMode($heat->furnace?->furnace_type ?? $heat->process_type);
+        $gate = $mode === 'OFF' ? ['ok' => true, 'reasons' => []] : $gates->pourGate($heat, checkAge: false);
+        if (! $gate['ok'] && $mode === 'ENFORCED') {
+            throw ValidationException::withMessages(['heat_id' => "Moulds cannot be poured from {$heat->heat_number}. ".implode(' ', $gate['reasons'])]);
+        }
+        $advice = $gate['ok'] ? $this->thermalAdvice($heat) : 'Poured without a clear check: '.implode(' ', $gate['reasons']);
 
         // A pour typed in afterwards belongs to the day of its rows (the latest, when they differ), at the time of entry.
         $poured = Carbon::parse(max(array_column($rows, 'entry_date')))->setTimeFrom(now());
 
-        [$moulds, $waiting] = DB::transaction(function () use ($rows, $request, $heatId, $advice, $poured) {
+        [$moulds, $waiting] = DB::transaction(function () use ($rows, $request, $heatId, $advice, $poured, $mode) {
             $prefix = 'P-'.$poured->format('Ymd').'-';
             $last = Pour::where('pour_number', 'like', $prefix.'%')->lockForUpdate()->pluck('pour_number')->map(fn ($n) => (int) substr($n, strlen($prefix)))->max() ?? 0;
             $pour = Pour::create([
                 'pour_number' => $prefix.str_pad((string) ($last + 1), 3, '0', STR_PAD_LEFT), 'heat_id' => $heatId, 'status' => 'COMPLETED',
                 'started_at' => $poured, 'completed_at' => $poured, 'operator_name' => $request->input('entered_by'),
-                'gate_mode' => 'ADVISORY', 'gate_note' => $advice,
+                'gate_mode' => $mode, 'gate_note' => $advice,
             ]);
             foreach ($rows as $row) {
                 $entry = QuickFloorEntry::create(['kind' => QuickFloorEntry::POURED, 'pour_id' => $pour->id, 'heat_id' => $heatId, 'entered_by' => $request->input('entered_by')] + $this->entryFields($row));

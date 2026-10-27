@@ -14,8 +14,12 @@ use Illuminate\Support\Facades\DB;
  */
 class QualityGates
 {
-    /** @return array{ok: bool, reasons: array<int, string>, checks: array<int, array{label: string, ok: bool|null, detail: string}>} */
-    public function pourGate(Heat $heat): array
+    /**
+     * $checkAge false skips the test-age limit, for pours typed in after they happened.
+     *
+     * @return array{ok: bool, reasons: array<int, string>, checks: array<int, array{label: string, ok: bool|null, detail: string}>}
+     */
+    public function pourGate(Heat $heat, bool $checkAge = true): array
     {
         $checks = [];
         $grade = $heat->ironGrade;
@@ -55,7 +59,7 @@ class QualityGates
                 $checks[] = ['label' => 'Thermal analysis', 'material' => true, 'ok' => false, 'detail' => "Latest test {$failed->sample_reference} ({$failed->cup_type} cup) is FAIL: ".implode(' ', $failed->findings ?? [])];
             } elseif ($judged->isEmpty()) {
                 $checks[] = ['label' => 'Thermal analysis', 'material' => true, 'ok' => false, 'detail' => "Latest test {$t->sample_reference} is NOT JUDGED: ".implode(' ', $t->findings ?? [])];
-            } elseif ($t->taken_at->lt(now()->subMinutes($max))) {
+            } elseif ($checkAge && $t->taken_at->lt(now()->subMinutes($max))) {
                 $checks[] = ['label' => 'Thermal analysis', 'material' => true, 'ok' => false, 'detail' => "The passing test is older than {$max} minutes; take a new sample."];
             } else {
                 $checks[] = ['label' => 'Thermal analysis', 'material' => true, 'ok' => true, 'detail' => 'Latest test passed within the time limit.'];
