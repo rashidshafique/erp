@@ -41,6 +41,7 @@ new class extends Component
             'run' => $run,
             'finish' => $run['running'] ? app(HeatEta::class)->for($heat) : null,
             'metal' => $heat->chargedMetalKg(),
+            'rate' => app(HeatEta::class)->rate($heat),
             'planned' => $heat->chargeRounds(),
             'done' => $entries->where('charge_round', '>', 0)->pluck('charge_round')->unique()->count(),
             'bedIn' => $entries->where('charge_round', 0)->isNotEmpty(),
@@ -122,7 +123,7 @@ new class extends Component
     <div class="hs-label">Metal charged</div>
     <div class="hs-value">{{ $metal > 0 ? \App\Support\Formats::number($metal, fmod($metal, 1.0) == 0.0 ? 0 : 1) : '—' }} @if ($metal > 0)<small>kg</small>@endif</div>
     @if ($heat->target_metal_weight_kg > 0)
-        <div class="hs-sub"><b>{{ \App\Support\Formats::number($metal / (float) $heat->target_metal_weight_kg * 100, 0) }}%</b> of the {{ \App\Support\Formats::number((float) $heat->target_metal_weight_kg, 0) }} kg target</div>
+        <div class="hs-sub" @if ($rate) title="Melting rate: {{ ['live' => 'measured on this heat', 'recorded' => 'furnace recorded average', 'rated' => 'furnace rated speed'][$rate['source']] }}" @endif><b>{{ \App\Support\Formats::number($metal / (float) $heat->target_metal_weight_kg * 100, 0) }}%</b> of {{ \App\Support\Formats::number((float) $heat->target_metal_weight_kg, 0) }}@if ($rate) @ <b>{{ \App\Support\Formats::number($rate['rate'], 0) }}</b> kg/hr @else kg @endif</div>
         <div class="hs-bar"><span style="width: {{ min(100, round($metal / (float) $heat->target_metal_weight_kg * 100)) }}%"></span></div>
     @else
         <div class="hs-sub">From the charges recorded</div>

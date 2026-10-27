@@ -262,7 +262,7 @@ class ChargeScheduleTest extends TestCase
         $heat->update(['actual_start_at' => now()->subHours(2), 'blast_on_at' => now()->subHours(2)]);
         $this->charged($heat, $iron, 1, 100, 180);
 
-        $this->get(route('heats.show', $heat))->assertOk()->assertSee('Add back charges')->assertSee('Add back 4 charges')->assertSee('Metal charged')->assertSee('20%')->assertSee('of the 900 kg target')
+        $this->get(route('heats.show', $heat))->assertOk()->assertSee('Add back charges')->assertSee('Add back 4 charges')->assertSee('Metal charged')->assertSee('20%')->assertSee('of 900')
             ->assertSee('a charge of 180 kg every 30 min')->assertSee('Charges are also added automatically every minute');
     }
 
@@ -409,7 +409,7 @@ class ChargeScheduleTest extends TestCase
 
         $board = \Livewire\Livewire::test('heat-status-board', ['heatId' => $heat->id]);
         $board->assertSee('Charges added')->assertSeeInOrder(['Charges added', '2', 'of 5'])->assertSee('Last charge')->assertSeeInOrder(['Last charge', '#2'])
-            ->assertSee('8:50 AM')->assertSeeInOrder(['Metal charged', '360', 'kg'])->assertSee('40%')->assertSee('of the 900 kg target')
+            ->assertSee('8:50 AM')->assertSeeInOrder(['Metal charged', '360', 'kg'])->assertSee('40%')->assertSee('of 900')
             ->assertSee('Running time')->assertSee('Time remaining')->assertSee('540 kg to go');   // 900 kg target less the 360 kg of metal charged
 
         // Charge 3 was due at 09:20, so it is due now; once it is in, the last charge moves on and the board follows.
