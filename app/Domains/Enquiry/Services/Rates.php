@@ -20,6 +20,14 @@ class Rates
         return $out;
     }
 
+    /** @return list<string> rates still on their placeholder, never saved under Settings → Quotation rates */
+    public static function unset(): array
+    {
+        $saved = AppSetting::whereIn('key', array_map(fn ($k) => 'quotation.'.$k, self::keys()))->pluck('key')->all();
+
+        return array_values(array_filter(self::keys(), fn ($k) => ! in_array('quotation.'.$k, $saved, true)));
+    }
+
     public static function keys(): array
     {
         return array_keys(config('quotation.rates'));

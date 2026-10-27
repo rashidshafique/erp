@@ -77,9 +77,10 @@ class EnquiryQuotationTest extends TestCase
     public function test_rates_settings_override_placeholders(): void
     {
         $this->assertSame(160.0, Rates::get()['melt_grey_per_kg']);
+        $this->get(route('settings.quotation'))->assertOk()->assertSee('placeholders')->assertSee('class="rate-placeholder"', false);
         $this->put(route('settings.quotation.update'), collect(Rates::keys())->mapWithKeys(fn ($k) => [$k => $k === 'melt_grey_per_kg' ? 175 : Rates::get()[$k]])->all())->assertSessionHasNoErrors();
         $this->assertSame(175.0, Rates::get()['melt_grey_per_kg']);
-        $this->get(route('settings.quotation'))->assertOk()->assertSee('placeholders');
+        $this->get(route('settings.quotation'))->assertOk()->assertDontSee('placeholders')->assertDontSee('class="rate-placeholder"', false);
     }
 
     public function test_quotation_uses_analysis_weight_yield_cores_and_scrap(): void

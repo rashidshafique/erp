@@ -29,7 +29,7 @@ class QuotationSettingsController extends Controller
 
     public function edit()
     {
-        return view('enquiry::rates', ['rates' => Rates::get(), 'defaults' => config('quotation.rates'), 'labels' => self::LABELS, 'currency' => config('quotation.currency')]);
+        return view('enquiry::rates', ['rates' => Rates::get(), 'unset' => Rates::unset(), 'defaults' => config('quotation.rates'), 'labels' => self::LABELS, 'currency' => config('quotation.currency')]);
     }
 
     public function update(Request $request)
