@@ -45,6 +45,7 @@ class FinanceServiceProvider extends ModuleServiceProvider
                 ['label' => 'Supplier payments', 'route' => 'supplier-payments.index', 'icon' => 'arrow-up-circle', 'active' => ['supplier-payments.*']],
                 ['label' => 'Payables', 'route' => 'payables.index', 'icon' => 'hourglass', 'active' => ['payables.*']],
                 ['label' => 'Tax register', 'route' => 'finance.tax-register', 'icon' => 'percent', 'active' => ['finance.tax-register']],
+                ['label' => 'Tax return', 'route' => 'finance.tax-return', 'icon' => 'scale', 'active' => ['finance.tax-return']],
             ],
         ]];
     }

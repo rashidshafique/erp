@@ -9,7 +9,7 @@
     $sales = $side === 'sales';
 @endphp
 <div class="page-heading"><div><h1>Tax register: {{ $sales ? 'sales (output tax)' : 'purchases (input tax)' }}</h1>
-<p>{{ $d($from) }} to {{ $d($to) }}. {{ $sales ? 'Issued invoices and credit notes' : 'Posted supplier bills and credit notes' }} by their own date; voided ones are left out and credit notes are in brackets.@unless ($sales) Bills carry one typed percent per line, so input tax has no authority yet.@endunless</p></div>
+<p>{{ $d($from) }} to {{ $d($to) }}. {{ $sales ? 'Issued invoices and credit notes' : 'Posted supplier bills and credit notes' }} by their own date; voided ones are left out and credit notes are in brackets.@unless ($sales) Bills keep the percent the supplier charged, named by the tax rules; older bills show it as one unnamed tax.@endunless</p></div>
 <div class="actions"><a class="btn" href="{{ request()->fullUrlWithQuery(['export' => 'csv']) }}">Download CSV</a><button class="btn btn-primary" onclick="window.print()">Print</button></div></div>
 <div class="panel no-print"><div class="panel-body"><form method="GET" class="filters">
     <div class="field"><label for="side">Register</label><select id="side" name="side"><option value="sales" @selected($sales)>Sales: output tax</option><option value="purchases" @selected(! $sales)>Purchases: input tax</option></select></div>
@@ -20,11 +20,11 @@
 </form></div></div>
 <div class="panel"><div class="panel-header"><h2>By authority and tax</h2></div><div class="table-wrap"><table><thead><tr><th>Authority</th><th>Tax</th><th class="num">Rate</th><th></th><th class="num">Documents</th><th class="num">Value excluding tax</th><th class="num">Tax</th></tr></thead><tbody>
 @forelse ($summary as $s)
-<tr><td>{{ $s['authority'] ?? '—' }}</td><td>{{ $s['label'] }}</td><td class="num">{{ $rate($s['rate']) }}</td><td class="small">{{ $s['withheld'] ? 'Withheld by the buyer' : 'Charged' }}</td><td class="num">{{ $s['documents'] }}</td><td class="num">{{ $m($s['base']) }}</td><td class="num">{{ $m($s['amount']) }}</td></tr>
+<tr><td>{{ $s['authority'] ?? '—' }}</td><td>{{ $s['label'] }}</td><td class="num">{{ $rate($s['rate']) }}</td><td class="small">{{ $s['withheld'] ? ($sales ? 'Withheld by the buyer' : 'Withheld by us') : 'Charged' }}</td><td class="num">{{ $s['documents'] }}</td><td class="num">{{ $m($s['base']) }}</td><td class="num">{{ $m($s['amount']) }}</td></tr>
 @empty<tr><td colspan="7" class="muted">Nothing in this period.</td></tr>@endforelse
 </tbody>@if ($summary->isNotEmpty())<tfoot>
 <tr><th colspan="6" class="num">Tax charged</th><th class="num">{{ $m(round($summary->where('withheld', false)->sum('amount'), 2)) }}</th></tr>
-@if ($summary->where('withheld', true)->isNotEmpty())<tr><th colspan="6" class="num">Tax withheld by buyers</th><th class="num">{{ $m(round($summary->where('withheld', true)->sum('amount'), 2)) }}</th></tr>@endif
+@if ($summary->where('withheld', true)->isNotEmpty())<tr><th colspan="6" class="num">{{ $sales ? 'Tax withheld by buyers' : 'Tax we withheld' }}</th><th class="num">{{ $m(round($summary->where('withheld', true)->sum('amount'), 2)) }}</th></tr>@endif
 </tfoot>@endif</table></div></div>
 <div class="panel"><div class="panel-header"><h2>Line by line</h2></div><div class="table-wrap"><table><thead><tr><th>Date</th><th>Document</th><th>{{ $sales ? 'Customer' : 'Supplier' }}</th><th>Registration</th>@if ($sales)<th>Tariff code</th>@endif<th>Tax</th><th class="num">Rate</th><th class="num">Value excluding tax</th><th class="num">Tax</th></tr></thead><tbody>
 @forelse ($rows as $r)

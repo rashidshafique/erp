@@ -8,6 +8,7 @@ use App\Domains\Finance\Http\Controllers\PayablesController;
 use App\Domains\Finance\Http\Controllers\ReceivablesController;
 use App\Domains\Finance\Http\Controllers\SupplierPaymentController;
 use App\Domains\Finance\Http\Controllers\TaxRegisterController;
+use App\Domains\Finance\Http\Controllers\TaxReturnController;
 use App\Domains\Finance\Http\Controllers\WithholdingCertificateController;
 use Illuminate\Support\Facades\Route;
 
@@ -67,6 +68,7 @@ Route::middleware('web')->group(function () {
     Route::get('/receivables', [ReceivablesController::class, 'index'])->name('receivables.index');
     Route::get('/receivables/{customer}', [ReceivablesController::class, 'statement'])->name('receivables.statement');
     Route::get('/tax-register', [TaxRegisterController::class, 'index'])->name('finance.tax-register');
+    Route::get('/tax-return', [TaxReturnController::class, 'index'])->name('finance.tax-return');
     Route::get('/settings/invoicing', [FinanceSettingsController::class, 'edit'])->name('finance.settings');
     Route::put('/settings/invoicing', [FinanceSettingsController::class, 'update'])->name('finance.settings.update');
     Route::post('/settings/invoicing/tax-rates', [FinanceSettingsController::class, 'storeRate'])->name('finance.tax-rates.store');

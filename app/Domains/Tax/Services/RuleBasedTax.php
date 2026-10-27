@@ -162,7 +162,7 @@ class RuleBasedTax implements TaxCalculator
                 default => $byCode->has($c->base) ? $byCode[$c->base]->amount : null,
             };
             if ($base !== null && $base > 0) {
-                $withheld[] = new TaxAmount($c->code, $c->name, round($base, 2), (float) $c->rate, round($base * (float) $c->rate / 100, 2), true, $c->authority?->code);
+                $withheld[] = new TaxAmount($c->code, $c->name, round($base, 2), (float) $c->rate, round($base * (float) $c->rate / 100, 2), true, $c->authority?->code, $c->base);
             }
         }
 
@@ -186,7 +186,7 @@ class RuleBasedTax implements TaxCalculator
         }
         $first = $components->first();
 
-        return [new TaxAmount($first->code, $first->name, $line->net, $typed, $amount, false, $first->authority?->code)];
+        return [new TaxAmount($first->code, $first->name, $line->net, $typed, $amount, false, $first->authority?->code, 'NET')];
     }
 
     /** @return Collection<int, TaxComponent> the taxes every matching rule adds to the line, in force on the document date */
@@ -216,7 +216,7 @@ class RuleBasedTax implements TaxCalculator
                 if ($base === null) {
                     continue;
                 }
-                $amounts[$c->code] = new TaxAmount($c->code, $c->name, round($base, 2), (float) $c->rate, round($base * (float) $c->rate / 100, 2), $c->kind === 'WITHHELD', $c->authority?->code);
+                $amounts[$c->code] = new TaxAmount($c->code, $c->name, round($base, 2), (float) $c->rate, round($base * (float) $c->rate / 100, 2), $c->kind === 'WITHHELD', $c->authority?->code, $c->base);
             }
         }
 

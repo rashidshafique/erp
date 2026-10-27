@@ -17,9 +17,10 @@ class TaxRegister
     public function __construct(private TaxCalculator $tax) {}
 
     /**
-     * One row per document, tax, rate and tariff code. Credit notes are negative.
+     * One row per document, tax, rate and tariff code. Credit notes are negative. A withheld row that is a share of a charged tax
+     * (sales tax kept back by the buyer) has share_of_tax set; withheld income tax does not.
      *
-     * @return Collection<int, array{date: string, number: string, kind: string, party: string, registrations: array<string, string>, url: string, tariff: ?string, code: string, label: string, authority: ?string, rate: float, base: float, amount: float, withheld: bool}>
+     * @return Collection<int, array{date: string, number: string, kind: string, party: string, registrations: array<string, string>, url: string, tariff: ?string, code: string, label: string, authority: ?string, rate: float, base: float, amount: float, withheld: bool, share_of_tax: bool}>
      */
     public function rows(string $side, string $from, string $to): Collection
     {
@@ -46,6 +47,26 @@ class TaxRegister
             ->sortBy([['withheld', 'asc'], ['authority', 'asc'], ['code', 'asc'], ['rate', 'asc']])->values();
     }
 
+    /**
+     * Whether a withheld tax was a share of a charged one. Taxes saved before their basis was kept are judged by their base: one
+     * that is neither the line value nor the value with tax was another tax's amount.
+     *
+     * @param  array<string, mixed>  $tax
+     * @param  list<array<string, mixed>>  $lineTaxes
+     */
+    public static function shareOfTax(array $tax, array $lineTaxes, float $net): bool
+    {
+        if (! ($tax['withheld'] ?? false)) {
+            return false;
+        }
+        if (isset($tax['basis'])) {
+            return ! in_array($tax['basis'], ['NET', 'GROSS'], true);
+        }
+        $charged = array_sum(array_map(fn ($t) => ($t['withheld'] ?? false) ? 0 : (float) $t['amount'], $lineTaxes));
+
+        return abs((float) $tax['base'] - $net) > 0.01 && abs((float) $tax['base'] - ($net + $charged)) > 0.01;
+    }
+
     private function sales(string $from, string $to, callable $regs): Collection
     {
         $invoices = Invoice::with(['lines', 'customer'])->where('status', 'ISSUED')->whereBetween('invoice_date', [$from, $to])->get();
@@ -62,7 +83,7 @@ class TaxRegister
                 foreach ($taxes as $t) {
                     $key = implode('|', [$t['code'], $t['rate'], $line->tariff_code]);
                     $grouped[$key] ??= $head + ['tariff' => $line->tariff_code, 'code' => $t['code'], 'label' => $t['label'], 'authority' => $t['authority'] ?? null,
-                        'rate' => (float) $t['rate'], 'base' => 0.0, 'amount' => 0.0, 'withheld' => (bool) ($t['withheld'] ?? false)];
+                        'rate' => (float) $t['rate'], 'base' => 0.0, 'amount' => 0.0, 'withheld' => (bool) ($t['withheld'] ?? false), 'share_of_tax' => self::shareOfTax($t, $taxes, (float) $line->line_net)];
                     $grouped[$key]['base'] = round($grouped[$key]['base'] + $sign * (float) $t['base'], 2);
                     $grouped[$key]['amount'] = round($grouped[$key]['amount'] + $sign * (float) $t['amount'], 2);
                 }
@@ -90,10 +111,11 @@ class TaxRegister
             ];
             $grouped = [];
             foreach ($bill->lines as $line) {
-                foreach ($line->taxes ?? [['code' => 'TAX', 'label' => 'Input tax', 'authority' => null, 'rate' => $line->tax_percent, 'base' => $line->line_net, 'amount' => $line->line_tax]] as $t) {
+                $taxes = $line->taxes ?? [['code' => 'TAX', 'label' => 'Input tax', 'authority' => null, 'rate' => $line->tax_percent, 'base' => $line->line_net, 'amount' => $line->line_tax]];
+                foreach ($taxes as $t) {
                     $key = $t['code'].'|'.(float) $t['rate'];
                     $grouped[$key] ??= $head + ['code' => $t['code'], 'label' => $t['code'] === 'TAX' ? 'Input tax' : $t['label'], 'authority' => $t['authority'] ?? null,
-                        'rate' => (float) $t['rate'], 'base' => 0.0, 'amount' => 0.0, 'withheld' => (bool) ($t['withheld'] ?? false)];
+                        'rate' => (float) $t['rate'], 'base' => 0.0, 'amount' => 0.0, 'withheld' => (bool) ($t['withheld'] ?? false), 'share_of_tax' => self::shareOfTax($t, $taxes, (float) $line->line_net)];
                     $grouped[$key]['base'] = round($grouped[$key]['base'] + $sign * (float) $t['base'], 2);
                     $grouped[$key]['amount'] = round($grouped[$key]['amount'] + $sign * (float) $t['amount'], 2);
                 }
