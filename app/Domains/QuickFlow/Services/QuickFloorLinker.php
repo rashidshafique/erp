@@ -9,6 +9,7 @@ use App\Models\ProductionOrder;
 use App\Services\PatternCavityMap;
 use App\Services\Production\WorkListService;
 use Illuminate\Support\Collection;
+use App\Services\Production\MouldAssembler;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -122,6 +123,7 @@ class QuickFloorLinker
                     'accepted_mould_qty' => $entry->moulds, 'status' => 'COMPLETED', 'completed_at' => $entry->entry_date->copy()->setTimeFrom(now()), 'notes' => $entry->notes,
                 ]);
                 $entry->moulding_run_id = $run->id;
+                app(MouldAssembler::class)->assembleAccepted($run);
                 if ($order->status === 'RELEASED') {
                     $order->update(['status' => 'IN_PROGRESS', 'actual_started_at' => now()]);
                 }

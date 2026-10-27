@@ -10,6 +10,7 @@ use App\Models\MouldLayer;
 use App\Models\PatternRevision;
 use App\Models\PatternRevisionCavity;
 use App\Services\PatternCavityMap;
+use App\Support\FloorRules;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -23,10 +24,47 @@ class MouldAssembler
 {
     public function __construct(private PatternCavityMap $map, private FlaskManager $flasks) {}
 
-    /** A warning from the last assembly, when moulds were made with fewer flasks than they needed. */
+    /** Set by assembleAccepted() when moulds could not be assembled automatically. */
+    private ?string $refusal = null;
+
+    /** A warning from the last assembly, when moulds were made with fewer flasks than they needed or could not be assembled. */
     public function warning(): ?string
     {
-        return $this->flasks->warning;
+        return $this->refusal ?? $this->flasks->warning;
+    }
+
+    /**
+     * Assembles the run's accepted moulds that are not assembled yet, called whenever output is saved. Flaskless moulds always are;
+     * flasked ones only under the automatic mould assembly rule, with the run's mould configuration (else the first active one)
+     * and its usual number of flask sections. When flasks are short and the flask rule blocks, the moulds are left for the run
+     * page and warning() says why, so the output itself is still saved.
+     */
+    public function assembleAccepted(MouldingRun $run): int
+    {
+        $this->refusal = null;
+        $made = $this->assembleFlaskless($run);
+        $run = $run->fresh(['station', 'patternRevision']);
+        if ($made > 0 || ! $run || $run->status === 'CANCELLED' || ! FloorRules::assemblesAutomatically() || $this->flasks->isFlaskless($run->station, $run->patternRevision)) {
+            return $made;
+        }
+        $missing = (int) $run->accepted_mould_qty - MouldAssembly::where('moulding_run_id', $run->id)->count();
+        if ($missing < 1 || ! $run->pattern_revision_id || ! $this->map->hasMap($run->pattern_revision_id)) {
+            return 0;
+        }
+        $configuration = $run->mould_configuration_id ? MouldConfiguration::find($run->mould_configuration_id) : MouldConfiguration::where('is_active', true)->orderBy('name')->first();
+        $layers = max(2, (int) ($configuration?->nominal_layer_count ?: 2));
+        try {
+            while ($missing > 0) {
+                $batch = min($missing, 500);
+                $this->assemble($run->fresh(), $batch, $configuration?->id, $layers, $run->team_name);
+                $missing -= $batch;
+                $made += $batch;
+            }
+        } catch (InvalidArgumentException $e) {
+            $this->refusal = "{$missing} accepted ".($missing === 1 ? 'mould was' : 'moulds were').' not assembled: '.$e->getMessage().' Assemble them from the run page once flasks are free.';
+        }
+
+        return $made;
     }
 
     /**

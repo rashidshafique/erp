@@ -231,7 +231,8 @@ class MouldingRunController extends Controller
             PatternRevision::with('pattern')->findOrFail($validated['pattern_revision_id']),
             ProductionOrder::find($validated['production_order_id']),
         );
-        $run = DB::transaction(function () use ($validated) {
+        $assemblyWarning = null;
+        $run = DB::transaction(function () use ($validated, &$assemblyWarning) {
             $validated['run_number'] = MouldingRun::nextRunNumber();
 
             if (($validated['status'] ?? null) === 'COMPLETED'
@@ -240,7 +241,9 @@ class MouldingRunController extends Controller
             }
 
             $run = MouldingRun::create($validated);
-            app(MouldAssembler::class)->assembleFlaskless($run);
+            $assembler = app(MouldAssembler::class);
+            $assembler->assembleAccepted($run);
+            $assemblyWarning = $assembler->warning();
             if (in_array($run->status, ['IN_PROGRESS', 'COMPLETED'], true)) {
                 $run->productionOrder?->markInProgress();
             }
@@ -251,7 +254,7 @@ class MouldingRunController extends Controller
         return redirect()
             ->route('moulding-runs.show', $run)
             ->with('success', "Moulding run {$run->run_number} was created.")
-            ->with('warning', $ownershipWarning);
+            ->with('warning', trim(($ownershipWarning ?? '').' '.($assemblyWarning ?? '')) ?: null);
     }
 
     public function show(MouldingRun $mouldingRun): View
@@ -398,7 +401,7 @@ class MouldingRunController extends Controller
             return back()->withErrors(['output' => $e->getMessage()])->withInput();
         }
 
-        return back()->with('success', $request->boolean('complete') ? 'Run completed.' : 'Output saved.');
+        return back()->with('success', $request->boolean('complete') ? 'Run completed.' : 'Output saved.')->with('warning', app(MouldAssembler::class)->warning());
     }
 
     public function reopen(MouldingRun $mouldingRun, WorkListService $svc): RedirectResponse

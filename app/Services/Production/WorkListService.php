@@ -420,7 +420,7 @@ class WorkListService
                 throw new InvalidArgumentException("{$assembled} mould(s) are already assembled from this run, so accepted cannot be lower.");
             }
             $run->update($d + ($complete ? ['status' => 'COMPLETED', 'completed_at' => now()] : []));
-            app(MouldAssembler::class)->assembleFlaskless($run);
+            app(MouldAssembler::class)->assembleAccepted($run);
             if ($complete) {
                 $run->productionOrder?->markInProgress();
             }

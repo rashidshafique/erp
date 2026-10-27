@@ -22,6 +22,7 @@ use App\Models\ToolingUsageRecord;
 use App\Services\Production\FlaskManager;
 use App\Services\Production\MouldAssembler;
 use App\Support\FlaskRules;
+use App\Support\FloorRules;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
 use Tests\TestCase;
@@ -141,6 +142,44 @@ class FlaskTest extends TestCase
             ->assertSessionHasNoErrors()->assertSessionHas('warning', fn ($w) => str_contains($w, 'only 1 set is free') && str_contains($w, 'made with no flask recorded'));
         $this->assertSame(2, MouldAssembly::count());
         $this->assertSame(2, MouldLayer::whereNotNull('flask_id')->count());
+    }
+
+    private function saveOutput(MouldingRun $run, int $accepted): \Illuminate\Testing\TestResponse
+    {
+        $run->update(['status' => 'IN_PROGRESS']);
+
+        return $this->post(route('moulding-runs.output', $run), ['moulds_made_qty' => $accepted, 'accepted_mould_qty' => $accepted, 'damaged_mould_qty' => 0]);
+    }
+
+    public function test_accepted_moulds_wait_for_assembly_by_hand_unless_assembly_is_automatic(): void
+    {
+        MouldConfiguration::create(['code' => 'MC-1', 'name' => 'Cfg', 'mould_type' => 'COPE_DRAG', 'nominal_layer_count' => 2]);
+        $size = $this->makeSize('600 × 500');
+        $this->flasks($size, 'DRAG', 3);
+        $this->flasks($size, 'COPE', 3);
+
+        $this->saveOutput($this->makeRun([$size], accepted: 0), 2)->assertSessionHasNoErrors();
+        $this->assertSame(0, MouldAssembly::count());
+
+        FloorRules::set('mould_assembly', 'AUTO');
+        $this->saveOutput($run = $this->makeRun([$size], accepted: 0), 3)->assertSessionHasNoErrors();
+
+        $this->assertSame(3, MouldAssembly::where('moulding_run_id', $run->id)->count());
+        $this->assertSame(6, MouldLayer::whereNotNull('flask_id')->count());
+    }
+
+    public function test_automatic_assembly_leaves_the_moulds_for_later_when_flasks_are_short_and_the_rule_blocks(): void
+    {
+        FloorRules::set('mould_assembly', 'AUTO');
+        $size = $this->makeSize('600 × 500');
+        $this->flasks($size, 'DRAG', 1);
+        $this->flasks($size, 'COPE', 1);
+        $run = $this->makeRun([$size], accepted: 0);
+
+        $this->saveOutput($run, 2)->assertSessionHasNoErrors()
+            ->assertSessionHas('warning', fn ($w) => str_starts_with($w, '2 accepted moulds were not assembled: ') && str_contains($w, 'only 1 set is free'));
+
+        $this->assertSame([2, 0], [$run->fresh()->accepted_mould_qty, MouldAssembly::count()]);
     }
 
     public function test_fixed_pairs_keep_partners_together(): void
