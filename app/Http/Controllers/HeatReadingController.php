@@ -331,7 +331,7 @@ class HeatReadingController extends Controller
                 Rule::exists('charge_batches', 'id')->where('status', 'ACTIVE'),
             ],
             // A heat that has already started needs the time it started; that cannot be in the future.
-            'planned_start_at' => ['nullable', 'date', 'required_if:already_started,1', 'before_or_equal:now'],
+            'planned_start_at' => ['nullable', 'date', 'required_if:already_started,1', Rule::when($request->boolean('already_started'), 'before_or_equal:now')],
             'already_started' => ['nullable', 'boolean'],
             'fill_charges' => ['nullable', 'boolean'],
             'target_metal_weight_kg' => ['nullable', 'numeric', 'gt:0', 'max:999999999'],

@@ -206,6 +206,7 @@ class ChargeScheduleTest extends TestCase
         $this->assertSame(['PLANNED', null], [$planned->status, $planned->actual_start_at]);
         $this->assertSame(0, HeatMaterialConsumption::where('heat_id', $planned->id)->count());
 
+        $this->post(route('heats.store'), array_merge($form, ['planned_start_at' => now()->addHours(13)->format('Y-m-d\TH:i')]))->assertSessionHasNoErrors();
         $this->post(route('heats.store'), array_merge($form, ['already_started' => 1, 'planned_start_at' => now()->addHour()->format('Y-m-d\TH:i')]))->assertSessionHasErrors('planned_start_at');
         $this->post(route('heats.store'), array_merge($form, ['already_started' => 1, 'planned_start_at' => '']))->assertSessionHasErrors('planned_start_at');
     }
