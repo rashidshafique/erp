@@ -54,13 +54,20 @@ class SalesServiceProvider extends ModuleServiceProvider
         return [
             ['group' => 'sales', 'label' => 'Sales orders', 'route' => 'sales-orders.index', 'icon' => 'shopping-bag', 'active' => ['sales-orders.index', 'sales-orders.show', 'sales-orders.trace'],
                 'count' => fn (): int => SalesOrder::whereIn('status', ['DRAFT', 'UNDER_REVIEW'])->count()],
+            ['group' => 'sales', 'label' => 'Price lists', 'route' => 'price-lists.index', 'icon' => 'list', 'active' => ['price-lists.*']],
         ];
+    }
+
+    protected function panels(): array
+    {
+        return ['party.show' => 'sales::price-panel'];
     }
 
     protected function permissionRoutes(): array
     {
         return [
             ['pattern' => 'sales-orders.*', 'permission' => 'sales.manage'],
+            ['pattern' => 'price-lists.*', 'permission' => 'sales.manage'],
         ];
     }
 

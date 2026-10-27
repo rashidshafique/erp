@@ -277,13 +277,26 @@
         if (unit && select.value) unit.value = (d.uom || '').toLowerCase() === 'kg' ? 'kg' : 'piece';
         piecesHint(row);
         row.querySelector('[data-qty]').required = !!select.value;
-        if (priceBox && d.price && !priceBox.value) priceBox.value = d.price;
+        if (priceBox && d.price && !priceBox.value) { priceBox.value = d.price; priceBox.dataset.filled = priceBox.value; }
+        listPrice(row);
         var img = d.img ? document.createElement('img') : document.createElement('span');
         img.className = 'so-thumb';
         if (d.img) { img.src = d.img; img.alt = ''; } else { img.setAttribute('aria-hidden', 'true'); img.innerHTML = '&#9638;'; }
         thumb.replaceWith(img);
         if (select.value) row.querySelector('[data-qty]').focus();
     }
+    // The price list's price for the line, filled in unless someone has typed their own price over what was filled in before.
+    function listPrice(row) {
+        var priceBox = row.querySelector('[data-price]'), product = row.querySelector('[name$="[product_revision_id]"]'), unit = row.querySelector('[data-unit]');
+        if (!priceBox || !product || !product.value || (priceBox.value !== '' && priceBox.value !== priceBox.dataset.filled)) return;
+        var q = new URLSearchParams({ customer: form.querySelector('#customer_id').value, product: product.value, qty: row.querySelector('[data-qty]').value || 0,
+            uom: unit ? unit.value : 'piece', date: form.querySelector('#order_date').value });
+        fetch(@js(route('price-lists.lookup')) + '?' + q, { headers: { Accept: 'application/json' } }).then(function (r) { return r.ok ? r.json() : { price: null }; }).then(function (j) {
+            if (j.price === null || (priceBox.value !== '' && priceBox.value !== priceBox.dataset.filled)) return;
+            priceBox.value = String(j.price); priceBox.dataset.filled = priceBox.value; priceBox.title = 'Price list ' + j.list; recalc();
+        }).catch(function () {});
+    }
+    form.querySelector('#customer_id').addEventListener('change', function () { linesBox.querySelectorAll('[data-line]').forEach(listPrice); });
     form.querySelector('[data-add-line]').addEventListener('click', addLine);
     linesBox.addEventListener('input', function (e) { var row = e.target.closest('[data-line]'); if (row) { preview(row); unscheduled(row); piecesHint(row); } recalc(); });
     linesBox.addEventListener('change', function (e) {
@@ -295,6 +308,7 @@
             row.querySelector('[data-repeat-note]').hidden = !!pick.value;
         }
         if (pick || e.target.closest('[data-stagger]')) stagger(row);
+        if (e.target.matches('[data-qty], [data-unit]')) listPrice(row);
         piecesHint(row); preview(row); recalc();
     });
     ['order_date', 'requested_delivery_date'].forEach(function (id) { form.querySelector('#' + id).addEventListener('change', function () { previewAll(); recalc(); }); });

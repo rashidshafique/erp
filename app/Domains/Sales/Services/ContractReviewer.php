@@ -13,6 +13,7 @@ use App\Domains\Sales\Models\SalesOrderLine;
 use App\Models\ThermalWindow;
 use App\Models\User;
 use App\Services\FurnaceEligibility;
+use App\Support\Formats;
 use App\Support\OrderRules;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -85,6 +86,17 @@ class ContractReviewer
         return $credit['severity'] === 'PASS' ? [] : [['CREDIT', $credit['severity'], implode(' ', $credit['messages'])]];
     }
 
+    /** @return array{price: float, list: \App\Domains\Sales\Models\PriceList, item: \App\Domains\Sales\Models\PriceListItem}|null the list price when the line is priced under it */
+    private function underListPrice(SalesOrder $order, SalesOrderLine $line): ?array
+    {
+        if (PriceLists::check() === 'OFF' || $line->unit_price === null || ! $line->product_id) {
+            return null;
+        }
+        $found = app(PriceLists::class)->priceFor($order->customer_id, $line->product_id, (float) $line->ordered_qty, $line->uom ?: 'piece', $line->pieceWeightKg(), $order->order_date ?? today());
+
+        return $found && (float) $line->unit_price < $found['price'] - 0.005 ? $found : null;
+    }
+
     /** @return array<int, array{0: string, 1: string, 2: string}> */
     public function checkLine(SalesOrder $order, SalesOrderLine $line): array
     {
@@ -94,6 +106,9 @@ class ContractReviewer
 
         if ((float) $line->ordered_qty <= 0) {
             $out[] = ['QUANTITY', 'BLOCK', "{$label}: the quantity must be above zero."];
+        }
+        if ($under = $this->underListPrice($order, $line)) {
+            $out[] = ['PRICE', PriceLists::check(), "{$label}: priced ".Formats::number((float) $line->unit_price, 2).", under the list price of ".Formats::number($under['price'], 2)." ({$under['list']->code})."];
         }
 
         // Product revision released for production

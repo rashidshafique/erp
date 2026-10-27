@@ -1,10 +1,23 @@
 <?php
 
+use App\Domains\Sales\Http\Controllers\PriceListController;
 use App\Domains\Sales\Http\Controllers\SalesOrderController;
 use App\Http\Controllers\OrderTraceController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('web')->group(function () {
+    Route::prefix('price-lists')->name('price-lists.')->controller(PriceListController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::post('/', 'store')->name('store');
+        Route::get('/lookup', 'lookup')->name('lookup');
+        Route::put('/settings', 'settings')->name('settings');
+        Route::put('/customers/{customer}', 'assign')->name('assign');
+        Route::get('/{priceList}', 'show')->name('show');
+        Route::put('/{priceList}', 'update')->name('update');
+        Route::delete('/{priceList}', 'destroy')->name('destroy');
+        Route::put('/{priceList}/items', 'items')->name('items');
+        Route::post('/{priceList}/copy', 'copy')->name('copy');
+    });
     Route::prefix('sales-orders')->name('sales-orders.')->controller(SalesOrderController::class)->group(function () {
         Route::get('/', 'index')->name('index');
         Route::get('/create', 'create')->name('create');
