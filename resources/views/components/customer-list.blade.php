@@ -114,7 +114,7 @@ new class extends Component
     {
         $this->resetValidation();
         $this->editingId = null;
-        $this->form = $this->blankForm();
+        $this->form = ['is_prospect' => true] + $this->blankForm();
         $this->saved = null;
         $this->formOpen = true;
     }

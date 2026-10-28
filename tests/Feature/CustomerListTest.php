@@ -136,4 +136,16 @@ class CustomerListTest extends TestCase
 
         $this->assertFalse($held->fresh()->credit_hold);
     }
+
+    public function test_a_customer_added_from_the_list_starts_as_a_prospect_until_its_first_order(): void
+    {
+        Livewire::test('customer-list')->call('create')->assertSet('form.is_prospect', true)
+            ->set('form.name', 'Orbis Gears')->call('save');
+
+        $customer = Customer::where('code', '!=', null)->firstOrFail();
+        $this->assertSame('prospect', $customer->stage());
+
+        $customer->salesOrders()->create(['order_number' => 'SO-1', 'order_date' => today(), 'status' => 'CONFIRMED']);
+        $this->assertSame('active', $customer->fresh()->stage());
+    }
 }

@@ -28,6 +28,7 @@ class CustomerController extends Controller
         $data = $request->validate(Customer::rules());
         $data['code'] = filled($data['code'] ?? null) ? $data['code'] : null;
         $data['active'] = true;
+        $data['is_prospect'] = true;
         $customer = Customer::create($data);
 
         if ($request->wantsJson()) {
