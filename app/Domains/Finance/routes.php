@@ -11,6 +11,7 @@ use App\Domains\Finance\Http\Controllers\ReceivablesController;
 use App\Domains\Finance\Http\Controllers\SupplierPaymentController;
 use App\Domains\Finance\Http\Controllers\TaxRegisterController;
 use App\Domains\Finance\Http\Controllers\TaxReturnController;
+use App\Domains\Finance\Http\Controllers\TaxYearController;
 use App\Domains\Finance\Http\Controllers\WithholdingCertificateController;
 use Illuminate\Support\Facades\Route;
 
@@ -85,6 +86,8 @@ Route::middleware('web')->group(function () {
     Route::put('/customers/{customer}/credit', [CreditController::class, 'update'])->name('finance.credit.update');
     Route::get('/settings/invoicing', [FinanceSettingsController::class, 'edit'])->name('finance.settings');
     Route::put('/settings/invoicing', [FinanceSettingsController::class, 'update'])->name('finance.settings.update');
+    Route::get('/settings/tax-and-year-end', [TaxYearController::class, 'edit'])->name('finance.tax-year');
+    Route::put('/settings/tax-and-year-end', [TaxYearController::class, 'update'])->name('finance.tax-year.update');
     Route::post('/settings/invoicing/tax-rates', [FinanceSettingsController::class, 'storeRate'])->name('finance.tax-rates.store');
     Route::put('/settings/invoicing/tax-rates/{rate}', [FinanceSettingsController::class, 'updateRate'])->name('finance.tax-rates.update');
 });

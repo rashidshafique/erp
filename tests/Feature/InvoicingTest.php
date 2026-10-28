@@ -167,6 +167,7 @@ class InvoicingTest extends TestCase
         $this->post(route('finance.tax-rates.store'), ['name' => 'Standard', 'rate_percent' => 17, 'is_default' => 1])->assertSessionHasNoErrors();
         $this->post(route('finance.tax-rates.store'), ['name' => 'Reduced', 'rate_percent' => 5, 'is_default' => 1])->assertSessionHasNoErrors();
         $this->assertSame(['Reduced'], TaxRate::where('is_default', true)->pluck('name')->all());
-        $this->get(route('finance.settings'))->assertOk()->assertSee('Standard');
+        $this->get(route('finance.tax-year'))->assertOk()->assertSee('Reduced');
+        $this->get(route('finance.settings'))->assertOk()->assertDontSee('Reduced');
     }
 }

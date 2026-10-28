@@ -70,7 +70,10 @@ class FinanceServiceProvider extends ModuleServiceProvider
 
     protected function settingsLinks(): array
     {
-        return [['section' => 'Foundry', 'label' => 'Invoicing & tax', 'route' => 'finance.settings', 'active' => ['finance.*']]];
+        return [
+            ['section' => 'Foundry', 'label' => 'Invoicing', 'route' => 'finance.settings', 'active' => ['finance.settings*']],
+            ['section' => 'Foundry', 'label' => 'Tax & year end', 'route' => 'finance.tax-year', 'active' => ['finance.tax-year*', 'finance.tax-rates.*', 'tax.*', 'ledger.settings.closing']],
+        ];
     }
 
     protected function permissionCatalog(): array

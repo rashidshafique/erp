@@ -17,7 +17,7 @@ class FinanceSettingsController extends Controller
     public function edit(): View
     {
         return view('finance::settings.edit', ['dueDays' => FinanceRules::dueDays(), 'currency' => FinanceRules::currency(), 'billMatch' => FinanceRules::billMatch(), 'billTolerance' => FinanceRules::billTolerance(), 'advances' => FinanceRules::advances(), 'billCost' => FinanceRules::billPriceToCost(),
-            'templates' => app(InvoiceTemplates::class)->options(), 'template' => app(InvoiceTemplates::class)->default(), 'creditCheck' => FinanceRules::creditCheck(), 'creditOrders' => FinanceRules::creditCountsOrders(), 'creditOverdueDays' => FinanceRules::creditOverdueDays(), 'rates' => TaxRate::orderBy('name')->get()]);
+            'templates' => app(InvoiceTemplates::class)->options(), 'template' => app(InvoiceTemplates::class)->default(), 'creditCheck' => FinanceRules::creditCheck(), 'creditOrders' => FinanceRules::creditCountsOrders(), 'creditOverdueDays' => FinanceRules::creditOverdueDays()]);
     }
 
     public function update(Request $request): RedirectResponse

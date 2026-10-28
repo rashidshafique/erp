@@ -28,7 +28,7 @@ class LedgerReportController extends Controller
     /** Income less expenses over a period, optionally beside the period before or the same period a year earlier. */
     public function profitAndLoss(Request $request, Statements $statements): View
     {
-        $from = ($request->date('from') ?? today()->startOfYear())->toDateString();
+        $from = ($request->date('from') ?? \App\Support\FinancialYear::containing()['start'])->toDateString();
         $to = max($from, ($request->date('to') ?? today())->toDateString());
         $compareWith = in_array($request->query('compare'), ['previous', 'last_year'], true) ? $request->query('compare') : null;
         $compare = match ($compareWith) {
@@ -63,7 +63,7 @@ class LedgerReportController extends Controller
     /** An account's postings over a period with its opening and running balance; a group shows its sub-accounts together. */
     public function account(Request $request, LedgerAccount $account): View
     {
-        $from = ($request->date('from') ?? today()->startOfYear())->toDateString();
+        $from = ($request->date('from') ?? \App\Support\FinancialYear::containing()['start'])->toDateString();
         $to = ($request->date('to') ?? today())->toDateString();
         $opening = $account->balance(\Illuminate\Support\Carbon::parse($from)->subDay()->toDateString());
         $lines = JournalLine::with(['journal', 'account'])->whereIn('account_id', $account->treeIds())

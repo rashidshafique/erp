@@ -23,12 +23,20 @@ use InvalidArgumentException;
 /** The Taxation settings: the country, the company's registrations, the authorities, the dated tax rates and the rules that pick them. */
 class TaxSettingsController extends Controller
 {
-    public function index(TaxJurisdictions $packs): View
+    /** The Taxation settings now sit on Finance > Tax & year end; the old address goes there. */
+    public function index(): RedirectResponse
     {
+        return redirect()->route('finance.tax-year');
+    }
+
+    /** What the Taxation panel needs: the country pack, the company's registrations, the authorities, the dated rates and the rules. @return array<string, mixed> */
+    public function data(): array
+    {
+        $packs = app(TaxJurisdictions::class);
         $code = TaxJurisdiction::code();
         $components = TaxComponent::with('authority')->where('jurisdiction', $code)->orderBy('code')->orderByDesc('effective_from')->get();
 
-        return view('tax::settings.index', [
+        return [
             'code' => $code,
             'countries' => $packs->options(),
             'pack' => $packs->find($code),
@@ -39,7 +47,7 @@ class TaxSettingsController extends Controller
             'componentCodes' => $components->pluck('name', 'code')->all(),
             'rules' => TaxRule::where('jurisdiction', $code)->orderBy('priority')->orderBy('name')->get(),
             'inventoryClasses' => InventoryClass::options(),
-        ]);
+        ];
     }
 
     public function updateCompany(Request $request, TaxJurisdictions $packs): RedirectResponse

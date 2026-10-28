@@ -47,7 +47,7 @@ class TaxServiceProvider extends ModuleServiceProvider
 
     protected function settingsLinks(): array
     {
-        return [['section' => 'Foundry', 'label' => 'Taxation', 'route' => 'tax.settings', 'active' => ['tax.*']]];
+        return [];   // Taxation sits on Finance > Tax & year end
     }
 
     protected function permissionCatalog(): array
@@ -62,6 +62,6 @@ class TaxServiceProvider extends ModuleServiceProvider
 
     protected function panels(): array
     {
-        return ['party.show' => 'tax::party-panel'];
+        return ['party.show' => 'tax::party-panel', 'finance.tax-year' => 'tax::settings.panel'];
     }
 }

@@ -89,6 +89,6 @@ class LedgerServiceProvider extends ModuleServiceProvider
 
     protected function panels(): array
     {
-        return ['finance.document' => 'ledger::_document-panel'];
+        return ['finance.document' => 'ledger::_document-panel', 'finance.tax-year' => 'ledger::settings.closing-panel'];
     }
 }

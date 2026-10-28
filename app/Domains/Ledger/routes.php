@@ -38,5 +38,6 @@ Route::middleware('web')->prefix('ledger')->name('ledger.')->group(function () {
     Route::get('/general-ledger', [LedgerReportController::class, 'generalLedger'])->name('general-ledger');
     Route::get('/settings', [LedgerSettingsController::class, 'edit'])->name('settings');
     Route::put('/settings', [LedgerSettingsController::class, 'update'])->name('settings.update');
+    Route::put('/settings/closing', [LedgerSettingsController::class, 'closing'])->name('settings.closing');
     Route::post('/settings/post-missing', [LedgerSettingsController::class, 'postMissing'])->name('settings.post-missing');
 });

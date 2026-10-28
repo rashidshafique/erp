@@ -1,7 +1,6 @@
-@extends('layouts.app')
-@section('title', 'Taxation')
-@section('content')
+{{-- The Taxation settings, shown on Finance > Tax & year end. Gets its own data. --}}
 @php
+    extract(app(\App\Domains\Tax\Http\Controllers\TaxSettingsController::class)->data());
     $pct = fn ($r) => \App\Support\Formats::number((float) $r, 2).'%';
     $regions = $pack?->regions() ?? [];
     $statuses = $pack?->partyStatuses() ?? [];
@@ -13,7 +12,7 @@
     .tax-checks label { display: inline-flex; gap: 5px; align-items: center; margin: 0; font-weight: 400; }
     .tax-rule-form summary { cursor: pointer; }
 </style>
-<div class="page-heading"><div><h1>Taxation</h1><p>The country whose tax rules apply, your registrations, the tax rates by date and the rules that put them on each line.</p></div></div>
+<div class="page-heading"><div><h2 style="margin:0">Taxation</h2><p>The country whose tax rules apply, your registrations, the tax rates by date and the rules that put them on each line.</p></div></div>
 
 @if ($errors->any())<div class="alert alert-error">{{ $errors->first() }}</div>@endif
 
@@ -117,4 +116,3 @@
     @include('tax::settings._rule-form', ['rule' => new \App\Domains\Tax\Models\TaxRule(['priority' => 100, 'side' => 'BOTH', 'is_active' => true, 'conditions' => [], 'components' => []]), 'action' => route('tax.rules.store'), 'method' => 'POST'])
 </details></div>
 </div>
-@endsection

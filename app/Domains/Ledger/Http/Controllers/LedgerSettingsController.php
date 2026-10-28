@@ -30,7 +30,7 @@ class LedgerSettingsController extends Controller
 
         return view('ledger::settings.edit', [
             'accounts' => LedgerAccount::postable()->orderBy('code')->get(), 'chosen' => $chosen, 'methods' => LedgerSettings::methodMap(),
-            'authorities' => $authorities, 'taxMap' => LedgerSettings::taxMap(), 'closedTo' => LedgerSettings::closedTo(),
+            'authorities' => $authorities, 'taxMap' => LedgerSettings::taxMap(),
             'topExpenses' => LedgerAccount::whereNull('parent_id')->where('type', 'EXPENSE')->orderBy('code')->get(), 'costOfSales' => LedgerSettings::costOfSales()?->id,
         ]);
     }
@@ -40,7 +40,7 @@ class LedgerSettingsController extends Controller
         $d = $request->validate([
             'roles' => ['array'], 'roles.*' => ['nullable', 'uuid', 'exists:ledger_accounts,id'],
             'methods' => ['array'], 'methods.*.name' => ['nullable', 'string', 'max:30'], 'methods.*.account_id' => ['nullable', 'uuid', 'exists:ledger_accounts,id'],
-            'tax' => ['array'], 'tax.*' => ['nullable', 'uuid', 'exists:ledger_accounts,id'], 'closed_to' => ['nullable', 'date'],
+            'tax' => ['array'], 'tax.*' => ['nullable', 'uuid', 'exists:ledger_accounts,id'],
             'cost_of_sales' => ['nullable', 'string', 'max:36'],
         ]);
         if ($request->has('cost_of_sales')) {
@@ -59,9 +59,18 @@ class LedgerSettingsController extends Controller
             ->mapWithKeys(fn ($m) => [mb_strtolower(trim($m['name'])) => $m['account_id']])->all();
         AppSetting::setValue(LedgerSettings::METHODS, json_encode($methods), 'Ledger account for each payment method');
         AppSetting::setValue(LedgerSettings::TAX_ACCOUNTS, json_encode(array_filter($d['tax'] ?? [])), 'Ledger account for the tax of each authority');
-        AppSetting::setValue(LedgerSettings::CLOSED_TO, (string) ($d['closed_to'] ?? ''), 'Books closed to this date');
 
         return back()->with('success', 'Ledger settings saved.');
+    }
+
+    /** Sets the date the books are closed to, or with `close_year` the last day of the year that has just ended. */
+    public function closing(Request $request): RedirectResponse
+    {
+        $d = $request->validate(['closed_to' => ['nullable', 'date'], 'close_year' => ['nullable', 'boolean']]);
+        $date = $request->boolean('close_year') ? \App\Support\FinancialYear::previous()['end']->toDateString() : (string) ($d['closed_to'] ?? '');
+        AppSetting::setValue(LedgerSettings::CLOSED_TO, $date, 'Books closed to this date');
+
+        return back()->with('success', $date === '' ? 'The books are open again.' : 'Books closed to '.\Illuminate\Support\Carbon::parse($date)->displayDate().'.');
     }
 
     public function postMissing(PostingRules $rules): RedirectResponse

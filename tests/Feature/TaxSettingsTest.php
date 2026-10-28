@@ -29,7 +29,7 @@ class TaxSettingsTest extends TestCase
 
     public function test_pakistans_starting_set_loads_goods_federally_and_services_by_province_and_is_not_replaced_unasked(): void
     {
-        $this->get(route('tax.settings'))->assertOk()->assertSee('Load Pakistan defaults')->assertSee('STRN (FBR sales tax)');
+        $this->get(route('finance.tax-year'))->assertOk()->assertSee('Load Pakistan defaults')->assertSee('STRN (FBR sales tax)');
 
         $this->post(route('tax.defaults'))->assertSessionHasNoErrors();
         $this->assertSame(['BRA', 'FBR', 'KPRA', 'PRA', 'SRB'], TaxAuthority::orderBy('code')->pluck('code')->all());
@@ -44,7 +44,7 @@ class TaxSettingsTest extends TestCase
         $this->post(route('tax.defaults'), ['replace' => 1])->assertSessionHasNoErrors();
         $this->assertSame(0, TaxRule::where('name', 'Edited')->count());
 
-        $this->get(route('tax.settings'))->assertOk()->assertSee('Sindh sales tax on services')->assertSee('Services supplied in Punjab');
+        $this->get(route('finance.tax-year'))->assertOk()->assertSee('Sindh sales tax on services')->assertSee('Services supplied in Punjab');
     }
 
     public function test_a_new_rate_starts_from_its_date_and_the_old_one_stays_for_earlier_documents(): void

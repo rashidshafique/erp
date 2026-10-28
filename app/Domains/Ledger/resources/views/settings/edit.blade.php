@@ -26,9 +26,7 @@
 <div class="panel"><div class="panel-header"><h2>Profit and loss</h2></div><div class="panel-body form-grid">
     <label>Cost of sales<select name="cost_of_sales"><option value="none">None: no gross profit line</option>@foreach ($topExpenses as $a)<option value="{{ $a->id }}" @selected($costOfSales === $a->id)>{{ $a->label() }}</option>@endforeach</select><span class="muted small">This expense group comes straight after income, with gross profit below it.</span>@error('cost_of_sales')<span class="error">{{ $message }}</span>@enderror</label>
 </div></div>
-<div class="panel"><div class="panel-header"><h2>Closing</h2></div><div class="panel-body form-grid">
-    <label>Books closed to<input type="date" name="closed_to" value="{{ $closedTo }}"><span class="muted small">Nothing can be posted on or before this date, by hand or by a document. Leave empty while the period is open.</span></label>
-</div><div class="panel-body"><button class="btn btn-primary">Save</button></div></div>
+<div class="panel"><div class="panel-body"><button class="btn btn-primary">Save</button> <span class="muted small">The date the books are closed to is under Tax &amp; year end.</span></div></div>
 </form>
 <div class="panel"><div class="panel-header"><h2>Documents from before the ledger</h2></div><div class="panel-body"><form method="POST" action="{{ route('ledger.settings.post-missing') }}">@csrf
 <p class="muted small">Posts every issued invoice and credit note, posted bill, receipt and supplier payment that has no journal yet, each on its own date. Then moves money on account posted before advances were kept apart into customer advances or advances to suppliers, dated today. Safe to run again.</p>
