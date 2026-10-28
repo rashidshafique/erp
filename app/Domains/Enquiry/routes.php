@@ -16,6 +16,7 @@ Route::middleware('web')->group(function () {
         Route::post('/', 'store')->name('store');
         Route::get('/{enquiry}', 'show')->name('show');
         Route::put('/{enquiry}', 'update')->name('update');
+        Route::post('/{enquiry}/send', 'send')->name('send');
         Route::post('/{enquiry}/lost', 'lost')->name('lost');
         Route::post('/{enquiry}/items', 'itemStore')->name('items.store');
         Route::put('/{enquiry}/items/{item}', 'itemUpdate')->name('items.update');

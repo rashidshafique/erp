@@ -116,6 +116,7 @@
                 @if ($nextPattern)<a class="btn" href="{{ route('patterns.show', array_filter(['pattern' => $nextPattern, 'link' => request('link')])) }}" title="Next: {{ $nextPattern->code }} — {{ $nextPattern->name }}" aria-label="Next pattern, {{ $nextPattern->code }}">&rarr;</a>@else<span class="btn" aria-disabled="true" style="opacity:.4;cursor:default">&rarr;</span>@endif
             </span>
             <a class="btn" href="{{ route('patterns.index') }}">All patterns</a>
+            @if (Route::has('developments.create') && ! $pattern->trashed())<a class="btn" href="{{ route('developments.create', ['from' => 'pattern:'.$pattern->id]) }}">Replace pattern</a>@endif
             <a class="btn" href="{{ route('labels.show', ['pattern', $pattern->id]) }}" target="_blank">Print tag</a>
             @if ($pattern->trashed())
                 <form method="POST" action="{{ route('patterns.restore', $pattern) }}" style="display:inline">@csrf<button class="btn btn-primary" type="submit">Restore pattern</button></form>
@@ -234,7 +235,7 @@ document.querySelectorAll('[data-inplace]').forEach(function (panel) {
                         <th>State</th>
                         <th>Approval</th>
                         <th>Drawing rev</th>
-                        <th>Cost (PKR)</th>
+                        <th>Cost{{ \App\Support\Formats::currencySuffix() }}</th>
                         <th>Casting / pour kg</th>
                         <th>Layout</th>
                         <th>Parting</th>

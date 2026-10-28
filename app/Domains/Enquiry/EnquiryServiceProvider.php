@@ -40,6 +40,7 @@ class EnquiryServiceProvider extends ModuleServiceProvider
         parent::register();
         $this->mergeConfigFrom(__DIR__.'/config/quotation.php', 'quotation');
         $this->mergeConfigFrom(__DIR__.'/config/enquiry_scenarios.php', 'enquiry_scenarios');
+        $this->mergeConfigFrom(__DIR__.'/config/enquiry_types.php', 'enquiry_types');
         $this->mergeConfigFrom(__DIR__.'/config/feasibility.php', 'feasibility');
     }
 

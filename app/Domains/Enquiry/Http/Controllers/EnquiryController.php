@@ -9,6 +9,7 @@ use App\Domains\Enquiry\Models\Enquiry;
 use App\Domains\Enquiry\Models\EnquiryItem;
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 
@@ -16,7 +17,13 @@ class EnquiryController extends Controller
 {
     public function index(Request $request)
     {
-        $rows = Enquiry::query()->with('customer')->withCount('items')
+        return view('enquiry::enquiries.index', ['rows' => self::rows($request)]);
+    }
+
+    /** The enquiries list with the search, status and kind filters applied; the guided request dialog shows it behind itself. */
+    public static function rows(Request $request): LengthAwarePaginator
+    {
+        return Enquiry::query()->with('customer')->withCount('items')
             ->when($request->filled('search'), function ($q) use ($request) {
                 $s = '%'.trim($request->input('search')).'%';
                 $q->where(fn ($w) => $w->where('code', 'ilike', $s)->orWhere('title', 'ilike', $s)->orWhere('customer_reference', 'ilike', $s));
@@ -24,8 +31,6 @@ class EnquiryController extends Controller
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status')))
             ->when($request->filled('source'), fn ($q) => $q->where('source_type', $request->input('source')))
             ->orderByDesc('created_at')->paginate(20)->withQueryString();
-
-        return view('enquiry::enquiries.index', ['rows' => $rows]);
     }
 
     public function create()
@@ -86,6 +91,18 @@ class EnquiryController extends Controller
         return back()->with('success', 'Enquiry saved.');
     }
 
+    /** Sends a saved draft on to feasibility once it has a part. */
+    public function send(Enquiry $enquiry)
+    {
+        abort_unless($enquiry->status === 'NEW', 422);
+        if ($enquiry->items()->doesntExist()) {
+            return back()->with('error', 'Add the part first.');
+        }
+        $enquiry->update(['status' => 'FEASIBILITY']);
+
+        return back()->with('success', "{$enquiry->code} is with feasibility.");
+    }
+
     public function lost(Request $request, Enquiry $enquiry)
     {
         $d = $request->validate(['lost_reason' => ['required', 'string', 'max:500']], ['lost_reason.required' => 'Say why the enquiry was lost or cancelled.']);
@@ -116,12 +133,12 @@ class EnquiryController extends Controller
             'other_cost' => ['nullable', 'numeric', 'min:0'],
             'tooling_cost' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string', 'max:2000'],
-        ];
+        ] + EnquiryItem::intakeRules();
     }
 
     private function itemData(Request $request): array
     {
-        $d = $request->validate($this->itemRules());
+        $d = EnquiryItem::intakeData($request->validate($this->itemRules()));
         $d['heat_treatment'] = $request->boolean('heat_treatment');
         $d['ndt'] = $request->boolean('ndt');
         foreach (['machining_cost', 'other_cost', 'tooling_cost'] as $k) {

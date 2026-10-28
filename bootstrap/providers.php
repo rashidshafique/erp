@@ -3,6 +3,7 @@
 use App\Domains\Capa\CapaServiceProvider;
 use App\Domains\Cameras\CamerasServiceProvider;
 use App\Domains\Compliance\ComplianceServiceProvider;
+use App\Domains\Development\DevelopmentServiceProvider;
 use App\Domains\Dispatch\DispatchServiceProvider;
 use App\Domains\Documents\DocumentsServiceProvider;
 use App\Domains\Engineering\EngineeringServiceProvider;
@@ -30,6 +31,7 @@ return [
     SalesServiceProvider::class,
     DispatchServiceProvider::class,
     DocumentsServiceProvider::class,
+    DevelopmentServiceProvider::class,
     EngineeringServiceProvider::class,
     EnquiryServiceProvider::class,
     FinanceServiceProvider::class,

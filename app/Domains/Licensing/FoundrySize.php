@@ -34,7 +34,7 @@ class FoundrySize implements MenuFilter
     private const MICRO_MODULE_GROUPS = ['quickflow', 'dispatch'];
 
     /** Small hides these routes. */
-    private const SMALL_HIDES = ['casting-analyses.index', 'tooling-maintenance.dashboard', 'tooling-maintenance.index', 'tooling-life.dashboard', 'parties.index'];
+    private const SMALL_HIDES = ['casting-analyses.index', 'tooling-maintenance.dashboard', 'tooling-maintenance.index', 'tooling-life.dashboard', 'parties.index', 'developments.index'];
 
     private ?string $current = null;
 

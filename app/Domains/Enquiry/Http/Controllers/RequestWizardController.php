@@ -7,6 +7,7 @@ use App\Http\Controllers\AttachmentController;
 use App\Models\Customer;
 use App\Models\IronGrade;
 use App\Domains\Enquiry\Models\Enquiry;
+use App\Domains\Enquiry\Models\EnquiryItem;
 use App\Models\Product;
 use App\Support\AttachableEntities;
 use App\Support\Uploads;
@@ -17,7 +18,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
-/** Guided entry for a customer request: who, what they are giving us, the questions that kind of request needs, then an enquiry. */
+/** Guided entry for a customer request, in a dialog over the enquiries list: who, what they are giving us, the questions that kind of request needs, then an enquiry. */
 class RequestWizardController extends Controller
 {
     public function create(Request $request)
@@ -27,8 +28,10 @@ class RequestWizardController extends Controller
             'products' => Product::with('revisions:id,product_id,revision,status')->orderBy('code')->get(['id', 'code', 'name', 'nominal_weight_kg']),
             'grades' => IronGrade::listed(),
             'scenarios' => config('enquiry_scenarios'),
+            'types' => config('enquiry_types'),
             'categories' => AttachableEntities::CATEGORIES,
             'preset' => $request->only(['customer', 'scenario']),
+            'rows' => EnquiryController::rows($request),
         ]);
     }
 
@@ -49,6 +52,8 @@ class RequestWizardController extends Controller
             'new_contact' => ['nullable', 'string', 'max:120'], 'new_phone' => ['nullable', 'string', 'max:40'],
             'new_email' => ['nullable', 'email', 'max:160'], 'new_terms' => ['nullable', 'string', 'max:100'],
             'source_type' => ['required', Rule::in(array_keys($sc))],
+            'type' => ['nullable', Rule::in(array_keys(config('enquiry_types')))],
+            'action' => ['nullable', Rule::in(['draft', 'send'])],
             'description' => ['required', 'string', 'max:200'],
             'product_id' => [$has('product') ? 'required' : 'nullable', 'exists:products,id'],
             'drawing_ref' => ['nullable', 'string', 'max:100'], 'drawing_rev' => ['nullable', 'string', 'max:20'],
@@ -66,7 +71,7 @@ class RequestWizardController extends Controller
             'files' => ['nullable', 'array', 'max:10'],
             'files.*' => ['file', 'max:'.$maxKb, 'extensions:'.implode(',', $exts)],
             'file_category' => ['nullable', Rule::in(array_keys(AttachableEntities::CATEGORIES))],
-        ];
+        ] + EnquiryItem::intakeRules();
         $d = $request->validate($rules, [
             'product_id.required' => 'Choose the part from the list of parts we already make.',
             'change_note.required' => 'Say what has changed.', 'tool_note.required' => 'Describe the tooling the customer will send.',
@@ -83,7 +88,8 @@ class RequestWizardController extends Controller
             throw ValidationException::withMessages(['new_name' => 'A customer with this name already exists. Choose it from the list instead.']);
         }
 
-        $enquiry = DB::transaction(function () use ($d, $request, $sc, $src, $filesGiven) {
+        $isDraft = ($d['action'] ?? 'send') === 'draft';
+        $enquiry = DB::transaction(function () use ($d, $request, $sc, $src, $filesGiven, $isDraft) {
             if ($d['customer_mode'] === 'NEW') {
                 $customer = Customer::create([
                     'code' => $this->newCustomerCode($d['new_name']), 'name' => trim($d['new_name']), 'contact_name' => $d['new_contact'] ?? null,
@@ -101,12 +107,12 @@ class RequestWizardController extends Controller
             ])->filter()->map(fn ($v, $k) => "$k: $v")->implode("\n");
 
             $e = Enquiry::create([
-                'customer_id' => $customer->id, 'title' => Str::limit($d['description'], 150, '').' ('.$sc[$src]['short'].')', 'source_type' => $src, 'status' => 'FEASIBILITY',
+                'customer_id' => $customer->id, 'title' => Str::limit($d['description'], 150, '').' ('.$sc[$src]['short'].')', 'source_type' => $src, 'status' => $isDraft ? 'NEW' : 'FEASIBILITY',
                 'received_on' => now()->toDateString(), 'due_on' => $d['due_on'] ?? null, 'customer_reference' => $d['customer_reference'] ?? null,
                 'contact_name' => ($d['contact_name'] ?? null) ?: $customer->contact_name, 'summary' => $notes ?: null,
                 'created_by_id' => Auth::id(), 'created_by_name' => Auth::user()?->name,
             ]);
-            $e->items()->create([
+            $e->items()->create(EnquiryItem::intakeData(collect($d)->only(array_keys(EnquiryItem::intakeRules()))->all()) + [
                 'line_no' => 1, 'description' => $d['description'], 'product_id' => $product?->id,
                 'drawing_ref' => $d['drawing_ref'] ?? null, 'drawing_rev' => $d['drawing_rev'] ?? null, 'material_text' => ($d['material_text'] ?? null) === '__new__' ? $d['material_new'] : ($d['material_text'] ?? null),
                 'family' => $d['family'] ?? null, 'weight_kg' => ($d['weight_kg'] ?? null) ?: $product?->nominal_weight_kg,
@@ -126,7 +132,9 @@ class RequestWizardController extends Controller
             return $e;
         });
 
-        return redirect()->route('enquiries.show', $enquiry)->with('success', "Request {$enquiry->code} created for {$enquiry->customer->name}. The checklist on the Summary tab shows what usually comes next.");
+        return redirect()->route('enquiries.show', $enquiry)->with('success', $isDraft
+            ? "Draft {$enquiry->code} saved for {$enquiry->customer->name}. Send it to feasibility when it is complete."
+            : "Request {$enquiry->code} created for {$enquiry->customer->name}. The checklist on the Summary tab shows what usually comes next.");
     }
 
     private function newCustomerCode(string $name): string

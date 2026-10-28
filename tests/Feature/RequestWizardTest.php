@@ -40,6 +40,46 @@ class RequestWizardTest extends TestCase
         $this->get(route('enquiries.index'))->assertOk()->assertSee('New request (guided)');
     }
 
+    public function test_the_request_opens_as_one_dialog_over_the_enquiries_list(): void
+    {
+        $customer = $this->customer();
+        $this->submit(['source_type' => 'DRAWING', 'description' => 'Valve body', 'drawing_ref' => 'D-1'])->assertSessionHasNoErrors();
+
+        $this->get(route('enquiries.wizard', ['customer' => $customer->id, 'scenario' => 'DRAWING']))->assertOk()
+            ->assertSeeHtml('<dialog class="qd wz-modal"')->assertSee('Valve body')->assertSee('What happens next')
+            ->assertSeeHtml('name="type" value="NEW_PART" id="wzTypeNEW_PART" checked')->assertSeeHtml('<option value="DRAWING" data-sub=')
+            ->assertSee('New part')->assertSee('New product')->assertSee('Modification')->assertSee('More of a part we already make')
+            ->assertDontSee('Replacement pattern')->assertSee('Save draft')->assertSee('Send to feasibility');
+    }
+
+    public function test_save_draft_keeps_the_enquiry_new_and_the_intake_fields_are_saved(): void
+    {
+        $this->submit(['source_type' => 'DRAWING', 'description' => 'Brake caliper bracket', 'drawing_ref' => 'MAS-44817', 'action' => 'draft', 'process' => 'GREEN_SAND', 'supply_condition' => 'MACHINED_PAINTED',
+            'call_off' => '8,000 / month', 'sop_on' => '2027-04-01', 'programme_years' => 6, 'quality' => ['PPAP', 'MPI'], 'ppap_level' => 3, 'quality_other' => 'CSR v4.2'])->assertSessionHasNoErrors();
+
+        $e = Enquiry::firstOrFail();
+        $this->assertSame('NEW', $e->status);
+        $item = $e->items->first();
+        $this->assertSame('GREEN_SAND', $item->process);
+        $this->assertSame('2027-04-01', $item->sop_on->toDateString());
+        $this->assertSame(6, $item->programme_years);
+        $this->assertSame(['tests' => ['PPAP', 'MPI'], 'ppap_level' => 3, 'other' => 'CSR v4.2'], $item->quality);
+        $this->assertSame('PPAP level 3, MPI 100%, CSR v4.2', $item->qualityText());
+
+        $this->post(route('enquiries.send', $e))->assertRedirect();
+        $this->assertSame('FEASIBILITY', $e->fresh()->status);
+    }
+
+    public function test_sending_a_draft_without_a_part_is_refused_and_send_always_goes_to_feasibility(): void
+    {
+        $empty = Enquiry::create(['customer_id' => $this->customer()->id, 'title' => 'Empty', 'source_type' => 'DRAWING', 'status' => 'NEW', 'received_on' => today()]);
+        $this->post(route('enquiries.send', $empty))->assertSessionHas('error');
+        $this->assertSame('NEW', $empty->fresh()->status);
+
+        $this->submit(['source_type' => 'DRAWING', 'description' => 'Valve body', 'drawing_ref' => 'D-2', 'action' => 'send'])->assertSessionHasNoErrors();
+        $this->assertSame('FEASIBILITY', Enquiry::where('title', 'like', 'Valve body%')->firstOrFail()->status);
+    }
+
     public function test_repeat_needs_one_of_our_parts_and_takes_its_weight(): void
     {
         $this->submit(['source_type' => 'REPEAT', 'description' => 'More housings'])->assertSessionHasErrors('product_id');

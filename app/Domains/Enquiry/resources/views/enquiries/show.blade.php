@@ -11,7 +11,7 @@
 @endphp
 <div class="page-heading">
     <div><h1>{{ $e->title }}</h1><p>{{ $e->code }} · {{ $e->customer?->name }} · {{ \App\Domains\Enquiry\Models\Enquiry::SOURCES[$e->source_type] }} · <span class="status {{ $cls[$e->status] ?? '' }}">{{ $e->status }}</span></p></div>
-    <div class="actions"><a class="btn" href="{{ route('enquiries.index') }}">All enquiries</a></div>
+    <div class="actions"><a class="btn" href="{{ route('enquiries.index') }}">All enquiries</a>@if (Route::has('developments.create') && $e->isOpen())<a class="btn" href="{{ route('developments.create', ['from' => 'enquiry:'.$e->id]) }}">Start development</a>@endif @if ($e->status === 'NEW')<form method="POST" action="{{ route('enquiries.send', $e) }}" style="display:inline">@csrf<button class="btn btn-primary" type="submit">Send to feasibility</button></form>@endif</div>
 </div>
 @if (session('error'))<div class="alert alert-error">{{ session('error') }}</div>@endif
 
@@ -60,6 +60,8 @@
         {{ $it->material_text ?: 'Material not stated' }} · {{ $it->weight_kg ? \App\Support\Formats::number($it->weight_kg, 2).' kg' : 'weight unknown' }} ·
         first batch {{ $it->first_batch_qty ?? '—' }}, yearly {{ $it->annual_qty ?? '—' }}@if ($it->target_price) · target {{ \App\Support\Formats::number($it->target_price, 2) }}@endif
     </p>
+    @php $intake = collect([$it->process ? \App\Domains\Enquiry\Models\EnquiryItem::PROCESSES[$it->process] : null, $it->supply_condition ? \App\Domains\Enquiry\Models\EnquiryItem::SUPPLY_CONDITIONS[$it->supply_condition] : null, $it->call_off ? 'call-off '.$it->call_off : null, $it->sop_on ? 'SOP '.$it->sop_on->displayShortDate() : null, $it->programme_years ? $it->programme_years.' year programme' : null, $it->qualityText() ?: null])->filter(); @endphp
+    @if ($intake->isNotEmpty())<p class="small muted">{{ $intake->implode(' · ') }}</p>@endif
     <p>
         @if ($a)
             <strong>Analysis <a href="{{ route('casting-analyses.show', $a) }}">{{ $a->code }}</a></strong>: score <strong>{{ $a->score }}</strong> ({{ $a->score_letter }}){!! $severe ? ' · <span class="status status-cancelled">cut-off hotspot</span>' : '' !!}

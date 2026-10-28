@@ -39,4 +39,5 @@
         <div class="pagination">{{ $rows->links() }}</div>
     @endif
 </div>
+@yield('dialog')
 @endsection
