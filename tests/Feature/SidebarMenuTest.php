@@ -94,7 +94,7 @@ class SidebarMenuTest extends TestCase
         $html = $this->get(route('dashboard'))->assertOk()->getContent();
         $nav = substr($html, strpos($html, '<nav class="sidebar-nav"'), strpos($html, '</nav>') - strpos($html, '<nav class="sidebar-nav"'));
 
-        $this->assertSame(1, preg_match('/Sales<\/span>.*Overview.*Enquiries.*Quotations.*Sales orders.*Engineering<\/span>.*Feasibility.*Patterns &amp; tooling.*Production<\/span>.*Planning.*Melt &amp; heats.*Quality<\/span>.*Inspection.*NCR &amp; CAPA.*Audits &amp; documents.*Logistics<\/span>.*Dispatch/s', $nav));
+        $this->assertSame(1, preg_match('/Sales<\/span>.*Overview.*Enquiries.*Quotations.*Sales orders.*Engineering<\/span>.*Feasibility.*Patterns &amp; tooling.*Cores &amp; core boxes.*Production<\/span>.*Planning.*Melt &amp; heats.*Quality<\/span>.*Inspection.*NCR &amp; CAPA.*Audits &amp; documents.*Logistics<\/span>.*Dispatch/s', $nav));
         $this->assertStringNotContainsString('nav-top', $nav);
     }
 }
