@@ -37,7 +37,7 @@ class CustomerListTest extends TestCase
         $this->customer('ACME', 'Acme Pumps');
         $this->customer('BETA', 'Beta Valves');
 
-        $this->get(route('customers.index'))->assertOk()->assertSee('Acme Pumps')->assertSee('+ New customer');
+        $this->get(route('customers.index'))->assertOk()->assertSee('Acme Pumps')->assertSee('New customer');
         $this->get(route('customers.index', ['search' => 'acme']))->assertOk()->assertSee('Acme Pumps')->assertDontSee('Beta Valves');
     }
 
@@ -49,7 +49,7 @@ class CustomerListTest extends TestCase
 
         $list = Livewire::test('customer-list');
         $this->assertSame(['ACME', 'BETA', 'OLD'], $this->codes($list));
-        $list->assertViewHas('counts', fn ($c) => $c[''] === 3 && $c['active'] === 2 && $c['inactive'] === 1);
+        $list->assertViewHas('counts', fn ($c) => $c[''] === 3 && $c['active'] === 2);
 
         $list->set('search', 'beta');
         $this->assertSame(['BETA'], $this->codes($list));
@@ -58,26 +58,10 @@ class CustomerListTest extends TestCase
         $list->set('search', '555');
         $this->assertSame(['BETA'], $this->codes($list));
 
-        $list->set('search', '')->call('showSlice', 'inactive');
-        $this->assertSame(['OLD'], $this->codes($list));
-        $list->set('status', 'active');
+        $list->set('search', '')->call('showSlice', 'active');
         $this->assertSame(['ACME', 'BETA'], $this->codes($list));
         $list->call('resetFilters');
         $this->assertCount(3, $this->codes($list));
-    }
-
-    public function test_each_customer_shows_the_date_of_its_latest_dispatch(): void
-    {
-        $acme = $this->customer('ACME', 'Acme Pumps');
-        $this->customer('BETA', 'Beta Valves');
-        foreach (['D-1' => '2026-09-02 10:00', 'D-2' => '2026-10-14 15:30', 'D-3' => null] as $number => $at) {
-            DB::table('dispatches')->insert(['id' => (string) Str::uuid(), 'dispatch_number' => $number, 'customer_id' => $acme->id, 'status' => $at ? 'DISPATCHED' : 'DRAFT', 'dispatched_at' => $at, 'created_at' => now(), 'updated_at' => now()]);
-        }
-
-        $list = Livewire::test('customer-list')->assertSee('Last dispatch');
-        $dates = collect($list->viewData('customers')->items())->mapWithKeys(fn ($c) => [$c->code => $c->last_dispatched_at?->toDateString()])->all();
-
-        $this->assertSame(['ACME' => '2026-10-14', 'BETA' => null], $dates, 'the latest sent dispatch counts; a draft is not sent yet');
     }
 
     public function test_a_customer_is_added_from_the_dialog_with_a_generated_or_typed_code(): void
@@ -106,8 +90,7 @@ class CustomerListTest extends TestCase
 
         Livewire::test('customer-list')
             ->assertSeeHtml('<table class="no-row-click">')
-            ->assertSeeHtml("\$wire.select('{$acme->id}')")
-            ->assertSeeHtml("wire:click=\"edit('{$acme->id}')\"");
+            ->assertSeeHtml("wire:click=\"select('{$acme->id}')\"");
     }
 
     public function test_a_customer_is_quick_edited_and_can_be_marked_inactive(): void

@@ -2,12 +2,16 @@
 
 use App\Domains\Core\ModuleRegistry;
 use App\Domains\Enquiry\Models\Enquiry;
+use App\Domains\Enquiry\Models\Quotation;
+use App\Domains\Sales\Models\SalesOrderLine;
+use Illuminate\Database\Eloquent\Builder;
 use App\Domains\Finance\Services\CreditLimits;
 use App\Domains\Finance\Services\Receivables;
 use App\Domains\Sales\Models\SalesOrder;
 use App\Http\Middleware\EnforceAccess;
 use App\Models\Customer;
 use App\Services\Codes\CodeGenerator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -78,7 +82,7 @@ new class extends Component
 
     public function select(string $id): void
     {
-        $this->selectedId = $this->selectedId === $id ? null : $id;
+        $this->selectedId = $id;
     }
 
     /** A prospect becomes an active customer by hand; the first sales order does it too. */
@@ -159,53 +163,82 @@ new class extends Component
         $this->closeForm();
     }
 
+    /** Every customer's open balance and the part of it that is overdue, from the receivables. */
+    private function owedByCustomer(): Collection
+    {
+        if (! app(ModuleRegistry::class)->isEnabled('finance')) {
+            return collect();
+        }
+
+        return app(Receivables::class)->open()->groupBy('customer_id')->map(fn ($g) => [
+            'balance' => round($g->sum(fn ($i) => $i->balance()), 2),
+            'overdue' => round($g->filter(fn ($i) => $i->isOverdue())->sum(fn ($i) => $i->balance()), 2),
+        ]);
+    }
+
+    /** The customers the search, the tab and the overdue chip leave in. */
+    private function filtered(Collection $owed): Builder
+    {
+        $search = trim($this->search);
+
+        return Customer::query()
+            ->when($search !== '', fn ($q) => $q->where(fn ($w) => $w->matching($search)->orWhereHas('party', fn ($p) => $p
+                ->where('short_name', 'ilike', "%{$search}%")->orWhere('contact_name', 'ilike', "%{$search}%")->orWhere('billing_address', 'ilike', "%{$search}%")
+                ->orWhere('phone', 'ilike', "%{$search}%")->orWhere('email', 'ilike', "%{$search}%"))))
+            ->when($this->status === 'active', fn ($q) => $this->inStage($q, 'active'))
+            ->when($this->status === 'prospect', fn ($q) => $this->inStage($q, 'prospect'))
+            ->when($this->status === 'hold', fn ($q) => $this->inStage($q, 'hold'))
+            ->when($this->overdueOnly, fn ($q) => $q->whereIn('customers.id', $owed->filter(fn ($o) => $o['overdue'] > 0)->keys()))
+            ->orderBy('code');
+    }
+
+    private function inStage(Builder $q, string $stage): Builder
+    {
+        return match ($stage) {
+            'hold' => $q->where('credit_hold', true),
+            'prospect' => $q->where('credit_hold', false)->where('is_prospect', true)->whereDoesntHave('salesOrders'),
+            default => $q->active()->where('credit_hold', false)->where(fn ($w) => $w->where('is_prospect', false)->orWhereHas('salesOrders')),
+        };
+    }
+
+    /** The list as a spreadsheet file, whatever the search and tab show. */
+    public function export()
+    {
+        $owed = $this->owedByCustomer();
+        $rows = $this->filtered($owed)->get();
+
+        return response()->streamDownload(function () use ($rows, $owed) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['Code', 'Customer', 'Contact', 'Terms', 'Balance', 'Overdue', 'Status']);
+            foreach ($rows as $c) {
+                fputcsv($out, [$c->code, $c->name, $c->contact_name, $c->payment_terms, $owed->get($c->id)['balance'] ?? 0, $owed->get($c->id)['overdue'] ?? 0, $c->stage()]);
+            }
+            fclose($out);
+        }, 'customers.csv', ['Content-Type' => 'text/csv']);
+    }
+
     /** @return array<string, mixed> */
     public function with(): array
     {
-        $search = trim($this->search);
-        $showDispatch = app(ModuleRegistry::class)->isEnabled('dispatch');
-        $showFinance = app(ModuleRegistry::class)->isEnabled('finance');
-
-        $hold = fn ($q) => $q->where('credit_hold', true);
-        $prospect = fn ($q) => $q->where('credit_hold', false)->where('is_prospect', true)->whereDoesntHave('salesOrders');
-        $inactive = fn ($q) => $q->where('credit_hold', false)->whereHas('party', fn ($p) => $p->where('active', false));
-        $active = fn ($q) => $q->active()->where('credit_hold', false)->where(fn ($w) => $w->where('is_prospect', false)->orWhereHas('salesOrders'));
-
-        $owed = collect();
-        if ($showFinance) {
-            $owed = app(Receivables::class)->open()->groupBy('customer_id')->map(fn ($g) => [
-                'balance' => round($g->sum(fn ($i) => $i->balance()), 2),
-                'overdue' => round($g->filter(fn ($i) => $i->isOverdue())->sum(fn ($i) => $i->balance()), 2),
-            ]);
-        }
-
-        $customers = Customer::query()->withCount(['salesOrders', 'ownedPatterns'])
-            ->when($showDispatch, fn ($q) => $q->addSelect(['last_dispatched_at' => DB::table('dispatches')->selectRaw('max(dispatched_at)')->whereColumn('dispatches.customer_id', 'customers.id')])
-                ->withCasts(['last_dispatched_at' => 'datetime']))
-            ->when($search !== '', fn ($q) => $q->where(fn ($w) => $w->matching($search)->orWhereHas('party', fn ($p) => $p
-                ->where('short_name', 'ilike', "%{$search}%")->orWhere('contact_name', 'ilike', "%{$search}%")
-                ->orWhere('phone', 'ilike', "%{$search}%")->orWhere('email', 'ilike', "%{$search}%"))))
-            ->when($this->status === 'active', $active)
-            ->when($this->status === 'prospect', $prospect)
-            ->when($this->status === 'hold', $hold)
-            ->when($this->status === 'inactive', $inactive)
-            ->when($this->overdueOnly, fn ($q) => $q->whereIn('customers.id', $owed->filter(fn ($o) => $o['overdue'] > 0)->keys()))
-            ->orderBy('code')
-            ->paginate(20);
+        $owed = $this->owedByCustomer();
+        $customers = $this->filtered($owed)->withCount('salesOrders')->paginate(20);
+        $ids = $customers->getCollection()->pluck('id');
+        $parts = SalesOrderLine::query()->join('sales_orders as so', 'so.id', '=', 'sales_order_lines.sales_order_id')->whereIn('so.customer_id', $ids)
+            ->groupBy('so.customer_id')->selectRaw('so.customer_id, count(distinct sales_order_lines.product_id) as n')->pluck('n', 'customer_id');
+        $limits = $owed->isNotEmpty() || app(ModuleRegistry::class)->isEnabled('finance') ? app(CreditLimits::class) : null;
+        $selected = $this->selectedId ?? $customers->first()?->id;
 
         return [
-            'customers' => $customers,
-            'showDispatch' => $showDispatch,
-            'showFinance' => $showFinance,
-            'owed' => $owed,
+            'customers' => $customers, 'owed' => $owed, 'parts' => $parts,
+            'openValue' => $customers->getCollection()->mapWithKeys(fn ($c) => [$c->id => $limits?->openOrders($c->id)]),
+            'showFinance' => $limits !== null,
             'counts' => [
                 '' => Customer::count(),
-                'active' => $active(Customer::query())->count(),
-                'prospect' => $prospect(Customer::query())->count(),
-                'hold' => $hold(Customer::query())->count(),
-                'inactive' => $inactive(Customer::query())->count(),
+                'active' => $this->inStage(Customer::query(), 'active')->count(),
+                'prospect' => $this->inStage(Customer::query(), 'prospect')->count(),
+                'hold' => $this->inStage(Customer::query(), 'hold')->count(),
             ],
-            'panel' => $this->selectedId ? $this->panel($this->selectedId, $showFinance) : null,
+            'panel' => $selected ? $this->panel($selected, $limits !== null) : null,
             'nextCode' => app(CodeGenerator::class)->preview('customer'),
         ];
     }
@@ -221,15 +254,15 @@ new class extends Component
         if (! $customer) {
             return null;
         }
-        $stage = $customer->stage();
         $open = $customer->salesOrders()->whereIn('status', SalesOrder::OPEN);
         $oldest = $showFinance ? app(Receivables::class)->open($customer->id)->filter(fn ($i) => $i->isOverdue())->sortBy('due_date')->first() : null;
-        $enquiries = Enquiry::where('customer_id', $customer->id)->orderByDesc('received_on')->limit(3)->get();
+        $enquiry = Enquiry::where('customer_id', $customer->id)->orderBy('received_on')->first();
+        $quote = $enquiry ? Quotation::whereIn('enquiry_id', Enquiry::where('customer_id', $customer->id)->pluck('id'))->where('status', 'ACCEPTED')->orderBy('decided_at')->first() : null;
 
         return [
-            'customer' => $customer, 'stage' => $stage,
+            'customer' => $customer, 'stage' => $customer->stage(),
             'orders' => ['count' => (clone $open)->count(), 'value' => $showFinance ? app(CreditLimits::class)->openOrders($customer->id) : null],
-            'enquiries' => $enquiries, 'firstOrder' => $customer->salesOrders()->orderBy('order_date')->first(),
+            'enquiry' => $enquiry, 'quote' => $quote, 'firstOrder' => $customer->salesOrders()->orderBy('order_date')->first(),
             'oldest' => $oldest, 'canRelease' => EnforceAccess::allows(auth()->user(), 'finance.credit.update'),
             'missing' => collect([
                 $customer->credit_limit === null ? ['Credit limit', 'Not set'] : null,
@@ -244,124 +277,160 @@ new class extends Component
 
 <div>
 @include('partials.quick-dialog-assets')
+<style>
+.cl-card { border: 1px solid #e6e7e9; border-radius: 8px; background: #fff; overflow: hidden; font-size: 13px; }
+.cl-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 14px 28px; border-bottom: 1px solid #e6e7e9; }
+.cl-tabs { display: flex; gap: 4px; color: #6b6e73; }
+.cl-tabs a { padding: 4px 10px; border-radius: 6px; color: #6b6e73; text-decoration: none !important; }
+.cl-tabs a.on { background: #f0f1f3; color: #1c1d1f; }
+.cl-btn { padding: 7px 14px; border-radius: 6px; background: #fff; border: 1px solid #d9dbde; font-size: 13px; color: #1c1d1f; cursor: pointer; text-decoration: none !important; }
+.cl-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 500; }
+.cl-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; }
+.cl-main { padding: 20px 28px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.cl-filters { display: flex; gap: 8px; align-items: center; }
+.cl-filters input[type=search] { flex: 1; max-width: 320px; padding: 7px 10px; border: 1px solid #d9dbde; border-radius: 6px; font-size: 13px; }
+.cl-chip { padding: 6px 10px; border: 1px solid #d9dbde; border-radius: 6px; background: #fff; font-size: 13px; cursor: pointer; }
+.cl-chip.on { background: #f0f1f3; }
+.cl-table { margin: 0 -12px; overflow-x: auto; }
+.cl-table td, .cl-table th { text-align: left; } .cl-table .r { text-align: right; }
+.cl-table tbody tr { cursor: pointer; } .cl-table tbody tr.sel { background: #f5f8fe; }
+.cl-sub { font-size: 12px; color: #6b6e73; }
+.cl-pill { font-size: 11.5px; padding: 2px 8px; border-radius: 999px; font-weight: 500; white-space: nowrap; display: inline-block; }
+.cl-ok { background: #e7f4ec; color: #1d7048; } .cl-warn { background: #fbf0dc; color: #94610a; } .cl-bad { background: #fbe7e5; color: #b3352c; } .cl-info { background: #eaf0fd; color: #2f5fd0; }
+.cl-side { border-left: 1px solid #e6e7e9; padding: 20px 24px; background: #f8f8f9; display: flex; flex-direction: column; gap: 18px; }
+.cl-side h3 { margin: 0; font-size: 16px; font-weight: 600; }
+.cl-side .lab { font-size: 12px; color: #6b6e73; }
+.cl-two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.cl-sec { font-size: 12px; font-weight: 600; color: #6b6e73; text-transform: uppercase; letter-spacing: .06em; }
+.cl-row { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid #e6e7e9; }
+.cl-row:last-child { border-bottom: 0; } .cl-row span + span { color: #6b6e73; text-align: right; }
+.cl-step { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 8px 0; }
+.cl-dot { width: 10px; height: 10px; margin-top: 4px; border-radius: 50%; }
+.cl-step small { font-size: 12px; color: #6b6e73; display: block; }
+.cl-alert { padding: 12px 14px; border-radius: 8px; background: #fbe7e5; color: #b3352c; display: flex; flex-direction: column; gap: 4px; line-height: 1.5; }
+@media (max-width: 1000px) { .cl-grid { grid-template-columns: minmax(0, 1fr); } .cl-side { border-left: 0; border-top: 1px solid #e6e7e9; } }
+</style>
 
 @if ($saved)<div class="alert alert-success" role="status">{{ $saved }}</div>@endif
 
-<div class="metrics">
-    @foreach (['' => 'All', 'active' => 'Active', 'prospect' => 'Prospects', 'hold' => 'On hold', 'inactive' => 'Inactive'] as $key => $label)
-        <a href="#" class="metric" wire:click.prevent="showSlice('{{ $key }}')" style="text-decoration:none;color:inherit"><div class="metric-label">{{ $label }}</div><div class="metric-value" @if (in_array($key, ['hold', 'inactive'], true) && $counts[$key]) style="color:var(--warning)" @endif>{{ $counts[$key] }}</div></a>
-    @endforeach
-</div>
-
-<div class="panel">
-    <div class="panel-body">
-        <div class="filters" role="search">
-            <div class="field">
-                <label for="cust-search">Search code, name, contact, phone or email</label>
-                <input id="cust-search" type="search" wire:model.live.debounce.300ms="search" autocomplete="off">
-            </div>
-            <div class="field">
-                <label for="cust-status">Status</label>
-                <select id="cust-status" wire:model.live="status">
-                    <option value="">All</option>
-                    <option value="active">Active</option>
-                    <option value="prospect">Prospects</option>
-                    <option value="hold">On hold</option>
-                    <option value="inactive">Inactive</option>
-                </select>
-            </div>
-            @if ($showFinance)<div class="field"><label>&nbsp;</label><label><input type="checkbox" wire:model.live="overdueOnly"> Overdue only</label></div>@endif
-            <button class="btn" type="button" wire:click="resetFilters">Reset</button>
-            <span class="muted small" wire:loading.delay>Updating…</span>
-            <button class="btn btn-primary" type="button" wire:click="create" style="margin-left:auto">+ New customer</button>
-        </div>
-    </div>
-</div>
-
-<div style="display:grid;gap:16px;align-items:start;grid-template-columns:{{ $panel ? 'minmax(0,1fr) 340px' : 'minmax(0,1fr)' }}">
-<div class="panel">
-    <div class="panel-header">
-        <h2>Customers</h2>
-        <span class="muted small">{{ $customers->total() }} records</span>
-    </div>
-
-    @if ($customers->isEmpty())
-        <div class="empty-state">
-            <strong>No customers found</strong>
-            <p>{{ $counts[''] ? 'Nothing matches these filters.' : 'Add the first customer before entering an order.' }}</p>
-            <button class="btn btn-primary" type="button" wire:click="create">+ New customer</button>
-        </div>
-    @else
-        <div class="table-wrap">
-            {{-- Clicking a row opens its quick edit, so the app's generic "row opens its first link" is switched off here. --}}
-            <table class="no-row-click">
-                <thead><tr><th>Customer</th><th>Contact</th><th>Terms</th><th>Orders</th>@if ($showFinance)<th>Balance</th>@endif@if ($showDispatch)<th>Last dispatch</th>@endif<th>Patterns held</th><th>Status</th><th></th></tr></thead>
-                <tbody>
-                @foreach ($customers as $customer)
-                    @php $stage = $customer->stage(); $o = $owed->get($customer->id); @endphp
-                    <tr wire:key="customer-{{ $customer->id }}" class="row-link" @style(['background:var(--surface-sub)' => $selectedId === $customer->id]) title="Click to see {{ $customer->name }}" x-data x-on:click="if (! $event.target.closest('a, button, input, label') && ! String(window.getSelection())) $wire.select('{{ $customer->id }}')">
-                        <td><strong style="font-size:15px">{{ $customer->name }}</strong><div class="muted small"><span class="mono">{{ $customer->code }}</span>@if ($customer->short_name) · {{ $customer->short_name }}@endif</div></td>
-                        <td>{{ $customer->contact_name ?: '—' }}@if ($customer->phone || $customer->email)<div class="muted small">{{ collect([$customer->phone, $customer->email])->filter()->implode(' · ') }}</div>@endif</td>
-                        <td>{{ $customer->payment_terms ?: '—' }}</td>
-                        <td>{{ $customer->sales_orders_count }}</td>
-                        @if ($showFinance)<td>@if ($o){{ \App\Support\Formats::number($o['balance'], 0) }}@if ($o['overdue'] > 0)<div class="small" style="color:var(--danger)">{{ \App\Support\Formats::number($o['overdue'], 0) }} overdue</div>@endif @else — @endif</td>@endif
-                        @if ($showDispatch)<td>@if ($customer->last_dispatched_at)<a href="{{ route('dispatches.index', ['customer' => $customer->id]) }}">{{ $customer->last_dispatched_at->displayDate() }}</a><div class="muted small">{{ $customer->last_dispatched_at->diffForHumans() }}</div>@else — @endif</td>@endif
-                        <td>@if ($customer->owned_patterns_count)<a href="{{ route('patterns.index', ['owner' => $customer->id]) }}">{{ $customer->owned_patterns_count }}</a>@else — @endif</td>
-                        <td><span class="status {{ ['active' => 'status-completed', 'prospect' => 'status-in-progress', 'hold' => 'status-cancelled', 'inactive' => 'status-on-hold'][$stage] }}">{{ ['active' => 'Active', 'prospect' => 'Prospect', 'hold' => 'On hold', 'inactive' => 'Inactive'][$stage] }}</span></td>
-                        <td style="white-space:nowrap"><button class="btn btn-small" type="button" wire:click="edit('{{ $customer->id }}')">Quick edit</button> <a href="{{ route('customer-requirements.edit', $customer) }}">Requirements →</a></td>
-                    </tr>
-                @endforeach
-                </tbody>
-            </table>
-        </div>
-        <div class="pagination">
-            <div class="muted small">Showing {{ $customers->firstItem() }}–{{ $customers->lastItem() }} of {{ $customers->total() }}</div>
-            <div class="pagination-links">{{ $customers->links() }}</div>
-        </div>
-    @endif
-</div>
-
-@if ($panel)
 @php
-    $c = $panel['customer']; $stage = $panel['stage']; $money = fn ($v) => \App\Support\Formats::number((float) $v, 0);
-    $row = fn ($l, $v) => '<div style="display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid var(--border)"><span class="muted">'.e($l).'</span><span style="text-align:right">'.$v.'</span></div>';
+    $money = fn ($v) => '$'.\App\Support\Formats::number((float) $v, 0);
+    $stages = ['active' => ['Active', 'cl-ok'], 'prospect' => ['Prospect', 'cl-warn'], 'hold' => ['On hold', 'cl-bad'], 'inactive' => ['Inactive', 'cl-warn']];
+    $c = $panel['customer'] ?? null; $stage = $panel['stage'] ?? null;
+    $sub = fn ($x) => collect([$x->short_name, $x->billing_address ? trim(strtok($x->billing_address, "\n")) : null])->filter()->implode(' · ');
 @endphp
-<aside class="panel" wire:key="customer-panel-{{ $c->id }}">
-    <div class="panel-header"><div><h2>{{ $c->name }}</h2><span class="muted small">{{ $c->code }}@if ($c->short_name) · {{ $c->short_name }}@endif</span></div>
-        <span class="status {{ ['active' => 'status-completed', 'prospect' => 'status-in-progress', 'hold' => 'status-cancelled', 'inactive' => 'status-on-hold'][$stage] }}">{{ ['active' => 'Active', 'prospect' => 'Prospect', 'hold' => 'On hold', 'inactive' => 'Inactive'][$stage] }}</span></div>
-    <div class="panel-body">
-        @if ($stage === 'hold')
-            <div class="alert alert-error">Credit hold{{ $c->credit_hold_reason ? ': '.$c->credit_hold_reason : '' }}@if ($panel['oldest']) <br>{{ $money($panel['oldest']->balance()) }} overdue {{ $panel['oldest']->due_date->diffInDays(today()) }} days on <a href="{{ route('invoices.show', $panel['oldest']) }}">{{ $panel['oldest']->invoice_number }}</a>.@endif</div>
-            <strong class="small">Blocked while on hold</strong>
-            {!! $row('New sales orders', '<span style="color:var(--danger)">Blocked</span>') !!}
-            {!! $row('Dispatch notes', '<span style="color:var(--danger)">Blocked</span>') !!}
-            {!! $row('Quotes', 'Allowed') !!}
-            {!! $row('Work in progress', 'Allowed to finish') !!}
-            <p class="muted small">Released when the balance is paid, or by accounts or the owner.</p>
-        @elseif ($stage === 'prospect')
-            <strong class="small">Path to serial supply</strong>
-            @php $enq = $panel['enquiries']->first(); @endphp
-            {!! $row('Enquiry received', $enq ? '<a href="'.route('enquiries.show', $enq).'">'.e($enq->code).'</a> · '.e($enq->received_on?->displayShortDate()) : '<span class="muted">None yet</span>') !!}
-            {!! $row('First serial order', $panel['firstOrder'] ? e($panel['firstOrder']->order_number) : '<span class="muted">Converts to Active</span>') !!}
-            <strong class="small" style="display:block;margin-top:12px">Missing before first order</strong>
-            @forelse ($panel['missing'] as [$what, $state]){!! $row($what, '<span style="color:var(--warning)">'.e($state).'</span>') !!}@empty<p class="muted small">Nothing missing.</p>@endforelse
-        @else
-            {!! $row('Main contact', e($c->contact_name ?: '—')) !!}
-            {!! $row('Credit limit', $c->credit_limit !== null ? $money($c->credit_limit) : 'Not set') !!}
-            {!! $row('Terms', e($c->payment_terms ?: '—')) !!}
-            <strong class="small" style="display:block;margin-top:12px">Open now</strong>
-            {!! $row('Sales orders', $panel['orders']['count'].($panel['orders']['value'] !== null ? ' · '.$money($panel['orders']['value']) : '')) !!}
-            {!! $row('Patterns held', $c->owned_patterns_count ? '<a href="'.route('patterns.index', ['owner' => $c->id]).'">'.$c->owned_patterns_count.'</a>' : '—') !!}
-        @endif
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
-            @if ($c->party_id)<a class="btn" href="{{ route('parties.show', $c->party_id) }}">Open record</a>@endif
-            @if ($stage === 'prospect')<button class="btn btn-primary" type="button" wire:click="markActive('{{ $c->id }}')">Mark as active</button>@endif
-            @if ($stage === 'hold' && $panel['canRelease'])<button class="btn btn-primary" type="button" wire:click="releaseHold('{{ $c->id }}')" wire:confirm="Release the credit hold on {{ $c->name }}?">Release hold</button>@endif
-            <button class="btn" type="button" wire:click="select('{{ $c->id }}')">Close</button>
+<div class="cl-card">
+    <div class="cl-bar">
+        <div style="display:flex;align-items:center;gap:16px">
+            <strong style="font-weight:600">Customers</strong>
+            <nav class="cl-tabs">
+                @foreach (['' => 'All', 'active' => 'Active', 'prospect' => 'Prospects', 'hold' => 'On hold'] as $key => $label)
+                    <a href="#" wire:click.prevent="showSlice('{{ $key }}')" @class(['on' => $status === $key])>{{ $label }} {{ $counts[$key] }}</a>
+                @endforeach
+            </nav>
+        </div>
+        <div style="display:flex;gap:8px">
+            <button class="cl-btn" type="button" wire:click="export">Export</button>
+            <button class="cl-btn primary" type="button" wire:click="create">New customer</button>
         </div>
     </div>
-</aside>
-@endif
+    <div class="cl-grid">
+        <div class="cl-main">
+            <div class="cl-filters">
+                <input type="search" wire:model.live.debounce.300ms="search" placeholder="Search name, city or contact" autocomplete="off" aria-label="Search name, city or contact">
+                @if ($showFinance)<button type="button" wire:click="$toggle('overdueOnly')" @class(['cl-chip', 'on' => $overdueOnly])>Overdue only</button>@endif
+            </div>
+            @if ($customers->isEmpty())
+                <div class="muted">{{ $counts[''] ? 'No customer matches.' : 'Add the first customer before entering an order.' }}</div>
+            @else
+            <div class="cl-table">
+                <table class="no-row-click">
+                    <thead><tr><th>Customer</th><th>Supply</th><th class="r">Parts</th><th class="r">Open orders</th><th class="r">Developments</th><th class="r">PPM 12 mo</th><th>Terms</th><th class="r">Balance</th><th>Status</th></tr></thead>
+                    <tbody>
+                    @foreach ($customers as $row)
+                        @php $st = $row->stage(); $o = $owed->get($row->id); @endphp
+                        <tr wire:key="customer-{{ $row->id }}" @class(['sel' => $c && $c->id === $row->id]) wire:click="select('{{ $row->id }}')">
+                            <td><div style="font-weight:500">{{ $row->name }}</div><div class="cl-sub">{{ $sub($row) ?: $row->code }}</div></td>
+                            <td>{{ $row->sales_orders_count ? 'Serial' : '—' }}</td>
+                            <td class="r">{{ $parts[$row->id] ?? 0 }}</td>
+                            <td class="r">{{ $openValue[$row->id] !== null ? $money($openValue[$row->id]) : '—' }}</td>
+                            <td class="r">—</td>
+                            <td class="r">—</td>
+                            <td>{{ $row->payment_terms ?: '—' }}</td>
+                            <td class="r">@if ($showFinance){{ $money($o['balance'] ?? 0) }}@if (($o['overdue'] ?? 0) > 0) · <span class="cl-pill cl-bad">{{ $money($o['overdue']) }} overdue</span>@endif @else — @endif</td>
+                            <td><span class="cl-pill {{ $stages[$st][1] }}">{{ $stages[$st][0] }}</span></td>
+                        </tr>
+                    @endforeach
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination"><div class="pagination-links">{{ $customers->links() }}</div></div>
+            @endif
+        </div>
+
+        @if ($c)
+        <aside class="cl-side" wire:key="customer-panel-{{ $c->id }}">
+            <div>
+                <div style="display:flex;align-items:center;gap:8px"><h3>{{ $c->name }}</h3>@if ($stage !== 'active')<span class="cl-pill {{ $stages[$stage][1] }}">{{ $stages[$stage][0] }}</span>@endif</div>
+                <div style="color:#6b6e73">{{ $sub($c) ?: $c->code }}</div>
+            </div>
+
+            @if ($stage === 'hold')
+                <div class="cl-alert"><span style="font-weight:600">Credit hold</span>
+                    <span style="font-size:12.5px">{{ $c->credit_hold_reason ?: 'No reason recorded.' }}@if ($panel['oldest']) {{ $money($panel['oldest']->balance()) }} overdue {{ (int) $panel['oldest']->due_date->diffInDays(today()) }} days on <code>{{ $panel['oldest']->invoice_number }}</code>.@endif</span></div>
+                <div><div class="cl-sec">Blocked while on hold</div><div style="margin-top:8px">
+                    <div class="cl-row"><span>New sales orders</span><span>Blocked</span></div>
+                    <div class="cl-row"><span>Dispatch notes</span><span>Blocked</span></div>
+                    <div class="cl-row"><span>Quotes</span><span>Allowed</span></div>
+                    <div class="cl-row"><span>Work in progress</span><span>Allowed to finish</span></div></div></div>
+                <div style="font-size:12.5px;color:#6b6e73;line-height:1.5">Released when the balance is paid, or by accounts or the owner.</div>
+            @else
+                <div class="cl-two">
+                    <div><div class="lab">Main contact</div><div>{{ $c->contact_name ?: '—' }}</div></div>
+                    <div><div class="lab">Phone</div><div>{{ $c->phone ?: '—' }}</div></div>
+                    <div><div class="lab">Credit limit</div><div>{!! $c->credit_limit !== null ? e($money($c->credit_limit)) : '<span style="color:#6b6e73">Not set</span>' !!}</div></div>
+                    <div><div class="lab">Terms</div><div>{{ $c->payment_terms ?: '—' }}</div></div>
+                </div>
+                @if ($stage === 'prospect')
+                    @php
+                        $steps = [
+                            ['Enquiry received', $panel['enquiry'] ? '<code>'.e($panel['enquiry']->code).'</code> '.e($panel['enquiry']->title) : null, $panel['enquiry']?->received_on?->format('d M')],
+                            ['Quote accepted', $panel['quote'] ? '<code>'.e($panel['quote']->code).'</code>' : null, $panel['quote']?->decided_at?->format('d M')],
+                            ['First serial order', $panel['firstOrder'] ? '<code>'.e($panel['firstOrder']->order_number).'</code>' : 'Converts to Active', $panel['firstOrder']?->order_date?->format('d M')],
+                        ];
+                        $current = collect($steps)->search(fn ($x) => $x[2] === null);
+                    @endphp
+                    <div><div class="cl-sec">Path to serial supply</div><div style="margin-top:4px">
+                        @foreach ($steps as $i => [$what, $detail, $when])
+                            <div class="cl-step">
+                                @if ($when !== null)<span class="cl-dot" style="background:var(--accent)"></span>
+                                @elseif ($i === $current)<span class="cl-dot" style="border:2px solid var(--accent);width:6px;height:6px;background:#fff"></span>
+                                @else<span class="cl-dot" style="border:1px solid #c4c7cc"></span>@endif
+                                <div><div @style(['font-weight:600' => $i === $current])>{{ $what }}</div>@if ($detail)<small>{!! $detail !!}</small>@endif</div>
+                                <span class="cl-sub">{{ $when }}</span>
+                            </div>
+                        @endforeach
+                    </div></div>
+                    <div><div class="cl-sec">Missing before first order</div><div style="margin-top:8px">
+                        @forelse ($panel['missing'] as [$what, $state])<div class="cl-row"><span>{{ $what }}</span><span>{{ $state }}</span></div>@empty<div class="cl-sub">Nothing missing.</div>@endforelse
+                    </div></div>
+                @else
+                    <div><div class="cl-sec">Open now</div><div style="margin-top:8px">
+                        <div class="cl-row"><span>Sales orders</span><span>{{ $panel['orders']['count'] }}{{ $panel['orders']['value'] !== null ? ' · '.$money($panel['orders']['value']) : '' }}</span></div>
+                        <div class="cl-row"><span>Patterns held</span><span>@if ($c->owned_patterns_count){{ $c->owned_patterns_count }} in register <a href="{{ route('patterns.index', ['owner' => $c->id]) }}">view</a>@else — @endif</span></div>
+                    </div></div>
+                @endif
+            @endif
+
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                @if ($c->party_id)<a class="cl-btn" href="{{ route('parties.show', $c->party_id) }}">Open record</a>@endif
+                <a class="cl-btn" href="{{ route('customer-requirements.edit', $c) }}">Requirements</a>
+                @if ($stage === 'prospect')<button class="cl-btn primary" type="button" wire:click="markActive('{{ $c->id }}')">Mark as active</button>@endif
+                @if ($stage === 'hold' && $panel['canRelease'])<button class="cl-btn primary" type="button" wire:click="releaseHold('{{ $c->id }}')" wire:confirm="Release the credit hold on {{ $c->name }}?">Release hold</button>@endif
+            </div>
+        </aside>
+        @endif
+    </div>
 </div>
 
 @if ($formOpen)
