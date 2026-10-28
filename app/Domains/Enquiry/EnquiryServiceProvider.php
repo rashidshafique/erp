@@ -40,6 +40,7 @@ class EnquiryServiceProvider extends ModuleServiceProvider
         parent::register();
         $this->mergeConfigFrom(__DIR__.'/config/quotation.php', 'quotation');
         $this->mergeConfigFrom(__DIR__.'/config/enquiry_scenarios.php', 'enquiry_scenarios');
+        $this->mergeConfigFrom(__DIR__.'/config/feasibility.php', 'feasibility');
     }
 
     protected function classAliases(): array
@@ -83,6 +84,7 @@ class EnquiryServiceProvider extends ModuleServiceProvider
         return [
             ['pattern' => 'enquiries.*', 'permission' => 'sales.manage'],
             ['pattern' => 'quotations.*', 'permission' => 'sales.manage'],
+            ['pattern' => 'feasibility.*', 'permission' => 'sales.manage'],
         ];
     }
 

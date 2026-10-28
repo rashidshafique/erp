@@ -21,7 +21,7 @@ class MenuLayout
             ['/customers', null], ['/products', null], ['/price-lists', null], ['/partners', null],
         ]],
         ['Engineering', 'layers', [
-            ['/enquiries?status=FEASIBILITY', 'Feasibility', 'clipboard-check'], ['/patterns', 'Patterns & tooling'], ['/cores', null], ['/core-lots', null], ['/casting-analyses', null],
+            ['/feasibility', 'Feasibility', 'clipboard-check'], ['/patterns', 'Patterns & tooling'], ['/cores', null], ['/core-lots', null], ['/casting-analyses', null],
         ]],
         ['Production', 'factory', [
             ['/planner', 'Planning'], ['/heats', 'Melt & heats'], ['/calendar', null], ['/production-orders', null], ['/lots/queue', null],

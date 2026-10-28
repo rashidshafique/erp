@@ -1,6 +1,7 @@
 <?php
 
 use App\Domains\Enquiry\Http\Controllers\EnquiryController;
+use App\Domains\Enquiry\Http\Controllers\FeasibilityController;
 use App\Domains\Enquiry\Http\Controllers\QuotationController;
 use App\Domains\Enquiry\Http\Controllers\QuotationSettingsController;
 use App\Domains\Enquiry\Http\Controllers\RequestWizardController;
@@ -22,6 +23,12 @@ Route::middleware('web')->group(function () {
         Route::post('/{enquiry}/items/{item}/feasibility', 'feasibility')->name('items.feasibility');
         Route::post('/{enquiry}/items/{item}/analysis', 'attachAnalysis')->name('items.analysis');
         Route::post('/{enquiry}/quotations', [QuotationController::class, 'store'])->name('quotations.store');
+    });
+
+    Route::prefix('feasibility')->name('feasibility.')->controller(FeasibilityController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('/{item}', 'show')->name('show');
+        Route::post('/{item}/departments/{department}', 'sign')->name('sign');
     });
 
     Route::prefix('quotations')->name('quotations.')->controller(QuotationController::class)->group(function () {
