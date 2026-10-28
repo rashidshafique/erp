@@ -85,11 +85,22 @@ class EnquiryRecordTest extends TestCase
         $this->get(route('enquiries.show', $e))->assertSee('RFQ received with drawing rev D')->assertSee('In · K. Osei')->assertSee('MAS-PS-07 black');
     }
 
+    public function test_won_for_an_established_customer_opens_a_new_product_development(): void
+    {
+        $e = $this->enquiry(['pattern_route' => 'NEW']);
+        $svc = app(QuotationService::class);
+        $this->assertNull($svc->issue($svc->create($e)->fresh()));
+        $this->post(route('enquiries.close', $e), ['outcome' => 'WON'])->assertRedirect();
+
+        $this->assertSame('NEW_PRODUCT', PatternDevelopment::where('enquiry_id', $e->id)->firstOrFail()->type);
+    }
+
     public function test_won_accepts_the_issued_quote_makes_the_order_and_opens_the_development_for_a_new_pattern(): void
     {
         $e = $this->enquiry(['pattern_route' => 'NEW']);
         $this->post(route('enquiries.close', $e), ['outcome' => 'WON'])->assertSessionHasErrors('outcome', null, 'close');
 
+        $e->customer->update(['is_prospect' => true]);
         $svc = app(QuotationService::class);
         $q = $svc->create($e);
         $this->assertNull($svc->issue($q->fresh()));
@@ -100,7 +111,7 @@ class EnquiryRecordTest extends TestCase
         $this->assertSame('ACCEPTED', $q->fresh()->status);
         $this->assertNotNull($q->fresh()->sales_order_id);
         $dev = PatternDevelopment::where('enquiry_id', $e->id)->firstOrFail();
-        $this->assertSame('NEW_PART', $dev->type);
+        $this->assertSame('NEW_PART', $dev->type, 'A first-time customer starts with a new part.');
         $this->assertTrue($e->events()->where('text', 'like', 'Closed as won.%')->exists());
         $this->get(route('enquiries.show', $e))->assertOk()->assertSee($dev->code)->assertDontSee('Close enquiry');
     }

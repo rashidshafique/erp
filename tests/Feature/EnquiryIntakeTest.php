@@ -101,6 +101,12 @@ class EnquiryIntakeTest extends TestCase
         $this->assertSame('MAS-RFQ-88213', Enquiry::firstOrFail()->customer_reference);
     }
 
+    public function test_a_new_customer_cannot_ask_for_a_repeat_or_change_of_our_parts(): void
+    {
+        $this->post(route('enquiries.store'), ['customer_mode' => 'NEW', 'new_name' => 'Fresh Co', 'source_type' => 'REPEAT', 'action' => 'draft'])->assertSessionHasErrors('source_type');
+        $this->assertSame(0, Customer::count());
+    }
+
     public function test_a_new_customer_is_made_on_the_spot_but_not_twice(): void
     {
         $this->post(route('enquiries.store'), ['customer_mode' => 'NEW', 'new_name' => 'Orbis Gears', 'new_contact' => 'Ali', 'source_type' => 'CONCEPT', 'summary' => 'Gear cover', 'action' => 'send', 'items' => [['description' => 'Cover']]])

@@ -78,10 +78,16 @@ class Customer extends Model
     {
         return match (true) {
             (bool) $this->credit_hold => 'hold',
-            $this->is_prospect && ! $this->salesOrders()->exists() => 'prospect',
+            $this->isFirstTimeCustomer() => 'prospect',
             ! $this->active => 'inactive',
             default => 'active',
         };
+    }
+
+    /** Flagged as a prospect and never ordered: the first work for them is a new part, not another product. */
+    public function isFirstTimeCustomer(): bool
+    {
+        return $this->is_prospect && ! $this->salesOrders()->exists();
     }
 
     public function salesOrders(): HasMany

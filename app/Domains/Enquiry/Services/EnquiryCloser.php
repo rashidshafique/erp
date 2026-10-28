@@ -42,7 +42,9 @@ class EnquiryCloser
             throw ValidationException::withMessages(['outcome' => 'Won needs an issued quotation for the customer to accept. Issue the quotation first.']);
         }
 
-        return DB::transaction(function () use ($enquiry, $quote, $d) {
+        $firstTime = (bool) $enquiry->customer?->isFirstTimeCustomer();
+
+        return DB::transaction(function () use ($enquiry, $quote, $d, $firstTime) {
             try {
                 $order = $this->quotations->accept($quote);
             } catch (\RuntimeException $e) {
@@ -50,7 +52,7 @@ class EnquiryCloser
             }
             $enquiry->refresh();
             $enquiry->update(['close_reason' => null, 'lost_reason' => $d['note'] ?? null]);
-            $development = $this->developmentFor($enquiry);
+            $development = $this->developmentFor($enquiry, $firstTime);
             EnquiryEvent::system($enquiry, "Closed as won. {$quote->code} accepted; sales order {$order->order_number} created."
                 .($development ? " Pattern development {$development->code} opened." : '').(filled($d['note'] ?? null) ? ' '.$d['note'] : ''));
 
@@ -80,8 +82,8 @@ class EnquiryCloser
         return ['order' => null, 'development' => null];
     }
 
-    /** A won enquiry with a new pattern decided gets its development, unless one is already open or the module is off. */
-    private function developmentFor(Enquiry $enquiry): ?PatternDevelopment
+    /** A won enquiry with a new pattern decided gets its development, unless one is already open or the module is off. A first-time customer's is a new part; an established customer's a new product. */
+    private function developmentFor(Enquiry $enquiry, bool $firstTime): ?PatternDevelopment
     {
         if ($enquiry->pattern_route !== 'NEW' || ! $this->modules->isEnabled('development') || ! class_exists(PatternDevelopment::class)) {
             return null;
@@ -90,7 +92,7 @@ class EnquiryCloser
             return null;
         }
         $development = PatternDevelopment::create([
-            'type' => 'NEW_PART', 'title' => $enquiry->items()->first()?->description ?: $enquiry->title, 'enquiry_id' => $enquiry->id,
+            'type' => $firstTime ? 'NEW_PART' : 'NEW_PRODUCT', 'title' => $enquiry->items()->first()?->description ?: $enquiry->title, 'enquiry_id' => $enquiry->id,
             'customer_id' => $enquiry->customer_id, 'owner_name' => $enquiry->owner?->name ?? Auth::user()?->name,
             'created_by_id' => Auth::id(), 'created_by_name' => Auth::user()?->name,
         ]);

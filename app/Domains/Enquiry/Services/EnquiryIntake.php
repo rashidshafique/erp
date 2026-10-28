@@ -59,6 +59,9 @@ class EnquiryIntake
         if (($d['customer_mode'] ?? 'EXISTING') === 'NEW' && Customer::whereHas('party', fn ($q) => $q->whereRaw('lower(name) = ?', [Str::lower(trim($d['new_name']))]))->exists()) {
             throw ValidationException::withMessages(['new_name' => 'A customer with this name already exists. Choose it from the list instead.']);
         }
+        if (($d['customer_mode'] ?? 'EXISTING') === 'NEW' && in_array($src, self::OWN_PART, true)) {
+            throw ValidationException::withMessages(['source_type' => 'A new customer has no parts of ours yet. Choose a new part kind of request.']);
+        }
         $this->checkRemovals($parts, $enquiry);
 
         return DB::transaction(function () use ($d, $request, $enquiry, $action, $src, $parts, $kept, $filesGiven) {

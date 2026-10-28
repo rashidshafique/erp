@@ -32,12 +32,16 @@ class PatternDevelopmentTest extends TestCase
     public function test_the_dialog_opens_over_the_list_from_each_place_with_the_right_type(): void
     {
         $customer = $this->customer();
-        $enquiry = Enquiry::create(['customer_id' => $customer->id, 'title' => 'Water pump housing', 'source_type' => 'DRAWING', 'status' => 'FEASIBILITY', 'received_on' => today()]);
+        $prospect = Customer::create(['code' => 'NEW1', 'name' => 'Newcomer Ltd', 'active' => true, 'is_prospect' => true]);
+        $enquiry = Enquiry::create(['customer_id' => $prospect->id, 'title' => 'Water pump housing', 'source_type' => 'DRAWING', 'status' => 'FEASIBILITY', 'received_on' => today()]);
+        $established = Enquiry::create(['customer_id' => $customer->id, 'title' => 'Second part', 'source_type' => 'DRAWING', 'status' => 'FEASIBILITY', 'received_on' => today()]);
         $product = $this->product();
         $pattern = $this->pattern($customer);
 
         $this->get(route('developments.create', ['from' => 'enquiry:'.$enquiry->id]))->assertOk()->assertSeeHtml('<dialog class="qd dv-modal"')
             ->assertSeeHtml('name="type" value="NEW_PART" checked')->assertSee('Opened from enquiry '.$enquiry->code)->assertSee('Stages for this type');
+        $this->get(route('developments.create', ['from' => 'enquiry:'.$established->id]))->assertOk()
+            ->assertSeeHtml('name="type" value="NEW_PRODUCT" checked');
         $this->get(route('developments.create', ['from' => 'pattern:'.$pattern->id]))->assertOk()
             ->assertSeeHtml('name="type" value="REPLACEMENT" checked')->assertSee('Opened from pattern register PT-0287');
         $this->get(route('developments.create', ['from' => 'product:'.$product->id]))->assertOk()

@@ -181,8 +181,8 @@ class PatternDevelopmentController extends Controller
         $preset = ['type' => 'NEW_PART'];
         $label = 'Pattern developments';
 
-        if ($kind === 'enquiry' && $e = Enquiry::with('items')->find($id)) {
-            $preset += ['enquiry_id' => $e->id, 'customer_id' => $e->customer_id, 'title' => $e->items->first()?->description ?: $e->title];
+        if ($kind === 'enquiry' && $e = Enquiry::with('items', 'customer')->find($id)) {
+            $preset = ['type' => $e->customer?->isFirstTimeCustomer() === false ? 'NEW_PRODUCT' : 'NEW_PART', 'enquiry_id' => $e->id, 'customer_id' => $e->customer_id, 'title' => $e->items->first()?->description ?: $e->title];
             $label = 'enquiry '.$e->code;
         } elseif ($kind === 'product' && $p = Product::find($id)) {
             $preset = ['type' => 'MODIFICATION', 'product_id' => $p->id, 'title' => 'Modify '.$p->name];

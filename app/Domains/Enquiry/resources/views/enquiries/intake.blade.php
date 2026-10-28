@@ -245,7 +245,15 @@
     function kind() { return checked('source_type'); }
     function toggle(g, on) { g.hidden = !on; g.querySelectorAll('input,select,textarea').forEach(function (i) { i.disabled = !on || form.querySelector('fieldset').disabled; }); }
 
-    function applyMode() { form.querySelectorAll('[data-mode]').forEach(function (g) { toggle(g, g.getAttribute('data-mode') === (checked('customer_mode') || 'EXISTING')); }); }
+    function applyMode() {
+        var isNew = checked('customer_mode') === 'NEW';
+        form.querySelectorAll('[data-mode]').forEach(function (g) { toggle(g, g.getAttribute('data-mode') === (checked('customer_mode') || 'EXISTING')); });
+        form.querySelectorAll('#kindChips .ei-chip').forEach(function (c) {
+            var i = c.querySelector('input'), own = OWN.indexOf(i.value) >= 0;
+            c.hidden = isNew && own;
+            if (c.hidden && i.checked) { i.checked = false; applyKind(); }
+        });
+    }
     function applyKind() {
         var k = kind();
         form.querySelectorAll('#kindChips .ei-chip').forEach(function (c) { c.classList.toggle('on', c.querySelector('input').checked); });
