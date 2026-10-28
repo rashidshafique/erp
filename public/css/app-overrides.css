@@ -355,3 +355,6 @@ th { border-bottom-color: var(--border); }
 .simple-check:checked::after { left: 14px; }
 .simple-check:focus { border: 0 !important; box-shadow: none !important; outline: none; }
 .simple-check:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.menu-edit { border: 0 !important; border-radius: 12px !important; overflow: hidden; outline: none; }
+.menu-edit .qd-head { border-bottom: 0; padding-bottom: 4px; }
+.menu-edit .qd-foot { border-top: 0; }
