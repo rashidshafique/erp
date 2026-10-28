@@ -29,12 +29,13 @@ class Customer extends Model
         'tax_number',
         'payment_terms',
         'active',
+        'is_prospect',
     ];
 
     /** Credit fields are set by the Finance module, price list by Sales; neither is mass-assigned from the customer forms. */
     protected function casts(): array
     {
-        return ['credit_limit' => 'float', 'credit_hold' => 'boolean', 'credit_release_until' => 'date'];
+        return ['credit_limit' => 'float', 'credit_hold' => 'boolean', 'is_prospect' => 'boolean', 'credit_release_until' => 'date'];
     }
 
     /**
@@ -68,6 +69,17 @@ class Customer extends Model
     public function requirementProfiles(): BelongsToMany
     {
         return $this->belongsToMany(\App\Domains\Compliance\Models\RequirementProfile::class, 'customer_requirement_profiles', 'customer_id', 'requirement_profile_id')->withTimestamps();
+    }
+
+    /** Where the account stands: on hold, a prospect (flagged and no order yet), inactive, or active. */
+    public function stage(): string
+    {
+        return match (true) {
+            (bool) $this->credit_hold => 'hold',
+            $this->is_prospect && ! $this->salesOrders()->exists() => 'prospect',
+            ! $this->active => 'inactive',
+            default => 'active',
+        };
     }
 
     public function salesOrders(): HasMany

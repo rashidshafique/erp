@@ -15,7 +15,15 @@ class CustomerListTest extends TestCase
 
     private function customer(string $code, string $name, array $over = []): Customer
     {
-        return Customer::create($over + ['code' => $code, 'name' => $name, 'active' => true]);
+        $hold = $over['credit_hold'] ?? false;
+        unset($over['credit_hold']);
+        $customer = Customer::create($over + ['code' => $code, 'name' => $name, 'active' => true]);
+
+        if ($hold) {
+            $customer->forceFill(['credit_hold' => true])->save();
+        }
+
+        return $customer;
     }
 
     /** @return list<string> */
@@ -92,13 +100,14 @@ class CustomerListTest extends TestCase
         $dialog->call('create')->set('form.name', 'Other')->set('form.code', 'Beta')->call('save')->assertHasErrors('form.code');
     }
 
-    public function test_clicking_a_row_opens_its_quick_edit_instead_of_the_rows_first_link(): void
+    public function test_clicking_a_row_opens_its_side_panel_instead_of_the_rows_first_link(): void
     {
         $acme = $this->customer('ACME', 'Acme Pumps');
 
         Livewire::test('customer-list')
             ->assertSeeHtml('<table class="no-row-click">')
-            ->assertSeeHtml("\$wire.edit('{$acme->id}')");
+            ->assertSeeHtml("\$wire.select('{$acme->id}')")
+            ->assertSeeHtml("wire:click=\"edit('{$acme->id}')\"");
     }
 
     public function test_a_customer_is_quick_edited_and_can_be_marked_inactive(): void
@@ -115,5 +124,33 @@ class CustomerListTest extends TestCase
         $this->assertFalse($customer->active);
 
         $dialog->call('edit', $customer->id)->set('form.code', 'BETA')->call('save')->assertHasErrors('form.code');
+    }
+
+    public function test_the_tabs_tell_active_prospect_and_on_hold_customers_apart(): void
+    {
+        $this->customer('ACME', 'Acme Pumps');
+        $this->customer('NEWB', 'Newbie Gears', ['is_prospect' => true]);
+        $this->customer('HOLD', 'Hartwell Hydraulics', ['credit_hold' => true]);
+
+        $list = Livewire::test('customer-list');
+        $list->assertViewHas('counts', fn ($c) => $c['active'] === 1 && $c['prospect'] === 1 && $c['hold'] === 1);
+        $this->assertSame(['NEWB'], $this->codes($list->call('showSlice', 'prospect')));
+        $this->assertSame(['HOLD'], $this->codes($list->call('showSlice', 'hold')));
+    }
+
+    public function test_the_side_panel_follows_the_stage_and_prospect_and_hold_can_be_changed_from_it(): void
+    {
+        $prospect = $this->customer('NEWB', 'Newbie Gears', ['is_prospect' => true]);
+        $held = $this->customer('HOLD', 'Hartwell Hydraulics', ['credit_hold' => true]);
+        $held->forceFill(['credit_hold_reason' => 'Overdue 47 days'])->save();
+        $held = $held->fresh();
+
+        Livewire::test('customer-list')
+            ->call('select', $prospect->id)->assertSee('Path to serial supply')->assertSee('Missing before first order')
+            ->call('markActive', $prospect->id)->assertSee('Active')->assertDontSee('Path to serial supply')
+            ->call('select', $held->id)->assertSee('Overdue 47 days')->assertSee('Blocked while on hold')
+            ->call('releaseHold', $held->id)->assertDontSee('Blocked while on hold');
+
+        $this->assertFalse($held->fresh()->credit_hold);
     }
 }
