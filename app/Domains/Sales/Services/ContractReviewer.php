@@ -80,7 +80,7 @@ class ContractReviewer
         if (! $order->customer_id) {
             return [];
         }
-        $value = round($order->lines->sum(fn (SalesOrderLine $l) => (float) $l->ordered_qty * (float) $l->unit_price), 2);
+        $value = round($order->lines->sum(fn (SalesOrderLine $l) => $l->netValue((float) $l->ordered_qty)), 2);
         $credit = app(CreditControl::class)->check($order->customer_id, $value, $order->id);
 
         return $credit['severity'] === 'PASS' ? [] : [['CREDIT', $credit['severity'], implode(' ', $credit['messages'])]];
@@ -109,6 +109,11 @@ class ContractReviewer
         }
         if ($under = $this->underListPrice($order, $line)) {
             $out[] = ['PRICE', PriceLists::check(), "{$label}: priced ".Formats::number((float) $line->unit_price, 2).", under the list price of ".Formats::number($under['price'], 2)." ({$under['list']->code})."];
+        }
+
+        $limit = PriceLists::discountLimit();
+        if ($limit > 0 && (float) $line->discount_percent > $limit + 0.005) {
+            $out[] = ['DISCOUNT', 'WARN', "{$label}: a discount of ".Formats::number((float) $line->discount_percent, 2)."%, above the {$limit}% allowed."];
         }
 
         // Product revision released for production

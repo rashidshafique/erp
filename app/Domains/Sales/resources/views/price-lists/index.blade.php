@@ -15,7 +15,9 @@
     <label>Valid to<input type="date" name="valid_to" value="{{ old('valid_to') }}"></label>
     <label><span><input type="checkbox" name="is_default" value="1" @checked(old('is_default', $lists->isEmpty()))> Default list</span><span class="muted small">Prices every customer without a list of its own.</span></label>
 </div><div class="panel-body"><button class="btn btn-primary">Add</button></div></form></div>
-<div class="panel"><div class="panel-header"><h2>Check</h2></div><form method="POST" action="{{ route('price-lists.settings') }}">@csrf @method('PUT')<div class="panel-body form-grid">
+<div class="panel"><div class="panel-header"><h2>Check and discounts</h2></div><form method="POST" action="{{ route('price-lists.settings') }}">@csrf @method('PUT')<div class="panel-body form-grid">
     <label>An order line priced under its list price<select name="check">@foreach (\App\Domains\Sales\Services\PriceLists::CHECK_OPTIONS as $k => $v)<option value="{{ $k }}" @selected($check === $k)>{{ $v }}</option>@endforeach</select></label>
+    <label><span><input type="checkbox" name="line_discounts" value="1" @checked($discounts)> Lines can have a discount</span><span class="muted small">Adds a percent-off box to order and invoice lines. Lines that already have a discount keep it if this is switched off.</span></label>
+    <label>Flag a discount above (percent)<input type="number" name="discount_limit" step="any" min="0" max="100" value="{{ old('discount_limit', $discountLimit) }}"><span class="muted small">Contract review warns. 0 allows any discount.</span></label>
 </div><div class="panel-body"><button class="btn">Save</button></div></form></div>
 @endsection

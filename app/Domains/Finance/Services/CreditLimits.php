@@ -43,9 +43,9 @@ class CreditLimits implements CreditControl
             return 0.0;
         }
         $lines = SalesOrderLine::whereHas('salesOrder', fn ($q) => $q->where('customer_id', $customerId)->whereIn('status', SalesOrder::OPEN)
-            ->when($excludingOrderId, fn ($q) => $q->whereKeyNot($excludingOrderId)))->get(['id', 'ordered_qty', 'unit_price']);
+            ->when($excludingOrderId, fn ($q) => $q->whereKeyNot($excludingOrderId)))->get(['id', 'ordered_qty', 'unit_price', 'discount_percent']);
 
-        return round($lines->sum(fn ($l) => max(0, (float) $l->ordered_qty - $this->invoiced($l->id)) * (float) $l->unit_price), 2);
+        return round($lines->sum(fn ($l) => $l->netValue(max(0, (float) $l->ordered_qty - $this->invoiced($l->id)))), 2);
     }
 
     public function check(string $customerId, float $adding = 0, ?string $excludingOrderId = null): array

@@ -22,6 +22,22 @@ class PriceLists
     /** What happens when an order line is priced under its list price. */
     public const CHECK_OPTIONS = ['OFF' => 'Not checked', 'WARN' => 'Contract review warns', 'BLOCK' => 'Contract review blocks'];
 
+    public const DISCOUNTS = 'sales.line_discounts';
+
+    public const DISCOUNT_LIMIT = 'sales.discount_limit';
+
+    /** Whether order and invoice lines show a discount box. Lines that already carry a discount keep it either way. */
+    public static function discountsOn(): bool
+    {
+        return (string) AppSetting::getValue(self::DISCOUNTS, '0') === '1';
+    }
+
+    /** A discount above this percent is flagged at contract review; 0 means any discount is allowed. */
+    public static function discountLimit(): float
+    {
+        return max(0.0, (float) AppSetting::getValue(self::DISCOUNT_LIMIT, '0'));
+    }
+
     /** @return 'OFF'|'WARN'|'BLOCK' */
     public static function check(): string
     {

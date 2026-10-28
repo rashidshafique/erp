@@ -6,6 +6,8 @@
     $photos = \App\Models\Attachment::coverUrlsFor('product', $revisions->pluck('product_id')->merge($bareProducts->pluck('id'))->all());
     $money = \App\Support\Formats::all();
     $prices = \App\Support\OrderRules::showsPrices();
+    // The discount box shows when the setting is on, or when a saved line already has a discount (so editing never hides it).
+    $discounts = $prices && (\App\Domains\Sales\Services\PriceLists::discountsOn() || ($order?->lines->contains(fn ($l) => (float) $l->discount_percent > 0) ?? false));
     // Everything that can be ordered, keyed by the value a line posts: a revision id, or "product:<id>" for a product with no revision yet.
     $catalogue = $revisions->mapWithKeys(fn ($r) => [$r->id => [
         'name' => $r->product?->name, 'sub' => $r->product?->code.' · rev '.$r->revision, 'img' => $photos[$r->product_id] ?? null,
@@ -27,7 +29,7 @@
             return isset($catalogue[$value]) || $line ? ['value' => $value, 'p' => $catalogue[$value] ?? $fromLine($line), 'line' => $l, 'record' => $line] : null;
         })->filter()->values()
         : ($order?->lines ?? collect())->map(fn ($line) => ['value' => $line->product_revision_id, 'p' => $catalogue[$line->product_revision_id] ?? $fromLine($line), 'record' => $line,
-            'line' => ['uom' => $line->isSoldByKg() ? 'kg' : 'piece', 'ordered_qty' => $trim($line->repeats() ? $line->repeat_qty : $line->ordered_qty), 'unit_price' => $trim($line->unit_price), 'requested_delivery_date' => $line->requested_delivery_date?->toDateString(),
+            'line' => ['uom' => $line->isSoldByKg() ? 'kg' : 'piece', 'ordered_qty' => $trim($line->repeats() ? $line->repeat_qty : $line->ordered_qty), 'unit_price' => $trim($line->unit_price), 'discount_percent' => $trim($line->discount_percent), 'requested_delivery_date' => $line->requested_delivery_date?->toDateString(),
                 'repeat_every' => $line->repeat_every, 'repeat_from' => $line->repeat_from?->toDateString(), 'repeat_until' => $line->repeat_until?->toDateString(),
                 'staggered' => ! $line->repeats() && $line->deliveries->isNotEmpty(),
                 'deliveries' => $line->repeats() ? [] : $line->deliveries->map(fn ($d) => ['id' => $d->id, 'due_date' => $d->due_date->toDateString(), 'quantity' => $trim($d->quantity), 'notes' => $d->notes])->all()]])->values();
@@ -45,6 +47,7 @@
     .so-thumb { width: 34px; height: 34px; border-radius: 6px; object-fit: cover; background: color-mix(in srgb, var(--border) 70%, transparent); display: inline-flex; align-items: center; justify-content: center; color: var(--muted); }
     .so-lines { margin-top: 14px; }
     .so-grid { display: grid; grid-template-columns: 26px 46px minmax(180px, 1fr) 70px 120px 150px 130px 34px; gap: 10px; align-items: center; }
+    .so-disc .so-grid { grid-template-columns: 26px 46px minmax(180px, 1fr) 70px 120px 150px 80px 130px 34px; }
     .so-noprice .so-grid { grid-template-columns: 26px 46px minmax(180px, 1fr) 70px 120px 34px; }
     .so-lines-head { padding: 9px 8px; border: 1px solid var(--border); border-radius: 8px 8px 0 0; background: color-mix(in srgb, var(--border) 35%, transparent); color: var(--muted); font-size: 12.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
     .so-lines-head .so-head-product { grid-column: 1 / 4; padding-left: 4px; }
@@ -92,7 +95,8 @@
     .so-foot { display: flex; gap: 10px; padding: 16px 24px; border-top: 1px solid var(--border); }
     @media (max-width: 900px) {
         .so-top { grid-template-columns: 1fr; }
-        .so-grid { grid-template-columns: 22px 1fr 110px 34px; row-gap: 8px; }
+        .so-grid, .so-disc .so-grid { grid-template-columns: 22px 1fr 110px 34px; row-gap: 8px; }
+        .so-line .so-pct { grid-column: 3; }
         .so-lines-head { display: none; }
         .so-lines [data-lines] { border-top: 1px solid var(--border); border-radius: 8px; }
         .so-line .so-thumb { display: none; }
@@ -115,7 +119,7 @@
 @if ($catalogue->isEmpty())
     <div class="alert alert-error">There are no products to order yet. Add a product first.</div>
 @else
-<form method="POST" action="{{ $action }}" id="so-form" @class(['so-noprice' => ! $prices]) data-today="{{ today()->toDateString() }}" data-ahead="{{ \App\Support\OrderRules::repeatAheadDays() }}">
+<form method="POST" action="{{ $action }}" id="so-form" @class(['so-noprice' => ! $prices, 'so-disc' => $discounts]) data-today="{{ today()->toDateString() }}" data-ahead="{{ \App\Support\OrderRules::repeatAheadDays() }}">
 @csrf @if ($order) @method('PUT') @endif
 <div class="so-card"><div class="so-body">
     <h2>Order detail</h2>
@@ -130,14 +134,14 @@
     </div>
 
     <div class="so-lines">
-        <div class="so-grid so-lines-head" aria-hidden="true"><span class="so-head-product">Product</span><span>Unit</span><span>Qty</span>@if ($prices)<span>Price</span><span class="so-right">Total</span>@endif<span></span></div>
+        <div class="so-grid so-lines-head" aria-hidden="true"><span class="so-head-product">Product</span><span>Unit</span><span>Qty</span>@if ($prices)<span>Price</span>@if ($discounts)<span>Disc %</span>@endif<span class="so-right">Total</span>@endif<span></span></div>
         <div data-lines>
             @foreach ($formLines as $i => $l)
-                @include('sales::orders._create-line', ['i' => $i, 'value' => $l['value'], 'p' => $l['p'], 'line' => $l['line'], 'record' => $l['record'], 'catalogue' => $catalogue, 'currency' => $money['currency'], 'prices' => $prices])
+                @include('sales::orders._create-line', ['discounts' => $discounts, 'i' => $i, 'value' => $l['value'], 'p' => $l['p'], 'line' => $l['line'], 'record' => $l['record'], 'catalogue' => $catalogue, 'currency' => $money['currency'], 'prices' => $prices])
             @endforeach
             {{-- A new order starts with one empty row to pick the first product in. --}}
             @if ($formLines->isEmpty() && ! $order)
-                @include('sales::orders._create-line', ['i' => 0, 'value' => '', 'p' => $blankLine, 'line' => [], 'record' => null, 'catalogue' => $catalogue, 'currency' => $money['currency'], 'prices' => $prices])
+                @include('sales::orders._create-line', ['discounts' => $discounts, 'i' => 0, 'value' => '', 'p' => $blankLine, 'line' => [], 'record' => null, 'catalogue' => $catalogue, 'currency' => $money['currency'], 'prices' => $prices])
             @endif
         </div>
         <div class="so-empty" data-no-lines hidden>No lines yet. Add the first one below.</div>
@@ -159,7 +163,7 @@
 </div>
 </form>
 
-<template id="so-line-template">@include('sales::orders._create-line', ['i' => '__I__', 'value' => '', 'p' => $blankLine, 'line' => [], 'record' => null, 'catalogue' => $catalogue, 'currency' => $money['currency'], 'prices' => $prices])</template>
+<template id="so-line-template">@include('sales::orders._create-line', ['discounts' => $discounts, 'i' => '__I__', 'value' => '', 'p' => $blankLine, 'line' => [], 'record' => null, 'catalogue' => $catalogue, 'currency' => $money['currency'], 'prices' => $prices])</template>
 
 <script>
 (function () {
@@ -172,7 +176,8 @@
     function recalc() {
         var total = 0, pieces = 0, kgs = 0, rows = [].filter.call(linesBox.querySelectorAll('[data-line]'), chosen);
         rows.forEach(function (row) {
-            var q = row.dataset.pieces ? parseFloat(row.dataset.pieces) : (parseFloat(row.querySelector('[data-qty]').value) || 0), priceBox = row.querySelector('[data-price]'), p = priceBox ? parseFloat(priceBox.value) : NaN;
+            var q = row.dataset.pieces ? parseFloat(row.dataset.pieces) : (parseFloat(row.querySelector('[data-qty]').value) || 0), priceBox = row.querySelector('[data-price]'), p = priceBox ? parseFloat(priceBox.value) : NaN, discBox = row.querySelector('[data-disc]'), d = discBox ? Math.min(100, Math.max(0, parseFloat(discBox.value) || 0)) : 0;
+            if (!isNaN(p)) p = p * (1 - d / 100);
             if (byKg(row)) kgs += q; else pieces += q;
             if (priceBox) row.querySelector('[data-total]').textContent = isNaN(p) ? '—' : fmt(q * p);
             if (!isNaN(p)) total += q * p;

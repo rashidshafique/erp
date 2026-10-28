@@ -3,7 +3,7 @@
 @section('content')
 @php
     $taxJson = $taxRates->mapWithKeys(fn ($t) => [$t->id => (float) $t->rate_percent])->all();
-    $start = old('lines', $invoice->lines->map(fn ($l) => ['description' => $l->description, 'quantity' => (float) $l->quantity, 'uom' => $l->uom, 'unit_price' => (float) $l->unit_price, 'tax_rate_id' => $l->tax_rate_id, 'sales_order_line_id' => $l->sales_order_line_id, 'dispatch_item_id' => null, 'supply_type' => $l->supply_type, 'tariff_code' => $l->tariff_code, 'inventory_class' => $l->inventory_class, 'max' => (float) $l->quantity])->all());
+    $start = old('lines', $invoice->lines->map(fn ($l) => ['description' => $l->description, 'quantity' => (float) $l->quantity, 'uom' => $l->uom, 'unit_price' => (float) $l->unit_price, 'discount_percent' => (float) $l->discount_percent, 'tax_rate_id' => $l->tax_rate_id, 'sales_order_line_id' => $l->sales_order_line_id, 'dispatch_item_id' => null, 'supply_type' => $l->supply_type, 'tariff_code' => $l->tariff_code, 'inventory_class' => $l->inventory_class, 'max' => (float) $l->quantity])->all());
 @endphp
 <div class="page-heading"><div><h1>Credit note against {{ $invoice->invoice_number }}</h1><p>{{ $invoice->customer?->name }} · invoice total {{ \App\Support\Formats::number($invoice->total, 2) }} · already credited {{ \App\Support\Formats::number($invoice->credited(), 2) }}. Lower the quantity or price, or remove lines, to credit part of it.</p></div></div>
 <form method="POST" action="{{ route('invoices.credit.store', $invoice) }}" x-data="invoiceLines(@js($start), @js($taxJson))">@csrf
@@ -11,7 +11,7 @@
 <template x-for="(l, i) in lines" :key="i"><tr>
     <td><input :name="`lines[${i}][description]`" x-model="l.description" maxlength="300" style="width:100%"><input type="hidden" :name="`lines[${i}][uom]`" :value="l.uom ?? ''"><input type="hidden" :name="`lines[${i}][sales_order_line_id]`" :value="l.sales_order_line_id ?? ''"><input type="hidden" :name="`lines[${i}][supply_type]`" :value="l.supply_type ?? 'GOODS'"><input type="hidden" :name="`lines[${i}][tariff_code]`" :value="l.tariff_code ?? ''"><input type="hidden" :name="`lines[${i}][inventory_class]`" :value="l.inventory_class ?? ''"></td>
     <td><input type="number" step="any" min="0" :name="`lines[${i}][quantity]`" x-model.number="l.quantity" style="width:90px"></td>
-    <td><input type="number" step="any" min="0" :name="`lines[${i}][unit_price]`" x-model.number="l.unit_price" style="width:110px"></td>
+    <td><input type="number" step="any" min="0" :name="`lines[${i}][unit_price]`" x-model.number="l.unit_price" style="width:110px"><input type="hidden" :name="`lines[${i}][discount_percent]`" :value="l.discount_percent ?? 0"><div class="muted small" x-show="Number(l.discount_percent) > 0" x-text="'less ' + l.discount_percent + '%'"></div></td>
     <td><select :name="`lines[${i}][tax_rate_id]`" x-model="l.tax_rate_id"><option value="">No tax</option>@foreach ($taxRates as $t)<option value="{{ $t->id }}">{{ $t->name }}</option>@endforeach</select></td>
     <td class="num" x-text="money(net(l) + lineTax(l))"></td>
     <td><button type="button" class="btn btn-small" @click="lines.splice(i, 1)" x-show="lines.length > 1" aria-label="Remove line">✕</button></td>
@@ -24,7 +24,7 @@
 function invoiceLines(start, rates) {
     return {
         lines: start.map(l => ({ ...l, tax_rate_id: l.tax_rate_id ?? '' })),
-        net(l) { return Math.round((Number(l.quantity) || 0) * (Number(l.unit_price) || 0) * 100) / 100; },
+        net(l) { return Math.round((Number(l.quantity) || 0) * (Number(l.unit_price) || 0) * (1 - Math.min(100, Math.max(0, Number(l.discount_percent) || 0)) / 100) * 100) / 100; },
         lineTax(l) { return Math.round(this.net(l) * (rates[l.tax_rate_id] || 0)) / 100; },
         get subtotal() { return this.lines.reduce((n, l) => n + this.net(l), 0); },
         get tax() { return this.lines.reduce((n, l) => n + this.lineTax(l), 0); },

@@ -22,7 +22,7 @@ class PriceListController extends Controller
 {
     public function index(): View
     {
-        return view('sales::price-lists.index', ['lists' => PriceList::withCount(['items', 'customers'])->orderByDesc('is_default')->orderBy('code')->get(), 'check' => PriceLists::check()]);
+        return view('sales::price-lists.index', ['lists' => PriceList::withCount(['items', 'customers'])->orderByDesc('is_default')->orderBy('code')->get(), 'check' => PriceLists::check(), 'discounts' => PriceLists::discountsOn(), 'discountLimit' => PriceLists::discountLimit()]);
     }
 
     public function store(Request $request, PriceLists $service): RedirectResponse
@@ -97,8 +97,10 @@ class PriceListController extends Controller
 
     public function settings(Request $request): RedirectResponse
     {
-        $d = $request->validate(['check' => ['required', Rule::in(array_keys(PriceLists::CHECK_OPTIONS))]]);
+        $d = $request->validate(['check' => ['required', Rule::in(array_keys(PriceLists::CHECK_OPTIONS))], 'discount_limit' => ['nullable', 'numeric', 'min:0', 'max:100']]);
         AppSetting::setValue(PriceLists::CHECK, $d['check'], 'What happens when an order line is priced under its list price');
+        AppSetting::setValue(PriceLists::DISCOUNTS, $request->boolean('line_discounts') ? '1' : '0', 'Whether order and invoice lines have a discount box');
+        AppSetting::setValue(PriceLists::DISCOUNT_LIMIT, (string) ($d['discount_limit'] ?? 0), 'A line discount above this percent is flagged at contract review (0 = no limit)');
 
         return back()->with('success', 'Saved.');
     }

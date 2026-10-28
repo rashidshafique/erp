@@ -55,7 +55,7 @@ class InvoiceService
 
             $rates = TaxRate::whereIn('id', array_filter(array_column($lines, 'tax_rate_id')))->get()->keyBy('id');
             $taxLines = array_map(fn ($l) => new TaxLine(
-                round(round((float) $l['quantity'], 3) * round((float) $l['unit_price'], 4), 2),
+                round(round((float) $l['quantity'], 3) * round((float) $l['unit_price'], 4) * (1 - self::discount($l) / 100), 2),
                 (float) ($rates[$l['tax_rate_id'] ?? null]->rate_percent ?? 0),
                 ($l['supply_type'] ?? null) === TaxLine::SERVICE ? TaxLine::SERVICE : TaxLine::GOODS,
                 ($l['inventory_class'] ?? null) ?: null,
@@ -67,7 +67,7 @@ class InvoiceService
                 $taxLine = $taxLines[$i];
                 InvoiceLine::create([
                     'invoice_id' => $invoice->id, 'line_number' => $i + 1, 'description' => trim($l['description']), 'quantity' => round((float) $l['quantity'], 3), 'uom' => $l['uom'] ?? null,
-                    'unit_price' => round((float) $l['unit_price'], 4), 'tax_rate_id' => $l['tax_rate_id'] ?? null, 'tax_percent' => $taxes->chargedRate($i),
+                    'unit_price' => round((float) $l['unit_price'], 4), 'discount_percent' => self::discount($l), 'tax_rate_id' => $l['tax_rate_id'] ?? null, 'tax_percent' => $taxes->chargedRate($i),
                     'line_net' => $taxLine->net, 'line_tax' => $taxes->charged($i), 'line_withheld' => $taxes->withheld($i),
                     'supply_type' => $taxLine->supplyType, 'tariff_code' => $taxLine->tariffCode, 'inventory_class' => $taxLine->inventoryClass,
                     'taxes' => array_map(fn (TaxAmount $t) => (array) $t, $taxes->forLine($i)),
@@ -81,6 +81,12 @@ class InvoiceService
 
             return $invoice->fresh('lines');
         });
+    }
+
+    /** A line's discount percent, kept between 0 and 100. @param  array<string, mixed>  $line */
+    public static function discount(array $line): float
+    {
+        return round(min(100.0, max(0.0, (float) ($line['discount_percent'] ?? 0))), 2);
     }
 
     /** Gives a draft its number and makes it count. */
@@ -169,7 +175,7 @@ class InvoiceService
 
             return [
                 'description' => trim(($product?->code ? $product->code.' ' : '').($product?->name ?? 'Castings')), 'quantity' => $byKg ? (float) $i->net_weight_kg : (float) $i->quantity_dispatched,
-                'uom' => $byKg ? 'kg' : ($i->uom ?: $i->salesOrderLine?->uom), 'unit_price' => (float) ($i->salesOrderLine?->unit_price ?? 0), 'tax_rate_id' => $default,
+                'uom' => $byKg ? 'kg' : ($i->uom ?: $i->salesOrderLine?->uom), 'unit_price' => (float) ($i->salesOrderLine?->unit_price ?? 0), 'discount_percent' => (float) ($i->salesOrderLine?->discount_percent ?? 0), 'tax_rate_id' => $default,
                 'sales_order_line_id' => $i->sales_order_line_id, 'dispatch_item_id' => $i->id, ...$this->taxDetails($product),
             ];
         })->values()->all();
@@ -189,7 +195,7 @@ class InvoiceService
 
             return $left > 0 ? [
                 'description' => trim(($l->product?->code ? $l->product->code.' ' : '').($l->product?->name ?? 'Castings')), 'quantity' => $left, 'uom' => $l->uom,
-                'unit_price' => (float) $l->unit_price, 'tax_rate_id' => $default, 'sales_order_line_id' => $l->id, 'dispatch_item_id' => null,
+                'unit_price' => (float) $l->unit_price, 'discount_percent' => (float) $l->discount_percent, 'tax_rate_id' => $default, 'sales_order_line_id' => $l->id, 'dispatch_item_id' => null,
                 ...$this->taxDetails($l->product),
             ] : null;
         })->filter()->values()->all();

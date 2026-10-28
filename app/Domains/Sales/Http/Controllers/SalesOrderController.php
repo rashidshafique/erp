@@ -85,7 +85,7 @@ class SalesOrderController extends Controller
             'lines.*.product_revision_id' => ['required', new ProductRevisionChoice],
             'lines.*.ordered_qty' => ['required', 'numeric', 'gt:0', 'max:999999999'],
             'lines.*.uom' => ['nullable', Rule::in(array_keys(SalesOrderLine::UNITS))],
-            'lines.*.unit_price' => ['nullable', 'numeric', 'min:0'],
+            'lines.*.unit_price' => ['nullable', 'numeric', 'min:0'], 'lines.*.discount_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'lines.*.requested_delivery_date' => ['nullable', 'date'],
         ] + self::scheduleRules());
 
@@ -101,7 +101,7 @@ class SalesOrderController extends Controller
                 $repeat = SalesOrderEditor::repeatAttributes($l, $order);
                 $line = $order->lines()->create([
                     'product_id' => $rev->product_id, 'product_revision_id' => $rev->id, 'line_number' => $i + 1,
-                    'ordered_qty' => $repeat['repeat_every'] ? 0 : $l['ordered_qty'], 'unit_price' => $l['unit_price'] ?? null, 'uom' => $l['uom'] ?? 'piece',
+                    'ordered_qty' => $repeat['repeat_every'] ? 0 : $l['ordered_qty'], 'unit_price' => $l['unit_price'] ?? null, 'discount_percent' => $l['discount_percent'] ?? 0, 'uom' => $l['uom'] ?? 'piece',
                     'requested_delivery_date' => $l['requested_delivery_date'] ?? null,
                 ] + $repeat);
                 SalesOrderEditor::requireWeight($line);
@@ -159,7 +159,7 @@ class SalesOrderController extends Controller
             'lines.*.product_revision_id' => ['required_without:lines.*.id', 'nullable', new ProductRevisionChoice],
             'lines.*.ordered_qty' => ['required', 'numeric', 'gt:0', 'max:999999999'],
             'lines.*.uom' => ['nullable', Rule::in(array_keys(SalesOrderLine::UNITS))],
-            'lines.*.unit_price' => ['nullable', 'numeric', 'min:0'],
+            'lines.*.unit_price' => ['nullable', 'numeric', 'min:0'], 'lines.*.discount_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'lines.*.requested_delivery_date' => ['nullable', 'date'],
         ] + self::scheduleRules());
         $reviewStale = $editor->update($salesOrder, $data, $data['reason'] ?? null);

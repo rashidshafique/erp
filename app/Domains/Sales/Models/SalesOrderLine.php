@@ -21,6 +21,7 @@ class SalesOrderLine extends Model
         'line_number',
         'ordered_qty',
         'unit_price',
+        'discount_percent',
         'uom',
         'requested_delivery_date',
         'repeat_every',
@@ -36,13 +37,25 @@ class SalesOrderLine extends Model
     protected function casts(): array
     {
         return [
-            'ordered_qty' => 'decimal:3', 'unit_price' => 'decimal:4', 'requested_delivery_date' => 'date',
+            'ordered_qty' => 'decimal:3', 'unit_price' => 'decimal:4', 'discount_percent' => 'decimal:2', 'requested_delivery_date' => 'date',
             'repeat_qty' => 'decimal:3', 'repeat_from' => 'date', 'repeat_until' => 'date', 'repeated_to' => 'date',
         ];
     }
 
     /** The units a line can be sold in: its quantity, price and invoiced amount are all in this unit; production always makes pieces. */
     public const UNITS = ['piece' => 'pcs', 'kg' => 'kg'];
+
+    /** The price after the line's discount: what one unit is sold for. */
+    public function netUnitPrice(): float
+    {
+        return round((float) $this->unit_price * (1 - (float) $this->discount_percent / 100), 4);
+    }
+
+    /** What the quantity is worth at the discounted price, before tax. */
+    public function netValue(float $quantity): float
+    {
+        return round($quantity * $this->netUnitPrice(), 2);
+    }
 
     public function repeats(): bool
     {

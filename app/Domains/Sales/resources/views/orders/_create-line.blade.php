@@ -37,10 +37,12 @@
         <div class="so-qty"><input type="number" name="lines[{{ $i }}][ordered_qty]" step="any" min="0" @required($value !== '') value="{{ $line['ordered_qty'] ?? '' }}" placeholder="{{ $repeats ? 'Each time' : 'Qty' }}" aria-label="Quantity" data-qty><small data-pcs-hint @if ($unit !== 'kg') hidden @endif></small></div>
         @if ($prices)
         <label class="so-money"><input type="number" name="lines[{{ $i }}][unit_price]" step="any" min="0" value="{{ array_key_exists('unit_price', $line) ? $line['unit_price'] : $p['price'] }}" aria-label="Unit price" data-price><span>{{ $currency ?: 'price' }}</span></label>
+        @if ($discounts)<label class="so-money so-pct"><input type="number" name="lines[{{ $i }}][discount_percent]" step="any" min="0" max="100" value="{{ $line['discount_percent'] ?? '' }}" placeholder="0" aria-label="Discount percent" data-disc><span>%</span></label>@else<input type="hidden" name="lines[{{ $i }}][discount_percent]" value="{{ $line['discount_percent'] ?? '' }}" data-disc>@endif
         <span class="so-total" data-total>—</span>
         @else
         {{-- Prices are hidden: a saved price is sent back unchanged so editing never clears it. --}}
         <input type="hidden" name="lines[{{ $i }}][unit_price]" value="{{ $line['unit_price'] ?? '' }}">
+        <input type="hidden" name="lines[{{ $i }}][discount_percent]" value="{{ $line['discount_percent'] ?? '' }}">
         @endif
         @if ($locked)<span></span>@else<button type="button" class="so-remove" data-remove aria-label="Remove line">&times;</button>@endif
     </div>

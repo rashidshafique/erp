@@ -67,7 +67,7 @@ class SalesOrderEditor
                     $rev = ProductRevision::fromChoice($row['product_revision_id']);
                     $new = $order->lines()->create([
                         'product_id' => $rev->product_id, 'product_revision_id' => $rev->id, 'line_number' => $nextNumber++,
-                        'ordered_qty' => $repeat['repeat_every'] ? 0 : $row['ordered_qty'], 'unit_price' => $row['unit_price'] ?? null, 'uom' => $row['uom'] ?? 'piece', 'requested_delivery_date' => $row['requested_delivery_date'] ?? null,
+                        'ordered_qty' => $repeat['repeat_every'] ? 0 : $row['ordered_qty'], 'unit_price' => $row['unit_price'] ?? null, 'discount_percent' => $row['discount_percent'] ?? 0, 'uom' => $row['uom'] ?? 'piece', 'requested_delivery_date' => $row['requested_delivery_date'] ?? null,
                     ] + $repeat);
                     self::requireWeight($new);
                     $kept[] = $new->id;
@@ -84,7 +84,7 @@ class SalesOrderEditor
                 $wasRepeating = $line->repeats();
                 // A repeating line, or one being stopped, keeps the quantity it has scheduled; the box sets each future delivery instead.
                 $quantity = $repeat['repeat_every'] || $line->repeats() ? $line->ordered_qty : $row['ordered_qty'];
-                $attributes = ['ordered_qty' => $quantity, 'unit_price' => $row['unit_price'] ?? null, 'requested_delivery_date' => $row['requested_delivery_date'] ?? null] + $repeat;
+                $attributes = ['ordered_qty' => $quantity, 'unit_price' => $row['unit_price'] ?? null, 'discount_percent' => $row['discount_percent'] ?? 0, 'requested_delivery_date' => $row['requested_delivery_date'] ?? null] + $repeat;
                 if (! empty($row['uom']) && $row['uom'] !== $line->uom) {
                     if ($started->has($line->id) || (float) ($shipped[$line->id] ?? 0) > 0) {
                         $this->refuse("Line {$line->line_number} has production orders or shipments, so it cannot change from ".SalesOrderLine::UNITS[$line->uom === 'kg' ? 'kg' : 'piece'].' to '.SalesOrderLine::UNITS[$row['uom']].'.');
