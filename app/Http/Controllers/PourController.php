@@ -133,7 +133,7 @@ class PourController extends Controller
         ]);
 
         $pour = DB::transaction(function () use ($validated) {
-            $prefix = 'P-'.now()->format('Ymd').'-';
+            $prefix = 'P-'.now()->format('ymd').'-';
 
             $last = Pour::query()
                 ->where('pour_number', 'like', $prefix.'%')
@@ -146,7 +146,7 @@ class PourController extends Controller
                 ->max() ?? 0;
 
             $validated['pour_number'] = $prefix
-                .str_pad((string) ($last + 1), 3, '0', STR_PAD_LEFT);
+                .str_pad((string) ($last + 1), 2, '0', STR_PAD_LEFT);
 
             $validated['status'] = 'PLANNED';
 

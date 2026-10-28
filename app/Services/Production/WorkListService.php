@@ -386,12 +386,12 @@ class WorkListService
 
                 throw new InvalidArgumentException("{$what} and {$running} is already in progress on {$item->station->code}. Finish a run there first.");
             }
-            $date = now()->format('Ymd');
+            $date = now()->format('ymd');
             DB::select('SELECT pg_advisory_xact_lock(hashtext(?))', ['run-number-'.$date]);
             $prefix = "MR-{$date}-";
             $n = (MouldingRun::where('run_number', 'like', $prefix.'%')->pluck('run_number')->map(fn ($x) => (int) substr($x, strlen($prefix)))->max() ?? 0) + 1;
             $run = MouldingRun::create([
-                'run_number' => $prefix.str_pad((string) $n, 3, '0', STR_PAD_LEFT), 'production_order_id' => $item->production_order_id,
+                'run_number' => $prefix.str_pad((string) $n, 2, '0', STR_PAD_LEFT), 'production_order_id' => $item->production_order_id,
                 'pattern_revision_id' => $item->pattern_revision_id, 'run_date' => $item->workList->list_date, 'shift' => $item->workList->shift,
                 'started_at' => now(), 'sand_system' => $item->sand_system, 'operator_name' => $item->team?->lead_name, 'team_name' => $item->team?->name,
                 'moulding_team_id' => $item->moulding_team_id, 'moulding_station_id' => $item->moulding_station_id, 'moulding_work_list_item_id' => $item->id,

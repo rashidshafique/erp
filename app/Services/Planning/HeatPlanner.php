@@ -283,10 +283,10 @@ class HeatPlanner
 
     private function nextPlanNumber(CarbonInterface $date): string
     {
-        $prefix = 'PH-'.$date->format('Ymd').'-';
+        $prefix = 'PH-'.$date->format('ymd').'-';
         $last = PlannedHeat::where('plan_number', 'like', $prefix.'%')->pluck('plan_number')
             ->map(fn ($n) => (int) substr($n, strlen($prefix)))->max() ?? 0;
 
-        return $prefix.str_pad((string) ($last + 1), 3, '0', STR_PAD_LEFT);
+        return $prefix.str_pad((string) ($last + 1), 2, '0', STR_PAD_LEFT);
     }
 }

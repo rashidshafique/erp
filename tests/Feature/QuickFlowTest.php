@@ -248,7 +248,7 @@ class QuickFlowTest extends TestCase
         $this->post(route('quick.floor.poured'), ['heat_id' => $heat->id, 'rows' => [$this->row($pattern, 12, $dated)]])->assertSessionHasNoErrors();
 
         $pour = Pour::firstOrFail();
-        $this->assertSame([$yesterday->toDateString(), 'P-'.$yesterday->format('Ymd').'-001'], [$pour->completed_at->toDateString(), $pour->pour_number]);
+        $this->assertSame([$yesterday->toDateString(), 'P-'.$yesterday->format('ymd').'-01'], [$pour->completed_at->toDateString(), $pour->pour_number]);
         $this->assertSame($yesterday->toDateString(), MouldingRun::firstOrFail()->completed_at->toDateString());
         $this->assertSame([20, 12], [(int) QuickFloorEntry::where('kind', 'MADE')->sum('moulds'), (int) QuickFloorEntry::where('kind', 'POURED')->sum('moulds')], 'Moulds made but not yet poured stay as awaiting.');
     }

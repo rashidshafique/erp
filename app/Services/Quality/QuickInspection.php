@@ -141,23 +141,23 @@ class QuickInspection
 
     public function nextInspectionNumber(): string
     {
-        $date = now()->format('Ymd');
+        $date = now()->format('ymd');
         DB::select('SELECT pg_advisory_xact_lock(hashtext(?))', ['inspection-number-'.$date]);
         $prefix = "INS-{$date}-";
         $n = (QualityInspection::where('inspection_number', 'like', $prefix.'%')->pluck('inspection_number')->map(fn ($x) => (int) substr($x, strlen($prefix)))->max() ?? 0) + 1;
 
-        return $prefix.str_pad((string) $n, 3, '0', STR_PAD_LEFT);
+        return $prefix.str_pad((string) $n, 2, '0', STR_PAD_LEFT);
     }
 
     public function raiseNcr(QualityInspection $inspection, CastingLot $lot, ?QualityDefect $defect, int $affected, bool $anyRejected, ?string $reportedBy, string $description, ?string $title = null): NonconformanceReport
     {
-        $date = now()->format('Ymd');
+        $date = now()->format('ymd');
         DB::select('SELECT pg_advisory_xact_lock(hashtext(?))', ['ncr-number-'.$date]);
         $prefix = "NCR-{$date}-";
         $n = (NonconformanceReport::where('ncr_number', 'like', $prefix.'%')->pluck('ncr_number')->map(fn ($x) => (int) substr($x, strlen($prefix)))->max() ?? 0) + 1;
 
         return NonconformanceReport::create([
-            'ncr_number' => $prefix.str_pad((string) $n, 3, '0', STR_PAD_LEFT), 'casting_lot_id' => $lot->id,
+            'ncr_number' => $prefix.str_pad((string) $n, 2, '0', STR_PAD_LEFT), 'casting_lot_id' => $lot->id,
             'quality_inspection_id' => $inspection->id, 'quality_defect_id' => $defect?->id,
             'title' => $title ?: ($defect ? $defect->name : 'Failed inspection').' — '.$lot->lot_number,
             'description' => $description,

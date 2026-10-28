@@ -98,7 +98,7 @@ class MouldingRun extends Model
     /** The next run number of the day, MR-20261017-004. Call inside a transaction: it locks the day's runs. */
     public static function nextRunNumber(): string
     {
-        $prefix = 'MR-'.now()->format('Ymd').'-';
+        $prefix = 'MR-'.now()->format('ymd').'-';
         $lastNumber = static::query()
             ->where('run_number', 'like', $prefix.'%')
             ->lockForUpdate()
@@ -106,7 +106,7 @@ class MouldingRun extends Model
             ->map(fn ($number) => (int) substr($number, strlen($prefix)))
             ->max() ?? 0;
 
-        return $prefix.str_pad((string) ($lastNumber + 1), 3, '0', STR_PAD_LEFT);
+        return $prefix.str_pad((string) ($lastNumber + 1), 2, '0', STR_PAD_LEFT);
     }
 
     public function defect(): BelongsTo

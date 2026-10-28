@@ -116,7 +116,7 @@ class MouldAssembler
                 throw new InvalidArgumentException("The run has {$run->accepted_mould_qty} accepted moulds and {$existing} are already assembled, so {$count} more would exceed it.");
             }
 
-            $date = now()->format('Ymd');
+            $date = now()->format('ymd');
             DB::select('SELECT pg_advisory_xact_lock(hashtext(?))', ['assembly-number-'.$date]);
             $prefix = "MA-{$date}-";
             $last = MouldAssembly::where('assembly_number', 'like', $prefix.'%')->pluck('assembly_number')
@@ -125,7 +125,7 @@ class MouldAssembler
             $made = collect();
             for ($i = 1; $i <= $count; $i++) {
                 $asm = MouldAssembly::create([
-                    'assembly_number' => $prefix.str_pad((string) ($last + $i), 3, '0', STR_PAD_LEFT),
+                    'assembly_number' => $prefix.str_pad((string) ($last + $i), 2, '0', STR_PAD_LEFT),
                     'moulding_run_id' => $run->id,
                     'mould_configuration_id' => $configurationId,
                     'status' => 'PREPARED',

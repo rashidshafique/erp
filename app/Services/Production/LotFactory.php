@@ -38,7 +38,7 @@ class LotFactory
                 $net[$row->id] = (float) $groups->sum('kg');
             }
             $totalNet = array_sum($net);
-            $seq = (int) CastingLot::where('lot_number', 'like', 'LOT-'.$pour->pour_number.'-%')->count();
+            $seq = (int) CastingLot::where('lot_number', 'like', 'L-'.substr($pour->pour_number, 2).'-%')->count();
             $alreadyMade = DB::table('casting_lot_pour_mould_assembly')->whereIn('pour_mould_assembly_id', $rows->pluck('id'))->pluck('pour_mould_assembly_id')->all();
 
             // One entry per product revision in each mould, with its order and its share of the weight.
@@ -80,7 +80,7 @@ class LotFactory
                 $gross = $group->contains(fn ($e) => $e['gross'] !== null) ? round((float) $group->sum('gross'), 3) : null;
                 $lot = CastingLot::create([
                     'code' => CastingLot::nextCode($pour->completed_at ?? now()),
-                    'lot_number' => 'LOT-'.$pour->pour_number.'-'.str_pad((string) $seq, 2, '0', STR_PAD_LEFT),
+                    'lot_number' => 'L-'.substr($pour->pour_number, 2).'-'.$seq,
                     'pour_mould_assembly_id' => $group[0]['row']->id,
                     'production_order_id' => $order->id,
                     'product_id' => $order->product_id,

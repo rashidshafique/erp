@@ -436,7 +436,7 @@ class FlaskManager
         $flask->update(['status' => 'REPAIR']);
 
         return ToolingMaintenanceRecord::create([
-            'flask_id' => $flask->id, 'tooling_type' => 'FLASK', 'record_number' => 'TM-'.now()->format('Ymd').'-'.Str::upper(Str::random(6)),
+            'flask_id' => $flask->id, 'tooling_type' => 'FLASK', 'record_number' => 'TM-'.now()->format('ymd').'-'.Str::upper(Str::random(6)),
             'activity_type' => 'REPAIR', 'status' => 'OPEN', 'priority' => 'NORMAL', 'reported_at' => now(), 'reported_by' => auth()->user()?->name,
             'problem_description' => $problem,
         ]);
