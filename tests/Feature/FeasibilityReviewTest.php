@@ -28,6 +28,11 @@ class FeasibilityReviewTest extends TestCase
         $this->get(route('feasibility.show', $item))->assertOk()->assertSee('Methods');
     }
 
+    public function test_the_menu_links_to_feasibility(): void
+    {
+        $this->get(route('dashboard'))->assertOk()->assertSee(route('feasibility.index'), false);
+    }
+
     public function test_the_part_is_decided_only_once_every_department_has_signed_and_the_worst_verdict_wins(): void
     {
         $item = $this->item();

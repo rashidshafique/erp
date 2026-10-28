@@ -62,6 +62,7 @@ class EnquiryServiceProvider extends ModuleServiceProvider
         return [
             ['group' => 'sales', 'label' => 'Enquiries & quotes', 'route' => 'enquiries.index', 'icon' => 'message', 'active' => ['enquiries.index', 'enquiries.create', 'enquiries.show', 'enquiries.items.*', 'quotations.*'],
                 'count' => fn (): int => Enquiry::whereIn('status', ['NEW', 'FEASIBILITY'])->count() + Quotation::where('status', 'DRAFT')->count()],
+            ['group' => 'sales', 'label' => 'Feasibility', 'route' => 'feasibility.index', 'icon' => 'clipboard-check', 'active' => ['feasibility.*']],
         ];
     }
 
