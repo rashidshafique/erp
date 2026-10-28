@@ -35,7 +35,7 @@ class ToolingScreensTest extends TestCase
 
         $this->post(route('tooling-maintenance.store'), $this->record($pattern))->assertSessionHasNoErrors();
         $record = ToolingMaintenanceRecord::sole();
-        $this->assertStringStartsWith('TM-'.now()->format('Ymd'), $record->record_number);
+        $this->assertStringStartsWith('TM-'.now()->format('ymd'), $record->record_number);
         $this->get(route('tooling-maintenance.index'))->assertOk()->assertSee($record->record_number);
     }
 

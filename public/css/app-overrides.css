@@ -259,15 +259,6 @@ a.pager-item:hover { background: var(--page); color: var(--text); }
 .topbar { position: sticky; top: 0; z-index: 30; min-height: 46px !important; }
 @media (max-width: 768px) { .topbar { position: sticky; } }
 
-/* Heat status light: a dot with a lighter ring. The orange one (heat in progress) keeps blinking: its ring swells and fades while the dot dims.
-   Plain rgba colours, so it also works in older browsers. */
-.heat-light { display: inline-block; width: 11px; height: 11px; border-radius: 50%; background: var(--hl); vertical-align: middle; box-shadow: 0 0 0 3px rgba(var(--hl-rgb), .2); }
-.heat-light-orange { animation: heat-light-ring 1.2s ease-in-out infinite; }
-@keyframes heat-light-ring {
-    0%, 100% { box-shadow: 0 0 0 3px rgba(var(--hl-rgb), .45); opacity: 1; }
-    50% { box-shadow: 0 0 0 8px rgba(var(--hl-rgb), 0); opacity: .6; }
-}
-@media (prefers-reduced-motion: reduce) { .heat-light-orange { animation: none; } }
 
 /* Design shell (Foundry ERP workflow design, handoff phases 1-2). Tokens added here; the accent stays the brand's. */
 :root {
@@ -387,3 +378,13 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); min-h
 .btn-primary, .btn-primary:hover, .btn-primary:focus, a.btn-primary, a.btn-primary:hover { color: #fff !important; }
 .page-content { padding: 24px 28px; }
 @media (max-width: 768px) { .page-content { padding: 20px 14px; } }
+
+/* Heat status light: a dot with a lighter ring. The orange one (heat in progress) keeps blinking: its ring swells and fades while the dot dims.
+   Plain rgba colours, so it also works in older browsers. */
+.heat-light { display: inline-block; width: 11px; height: 11px; border-radius: 50%; background: var(--hl); vertical-align: middle; box-shadow: 0 0 0 3px rgba(var(--hl-rgb), .2); }
+.heat-light-orange { animation: heat-light-ring 1.2s ease-in-out infinite; }
+@keyframes heat-light-ring {
+    0%, 100% { box-shadow: 0 0 0 3px rgba(var(--hl-rgb), .45); opacity: 1; }
+    50% { box-shadow: 0 0 0 8px rgba(var(--hl-rgb), 0); opacity: .6; }
+}
+@media (prefers-reduced-motion: reduce) { .heat-light-orange { animation: none; } }
