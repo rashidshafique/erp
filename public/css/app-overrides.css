@@ -268,3 +268,50 @@ a.pager-item:hover { background: var(--page); color: var(--text); }
     50% { box-shadow: 0 0 0 8px rgba(var(--hl-rgb), 0); opacity: .6; }
 }
 @media (prefers-reduced-motion: reduce) { .heat-light-orange { animation: none; } }
+
+/* Design shell (Foundry ERP workflow design, handoff phases 1-2). Tokens added here; the accent stays the brand's. */
+:root {
+    --text-faint: #8a8d92; --border-row: #eff0f2; --border-input: #d9dbde;
+    --surface-sub: #f8f8f9; --surface-pill: #f0f1f3;
+}
+.sidebar { background: var(--surface-sub) !important; }
+.nav-group-toggle, .menu-labels .nav-group .nav-group-toggle { font-size: 11px !important; letter-spacing: .06em; text-transform: uppercase; color: var(--text-faint) !important; }
+.nav-group.is-open > .nav-group-toggle, .nav-group.is-active > .nav-group-toggle { color: var(--muted) !important; }
+.nav-submenu .nav-link, .nav-link { padding: 6px 8px !important; border-radius: 6px !important; font-size: 13px; }
+.nav-submenu .nav-link:hover, .nav-link:hover { background: var(--surface-pill) !important; }
+.nav-submenu .nav-link.active, .nav-link.active, .nav-link.active:hover {
+    background: #fff !important; box-shadow: 0 1px 2px rgba(0, 0, 0, .08) !important; color: var(--text) !important; font-weight: 500 !important;
+}
+.nav-count { background: var(--accent); color: #fff; }
+.sidebar-profile { border-top-color: var(--border); }
+.topbar { padding: 14px 28px; }
+.scan-box input:not(#_) { width: 360px; max-width: 100%; }
+@media (max-width: 768px) { .topbar { padding: 12px 18px; } }
+
+/* Buttons, pills, tables, cards */
+.btn { min-height: 34px; padding: 7px 14px; border-radius: 6px; border-color: var(--border-input); font-size: 13px; font-weight: 500; box-shadow: none; }
+.btn-primary { border-color: var(--accent); }
+.btn:hover { background: var(--surface-pill); }
+.btn-primary:hover { background: var(--accent-hover); }
+.status { padding: 2px 8px; border-radius: 999px; background: var(--surface-pill); color: #55585d; font-size: 11.5px; font-weight: 500; white-space: nowrap; }
+.status-in-progress { background: #fff0dc; color: #8a4b08; }
+.status-completed { background: #e4f5eb; color: #176b43; }
+.status-on-hold { background: #fff3cd; color: #7a5b00; }
+.status-cancelled { background: #fce8e6; color: #a12820; }
+th { padding: 9px 12px; font-size: 11.5px; font-weight: 500; border-bottom-color: var(--border); }
+td { padding: 10px 12px; font-size: 13px; }
+th, td { border-bottom-color: var(--border-row); }
+th { border-bottom-color: var(--border); }
+.metric, .panel { border-radius: 8px !important; }
+.metric { padding: 14px 16px; }
+.metric-label { font-size: 12px; }
+.metric-value { font-size: 24px; font-weight: 600; }
+.detail-label { font-size: 12px; }
+.detail-value { font-size: 13px; }
+@media (min-width: 1025px) { .detail-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; } }
+
+/* Record page: the main column and a 340px side column of summary, payments and history. */
+.record-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+.record-main, .record-side { min-width: 0; }
+.record-main > .panel:last-child, .record-side > .panel:last-child { margin-bottom: 0; }
+@media (max-width: 1000px) { .record-layout { grid-template-columns: minmax(0, 1fr); } }
