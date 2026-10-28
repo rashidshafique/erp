@@ -358,3 +358,11 @@ th { border-bottom-color: var(--border); }
 .menu-edit { border: 0 !important; border-radius: 12px !important; overflow: hidden; outline: none; }
 .menu-edit .qd-head { border-bottom: 0; padding-bottom: 4px; }
 .menu-edit .qd-foot { border-top: 0; }
+.menu-edit[open] { display: flex; flex-direction: column; max-height: min(86vh, 86dvh); }
+.menu-edit .qd-body { flex: 1 1 auto; min-height: 0; max-height: none; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
+.menu-edit .qd-head, .menu-edit .qd-foot { flex: none; }
+.menu-edit::backdrop { overscroll-behavior: contain; }
+html:has(.menu-edit[open]), html:has(.menu-edit[open]) body { overflow: hidden; }
+.menu-edit .qd-x { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; min-height: 0; padding: 0; border: 0 !important; border-radius: 6px; background: transparent !important; box-shadow: none !important; color: var(--text-faint); font-size: 18px; }
+.menu-edit .qd-x:hover { background: var(--surface-pill) !important; color: var(--text); }
+@media (max-width: 768px) { .menu-edit { width: calc(100vw - 24px); } .menu-edit-row { padding: 10px 8px; } }

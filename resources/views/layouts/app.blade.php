@@ -516,6 +516,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const dialog = document.getElementById('hidden-items'), open = document.getElementById('hidden-items-open'), list = document.getElementById('hidden-items-list');
     if (!dialog || !open || !window.erpMenu) return;
     const menu = window.erpMenu;
+    document.body.appendChild(dialog);   // out of the sliding menu, so nothing clips or moves it on phones
     function build() {
         const hidden = menu.read();
         list.innerHTML = '';
