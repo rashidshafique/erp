@@ -24,7 +24,7 @@ class DashboardLayoutsTest extends TestCase
 
     public function test_every_layout_renders_on_an_empty_database(): void
     {
-        $this->get(route('dashboard'))->assertOk()->assertSee('Pipeline')->assertSee('Needs attention')->assertSee("Today's melt", false)->assertSee('Open quotes');
+        $this->get(route('dashboard'))->assertOk()->assertSee('Pipeline')->assertSee('Feasibility')->assertSee('Needs attention')->assertSee("Today's melt", false)->assertSee('Open quotes');
         $this->get(route('dashboard', ['layout' => 'command']))->assertOk()->assertSee('Pipeline')->assertDontSee('Choose a dashboard layout');
     }
 

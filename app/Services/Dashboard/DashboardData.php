@@ -136,8 +136,10 @@ class DashboardData
         ];
 
         return [
-            $stage('Enquiry', Enquiry::whereNotIn('status', ['WON', 'LOST', 'CANCELLED', 'CLOSED'])->with('customer'),
+            $stage('Enquiry', Enquiry::where('status', 'NEW')->with('customer'),
                 fn ($e) => ['code' => $e->code, 'name' => $e->title ?: 'Enquiry', 'sub' => $e->customer?->name ?? '', 'tone' => '', 'url' => route('enquiries.show', $e)]),
+            $stage('Feasibility', Enquiry::where('status', 'FEASIBILITY')->with('customer')->withCount(['items as pending_items_count' => fn ($q) => $q->where('feasibility_status', 'PENDING')]),
+                fn ($e) => ['code' => $e->code, 'name' => $e->title ?: 'Enquiry', 'sub' => $e->pending_items_count > 0 ? $e->pending_items_count.' to review' : ($e->customer?->name ?? ''), 'tone' => $e->pending_items_count > 0 ? 'warn' : '', 'url' => route('enquiries.show', $e)]),
             $stage('Quoted', Quotation::where('status', 'ISSUED')->with('enquiry.customer'),
                 fn ($q) => ['code' => $q->code, 'name' => $q->enquiry?->title ?: 'Quotation', 'sub' => $q->valid_until ? 'Expires '.$q->valid_until->displayShortDate() : ($q->enquiry?->customer?->name ?? ''), 'tone' => $q->valid_until && $q->valid_until->lte(today()->addDays(7)) ? 'bad' : '', 'url' => route('quotations.show', $q)]),
             $stage('Order', \App\Domains\Sales\Models\SalesOrder::whereIn('status', ['DRAFT', 'UNDER_REVIEW', 'CONFIRMED'])->with('customer'),
