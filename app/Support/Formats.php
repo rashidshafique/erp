@@ -160,8 +160,13 @@ class Formats
 
     public static function money(float|int|string|null $value, int $decimals = 2): string
     {
+        return self::withCurrency(self::number($value, $decimals));
+    }
+
+    /** An amount already written out, such as "1.24M", with the currency set under Display before or after it. */
+    public static function withCurrency(string $amount): string
+    {
         $s = self::all();
-        $amount = self::number($value, $decimals);
 
         return match (true) {
             $s['currency'] === '' => $amount,

@@ -1,23 +1,28 @@
 <?php
 
 use App\Domains\Enquiry\Http\Controllers\EnquiryController;
+use App\Domains\Enquiry\Http\Controllers\EnquiryRecordController;
 use App\Domains\Enquiry\Http\Controllers\FeasibilityController;
 use App\Domains\Enquiry\Http\Controllers\QuotationController;
 use App\Domains\Enquiry\Http\Controllers\QuotationSettingsController;
-use App\Domains\Enquiry\Http\Controllers\RequestWizardController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('web')->group(function () {
     Route::prefix('enquiries')->name('enquiries.')->controller(EnquiryController::class)->group(function () {
         Route::get('/', 'index')->name('index');
+        Route::get('/export', 'export')->name('export');
         Route::get('/create', 'create')->name('create');
-        Route::get('/wizard', [RequestWizardController::class, 'create'])->name('wizard');
-        Route::post('/wizard', [RequestWizardController::class, 'store'])->name('wizard.store');
+        Route::get('/wizard', 'wizard')->name('wizard');
         Route::post('/', 'store')->name('store');
         Route::get('/{enquiry}', 'show')->name('show');
         Route::put('/{enquiry}', 'update')->name('update');
         Route::post('/{enquiry}/send', 'send')->name('send');
-        Route::post('/{enquiry}/lost', 'lost')->name('lost');
+        Route::get('/{enquiry}/edit', 'edit')->name('edit');
+        Route::post('/{enquiry}/pattern', [EnquiryRecordController::class, 'pattern'])->name('pattern');
+        Route::post('/{enquiry}/questions', [EnquiryRecordController::class, 'question'])->name('questions.store');
+        Route::put('/{enquiry}/questions/{question}', [EnquiryRecordController::class, 'answer'])->name('questions.answer');
+        Route::post('/{enquiry}/log', [EnquiryRecordController::class, 'event'])->name('log');
+        Route::post('/{enquiry}/close', [EnquiryRecordController::class, 'close'])->name('close');
         Route::post('/{enquiry}/items', 'itemStore')->name('items.store');
         Route::put('/{enquiry}/items/{item}', 'itemUpdate')->name('items.update');
         Route::delete('/{enquiry}/items/{item}', 'itemDestroy')->name('items.destroy');

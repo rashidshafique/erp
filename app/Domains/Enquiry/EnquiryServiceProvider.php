@@ -40,7 +40,6 @@ class EnquiryServiceProvider extends ModuleServiceProvider
         parent::register();
         $this->mergeConfigFrom(__DIR__.'/config/quotation.php', 'quotation');
         $this->mergeConfigFrom(__DIR__.'/config/enquiry_scenarios.php', 'enquiry_scenarios');
-        $this->mergeConfigFrom(__DIR__.'/config/enquiry_types.php', 'enquiry_types');
         $this->mergeConfigFrom(__DIR__.'/config/feasibility.php', 'feasibility');
     }
 
@@ -96,6 +95,16 @@ class EnquiryServiceProvider extends ModuleServiceProvider
             'enquiry' => ['label' => 'Enquiry', 'table' => 'enquiries', 'code' => 'code', 'name' => 'title', 'route' => 'enquiries.show', 'permission' => null, 'words' => ['enq', 'enquiry', 'enquiries', 'rfq']],
             'quotation' => ['label' => 'Quotation', 'table' => 'quotations', 'code' => 'code', 'name' => null, 'route' => 'quotations.show', 'permission' => null, 'words' => ['quo', 'quote', 'quotation']],
         ];
+    }
+
+    protected function consoleCommands(): array
+    {
+        return [\App\Domains\Enquiry\Console\EnquiryFollowUps::class];
+    }
+
+    protected function schedule(\Illuminate\Console\Scheduling\Schedule $schedule): void
+    {
+        $schedule->command('enquiries:follow-ups')->dailyAt('07:00');
     }
 
     protected function codeKinds(): array

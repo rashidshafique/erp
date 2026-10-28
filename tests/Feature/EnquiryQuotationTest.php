@@ -260,13 +260,15 @@ class EnquiryQuotationTest extends TestCase
         $this->get(route('enquiries.index'))->assertOk();
         $this->get(route('enquiries.create'))->assertOk();
         $c = Customer::create(['code' => 'CX1', 'name' => 'Beta Valves']);
-        $this->post(route('enquiries.store'), ['customer_id' => $c->id, 'title' => 'Valve body', 'source_type' => 'CONCEPT'])->assertSessionHasNoErrors();
+        $this->post(route('enquiries.store'), ['customer_id' => $c->id, 'title' => 'Valve body', 'source_type' => 'CONCEPT', 'action' => 'draft'])->assertSessionHasNoErrors();
         $e = Enquiry::firstOrFail();
         $this->assertMatchesRegularExpression('/^ENQ-\d{5}$/', $e->code);
+        $this->assertSame('NEW', $e->status);
         $this->post(route('enquiries.items.store', $e), ['description' => 'Valve body', 'weight_kg' => 12, 'first_batch_qty' => 20, 'family' => 'DUCTILE'])->assertSessionHasNoErrors();
         $this->assertSame('FEASIBILITY', $e->fresh()->status);
         $item = $e->items()->first();
-        $this->get(route('enquiries.show', $e))->assertOk()->assertSee('Valve body')->assertSee('Analyse a model');
+        $this->get(route('enquiries.show', $e))->assertOk()->assertSee('Valve body');
+        $this->get(route('enquiries.edit', $e))->assertOk()->assertSee('Analyse a model');
 
         $this->post(route('enquiries.items.feasibility', [$e, $item]), ['feasibility_status' => 'CONDITIONAL', 'feasibility_notes' => ''])->assertSessionHas('error');
         $this->post(route('enquiries.items.feasibility', [$e, $item]), ['feasibility_status' => 'CONDITIONAL', 'feasibility_notes' => 'Customer to relax flatness'])->assertSessionHas('success');
@@ -288,8 +290,9 @@ class EnquiryQuotationTest extends TestCase
     {
         $e = $this->enquiry();
         $q = app(QuotationService::class)->create($e);
-        $this->post(route('enquiries.lost', $e), ['lost_reason' => ''])->assertSessionHasErrors('lost_reason');
-        $this->post(route('enquiries.lost', $e), ['lost_reason' => '12% above competitor', 'outcome' => 'LOST'])->assertSessionHas('success');
+        app(QuotationService::class)->issue($q);
+        $this->post(route('enquiries.close', $e), ['outcome' => 'LOST'])->assertSessionHasErrors('close_reason', null, 'close');
+        $this->post(route('enquiries.close', $e), ['outcome' => 'LOST', 'close_reason' => 'PRICE', 'note' => '12% above competitor'])->assertSessionHas('success');
         $this->assertSame('LOST', $e->fresh()->status);
         $this->assertSame('REJECTED', $q->fresh()->status);
     }

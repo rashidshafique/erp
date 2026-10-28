@@ -116,7 +116,7 @@ class PatternDevelopmentTest extends TestCase
         $enquiry = Enquiry::create(['customer_id' => $customer->id, 'title' => 'Water pump housing', 'source_type' => 'DRAWING', 'status' => 'FEASIBILITY', 'received_on' => today()]);
         $pattern = $this->pattern($customer);
 
-        $this->get(route('enquiries.show', $enquiry))->assertOk()->assertSee('Start development');
+        $this->get(route('enquiries.show', $enquiry))->assertOk()->assertSee('Start pattern development');
         $this->get(route('patterns.show', $pattern))->assertOk()->assertSee('Replace pattern');
         $this->get(route('products.index'))->assertOk()->assertSee('Start development');
     }

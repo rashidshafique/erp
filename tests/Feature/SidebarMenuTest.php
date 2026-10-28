@@ -94,7 +94,15 @@ class SidebarMenuTest extends TestCase
         $html = $this->get(route('dashboard'))->assertOk()->getContent();
         $nav = substr($html, strpos($html, '<nav class="sidebar-nav"'), strpos($html, '</nav>') - strpos($html, '<nav class="sidebar-nav"'));
 
-        $this->assertSame(1, preg_match('/Sales<\/span>.*Overview.*Enquiries.*Quotations.*Sales orders.*Engineering<\/span>.*Feasibility.*Patterns &amp; tooling.*Cores &amp; core boxes.*Production<\/span>.*Planning.*Melt &amp; heats.*Quality<\/span>.*Inspection.*NCR &amp; CAPA.*Audits &amp; documents.*Logistics<\/span>.*Dispatch/s', $nav));
+        // Each entry is found after the one before it. A single regex with .* runs out of backtracking on a long menu.
+        $at = 0;
+        foreach (['Sales</span>', 'Overview', 'Enquiries', 'Sales orders', 'Engineering</span>', 'Feasibility', 'Patterns &amp; tooling', 'Cores &amp; core boxes',
+            'Production</span>', 'Planning', 'Melt &amp; heats', 'Quality</span>', 'Inspection', 'NCR &amp; CAPA', 'Audits &amp; documents', 'Logistics</span>', 'Dispatch'] as $entry) {
+            $found = strpos($nav, $entry, $at);
+            $this->assertNotFalse($found, "{$entry} should follow the entries before it");
+            $at = $found + strlen($entry);
+        }
+        $this->assertStringNotContainsString('>Quotations<', $nav, 'quotations are reached from their enquiry, not the menu');
         $this->assertStringNotContainsString('nav-top', $nav);
     }
 }

@@ -17,7 +17,7 @@ class MenuLayout
      */
     public const GROUPS = [
         ['Sales', 'briefcase', [
-            ['/', 'Overview'], ['/enquiries', 'Enquiries'], ['/enquiries?status=QUOTED', 'Quotations', 'tag'], ['/sales-orders', null],
+            ['/', 'Overview'], ['/enquiries', 'Enquiries'], ['/sales-orders', null],
             ['/customers', null], ['/products', null], ['/price-lists', null], ['/partners', null],
         ]],
         ['Engineering', 'layers', [

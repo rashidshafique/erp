@@ -36,10 +36,15 @@ class EnquiryEditingTest extends TestCase
     {
         $enquiry = $this->enquiry();
 
-        $this->put(route('enquiries.update', $enquiry), ['title' => 'Pump housing, rev B', 'source_type' => 'DRAWING', 'customer_reference' => 'RFQ-77'])->assertSessionHasNoErrors();
+        $item = $enquiry->items->first();
+        $page = fn (array $over = []) => $over + ['customer_id' => $enquiry->customer_id, 'source_type' => 'DRAWING', 'items' => [['id' => $item->id, 'description' => 'Housing', 'drawing_ref' => 'D-1']]];
+
+        $this->put(route('enquiries.update', $enquiry), $page(['title' => 'Pump housing, rev B', 'customer_reference' => 'RFQ-77']))->assertSessionHasNoErrors();
         $this->assertSame('RFQ-77', $enquiry->fresh()->customer_reference);
-        $this->put(route('enquiries.update', $enquiry), ['title' => '', 'source_type' => 'DRAWING'])->assertSessionHasErrors('title');
-        $this->put(route('enquiries.update', $enquiry), ['title' => 'x', 'source_type' => 'CARRIER_PIGEON'])->assertSessionHasErrors('source_type');
+        $this->assertSame('Pump housing, rev B', $enquiry->fresh()->title);
+        $this->assertSame('FEASIBILITY', $enquiry->fresh()->status, 'saving leaves the status alone');
+        $this->put(route('enquiries.update', $enquiry), $page(['items' => [['id' => $item->id, 'description' => '']]]))->assertSessionHasErrors('items.0.description');
+        $this->put(route('enquiries.update', $enquiry), $page(['source_type' => 'CARRIER_PIGEON']))->assertSessionHasErrors('source_type');
     }
 
     public function test_a_part_is_edited_and_an_analysis_linked_and_unlinked_while_the_enquiry_is_open(): void

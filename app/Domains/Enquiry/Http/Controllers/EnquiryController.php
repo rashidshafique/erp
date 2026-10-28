@@ -3,11 +3,22 @@
 namespace App\Domains\Enquiry\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Domains\Enquiry\Services\EnquiryIntake;
+use App\Domains\Enquiry\Services\SimilarParts;
+use App\Models\Attachment;
 use App\Models\CastingAnalysis;
 use App\Models\Customer;
 use App\Domains\Enquiry\Models\Enquiry;
 use App\Domains\Enquiry\Models\EnquiryItem;
+use App\Domains\Enquiry\Models\EnquiryEvent;
+use App\Domains\Enquiry\Models\Quotation;
+use App\Models\IronGrade;
+use App\Models\Pattern;
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use App\Models\Product;
+use App\Support\AttachableEntities;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
@@ -15,50 +26,148 @@ use Illuminate\Validation\Rule;
 
 class EnquiryController extends Controller
 {
+    /** Tabs of the list (design 14a): open is everything not yet closed; due this week is open with a reply-by date in the next 7 days. */
+    public const TABS = ['open' => 'Open', 'due' => 'Due this week', 'won' => 'Won', 'lost' => 'Lost', 'declined' => 'Declined'];
+
+    /** The enquiries list (design 14a): every RFQ from receipt to won or lost, with the last 90 days and why we lose beside it. */
     public function index(Request $request)
     {
-        return view('enquiry::enquiries.index', ['rows' => self::rows($request)]);
+        $tab = array_key_exists((string) $request->query('tab'), self::TABS) ? $request->query('tab') : 'open';
+        $since = today()->subDays(90);
+        $closed90 = Enquiry::whereIn('status', ['LOST', 'DECLINED'])->where('closed_at', '>=', $since);
+        $quotedIds = Quotation::whereNotNull('issued_at')->where('issued_at', '>=', $since)->distinct()->pluck('enquiry_id');
+        $firstIssue = Quotation::whereNotNull('issued_at')->selectRaw('enquiry_id, min(issued_at) as first_issued')->groupBy('enquiry_id');
+        $daysToQuote = DB::query()->fromSub($firstIssue, 'q')->join('enquiries', 'enquiries.id', '=', 'q.enquiry_id')
+            ->where('q.first_issued', '>=', $since)->selectRaw('avg(extract(epoch from (q.first_issued - enquiries.received_on::timestamptz)) / 86400) as days')->value('days');
+        $won90 = Enquiry::where('status', 'WON')->where('closed_at', '>=', $since)->count();
+
+        return view('enquiry::enquiries.index', [
+            'rows' => self::rows($request, $tab),
+            'tab' => $tab,
+            'counts' => collect(self::TABS)->map(fn ($l, $k) => $this->tabQuery($k)->count())->all(),
+            'customers' => Customer::whereIn('id', Enquiry::select('customer_id'))->orderedByName()->get(),
+            'owners' => User::whereIn('id', Enquiry::whereNotNull('owner_id')->select('owner_id'))->orderBy('name')->get(['id', 'name']),
+            'stats' => [
+                'received' => Enquiry::where('received_on', '>=', $since)->count(),
+                'quoted' => $quotedIds->count(),
+                'won' => $won90,
+                'wonShare' => $quotedIds->count() > 0 ? round(100 * $won90 / $quotedIds->count()) : null,
+                'daysToQuote' => $daysToQuote !== null ? round((float) $daysToQuote, 1) : null,
+            ],
+            'reasons' => (clone $closed90)->whereNotNull('close_reason')->selectRaw('close_reason, status, count(*) as n')->groupBy('close_reason', 'status')->get()
+                ->groupBy('close_reason')->map(fn ($g) => ['lost' => (int) $g->where('status', 'LOST')->sum('n'), 'declined' => (int) $g->where('status', 'DECLINED')->sum('n')])
+                ->sortByDesc(fn ($r) => $r['lost'] + $r['declined']),
+        ]);
     }
 
-    /** The enquiries list with the search, status and kind filters applied; the guided request dialog shows it behind itself. */
-    public static function rows(Request $request): LengthAwarePaginator
+    /** The filtered list as a CSV file. */
+    public function export(Request $request): StreamedResponse
     {
-        return Enquiry::query()->with('customer')->withCount('items')
+        $tab = array_key_exists((string) $request->query('tab'), self::TABS) ? $request->query('tab') : 'open';
+        $rows = self::query($request, $tab)->get();
+
+        return response()->streamDownload(function () use ($rows) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['Code', 'Part', 'Customer', 'RFQ ref', 'Stage', 'Pattern', 'Annual value', 'Reply by', 'Owner']);
+            foreach ($rows as $e) {
+                fputcsv($out, [$e->code, $e->items->first()?->description ?? $e->title, $e->customer?->name, $e->customer_reference, Enquiry::STAGES[$e->stage()],
+                    self::patternText($e), $e->annualValue(), $e->due_on?->toDateString(), $e->owner?->name]);
+            }
+            fclose($out);
+        }, 'enquiries-'.today()->toDateString().'.csv', ['Content-Type' => 'text/csv']);
+    }
+
+    /** The enquiries of a tab with the search, customer and owner filters applied, newest first. */
+    public static function rows(Request $request, string $tab = 'open'): LengthAwarePaginator
+    {
+        return self::query($request, $tab)->paginate(20)->withQueryString();
+    }
+
+    private static function query(Request $request, string $tab)
+    {
+        return (new self)->tabQuery($tab)
+            ->with('customer', 'owner:id,name', 'pattern:id,code', 'items', 'quotations.lines', 'developments:id,enquiry_id,pattern_by,status')
             ->when($request->filled('search'), function ($q) use ($request) {
                 $s = '%'.trim($request->input('search')).'%';
-                $q->where(fn ($w) => $w->where('code', 'ilike', $s)->orWhere('title', 'ilike', $s)->orWhere('customer_reference', 'ilike', $s));
+                $q->where(fn ($w) => $w->where('code', 'ilike', $s)->orWhere('title', 'ilike', $s)->orWhere('customer_reference', 'ilike', $s)
+                    ->orWhereHas('items', fn ($i) => $i->where('description', 'ilike', $s))
+                    ->orWhereHas('customer', fn ($c) => $c->whereHas('party', fn ($p) => $p->where('name', 'ilike', $s))));
             })
-            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status')))
+            ->when($request->filled('customer'), fn ($q) => $q->where('customer_id', $request->input('customer')))
+            ->when($request->filled('owner'), fn ($q) => $q->where('owner_id', $request->input('owner')))
             ->when($request->filled('source'), fn ($q) => $q->where('source_type', $request->input('source')))
-            ->orderByDesc('created_at')->paginate(20)->withQueryString();
+            ->orderByRaw('due_on is null')->orderBy('due_on')->orderByDesc('created_at');
     }
 
-    public function create()
+    private function tabQuery(string $tab)
     {
-        return view('enquiry::enquiries.create', ['customers' => Customer::active()->orderedByName()->get()]);
+        return match ($tab) {
+            'due' => Enquiry::whereIn('status', ['NEW', 'FEASIBILITY', 'QUOTED'])->whereBetween('due_on', [today(), today()->addDays(7)]),
+            'won' => Enquiry::where('status', 'WON'),
+            'lost' => Enquiry::where('status', 'LOST'),
+            'declined' => Enquiry::whereIn('status', ['DECLINED', 'CANCELLED']),
+            default => Enquiry::whereIn('status', ['NEW', 'FEASIBILITY', 'QUOTED']),
+        };
     }
 
-    public function store(Request $request)
+    /** The pattern route as the list shows it: "Existing PT-0302", "New · subcontract", "Customer builds or supplies", or not set. */
+    public static function patternText(Enquiry $e): ?string
     {
-        $d = $request->validate([
-            'customer_id' => ['required', 'exists:customers,id'],
-            'title' => ['required', 'string', 'max:200'],
-            'source_type' => ['required', Rule::in(array_keys(Enquiry::SOURCES))],
-            'received_on' => ['nullable', 'date'],
-            'due_on' => ['nullable', 'date'],
-            'customer_reference' => ['nullable', 'string', 'max:100'],
-            'contact_name' => ['nullable', 'string', 'max:120'],
-            'summary' => ['nullable', 'string', 'max:4000'],
+        $dev = $e->developments->firstWhere('status', 'OPEN') ?? $e->developments->first();
+
+        return match ($e->pattern_route) {
+            'EXISTING' => 'Existing'.($e->pattern ? ' '.$e->pattern->code : ''),
+            'NEW' => 'New'.($dev && $dev->pattern_by !== 'DECIDE_LATER' ? ' · '.strtolower(config('pattern_developments.pattern_by.'.$dev->pattern_by, '')) : ''),
+            'CUSTOMER' => 'Customer builds or supplies',
+            default => null,
+        };
+    }
+
+    /** @return array<string, mixed> */
+    private function recordData(Enquiry $e): array
+    {
+        $departments = config('feasibility.departments');
+        $reviews = $e->items->flatMap->reviews;
+        $files = Attachment::where('attachable_type', 'enquiry')->where('attachable_id', $e->id)->current()->orderByDesc('created_at')->get();
+
+        return [
+            'e' => $e,
+            'files' => $files,
+            'preview' => $files->first(fn ($f) => $f->isInlineViewable()),
+            'patterns' => Pattern::orderBy('code')->get(['id', 'code', 'name']),
+            'feasibility' => [
+                'signed' => $reviews->count(),
+                'expected' => $e->items->count() * count($departments),
+                'waiting' => collect($departments)->filter(fn ($d, $k) => $e->items->contains(fn ($i) => ! $i->reviews->contains('department', $k)))->map(fn ($d) => $d[0])->values(),
+                'risks' => $reviews->where('verdict', '!=', 'OK'),
+                'decided' => $e->items->where('feasibility_status', '!=', 'PENDING')->count(),
+                'first' => $e->items->first(),
+            ],
+            'latestQuote' => $e->quotations->sortByDesc('version')->first(),
+            'order' => $e->quotations->firstWhere('sales_order_id')?->salesOrder,
+            'development' => $e->developments->sortByDesc('created_at')->first(),
+            'patternText' => self::patternText($e),
+        ];
+    }
+
+    /** The intake page (design 1b) with nothing saved yet. ?customer= and ?scenario= preset the customer and the kind. */
+    public function create(Request $request)
+    {
+        return view('enquiry::enquiries.intake', $this->pageData(null) + [
+            'preset' => ['customer' => $request->query('customer'), 'scenario' => array_key_exists((string) $request->query('scenario'), Enquiry::SOURCES) ? $request->query('scenario') : null],
         ]);
-        $d['received_on'] = $d['received_on'] ?? now()->toDateString();
-        $d['status'] = 'NEW';
-        $d['created_by_id'] = Auth::id();
-        $d['created_by_name'] = Auth::user()?->name;
-        $e = Enquiry::create($d);
-
-        return redirect()->route('enquiries.show', $e)->with('success', "Enquiry {$e->code} created. Add the parts the customer wants.");
     }
 
+    public function store(Request $request, EnquiryIntake $intake)
+    {
+        $enquiry = $intake->save($request);
+
+        return redirect()->route('enquiries.show', $enquiry)->with('success', $enquiry->status === 'NEW'
+            ? "Draft {$enquiry->code} saved for {$enquiry->customer->name}. Send it to feasibility when it is complete."
+            : "Enquiry {$enquiry->code} created for {$enquiry->customer->name} and sent to feasibility.");
+    }
+
+    /** The same intake page for a saved enquiry: editable while open, read only once won, lost or cancelled. */
     public function show(Enquiry $enquiry)
     {
         $enquiry->load('customer', 'items.product:id,code,name', 'items.analysis', 'quotations.lines');
@@ -69,26 +178,62 @@ class EnquiryController extends Controller
             }
         }
 
-        return view('enquiry::enquiries.show', [
-            'e' => $enquiry,
-            'products' => Product::orderBy('code')->get(['id', 'code', 'name', 'nominal_weight_kg']),
-            'analyses' => CastingAnalysis::where('status', 'COMPLETE')->orderByDesc('created_at')->limit(100)->get(['id', 'code', 'name', 'score']),
-        ]);
+        if ($enquiry->status === 'NEW') {
+            return view('enquiry::enquiries.intake', $this->pageData($enquiry) + ['preset' => []]);
+        }
+        $enquiry->load('owner:id,name', 'pattern:id,code,name', 'questions', 'events', 'developments', 'quotations.salesOrder:id,order_number', 'items.reviews');
+
+        return view('enquiry::enquiries.record', $this->recordData($enquiry));
     }
 
-    public function update(Request $request, Enquiry $enquiry)
+    /** The intake page (design 1b) for a sent enquiry: Edit details on the record. */
+    public function edit(Enquiry $enquiry)
     {
-        $d = $request->validate([
-            'title' => ['required', 'string', 'max:200'],
-            'source_type' => ['required', Rule::in(array_keys(Enquiry::SOURCES))],
-            'due_on' => ['nullable', 'date'],
-            'customer_reference' => ['nullable', 'string', 'max:100'],
-            'contact_name' => ['nullable', 'string', 'max:120'],
-            'summary' => ['nullable', 'string', 'max:4000'],
-        ]);
-        $enquiry->update($d);
+        if (! $enquiry->isOpen() || $enquiry->status === 'NEW') {
+            return redirect()->route('enquiries.show', $enquiry);
+        }
+        $enquiry->load('customer', 'items.product:id,code,name', 'items.analysis', 'quotations.lines');
 
-        return back()->with('success', 'Enquiry saved.');
+        return view('enquiry::enquiries.intake', $this->pageData($enquiry) + ['preset' => []]);
+    }
+
+    public function update(Request $request, Enquiry $enquiry, EnquiryIntake $intake)
+    {
+        abort_unless($enquiry->isOpen(), 422);
+        $wasDraft = $enquiry->status === 'NEW';
+        $enquiry = $intake->save($request, $enquiry);
+
+        return redirect()->route('enquiries.show', $enquiry)->with('success', match (true) {
+            $wasDraft && $enquiry->status === 'FEASIBILITY' => "{$enquiry->code} is with feasibility.",
+            $enquiry->quotations()->where('status', 'DRAFT')->exists() => 'Enquiry saved. Refresh the draft quotation to pick up the changes.',
+            default => 'Enquiry saved.',
+        });
+    }
+
+    /** The old guided-request address opens the intake page, keeping its presets. */
+    public function wizard(Request $request)
+    {
+        return redirect()->route('enquiries.create', array_filter($request->only(['customer', 'scenario'])));
+    }
+
+    /** @return array<string, mixed> */
+    private function pageData(?Enquiry $enquiry): array
+    {
+        $products = Product::with('revisions:id,product_id,revision,status')->orderBy('code')->get(['id', 'code', 'name', 'nominal_weight_kg']);
+
+        return [
+            'e' => $enquiry,
+            'customers' => Customer::active()->orderedByName()->get(),
+            'users' => User::where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'products' => $products,
+            'productPhotos' => Attachment::coverUrlsFor('product', $products->pluck('id')->all()),
+            'grades' => IronGrade::listed(),
+            'scenarios' => config('enquiry_scenarios'),
+            'categories' => AttachableEntities::CATEGORIES,
+            'files' => $enquiry ? Attachment::where('attachable_type', 'enquiry')->where('attachable_id', $enquiry->id)->current()->orderByDesc('created_at')->get() : collect(),
+            'similar' => app(SimilarParts::class)->for($enquiry?->items->first()),
+            'analyses' => $enquiry ? CastingAnalysis::where('status', 'COMPLETE')->orderByDesc('created_at')->limit(100)->get(['id', 'code', 'name', 'score']) : collect(),
+        ];
     }
 
     /** Sends a saved draft on to feasibility once it has a part. */
@@ -99,18 +244,9 @@ class EnquiryController extends Controller
             return back()->with('error', 'Add the part first.');
         }
         $enquiry->update(['status' => 'FEASIBILITY']);
+        EnquiryEvent::system($enquiry, 'Sent to feasibility.');
 
         return back()->with('success', "{$enquiry->code} is with feasibility.");
-    }
-
-    public function lost(Request $request, Enquiry $enquiry)
-    {
-        $d = $request->validate(['lost_reason' => ['required', 'string', 'max:500']], ['lost_reason.required' => 'Say why the enquiry was lost or cancelled.']);
-        abort_unless($enquiry->isOpen(), 422);
-        $enquiry->update(['status' => $request->input('outcome') === 'CANCELLED' ? 'CANCELLED' : 'LOST', 'lost_reason' => $d['lost_reason'], 'closed_at' => now()]);
-        $enquiry->quotations()->whereIn('status', ['DRAFT', 'ISSUED'])->update(['status' => 'REJECTED', 'decided_at' => now(), 'decision_note' => $d['lost_reason']]);
-
-        return back()->with('success', 'Enquiry closed.');
     }
 
     private function itemRules(): array
