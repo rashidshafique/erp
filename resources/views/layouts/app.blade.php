@@ -196,7 +196,7 @@
 
         <dialog id="hidden-items" class="qd menu-edit" aria-labelledby="hidden-items-title">
             <div class="qd-head"><h2 id="hidden-items-title">Menu</h2><button type="button" class="qd-x" data-menu-close aria-label="Close">×</button></div>
-            <div class="qd-body"><p class="muted small" style="margin:0 0 10px">Choose which entries show in your menu. Hidden entries stay available here and in search; this is kept in this browser.</p><div id="hidden-items-list"></div></div>
+            <div class="qd-body"><p class="muted small" style="margin:0 0 10px">Choose which entries show in your menu.</p><div id="hidden-items-list"></div></div>
             <div class="qd-foot"><button type="button" class="btn" id="hidden-items-reset">Show all</button><button type="button" class="btn btn-primary" data-menu-close>Done</button></div>
         </dialog>
 
