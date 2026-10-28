@@ -4,6 +4,7 @@ use App\Domains\Finance\Http\Controllers\BillController;
 use App\Domains\Finance\Http\Controllers\CreditController;
 use App\Domains\Finance\Http\Controllers\FinanceSettingsController;
 use App\Domains\Finance\Http\Controllers\InvoiceController;
+use App\Domains\Finance\Http\Controllers\InvoiceTemplateController;
 use App\Domains\Finance\Http\Controllers\ReceiptController;
 use App\Domains\Finance\Http\Controllers\PayablesController;
 use App\Domains\Finance\Http\Controllers\ReceivablesController;
@@ -29,6 +30,16 @@ Route::middleware('web')->group(function () {
         Route::post('/{invoice}/apply-credit', 'applyCredit')->name('apply-credit');
         Route::get('/{invoice}/credit', 'credit')->name('credit');
         Route::post('/{invoice}/credit', 'storeCredit')->name('credit.store');
+    });
+    Route::prefix('invoice-templates')->name('invoice-templates.')->controller(InvoiceTemplateController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('/create', 'create')->name('create');
+        Route::post('/', 'store')->name('store');
+        Route::post('/preview', 'preview')->name('preview');
+        Route::get('/{template}/edit', 'edit')->name('edit');
+        Route::put('/{template}', 'update')->name('update');
+        Route::post('/{template}/toggle', 'toggle')->name('toggle');
+        Route::delete('/{template}', 'destroy')->name('destroy');
     });
     Route::prefix('receipts')->name('receipts.')->controller(ReceiptController::class)->group(function () {
         Route::get('/', 'index')->name('index');

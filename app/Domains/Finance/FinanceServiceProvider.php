@@ -38,9 +38,10 @@ class FinanceServiceProvider extends ModuleServiceProvider
     protected function navGroups(): array
     {
         return [[
-            'key' => 'finance', 'label' => 'Finance', 'icon' => 'banknote', 'active' => ['invoices.*', 'receipts.*', 'withholding-certificates.*', 'receivables.*', 'bills.*', 'supplier-payments.*', 'payables.*', 'finance.*'],
+            'key' => 'finance', 'label' => 'Finance', 'icon' => 'banknote', 'active' => ['invoices.*', 'invoice-templates.*', 'receipts.*', 'withholding-certificates.*', 'receivables.*', 'bills.*', 'supplier-payments.*', 'payables.*', 'finance.*'],
             'items' => [
                 ['label' => 'Invoices', 'route' => 'invoices.index', 'icon' => 'file-text', 'active' => ['invoices.*'], 'count' => fn (): int => Invoice::where('status', 'DRAFT')->count()],
+                ['label' => 'Invoice templates', 'route' => 'invoice-templates.index', 'icon' => 'file-text', 'active' => ['invoice-templates.*']],
                 ['label' => 'Receipts', 'route' => 'receipts.index', 'icon' => 'arrow-down-circle', 'active' => ['receipts.*']],
                 ['label' => 'Tax certificates', 'route' => 'withholding-certificates.index', 'icon' => 'stamp', 'active' => ['withholding-certificates.*']],
                 ['label' => 'Receivables', 'route' => 'receivables.index', 'icon' => 'inbox', 'active' => ['receivables.*']],
@@ -81,6 +82,7 @@ class FinanceServiceProvider extends ModuleServiceProvider
     {
         return [
             ['pattern' => 'invoices.*', 'permission' => 'finance.manage'],
+            ['pattern' => 'invoice-templates.*', 'permission' => 'finance.manage'],
             ['pattern' => 'receipts.*', 'permission' => 'finance.manage'],
             ['pattern' => 'withholding-certificates.*', 'permission' => 'finance.manage'],
             ['pattern' => 'receivables.*', 'permission' => 'finance.manage'],

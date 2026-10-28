@@ -15,7 +15,7 @@ return new class extends Migration
             $table->string('applies_to', 12)->default('BOTH');
             $table->json('layout');
             $table->boolean('is_active')->default(true);
-            $table->uuid('created_by')->nullable();
+            $table->unsignedBigInteger('created_by')->nullable();
             $table->timestamps();
         });
         // a custom layout's key is "custom:" and its id, which is longer than the first 40 characters allowed
