@@ -8,6 +8,8 @@ use App\Support\FloorRules;
 use App\Support\OrderRules;
 use App\Support\PouringRules;
 use App\Support\ProcessDepth;
+use App\Models\Role;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -19,6 +21,20 @@ class ProcessDepthTest extends TestCase
     {
         $this->assertSame('FULL', ProcessDepth::current());
         $this->get(route('settings.process-depth.edit'))->assertOk()->assertSee('In use');
+    }
+
+    public function test_the_menu_switch_shows_simple_mode_and_flips_between_basic_and_full(): void
+    {
+        config(['foundry.require_login' => true]);
+        $user = User::factory()->create(['is_active' => true, 'must_change_password' => false]);
+        $user->roles()->attach(Role::where('code', 'ADMIN')->first());
+        $this->actingAs($user);
+
+        $this->get(route('dashboard'))->assertSee('Simple mode')->assertSee('aria-checked="false"', false)->assertSee('name="preset" value="BASIC"', false);
+
+        ProcessDepth::apply('BASIC');
+
+        $this->get(route('dashboard'))->assertSee('aria-checked="true"', false)->assertSee('name="preset" value="FULL"', false);
     }
 
     public function test_basic_depth_loosens_the_checks_and_full_restores_them(): void

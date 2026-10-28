@@ -178,6 +178,14 @@
             <div style="margin-top:auto;padding:12px 12px 0"><img src="{{ $brand['logo'] }}" alt="{{ $brand['name'] }}" style="display:block;max-width:100%;height:{{ $brand['height'] }}px;object-fit:contain;object-position:left"></div>
         @endif
         @auth
+            @if (\App\Support\SettingsNav::canOpen())
+                @php($simple = \App\Support\ProcessDepth::current() === 'BASIC')
+                <form method="POST" action="{{ route('settings.process-depth') }}" class="simple-mode">@csrf @method('PUT')
+                    <input type="hidden" name="preset" value="{{ $simple ? 'FULL' : 'BASIC' }}">
+                    <span id="simple-mode-label">Simple mode</span>
+                    <button type="submit" class="simple-switch" role="switch" aria-checked="{{ $simple ? 'true' : 'false' }}" aria-labelledby="simple-mode-label" title="{{ $simple ? 'On: Basic process depth. Switch to Full.' : 'Off. Switch to Basic process depth.' }}"><span></span></button>
+                </form>
+            @endif
             @php($me = auth()->user())
             @php($roleNames = $me->roles->pluck('name')->implode(', ') ?: 'No role')
             <div class="sidebar-profile">

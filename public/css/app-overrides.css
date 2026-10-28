@@ -315,3 +315,14 @@ th { border-bottom-color: var(--border); }
 .record-main, .record-side { min-width: 0; }
 .record-main > .panel:last-child, .record-side > .panel:last-child { margin-bottom: 0; }
 @media (max-width: 1000px) { .record-layout { grid-template-columns: minmax(0, 1fr); } }
+
+/* Simple mode switch in the menu footer: label left, 30x18 track right; on sets Basic process depth. */
+.simple-mode { flex: none; display: flex; align-items: center; justify-content: space-between; margin: 8px -4px 0; padding: 10px 8px 0; border-top: 1px solid var(--border); font-size: 13px; }
+.simple-switch { position: relative; width: 30px; height: 18px; min-height: 0; padding: 0; border: 0; border-radius: 9px; background: var(--border-input); cursor: pointer; transition: background .15s; }
+.simple-switch span { position: absolute; left: 2px; top: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: left .15s; }
+.simple-switch[aria-checked="true"] { background: var(--accent); }
+.simple-switch[aria-checked="true"] span { left: 14px; }
+.simple-switch:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.simple-mode + .sidebar-profile { margin-top: 0; border-top: 0; }
+.menu-slim .simple-mode { display: none; }
+@media (prefers-reduced-motion: reduce) { .simple-switch, .simple-switch span { transition: none; } }
