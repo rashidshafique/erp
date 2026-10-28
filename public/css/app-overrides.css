@@ -366,3 +366,21 @@ html:has(.menu-edit[open]), html:has(.menu-edit[open]) body { overflow: hidden; 
 .menu-edit .qd-x { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; min-height: 0; padding: 0; border: 0 !important; border-radius: 6px; background: transparent !important; box-shadow: none !important; color: var(--text-faint); font-size: 18px; }
 .menu-edit .qd-x:hover { background: var(--surface-pill) !important; color: var(--text); }
 @media (max-width: 768px) { .menu-edit { width: calc(100vw - 24px); } .menu-edit-row { padding: 10px 8px; } }
+
+/* Controls as in the design: 6px corners, 1px #d9dbde borders, no shadows. Secondary button is white and regular weight;
+   primary is the accent, borderless, weight 500. Fields are 14px with 9px 10px padding. */
+.btn { gap: 6px; font-weight: 400; background: #fff; color: var(--text); box-shadow: none !important; }
+.btn-primary { border: 0 !important; font-weight: 500; box-shadow: none !important; }
+.btn-primary:hover { border: 0 !important; }
+.btn-danger { border-color: var(--border-input); color: var(--danger); }
+input, select, textarea { min-height: 36px; padding: 9px 10px; border: 1px solid var(--border-input); border-radius: 6px !important; font-size: 14px; box-shadow: none; }
+select:not([multiple]):not([size]) { padding-right: 30px; }
+textarea { min-height: 80px; }
+input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent); outline: none; }
+input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); min-height: 0; padding: 0; }
+.field label { font-size: 12px; font-weight: 400; color: var(--muted); }
+.pill { height: auto; padding: 3px 10px; border-color: var(--border-input); background: #fff; }
+.pagination-links a, .pagination-links span, .pager-item { border-radius: 6px; }
+.alert { border-radius: 8px; }
+.qd { border-radius: 8px; }
+.heat-chip { border-color: var(--border-input); }
