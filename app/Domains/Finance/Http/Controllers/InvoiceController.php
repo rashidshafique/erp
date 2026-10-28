@@ -8,12 +8,14 @@ use App\Domains\Finance\Models\TaxRate;
 use App\Domains\Finance\Services\Advances;
 use App\Domains\Finance\Services\FinanceRules;
 use App\Domains\Finance\Services\InvoiceService;
+use App\Domains\Finance\Services\InvoiceTemplates;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Domains\Sales\Models\SalesOrder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use InvalidArgumentException;
 
@@ -87,11 +89,12 @@ class InvoiceController extends Controller
         return back()->with('success', $applied > 0 ? 'Money on account put on this invoice: '.number_format($applied, 2).'.' : 'No money on account could go on this invoice.');
     }
 
-    public function print(Invoice $invoice): View
+    public function print(Request $request, Invoice $invoice, InvoiceTemplates $templates): View
     {
         $invoice->load(['customer', 'lines', 'original']);
+        $key = $templates->has((string) $request->query('template')) ? (string) $request->query('template') : $templates->keyFor($invoice);
 
-        return view('finance::invoices.print', ['invoice' => $invoice, 'registrations' => app(\App\Domains\Core\Contracts\TaxCalculator::class)->registrations($invoice->customer?->party_id)]);
+        return view('finance::invoices.print', ['invoice' => $invoice, 'templateView' => $templates->viewFor($key), 'registrations' => app(\App\Domains\Core\Contracts\TaxCalculator::class)->registrations($invoice->customer?->party_id)]);
     }
 
     public function edit(Invoice $invoice): View|RedirectResponse
@@ -115,12 +118,24 @@ class InvoiceController extends Controller
         return redirect()->route('invoices.show', $invoice)->with('success', 'Draft saved.');
     }
 
-    public function issue(Invoice $invoice, InvoiceService $service): RedirectResponse
+    /** Chooses the print layout for one invoice. Printing only, so it is allowed on an issued invoice too. */
+    public function template(Request $request, Invoice $invoice, InvoiceTemplates $templates): RedirectResponse
+    {
+        $d = $request->validate(['print_template' => ['nullable', Rule::in(array_keys($templates->options()))]]);
+        $invoice->update(['print_template' => $d['print_template'] ?? null]);
+
+        return back()->with('success', 'Print layout saved.');
+    }
+
+    public function issue(Request $request, Invoice $invoice, InvoiceService $service): RedirectResponse
     {
         try {
             $invoice = $service->issue($invoice);
         } catch (InvalidArgumentException $e) {
             return back()->withErrors(['invoice' => $e->getMessage()]);
+        }
+        if ($request->boolean('print')) {
+            return redirect()->route('invoices.print', $invoice);
         }
 
         return back()->with('success', "{$invoice->invoice_number} issued.");

@@ -56,6 +56,7 @@ class FinanceServiceProvider extends ModuleServiceProvider
     public function boot(): void
     {
         parent::boot();
+        $this->app->singleton(\App\Domains\Finance\Services\InvoiceTemplates::class);
         if ($this->app->make(ModuleRegistry::class)->isEnabled('finance')) {
             $this->app->singleton(CreditControl::class, CreditLimits::class);
         }

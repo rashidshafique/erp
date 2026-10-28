@@ -4,6 +4,7 @@ namespace App\Domains\Finance\Http\Controllers;
 
 use App\Domains\Finance\Models\TaxRate;
 use App\Domains\Finance\Services\FinanceRules;
+use App\Domains\Finance\Services\InvoiceTemplates;
 use App\Http\Controllers\Controller;
 use App\Models\AppSetting;
 use Illuminate\Http\RedirectResponse;
@@ -16,7 +17,7 @@ class FinanceSettingsController extends Controller
     public function edit(): View
     {
         return view('finance::settings.edit', ['dueDays' => FinanceRules::dueDays(), 'currency' => FinanceRules::currency(), 'billMatch' => FinanceRules::billMatch(), 'billTolerance' => FinanceRules::billTolerance(), 'advances' => FinanceRules::advances(), 'billCost' => FinanceRules::billPriceToCost(),
-            'creditCheck' => FinanceRules::creditCheck(), 'creditOrders' => FinanceRules::creditCountsOrders(), 'creditOverdueDays' => FinanceRules::creditOverdueDays(), 'rates' => TaxRate::orderBy('name')->get()]);
+            'templates' => app(InvoiceTemplates::class)->options(), 'template' => app(InvoiceTemplates::class)->default(), 'creditCheck' => FinanceRules::creditCheck(), 'creditOrders' => FinanceRules::creditCountsOrders(), 'creditOverdueDays' => FinanceRules::creditOverdueDays(), 'rates' => TaxRate::orderBy('name')->get()]);
     }
 
     public function update(Request $request): RedirectResponse
@@ -24,10 +25,11 @@ class FinanceSettingsController extends Controller
         $d = $request->validate(['due_days' => ['required', 'integer', 'min:0', 'max:365'], 'currency' => ['nullable', 'string', 'max:10'],
             'bill_match' => ['sometimes', Rule::in(array_keys(FinanceRules::MATCH_OPTIONS))], 'bill_tolerance' => ['sometimes', 'numeric', 'min:0', 'max:100'],
             'advances' => ['sometimes', Rule::in(array_keys(FinanceRules::ADVANCE_OPTIONS))], 'bill_cost' => ['sometimes', Rule::in(array_keys(FinanceRules::BILL_COST_OPTIONS))],
-            'credit_check' => ['sometimes', Rule::in(array_keys(FinanceRules::CREDIT_OPTIONS))], 'credit_orders' => ['sometimes', 'boolean'], 'credit_overdue_days' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:365']]);
+            'invoice_template' => ['sometimes', Rule::in(array_keys(app(InvoiceTemplates::class)->options()))], 'credit_check' => ['sometimes', Rule::in(array_keys(FinanceRules::CREDIT_OPTIONS))], 'credit_orders' => ['sometimes', 'boolean'], 'credit_overdue_days' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:365']]);
         AppSetting::setValue(FinanceRules::DUE_DAYS, (string) $d['due_days'], 'Days to payment on a new invoice when the customer has no terms');
         AppSetting::setValue(FinanceRules::CURRENCY, (string) ($d['currency'] ?? ''), 'Currency on a new invoice');
 
+        AppSetting::setValue(InvoiceTemplates::DEFAULT, $d['invoice_template'] ?? app(InvoiceTemplates::class)->default(), 'The print layout invoices use unless one is chosen');
         AppSetting::setValue(FinanceRules::BILL_MATCH, $d['bill_match'] ?? FinanceRules::billMatch(), 'What happens when a supplier bill does not match its purchase order');
         AppSetting::setValue(FinanceRules::BILL_TOLERANCE, (string) ($d['bill_tolerance'] ?? FinanceRules::billTolerance()), 'Percent a supplier bill line may go over the order price or received quantity');
 

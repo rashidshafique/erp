@@ -24,6 +24,7 @@ Route::middleware('web')->group(function () {
         Route::put('/{invoice}', 'update')->name('update');
         Route::delete('/{invoice}', 'destroy')->name('destroy');
         Route::post('/{invoice}/issue', 'issue')->name('issue');
+        Route::put('/{invoice}/template', 'template')->name('template');
         Route::post('/{invoice}/void', 'void')->name('void');
         Route::post('/{invoice}/apply-credit', 'applyCredit')->name('apply-credit');
         Route::get('/{invoice}/credit', 'credit')->name('credit');

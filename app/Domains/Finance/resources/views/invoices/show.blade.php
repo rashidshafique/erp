@@ -5,9 +5,14 @@
 <div class="page-heading"><div><h1>{{ $label }} {{ $invoice->invoice_number ?? '(draft)' }}</h1><p>{{ $invoice->customer?->name }} · {{ $invoice->invoice_date->displayDate() }}@if ($invoice->due_date) · due {{ $invoice->due_date->displayDate() }}@endif
 @if ($invoice->original) · against <a href="{{ route('invoices.show', $invoice->original) }}">{{ $invoice->original->invoice_number }}</a>@endif</p></div>
 <div class="actions">
+@php $templates = app(\App\Domains\Finance\Services\InvoiceTemplates::class); @endphp
+@if (in_array($invoice->status, ['DRAFT', 'ISSUED'], true) && count($templates->options()) > 1)
+    <form method="POST" action="{{ route('invoices.template', $invoice) }}" style="display:inline">@csrf @method('PUT')<select name="print_template" onchange="this.form.submit()" aria-label="Print layout" title="Print layout">@foreach ($templates->options() as $k => $l)<option value="{{ $k }}" @selected($templates->keyFor($invoice) === $k)>{{ $l }}</option>@endforeach</select></form>
+@endif
 @if ($invoice->status === 'DRAFT')
     <a class="btn" href="{{ route('invoices.edit', $invoice) }}">Edit</a>
     <form method="POST" action="{{ route('invoices.issue', $invoice) }}" style="display:inline">@csrf<button class="btn btn-primary" onclick="return confirm('Issue this invoice? It gets its number and can no longer be edited.')">Issue</button></form>
+    <form method="POST" action="{{ route('invoices.issue', $invoice) }}" style="display:inline">@csrf<input type="hidden" name="print" value="1"><button class="btn" onclick="return confirm('Issue this invoice and open it to print? It gets its number and can no longer be edited.')">Issue and print</button></form>
     <form method="POST" action="{{ route('invoices.destroy', $invoice) }}" style="display:inline">@csrf @method('DELETE')<button class="btn" onclick="return confirm('Delete this draft?')">Delete</button></form>
 @elseif ($invoice->status === 'ISSUED')
     <a class="btn" href="{{ route('invoices.print', $invoice) }}" target="_blank">Print</a>
