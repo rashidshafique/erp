@@ -385,3 +385,5 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); min-h
 .qd { border-radius: 8px; }
 .heat-chip { border-color: var(--border-input); }
 .btn-primary, .btn-primary:hover, .btn-primary:focus, a.btn-primary, a.btn-primary:hover { color: #fff !important; }
+.page-content { padding: 24px 28px; }
+@media (max-width: 768px) { .page-content { padding: 20px 14px; } }

@@ -4,14 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\ProductionOrder;
 use App\Services\Dashboard\DashboardData;
-use App\Support\UiSettings;
 use Illuminate\Http\Request;
 
 class ErpDashboardController extends Controller
 {
     public function __invoke(Request $request, DashboardData $data)
     {
-        $layout = UiSettings::dashboardLayout($request->query('layout'), $request->cookie('dash_layout'));
+        $layout = $request->query('layout') === 'telemetry' ? 'telemetry' : 'classic';   // one dashboard, as designed (1a); the wall screen is opened by its own link
 
         $openOrders = ProductionOrder::open()->count();
 
@@ -56,6 +55,6 @@ class ErpDashboardController extends Controller
             'recentOrders' => $recentOrders,
         ]);
 
-        return $request->filled('layout') && in_array($request->query('layout'), UiSettings::DASHBOARD_LAYOUTS, true) ? $response->cookie('dash_layout', $request->query('layout'), 60 * 24 * 365) : $response;
+        return $response;
     }
 }

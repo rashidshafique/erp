@@ -60,11 +60,10 @@ class DisplaySettingsController extends Controller
 
     public function update(Request $request)
     {
-        $request->validate(['density' => 'required|in:COMPACT,COMFORTABLE', 'dashboard' => ['nullable', Rule::in(UiSettings::DASHBOARD_LAYOUTS)]]);
+        $request->validate(['density' => 'required|in:COMPACT,COMFORTABLE']);
         AppSetting::setValue('ui.table_toolbar', $request->boolean('table_toolbar') ? '1' : '0', 'Search and filters sit in the table header');
         AppSetting::setValue('ui.tidy_forms', $request->boolean('tidy_forms') ? '1' : '0', 'Long forms hide blank optional fields behind Show more');
         AppSetting::setValue('ui.density', $request->input('density'), 'Spacing of the interface');
-        AppSetting::setValue('ui.dashboard', $request->input('dashboard', 'classic') ?: 'classic', 'Default dashboard layout');
         UiSettings::flush();
 
         return back()->with('success', 'Display settings saved.');

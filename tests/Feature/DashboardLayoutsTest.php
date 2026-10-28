@@ -25,8 +25,7 @@ class DashboardLayoutsTest extends TestCase
     public function test_every_layout_renders_on_an_empty_database(): void
     {
         $this->get(route('dashboard'))->assertOk()->assertSee('Pipeline')->assertSee('Needs attention')->assertSee("Today's melt", false)->assertSee('Open quotes');
-        $this->get(route('dashboard', ['layout' => 'command']))->assertOk()->assertSee('Needs attention')->assertSee('Priority production queue')->assertSee('Yield');
-        $this->get(route('dashboard', ['layout' => 'columns']))->assertOk()->assertSee('Live floor status')->assertSee('Open enquiries');
+        $this->get(route('dashboard', ['layout' => 'command']))->assertOk()->assertSee('Pipeline')->assertDontSee('Choose a dashboard layout');
     }
 
     public function test_telemetry_renders_on_an_empty_database(): void
@@ -60,30 +59,6 @@ class DashboardLayoutsTest extends TestCase
         $page->assertOk()->assertSee('.sidebar,.topbar', false)->assertSee('location.reload', false)->assertSee('Exit wall screen');
     }
 
-    public function test_telemetry_can_be_the_site_default(): void
-    {
-        $this->put(route('settings.display.update'), ['density' => 'COMPACT', 'dashboard' => 'telemetry'])->assertSessionHasNoErrors();
-        UiSettings::flush();
-
-        $this->get(route('dashboard'))->assertOk()->assertSee('Floor board');
-    }
-
-    public function test_the_choice_is_remembered_in_a_cookie_and_beats_the_site_default(): void
-    {
-        $r = $this->get(route('dashboard', ['layout' => 'columns']))->assertOk();
-        $r->assertCookie('dash_layout');
-        $this->withCookie('dash_layout', 'command')->get(route('dashboard'))->assertSee('Priority production queue');
-    }
-
-    public function test_site_default_comes_from_display_settings(): void
-    {
-        AppSetting::setValue('ui.dashboard', 'columns');
-        UiSettings::flush();
-        $this->get(route('dashboard'))->assertSee('g-columns', false);
-        $this->put(route('settings.display.update'), ['density' => 'COMPACT', 'dashboard' => 'command'])->assertRedirect();
-        $this->get(route('dashboard'))->assertSee('g-command', false);
-    }
-
     public function test_an_unknown_layout_falls_back_safely(): void
     {
         $this->get(route('dashboard', ['layout' => 'nonsense']))->assertOk()->assertSee('Pipeline');
@@ -91,9 +66,9 @@ class DashboardLayoutsTest extends TestCase
 
     public function test_it_uses_the_accent_variable_not_a_fixed_colour(): void
     {
-        $html = $this->get(route('dashboard', ['layout' => 'command']))->getContent();
+        $html = $this->get(route('dashboard'))->getContent();
         $this->assertStringContainsString('var(--accent)', $html);
-        $this->assertStringNotContainsString('--accent: #', substr($html, strpos($html, 'class="dx')));
+        $this->assertStringNotContainsString('#2f5fd0', substr($html, strpos($html, 'class="dash"')));
     }
 
     public function test_attention_and_queue_show_real_records(): void
@@ -101,7 +76,7 @@ class DashboardLayoutsTest extends TestCase
         // The NCR normally hangs off a casting lot; this test only needs the row, so relax the link inside the test's transaction.
         DB::statement('ALTER TABLE nonconformance_reports ALTER COLUMN casting_lot_id DROP NOT NULL');
         DB::table('nonconformance_reports')->insert(['id' => (string) Str::uuid(), 'ncr_number' => 'NCR-T1', 'title' => 'Gas porosity on flange', 'description' => 'x', 'severity' => 'MAJOR', 'status' => 'OPEN', 'quantity_affected' => 14, 'reported_at' => now(), 'created_at' => now(), 'updated_at' => now()]);
-        $this->get(route('dashboard', ['layout' => 'command']))->assertSee('NCR-T1')->assertSee('Gas porosity on flange')->assertSee('1 major');
+        $this->get(route('dashboard'))->assertSee('NCR-T1')->assertSee('Gas porosity on flange');
     }
 
     public function test_the_chart_draws_a_line_and_bars_when_there_are_pours(): void

@@ -84,7 +84,7 @@
     <span>{{ $k['heats']['running'] }} heat{{ $k['heats']['running'] === 1 ? '' : 's' }} running</span>
     <span>{{ $d['queueTotal'] }} open production order{{ $d['queueTotal'] === 1 ? '' : 's' }}</span>
     <span class="sp"></span>
-    <div class="switch" title="Choose a dashboard layout">@foreach (['classic' => 'Classic', 'command' => 'Command', 'columns' => 'Columns', 'telemetry' => 'Telemetry'] as $key => $name)<a href="{{ route('dashboard', ['layout' => $key]) }}" class="{{ $key === 'telemetry' ? 'on' : '' }}">{{ $name }}</a>@endforeach</div>
+    
     <a class="lk" href="{{ route('dashboard', ['layout' => 'telemetry'] + ($tv ? [] : ['tv' => 1])) }}">{{ $tv ? 'Exit wall screen' : 'Wall screen' }}</a>
     <a class="lk" href="{{ route('scan') }}">Scan</a>
 </div>

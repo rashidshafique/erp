@@ -42,6 +42,7 @@
 .dp { display: inline-block; padding: 2px 8px; border-radius: 999px; background: var(--surface-pill); color: #55585d; font-size: 11.5px; font-weight: 500; white-space: nowrap; }
 .dp-bad { background: #fbe7e5; color: #b3352c; } .dp-warn { background: #fbf0dc; color: #94610a; }
 .dp-accent { background: color-mix(in srgb, var(--accent) 12%, #fff); color: var(--accent); } .dp-ok { background: #e7f4ec; color: #1d7048; }
+@media (min-width: 769px) { .topbar .breadcrumb { display: none; } .topbar .scan-box { margin: 0 auto 0 0 !important; } .page-content { max-width: none; } }
 @media (max-width: 1100px) { .dash-pipe { grid-template-columns: repeat(3, minmax(0, 1fr)); } .dash-two { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 768px) { .dash-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .dash-pipe { grid-template-columns: repeat(2, minmax(0, 1fr)); } .dash-head { flex-direction: column; align-items: flex-start; } }
 </style>
