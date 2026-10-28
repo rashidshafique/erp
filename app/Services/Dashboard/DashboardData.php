@@ -96,6 +96,85 @@ class DashboardData
         ];
     }
 
+    /**
+     * The four headline numbers of the dashboard design: open quotes, order book, on-time dispatch, internal rejection.
+     *
+     * @param  array<int, array<string, mixed>>  $daily
+     * @return array<int, array{label: string, value: string, note: string, tone: string}>
+     */
+    public function headline(array $daily): array
+    {
+        $quotes = Quotation::where('status', 'ISSUED');
+        $expiring = (clone $quotes)->whereDate('valid_until', '>=', today())->whereDate('valid_until', '<=', today()->addDays(7))->count();
+
+        $orders = \App\Domains\Sales\Models\SalesOrder::whereNotIn('status', ['COMPLETED', 'CANCELLED', 'CLOSED', 'DRAFT'])->count();
+        $openWork = ProductionOrder::open()->count();
+
+        $sent = \App\Domains\Dispatch\Models\Dispatch::whereNotNull('dispatched_at')->where('dispatched_at', '>=', now()->subDays(30))->get(['planned_dispatch_at', 'dispatched_at']);
+        $onTime = $sent->filter(fn ($d) => $d->planned_dispatch_at === null || $d->dispatched_at->lte($d->planned_dispatch_at->copy()->endOfDay()))->count();
+
+        $kpis = $this->kpis($daily)['scrap'];
+        $target = 3.0;
+
+        return [
+            ['label' => 'Open quotes', 'value' => Formats::number((int) (clone $quotes)->count()), 'note' => $expiring.' expire this week', 'tone' => ''],
+            ['label' => 'Order book', 'value' => Formats::number($orders), 'note' => $openWork.' production order'.($openWork === 1 ? '' : 's').' open', 'tone' => ''],
+            ['label' => 'On-time dispatch, 30 days', 'value' => $sent->isEmpty() ? '—' : Formats::number(100 * $onTime / $sent->count(), 1).'%', 'note' => $sent->isEmpty() ? 'No dispatches yet' : $onTime.' of '.$sent->count().' on time', 'tone' => $sent->isNotEmpty() && $onTime === $sent->count() ? 'ok' : ''],
+            ['label' => 'Internal rejection', 'value' => $kpis['rate'] === null ? '—' : Formats::number($kpis['rate'], 1).'%', 'note' => $kpis['rate'] === null ? 'Nothing poured in 7 days' : 'Target '.Formats::number($target, 1).'%'.($kpis['delta'] !== null ? ', '.($kpis['delta'] > 0 ? 'up ' : 'down ').Formats::number(abs($kpis['delta']), 1).' pts' : ''), 'tone' => $kpis['rate'] !== null && $kpis['rate'] > $target ? 'bad' : ($kpis['rate'] !== null ? 'ok' : '')],
+        ];
+    }
+
+    /**
+     * Records on their way from enquiry to dispatch, a few per stage, newest first.
+     *
+     * @return array<int, array{label: string, count: int, cards: array<int, array{code: string, name: string, sub: string, tone: string, url: string}>}>
+     */
+    public function pipeline(int $per = 3): array
+    {
+        $stage = fn (string $label, $query, \Closure $card, string $order = 'created_at') => [
+            'label' => $label, 'count' => (clone $query)->count(), 'cards' => (clone $query)->orderByDesc($order)->limit($per)->get()->map($card)->all(),
+        ];
+
+        return [
+            $stage('Enquiry', Enquiry::whereNotIn('status', ['WON', 'LOST', 'CANCELLED', 'CLOSED'])->with('customer'),
+                fn ($e) => ['code' => $e->code, 'name' => $e->title ?: 'Enquiry', 'sub' => $e->customer?->name ?? '', 'tone' => '', 'url' => route('enquiries.show', $e)]),
+            $stage('Quoted', Quotation::where('status', 'ISSUED')->with('enquiry.customer'),
+                fn ($q) => ['code' => $q->code, 'name' => $q->enquiry?->title ?: 'Quotation', 'sub' => $q->valid_until ? 'Expires '.$q->valid_until->displayShortDate() : ($q->enquiry?->customer?->name ?? ''), 'tone' => $q->valid_until && $q->valid_until->lte(today()->addDays(7)) ? 'bad' : '', 'url' => route('quotations.show', $q)]),
+            $stage('Order', \App\Domains\Sales\Models\SalesOrder::whereIn('status', ['DRAFT', 'UNDER_REVIEW', 'CONFIRMED'])->with('customer'),
+                fn ($o) => ['code' => $o->order_number, 'name' => $o->customer?->name ?? 'Sales order', 'sub' => str_replace('_', ' ', ucfirst(strtolower($o->status))), 'tone' => '', 'url' => route('sales-orders.show', $o)]),
+            $stage('Production', ProductionOrder::open()->with('product'),
+                fn ($o) => ['code' => $o->production_order_number, 'name' => $o->product?->name ?? 'Production order', 'sub' => str_replace('_', ' ', ucfirst(strtolower($o->status))), 'tone' => $o->status === 'IN_PROGRESS' ? 'accent' : '', 'url' => route('production-orders.show', $o)]),
+            $stage('QC', \App\Models\QualityInspection::where('status', '!=', 'COMPLETED')->with('lot'),
+                fn ($i) => ['code' => $i->inspection_number, 'name' => $i->lot?->lot_number ?? 'Inspection', 'sub' => str_replace('_', ' ', ucfirst(strtolower($i->status))), 'tone' => 'warn', 'url' => route('inspections.show', $i)]),
+            $stage('Dispatch', \App\Domains\Dispatch\Models\Dispatch::whereNull('dispatched_at')->with('customer'),
+                fn ($d) => ['code' => $d->dispatch_number, 'name' => $d->customer?->name ?? 'Dispatch', 'sub' => $d->planned_dispatch_at ? 'Planned '.$d->planned_dispatch_at->displayShortDate() : '', 'tone' => '', 'url' => route('dispatches.show', $d)]),
+        ];
+    }
+
+    /**
+     * Today's heats per furnace.
+     *
+     * @return array{rows: array<int, array{code: string, grade: string, heats: int, state: string, tone: string}>, poured: float, planned: float}
+     */
+    public function melt(): array
+    {
+        $heats = Heat::with(['furnace', 'ironGrade'])->where(fn ($q) => $q->whereDate('planned_start_at', today())->orWhereDate('actual_start_at', today()))->get();
+        $done = fn ($h) => $h->tapped_at || in_array($h->status, ['POURED', 'CLOSED', 'COMPLETED'], true);
+        $rows = $heats->groupBy('furnace_id')->map(function ($group) use ($done) {
+            $finished = $group->filter($done)->count();
+            $running = $group->contains(fn ($h) => $h->status === 'IN_PROGRESS');
+            $next = $group->reject($done)->sortBy('planned_start_at')->first();
+
+            return [
+                'code' => $group->first()->furnace?->code ?? 'Furnace', 'grade' => $group->first()->ironGrade?->code ?? $group->first()->process_type ?? '',
+                'heats' => $group->count(), 'state' => $running ? 'Melting' : ($finished === $group->count() || $finished > 0 ? $finished.' done' : ($next?->planned_start_at?->displayTime() ?? 'Planned')),
+                'tone' => $running ? 'accent' : ($finished > 0 ? 'ok' : ''),
+            ];
+        })->values()->all();
+
+        return ['rows' => $rows, 'poured' => $heats->sum(fn ($h) => (float) ($h->actual_tapped_weight_kg ?: 0)) / 1000, 'planned' => $heats->sum(fn ($h) => (float) ($h->target_metal_weight_kg ?: 0)) / 1000];
+    }
+
     /** Record counts per day over the window, as a plain list for a sparkline. */
     private function perDay(string $model, string $col, int $days = self::DAYS): array
     {

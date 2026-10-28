@@ -24,7 +24,7 @@ class DashboardLayoutsTest extends TestCase
 
     public function test_every_layout_renders_on_an_empty_database(): void
     {
-        $this->get(route('dashboard'))->assertOk()->assertSee('Foundry overview');
+        $this->get(route('dashboard'))->assertOk()->assertSee('Pipeline')->assertSee('Needs attention')->assertSee("Today's melt", false)->assertSee('Open quotes');
         $this->get(route('dashboard', ['layout' => 'command']))->assertOk()->assertSee('Needs attention')->assertSee('Priority production queue')->assertSee('Yield');
         $this->get(route('dashboard', ['layout' => 'columns']))->assertOk()->assertSee('Live floor status')->assertSee('Open enquiries');
     }
@@ -86,7 +86,7 @@ class DashboardLayoutsTest extends TestCase
 
     public function test_an_unknown_layout_falls_back_safely(): void
     {
-        $this->get(route('dashboard', ['layout' => 'nonsense']))->assertOk()->assertSee('Foundry overview');
+        $this->get(route('dashboard', ['layout' => 'nonsense']))->assertOk()->assertSee('Pipeline');
     }
 
     public function test_it_uses_the_accent_variable_not_a_fixed_colour(): void
