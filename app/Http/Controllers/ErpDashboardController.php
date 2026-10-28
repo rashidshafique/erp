@@ -10,7 +10,11 @@ class ErpDashboardController extends Controller
 {
     public function __invoke(Request $request, DashboardData $data)
     {
-        $layout = $request->query('layout') === 'telemetry' ? 'telemetry' : 'classic';   // one dashboard, as designed (1a); the wall screen is opened by its own link
+        $layout = match ($request->query('layout')) {   // the owner's home (4a) is the default; the pipeline view (1a) and the wall screen have their own links
+            'telemetry' => 'telemetry',
+            'classic' => 'classic',
+            default => 'owner',
+        };
 
         $openOrders = ProductionOrder::open()->count();
 
@@ -41,6 +45,7 @@ class ErpDashboardController extends Controller
             ->get();
 
         $extra = match ($layout) {
+            'owner' => ['o' => $data->owner()],
             'classic' => (fn (array $d) => ['d' => $d, 'headline' => $data->headline($d['daily']), 'pipeline' => $data->pipeline(), 'melt' => $data->melt()])($data->all()),
             'telemetry' => ['d' => $data->telemetry()],
             default => ['d' => $data->all()],

@@ -2,6 +2,8 @@
 
 namespace App\Services\Dashboard;
 
+use App\Domains\Finance\Models\Invoice;
+use App\Domains\Finance\Services\Receivables;
 use App\Models\ApprovalRequest;
 use App\Models\Attachment;
 use App\Models\Enquiry;
@@ -391,6 +393,77 @@ class DashboardData
         }
 
         return ['from' => $from, 'to' => $to, 'now' => now()->between($from, $to) ? $at(now()) : null, 'hours' => $hours, 'lanes' => $lanes];
+    }
+
+    /**
+     * The owner's home (design 4a): month to date against plan and last month, money owed, what waits for a decision,
+     * tonnage by week and metal family, and the biggest customers of the month.
+     *
+     * @return array<string, mixed>
+     */
+    public function owner(): array
+    {
+        $from = now()->startOfMonth();
+        $prevFrom = now()->subMonthNoOverflow()->startOfMonth();
+        $prevTo = $prevFrom->copy()->addDays(now()->day - 1)->endOfDay();
+
+        $goodKg = fn (Carbon $a, Carbon $b) => (float) DB::table('casting_lots as l')
+            ->join('pour_mould_assemblies as pma', 'pma.id', '=', 'l.pour_mould_assembly_id')
+            ->join('pours as p', 'p.id', '=', 'pma.pour_id')
+            ->whereBetween('p.completed_at', [$a, $b])->where('l.quantity_poured', '>', 0)
+            ->sum(DB::raw('l.net_casting_weight_kg * l.quantity_good / l.quantity_poured'));
+        $good = $goodKg($from, now()->endOfMonth()) / 1000;
+        $plan = (float) DB::table('production_orders as o')->join('products as pr', 'pr.id', '=', 'o.product_id')
+            ->whereBetween('o.planned_finish_date', [$from->toDateString(), now()->endOfMonth()->toDateString()])
+            ->whereNotIn('o.status', ['CANCELLED'])->sum(DB::raw('o.planned_qty * pr.nominal_weight_kg')) / 1000;
+
+        $invoiced = fn (Carbon $a, Carbon $b) => Invoice::where('status', 'ISSUED')->whereBetween('invoice_date', [$a->toDateString(), $b->toDateString()])->get(['kind', 'subtotal'])
+            ->sum(fn ($i) => $i->kind === 'CREDIT_NOTE' ? -$i->subtotal : $i->subtotal);
+        $sales = $invoiced($from, now()->endOfDay());
+        $salesPrev = $invoiced($prevFrom, $prevTo);
+
+        $receivables = app(Receivables::class);
+        $open = $receivables->open();
+        $owed = (float) $open->sum(fn ($i) => $i->balance());
+        $overdue = (float) $open->filter(fn ($i) => in_array($receivables->bucket($i), ['d90', 'over'], true))->sum(fn ($i) => $i->balance());
+
+        $month = array_filter($this->dailyPours((int) now()->day), fn ($d) => $d['poured'] > 0);
+        $poured = array_sum(array_column($month, 'poured'));
+        $scrap = $poured > 0 ? 100 * array_sum(array_column($month, 'rejected')) / $poured : null;
+
+        $weeks = collect(range(5, 0))->map(fn ($i) => now()->subWeeks($i)->startOfWeek());
+        $byWeek = DB::table('casting_lots as l')
+            ->join('pour_mould_assemblies as pma', 'pma.id', '=', 'l.pour_mould_assembly_id')
+            ->join('pours as p', 'p.id', '=', 'pma.pour_id')
+            ->leftJoin('heats as h', 'h.id', '=', 'p.heat_id')
+            ->leftJoin('iron_grades as g', 'g.id', '=', 'h.iron_grade_id')
+            ->where('p.completed_at', '>=', $weeks->first())->where('l.quantity_poured', '>', 0)
+            ->get(['p.completed_at', 'g.family', 'l.net_casting_weight_kg', 'l.quantity_good', 'l.quantity_poured']);
+        $families = $byWeek->pluck('family')->map(fn ($f) => $f ?: 'Other')->unique()->sort()->values()->all();
+        $tonnage = $weeks->map(function (Carbon $w) use ($byWeek, $families) {
+            $rows = $byWeek->filter(fn ($r) => Carbon::parse($r->completed_at)->startOfWeek()->equalTo($w));
+            $by = [];
+            foreach ($families as $f) {
+                $by[$f] = round($rows->filter(fn ($r) => ($r->family ?: 'Other') === $f)->sum(fn ($r) => $r->net_casting_weight_kg * $r->quantity_good / $r->quantity_poured) / 1000, 1);
+            }
+
+            return ['label' => 'W'.$w->isoWeek, 'by' => $by, 'total' => array_sum($by)];
+        })->all();
+
+        $customers = Invoice::with('customer')->where('status', 'ISSUED')->whereDate('invoice_date', '>=', $from)->get()
+            ->groupBy('customer_id')->map(fn ($g) => ['name' => $g->first()->customer?->name ?? '—', 'sales' => $g->sum(fn ($i) => $i->kind === 'CREDIT_NOTE' ? -$i->subtotal : $i->subtotal),
+                'owed' => $g->sum(fn ($i) => $i->balance())])->sortByDesc('sales')->take(5)->values()->all();
+
+        $u = auth()->user();
+        $decisions = ApprovalRequest::where('status', 'PENDING')->when($u && ! $u->isAdmin(), fn ($q) => $q->where('requested_by_id', '!=', $u->id)->whereIn('permission', $u->permissions()))
+            ->orderByDesc('created_at')->limit(5)->get();
+
+        return [
+            'month' => $from, 'good' => $good, 'plan' => $plan, 'sales' => $sales, 'salesPrev' => $salesPrev, 'owed' => $owed, 'overdue' => $overdue, 'scrap' => $scrap,
+            'ncrs' => NonconformanceReport::where('status', '!=', 'CLOSED')->count(), 'ncrMajor' => NonconformanceReport::where('status', '!=', 'CLOSED')->whereIn('severity', ['MAJOR', 'CRITICAL'])->count(),
+            'tonnage' => $tonnage, 'families' => $families, 'customers' => $customers, 'decisions' => $decisions, 'slipping' => $this->attention(),
+            'late' => ProductionOrder::open()->whereDate('required_date', '<', today())->count(),
+        ];
     }
 
     /** Everything the telemetry layout needs: the shared figures plus the full floor board, the shift timeline and today's moulds. */

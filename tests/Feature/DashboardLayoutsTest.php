@@ -24,8 +24,9 @@ class DashboardLayoutsTest extends TestCase
 
     public function test_every_layout_renders_on_an_empty_database(): void
     {
-        $this->get(route('dashboard'))->assertOk()->assertSee('Pipeline')->assertSee('Feasibility')->assertSee('Needs attention')->assertSee("Today's melt", false)->assertSee('Open quotes');
-        $this->get(route('dashboard', ['layout' => 'command']))->assertOk()->assertSee('Pipeline')->assertDontSee('Choose a dashboard layout');
+        $this->get(route('dashboard'))->assertOk()->assertSee('Good castings')->assertSee('Cash to collect')->assertSee('Waiting for your decision')->assertSee("Where it's slipping", false);
+        $this->get(route('dashboard', ['layout' => 'classic']))->assertOk()->assertSee('Pipeline')->assertSee('Feasibility')->assertSee('Needs attention')->assertSee("Today's melt", false)->assertSee('Open quotes');
+        $this->get(route('dashboard', ['layout' => 'command']))->assertOk()->assertSee('Good castings')->assertDontSee('Choose a dashboard layout');
     }
 
     public function test_telemetry_renders_on_an_empty_database(): void
@@ -61,7 +62,7 @@ class DashboardLayoutsTest extends TestCase
 
     public function test_an_unknown_layout_falls_back_safely(): void
     {
-        $this->get(route('dashboard', ['layout' => 'nonsense']))->assertOk()->assertSee('Pipeline');
+        $this->get(route('dashboard', ['layout' => 'nonsense']))->assertOk()->assertSee('Good castings');
     }
 
     public function test_it_uses_the_accent_variable_not_a_fixed_colour(): void
@@ -92,6 +93,17 @@ class DashboardLayoutsTest extends TestCase
         $this->assertStringNotContainsString('nothing to plot', $html);
     }
 
+    public function test_owner_home_shows_the_months_sales_and_what_customers_owe(): void
+    {
+        $this->travelTo('2026-10-17 10:00:00');
+        $customer = \App\Models\Customer::create(['code' => 'MER', 'name' => 'Meridian Auto']);
+        $base = ['customer_id' => $customer->id, 'kind' => 'INVOICE', 'status' => 'ISSUED', 'currency' => 'USD', 'tax_total' => 0];
+        \App\Domains\Finance\Models\Invoice::create($base + ['invoice_number' => 'INV-1', 'invoice_date' => '2026-10-05', 'due_date' => '2026-12-05', 'subtotal' => 4000, 'total' => 4000]);
+        \App\Domains\Finance\Models\Invoice::create($base + ['invoice_number' => 'INV-0', 'invoice_date' => '2026-07-01', 'due_date' => '2026-07-31', 'subtotal' => 1000, 'total' => 1000]);
+
+        $this->get(route('dashboard'))->assertOk()->assertSee('Meridian Auto')->assertSee('4,000')->assertSee('5,000')->assertSee('1,000 over 60 days');
+    }
+
     public function test_the_melt_panel_shows_the_next_planned_heat_and_charged_metal_for_a_cupola(): void
     {
         $this->travelTo('2026-10-17 10:00:00');
@@ -101,6 +113,6 @@ class DashboardLayoutsTest extends TestCase
         Heat::create(['heat_number' => 'H-2', 'furnace_id' => $cupola->id, 'process_type' => 'CUPOLA', 'status' => 'IN_PROGRESS', 'actual_start_at' => '2026-10-17 07:00:00']);
         Heat::create(['heat_number' => 'H-3', 'furnace_id' => $induction->id, 'process_type' => 'INDUCTION', 'status' => 'PLANNED', 'planned_start_at' => '2026-10-19 08:00:00']);
 
-        $this->get(route('dashboard'))->assertOk()->assertSee('1.5 t poured')->assertSee('0.0 t charged')->assertSee('Next heat')->assertSee('H-3')->assertSee('19 Oct');
+        $this->get(route('dashboard', ['layout' => 'classic']))->assertOk()->assertSee('1.5 t poured')->assertSee('0.0 t charged')->assertSee('Next heat')->assertSee('H-3')->assertSee('19 Oct');
     }
 }
