@@ -9,22 +9,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Services\Stock\StockLocationTypes;
 use Illuminate\Support\Facades\DB;
 
 /** A place stock is kept: a store, yard, bin, quarantine area or line-side point. Locations nest under a parent. */
 class StockLocation extends Model
 {
     use HasFactory, HasUuids;
-
-    /** @var array<string, string> */
-    public const TYPES = [
-        'STORE' => 'Store',
-        'YARD' => 'Yard',
-        'BIN' => 'Bin or rack',
-        'LINE_SIDE' => 'Line side',
-        'QUARANTINE' => 'Quarantine',
-        'SCRAP' => 'Scrap yard',
-    ];
 
     protected $fillable = ['code', 'name', 'location_type', 'parent_location_id', 'is_active', 'description'];
 
@@ -36,6 +27,17 @@ class StockLocation extends Model
     protected static function newFactory(): Factory
     {
         return StockLocationFactory::new();
+    }
+
+    public function typeLabel(): string
+    {
+        return app(StockLocationTypes::class)->label($this->location_type);
+    }
+
+    /** Whether this place belongs to someone else (a subcontractor's works), so its stock is ours but not in our stores. */
+    public function isExternal(): bool
+    {
+        return app(StockLocationTypes::class)->isExternal($this->location_type);
     }
 
     public function parent(): BelongsTo

@@ -46,6 +46,7 @@ class AppServiceProvider extends ServiceProvider
             return $types;
         });
         $this->app->singleton(StockMovementTypes::class);
+        $this->app->singleton(\App\Services\Stock\StockLocationTypes::class);
         $this->app->scoped(\App\Services\Production\MouldAssembler::class);   // one per request, so its last warning can be read back
     }
 

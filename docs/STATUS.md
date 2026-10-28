@@ -132,6 +132,9 @@ Plan for bought-in goods sold as they are, in order: (1) trade details on items,
   - Credit notes are taxed at the original invoice's date with the rules in force then.
   - FBR digital invoicing (the register per authority is done, under Finance).
 
+### Stores: store tree (2026-10-28)
+- Location types are a registry (`StockLocationTypes`), so a module adds its own and can mark one as external (stock is ours but sits with someone else, such as a subcontractor). The register shows stores and sub-stores as a tree, each with what it holds itself and with everything below it (`StockLocationTree`, `StockLevels::onHandByLocation`).
+
 ### Stores: not built yet
 - Finished goods are not on the stock ledger. They need a decision on their stock lot (casting lot or a new stock lot) and a second registered item type.
 - Cost layers still point at `material_lots`; the stock ledger refuses lots of other item types until that is designed. Stock is not posted to the general ledger either (periodic: purchases are expensed, inventory adjusted by journal).

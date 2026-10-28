@@ -3,6 +3,7 @@
 namespace App\Services\Stock;
 
 use App\Models\Material;
+use App\Models\MaterialLot;
 use App\Models\StockLotCostLayer;
 use Illuminate\Support\Collection;
 
@@ -25,6 +26,26 @@ class StockLevels
             ->pluck('on_hand', 'material_id')
             ->map(fn ($quantity) => round((float) $quantity, 3))
             ->all();
+    }
+
+    /**
+     * What is held at each location, all materials together, in kg. Stock not put anywhere is left out.
+     *
+     * @return array<string, float> Location id => quantity; empty places are absent.
+     */
+    public function onHandByLocation(): array
+    {
+        $lotIds = MaterialLot::whereHas('costLayers', fn ($q) => $q->where('remaining_qty', '>', 0))->pluck('id')->all();
+        $totals = [];
+        foreach (app(StockLedger::class)->heldByLocationForLots($lotIds) as $places) {
+            foreach ($places as $locationId => $quantity) {
+                if ($locationId !== '') {
+                    $totals[$locationId] = round(($totals[$locationId] ?? 0) + $quantity, 3);
+                }
+            }
+        }
+
+        return $totals;
     }
 
     /** Whether the material is watched: tracked, active, and given a minimum above zero. */

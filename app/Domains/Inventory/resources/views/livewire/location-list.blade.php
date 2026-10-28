@@ -1,6 +1,9 @@
 <?php
 
 use App\Models\StockLocation;
+use App\Services\Stock\StockLevels;
+use App\Services\Stock\StockLocationTree;
+use App\Services\Stock\StockLocationTypes;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -62,7 +65,7 @@ new class extends Component
         $data = $this->validate([
             'code' => ['required', 'string', 'max:40', Rule::unique('stock_locations', 'code')->ignore($this->editingId)],
             'name' => ['required', 'string', 'max:120'],
-            'locationType' => ['required', Rule::in(array_keys(StockLocation::TYPES))],
+            'locationType' => ['required', Rule::in(app(StockLocationTypes::class)->keys())],
             'parentId' => ['nullable', 'uuid', Rule::exists('stock_locations', 'id'), Rule::notIn($blocked)],
             'description' => ['nullable', 'string', 'max:2000'],
         ], ['parentId.not_in' => 'A location cannot sit under itself or one of its own sub-locations.']);
@@ -114,7 +117,8 @@ new class extends Component
             ->get();
 
         return [
-            'locations' => $locations,
+            'rows' => app(StockLocationTree::class)->rows($locations, app(StockLevels::class)->onHandByLocation()),
+            'typeOptions' => app(StockLocationTypes::class)->options(),
             'parents' => StockLocation::where('is_active', true)->orderBy('code')->get(['id', 'code', 'name']),
             'inactiveCount' => StockLocation::where('is_active', false)->count(),
         ];
@@ -146,7 +150,7 @@ new class extends Component
             <div class="field"><label for="loc-code">Code</label><input id="loc-code" wire:model="code">@error('code')<div class="error">{{ $message }}</div>@enderror</div>
             <div class="field"><label for="loc-name">Name</label><input id="loc-name" wire:model="name">@error('name')<div class="error">{{ $message }}</div>@enderror</div>
             <div class="field"><label for="loc-type">Type</label>
-                <select id="loc-type" wire:model="locationType">@foreach (\App\Models\StockLocation::TYPES as $key => $label)<option value="{{ $key }}">{{ $label }}</option>@endforeach</select>
+                <select id="loc-type" wire:model="locationType">@foreach ($typeOptions as $key => $label)<option value="{{ $key }}">{{ $label }}</option>@endforeach</select>
                 @error('locationType')<div class="error">{{ $message }}</div>@enderror</div>
             <div class="field"><label for="loc-parent">Inside</label>
                 <select id="loc-parent" wire:model="parentId"><option value="">— top level —</option>@foreach ($parents as $parent)<option value="{{ $parent->id }}">{{ $parent->code }} · {{ $parent->name }}</option>@endforeach</select>
@@ -160,14 +164,16 @@ new class extends Component
 
 <div class="panel">
     <div class="table-wrap"><table>
-        <thead><tr><th>Code</th><th>Name</th><th>Type</th><th>Inside</th><th>Status</th><th></th></tr></thead>
+        <thead><tr><th>Code</th><th>Name</th><th>Type</th><th>Held here (kg)</th><th>With sub-stores (kg)</th><th>Status</th><th></th></tr></thead>
         <tbody>
-        @forelse ($locations as $location)
+        @forelse ($rows as $row)
+            @php($location = $row['location'])
             <tr wire:key="loc-{{ $location->id }}">
-                <td class="mono">{{ $location->code }}</td>
+                <td class="mono" style="padding-left:{{ 0.75 + $row['depth'] * 1.25 }}rem">{{ $location->code }}</td>
                 <td>{{ $location->name }}<div class="muted small">{{ $location->description }}</div></td>
-                <td>{{ \App\Models\StockLocation::TYPES[$location->location_type] ?? $location->location_type }}</td>
-                <td>{{ $location->parent?->code ?? '—' }}</td>
+                <td>{{ $location->typeLabel() }}@if ($location->isExternal()) <span class="muted small">(not ours)</span>@endif</td>
+                <td>{{ $row['own'] > 0 ? \App\Support\Formats::number($row['own'], 3) : '—' }}</td>
+                <td>{{ $row['children'] > 0 && $row['total'] > 0 ? \App\Support\Formats::number($row['total'], 3) : '—' }}</td>
                 <td>{{ $location->is_active ? 'Active' : 'Switched off' }}</td>
                 <td class="actions">
                     <button class="btn btn-sm" type="button" wire:click="edit('{{ $location->id }}')">Edit</button>
@@ -176,7 +182,7 @@ new class extends Component
                 </td>
             </tr>
         @empty
-            <tr><td colspan="6" class="muted">No stock locations yet. Add the first store or yard.</td></tr>
+            <tr><td colspan="7" class="muted">No stock locations yet. Add the first store or yard.</td></tr>
         @endforelse
         </tbody>
     </table></div>
