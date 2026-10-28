@@ -20,7 +20,7 @@
         @if ($unlinkedPatterns > 0)
             <a class="btn" href="{{ route('patterns.bulk-link') }}" title="Pick the product, cavity count and product revision of every unlinked pattern on one screen">Link in bulk</a>
         @endif
-        <a class="btn" href="{{ route('pattern-ownership.index') }}" style="display:inline-flex;align-items:center;gap:6px">{!! \App\Support\NavIcons::get('users', 15) !!}Pattern ownership</a> <a class="btn" href="{{ route('imports.create', ['entity' => 'pattern']) }}">Import</a> <a class="btn btn-primary" href="{{ route('patterns.create') }}">+ New pattern</a>
+        <a class="btn" href="{{ route('core-boxes.create') }}">+ New core box</a> <a class="btn" href="{{ route('pattern-ownership.index') }}" style="display:inline-flex;align-items:center;gap:6px">{!! \App\Support\NavIcons::get('users', 15) !!}Pattern ownership</a> <a class="btn" href="{{ route('imports.create', ['entity' => 'pattern']) }}">Import</a> <a class="btn btn-primary" href="{{ route('patterns.create') }}">+ New pattern</a>
     </div>
 </div>
 
@@ -28,6 +28,10 @@
     <div class="metric">
         <div class="metric-label">Total patterns</div>
         <div class="metric-value">{{ \App\Support\Formats::number($totalPatterns) }}</div>
+    </div>
+    <div class="metric">
+        <div class="metric-label">Core boxes</div>
+        <div class="metric-value">{{ \App\Support\Formats::number($coreBoxes) }}</div>
     </div>
     <div class="metric">
         <div class="metric-label">Active</div>
@@ -55,6 +59,14 @@
                 <label for="search">Search pattern code or name</label>
                 <input id="search" name="search" value="{{ request('search') }}"
                        placeholder="e.g. VALVE-001">
+            </div>
+            <div class="field">
+                <label for="type">Show</label>
+                <select id="type" name="type">
+                    <option value="">Patterns and core boxes</option>
+                    <option value="pattern" @selected($type === 'pattern')>Patterns only</option>
+                    <option value="core_box" @selected($type === 'core_box')>Core boxes only</option>
+                </select>
             </div>
             <div class="field">
                 <label for="status">Tooling status</label>
@@ -94,8 +106,8 @@
 
 <div class="panel">
     <div class="panel-header">
-        <h2>{{ $archived ? 'Archived patterns' : 'Patterns' }}</h2>
-        <span class="muted small">{{ $patterns->total() }} records · @if ($archived)<a href="{{ route('patterns.index') }}">Back to current patterns</a>@elseif ($archivedPatterns)<a href="{{ route('patterns.index', ['archived' => 1]) }}">{{ $archivedPatterns }} archived</a>@else none archived @endif @if ($baselineOnly && request('revision') !== 'baseline') · <a href="{{ route('patterns.index', ['revision' => 'baseline']) }}">{{ $baselineOnly }} still on the as-imported baseline with no drawing linked</a>@endif</span>
+        <h2>{{ $archived ? 'Archived tooling' : 'Patterns and core boxes' }}</h2>
+        <span class="muted small">{{ $patterns->total() }} records · @if ($archived)<a href="{{ route('patterns.index') }}">Back to current tooling</a>@elseif ($archivedPatterns)<a href="{{ route('patterns.index', ['archived' => 1]) }}">{{ $archivedPatterns }} archived</a>@else none archived @endif @if ($baselineOnly && request('revision') !== 'baseline') · <a href="{{ route('patterns.index', ['revision' => 'baseline']) }}">{{ $baselineOnly }} still on the as-imported baseline with no drawing linked</a>@endif</span>
     </div>
 
     @if ($patterns->isEmpty())
@@ -121,6 +133,19 @@
                 </thead>
                 <tbody>
                     @foreach ($patterns as $pattern)
+                        @if ($pattern instanceof \App\Models\CoreBox)
+                        <tr>
+                            <td><x-item :name="$pattern->name" :code="$pattern->code" :href="route('core-boxes.show', $pattern)" /></td>
+                            <td>{!! \App\Support\NavIcons::get('cylinder', 17) !!} Core box</td>
+                            <td>—</td>
+                            <td><span class="mono">{{ $pattern->revision }}</span></td>
+                            <td>{{ $pattern->cavities }}</td>
+                            <td><span class="status {{ $pattern->status === 'ACTIVE' ? 'status-completed' : 'status-cancelled' }}">{{ $pattern->status }}</span></td>
+                            <td class="small">Makes {{ $pattern->cavityMap->pluck('coreDefinition.name')->unique()->implode(', ') ?: ($pattern->coreDefinition?->name ?? '—') }}</td>
+                            <td style="white-space:nowrap"><a href="{{ route('core-boxes.show', $pattern) }}">Open →</a>@if ($archived)<form method="POST" action="{{ route('core-boxes.restore', $pattern) }}" style="display:inline;margin-left:8px">@csrf<button class="btn" type="submit">Restore</button></form>@endif</td>
+                        </tr>
+                        @continue
+                        @endif
                         @php($latestRevision = $pattern->currentRevision)
                         <tr>
                             <td><x-item :name="$pattern->name" :code="$pattern->code" /></td>

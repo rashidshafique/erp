@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ApprovalRequest;
 use App\Models\Attachment;
+use App\Models\CoreBox;
 use App\Models\Customer;
 use App\Models\MouldAssembly;
 use App\Models\MouldCavity;
@@ -40,35 +41,45 @@ class PatternController extends Controller
     public function index(Request $request)
     {
         $archived = $request->boolean('archived');
-        $patterns = Pattern::query()
+        $type = in_array($request->input('type'), ['pattern', 'core_box'], true) ? $request->input('type') : '';
+        $search = trim((string) $request->input('search'));
+        $patternOnlyFilter = $request->filled('owner') || $request->filled('link') || $request->filled('revision');
+
+        $patternIds = Pattern::query()
             ->when($archived, fn ($q) => $q->onlyTrashed())
-            ->with('currentRevision', 'ownerCustomer')
-            ->withCount('revisions')
             ->when($request->filled('owner'), fn ($q) => in_array($request->input('owner'), array_keys(Pattern::OWNERS), true)
                 ? $q->where('owner_type', $request->input('owner'))
                 : $q->where('owner_customer_id', $request->input('owner')))
-            ->when($request->filled('search'), function ($query) use ($request) {
-                $search = trim($request->input('search'));
-
-                $query->where(function ($q) use ($search) {
-                    $q->where('code', 'ilike', "%{$search}%")
-                        ->orWhere('name', 'ilike', "%{$search}%");
-                });
-            })
-            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status'))
-            )
+            ->when($search !== '', fn ($q) => $q->where(fn ($w) => $w->where('code', 'ilike', "%{$search}%")->orWhere('name', 'ilike', "%{$search}%")))
+            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status')))
             ->when($request->input('link') === 'unlinked', fn ($q) => $q->unlinked())
             ->when($request->input('revision') === 'baseline', fn ($q) => $q->whereHas('currentRevision', fn ($r) => $r->baselineWithoutDrawing()))
-            ->orderBy('code')
-            ->paginate(20)
-            ->withQueryString();
+            ->toBase()->select('id', 'code', DB::raw("'pattern' as kind"));
+
+        $rows = $patternIds;
+        if ($type === 'core_box' || ($type === '' && ! $patternOnlyFilter)) {
+            $boxIds = CoreBox::query()
+                ->when($archived, fn ($q) => $q->onlyTrashed())
+                ->when($search !== '', fn ($q) => $q->where(fn ($w) => $w->where('code', 'ilike', "%{$search}%")->orWhere('name', 'ilike', "%{$search}%")->orWhere('mark_code', 'ilike', "%{$search}%")))
+                ->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status')))
+                ->toBase()->select('id', 'code', DB::raw("'core_box' as kind"));
+            $rows = $type === 'core_box' ? $boxIds : $patternIds->unionAll($boxIds);
+        }
+
+        $page = DB::query()->fromSub($rows, 'tooling')->orderBy('code')->paginate(20)->withQueryString();
+        $ids = $page->getCollection()->groupBy('kind')->map(fn ($g) => $g->pluck('id'));
+        $patterns = Pattern::withTrashed()->with('currentRevision', 'ownerCustomer')->whereIn('id', $ids->get('pattern', []))->get()->keyBy('id');
+        $boxes = CoreBox::withTrashed()->with('coreDefinition', 'cavityMap.coreDefinition')->whereIn('id', $ids->get('core_box', []))->get()->keyBy('id');
+        $page->setCollection($page->getCollection()->map(fn ($r) => $r->kind === 'pattern' ? $patterns->get($r->id) : $boxes->get($r->id))->filter()->values());
 
         return view('patterns.index', [
-            'patterns' => $patterns,
+            'patterns' => $page,
+            'type' => $type,
+            'coreBoxes' => CoreBox::count(),
             'totalPatterns' => Pattern::count(),
             'activePatterns' => Pattern::where('status', 'ACTIVE')->count(),
             'otherPatterns' => Pattern::where('status', '!=', 'ACTIVE')->count(),
-            'archivedPatterns' => Pattern::onlyTrashed()->count(),
+            'archivedPatterns' => Pattern::onlyTrashed()->count() + CoreBox::onlyTrashed()->count(),
             'archived' => $archived,
             'unlinkedPatterns' => Pattern::unlinked()->count(),
             'withoutRevision' => Pattern::doesntHave('revisions')->count(),
