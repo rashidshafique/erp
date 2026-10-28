@@ -42,6 +42,7 @@
         @php($menu = app(\App\Domains\Core\Contracts\MenuFilter::class))
         @php($menuCounts = app(\App\Support\MenuCounts::class)->forMenu($menu))
         <nav class="sidebar-nav" aria-label="Main navigation">
+            @php(ob_start())
             <a href="{{ route('dashboard') }}" class="nav-link nav-top {{ request()->routeIs('dashboard') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('dashboard') !!}<span>Dashboard</span></a>
             @if ($menu->shows('calendar.index')) <a href="{{ route('calendar.index') }}" class="nav-link nav-top {{ request()->routeIs('calendar.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('calendar') !!}<span>Calendar</span></a> @endif
 
@@ -165,6 +166,7 @@
             </div>
             @endif
             @include('layouts._module-nav-groups')
+            {!! \App\Support\MenuLayout::arrange(ob_get_clean()) !!}
         </nav>
         <script>
         (function () {
@@ -173,7 +175,7 @@
                 key: KEY,
                 read: function () { try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch (e) { return []; } },
                 write: function (list) { try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) {} },
-                path: function (a) { return new URL(a.href, location.href).pathname; },
+                path: function (a) { var u = new URL(a.href, location.href); return u.pathname + u.search; },
                 apply: function () {
                     var hidden = this.read(), self = this;
                     document.querySelectorAll('.sidebar-nav .nav-link').forEach(function (a) { a.classList.toggle('nav-user-hidden', hidden.indexOf(self.path(a)) > -1); });

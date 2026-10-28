@@ -63,7 +63,7 @@ class SidebarMenuTest extends TestCase
 
         $html = $this->get(route('dashboard'))->assertOk()->getContent();
 
-        $this->assertSame(1, preg_match('/Sales &amp; Planning<\/span><span class="nav-count"[^>]*>3</', $html));
+        $this->assertSame(1, preg_match('/Sales<\/span><span class="nav-count"[^>]*>3</', $html));
         $this->assertSame(1, preg_match('/Sales orders<\/span><span class="nav-count"[^>]*>3</', $html));
     }
 
@@ -87,5 +87,14 @@ class SidebarMenuTest extends TestCase
         }
         $this->assertSame(1, preg_match('/<span>Quality<\/span><span class="nav-count"[^>]*>(\d+)</', $html, $quality));
         $this->assertGreaterThanOrEqual(1, (int) $quality[1]);
+    }
+
+    public function test_the_menu_is_ordered_like_the_design_with_sales_first(): void
+    {
+        $html = $this->get(route('dashboard'))->assertOk()->getContent();
+        $nav = substr($html, strpos($html, '<nav class="sidebar-nav"'), strpos($html, '</nav>') - strpos($html, '<nav class="sidebar-nav"'));
+
+        $this->assertSame(1, preg_match('/Sales<\/span>.*Overview.*Enquiries.*Quotations.*Sales orders.*Engineering<\/span>.*Feasibility.*Patterns &amp; tooling.*Production<\/span>.*Planning.*Melt &amp; heats.*Quality<\/span>.*Inspection.*NCR &amp; CAPA.*Audits &amp; documents.*Logistics<\/span>.*Dispatch/s', $nav));
+        $this->assertStringNotContainsString('nav-top', $nav);
     }
 }
