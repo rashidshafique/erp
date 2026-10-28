@@ -119,8 +119,8 @@ class DashboardData
         return [
             ['label' => 'Open quotes', 'value' => Formats::number((int) (clone $quotes)->count()), 'note' => $expiring.' expire this week', 'tone' => ''],
             ['label' => 'Order book', 'value' => Formats::number($orders), 'note' => $openWork.' production order'.($openWork === 1 ? '' : 's').' open', 'tone' => ''],
-            ['label' => 'On-time dispatch, 30 days', 'value' => $sent->isEmpty() ? '—' : Formats::number(100 * $onTime / $sent->count(), 1).'%', 'note' => $sent->isEmpty() ? 'No dispatches yet' : $onTime.' of '.$sent->count().' on time', 'tone' => $sent->isNotEmpty() && $onTime === $sent->count() ? 'ok' : ''],
-            ['label' => 'Internal rejection', 'value' => $kpis['rate'] === null ? '—' : Formats::number($kpis['rate'], 1).'%', 'note' => $kpis['rate'] === null ? 'Nothing poured in 7 days' : 'Target '.Formats::number($target, 1).'%'.($kpis['delta'] !== null ? ', '.($kpis['delta'] > 0 ? 'up ' : 'down ').Formats::number(abs($kpis['delta']), 1).' pts' : ''), 'tone' => $kpis['rate'] !== null && $kpis['rate'] > $target ? 'bad' : ($kpis['rate'] !== null ? 'ok' : '')],
+            ['label' => 'On-time dispatch, 30 days', 'value' => $sent->isEmpty() ? '—' : number_format(100 * $onTime / $sent->count(), 1).'%', 'note' => $sent->isEmpty() ? 'No dispatches yet' : $onTime.' of '.$sent->count().' on time', 'tone' => $sent->isNotEmpty() && $onTime === $sent->count() ? 'ok' : ''],
+            ['label' => 'Internal rejection', 'value' => $kpis['rate'] === null ? '—' : number_format($kpis['rate'], 1).'%', 'note' => $kpis['rate'] === null ? 'Nothing poured in 7 days' : 'Target '.number_format($target, 1).'%'.($kpis['delta'] !== null ? ', '.($kpis['delta'] > 0 ? 'up ' : 'down ').number_format(abs($kpis['delta']), 1).' pts' : ''), 'tone' => $kpis['rate'] !== null && $kpis['rate'] > $target ? 'bad' : ($kpis['rate'] !== null ? 'ok' : '')],
         ];
     }
 
@@ -154,9 +154,9 @@ class DashboardData
     }
 
     /**
-     * Today's heats per furnace.
+     * Today's heats per furnace, with the metal each has made so far (poured, or charged for a cupola), and the next heat on the plan.
      *
-     * @return array{rows: array<int, array{code: string, grade: string, heats: int, state: string, tone: string}>, poured: float, planned: float}
+     * @return array{rows: array<int, array{code: string, grade: string, heats: int, state: string, tone: string, metal: string}>, poured: float, planned: float, charged: float, next: array{number: string, at: \Illuminate\Support\Carbon, furnace: string, url: string}|null}
      */
     public function melt(): array
     {
@@ -166,15 +166,28 @@ class DashboardData
             $finished = $group->filter($done)->count();
             $running = $group->contains(fn ($h) => $h->status === 'IN_PROGRESS');
             $next = $group->reject($done)->sortBy('planned_start_at')->first();
+            $cupola = $group->first()->isCupola();
+            $kg = $group->sum(fn ($h) => $cupola ? $h->chargedMetalKg() : (float) ($h->actual_tapped_weight_kg ?: 0));
 
             return [
                 'code' => $group->first()->furnace?->code ?? 'Furnace', 'grade' => $group->first()->ironGrade?->code ?? $group->first()->process_type ?? '',
                 'heats' => $group->count(), 'state' => $running ? 'Melting' : ($finished === $group->count() || $finished > 0 ? $finished.' done' : ($next?->planned_start_at?->displayTime() ?? 'Planned')),
                 'tone' => $running ? 'accent' : ($finished > 0 ? 'ok' : ''),
+                'metal' => number_format($kg / 1000, 1).' t '.($cupola ? 'charged' : 'poured'),
             ];
         })->values()->all();
 
-        return ['rows' => $rows, 'poured' => $heats->sum(fn ($h) => (float) ($h->actual_tapped_weight_kg ?: 0)) / 1000, 'planned' => $heats->sum(fn ($h) => (float) ($h->target_metal_weight_kg ?: 0)) / 1000];
+        $isCupola = fn ($h) => $h->isCupola();
+        $next = Heat::with('furnace')->whereNull('actual_start_at')->whereNull('tapped_at')->whereNotNull('planned_start_at')->where('planned_start_at', '>=', now())
+            ->whereNotIn('status', ['CLOSED', 'CANCELLED', 'POURED', 'COMPLETED'])->orderBy('planned_start_at')->first();
+
+        return [
+            'rows' => $rows,
+            'poured' => $heats->reject($isCupola)->sum(fn ($h) => (float) ($h->actual_tapped_weight_kg ?: 0)) / 1000,
+            'planned' => $heats->reject($isCupola)->sum(fn ($h) => (float) ($h->target_metal_weight_kg ?: 0)) / 1000,
+            'charged' => $heats->filter($isCupola)->sum(fn ($h) => $h->chargedMetalKg()) / 1000,
+            'next' => $next ? ['number' => $next->heat_number, 'at' => $next->planned_start_at, 'furnace' => $next->furnace?->code ?? '', 'url' => route('heats.show', $next)] : null,
+        ];
     }
 
     /** Record counts per day over the window, as a plain list for a sparkline. */

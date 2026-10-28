@@ -91,4 +91,16 @@ class DashboardLayoutsTest extends TestCase
         $this->assertStringContainsString('74.1%', $html);
         $this->assertStringNotContainsString('nothing to plot', $html);
     }
+
+    public function test_the_melt_panel_shows_the_next_planned_heat_and_charged_metal_for_a_cupola(): void
+    {
+        $this->travelTo('2026-10-17 10:00:00');
+        $induction = Furnace::create(['code' => 'IF-1', 'name' => 'Induction', 'furnace_type' => 'INDUCTION', 'status' => 'ACTIVE']);
+        $cupola = Furnace::create(['code' => 'CU-1', 'name' => 'Cupola', 'furnace_type' => 'CUPOLA', 'status' => 'ACTIVE']);
+        Heat::create(['heat_number' => 'H-1', 'furnace_id' => $induction->id, 'process_type' => 'INDUCTION', 'status' => 'IN_PROGRESS', 'actual_start_at' => '2026-10-17 08:00:00', 'actual_tapped_weight_kg' => 1500]);
+        Heat::create(['heat_number' => 'H-2', 'furnace_id' => $cupola->id, 'process_type' => 'CUPOLA', 'status' => 'IN_PROGRESS', 'actual_start_at' => '2026-10-17 07:00:00']);
+        Heat::create(['heat_number' => 'H-3', 'furnace_id' => $induction->id, 'process_type' => 'INDUCTION', 'status' => 'PLANNED', 'planned_start_at' => '2026-10-19 08:00:00']);
+
+        $this->get(route('dashboard'))->assertOk()->assertSee('1.5 t poured')->assertSee('0.0 t charged')->assertSee('Next heat')->assertSee('H-3')->assertSee('19 Oct');
+    }
 }

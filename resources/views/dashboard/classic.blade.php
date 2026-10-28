@@ -10,6 +10,11 @@
     $hour = now()->hour;
     $greeting = $hour < 12 ? 'Good morning' : ($hour < 18 ? 'Good afternoon' : 'Good evening');
     $tone = ['red' => 'dp-bad', 'amber' => 'dp-warn', 'blue' => 'dp-accent', 'ok' => 'dp-ok', 'accent' => 'dp-accent', '' => ''];
+    $fmt = fn (float $t) => number_format($t, 1);
+    $meltSummary = collect([
+        ($melt['planned'] > 0 || $melt['charged'] == 0) ? $fmt($melt['poured']).' of '.$fmt($melt['planned']).' t poured' : null,
+        $melt['charged'] > 0 ? $fmt($melt['charged']).' t charged' : null,
+    ])->filter()->implode(' · ');
 @endphp
 <style>
 .dash { display: flex; flex-direction: column; gap: 24px; }
@@ -91,16 +96,17 @@
             @endif
         </div>
         <div class="dash-box">
-            <div class="bh"><span>Today's melt</span><span>{{ \App\Support\Formats::number($melt['poured'], 1) }} of {{ \App\Support\Formats::number($melt['planned'], 1) }} t poured</span></div>
+            <div class="bh"><span>Today's melt</span><span>{{ $meltSummary }}</span></div>
             @if (count($melt['rows']))
                 <table><tbody>
                     @foreach ($melt['rows'] as $m)
-                        <tr><td><code>{{ $m['code'] }}</code></td><td>{{ $m['grade'] }}</td><td class="r" style="text-align:left">{{ $m['heats'] }} heat{{ $m['heats'] === 1 ? '' : 's' }}</td><td><span class="dp {{ $tone[$m['tone']] ?? '' }}">{{ $m['state'] }}</span></td></tr>
+                        <tr><td><code>{{ $m['code'] }}</code></td><td>{{ $m['grade'] }}</td><td class="r" style="text-align:left">{{ $m['heats'] }} heat{{ $m['heats'] === 1 ? '' : 's' }}</td><td class="r" style="text-align:left">{{ $m['metal'] }}</td><td><span class="dp {{ $tone[$m['tone']] ?? '' }}">{{ $m['state'] }}</span></td></tr>
                     @endforeach
                 </tbody></table>
             @else
                 <div class="dash-empty">No heats planned for today.</div>
             @endif
+            <div class="bh" style="border-top:1px solid var(--border);border-bottom:0"><span style="font-weight:400;color:var(--muted)">Next heat</span>@if ($melt['next'])<a href="{{ $melt['next']['url'] }}" style="font-weight:500">{{ $melt['next']['at']->displayShortDateTime() }} · {{ $melt['next']['number'] }}@if ($melt['next']['furnace']) · {{ $melt['next']['furnace'] }}@endif</a>@else<span>None scheduled</span>@endif</div>
         </div>
     </div>
 </div>
