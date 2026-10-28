@@ -38,7 +38,7 @@ class InvoiceTemplateBuilderTest extends TestCase
     public function test_the_builder_opens_blank_or_from_a_ready_made_layout_and_lists_templates(): void
     {
         $this->get(route('invoice-templates.index'))->assertOk()->assertSee('Sales tax invoice')->assertSee('None yet');
-        $this->get(route('invoice-templates.create'))->assertOk()->assertSee('Above the lines');
+        $this->get(route('invoice-templates.create'))->assertOk()->assertSee('Above the lines')->assertSee('Open in a dialog')->assertSee('tb-preview-dialog', false);
         $this->get(route('invoice-templates.create', ['from' => 'TAX']))->assertOk()->assertSee('Sales tax invoice (copy)')->assertSee('Tariff code');
     }
 

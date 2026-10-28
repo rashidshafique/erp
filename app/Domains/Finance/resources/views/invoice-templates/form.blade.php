@@ -17,6 +17,13 @@
 .tb-block { border: 1px solid var(--border); border-radius: 6px; padding: 6px; display: grid; gap: 4px; min-width: 150px; flex: 1; } .tb-block input, .tb-block select { width: 100%; }
 .tb-preview { position: sticky; top: 8px; } .tb-preview iframe { width: 100%; height: 78vh; border: 1px solid var(--border); border-radius: 8px; background: #fff; }
 .tb-mini { display: flex; gap: 4px; }
+.tb-pv-bar { display: flex; gap: 8px; align-items: end; flex-wrap: wrap; }
+.tb-dialog { width: min(1100px, 94vw); height: 92vh; max-width: none; padding: 0; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--text); }
+.tb-dialog::backdrop { background: rgba(0, 0, 0, .55); }
+.tb-dialog-wrap { display: flex; flex-direction: column; height: 100%; }
+.tb-dialog-bar { display: flex; gap: 8px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.tb-dialog-bar h2 { margin: 0; font-size: 16px; flex: 1; }
+.tb-dialog iframe { flex: 1; width: 100%; border: 0; background: #e9e9e9; }
 </style>
 <form method="POST" id="tb-form" action="{{ $template->exists ? route('invoice-templates.update', $template) : route('invoice-templates.store') }}" x-data="templateBuilder(@js($state), @js($blocks))" @submit="$refs.layout.value = JSON.stringify(layout)">
 @csrf @if ($template->exists) @method('PUT') @endif
@@ -58,8 +65,14 @@
 
 <div class="panel"><div class="panel-body"><button class="btn btn-primary" type="submit">Save template</button> <a class="btn" href="{{ route('invoice-templates.index') }}">Cancel</a></div></div>
 </div>
-<div class="tb-preview"><div class="panel"><div class="panel-body"><label>Preview with<select x-model="invoice" @change="preview()"><option value="">A sample invoice</option>@foreach ($recent as $i)<option value="{{ $i->id }}">{{ $i->invoice_number }} · {{ $i->customer?->name }}</option>@endforeach</select></label></div></div>
+<div class="tb-preview"><div class="panel"><div class="panel-body tb-pv-bar"><label style="flex:1;min-width:180px">Preview with<select x-model="invoice" @change="preview()"><option value="">A sample invoice</option>@foreach ($recent as $i)<option value="{{ $i->id }}">{{ $i->invoice_number }} · {{ $i->customer?->name }}</option>@endforeach</select></label>
+    <button type="button" class="btn" @click="openDialog()">Open in a dialog</button></div></div>
 <iframe name="tb-preview-frame" title="Preview"></iframe></div></div>
+<dialog class="tb-dialog" x-ref="dialog" @close="dialogOpen = false"><div class="tb-dialog-wrap">
+    <div class="tb-dialog-bar"><h2>Preview: <span x-text="name || 'New template'"></span></h2>
+        <select x-model="invoice" @change="preview()" aria-label="Preview with"><option value="">A sample invoice</option>@foreach ($recent as $i)<option value="{{ $i->id }}">{{ $i->invoice_number }} · {{ $i->customer?->name }}</option>@endforeach</select>
+        <button type="button" class="btn" @click="printDialog()">Print</button><button type="button" class="btn btn-primary" @click="$refs.dialog.close()">Close</button></div>
+    <iframe name="tb-preview-dialog" title="Preview, large" x-ref="dialogFrame"></iframe></div></dialog>
 </form>
 <form method="POST" id="tb-preview-form" action="{{ route('invoice-templates.preview') }}" target="tb-preview-frame" style="display:none">@csrf<input type="hidden" name="layout"><input type="hidden" name="invoice"></form>
 <script>
@@ -71,10 +84,15 @@ function templateBuilder(state, kinds) {
         moveBlock(rows, r, c, d) { const row = rows[r]; const t = row.splice(c, 1)[0]; row.splice(c + d, 0, t); },
         removeBlock(rows, r, c) { rows[r].splice(c, 1); if (rows[r].length === 0) rows.splice(r, 1); },
         moveColumn(i, d) { const t = this.layout.body.columns.splice(i, 1)[0]; this.layout.body.columns.splice(i + d, 0, t); },
+        dialogOpen: false,
         preview() {
             const f = document.getElementById('tb-preview-form');
-            f.elements.layout.value = JSON.stringify(this.layout); f.elements.invoice.value = this.invoice; f.submit();
+            f.elements.layout.value = JSON.stringify(this.layout); f.elements.invoice.value = this.invoice;
+            f.target = this.dialogOpen ? 'tb-preview-dialog' : 'tb-preview-frame'; f.submit();
+            if (this.dialogOpen) { f.target = 'tb-preview-frame'; f.submit(); }
         },
+        openDialog() { this.dialogOpen = true; this.$refs.dialog.showModal(); this.preview(); },
+        printDialog() { try { this.$refs.dialogFrame.contentWindow.print(); } catch (e) { window.print(); } },
         init() { this.$watch('layout', () => { clearTimeout(this.timer); this.timer = setTimeout(() => this.preview(), 400); }, { deep: true }); this.preview(); },
     };
 }
