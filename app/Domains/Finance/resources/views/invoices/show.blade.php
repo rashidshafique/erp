@@ -6,8 +6,8 @@
 @if ($invoice->original) · against <a href="{{ route('invoices.show', $invoice->original) }}">{{ $invoice->original->invoice_number }}</a>@endif</p></div>
 <div class="actions">
 @php $templates = app(\App\Domains\Finance\Services\InvoiceTemplates::class); @endphp
-@if (in_array($invoice->status, ['DRAFT', 'ISSUED'], true) && count($templates->options()) > 1)
-    <form method="POST" action="{{ route('invoices.template', $invoice) }}" style="display:inline">@csrf @method('PUT')<select name="print_template" onchange="this.form.submit()" aria-label="Print layout" title="Print layout">@foreach ($templates->options() as $k => $l)<option value="{{ $k }}" @selected($templates->keyFor($invoice) === $k)>{{ $l }}</option>@endforeach</select></form>
+@if (in_array($invoice->status, ['DRAFT', 'ISSUED'], true) && count($templates->options($invoice->isCreditNote())) > 1)
+    <form method="POST" action="{{ route('invoices.template', $invoice) }}" style="display:inline">@csrf @method('PUT')<select name="print_template" onchange="this.form.submit()" aria-label="Print layout" title="Print layout">@foreach ($templates->options($invoice->isCreditNote()) as $k => $l)<option value="{{ $k }}" @selected($templates->keyFor($invoice) === $k)>{{ $l }}</option>@endforeach</select></form>
 @endif
 @if ($invoice->status === 'DRAFT')
     <a class="btn" href="{{ route('invoices.edit', $invoice) }}">Edit</a>

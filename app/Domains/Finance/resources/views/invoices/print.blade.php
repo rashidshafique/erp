@@ -17,5 +17,5 @@ h1 { font-size: 22px; margin: 0 0 4px; } table { border-collapse: collapse; widt
     $span = $withCodes ? 5 : 4;
 @endphp
 <p class="noprint"><a href="#" onclick="window.print();return false">Print</a></p>
-@include($templateView)
+@include($templateView, ['layout' => $layout ?? null])
 </body></html>

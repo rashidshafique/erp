@@ -93,8 +93,9 @@ class InvoiceController extends Controller
     {
         $invoice->load(['customer', 'lines', 'original']);
         $key = $templates->has((string) $request->query('template')) ? (string) $request->query('template') : $templates->keyFor($invoice);
+        $draw = $templates->render($key);
 
-        return view('finance::invoices.print', ['invoice' => $invoice, 'templateView' => $templates->viewFor($key), 'registrations' => app(\App\Domains\Core\Contracts\TaxCalculator::class)->registrations($invoice->customer?->party_id)]);
+        return view('finance::invoices.print', ['invoice' => $invoice, 'templateView' => $draw['view'], 'layout' => $draw['layout'], 'registrations' => app(\App\Domains\Core\Contracts\TaxCalculator::class)->registrations($invoice->customer?->party_id)]);
     }
 
     public function edit(Invoice $invoice): View|RedirectResponse
@@ -121,7 +122,7 @@ class InvoiceController extends Controller
     /** Chooses the print layout for one invoice. Printing only, so it is allowed on an issued invoice too. */
     public function template(Request $request, Invoice $invoice, InvoiceTemplates $templates): RedirectResponse
     {
-        $d = $request->validate(['print_template' => ['nullable', Rule::in(array_keys($templates->options()))]]);
+        $d = $request->validate(['print_template' => ['nullable', Rule::in(array_keys($templates->options($invoice->isCreditNote())))]]);
         $invoice->update(['print_template' => $d['print_template'] ?? null]);
 
         return back()->with('success', 'Print layout saved.');

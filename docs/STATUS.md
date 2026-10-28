@@ -67,6 +67,7 @@ Updated 2026-10-27.
   4. E-invoicing (FBR digital invoicing for Pakistan): calls FBR's service, needs credentials. Not started.
 
 **Invoice templates (`app/Domains/Finance`, 2026-10-28)**
+- Layouts as data (`InvoiceLayouts`): page (size, orientation, margins, text size), header and footer (repeat on every printed page), an intro (first page only), body columns (show, label, width, order), totals rows and terms. Blocks: logo, company, registrations, title, number, dates, customer, reference, terms, free text with {fields}, line, space, page x of y. Nothing in a layout is HTML: all text is escaped. One table prints the page, so headers and the footer repeat and rows never split across pages; "Page x of y" shows in current Chrome and Edge only. Ready-made: standard (the old view), sales tax invoice, simple. Custom layouts are kept in `invoice_templates` (for invoices, credit notes or both, can be switched off) and used as `custom:<id>`.
 - Print layouts are a registry (`InvoiceTemplates`, a module can `register()` one). An invoice or credit note prints with its own choice (select on its page, allowed after issue because it only changes printing), else the default under Settings > Invoicing. "Issue and print" issues a draft and opens the print page.
 
 **Price lists (`app/Domains/Sales`, 2026-10-27)**
