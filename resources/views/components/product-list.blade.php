@@ -257,6 +257,7 @@ new class extends Component
         <a class="btn" href="{{ route('imports.create', ['entity' => 'product']) }}">{!! \App\Support\NavIcons::get('upload', 15) !!} Import</a>
         <button class="btn" type="button" wire:click="export">{!! \App\Support\NavIcons::get('file-text', 15) !!} Export</button>
         <button class="btn" type="button" wire:click="$toggle('archived')" aria-pressed="{{ $archived ? 'true' : 'false' }}">{!! \App\Support\NavIcons::get('archive', 15) !!} {{ $archived ? 'Current products' : $archivedProducts.' archived' }}</button>
+        @if (Route::has('developments.create'))<a class="btn" href="{{ route('developments.create', ['from' => 'products']) }}">Start development</a>@endif
         <a class="btn btn-primary" href="{{ route('products.create') }}">+ Add product</a>
     </div>
 </div>
@@ -329,18 +330,19 @@ new class extends Component
             <a class="btn btn-primary" href="{{ route('products.create') }}">Create product</a>
         </div>
     @else
+        <div style="display:flex;justify-content:flex-end;margin-bottom:8px"><x-column-picker table="products" :columns="['code' => 'Code', 'category' => 'Category', 'stock' => 'Stock level', 'price' => 'Unit price', 'weight' => 'Weight', 'status' => 'Status']" /></div>
         <div class="table-wrap">
-            <table class="cat-table">
+            <table class="cat-table" data-table="products">
                 <thead>
                     <tr>
                         @if ($canManage && ! $archived)<th style="width:28px"><input type="checkbox" aria-label="Tick every product on this page" x-on:change="$wire.set('selected', $event.target.checked ? @js($products->pluck('id')->map(fn ($id) => (string) $id)->values()) : [])" @checked(count($selected) === $products->count())></th>@endif
                         <th>Name</th>
-                        <th>Code</th>
-                        <th>Category</th>
-                        @if ($tracksStock)<th>Stock level</th>@endif
-                        <th class="num" title="Price on the product's latest sales order line">Unit price</th>
-                        <th class="num">Weight</th>
-                        <th>Status</th>
+                        <th data-col="code">Code</th>
+                        <th data-col="category">Category</th>
+                        @if ($tracksStock)<th data-col="stock">Stock level</th>@endif
+                        <th class="num" data-col="price" title="Price on the product's latest sales order line">Unit price</th>
+                        <th class="num" data-col="weight">Weight</th>
+                        <th data-col="status">Status</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -373,17 +375,17 @@ new class extends Component
                                     </div>
                                 </div>
                             </td>
-                            <td class="muted" style="white-space:nowrap">{{ $product->code }}</td>
-                            <td><span class="cat-pill">{{ \Illuminate\Support\Str::headline(strtolower($product->product_type)) }}</span></td>
+                            <td class="muted" data-col="code" style="white-space:nowrap">{{ $product->code }}</td>
+                            <td data-col="category"><span class="cat-pill">{{ \Illuminate\Support\Str::headline(strtolower($product->product_type)) }}</span></td>
                             @if ($tracksStock)
-                                <td class="cat-stock">
+                                <td class="cat-stock" data-col="stock">
                                     <strong>{{ Formats::number(max(0, (float) $product->stock_qty), 0) }} {{ $product->base_uom === 'piece' ? 'pcs' : $product->base_uom }}</strong>
                                     @if ((float) $product->stock_qty > 0)<span class="in">● In stock</span>@else<span class="out">● Out of stock</span>@endif
                                 </td>
                             @endif
-                            <td class="num">{{ $product->last_price !== null ? Formats::money($product->last_price) : '—' }}</td>
-                            <td class="num">{{ $product->nominal_weight_kg !== null ? Formats::number((float) $product->nominal_weight_kg, 2).' kg' : '—' }}</td>
-                            <td>
+                            <td class="num" data-col="price">{{ $product->last_price !== null ? Formats::money($product->last_price) : '—' }}</td>
+                            <td class="num" data-col="weight">{{ $product->nominal_weight_kg !== null ? Formats::number((float) $product->nominal_weight_kg, 2).' kg' : '—' }}</td>
+                            <td data-col="status">
                                 @if ($archived)
                                     <span class="status status-cancelled">ARCHIVED</span>
                                 @else

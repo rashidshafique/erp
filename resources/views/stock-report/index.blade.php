@@ -53,7 +53,7 @@
                 <strong>{{ \App\Support\Formats::number($totalQuantity, 3) }}</strong>
             </div>
             <div>
-                <div class="muted small">Stock value (PKR)</div>
+                <div class="muted small">Stock value{{ \App\Support\Formats::currencySuffix() }}</div>
                 <strong>{{ \App\Support\Formats::number($totalValue, 2) }}</strong>
             </div>
             <div>
@@ -78,7 +78,7 @@
                     <th>Status</th>
                     <th>Remaining (kg)</th>
                     <th>Unit cost (PKR/kg)</th>
-                    <th>Layer value (PKR)</th>
+                    <th>Layer value{{ \App\Support\Formats::currencySuffix() }}</th>
                 </tr>
             </thead>
             <tbody>

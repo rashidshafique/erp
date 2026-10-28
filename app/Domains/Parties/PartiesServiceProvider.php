@@ -30,9 +30,9 @@ class PartiesServiceProvider extends ModuleServiceProvider
 
     protected function navItems(): array
     {
-        return [
-            ['group' => 'sales', 'label' => 'Business partners', 'route' => 'parties.index', 'icon' => 'users', 'active' => ['parties.*']],
-        ];
+        // No menu entry: customers and suppliers are added and listed from their own screens. The partner pages stay reachable
+        // by link (the customer panel's "Open record", the tax settings panel and "also a supplier") but are not part of the menu.
+        return [];
     }
 
     protected function attachables(): array

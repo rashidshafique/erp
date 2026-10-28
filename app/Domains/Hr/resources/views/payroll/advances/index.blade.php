@@ -16,7 +16,7 @@
 <div class="panel"><div class="panel-body"><form method="POST" action="{{ route('hr.payroll.advances.store') }}">@csrf<div class="form-grid">
 @include('hr::_sel', ['blank' => false, 'name' => 'employee_id', 'label' => 'Employee', 'items' => $people->mapWithKeys(fn ($p) => [$p->id => $p->code.' · '.$p->full_name])->all(), 'sel' => old('employee_id'), 'blank' => 'Choose…', 'required' => true, 'keep' => true])
 @include('hr::_sel', ['blank' => false, 'name' => 'kind', 'label' => 'Kind', 'items' => ['ADVANCE' => 'Salary advance', 'LOAN' => 'Loan'], 'sel' => old('kind', 'ADVANCE'), 'required' => true, 'keep' => true])
-@include('hr::_in', ['name' => 'amount', 'label' => 'Amount (PKR)', 'type' => 'number', 'val' => old('amount'), 'required' => true, 'keep' => true]) @include('hr::_in', ['name' => 'installments', 'label' => 'Paid back over (months)', 'type' => 'number', 'val' => old('installments', 1), 'required' => true, 'keep' => true])
+@include('hr::_in', ['name' => 'amount', 'label' => 'Amount'.\App\Support\Formats::currencySuffix(), 'type' => 'number', 'val' => old('amount'), 'required' => true, 'keep' => true]) @include('hr::_in', ['name' => 'installments', 'label' => 'Paid back over (months)', 'type' => 'number', 'val' => old('installments', 1), 'required' => true, 'keep' => true])
 @include('hr::_in', ['name' => 'first_recovery_month', 'label' => 'First recovery in', 'type' => 'month', 'val' => old('first_recovery_month', now()->format('Y-m')), 'required' => true, 'keep' => true])
 @include('hr::_in', ['name' => 'reason', 'label' => 'Reason', 'val' => old('reason')])</div><p><button class="btn btn-primary">Record request</button></p></form></div></div>
 @endsection

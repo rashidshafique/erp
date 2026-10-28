@@ -90,9 +90,9 @@
         <div class="grid">
             <div><div class="label">Labour hours</div><div class="value">{{ \App\Support\Formats::number((float) $record->labour_hours, 2) }}</div></div>
             <div><div class="label">Downtime hours</div><div class="value">{{ \App\Support\Formats::number((float) $record->downtime_hours, 2) }}</div></div>
-            <div><div class="label">Parts cost (PKR)</div><div class="value">{{ \App\Support\Formats::number((float) $record->parts_cost, 2) }}</div></div>
-            <div><div class="label">Other cost (PKR)</div><div class="value">{{ \App\Support\Formats::number((float) $record->other_cost, 2) }}</div></div>
-            <div><div class="label">Total cost (PKR)</div><div class="value">{{ \App\Support\Formats::number($totalCost, 2) }}</div></div>
+            <div><div class="label">Parts cost{{ \App\Support\Formats::currencySuffix() }}</div><div class="value">{{ \App\Support\Formats::number((float) $record->parts_cost, 2) }}</div></div>
+            <div><div class="label">Other cost{{ \App\Support\Formats::currencySuffix() }}</div><div class="value">{{ \App\Support\Formats::number((float) $record->other_cost, 2) }}</div></div>
+            <div><div class="label">Total cost{{ \App\Support\Formats::currencySuffix() }}</div><div class="value">{{ \App\Support\Formats::number($totalCost, 2) }}</div></div>
             <div><div class="label">Next inspection due</div><div class="value">{{ $record->next_inspection_due_on?->displayDate() ?? '—' }}</div></div>
             <div><div class="label">Started at</div><div class="value">{{ $record->started_at?->displayDateTime() ?? '—' }}</div></div>
             <div><div class="label">Completed at</div><div class="value">{{ $record->completed_at?->displayDateTime() ?? '—' }}</div></div>

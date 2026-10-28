@@ -17,7 +17,7 @@
 <div class="panel">
     <div class="panel-header"><h2>Patterns by owner</h2><span class="muted small">Archived, returned and scrapped patterns are not counted</span></div>
     <div class="table-wrap"><table>
-        <thead><tr><th>Owner</th><th>Ownership</th><th>Patterns</th><th>Insured value (PKR)</th><th></th></tr></thead>
+        <thead><tr><th>Owner</th><th>Ownership</th><th>Patterns</th><th>Insured value{{ \App\Support\Formats::currencySuffix() }}</th><th></th></tr></thead>
         <tbody>
             @forelse ($byOwner->sortBy(fn ($r) => ($r->owner_type === 'FOUNDRY' ? '0' : '1').$ownerName($r)) as $row)
                 <tr><td>{{ $ownerName($row) }}</td><td>{{ $row->owner_type === 'PAYING_OFF' ? 'Being paid off' : ($row->owner_type === 'FOUNDRY' ? 'Foundry' : 'Customer') }}</td><td>{{ \App\Support\Formats::number($row->n) }}</td><td>{{ $row->value !== null ? \App\Support\Formats::number((float) $row->value, 0) : '—' }}</td>
@@ -71,7 +71,7 @@
         <div class="empty-state">No idle patterns.</div>
     @else
         <div class="table-wrap"><table>
-            <thead><tr><th>Pattern</th><th>Owner</th><th>Last moulded</th><th>Idle</th>@if ($charging)<th>Storage due (PKR)</th>@endif</tr></thead>
+            <thead><tr><th>Pattern</th><th>Owner</th><th>Last moulded</th><th>Idle</th>@if ($charging)<th>Storage due{{ \App\Support\Formats::currencySuffix() }}</th>@endif</tr></thead>
             <tbody>
                 @foreach ($idle as $row)
                     <tr><td><a href="{{ route('patterns.show', $row['pattern']) }}#ownership">{{ $row['pattern']->code }}</a> <span class="muted small">{{ $row['pattern']->name }}</span></td>

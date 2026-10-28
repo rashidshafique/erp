@@ -150,6 +150,14 @@ class Formats
         return number_format((float) $value, $decimals > 0 ? self::decimals() : 0, $n['dec'], $n['thou']);
     }
 
+    /** The currency set under Display as a label ending, " (PKR)", or nothing when none is set; for "Cost (PKR)" style labels. */
+    public static function currencySuffix(): string
+    {
+        $currency = self::all()['currency'];
+
+        return $currency === '' ? '' : ' ('.$currency.')';
+    }
+
     public static function money(float|int|string|null $value, int $decimals = 2): string
     {
         $s = self::all();

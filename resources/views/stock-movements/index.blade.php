@@ -92,7 +92,7 @@
                     <th>From → to</th>
                     <th>Qty (kg)</th>
                     <th>Unit cost (PKR/kg)</th>
-                    <th>Total cost (PKR)</th>
+                    <th>Total cost{{ \App\Support\Formats::currencySuffix() }}</th>
                     <th>Source</th>
                     <th>Recorded by</th>
                     <th>Reason</th>

@@ -88,11 +88,11 @@
             <strong>{{ \App\Support\Formats::number((float) $summary['downtime_hours'], 2) }} h</strong>
         </div>
         <div class="card metric">
-            Parts cost (PKR)
+            Parts cost{{ \App\Support\Formats::currencySuffix() }}
             <strong>{{ \App\Support\Formats::number((float) $summary['parts_cost'], 2) }}</strong>
         </div>
         <div class="card metric">
-            Other cost (PKR)
+            Other cost{{ \App\Support\Formats::currencySuffix() }}
             <strong>{{ \App\Support\Formats::number((float) $summary['other_cost'], 2) }}</strong>
         </div>
     </div>

@@ -153,11 +153,11 @@ $oldValues = [
                     <input type="number" min="0" step="any" name="downtime_hours" id="downtime_hours" value="{{ old('downtime_hours', $record->downtime_hours ?? 0) }}">
                 </div>
                 <div>
-                    <label for="parts_cost">Parts cost (PKR)</label>
+                    <label for="parts_cost">Parts cost{{ \App\Support\Formats::currencySuffix() }}</label>
                     <input type="number" min="0" step="any" name="parts_cost" id="parts_cost" value="{{ old('parts_cost', $record->parts_cost ?? 0) }}">
                 </div>
                 <div>
-                    <label for="other_cost">Other cost (PKR)</label>
+                    <label for="other_cost">Other cost{{ \App\Support\Formats::currencySuffix() }}</label>
                     <input type="number" min="0" step="any" name="other_cost" id="other_cost" value="{{ old('other_cost', $record->other_cost ?? 0) }}">
                 </div>
                 <div>

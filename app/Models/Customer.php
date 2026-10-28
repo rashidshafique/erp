@@ -30,12 +30,14 @@ class Customer extends Model
         'payment_terms',
         'active',
         'is_prospect',
+        'ppap_requested',
+        'ppap_level',
     ];
 
     /** Credit fields are set by the Finance module, price list by Sales; neither is mass-assigned from the customer forms. */
     protected function casts(): array
     {
-        return ['credit_limit' => 'float', 'credit_hold' => 'boolean', 'is_prospect' => 'boolean', 'credit_release_until' => 'date'];
+        return ['credit_limit' => 'float', 'credit_hold' => 'boolean', 'is_prospect' => 'boolean', 'ppap_requested' => 'boolean', 'credit_release_until' => 'date'];
     }
 
     /**

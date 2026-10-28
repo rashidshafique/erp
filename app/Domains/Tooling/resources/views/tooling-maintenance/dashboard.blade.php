@@ -47,7 +47,7 @@
             ['Active breakdowns', $breakdownCount],
             ['Overdue inspections', $overdueCount],
             ['Recorded downtime (hours)', \App\Support\Formats::number($downtimeHours, 2)],
-            ['All-time maintenance spend (PKR)', \App\Support\Formats::number($maintenanceSpend, 2)],
+            ['All-time maintenance spend'.\App\Support\Formats::currencySuffix(), \App\Support\Formats::number($maintenanceSpend, 2)],
         ] as [$label, $value])
             <div class="card">
                 <div class="label">{{ $label }}</div>

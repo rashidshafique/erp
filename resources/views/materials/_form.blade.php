@@ -39,7 +39,7 @@
             </select>
         </div>
         <div class="field">
-            <label for="standard_cost_per_uom">Standard cost per unit (PKR)</label>
+            <label for="standard_cost_per_uom">Standard cost per unit{{ \App\Support\Formats::currencySuffix() }}</label>
             <input id="standard_cost_per_uom" name="standard_cost_per_uom" type="number" min="0" step="any" value="{{ old('standard_cost_per_uom', $material->standard_cost_per_uom) }}">
             @error('standard_cost_per_uom')<div class="error">{{ $message }}</div>@enderror
         </div>

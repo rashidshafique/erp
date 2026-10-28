@@ -67,7 +67,7 @@
 @if ($editable)<div class="panel-body"><form method="POST" action="{{ route('hr.payroll.adjustments.store') }}">@csrf<input type="hidden" name="month" value="{{ $p->month->format('Y-m') }}"><div class="form-grid">
 @include('hr::_sel', ['blank' => false, 'name' => 'employee_id', 'label' => 'Employee', 'items' => $people->mapWithKeys(fn ($x) => [$x->id => $x->code.' · '.$x->full_name])->all(), 'sel' => '', 'blank' => 'Choose…', 'required' => true, 'keep' => true])
 @include('hr::_sel', ['blank' => false, 'name' => 'kind', 'label' => 'Type', 'items' => ['EARNING' => 'Bonus / arrears (adds to pay)', 'DEDUCTION' => 'Deduction (takes off pay)'], 'sel' => 'EARNING', 'required' => true, 'keep' => true])
-@include('hr::_in', ['name' => 'name', 'label' => 'What for', 'val' => '', 'required' => true, 'keep' => true]) @include('hr::_in', ['name' => 'amount', 'label' => 'Amount (PKR)', 'type' => 'number', 'val' => '', 'required' => true, 'keep' => true])
+@include('hr::_in', ['name' => 'name', 'label' => 'What for', 'val' => '', 'required' => true, 'keep' => true]) @include('hr::_in', ['name' => 'amount', 'label' => 'Amount'.\App\Support\Formats::currencySuffix(), 'type' => 'number', 'val' => '', 'required' => true, 'keep' => true])
 @include('hr::_in', ['name' => 'note', 'label' => 'Note', 'val' => ''])
 <div class="field"><label><input type="checkbox" name="taxable" value="1" checked> Counts as taxable income</label></div></div><p><button class="btn btn-primary">Add item</button></p></form></div>
 @else<div class="panel-body muted small">This payroll is approved, so items can no longer be added. Send it back for changes, or add the item to next month.</div>@endif</div>

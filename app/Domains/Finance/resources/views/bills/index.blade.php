@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Supplier bills')
 @section('content')
-@php $m = fn ($v) => \App\Support\Formats::number($v, 2); @endphp
+@php $m = fn ($v) => \App\Support\Formats::money($v); @endphp
 <div class="page-heading"><div><h1>Supplier bills</h1><p>What suppliers have billed us and credit notes they sent. Enter one from a purchase order, or on its own.</p></div><div class="actions"><a class="btn btn-primary" href="{{ route('bills.create') }}">+ New bill</a></div></div>
 <div class="panel"><div class="panel-body">
     <form method="GET" class="filters">

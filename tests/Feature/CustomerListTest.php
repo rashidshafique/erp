@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\AppSetting;
 use App\Models\Customer;
+use App\Support\Formats;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -89,7 +91,7 @@ class CustomerListTest extends TestCase
         $acme = $this->customer('ACME', 'Acme Pumps');
 
         Livewire::test('customer-list')
-            ->assertSeeHtml('<table class="no-row-click">')
+            ->assertSeeHtml('<table class="no-row-click" data-table="customers">')
             ->assertSeeHtml("wire:click=\"select('{$acme->id}')\"");
     }
 
@@ -147,5 +149,34 @@ class CustomerListTest extends TestCase
 
         $customer->salesOrders()->create(['order_number' => 'SO-1', 'order_date' => today(), 'status' => 'CONFIRMED']);
         $this->assertSame('active', $customer->fresh()->stage());
+    }
+
+    public function test_amounts_use_the_display_currency_and_the_columns_can_be_chosen(): void
+    {
+        AppSetting::setValue('format.currency', 'PKR', 'Currency symbol or code');
+        AppSetting::setValue('format.currency_position', 'before', 'Currency before or after the amount');
+        Formats::flush();
+        $this->customer('ACME', 'Acme Pumps');
+
+        Livewire::test('customer-list')->assertSee('PKR 0')->assertDontSee('$0')
+            ->assertSeeHtml('class="colpick"')->assertSeeHtml('data-col="balance"');
+        Formats::flush();
+    }
+
+    public function test_a_customer_that_asks_for_ppap_needs_a_level_and_one_that_does_not_keeps_none(): void
+    {
+        $dialog = Livewire::test('customer-list')->call('create')->set('form.name', 'Orbis Gears')
+            ->set('form.ppap_requested', true)->call('save')->assertHasErrors('form.ppap_level');
+        $this->assertSame(0, Customer::count());
+
+        $dialog->set('form.ppap_level', '3')->call('save')->assertHasNoErrors();
+        $this->assertSame(3, Customer::firstOrFail()->ppap_level);
+        $this->assertTrue(Customer::firstOrFail()->ppap_requested);
+
+        Livewire::test('customer-list')->call('create')->set('form.name', 'Plain Castings')
+            ->set('form.ppap_level', '4')->call('save')->assertHasNoErrors();
+        $this->assertSame(2, Customer::count());
+        $plain = Customer::where('ppap_requested', false)->firstOrFail();
+        $this->assertNull($plain->ppap_level);
     }
 }

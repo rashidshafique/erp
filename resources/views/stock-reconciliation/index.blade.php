@@ -22,7 +22,7 @@
                 <th class="px-4 py-3 text-right">Movement Balance</th>
                 <th class="px-4 py-3 text-right">Layer Qty</th>
                 <th class="px-4 py-3 text-right">Difference</th>
-                <th class="px-4 py-3 text-right">Layer Value (PKR)</th>
+                <th class="px-4 py-3 text-right">Layer Value{{ \App\Support\Formats::currencySuffix() }}</th>
                 <th class="px-4 py-3 text-left">Status</th>
             </tr>
         </thead>
@@ -117,7 +117,7 @@
                     <th class="px-4 py-3 text-right">Movement Balance</th>
                     <th class="px-4 py-3 text-right">Layer Qty</th>
                     <th class="px-4 py-3 text-right">Difference</th>
-                    <th class="px-4 py-3 text-right">Layer Value (PKR)</th>
+                    <th class="px-4 py-3 text-right">Layer Value{{ \App\Support\Formats::currencySuffix() }}</th>
                     <th class="px-4 py-3 text-left">Status</th>
                 </tr>
             </thead>

@@ -11,7 +11,7 @@
     $ccOpts = $costCentres->mapWithKeys(fn ($c) => [$c->id => $c->code.' · '.$c->name])->all();
     $headOpts = $heads->mapWithKeys(fn ($h) => [$h->id => $h->code.' · '.$h->full_name])->all();
     $gradeOpts = $grades->mapWithKeys(fn ($g) => [$g->id => $g->name])->all();
-    $money = fn ($v) => $v === null ? '—' : 'PKR '.\App\Support\Formats::number($v);
+    $money = fn ($v) => $v === null ? '—' : \App\Support\Formats::money($v, 0);
 @endphp
 <style>.row-edit summary { cursor: pointer; color: var(--accent); font-weight: 600; } .row-edit[open] { padding: 10px 0; }</style>
 
@@ -62,14 +62,14 @@
 <td><details class="row-edit">@include('partials.icon-button', ['type' => 'edit', 'name' => $g->name, 'tag' => 'summary'])<form method="POST" action="{{ route('hr.organisation.update', ['grades', $g->id]) }}" class="form-grid">@csrf @method('PUT')
     @include('hr::_in', ['name' => 'code', 'label' => 'Code', 'val' => $g->code]) @include('hr::_in', ['name' => 'name', 'label' => 'Name', 'val' => $g->name, 'required' => true])
     @include('hr::_in', ['name' => 'rank', 'label' => 'Rank', 'type' => 'number', 'val' => $g->rank, 'required' => true])
-    @include('hr::_in', ['name' => 'min_salary', 'label' => 'Band from (PKR)', 'type' => 'number', 'val' => $g->min_salary]) @include('hr::_in', ['name' => 'max_salary', 'label' => 'Band to (PKR)', 'type' => 'number', 'val' => $g->max_salary])
+    @include('hr::_in', ['name' => 'min_salary', 'label' => 'Band from'.\App\Support\Formats::currencySuffix(), 'type' => 'number', 'val' => $g->min_salary]) @include('hr::_in', ['name' => 'max_salary', 'label' => 'Band to'.\App\Support\Formats::currencySuffix(), 'type' => 'number', 'val' => $g->max_salary])
     <div class="field"><label><input type="checkbox" name="active" value="1" @checked($g->active)> Active</label></div><div class="field"><button class="btn btn-primary">Save</button></div></form>
 <form method="POST" action="{{ route('hr.organisation.destroy', ['grades', $g->id]) }}" onsubmit="return confirm('Delete this grade?')">@csrf @method('DELETE')@include('partials.icon-button', ['type' => 'delete', 'name' => $g->name])</form></details></td></tr>
 @empty<tr><td colspan="5" class="muted">None yet.</td></tr>@endforelse</tbody></table></div>
 <div class="panel-body"><form method="POST" action="{{ route('hr.organisation.store', 'grades') }}">@csrf<div class="form-grid">
     @include('hr::_in', ['name' => 'name', 'label' => 'New grade', 'val' => '', 'required' => true, 'ph' => 'e.g. Skilled worker'])
     @include('hr::_in', ['name' => 'rank', 'label' => 'Rank', 'type' => 'number', 'val' => ($grades->max('rank') ?? 0) + 1, 'required' => true, 'help' => 'Higher is more senior.'])
-    @include('hr::_in', ['name' => 'min_salary', 'label' => 'Band from (PKR)', 'type' => 'number', 'val' => '']) @include('hr::_in', ['name' => 'max_salary', 'label' => 'Band to (PKR)', 'type' => 'number', 'val' => ''])
+    @include('hr::_in', ['name' => 'min_salary', 'label' => 'Band from'.\App\Support\Formats::currencySuffix(), 'type' => 'number', 'val' => '']) @include('hr::_in', ['name' => 'max_salary', 'label' => 'Band to'.\App\Support\Formats::currencySuffix(), 'type' => 'number', 'val' => ''])
     @include('hr::_in', ['name' => 'code', 'label' => 'Code', 'val' => '', 'help' => $codeHelp])
 </div><p><button class="btn btn-primary">Add grade</button></p></form></div></div>
 

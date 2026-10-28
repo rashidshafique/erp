@@ -37,7 +37,7 @@
                 @endif
                 <div class="field"><label for="pour_weight_kg">Poured per casting, incl. gating (kg)</label><input id="pour_weight_kg" type="number" name="pour_weight_kg" min="0" step="any" value="{{ $f('pour_weight_kg') }}"></div>
                 <div class="field"><label for="pieces_per_mould">Pieces per mould</label><input id="pieces_per_mould" type="number" name="pieces_per_mould" min="1" max="10000" value="{{ $f('pieces_per_mould') }}"></div>
-                <div class="field"><label for="modification_cost">Modification cost (PKR)</label><input id="modification_cost" type="number" name="modification_cost" min="0" step="any" value="{{ $f('modification_cost') }}"></div>
+                <div class="field"><label for="modification_cost">Modification cost{{ \App\Support\Formats::currencySuffix() }}</label><input id="modification_cost" type="number" name="modification_cost" min="0" step="any" value="{{ $f('modification_cost') }}"></div>
                 <div class="field"><label for="effective_from">Effective from</label><input id="effective_from" type="date" name="effective_from" value="{{ $f('effective_from') instanceof \Carbon\CarbonInterface ? $f('effective_from')->toDateString() : $f('effective_from') }}"></div>
                 <div class="field"><label for="effective_to">Effective to</label><input id="effective_to" type="date" name="effective_to" value="{{ $f('effective_to') instanceof \Carbon\CarbonInterface ? $f('effective_to')->toDateString() : $f('effective_to') }}"></div>
                 <div class="field field-full"><label for="shrinkage_note">Shrinkage / allowance note</label><input id="shrinkage_note" name="shrinkage_note" maxlength="2000" value="{{ $f('shrinkage_note') }}"></div>

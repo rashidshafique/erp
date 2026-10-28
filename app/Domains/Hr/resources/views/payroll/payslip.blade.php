@@ -15,7 +15,7 @@
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px">
 <div><h3 style="margin:0 0 6px">Earnings</h3><table><tbody>@foreach ($earn as $l)<tr><td>{{ $l->name }}</td><td style="text-align:right">{{ $m($l->amount) }}</td></tr>@endforeach<tr><td><strong>Total earnings</strong></td><td style="text-align:right"><strong>{{ $m($s->total_earnings) }}</strong></td></tr></tbody></table></div>
 <div><h3 style="margin:0 0 6px">Deductions</h3><table><tbody>@forelse ($ded as $l)<tr><td>{{ $l->name }}</td><td style="text-align:right">{{ $m($l->amount) }}</td></tr>@empty<tr><td class="muted">None</td><td></td></tr>@endforelse<tr><td><strong>Total deductions</strong></td><td style="text-align:right"><strong>{{ $m($s->total_deductions) }}</strong></td></tr></tbody></table></div></div>
-<p style="font-size:20px;margin:18px 0 4px"><strong>Net pay: PKR {{ $m($s->net) }}</strong></p>
+<p style="font-size:20px;margin:18px 0 4px"><strong>Net pay: {{ \App\Support\Formats::money($s->net) }}</strong></p>
 @if (auth()->guest() || \App\Domains\Hr\Support\HrAccess::isPayroll())@if ($er->isNotEmpty())<p class="muted small">Employer contributions (not deducted from pay): {{ $er->map(fn ($l) => $l->name.' '.$m($l->amount))->implode(' · ') }}.</p>@endif @endif
 </div></div>
 @endsection

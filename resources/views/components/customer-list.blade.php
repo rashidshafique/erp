@@ -55,7 +55,7 @@ new class extends Component
     /** @return array<string, mixed> */
     private function blankForm(): array
     {
-        return ['code' => '', 'name' => '', 'short_name' => '', 'contact_name' => '', 'phone' => '', 'email' => '', 'tax_number' => '', 'payment_terms' => '', 'billing_address' => '', 'shipping_address' => '', 'active' => true, 'is_prospect' => false];
+        return ['code' => '', 'name' => '', 'short_name' => '', 'contact_name' => '', 'phone' => '', 'email' => '', 'tax_number' => '', 'payment_terms' => '', 'billing_address' => '', 'shipping_address' => '', 'active' => true, 'is_prospect' => false, 'ppap_requested' => false, 'ppap_level' => ''];
     }
 
     public function updatedSearch(): void
@@ -126,6 +126,7 @@ new class extends Component
         $this->editingId = $customer->id;
         $this->form = array_map(fn ($value) => $value ?? '', $customer->only(array_keys($this->blankForm())));
         $this->form['active'] = (bool) $customer->active;
+        $this->form['ppap_requested'] = (bool) $customer->ppap_requested;
         $this->saved = null;
         $this->formOpen = true;
     }
@@ -140,8 +141,9 @@ new class extends Component
     {
         $customer = $this->editingId ? Customer::findOrFail($this->editingId) : null;
         $this->form['code'] = strtoupper(trim((string) $this->form['code']));
-        $rules = collect(Customer::rules($customer) + ['active' => ['boolean'], 'is_prospect' => ['boolean']])->mapWithKeys(fn ($rule, $field) => ["form.{$field}" => $rule])->all();
-        $data = $this->validate($rules, [], ['form.name' => 'name', 'form.code' => 'code', 'form.email' => 'email'])['form'];
+        $ppap = ['ppap_requested' => ['boolean'], 'ppap_level' => ['required_if:form.ppap_requested,true', 'nullable', 'integer', 'between:1,5']];
+        $rules = collect(Customer::rules($customer) + ['active' => ['boolean'], 'is_prospect' => ['boolean']] + $ppap)->mapWithKeys(fn ($rule, $field) => ["form.{$field}" => $rule])->all();
+        $data = $this->validate($rules, [], ['form.name' => 'name', 'form.code' => 'code', 'form.email' => 'email', 'form.ppap_level' => 'PPAP level'])['form'];
 
         foreach (['code', 'short_name', 'contact_name', 'phone', 'email', 'tax_number', 'payment_terms', 'billing_address', 'shipping_address'] as $optional) {
             $data[$optional] = ($data[$optional] ?? '') === '' ? null : $data[$optional];
@@ -151,6 +153,8 @@ new class extends Component
         }
         $data['active'] = (bool) $data['active'];
         $data['is_prospect'] = (bool) $data['is_prospect'];
+        $data['ppap_requested'] = (bool) $data['ppap_requested'];
+        $data['ppap_level'] = $data['ppap_requested'] && ($data['ppap_level'] ?? '') !== '' ? (int) $data['ppap_level'] : null;
 
         if ($customer) {
             $customer->update($data);
@@ -314,7 +318,7 @@ new class extends Component
 @if ($saved)<div class="alert alert-success" role="status">{{ $saved }}</div>@endif
 
 @php
-    $money = fn ($v) => '$'.\App\Support\Formats::number((float) $v, 0);
+    $money = fn ($v) => \App\Support\Formats::money((float) $v, 0);
     $stages = ['active' => ['Active', 'cl-ok'], 'prospect' => ['Prospect', 'cl-warn'], 'hold' => ['On hold', 'cl-bad'], 'inactive' => ['Inactive', 'cl-warn']];
     $c = $panel['customer'] ?? null; $stage = $panel['stage'] ?? null;
     $sub = fn ($x) => collect([$x->short_name, $x->billing_address ? trim(strtok($x->billing_address, "\n")) : null])->filter()->implode(' · ');
@@ -330,6 +334,7 @@ new class extends Component
             </nav>
         </div>
         <div style="display:flex;gap:8px">
+            <x-column-picker table="customers" :columns="['supply' => 'Supply', 'parts' => 'Parts', 'open' => 'Open orders', 'developments' => 'Developments', 'ppm' => 'PPM 12 mo', 'terms' => 'Terms', 'balance' => 'Balance', 'status' => 'Status']" />
             <button class="cl-btn" type="button" wire:click="export">Export</button>
             <button class="cl-btn primary" type="button" wire:click="create">New customer</button>
         </div>
@@ -344,21 +349,21 @@ new class extends Component
                 <div class="muted">{{ $counts[''] ? 'No customer matches.' : 'Add the first customer before entering an order.' }}</div>
             @else
             <div class="cl-table">
-                <table class="no-row-click">
-                    <thead><tr><th>Customer</th><th>Supply</th><th class="r">Parts</th><th class="r">Open orders</th><th class="r">Developments</th><th class="r">PPM 12 mo</th><th>Terms</th><th class="r">Balance</th><th>Status</th></tr></thead>
+                <table class="no-row-click" data-table="customers">
+                    <thead><tr><th>Customer</th><th data-col="supply">Supply</th><th class="r" data-col="parts">Parts</th><th class="r" data-col="open">Open orders</th><th class="r" data-col="developments">Developments</th><th class="r" data-col="ppm">PPM 12 mo</th><th data-col="terms">Terms</th><th class="r" data-col="balance">Balance</th><th data-col="status">Status</th></tr></thead>
                     <tbody>
                     @foreach ($customers as $row)
                         @php $st = $row->stage(); $o = $owed->get($row->id); @endphp
                         <tr wire:key="customer-{{ $row->id }}" @class(['sel' => $c && $c->id === $row->id]) wire:click="select('{{ $row->id }}')">
                             <td><div style="font-weight:500">{{ $row->name }}</div><div class="cl-sub">{{ $sub($row) ?: $row->code }}</div></td>
-                            <td>{{ $row->sales_orders_count ? 'Serial' : '—' }}</td>
-                            <td class="r">{{ $parts[$row->id] ?? 0 }}</td>
-                            <td class="r">{{ $openValue[$row->id] !== null ? $money($openValue[$row->id]) : '—' }}</td>
-                            <td class="r">—</td>
-                            <td class="r">—</td>
-                            <td>{{ $row->payment_terms ?: '—' }}</td>
-                            <td class="r">@if ($showFinance){{ $money($o['balance'] ?? 0) }}@if (($o['overdue'] ?? 0) > 0) · <span class="cl-pill cl-bad">{{ $money($o['overdue']) }} overdue</span>@endif @else — @endif</td>
-                            <td><span class="cl-pill {{ $stages[$st][1] }}">{{ $stages[$st][0] }}</span></td>
+                            <td data-col="supply">{{ $row->sales_orders_count ? 'Serial' : '—' }}</td>
+                            <td class="r" data-col="parts">{{ $parts[$row->id] ?? 0 }}</td>
+                            <td class="r" data-col="open">{{ $openValue[$row->id] !== null ? $money($openValue[$row->id]) : '—' }}</td>
+                            <td class="r" data-col="developments">—</td>
+                            <td class="r" data-col="ppm">—</td>
+                            <td data-col="terms">{{ $row->payment_terms ?: '—' }}</td>
+                            <td class="r" data-col="balance">@if ($showFinance){{ $money($o['balance'] ?? 0) }}@if (($o['overdue'] ?? 0) > 0) · <span class="cl-pill cl-bad">{{ $money($o['overdue']) }} overdue</span>@endif @else — @endif</td>
+                            <td data-col="status"><span class="cl-pill {{ $stages[$st][1] }}">{{ $stages[$st][0] }}</span></td>
                         </tr>
                     @endforeach
                     </tbody>
@@ -372,7 +377,11 @@ new class extends Component
         <aside class="cl-side" wire:key="customer-panel-{{ $c->id }}">
             <div>
                 <div style="display:flex;align-items:center;gap:8px"><h3>{{ $c->name }}</h3>@if ($stage !== 'active')<span class="cl-pill {{ $stages[$stage][1] }}">{{ $stages[$stage][0] }}</span>@endif</div>
-                <div style="color:#6b6e73">{{ $sub($c) ?: $c->code }}</div>
+                @if ($c->billing_address)
+                    <div style="color:#6b6e73;font-size:13px;line-height:1.5">{{ nl2br(e($c->billing_address)) }}</div>
+                @else
+                    <div style="color:#6b6e73">{{ $c->code }}</div>
+                @endif
             </div>
 
             @if ($stage === 'hold')
@@ -425,6 +434,7 @@ new class extends Component
             <div style="display:flex;gap:8px;flex-wrap:wrap">
                 @if ($c->party_id)<a class="cl-btn" href="{{ route('parties.show', $c->party_id) }}">Open record</a>@endif
                 <a class="cl-btn" href="{{ route('customer-requirements.edit', $c) }}">Requirements</a>
+                @if (Route::has('developments.create'))<a class="cl-btn" href="{{ route('developments.create', ['from' => 'customer:'.$c->id]) }}">Start development</a>@endif
                 @if ($stage === 'prospect')<button class="cl-btn primary" type="button" wire:click="markActive('{{ $c->id }}')">Mark as active</button>@endif
                 @if ($stage === 'hold' && $panel['canRelease'])<button class="cl-btn primary" type="button" wire:click="releaseHold('{{ $c->id }}')" wire:confirm="Release the credit hold on {{ $c->name }}?">Release hold</button>@endif
             </div>
@@ -450,7 +460,9 @@ new class extends Component
                 <div class="field"><label for="c-terms">Payment terms</label><input id="c-terms" wire:model="form.payment_terms" maxlength="100" placeholder="e.g. 30 days"></div>
                 <div class="field field-full"><label for="c-billing">Billing address</label><textarea id="c-billing" rows="2" wire:model="form.billing_address"></textarea></div>
                 <div class="field field-full"><label for="c-shipping">Shipping address</label><textarea id="c-shipping" rows="2" wire:model="form.shipping_address"></textarea></div>
-                <div class="field field-full"><label><input type="checkbox" wire:model="form.is_prospect"> Prospect</label><div class="help">No serial supply yet. Stops being a prospect when marked active or on its first sales order.</div></div>
+                <div class="field field-full"><label><input type="checkbox" wire:model="form.is_prospect"> Prospect</label><div class="help">Converts to active when marked, or on first sales order.</div></div>
+                <div class="field field-full"><label><input type="checkbox" wire:model="form.ppap_requested"> PPAP requested</label><div class="help">The customer asks for a production part approval submission from the start.</div></div>
+                <div class="field" x-show="$wire.form.ppap_requested" x-cloak @if (empty($form['ppap_requested'])) style="display:none" @endif><label for="c-ppap-level">PPAP level <span class="required">*</span></label><select id="c-ppap-level" wire:model="form.ppap_level" @error('form.ppap_level') aria-invalid="true" @enderror><option value="">Choose level</option>@foreach (range(1, 5) as $level)<option value="{{ $level }}">Level {{ $level }}</option>@endforeach</select></div>
                 @if ($editingId)<div class="field field-full"><label><input type="checkbox" wire:model="form.active"> Active</label><div class="help">Inactive customers are left out of the order form's customer list.</div></div>@endif
             </div>
         </div>

@@ -158,7 +158,7 @@ new class extends Component
                 @error('quantity')<div class="error">{{ $message }}</div>@enderror</div>
 
             @if ($kind === 'ADJUST_IN')
-                <div class="field"><label for="mv-cost">Cost per kg (PKR)</label><input id="mv-cost" type="number" step="any" wire:model="unitCost">
+                <div class="field"><label for="mv-cost">Cost per kg{{ \App\Support\Formats::currencySuffix() }}</label><input id="mv-cost" type="number" step="any" wire:model="unitCost">
                     @error('unitCost')<div class="error">{{ $message }}</div>@enderror</div>
             @endif
 

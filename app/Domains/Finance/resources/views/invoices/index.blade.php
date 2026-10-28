@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Invoices')
 @section('content')
-@php $m = fn ($v) => \App\Support\Formats::number($v, 2); @endphp
+@php $m = fn ($v) => \App\Support\Formats::money($v); @endphp
 <div class="page-heading"><div><h1>Invoices</h1><p>Sales invoices and credit notes. Raise one from a dispatch, from a sales order, or on its own.</p></div><div class="actions"><a class="btn btn-primary" href="{{ route('invoices.create') }}">+ New invoice</a></div></div>
 <div class="panel"><div class="panel-body">
     <form method="GET" class="filters">
