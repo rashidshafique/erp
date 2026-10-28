@@ -54,12 +54,8 @@ class SettingsAreaTest extends TestCase
         $this->assertSame('BLOCK', PatternOwnershipRules::get('other_customer'));
     }
 
-    public function test_the_menu_style_is_a_display_setting_defaulting_to_collapsible_groups(): void
+    public function test_the_menu_is_one_level_of_section_labels_with_a_hidden_items_dialog(): void
     {
-        $this->get(route('dashboard'))->assertSee('<body class="menu-groups"', false)->assertSee('id="menu-toggle"', false);
-
-        $this->put(route('settings.display.update'), ['density' => 'COMPACT', 'menu' => 'LABELS'])->assertSessionHasNoErrors();
-        $this->get(route('dashboard'))->assertSee('<body class="menu-labels"', false);
-        $this->put(route('settings.display.update'), ['density' => 'COMPACT', 'menu' => 'SIDEWAYS'])->assertSessionHasErrors('menu');
+        $this->get(route('dashboard'))->assertSee('<body class="menu-labels"', false)->assertSee('id="menu-toggle"', false)->assertSee('id="hidden-items-open"', false);
     }
 }

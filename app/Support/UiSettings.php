@@ -20,10 +20,9 @@ class UiSettings
                 'compact' => AppSetting::getValue('ui.density', 'COMPACT') !== 'COMFORTABLE',
                 'toolbar' => AppSetting::getValue('ui.table_toolbar', '1') === '1',
                 'tidy_forms' => AppSetting::getValue('ui.tidy_forms', '1') === '1',
-                'menu' => AppSetting::getValue('ui.menu', 'GROUPS') === 'LABELS' ? 'LABELS' : 'GROUPS',
             ];
         } catch (\Throwable) {
-            return ['compact' => true, 'toolbar' => true, 'tidy_forms' => true, 'menu' => 'GROUPS'];
+            return ['compact' => true, 'toolbar' => true, 'tidy_forms' => true];
         }
     }
 

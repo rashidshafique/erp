@@ -26,7 +26,7 @@
     <script>try{var w=parseInt(localStorage.getItem('erp.menuWidth'),10);if(w>=200&&w<=420)document.documentElement.style.setProperty('--side-w',w+'px');}catch(e){}</script>
     @stack('styles')
 </head>
-<body class="menu-{{ strtolower(\App\Support\UiSettings::all()['menu']) }}" data-row-click="{{ \App\Models\AppSetting::getValue('ui.row_click', '1') === '1' ? '1' : '0' }}" data-toolbar="{{ \App\Support\UiSettings::all()['toolbar'] ? '1' : '0' }}" data-tidy-forms="{{ \App\Support\UiSettings::all()['tidy_forms'] ? '1' : '0' }}">
+<body class="menu-labels" data-row-click="{{ \App\Models\AppSetting::getValue('ui.row_click', '1') === '1' ? '1' : '0' }}" data-toolbar="{{ \App\Support\UiSettings::all()['toolbar'] ? '1' : '0' }}" data-tidy-forms="{{ \App\Support\UiSettings::all()['tidy_forms'] ? '1' : '0' }}">
 <div class="app-shell">
     <aside class="sidebar" id="main-sidebar">
         <button type="button" class="nav-link menu-toggle menu-expand" id="menu-expand" aria-controls="main-sidebar" aria-pressed="true" title="Show the full menu" aria-label="Show the full menu">{!! \App\Support\NavIcons::get('panel-left') !!}</button>
@@ -166,13 +166,39 @@
             @endif
             @include('layouts._module-nav-groups')
         </nav>
+        <script>
+        (function () {
+            var KEY = 'erp.menuHidden.{{ auth()->id() ?? 0 }}';
+            window.erpMenu = {
+                key: KEY,
+                read: function () { try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch (e) { return []; } },
+                write: function (list) { try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) {} },
+                path: function (a) { return new URL(a.href, location.href).pathname; },
+                apply: function () {
+                    var hidden = this.read(), self = this;
+                    document.querySelectorAll('.sidebar-nav .nav-link').forEach(function (a) { a.classList.toggle('nav-user-hidden', hidden.indexOf(self.path(a)) > -1); });
+                    document.querySelectorAll('.sidebar-nav .nav-group').forEach(function (g) { g.classList.toggle('nav-user-hidden', !g.querySelector('.nav-link:not(.nav-user-hidden)')); });
+                    var n = document.getElementById('hidden-items-count');
+                    if (n) { n.textContent = hidden.length; n.hidden = !hidden.length; }
+                }
+            };
+            window.erpMenu.apply();
+        })();
+        </script>
 
         <div class="sidebar-bottom">
             <a href="{{ route('help.new-customer') }}" class="nav-link {{ request()->routeIs('help.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('help-circle') !!}<span>Help: new customer</span></a>
             @if (\App\Support\SettingsNav::canOpen())
                 <a href="{{ route('settings.edit') }}" class="nav-link {{ \App\Support\SettingsNav::isSettingsPage() ? 'active' : '' }}">{!! \App\Support\NavIcons::get('settings') !!}<span>Settings</span></a>
             @endif
+            <button type="button" class="nav-link nav-hidden-open" id="hidden-items-open" aria-haspopup="dialog">{!! \App\Support\NavIcons::get('eye-off') !!}<span>Hidden items</span><span class="nav-count" id="hidden-items-count" hidden></span></button>
         </div>
+
+        <dialog id="hidden-items" class="qd menu-edit" aria-labelledby="hidden-items-title">
+            <div class="qd-head"><h2 id="hidden-items-title">Menu</h2><button type="button" class="qd-x" data-menu-close aria-label="Close">×</button></div>
+            <div class="qd-body"><p class="muted small" style="margin:0 0 10px">Choose which entries show in your menu. Hidden entries stay available here and in search; this is kept in this browser.</p><div id="hidden-items-list"></div></div>
+            <div class="qd-foot"><button type="button" class="btn" id="hidden-items-reset">Show all</button><button type="button" class="btn btn-primary" data-menu-close>Done</button></div>
+        </dialog>
 
         @if ($brand['logo'] && $brand['position'] === 'BOTTOM_LEFT')
             <div style="margin-top:auto;padding:12px 12px 0"><img src="{{ $brand['logo'] }}" alt="{{ $brand['name'] }}" style="display:block;max-width:100%;height:{{ $brand['height'] }}px;object-fit:contain;object-position:left"></div>
@@ -485,6 +511,43 @@
 
 
 <script>
+/* Hidden items: a dialog listing every menu entry with a switch, kept per person in this browser. */
+document.addEventListener('DOMContentLoaded', () => {
+    const dialog = document.getElementById('hidden-items'), open = document.getElementById('hidden-items-open'), list = document.getElementById('hidden-items-list');
+    if (!dialog || !open || !window.erpMenu) return;
+    const menu = window.erpMenu;
+    function build() {
+        const hidden = menu.read();
+        list.innerHTML = '';
+        document.querySelectorAll('.sidebar-nav .nav-group').forEach(group => {
+            const links = [...group.querySelectorAll('.nav-link')];
+            if (!links.length) return;
+            const title = document.createElement('div');
+            title.className = 'menu-edit-group';
+            title.textContent = (group.querySelector('.nav-lab > span:not(.nav-ico):not(.nav-count)') || group.querySelector('.nav-lab')).textContent.trim();
+            list.appendChild(title);
+            links.forEach(link => {
+                const path = menu.path(link), row = document.createElement('label'), name = document.createElement('span'), box = document.createElement('input');
+                row.className = 'menu-edit-row';
+                name.textContent = (link.querySelector('span:not(.nav-count)') || link).textContent.trim();
+                box.type = 'checkbox'; box.className = 'simple-check'; box.checked = hidden.indexOf(path) === -1;
+                box.setAttribute('role', 'switch');
+                box.addEventListener('change', () => {
+                    const now = menu.read().filter(p => p !== path);
+                    if (!box.checked) now.push(path);
+                    menu.write(now); menu.apply();
+                });
+                row.append(name, box);
+                list.appendChild(row);
+            });
+        });
+    }
+    open.addEventListener('click', () => { build(); dialog.showModal(); });
+    dialog.querySelectorAll('[data-menu-close]').forEach(b => b.addEventListener('click', () => dialog.close()));
+    dialog.addEventListener('click', e => { if (e.target === dialog) dialog.close(); });
+    document.getElementById('hidden-items-reset').addEventListener('click', () => { menu.write([]); menu.apply(); build(); });
+});
+
 /* Foundry ERP sidebar submenu behavior */
 document.addEventListener('DOMContentLoaded', () => {
     const groups = [...document.querySelectorAll('.sidebar-nav .nav-group')];

@@ -60,8 +60,7 @@ class DisplaySettingsController extends Controller
 
     public function update(Request $request)
     {
-        $request->validate(['density' => 'required|in:COMPACT,COMFORTABLE', 'dashboard' => ['nullable', Rule::in(UiSettings::DASHBOARD_LAYOUTS)], 'menu' => ['nullable', Rule::in(['LABELS', 'GROUPS'])]]);
-        AppSetting::setValue('ui.menu', $request->input('menu', 'GROUPS') ?: 'GROUPS', 'Menu style: every link under section labels, or collapsible groups');
+        $request->validate(['density' => 'required|in:COMPACT,COMFORTABLE', 'dashboard' => ['nullable', Rule::in(UiSettings::DASHBOARD_LAYOUTS)]]);
         AppSetting::setValue('ui.table_toolbar', $request->boolean('table_toolbar') ? '1' : '0', 'Search and filters sit in the table header');
         AppSetting::setValue('ui.tidy_forms', $request->boolean('tidy_forms') ? '1' : '0', 'Long forms hide blank optional fields behind Show more');
         AppSetting::setValue('ui.density', $request->input('density'), 'Spacing of the interface');
