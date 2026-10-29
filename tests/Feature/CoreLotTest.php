@@ -189,4 +189,14 @@ class CoreLotTest extends TestCase
 
         $this->assertSame(4, $lot->remaining());
     }
+
+    public function test_core_stock_is_a_button_on_the_cores_page_not_a_menu_entry(): void
+    {
+        $html = $this->get(route('cores.index'))->assertOk()->assertSee('Core stock')->assertSee(route('core-lots.index'), false)->getContent();
+        $menu = substr($html, 0, strpos($html, '<main') ?: strlen($html));
+
+        $this->assertStringNotContainsString('Cores &amp; core boxes', $html);
+        $this->assertStringNotContainsString('href="'.route('core-lots.index').'" class="nav-link', $menu);
+        $this->get(route('core-lots.index'))->assertOk()->assertSee('nav-link active', false);
+    }
 }

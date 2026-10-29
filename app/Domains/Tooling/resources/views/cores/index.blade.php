@@ -7,7 +7,7 @@
 @php $archived = request()->boolean('archived'); @endphp
 <div class="page-heading">
     <div><h1>Cores</h1><p>Every core the foundry makes, the core boxes that make it and the products that need it.</p></div>
-    <div class="actions"><a class="btn" href="{{ route('core-boxes.index') }}">Core boxes</a> <a class="btn" href="{{ route('imports.create', ['entity' => 'core_definition']) }}">Import</a> <a class="btn btn-primary" href="{{ route('cores.create') }}">+ New core</a></div>
+    <div class="actions"><a class="btn" href="{{ route('core-boxes.index') }}">Core boxes</a> @if (Route::has('core-lots.index'))<a class="btn" href="{{ route('core-lots.index') }}">Core stock</a> @endif<a class="btn" href="{{ route('imports.create', ['entity' => 'core_definition']) }}">Import</a> <a class="btn btn-primary" href="{{ route('cores.create') }}">+ New core</a></div>
 </div>
 <div class="panel"><div class="panel-body">
     <form method="GET" action="{{ route('cores.index') }}" class="filters">
