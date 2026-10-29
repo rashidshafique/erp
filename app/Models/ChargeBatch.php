@@ -36,7 +36,21 @@ class ChargeBatch extends Model
     }
 
     /** Component roles that are not metal: they burn or flux, and take no part in how fast metal is charged. */
-    public const NON_METAL_ROLES = ['COKE', 'FLUX', 'LIMESTONE', 'FUEL'];
+    public const NON_METAL_ROLES = ['COKE', 'FLUX', 'LIMESTONE', 'FUEL', 'ADDITIVE'];
+
+    /** Role => what the recipe form calls it. Roles outside NON_METAL_ROLES make up the metal charge. */
+    public const ROLES = [
+        'CHARGE' => 'Metal charge', 'RETURN' => 'Returns', 'ALLOY' => 'Alloy',
+        'COKE' => 'Coke', 'FUEL' => 'Fuel', 'FLUX' => 'Flux', 'LIMESTONE' => 'Limestone', 'ADDITIVE' => 'Other addition',
+    ];
+
+    /** Material type => the role a new component of that material starts with. */
+    public const ROLE_FOR_TYPE = ['RETURN' => 'RETURN', 'ALLOY' => 'ALLOY', 'FUEL' => 'FUEL', 'FLUX' => 'FLUX', 'ADDITIVE' => 'ADDITIVE'];
+
+    public static function isAddition(?string $role): bool
+    {
+        return in_array(strtoupper((string) $role), self::NON_METAL_ROLES, true);
+    }
 
     /**
      * Metal one charge of the recipe puts in: the weight set on the recipe, else the weight of its charge, return and alloy
@@ -48,7 +62,7 @@ class ChargeBatch extends Model
             return (float) $this->target_metal_weight_kg;
         }
 
-        return (float) $this->items->where('charge_stage', 'ROUND')->reject(fn ($i) => in_array(strtoupper((string) $i->component_role), self::NON_METAL_ROLES, true))
+        return (float) $this->items->where('charge_stage', 'ROUND')->reject(fn ($i) => self::isAddition($i->component_role))
             ->sum(fn ($i) => (float) $i->perChargeKg());
     }
 

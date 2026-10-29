@@ -6,13 +6,17 @@
     $totalChargeKg = $hasPercentItems
         ? ($chargeBatch->target_total_charge_weight_kg !== null ? (float) $chargeBatch->target_total_charge_weight_kg : null)
         : (float) $chargeBatch->items->sum(fn ($item) => (float) ($item->target_qty_kg ?? 0));
+    $metalPercent = (float) $chargeBatch->items->reject(fn ($item) => \App\Models\ChargeBatch::isAddition($item->component_role))->sum(fn ($item) => (float) ($item->target_percent ?? 0));
 @endphp
 <div class="page-header">
     <div>
         <h1>{{ $chargeBatch->name }}</h1>
         <p>{{ $chargeBatch->code }} · Revision {{ $chargeBatch->revision }} · {{ $chargeBatch->process_type }}</p>
     </div>
-    <a class="btn btn-secondary" href="{{ route('charge-batches.index') }}">All recipes</a>
+    <div style="display:flex;gap:8px">
+        <a class="btn btn-secondary" href="{{ route('charge-batches.index') }}">All recipes</a>
+        @if (auth()->user()?->hasPermission('planning.manage'))<a class="btn btn-primary" href="{{ route('charge-batches.edit', $chargeBatch) }}">Edit recipe</a>@endif
+    </div>
 </div>
 
 
@@ -53,9 +57,9 @@
         <tr>
             <td>{{ $item->sequence }}</td>
             <td>{{ $item->material->code }} — {{ $item->material->name }}</td>
-            <td>{{ $item->component_role }}@if ($item->charge_stage === 'BED') <span class="muted small">(start-up only)</span>@endif</td>
+            <td>{{ \App\Models\ChargeBatch::ROLES[$item->component_role] ?? $item->component_role }}@if ($item->charge_stage === 'BED') <span class="muted small">(start-up only)</span>@endif</td>
             <td>{{ $itemQtyKg !== null ? \App\Support\Formats::number($itemQtyKg, 3) : '—' }}</td>
-            <td>{{ $itemPercent !== null ? \App\Support\Formats::number($itemPercent, 4).'%' : '—' }}</td>
+            <td>{{ $itemPercent !== null ? \App\Support\Formats::number($itemPercent, 4).'%' : '—' }}@if (\App\Models\ChargeBatch::isAddition($item->component_role)) <span class="muted small">on top of the metal</span>@endif</td>
             <td>{{ $item->is_required ? 'Yes' : 'No' }}</td>
             <td>{{ $item->notes ?: '—' }}</td>
         </tr>
@@ -64,7 +68,7 @@
     @endforelse
     </tbody>
     @if($chargeBatch->items->isNotEmpty())
-        <tfoot><tr><th colspan="3" style="text-align:right">Total charge</th><th>{{ $totalChargeKg !== null && $totalChargeKg > 0 ? \App\Support\Formats::number($totalChargeKg, 3).' kg' : '—' }}</th><th>{{ $chargeBatch->items->sum(fn ($item) => $item->target_percent !== null ? (float) $item->target_percent : 0) > 0 ? \App\Support\Formats::number((float) $chargeBatch->items->sum(fn ($item) => $item->target_percent !== null ? (float) $item->target_percent : 0), 4).'%' : ($totalChargeKg !== null && $totalChargeKg > 0 ? \App\Support\Formats::number(100, 4).'%' : '—') }}</th><th colspan="2"></th></tr></tfoot>
+        <tfoot><tr><th colspan="3" style="text-align:right">Total charge</th><th>{{ $totalChargeKg !== null && $totalChargeKg > 0 ? \App\Support\Formats::number($totalChargeKg, 3).' kg' : '—' }}</th><th>{{ $metalPercent > 0 ? \App\Support\Formats::number($metalPercent, 4).'%' : ($totalChargeKg !== null && $totalChargeKg > 0 ? \App\Support\Formats::number(100, 4).'%' : '—') }}</th><th colspan="2"></th></tr></tfoot>
     @endif
 </table>
 </div>

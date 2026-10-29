@@ -271,6 +271,8 @@ Route::prefix('charge-recipes')
         Route::get('/create', 'create')->name('create');
         Route::post('/', 'store')->name('store');
         Route::get('/{chargeBatch}', 'show')->name('show');
+        Route::get('/{chargeBatch}/edit', 'edit')->name('edit');
+        Route::put('/{chargeBatch}', 'update')->name('update');
     });
 Route::post(
     '/heats/{heat}/post-charge',

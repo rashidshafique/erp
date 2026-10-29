@@ -83,6 +83,57 @@ class ChargeRecipeTotalTest extends TestCase
         $this->assertSame(0, ChargeBatch::count());
     }
 
+    public function test_coke_and_flux_go_on_top_of_a_percentage_metal_charge(): void
+    {
+        [$pig, $scrap, $coke, $flux] = [$this->material('PIG'), $this->material('SCRAP'), $this->material('COKE'), $this->material('LIME')];
+
+        $this->post(route('charge-batches.store'), $this->payload([
+            ['material_id' => $pig->id, 'component_role' => 'CHARGE', 'target_percent' => '60'],
+            ['material_id' => $scrap->id, 'component_role' => 'RETURN', 'target_percent' => '40'],
+            ['material_id' => $coke->id, 'component_role' => 'COKE', 'target_qty_kg' => '120'],
+            ['material_id' => $flux->id, 'component_role' => 'FLUX', 'target_percent' => '3'],
+        ], ['target_total_charge_weight_kg' => '1000']))->assertSessionHasNoErrors();
+
+        $recipe = ChargeBatch::with('items.chargeBatch')->firstOrFail();
+        $this->assertSame([600.0, 400.0, 120.0, 30.0], $recipe->items->map(fn ($i) => $i->perChargeKg())->all());
+        $this->assertSame(1000.0, $recipe->metalPerChargeKg());
+    }
+
+    public function test_a_recipe_needs_metal_and_a_fixed_recipe_takes_its_additions_in_kg(): void
+    {
+        [$pig, $coke] = [$this->material('PIG'), $this->material('COKE')];
+
+        $this->post(route('charge-batches.store'), $this->payload([
+            ['material_id' => $coke->id, 'component_role' => 'COKE', 'target_qty_kg' => '100'],
+        ]))->assertSessionHasErrors('items');
+        $this->post(route('charge-batches.store'), $this->payload([
+            ['material_id' => $pig->id, 'component_role' => 'CHARGE', 'target_qty_kg' => '1000'],
+            ['material_id' => $coke->id, 'component_role' => 'COKE', 'target_percent' => '12'],
+        ]))->assertSessionHasErrors('items.1.target_percent');
+
+        $this->assertSame(0, ChargeBatch::count());
+    }
+
+    public function test_editing_a_recipe_adds_fuel_and_replaces_its_components(): void
+    {
+        [$pig, $fuel] = [$this->material('PIG'), $this->material('FUEL')];
+        $this->post(route('charge-batches.store'), $this->payload([
+            ['material_id' => $pig->id, 'component_role' => 'CHARGE', 'target_qty_kg' => '1000'],
+        ]));
+        $recipe = ChargeBatch::firstOrFail();
+
+        $this->get(route('charge-batches.edit', $recipe))->assertOk()->assertSee('Fuel');
+        $this->put(route('charge-batches.update', $recipe), $this->payload([
+            ['material_id' => $pig->id, 'component_role' => 'CHARGE', 'target_qty_kg' => '900'],
+            ['material_id' => $fuel->id, 'component_role' => 'FUEL', 'target_qty_kg' => '110'],
+        ], ['name' => 'Renamed']))->assertSessionHasNoErrors()->assertRedirect(route('charge-batches.show', $recipe));
+
+        $recipe->refresh()->load('items');
+        $this->assertSame(['Renamed', 'RCP-1', '1010.000'], [$recipe->name, $recipe->code, $recipe->target_total_charge_weight_kg]);
+        $this->assertSame(['CHARGE', 'FUEL'], $recipe->items->pluck('component_role')->all());
+        $this->assertSame(900.0, $recipe->metalPerChargeKg());
+    }
+
     public function test_show_page_calculates_kg_and_share_for_a_percentage_recipe(): void
     {
         $pig = $this->material('PIG');

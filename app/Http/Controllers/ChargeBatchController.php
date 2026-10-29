@@ -27,20 +27,44 @@ class ChargeBatchController extends Controller
 
     public function create(): View
     {
-        $materials = Material::query()
-            ->where('status', 'ACTIVE')
-            ->orderBy('code')
-            ->get();
-
-        return view('charge-batches.create', [
-            'chargeBatch' => new ChargeBatch,
-            'materials' => $materials,
-        ]);
+        return view('charge-batches.create', ['chargeBatch' => new ChargeBatch, 'materials' => $this->materials()]);
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $validated = $this->validateRecipe($request);
+        $chargeBatch = $this->save(new ChargeBatch, $request);
+
+        return redirect()
+            ->route('charge-batches.show', $chargeBatch)
+            ->with('success', "Charge recipe {$chargeBatch->code} created.");
+    }
+
+    public function edit(ChargeBatch $chargeBatch): View
+    {
+        $chargeBatch->load('items');
+
+        return view('charge-batches.edit', ['chargeBatch' => $chargeBatch, 'materials' => $this->materials()]);
+    }
+
+    public function update(Request $request, ChargeBatch $chargeBatch): RedirectResponse
+    {
+        $this->save($chargeBatch, $request);
+
+        return redirect()
+            ->route('charge-batches.show', $chargeBatch)
+            ->with('success', "Charge recipe {$chargeBatch->code} saved.");
+    }
+
+    /** @return \Illuminate\Database\Eloquent\Collection<int, Material> */
+    private function materials()
+    {
+        return Material::query()->where('status', 'ACTIVE')->orderBy('code')->get();
+    }
+
+    /** Saves the recipe and replaces its components with the ones sent, in the order sent. */
+    private function save(ChargeBatch $chargeBatch, Request $request): ChargeBatch
+    {
+        $validated = $this->validateRecipe($request, $chargeBatch);
 
         $items = $validated['items'];
         unset($validated['items']);
@@ -55,14 +79,15 @@ class ChargeBatchController extends Controller
         // recipes the user-entered total is the basis for calculating each material.
         $validated['target_total_charge_weight_kg'] = $recipeTotals['total_kg'];
 
-        $chargeBatch = DB::transaction(function () use ($validated, $items) {
-            $batch = ChargeBatch::create($validated);
+        return DB::transaction(function () use ($chargeBatch, $validated, $items) {
+            $chargeBatch->fill($validated)->save();
+            $chargeBatch->items()->delete();
 
             foreach (array_values($items) as $index => $item) {
-                $batch->items()->create([
+                $chargeBatch->items()->create([
                     'material_id' => $item['material_id'],
                     'sequence' => $index + 1,
-                    'component_role' => $item['component_role'],
+                    'component_role' => strtoupper($item['component_role']),
                     'charge_stage' => $item['charge_stage'] ?? 'ROUND',
                     'target_qty_kg' => $item['target_qty_kg'] ?? null,
                     'target_percent' => $item['target_percent'] ?? null,
@@ -73,12 +98,8 @@ class ChargeBatchController extends Controller
                 ]);
             }
 
-            return $batch;
+            return $chargeBatch;
         });
-
-        return redirect()
-            ->route('charge-batches.show', $chargeBatch)
-            ->with('success', "Charge recipe {$chargeBatch->code} created.");
     }
 
     public function show(ChargeBatch $chargeBatch): View
@@ -88,10 +109,10 @@ class ChargeBatchController extends Controller
         return view('charge-batches.show', compact('chargeBatch'));
     }
 
-    private function validateRecipe(Request $request): array
+    private function validateRecipe(Request $request, ChargeBatch $chargeBatch): array
     {
         return $request->validate([
-            'code' => ['required', 'string', 'max:50', Rule::unique('charge_batches', 'code')->whereNull('deleted_at')],
+            'code' => ['required', 'string', 'max:50', Rule::unique('charge_batches', 'code')->ignore($chargeBatch->id)->whereNull('deleted_at')],
             'name' => ['required', 'string', 'max:150'],
             'process_type' => ['required', Rule::in(['CUPOLA', 'INDUCTION', 'OTHER'])],
             'status' => ['required', Rule::in(['DRAFT', 'ACTIVE', 'INACTIVE'])],
@@ -131,9 +152,11 @@ class ChargeBatchController extends Controller
             ]);
         }
 
+        $hasMetal = false;
         $hasFixed = false;
         $hasPercent = false;
         $percentTotal = 0.0;
+        $percentAdditions = [];
 
         foreach ($items as $index => $item) {
             $qty = $item['target_qty_kg'] ?? null;
@@ -145,13 +168,6 @@ class ChargeBatchController extends Controller
                 ]);
             }
 
-            $hasFixed = $hasFixed || $qty !== null;
-            $hasPercent = $hasPercent || $percent !== null;
-
-            if ($percent !== null) {
-                $percentTotal += (float) $percent;
-            }
-
             $minimum = isset($item['minimum_qty_kg']) ? (float) $item['minimum_qty_kg'] : null;
             $maximum = isset($item['maximum_qty_kg']) ? (float) $item['maximum_qty_kg'] : null;
 
@@ -160,17 +176,46 @@ class ChargeBatchController extends Controller
                     "items.$index.maximum_qty_kg" => 'Maximum quantity cannot be less than minimum quantity.',
                 ]);
             }
+
+            // Coke, fuel, flux and other additions sit outside the metal charge: kg per charge, or a percent of the metal charge.
+            if (ChargeBatch::isAddition($item['component_role'])) {
+                if ($percent !== null) {
+                    $percentAdditions[] = $index;
+                }
+
+                continue;
+            }
+
+            $hasMetal = true;
+            $hasFixed = $hasFixed || $qty !== null;
+            $hasPercent = $hasPercent || $percent !== null;
+
+            if ($percent !== null) {
+                $percentTotal += (float) $percent;
+            }
+        }
+
+        if (! $hasMetal) {
+            throw ValidationException::withMessages([
+                'items' => 'Add at least one metal component (metal charge, returns or alloy). Coke, fuel and flux go on top of it.',
+            ]);
+        }
+
+        if ($hasFixed && $percentAdditions !== []) {
+            throw ValidationException::withMessages([
+                "items.{$percentAdditions[0]}.target_percent" => 'In a fixed-kg recipe enter coke, fuel and flux in kg per charge too.',
+            ]);
         }
 
         if ($hasFixed && $hasPercent) {
             throw ValidationException::withMessages([
-                'items' => 'Use either all fixed-quantity components or all percentage-based components in a recipe.',
+                'items' => 'Use either fixed quantities or percentages for all the metal components of a recipe.',
             ]);
         }
 
         if ($hasPercent && abs($percentTotal - 100.0) > 0.01) {
             throw ValidationException::withMessages([
-                'items' => 'Percentage-based recipe components must total 100%. Current total: '
+                'items' => 'The metal components must total 100%. Coke, fuel and flux are not counted. Current total: '
                     .\App\Support\Formats::number($percentTotal, 4).'%.',
             ]);
         }
