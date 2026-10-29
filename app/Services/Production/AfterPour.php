@@ -20,10 +20,10 @@ class AfterPour
     /** @return Collection<int, ProductionStageDefinition> the steps before the first inspection that apply to the product revision, in order */
     public function stepsFor(?string $productRevisionId): Collection
     {
-        $all = ProductionStageDefinition::where('is_active', true)->applicableTo($productRevisionId)->orderBy('sequence')->orderBy('name')->get();
-        $firstCheck = $all->first(fn ($s) => $s->kind === 'INSPECTION' || $s->is_quality_gate);
+        $all = app(ProcessRoutes::class)->stepsFor($productRevisionId);
+        $firstCheck = $all->search(fn ($s) => $s->kind === 'INSPECTION' || $s->is_quality_gate);
 
-        return $all->filter(fn ($s) => $s->kind !== 'INSPECTION' && ! $s->is_quality_gate && (! $firstCheck || $s->sequence < $firstCheck->sequence))->values();
+        return ($firstCheck === false ? $all : $all->take($firstCheck))->values();
     }
 
     /**

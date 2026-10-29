@@ -11,7 +11,7 @@
     <div class="pd-bar-left">
         <a href="{{ route('products.index') }}" class="pd-crumb">Products</a>
         <span class="muted">/</span>
-        <span>{{ $product->code }} {{ $product->name }}</span>
+        <span class="pd-bar-title" title="{{ $product->code }} {{ $product->name }}">{{ $product->code }} {{ $product->name }}</span>
         <span class="pd-tabs-slot"></span>
     </div>
     <div class="pd-actions">
@@ -150,7 +150,8 @@
 @include('products._bom', ['product' => $product, 'facts' => $facts])
 @foreach (app(\App\Domains\Core\ModuleRegistry::class)->panels('product.show') as $panel)@if (str_starts_with($panel, 'engineering::'))@include($panel, ['product' => $product])@endif @endforeach
 <div class="tab-marker" data-tab-start="Routing"></div>
-@include('products._extra-steps', ['product' => $product])
+<livewire:product-route :product="$product" />
+@unless (app(\App\Services\Production\ProcessRoutes::class)->productRoute($product))@include('products._extra-steps', ['product' => $product])@endunless
 @include('control-plans._panel', ['product' => $product])
 @foreach (app(\App\Domains\Core\ModuleRegistry::class)->panels('product.show') as $panel)@unless (str_starts_with($panel, 'engineering::'))@include($panel, ['product' => $product])@endunless@endforeach
 <div class="tab-marker" data-tab-start="Specification"></div>
@@ -275,14 +276,16 @@
 @include('attachments._panel', ['type' => 'product', 'id' => $product->id])
 @include('audit._history', ['type' => 'Product', 'id' => $product->id])
 <style>
-    .pd-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; background: #fff; border: 1px solid #e6e7e9; border-radius: 10px 10px 0 0; padding: 14px 28px; font-size: 13px; }
-    .pd-bar-left { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-    .pd-crumb { font-weight: 600; color: #1c1d1f; text-decoration: none; }
-    .pd-bar .tabbar { position: static; border: 0; margin: 0; padding: 0; background: none; gap: 4px; }
-    .pd-bar .tabbar button { padding: 4px 10px; margin: 0; border: 0; border-radius: 6px; font-size: 13px; font-weight: 400; color: #6b6e73; }
+    .pd-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; background: #fff; border: 1px solid #e6e7e9; border-radius: 10px 10px 0 0; padding: 14px 28px; font-size: 13px; }
+    .pd-bar-left { display: flex; align-items: center; gap: 16px; flex-wrap: nowrap; flex: 1 1 100%; min-width: 0; }
+    .pd-crumb { font-weight: 600; color: #1c1d1f; text-decoration: none; flex: none; }
+    .pd-bar-left > span { white-space: nowrap; }
+    .pd-bar-title { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    .pd-bar .tabbar { position: static; border: 0; margin: 0; padding: 0 0 2px; background: none; gap: 4px; flex: 1 1 auto; min-width: 0; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
+    .pd-bar .tabbar button { padding: 4px 10px; margin: 0; border: 0; border-radius: 6px; font-size: 13px; font-weight: 400; color: #6b6e73; flex: none; white-space: nowrap; }
     .pd-bar .tabbar button:hover { background: #f0f1f3; color: #1c1d1f; }
     .pd-bar .tabbar button[aria-selected="true"] { background: #f0f1f3; color: #1c1d1f; }
-    .pd-actions { display: flex; gap: 8px; align-items: center; }
+    .pd-actions { display: flex; gap: 8px; align-items: center; justify-content: flex-end; margin-left: auto; flex: none; }
     .pd-actions form { display: inline; }
     .pd-btn { padding: 7px 14px; border-radius: 6px; background: #fff; border: 1px solid #d9dbde; color: #1c1d1f; font: inherit; font-size: 13px; text-decoration: none; cursor: pointer; }
     .pd-btn.primary { background: #2f5fd0; border-color: #2f5fd0; color: #fff; font-weight: 500; }

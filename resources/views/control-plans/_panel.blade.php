@@ -4,7 +4,7 @@
     <div class="panel-header"><h2>Control plan</h2><span class="muted small">The process this product goes through, with what is controlled at each step. Every revision follows <a href="{{ route('settings.process') }}">Our process</a> until it is given its own plan.</span></div>
     <div class="panel-body">
         @foreach ($product->revisions as $revision)
-            @php $plan = $service->forRevision($revision); $items = $service->effectiveItems($plan); $stages = \App\Models\ProductionStageDefinition::where('is_active', true)->applicableTo($revision->id)->orderBy('sequence')->get(); @endphp
+            @php $plan = $service->forRevision($revision); $items = $service->effectiveItems($plan); $stages = app(\App\Services\Production\ProcessRoutes::class)->stepsFor($revision->id); @endphp
             <details {{ $loop->first || $plan->needs_review_at ? 'open' : '' }} style="margin-bottom:14px">
                 <summary><strong>Revision {{ $revision->revision }}</strong>
                     <span class="status">{{ $plan->follows_default ? 'Follows Our process' : ($plan->isApproved() ? 'Own plan, approved' : 'Own plan, draft') }}</span>

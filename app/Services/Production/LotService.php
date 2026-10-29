@@ -49,9 +49,13 @@ class LotService
             if ($in > $held) {
                 throw new InvalidArgumentException("Only {$held} piece(s) of the lot are left (poured {$lot->quantity_poured}, rejected so far ".$this->rejected($lot).').');
             }
-            $last = $lot->stageEvents()->with('stage')->get()->map(fn ($e) => $e->stage?->sequence)->filter()->max();
-            if ($last !== null && $stage->sequence < $last && empty($d['batch'])) {   // a batch (AfterPour) moves only pieces still waiting at the step
-                throw new InvalidArgumentException("This lot has already passed a later stage (sequence {$last}); {$stage->name} cannot be recorded after it.");
+            // Order follows the lot's route: a step cannot be recorded once a later step of the route is. A step off the route is not checked.
+            $route = app(ProcessRoutes::class)->stepsFor($lot->product_revision_id);
+            $at = ProcessRoutes::position($route, $stage->id);
+            $passed = $lot->stageEvents()->pluck('stage_definition_id')->map(fn ($id) => ProcessRoutes::position($route, $id))->filter(fn ($p) => $p !== null);
+            if ($at !== null && $passed->isNotEmpty() && $at < $passed->max() && empty($d['batch'])) {   // a batch (AfterPour) moves only pieces still waiting at the step
+                $later = $route[$passed->max()]->name;
+                throw new InvalidArgumentException("This lot has already passed a later stage ({$later}); {$stage->name} cannot be recorded after it.");
             }
             if ($rej > 0 && blank($d['rejection_reason'] ?? null)) {
                 throw new InvalidArgumentException('Give a rejection reason when pieces are rejected.');

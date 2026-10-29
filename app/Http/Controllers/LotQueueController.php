@@ -6,6 +6,7 @@ use App\Models\CastingLot;
 use App\Models\PackingRecordItem;
 use App\Models\ProductionStageDefinition;
 use App\Services\Production\AfterPour;
+use App\Services\Production\ProcessRoutes;
 use App\Services\Production\LotService;
 use App\Services\Production\ShipmentService;
 use App\Support\QueueRules;
@@ -30,8 +31,12 @@ class LotQueueController extends Controller
             $steps[$key] = $this->step($key, $label);
         }
 
+        $routes = app(ProcessRoutes::class);
         foreach ($lots as $lot) {
-            $last = $lot->stageEvents->sortBy(fn ($e) => $e->stage?->sequence)->last()?->stage;
+            // The last step passed, in the order of the lot's route (steps off the route after it, by when they were recorded).
+            $route = $routes->stepsFor($lot->product_revision_id);
+            $last = $lot->stageEvents->sortBy([fn ($a, $b) => (ProcessRoutes::position($route, $a->stage_definition_id) ?? PHP_INT_MAX) <=> (ProcessRoutes::position($route, $b->stage_definition_id) ?? PHP_INT_MAX), ['created_at', 'asc']])->last()?->stage;
+            $lastAt = ProcessRoutes::position($route, $last?->id) ?? -1;
             $key = match (true) {
                 $lot->status === 'READY' => 'ready',
                 $last !== null => 'after-'.$last->code,
@@ -46,7 +51,7 @@ class LotQueueController extends Controller
             }
 
             $poured = $lot->pourMouldAssembly?->pour?->completed_at;
-            $behind = $afterPour->stepsFor($lot->product_revision_id)->filter(fn ($st) => $st->sequence <= (int) ($last?->sequence ?? 0))
+            $behind = $afterPour->stepsFor($lot->product_revision_id)->filter(fn ($st) => (ProcessRoutes::position($route, $st->id) ?? PHP_INT_MAX) <= $lastAt)
                 ->map(fn ($st) => [$st->name, $afterPour->progress($lot)['waiting'][$st->id] ?? 0])->filter(fn ($w) => $w[1] > 0)
                 ->map(fn ($w) => "{$w[1]} pcs still before {$w[0]}")->implode(', ');
             $steps[$key]['lots'][] = [

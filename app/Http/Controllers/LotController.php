@@ -39,7 +39,7 @@ class LotController extends Controller
             'lot' => $lot,
             'heat' => $heat,
             'readiness' => $gates->lotReadiness($lot),
-            'stages' => ProductionStageDefinition::where('is_active', true)->applicableTo($lot->product_revision_id)->orderBy('sequence')->get(),
+            'stages' => app(ProcessRoutes::class)->stepsFor($lot->product_revision_id),
             'pieces' => $service->pieces($lot),
             'cooling' => $service->cooling($lot),
             'thermal' => $heat?->thermalTests()->limit(2)->get() ?? collect(),
@@ -57,8 +57,7 @@ class LotController extends Controller
         $lot->load(['product', 'productRevision', 'productionOrder.salesOrderLine.salesOrder.customer', 'stageEvents.stage']);
         $heat = $lot->sourceHeat();
         $heat?->loadMissing('ironGrade');
-        $applicable = ProductionStageDefinition::applicableTo($lot->product_revision_id)->pluck('id');
-        $steps = $routes->defaultSteps()->filter(fn ($step) => $applicable->contains($step->stage_definition_id))->map(fn ($step) => $step->stage)->values();
+        $steps = $routes->stepsFor($lot->product_revision_id);
         $recorded = $lot->stageEvents->sortBy('created_at')->toBase()->groupBy('stage_definition_id');
 
         return view('lots.traveller', [
@@ -166,6 +165,7 @@ class LotController extends Controller
             return back()->withErrors(['rejection_reason' => 'Give a rejection reason when pieces are rejected.'])->withInput();
         }
         $stages = ProductionStageDefinition::whereIn('id', $d['stages'])->orderBy('sequence')->get();
+        $routes = app(ProcessRoutes::class);
         $lots = CastingLot::whereIn('id', $d['lots'])->orderBy('created_at')->get();
         $rejectLeft = (int) ($d['rejected'] ?? 0);
         $done = 0;
@@ -175,8 +175,7 @@ class LotController extends Controller
             $reject = $rejectLeft;
             $recorded = 0;
             try {
-                $applicable = ProductionStageDefinition::applicableTo($lot->product_revision_id)->pluck('id');
-                foreach ($stages->filter(fn ($stage) => $applicable->contains($stage->id)) as $stage) {
+                foreach ($routes->stepsFor($lot->product_revision_id)->whereIn('id', $d['stages']) as $stage) {   // in the order of the lot's route
                     $in = $service->pieces($lot->fresh());
                     if ($in === 0) {
                         break;   // every piece was rejected: nothing is left to move on
