@@ -304,9 +304,9 @@
     .pd-facts .k { font-size: 12px; color: #6b6e73; }
     .pd-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; }
     .pd-h { font-size: 12px; font-weight: 600; color: #6b6e73; text-transform: uppercase; letter-spacing: .06em; }
-    .pd-list { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; margin: 10px 0 0; }
+    .pd-list { display: grid; grid-template-columns: minmax(110px, 35%) 1fr; gap: 8px 16px; margin: 10px 0 0; }
     .pd-list dt { color: #6b6e73; }
-    .pd-list dd { margin: 0; text-align: right; }
+    .pd-list dd { margin: 0; text-align: left; }
     .pd-grid .mono { font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; }
     .pd-table { width: 100%; border-collapse: collapse; }
     .pd-table th { text-align: left; font-size: 12px; font-weight: 500; color: #6b6e73; padding: 8px 12px; border-bottom: 1px solid #e6e7e9; background: none; text-transform: none; letter-spacing: 0; color: #6b6e73; }
