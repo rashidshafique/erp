@@ -2,28 +2,26 @@
 
 namespace App\Domains\Enquiry\Services;
 
-use App\Domains\Core\ModuleRegistry;
 use App\Domains\Development\Models\PatternDevelopment;
 use App\Domains\Enquiry\Models\Enquiry;
 use App\Domains\Enquiry\Models\EnquiryEvent;
 use App\Domains\Sales\Models\SalesOrder;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Closes an enquiry (design 14c). Won accepts the issued quotation, which creates the sales order, and opens the pattern
- * development when a new pattern was decided and none is open yet. Lost and declined need a reason; lost may record the winning
+ * Closes an enquiry (design 14c). Won accepts the issued quotation, which creates the sales order and opens the pattern
+ * developments the pattern decision needs (QuotationService). Lost and declined need a reason; lost may record the winning
  * price; both may set a date to follow up, when the owner is reminded. Open quotations are marked rejected, while drafts and the
  * feasibility review stay for reference.
  */
 class EnquiryCloser
 {
-    public function __construct(private QuotationService $quotations, private ModuleRegistry $modules) {}
+    public function __construct(private QuotationService $quotations) {}
 
     /**
      * @param  array{outcome: string, close_reason?: ?string, winning_price?: mixed, note?: ?string, follow_up_on?: ?string}  $d
-     * @return array{order: ?SalesOrder, development: ?PatternDevelopment}
+     * @return array{order: ?SalesOrder, developments: \Illuminate\Support\Collection<int, PatternDevelopment>}
      *
      * @throws ValidationException
      */
@@ -34,7 +32,7 @@ class EnquiryCloser
         return $d['outcome'] === 'WON' ? $this->win($enquiry, $d) : $this->loseOrDecline($enquiry, $d);
     }
 
-    /** @return array{order: ?SalesOrder, development: ?PatternDevelopment} */
+    /** @return array{order: ?SalesOrder, developments: \Illuminate\Support\Collection<int, PatternDevelopment>} */
     private function win(Enquiry $enquiry, array $d): array
     {
         $quote = $enquiry->quotations()->where('status', 'ISSUED')->orderByDesc('version')->first();
@@ -42,9 +40,7 @@ class EnquiryCloser
             throw ValidationException::withMessages(['outcome' => 'Won needs an issued quotation for the customer to accept. Issue the quotation first.']);
         }
 
-        $firstTime = (bool) $enquiry->customer?->isFirstTimeCustomer();
-
-        return DB::transaction(function () use ($enquiry, $quote, $d, $firstTime) {
+        return DB::transaction(function () use ($enquiry, $quote, $d) {
             try {
                 $order = $this->quotations->accept($quote);
             } catch (\RuntimeException $e) {
@@ -52,15 +48,13 @@ class EnquiryCloser
             }
             $enquiry->refresh();
             $enquiry->update(['close_reason' => null, 'lost_reason' => $d['note'] ?? null]);
-            $development = $this->developmentFor($enquiry, $firstTime);
-            EnquiryEvent::system($enquiry, "Closed as won. {$quote->code} accepted; sales order {$order->order_number} created."
-                .($development ? " Pattern development {$development->code} opened." : '').(filled($d['note'] ?? null) ? ' '.$d['note'] : ''));
+            EnquiryEvent::system($enquiry, "Closed as won. {$quote->code} accepted; sales order {$order->order_number} created.".(filled($d['note'] ?? null) ? ' '.$d['note'] : ''));
 
-            return ['order' => $order, 'development' => $development];
+            return ['order' => $order, 'developments' => $enquiry->developments()->where('status', 'OPEN')->orderBy('code')->get()];
         });
     }
 
-    /** @return array{order: null, development: null} */
+    /** @return array{order: null, developments: \Illuminate\Support\Collection<int, PatternDevelopment>} */
     private function loseOrDecline(Enquiry $enquiry, array $d): array
     {
         if (blank($d['close_reason'] ?? null)) {
@@ -79,25 +73,6 @@ class EnquiryCloser
                 .(filled($d['follow_up_on'] ?? null) ? ' Follow up on '.\Illuminate\Support\Carbon::parse($d['follow_up_on'])->displayDate().'.' : ''));
         });
 
-        return ['order' => null, 'development' => null];
-    }
-
-    /** A won enquiry with a new pattern decided gets its development, unless one is already open or the module is off. A first-time customer's is a new part; an established customer's a new product. */
-    private function developmentFor(Enquiry $enquiry, bool $firstTime): ?PatternDevelopment
-    {
-        if ($enquiry->pattern_route !== 'NEW' || ! $this->modules->isEnabled('development') || ! class_exists(PatternDevelopment::class)) {
-            return null;
-        }
-        if ($enquiry->developments()->where('status', 'OPEN')->exists()) {
-            return null;
-        }
-        $development = PatternDevelopment::create([
-            'type' => $firstTime ? 'NEW_PART' : 'NEW_PRODUCT', 'title' => $enquiry->items()->first()?->description ?: $enquiry->title, 'enquiry_id' => $enquiry->id,
-            'customer_id' => $enquiry->customer_id, 'owner_name' => $enquiry->owner?->name ?? Auth::user()?->name,
-            'created_by_id' => Auth::id(), 'created_by_name' => Auth::user()?->name,
-        ]);
-        $development->events()->create(['kind' => 'CREATED', 'text' => "Opened when {$enquiry->code} was won. First stage: {$development->stageName()}.", 'user_name' => Auth::user()?->name]);
-
-        return $development;
+        return ['order' => null, 'developments' => collect()];
     }
 }

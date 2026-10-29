@@ -2,7 +2,10 @@
 
 namespace App\Domains\Enquiry\Services;
 
+use App\Domains\Core\ModuleRegistry;
+use App\Domains\Development\Services\DevelopmentOpener;
 use App\Domains\Enquiry\Models\Enquiry;
+use App\Domains\Enquiry\Models\EnquiryEvent;
 use App\Domains\Enquiry\Models\EnquiryItem;
 use App\Models\PatternRevision;
 use App\Models\Product;
@@ -229,6 +232,7 @@ class QuotationService
                 throw new \RuntimeException('This quotation has expired. Create a new version and reissue it.');
             }
             $enquiry = $q->enquiry;
+            $firstTime = (bool) $enquiry->customer?->isFirstTimeCustomer();
             $order = SalesOrder::create([
                 'order_number' => SalesOrder::nextNumber(), 'customer_id' => $enquiry->customer_id, 'order_date' => now()->toDateString(),
                 'requested_delivery_date' => $q->delivery_weeks ? now()->addWeeks($q->delivery_weeks)->toDateString() : null,
@@ -254,12 +258,26 @@ class QuotationService
             }
             $q->update(['status' => 'ACCEPTED', 'decided_at' => now(), 'sales_order_id' => $order->id]);
             $enquiry->update(['status' => 'WON', 'closed_at' => now()]);
+            $this->openDevelopments($enquiry, $firstTime);
 
             return $order;
         });
     }
 
-    /** The revision an order will use: the approved one for repeat work, a new draft for new work or a customer change. */
+    /** A won enquiry gets the pattern developments its pattern decision needs, or a note on its log when the module is off. */
+    private function openDevelopments(Enquiry $enquiry, bool $firstTime): void
+    {
+        if (! class_exists(DevelopmentOpener::class) || DevelopmentOpener::typeFor($enquiry, $firstTime) === null) {
+            return;
+        }
+        if (! app(ModuleRegistry::class)->isEnabled('development')) {
+            EnquiryEvent::system($enquiry, 'No pattern development opened: the Pattern developments module is off.');
+
+            return;
+        }
+        app(DevelopmentOpener::class)->open($enquiry, $firstTime, true);
+    }
+
     /** The current revision of a pattern that makes the item's product and has both weights recorded, newest first. */
     private function currentPatternRevisionFor(EnquiryItem $item): ?PatternRevision
     {
@@ -274,6 +292,7 @@ class QuotationService
             ->first();
     }
 
+    /** The revision an order will use: the approved one for repeat work, a new draft for new work or a customer change. */
     private function revisionFor(Product $product, bool $forceNew, float $weight): ProductRevision
     {
         $revs = $product->revisions()->get();

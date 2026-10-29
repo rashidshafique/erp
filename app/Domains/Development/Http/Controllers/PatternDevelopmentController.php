@@ -3,6 +3,7 @@
 namespace App\Domains\Development\Http\Controllers;
 
 use App\Domains\Development\Models\PatternDevelopment;
+use App\Domains\Development\Services\DevelopmentOpener;
 use App\Domains\Enquiry\Models\Enquiry;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
@@ -93,10 +94,10 @@ class PatternDevelopmentController extends Controller
             throw ValidationException::withMessages(['title' => 'Name the part.']);
         }
 
-        $development = DB::transaction(function () use ($d, $type, $title, $customerId) {
+        $development = DB::transaction(function () use ($d, $type, $title, $customerId, $enquiry) {
             $development = PatternDevelopment::create([
                 'type' => $type, 'title' => $title, 'customer_id' => $customerId,
-                'enquiry_id' => $d['enquiry_id'] ?? null, 'product_id' => $d['product_id'] ?? null, 'pattern_id' => $d['pattern_id'] ?? null,
+                'enquiry_id' => $d['enquiry_id'] ?? null, 'enquiry_item_id' => $enquiry?->items->count() === 1 ? $enquiry->items->first()->id : null, 'product_id' => $d['product_id'] ?? null, 'pattern_id' => $d['pattern_id'] ?? null,
                 'pattern_by' => $d['pattern_by'] ?? 'DECIDE_LATER', 'pattern_maker' => $d['pattern_maker'] ?? null, 'owner_name' => $d['owner_name'] ?? Auth::user()?->name,
                 'due_on' => $d['due_on'] ?? null, 'reason' => $d['reason'] ?? null, 'who_pays' => $d['who_pays'] ?? null,
                 'drawing_change' => $d['drawing_change'] ?? null, 'notes' => $d['notes'] ?? null,
@@ -182,7 +183,8 @@ class PatternDevelopmentController extends Controller
         $label = 'Pattern developments';
 
         if ($kind === 'enquiry' && $e = Enquiry::with('items', 'customer')->find($id)) {
-            $preset = ['type' => $e->customer?->isFirstTimeCustomer() === false ? 'NEW_PRODUCT' : 'NEW_PART', 'enquiry_id' => $e->id, 'customer_id' => $e->customer_id, 'title' => $e->items->first()?->description ?: $e->title];
+            $firstTime = $e->customer?->isFirstTimeCustomer() !== false;
+            $preset = ['type' => DevelopmentOpener::typeFor($e, $firstTime) ?? ($firstTime ? 'NEW_PART' : 'NEW_PRODUCT'), 'enquiry_id' => $e->id, 'customer_id' => $e->customer_id, 'title' => $e->items->first()?->description ?: $e->title];
             $label = 'enquiry '.$e->code;
         } elseif ($kind === 'product' && $p = Product::find($id)) {
             $preset = ['type' => 'MODIFICATION', 'product_id' => $p->id, 'title' => 'Modify '.$p->name];

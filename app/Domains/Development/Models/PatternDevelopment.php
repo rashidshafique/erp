@@ -3,6 +3,7 @@
 namespace App\Domains\Development\Models;
 
 use App\Domains\Enquiry\Models\Enquiry;
+use App\Domains\Enquiry\Models\EnquiryItem;
 use App\Models\Concerns\GeneratesCodes;
 use App\Models\Customer;
 use App\Models\Pattern;
@@ -58,6 +59,11 @@ class PatternDevelopment extends Model
     public function enquiry(): BelongsTo
     {
         return $this->belongsTo(Enquiry::class);
+    }
+
+    public function enquiryItem(): BelongsTo
+    {
+        return $this->belongsTo(EnquiryItem::class);
     }
 
     public function customer(): BelongsTo

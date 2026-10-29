@@ -93,7 +93,7 @@ class EnquiryRecordController extends Controller
 
         if ($result['order'] && Route::has('sales-orders.show')) {
             return redirect()->route('sales-orders.show', $result['order'])->with('success', "{$enquiry->code} won. Sales order {$result['order']->order_number} created"
-                .($result['development'] ? " and pattern development {$result['development']->code} opened." : '.'));
+                .($result['developments']->isNotEmpty() ? '. Pattern development '.$result['developments']->pluck('code')->implode(', ').' open.' : '.'));
         }
 
         return redirect()->route('enquiries.show', $enquiry)->with('success', "{$enquiry->code} closed as ".strtolower(Enquiry::OUTCOMES[$d['outcome']][0]).'.');
