@@ -2,6 +2,7 @@
 
 use App\Domains\Core\ModuleRegistry;
 use App\Models\CastingLot;
+use App\Models\IronGrade;
 use App\Models\Product;
 use App\Models\ProductRevision;
 use App\Services\Planning\HeatPlanner;
@@ -28,10 +29,7 @@ new class extends Component
     public string $search = '';
 
     #[Url(except: '')]
-    public string $category = '';
-
-    #[Url(except: '')]
-    public string $stock = '';
+    public string $metal = '';
 
     #[Url(except: '')]
     public string $active = '';
@@ -53,7 +51,7 @@ new class extends Component
 
     public function updated(string $property): void
     {
-        if (in_array($property, ['search', 'category', 'stock', 'active', 'archived', 'customer', 'process'], true)) {
+        if (in_array($property, ['search', 'metal', 'active', 'archived', 'customer', 'process'], true)) {
             $this->selected = [];
             $this->resetPage();
         }
@@ -61,7 +59,7 @@ new class extends Component
 
     public function resetFilters(): void
     {
-        $this->reset('search', 'category', 'stock', 'active', 'customer', 'process', 'selected');
+        $this->reset('search', 'metal', 'active', 'customer', 'process', 'selected');
         $this->resetPage();
     }
 
@@ -146,14 +144,28 @@ new class extends Component
             ->when($this->customer !== '', fn ($q) => $q->whereExists(fn ($e) => $e->select(DB::raw(1))->from('sales_order_lines as sol2')->join('sales_orders as so2', 'so2.id', '=', 'sol2.sales_order_id')
                 ->whereColumn('sol2.product_id', 'products.id')->where('so2.customer_id', $this->customer)))
             ->when($this->process !== '', fn ($q) => $q->whereHas('revisions.patternCavities.patternRevision.pattern', fn ($p) => $p->where('sand_system', $this->process)))
-            ->when($search !== '', fn ($query) => $query->where(fn ($q) => $q->where('code', 'ilike', "%{$search}%")->orWhere('name', 'ilike', "%{$search}%")))
-            ->when($this->category !== '', fn ($q) => $q->where('product_type', $this->category))
-            ->when($tracksStock && $this->stock === 'in', fn ($q) => $q->where($this->stockQuery(), '>', 0))
-            ->when($tracksStock && $this->stock === 'out', fn ($q) => $q->where($this->stockQuery(), '<=', 0))
+            ->when($search !== '', fn ($query) => $query->where(fn ($q) => $q->where('code', 'ilike', "%{$search}%")->orWhere('name', 'ilike', "%{$search}%")
+                ->orWhereHas('revisions.specifications', fn ($d) => $d->where('drawing_number', 'ilike', "%{$search}%"))))
+            ->when($this->metal !== '', fn ($q) => $q->whereHas('revisions', fn ($r) => $r->where(fn ($w) => $w
+                ->whereHas('specifications', fn ($d) => $d->whereIn('material_grade', $this->designationsFor($this->metal)))
+                ->orWhereHas('customerRequirements', fn ($d) => $d->whereIn('customer_grade', $this->designationsFor($this->metal))))))
             ->when($this->active === '1', fn ($q) => $q->where('active', true))
             ->when($this->active === '0', fn ($q) => $q->where('active', false))
             ->when($this->active === 'dev', fn ($q) => $q->where('active', true)->whereHas('revisions', fn ($r) => $r->where('status', 'DRAFT'))
                 ->whereDoesntHave('revisions', fn ($r) => $r->where('status', 'APPROVED')));
+    }
+
+    /**
+     * The grade designations written on specifications and customer requirements that mean the given grade.
+     *
+     * @return array<int, string>
+     */
+    private function designationsFor(string $gradeId): array
+    {
+        $written = DB::table('product_specifications')->whereNotNull('material_grade')->pluck('material_grade')
+            ->merge(DB::table('customer_product_requirements')->whereNotNull('customer_grade')->pluck('customer_grade'))->unique();
+
+        return $written->filter(fn ($text) => (IronGrade::resolve($text)['grade']->id ?? null) === $gradeId)->values()->all();
     }
 
     /** The customer of a product's latest sales order line. */
@@ -249,7 +261,7 @@ new class extends Component
             'patterns' => $patterns,
             'lastCast' => $lastCast,
             'tracksStock' => $tracksStock,
-            'categories' => Product::query()->distinct()->orderBy('product_type')->pluck('product_type'),
+            'grades_list' => IronGrade::listed(),
             'stockValue' => $onHand->sum(fn ($p) => max(0, (float) $p->stock_qty) * (float) $p->last_price),
             'productsInStock' => $onHand->filter(fn ($p) => (float) $p->stock_qty > 0)->count(),
             'outOfStock' => $onHand->filter(fn ($p) => (float) $p->stock_qty <= 0)->count(),
@@ -336,27 +348,20 @@ new class extends Component
         <button type="button" role="tab" aria-selected="{{ ! $archived && $active === '0' ? 'true' : 'false' }}" wire:click="showStatus('0')">Obsolete {{ Formats::number($inactiveProducts) }}</button>
     </div>
     <div class="cat-filters" role="search">
-        <input id="search" type="search" wire:model.live.debounce.300ms="search" placeholder="Search products…" aria-label="Search code or name" autocomplete="off">
-        <select wire:model.live="category" aria-label="Category">
-            <option value="">All categories</option>
-            @foreach ($categories as $type)<option value="{{ $type }}">{{ \Illuminate\Support\Str::headline(strtolower($type)) }}</option>@endforeach
-        </select>
-        @if ($tracksStock)
-            <select wire:model.live="stock" aria-label="Stock">
-                <option value="">All stock</option>
-                <option value="in">In stock</option>
-                <option value="out">Out of stock</option>
-            </select>
-        @endif
+        <input id="search" type="search" wire:model.live.debounce.300ms="search" placeholder="Search code, name or drawing" aria-label="Search code, name or drawing" autocomplete="off">
         <select wire:model.live="customer" aria-label="Customer">
             <option value="">Customer: all</option>
             @foreach ($customers as $id => $name)<option value="{{ $id }}">{{ $name }}</option>@endforeach
+        </select>
+        <select wire:model.live="metal" aria-label="Metal">
+            <option value="">Metal: all</option>
+            @foreach ($grades_list as $grade)<option value="{{ $grade->id }}">{{ $grade->code }}</option>@endforeach
         </select>
         <select wire:model.live="process" aria-label="Process">
             <option value="">Process: all</option>
             @foreach ($processes as $sand)<option value="{{ $sand }}">{{ $sand }}</option>@endforeach
         </select>
-        @if ($search !== '' || $category !== '' || $stock !== '' || $active !== '' || $customer !== '' || $process !== '')<button class="btn" type="button" wire:click="resetFilters">Reset</button>@endif
+        @if ($search !== '' || $metal !== '' || $active !== '' || $customer !== '' || $process !== '')<button class="btn" type="button" wire:click="resetFilters">Reset</button>@endif
         <span class="muted small" wire:loading>Updating…</span>
         @if ($canManage && ! $archived)
             <div class="cat-bulk">

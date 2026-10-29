@@ -12,6 +12,7 @@ use App\Models\CastingLot;
 use App\Models\Customer;
 use App\Models\Product;
 use App\Models\ProductRevision;
+use App\Models\ProductSpecification;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -56,8 +57,6 @@ class ProductCatalogueTest extends TestCase
         $list = Livewire::test('product-list');
         $list->assertViewHas('stockValue', 6 * 125.0)->assertViewHas('outOfStock', 1)->assertViewHas('monthSales', 250.0)
             ->assertSee('6 pcs')->assertSee('125.00');
-        $list->set('stock', 'in')->assertSee('VALVE-1')->assertDontSee('CAP-1');
-        $list->set('stock', 'out')->assertSee('CAP-1')->assertDontSee('VALVE-1');
     }
 
     public function test_the_list_shows_each_product_customer_and_can_be_narrowed_by_customer_and_status_tab(): void
@@ -71,6 +70,10 @@ class ProductCatalogueTest extends TestCase
         $list->assertSee('Acme Pumps');
         $list->set('customer', $customer->id)->assertSee('VALVE-1')->assertDontSee('CAP-1');
         $list->call('resetFilters')->call('showStatus', 'dev')->assertSee('VALVE-1')->assertDontSee('CAP-1');
+        $list->call('resetFilters')->set('search', 'DWG-77')->assertDontSee('VALVE-1');
+        ProductSpecification::create(['product_revision_id' => $revision->id, 'specification_code' => 'SP-1', 'title' => 'Valve spec', 'drawing_number' => 'DWG-77', 'material_grade' => 'EN-GJS-500-7']);
+        $list->set('search', 'DWG-77')->assertSee('VALVE-1')->assertDontSee('CAP-1');
+        $list->call('resetFilters')->set('metal', (string) \App\Models\IronGrade::resolve('EN-GJS-500-7')['grade']->id)->assertSee('VALVE-1')->assertDontSee('CAP-1');
         $list->call('focus', $this->valve->id)->assertSee('Open product')->assertSee('SO-1');
     }
 
