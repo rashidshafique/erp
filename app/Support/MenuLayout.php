@@ -24,7 +24,7 @@ class MenuLayout
             ['/feasibility', 'Feasibility', 'clipboard-check'], ['/patterns', 'Patterns & tooling'], ['/cores', null], ['/casting-analyses', null],
         ]],
         ['Production', 'factory', [
-            ['/planner', 'Planning'], ['/heats', 'Melt & heats'], ['/calendar', null], ['/production-orders', null], ['/lots/queue', null],
+            ['/planner', 'Planning'], ['/production-orders', 'Orders'], ['/heats', 'Melt & heats'], ['/calendar', null], ['/lots/queue', null],
             ['/moulding-runs', null], ['/pours', null], ['/work-lists', null], ['/moulding-teams', null], ['/sand-systems', null],
             ['/mould-readiness', null], ['/mould-count', null], ['/furnaces', null], ['/heat-plan', null],
         ]],

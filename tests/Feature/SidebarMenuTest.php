@@ -82,7 +82,7 @@ class SidebarMenuTest extends TestCase
 
         $html = $this->get(route('dashboard'))->assertOk()->getContent();
 
-        foreach (['Corrective actions', 'Purchase orders', 'Production orders', 'Production'] as $label) {
+        foreach (['Corrective actions', 'Purchase orders', 'Orders', 'Production'] as $label) {
             $this->assertSame(1, preg_match('/<span>'.$label.'<\/span><span class="nav-count"[^>]*>1</', $html), $label);
         }
         $this->assertSame(1, preg_match('/<span>Quality<\/span><span class="nav-count"[^>]*>(\d+)</', $html, $quality));
@@ -97,7 +97,7 @@ class SidebarMenuTest extends TestCase
         // Each entry is found after the one before it. A single regex with .* runs out of backtracking on a long menu.
         $at = 0;
         foreach (['Sales</span>', 'Overview', 'Enquiries', 'Sales orders', 'Engineering</span>', 'Feasibility', 'Patterns &amp; tooling', 'Cores</span>',
-            'Production</span>', 'Planning', 'Melt &amp; heats', 'Quality</span>', 'Inspection', 'NCR &amp; CAPA', 'Audits &amp; documents', 'Logistics</span>', 'Dispatch'] as $entry) {
+            'Production</span>', 'Planning', 'Orders</span>', 'Melt &amp; heats', 'Quality</span>', 'Inspection', 'NCR &amp; CAPA', 'Audits &amp; documents', 'Logistics</span>', 'Dispatch'] as $entry) {
             $found = strpos($nav, $entry, $at);
             $this->assertNotFalse($found, "{$entry} should follow the entries before it");
             $at = $found + strlen($entry);
