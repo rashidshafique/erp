@@ -2,6 +2,9 @@
 
 namespace App\Domains\Enquiry\Http\Controllers;
 
+use App\Domains\Core\ModuleRegistry;
+use App\Domains\Tooling\Models\ToolingLifeLimit;
+use App\Domains\Tooling\Services\ToolingLifeStatusService;
 use App\Http\Controllers\Controller;
 use App\Domains\Enquiry\Services\EnquiryIntake;
 use App\Domains\Enquiry\Services\SimilarParts;
@@ -124,6 +127,26 @@ class EnquiryController extends Controller
     }
 
     /** @return array<string, mixed> */
+
+    /**
+     * The service life of the existing pattern chosen for the enquiry, when it is near or past its limit, so a replacement can be
+     * started before the order needs it. Null when the Tooling module is off or the pattern is within its limits.
+     *
+     * @return array{status: string, label: string, percent: ?float}|null
+     */
+    private static function patternLife(Enquiry $e): ?array
+    {
+        if ($e->pattern_route !== 'EXISTING' || ! $e->pattern_id || ! class_exists(ToolingLifeLimit::class) || ! app(ModuleRegistry::class)->isEnabled('tooling')) {
+            return null;
+        }
+        $limit = ToolingLifeLimit::where('tooling_type', 'PATTERN')->where('pattern_id', $e->pattern_id)->where('is_active', true)->first();
+        $life = $limit ? app(ToolingLifeStatusService::class)->calculate($limit) : null;
+        if (! $life || ! in_array($life['status'], ['LIFE_EXCEEDED', 'APPROACHING_LIMIT'], true)) {
+            return null;
+        }
+
+        return ['status' => $life['status'], 'label' => $life['status_label'], 'percent' => $life['life_percent']];
+    }
     private function recordData(Enquiry $e): array
     {
         $departments = config('feasibility.departments');
@@ -147,6 +170,7 @@ class EnquiryController extends Controller
             'order' => $e->quotations->firstWhere('sales_order_id')?->salesOrder,
             'development' => $e->developments->sortByDesc('created_at')->first(),
             'patternText' => self::patternText($e),
+            'patternLife' => self::patternLife($e),
         ];
     }
 

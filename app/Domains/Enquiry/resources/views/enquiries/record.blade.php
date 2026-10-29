@@ -103,6 +103,10 @@
                         @if ($open)<div style="margin-top:8px"><button class="er-btn" type="submit">Save decision</button></div>@endif
                     </fieldset>
                     </form>
+                    @if ($patternLife)
+                        <div class="alert alert-{{ $patternLife['status'] === 'LIFE_EXCEEDED' ? 'error' : 'warning' }}" style="margin-top:10px">{{ $e->pattern->code }}: {{ strtolower($patternLife['label']) }}{{ $patternLife['percent'] !== null ? ' ('.round($patternLife['percent']).'% of its life used)' : '' }}.
+                            @if (Route::has('developments.create'))<a href="{{ route('developments.create', ['from' => 'pattern:'.$e->pattern_id]) }}">Start replacement</a>@endif</div>
+                    @endif
                 </div>
                 <div class="er-box"><div class="er-h">Feasibility</div>
                     <div class="er-kv">

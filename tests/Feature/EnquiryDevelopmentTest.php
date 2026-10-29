@@ -8,6 +8,8 @@ use App\Domains\Enquiry\Models\Enquiry;
 use App\Domains\Enquiry\Models\Quotation;
 use App\Domains\Enquiry\Services\QuotationService;
 use App\Domains\Licensing\SettingsModuleAccess;
+use App\Domains\Tooling\Models\ToolingLifeLimit;
+use App\Domains\Tooling\Models\ToolingUsageRecord;
 use App\Models\Customer;
 use App\Models\Pattern;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -166,5 +168,17 @@ class EnquiryDevelopmentTest extends TestCase
 
         $this->put(route('developments.cost', $dev), ['actual_cost' => 175000])->assertSessionHasNoErrors();
         $this->get(route('developments.show', $dev))->assertSee('Over the quote by '.$q->currency.' 25,000.00');
+    }
+
+    public function test_an_existing_pattern_near_its_life_limit_is_flagged_with_a_replacement_link(): void
+    {
+        $pattern = Pattern::create(['code' => 'PT-0410', 'name' => 'Pump cover', 'type' => 'PRODUCTION', 'status' => 'ACTIVE']);
+        $e = $this->enquiry(['pattern_route' => 'EXISTING', 'pattern_id' => $pattern->id, 'source_type' => 'REPEAT']);
+        $this->get(route('enquiries.show', $e))->assertOk()->assertDontSee('Start replacement');
+
+        ToolingLifeLimit::create(['tooling_type' => 'PATTERN', 'pattern_id' => $pattern->id, 'usage_unit' => 'CYCLES', 'service_life_quantity' => 1000, 'warning_threshold_percent' => 80, 'is_active' => true]);
+        ToolingUsageRecord::create(['tooling_type' => 'PATTERN', 'pattern_id' => $pattern->id, 'usage_unit' => 'CYCLES', 'usage_quantity' => 850, 'used_at' => now()]);
+        $this->get(route('enquiries.show', $e))->assertOk()->assertSee('PT-0410: approaching limit (85% of its life used)')
+            ->assertSee(route('developments.create', ['from' => 'pattern:'.$pattern->id]), false);
     }
 }
