@@ -18,6 +18,11 @@ class WorkListRules
             'BLOCK' => 'Not allowed: the list cannot be issued until enough sets are free or rows are cut',
             'OFF' => 'Do not check flasks on work lists',
         ], 'WARN'],
+        'auto_prepare' => ['worklists.auto_prepare', 'Preparing the day\'s moulding list from open orders', [
+            'NEXT_DAY' => 'Each evening (18:00) tomorrow\'s list is prepared as a draft, to change and release',
+            'SAME_DAY' => 'Each morning (06:00) the day\'s list is prepared as a draft, to change and release',
+            'OFF' => 'Not automatic: prepare it with the button on the list page',
+        ], 'NEXT_DAY'],
     ];
 
     public static function get(string $rule): string

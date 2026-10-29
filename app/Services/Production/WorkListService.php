@@ -101,6 +101,30 @@ class WorkListService
         return $list->items()->create($d + ['sequence' => (int) $list->items()->max('sequence') + 1, 'status' => 'PLANNED']);
     }
 
+    /** Change a row's mould count, and its station, before it starts. A new station goes through the same checks as adding the row. */
+    public function updateItem(MouldingWorkListItem $item, int $moulds, ?string $stationId = null): MouldingWorkListItem
+    {
+        if ($item->status !== 'PLANNED' || $item->moulding_run_id) {
+            throw new InvalidArgumentException('Only a row not yet started can be changed.');
+        }
+        if (! $stationId || $stationId === $item->moulding_station_id) {
+            $item->update(['planned_moulds' => $moulds]);
+
+            return $item;
+        }
+
+        return DB::transaction(function () use ($item, $moulds, $stationId) {
+            $keep = $item->only(['production_order_id', 'pattern_revision_id', 'instructions', 'carried_from_item_id', 'remake_of_run_id', 'sequence']);
+            $list = $item->workList;
+            $item->delete();
+            $new = $this->addItem($list, ['moulding_station_id' => $stationId, 'pattern_revision_id' => $keep['pattern_revision_id'],
+                'production_order_id' => $keep['production_order_id'], 'planned_moulds' => $moulds, 'instructions' => $keep['instructions']]);
+            $new->update(['carried_from_item_id' => $keep['carried_from_item_id'], 'remake_of_run_id' => $keep['remake_of_run_id'], 'sequence' => $keep['sequence']]);
+
+            return $new;
+        });
+    }
+
     /**
      * Add a station's work in one go: the line's team and sand system, then a row per pattern plate with its mould count.
      * All rows are added or none; a problem names the row it is in.

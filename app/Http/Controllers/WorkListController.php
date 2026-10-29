@@ -11,10 +11,12 @@ use App\Models\MouldingWorkListItem;
 use App\Models\PatternRevision;
 use App\Models\ProductionOrder;
 use App\Models\SandSystem;
+use App\Services\Production\DailyMouldingList;
 use App\Services\Production\WorkListService;
 use App\Services\Quality\Measurements;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -129,6 +131,36 @@ class WorkListController extends Controller
         }
 
         return back()->with('success', $n ? "Sand system updated for {$n} planned item(s) on {$station->code}." : 'Nothing planned to change on '.$station->code.'.');
+    }
+
+    /** Prepare the day's list from open orders, or open the one already there (DailyMouldingList). */
+    public function prepare(Request $request, DailyMouldingList $lists): RedirectResponse
+    {
+        $day = $request->validate(['day' => ['required', 'date', 'after_or_equal:today']])['day'];
+        try {
+            $res = $lists->prepare(Carbon::parse($day));
+        } catch (InvalidArgumentException $e) {
+            return back()->withErrors(['item' => $e->getMessage()]);
+        }
+        $msg = $res['created'] ? "{$res['list']->list_number} prepared from open orders".($res['carried'] ? ", {$res['carried']} row(s) carried over from earlier lists." : '.') : "{$res['list']->list_number} is already the list for that day.";
+
+        $to = $request->boolean('stay') ? back() : redirect()->route('work-lists.show', $res['list']);
+
+        return $to->with('success', $msg)->with('warning', $res['skipped'] ? 'Left out: '.implode('; ', $res['skipped']) : null);
+    }
+
+    /** Change a row's mould count or station before it starts. */
+    public function updateItem(Request $request, MouldingWorkList $list, MouldingWorkListItem $item, WorkListService $svc): RedirectResponse
+    {
+        abort_unless($item->moulding_work_list_id === $list->id, 404);
+        $d = $request->validate(['planned_moulds' => ['required', 'integer', 'min:1', 'max:5000'], 'moulding_station_id' => ['nullable', 'uuid', 'exists:moulding_stations,id']]);
+        try {
+            $svc->updateItem($item, (int) $d['planned_moulds'], $d['moulding_station_id'] ?? null);
+        } catch (InvalidArgumentException $e) {
+            return back()->withErrors(['item' => $e->getMessage()]);
+        }
+
+        return back()->with('success', 'Row updated.');
     }
 
     public function removeItem(MouldingWorkList $list, MouldingWorkListItem $item): RedirectResponse

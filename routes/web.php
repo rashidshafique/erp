@@ -453,11 +453,13 @@ Route::prefix('work-lists')->name('work-lists.')->controller(WorkListController:
     Route::get('/', 'index')->name('index');
     Route::post('/', 'store')->name('store');
     Route::post('/remake/{run}', 'remake')->name('remake');
+    Route::post('/prepare', 'prepare')->name('prepare');
     Route::get('/{list}', 'show')->name('show');
     Route::get('/{list}/print', 'print')->name('print');
     Route::post('/{list}/items', 'addItem')->name('items.add');
     Route::post('/{list}/rows', 'addRows')->name('rows.add');
     Route::post('/{list}/stations/{station}/change', 'changeStation')->name('stations.change');
+    Route::put('/{list}/items/{item}', 'updateItem')->name('items.update');
     Route::delete('/{list}/items/{item}', 'removeItem')->name('items.remove');
     Route::post('/{list}/issue', 'issue')->name('issue');
     Route::post('/{list}/items/{item}/start', 'startRun')->name('items.start');

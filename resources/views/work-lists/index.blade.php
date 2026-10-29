@@ -3,6 +3,11 @@
 @section('content')
 <div class="page-heading"><div><h1>Moulding work lists</h1><p>The list given to the moulding teams each shift. <a href="{{ route('settings.work-lists.edit') }}">Rules</a></p></div></div>
 @if(session("success"))<div class="alert alert-success">{{ session("success") }}</div>@endif
+@if(session("warning"))<div class="alert alert-warning">{{ session("warning") }}</div>@endif
+<div class="panel"><div class="panel-header"><h2>Prepare from orders</h2><span class="muted small">What open orders still need, spread over the stations, with unstarted rows of earlier lists carried over. Change it, then issue it.</span></div><div class="panel-body">
+<form method="POST" action="{{ route('work-lists.prepare') }}" style="display:flex;gap:8px;align-items:center">@csrf
+<select name="day" aria-label="Day"><option value="{{ today()->toDateString() }}">Today</option><option value="{{ today()->addDay()->toDateString() }}" selected>Tomorrow</option></select>
+<button class="btn btn-primary">Prepare list</button></form></div></div>
 <div class="panel"><div class="panel-header"><h2>New list</h2></div><div class="panel-body"><form method="POST" action="{{ route('work-lists.store') }}" class="form-grid">@csrf
 <label>Date<input type="date" name="list_date" value="{{ today()->toDateString() }}" required></label>
 <label>Shift<select name="shift">@foreach($shifts as $s)<option>{{ $s }}</option>@endforeach</select></label><label>Notes<input name="notes"></label>

@@ -50,6 +50,7 @@ class QuickFlowServiceProvider extends ModuleServiceProvider
             'key' => 'quickflow', 'label' => 'Quick flow', 'icon' => 'clipboard', 'active' => ['quick.*'], 'position' => 'top',
             'items' => [
                 ['label' => 'Today', 'route' => 'quick.today', 'icon' => 'calendar', 'active' => ['quick.today']],
+                ['label' => 'Moulding list', 'route' => 'quick.list.index', 'icon' => 'list', 'active' => ['quick.list.*']],
                 ['label' => 'Next heat', 'route' => 'quick.heat.index', 'icon' => 'flame', 'active' => ['quick.heat.*']],
                 ['label' => 'Moulds made / poured', 'route' => 'quick.floor.index', 'icon' => 'mould', 'active' => ['quick.floor.*']],
                 ['label' => 'New order', 'route' => 'quick.orders.create', 'icon' => 'plus-circle', 'active' => ['quick.orders.*']],
@@ -63,6 +64,7 @@ class QuickFlowServiceProvider extends ModuleServiceProvider
             ['pattern' => 'quick.orders.*', 'permission' => 'sales.manage'],
             ['pattern' => 'quick.heat.*', 'permission' => 'planning.manage'],
             ['pattern' => 'quick.floor.*', 'permission' => 'shopfloor.record'],
+            ['pattern' => 'quick.list.*', 'permission' => 'moulding.operate'],
         ];
     }
 }

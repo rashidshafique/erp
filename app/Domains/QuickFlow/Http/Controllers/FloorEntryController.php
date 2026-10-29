@@ -19,6 +19,7 @@ use App\Support\PouringRules;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
+use App\Services\Production\DailyMouldingList;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -76,12 +77,17 @@ class FloorEntryController extends Controller
     }
 
     /**
-     * The planner's first shift for the day as grid rows: pattern, order and station, with the moulds planned shown as a hint only.
+     * The day's moulding list as grid rows when there is one, else the planner's first shift for the day: pattern, order and
+     * station, with the moulds planned shown as a hint only.
      *
-     * @return list<array{pattern_id: string, production_order_id: string, moulding_station_id: string, planned: int}>
+     * @return list<array{pattern_id: string, production_order_id: ?string, moulding_station_id: string, planned: int}>
      */
     private function plannedRows(OrderPlanner $planner, Carbon $day): array
     {
+        if ($list = app(DailyMouldingList::class)->current($day)) {
+            return $list->items()->with('patternRevision')->whereIn('status', ['PLANNED', 'IN_PROGRESS'])->orderBy('sequence')->get()
+                ->map(fn ($i) => ['pattern_id' => $i->patternRevision->pattern_id, 'production_order_id' => $i->production_order_id, 'moulding_station_id' => $i->moulding_station_id, 'planned' => $i->planned_moulds])->all();
+        }
         $rows = [];
         foreach ($planner->plan($day)['suggestion'] as ['station' => $station, 'rows' => $planned]) {
             foreach ($planned as $r) {
