@@ -89,6 +89,54 @@ class ProductCatalogueTest extends TestCase
             ->assertSee('Material cost per casting')->assertSee('Foam filter')->assertSee('2.50');
     }
 
+    /** @return array<string, mixed> */
+    private function editForm(array $over = []): array
+    {
+        return $over + ['name' => 'Valve body', 'status' => 'ACTIVE', 'product_type' => 'CASTING', 'base_uom' => 'piece'];
+    }
+
+    public function test_the_overview_edits_in_place_and_saves_to_the_product_and_its_current_revision(): void
+    {
+        $revision = ProductRevision::create(['product_id' => $this->valve->id, 'revision' => 'A', 'status' => 'APPROVED', 'net_weight_kg' => 2]);
+        $customer = Customer::create(['code' => 'ACME', 'name' => 'Acme Pumps']);
+        $grade = \App\Models\IronGrade::resolve('EN-GJS-500-7')['grade'];
+
+        $this->get(route('products.show', $this->valve).'?edit=1')->assertOk()->assertSee('Unsaved changes')->assertSee('Save as rev B draft');
+        $this->put(route('products.update', $this->valve), $this->editForm([
+            'status' => 'ON_HOLD', 'customer_id' => $customer->id, 'customer_part_number' => 'MAS-4471', 'csr' => 'MAS-QR-03 rev 2', 'approved_for' => 'SERIAL',
+            'iron_grade_id' => $grade->id, 'nominal_weight_kg' => '2.4', 'ppap_level' => '3', 'unit_price' => '14.8', 'annual_volume' => '42000',
+            'packing_spec' => 'MAS-PK-02', 'default_delivery' => 'EX_WORKS', 'save_as' => 'current',
+        ]))->assertSessionHasNoErrors()->assertRedirect(route('products.show', $this->valve));
+
+        $this->assertSame(['ON_HOLD', true, $customer->id], [$this->valve->fresh()->status, $this->valve->fresh()->active, $this->valve->fresh()->customer_id]);
+        $revision->refresh();
+        $this->assertSame(['MAS-4471', 'SERIAL', 3, '14.8000', 42000, '2.4000'], [$revision->customer_part_number, $revision->approved_for, $revision->ppap_level, $revision->unit_price, $revision->annual_volume, $revision->net_weight_kg]);
+        $this->assertSame($grade->id, app(\App\Services\Planning\HeatPlanner::class)->gradeFor($revision)?->id);
+        $this->get(route('products.show', $this->valve))->assertSee('Level 3')->assertSee('MAS-PK-02')->assertSee('Acme Pumps')->assertSee('On hold');
+    }
+
+    public function test_save_as_draft_puts_the_changes_on_a_new_revision_and_keeps_the_current_one_running(): void
+    {
+        $current = ProductRevision::create(['product_id' => $this->valve->id, 'revision' => 'A', 'status' => 'APPROVED', 'net_weight_kg' => 2, 'unit_price' => 10]);
+
+        $this->put(route('products.update', $this->valve), $this->editForm(['nominal_weight_kg' => '1.9', 'unit_price' => '10', 'change_note' => 'Gating trial', 'save_as' => 'draft']))
+            ->assertSessionHasNoErrors();
+
+        $draft = $this->valve->revisions()->where('revision', 'B')->sole();
+        $this->assertSame(['DRAFT', '1.9000', 'Gating trial', '10.0000'], [$draft->status, $draft->net_weight_kg, $draft->engineering_notes, $draft->unit_price]);
+        $this->assertSame('2.0000', $current->fresh()->net_weight_kg);
+        $this->assertSame($current->id, $this->valve->fresh()->currentRevision()->id);
+    }
+
+    public function test_an_obsolete_status_makes_the_product_inactive_and_back(): void
+    {
+        $this->put(route('products.update', $this->valve), $this->editForm(['status' => 'OBSOLETE']))->assertSessionHasNoErrors();
+        $this->assertFalse($this->valve->fresh()->active);
+
+        Livewire::test('product-list')->call('toggleActive', $this->valve->id);
+        $this->assertSame([true, 'ACTIVE'], [$this->valve->fresh()->active, $this->valve->fresh()->status]);
+    }
+
     public function test_the_status_switch_and_bulk_actions_set_products_active_or_inactive(): void
     {
         $list = Livewire::test('product-list')->call('toggleActive', $this->valve->id);

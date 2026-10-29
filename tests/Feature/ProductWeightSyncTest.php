@@ -54,9 +54,8 @@ class ProductWeightSyncTest extends TestCase
     {
         $product = Product::create(['code' => 'W-4', 'name' => 'Weighted']);
         $revision = $product->revisions()->create(['revision' => '0', 'status' => 'APPROVED', 'net_weight_kg' => 3]);
-        $form = ['code' => 'W-4', 'name' => 'Weighted', 'product_type' => 'CASTING', 'base_uom' => 'PCS', 'active' => 1];
+        $form = ['code' => 'W-4', 'name' => 'Weighted', 'product_type' => 'CASTING', 'base_uom' => 'PCS', 'active' => 1, 'status' => 'ACTIVE'];
 
-        $this->get(route('products.edit', $product))->assertOk()->assertSee('net weight of revision 0');
         $this->put(route('products.update', $product), $form + ['nominal_weight_kg' => '3.6'])->assertSessionHasNoErrors();
 
         $this->assertSame(['3.6000', '3.6000'], [$revision->fresh()->net_weight_kg, $product->fresh()->nominal_weight_kg]);
@@ -65,7 +64,7 @@ class ProductWeightSyncTest extends TestCase
     public function test_a_product_with_no_revision_keeps_the_weight_typed_on_it(): void
     {
         $product = Product::create(['code' => 'W-5', 'name' => 'No revision']);
-        $form = ['code' => 'W-5', 'name' => 'No revision', 'product_type' => 'CASTING', 'base_uom' => 'PCS', 'active' => 1];
+        $form = ['code' => 'W-5', 'name' => 'No revision', 'product_type' => 'CASTING', 'base_uom' => 'PCS', 'active' => 1, 'status' => 'ACTIVE'];
 
         $this->put(route('products.update', $product), $form + ['nominal_weight_kg' => '2.2'])->assertSessionHasNoErrors();
 

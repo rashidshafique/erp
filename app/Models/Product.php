@@ -21,7 +21,34 @@ class Product extends Model
         'nominal_weight_kg',
         'description',
         'active',
+        'status',
+        'customer_id',
     ];
+
+    /** Status => label. Only an obsolete product is inactive: it leaves the pickers, while one on hold or in development stays in them. */
+    public const STATUSES = ['ACTIVE' => 'Active', 'DEVELOPMENT' => 'Development', 'ON_HOLD' => 'On hold', 'OBSOLETE' => 'Obsolete'];
+
+    protected static function booted(): void
+    {
+        // The status and the older active switch stay in step, whichever of them is changed.
+        static::saving(function (Product $product) {
+            if ($product->isDirty('status') && $product->status) {
+                $product->active = $product->status !== 'OBSOLETE';
+            } elseif ($product->isDirty('active')) {
+                $product->status = $product->active ? ($product->status === 'OBSOLETE' || ! $product->status ? 'ACTIVE' : $product->status) : 'OBSOLETE';
+            }
+        });
+    }
+
+    public function customer(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
+    }
+
+    public function statusLabel(): string
+    {
+        return self::STATUSES[$this->status] ?? ($this->active ? 'Active' : 'Obsolete');
+    }
 
     protected $casts = [
         'nominal_weight_kg' => 'decimal:4',

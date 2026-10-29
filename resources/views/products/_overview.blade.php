@@ -10,9 +10,9 @@
     <div class="pd-main">
         <div class="pd-facts">
             <div><div class="k">Revision</div><div>{{ $revision ? $revision->revision.($revision->effective_from ? ' · released '.$revision->effective_from->format('j M') : '') : '—' }}</div></div>
-            <div><div class="k">Status</div><div><span class="pd-pill {{ $product->active ? 'ok' : '' }}">{{ $product->active ? 'Active' : 'Inactive' }}</span></div></div>
-            <div><div class="k">PPAP</div><div>—</div></div>
-            <div><div class="k">Customer part no.</div><div class="mono">{{ $f['requirement']?->customer_document_number ?: '—' }}</div></div>
+            <div><div class="k">Status</div><div><span class="pd-pill {{ ['ACTIVE' => 'ok', 'DEVELOPMENT' => 'info', 'ON_HOLD' => 'warn'][$product->status] ?? '' }}">{{ $product->statusLabel() }}</span></div></div>
+            <div><div class="k">PPAP</div><div>{{ $revision?->ppap_level ? 'Level '.$revision->ppap_level : '—' }}</div></div>
+            <div><div class="k">Customer part no.</div><div class="mono">{{ $revision?->customer_part_number ?: ($f['requirement']?->customer_document_number ?: '—') }}</div></div>
         </div>
 
         <div class="pd-cols">
@@ -21,9 +21,9 @@
                 <dl class="pd-list">
                     <dt>Name</dt><dd>{{ $f['customer'] ?? '—' }}</dd>
                     <dt>Tier</dt><dd>—</dd>
-                    <dt>CSR</dt><dd>{{ $f['requirement']?->requirement_code ? $f['requirement']->requirement_code.($f['requirement']->revision_code ? ' rev '.$f['requirement']->revision_code : '') : '—' }}</dd>
-                    <dt>Packing spec</dt><dd>—</dd>
-                    <dt>Approved for</dt><dd>—</dd>
+                    <dt>CSR</dt><dd>{{ $revision?->csr ?: ($f['requirement']?->requirement_code ? $f['requirement']->requirement_code.($f['requirement']->revision_code ? ' rev '.$f['requirement']->revision_code : '') : '—') }}</dd>
+                    <dt>Packing spec</dt><dd class="mono">{{ $revision?->packing_spec ?: '—' }}</dd>
+                    <dt>Approved for</dt><dd>{{ \App\Models\ProductRevision::APPROVED_FOR[$revision?->approved_for] ?? '—' }}</dd>
                 </dl>
             </div>
             <div>

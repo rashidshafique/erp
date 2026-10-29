@@ -95,10 +95,7 @@ class ProductController extends Controller
         ]);
         $revision = \App\Models\ProductRevision::findOrFail($data['product_revision_id']);
         $grade = \App\Models\IronGrade::findOrFail($data['iron_grade_id']);
-        \App\Models\ProductSpecification::updateOrCreate(
-            ['product_revision_id' => $revision->id, 'specification_code' => 'SPEC-'.$product->code.'-'.$revision->revision],
-            ['title' => 'Iron grade', 'status' => 'APPROVED', 'material_grade' => $grade->code, 'approved_at' => now(), 'effective_at' => now(), 'superseded_at' => null],
-        );
+        $this->nameGrade($product, $revision, $grade);
 
         return back()->with('success', "{$grade->code} set on {$product->code} rev {$revision->revision}.");
     }
@@ -117,40 +114,57 @@ class ProductController extends Controller
             'cavity_number' => ['nullable', 'integer', 'min:1', 'max:10000'],
         ], ['pattern_id.required' => 'Choose a pattern.', 'product_revision_id.exists' => 'Choose a revision of this product.']);
 
-        [$pattern, $revision, $number] = DB::transaction(function () use ($data, $product, $map) {
-            $pattern = Pattern::findOrFail($data['pattern_id']);
-            if (filled($data['pattern_revision_id'] ?? null)) {
-                $revision = $pattern->revisions()->find($data['pattern_revision_id']);
-                if (! $revision) {
-                    throw ValidationException::withMessages(['pattern_revision_id' => 'Choose a revision of this pattern.']);
-                }
-            } else {
-                $revision = $pattern->currentRevision()->first()
-                    ?? $pattern->addRevision(['change_description' => 'First revision, recorded when linking '.$product->code]);
-            }
-
-            $productRevisionId = $data['product_revision_id'] ?? $product->linkableRevision()->id;
-
-            $taken = $revision->cavityMap()->pluck('cavity_number')->all();
-            $number = $data['cavity_number'] ?? null;
-            if ($number === null) {
-                $limit = $revision->cavities_per_mould ?? (count($taken) ? max($taken) + 1 : 1);
-                $number = collect(range(1, max(1, (int) $limit)))->first(fn ($n) => ! in_array($n, $taken, true));
-                if ($number === null) {
-                    throw ValidationException::withMessages(['cavity_number' => "Every cavity of {$revision->label()} already has a product. Raise the cavity count on the pattern page, or pick another revision."]);
-                }
-            }
-
-            $cavity = ['cavity_number' => (int) $number, 'product_revision_id' => $productRevisionId, 'cavity_role' => 'WHOLE', 'pieces_per_product' => 1];
-            $map->assertDefinable($revision, $cavity);
-            $revision->cavityMap()->create($cavity);
-
-            return [$pattern, $revision, $number];
-        });
+        [$pattern, $revision, $number] = DB::transaction(fn () => $this->linkToPattern($product, Pattern::findOrFail($data['pattern_id']), $data['pattern_revision_id'] ?? null, $data['product_revision_id'] ?? null, $data['cavity_number'] ?? null, $map));
 
         $response = back()->with('success', "{$product->code} linked to {$pattern->name} ({$revision->label()}), cavity {$number}.");
 
         return $revision->isSuperseded() ? $response->with('warning', PatternCavityController::supersededWarning($revision)) : $response;
+    }
+
+    /** Names the iron grade of a revision on its approved specification, which the contract review and the melting plan read. */
+    private function nameGrade(Product $product, ProductRevision $revision, \App\Models\IronGrade $grade): void
+    {
+        \App\Models\ProductSpecification::updateOrCreate(
+            ['product_revision_id' => $revision->id, 'specification_code' => 'SPEC-'.$product->code.'-'.$revision->revision],
+            ['title' => 'Iron grade', 'status' => 'APPROVED', 'material_grade' => $grade->code, 'approved_at' => now(), 'effective_at' => now(), 'superseded_at' => null],
+        );
+    }
+
+    /**
+     * Puts a product revision on a cavity of a pattern revision (the pattern's current one unless named, made if it has none) and
+     * returns the pattern, its revision and the cavity number.
+     *
+     * @return array{0: Pattern, 1: \App\Models\PatternRevision, 2: int}
+     */
+    private function linkToPattern(Product $product, Pattern $pattern, ?string $patternRevisionId, ?string $productRevisionId, ?int $cavityNumber, PatternCavityMap $map): array
+    {
+        if (filled($patternRevisionId)) {
+            $revision = $pattern->revisions()->find($patternRevisionId);
+            if (! $revision) {
+                throw ValidationException::withMessages(['pattern_revision_id' => 'Choose a revision of this pattern.']);
+            }
+        } else {
+            $revision = $pattern->currentRevision()->first()
+                ?? $pattern->addRevision(['change_description' => 'First revision, recorded when linking '.$product->code]);
+        }
+
+        $productRevisionId ??= $product->linkableRevision()->id;
+
+        $taken = $revision->cavityMap()->pluck('cavity_number')->all();
+        $number = $cavityNumber;
+        if ($number === null) {
+            $limit = $revision->cavities_per_mould ?? (count($taken) ? max($taken) + 1 : 1);
+            $number = collect(range(1, max(1, (int) $limit)))->first(fn ($n) => ! in_array($n, $taken, true));
+            if ($number === null) {
+                throw ValidationException::withMessages(['cavity_number' => "Every cavity of {$revision->label()} already has a product. Raise the cavity count on the pattern page, or pick another revision."]);
+            }
+        }
+
+        $cavity = ['cavity_number' => (int) $number, 'product_revision_id' => $productRevisionId, 'cavity_role' => 'WHOLE', 'pieces_per_product' => 1];
+        $map->assertDefinable($revision, $cavity);
+        $revision->cavityMap()->create($cavity);
+
+        return [$pattern, $revision, (int) $number];
     }
 
     public function show(Product $product)
@@ -162,7 +176,7 @@ class ProductController extends Controller
             'revisions.patternCavities.patternRevision.pattern',
         ]);
 
-        return view('products.show', ['product' => $product, 'facts' => $this->facts($product)]);
+        return view('products.show', ['product' => $product, 'facts' => $this->facts($product), 'editing' => request()->boolean('edit') && ! $product->trashed()]);
     }
 
     /**
@@ -212,10 +226,10 @@ class ProductController extends Controller
             'perMould' => $perMould,
             'process' => $patternRevision?->pattern->madeForSand(),
             'cores' => $revision ? CoreRequirement::where('product_revision_id', $revision->id)->with('coreDefinition')->get() : collect(),
-            'customer' => $customer,
+            'customer' => $product->customer_id ? DB::table('customers as c')->join('parties as pa', 'pa.id', '=', 'c.party_id')->where('c.id', $product->customer_id)->value('pa.name') : $customer,
             'requirement' => $requirement,
-            'price' => $latest?->unit_price !== null ? (float) $latest->unit_price : null,
-            'volume' => (float) $order()->where('so.order_date', '>=', now()->subYear()->toDateString())->whereNotIn('so.status', ['DRAFT', 'CANCELLED'])->sum('sol.ordered_qty'),
+            'price' => $revision?->unit_price !== null ? (float) $revision->unit_price : ($latest?->unit_price !== null ? (float) $latest->unit_price : null),
+            'volume' => $revision?->annual_volume !== null ? (float) $revision->annual_volume : (float) $order()->where('so.order_date', '>=', now()->subYear()->toDateString())->whereNotIn('so.status', ['DRAFT', 'CANCELLED'])->sum('sol.ordered_qty'),
             'openOrder' => $open,
             'dispatched' => $dispatched,
             'bom' => $lines,
@@ -246,49 +260,105 @@ class ProductController extends Controller
         return redirect()->route('products.show', $product)->with('success', "{$product->code} restored.");
     }
 
-    public function edit(Product $product)
+    /** Editing happens on the overview tab itself (design 10f); the old address opens it there. */
+    public function edit(Product $product): RedirectResponse
     {
-        return view('products.edit', compact('product'));
+        return redirect()->to(route('products.show', $product).'?edit=1');
     }
 
-    public function update(Request $request, Product $product)
+    /**
+     * Saves the overview's edit form. "Save changes" writes to the product and its current revision; "Save as draft" puts the
+     * revision fields on a new draft revision instead, so the current one keeps running until the draft is approved. A changed
+     * pattern is linked to the revision saved to; poured weight is kept on that revision's pattern cavity.
+     */
+    public function update(Request $request, Product $product, PatternCavityMap $map): RedirectResponse
     {
-        if (is_string($request->input('code'))) {
-            $request->merge(['code' => strtoupper(trim($request->input('code')))]);   // "flg-1" and "FLG-1" are the same code
-        }
         $data = $request->validate([
-            'code' => [
-                'required', 'string', 'max:40',
-                Rule::unique('products', 'code')->ignore($product->id),
-            ],
             'name' => ['required', 'string', 'max:255'],
+            'status' => ['required', Rule::in(array_keys(Product::STATUSES))],
+            'customer_id' => ['nullable', 'uuid', 'exists:customers,id'],
+            'customer_part_number' => ['nullable', 'string', 'max:80'],
+            'csr' => ['nullable', 'string', 'max:120'],
+            'approved_for' => ['nullable', Rule::in(array_keys(ProductRevision::APPROVED_FOR))],
+            'iron_grade_id' => ['nullable', 'uuid', 'exists:iron_grades,id'],
+            'nominal_weight_kg' => ['nullable', 'numeric', 'gt:0', 'max:99999999.9999'],
+            'poured_weight_kg' => ['nullable', 'numeric', 'gt:0', 'max:99999999.9999'],
+            'pattern_id' => ['nullable', 'uuid', Rule::exists('patterns', 'id')->whereNull('deleted_at')],
+            'ppap_level' => ['nullable', 'integer', 'between:1,5'],
+            'unit_price' => ['nullable', 'numeric', 'min:0', 'max:9999999999'],
+            'annual_volume' => ['nullable', 'integer', 'min:0', 'max:4000000000'],
+            'packing_spec' => ['nullable', 'string', 'max:80'],
+            'default_delivery' => ['nullable', Rule::in(array_keys(ProductRevision::DELIVERY))],
+            'change_note' => ['nullable', 'string', 'max:2000'],
+            'save_as' => ['nullable', Rule::in(['current', 'draft'])],
             'product_type' => ['required', Rule::in(['CASTING', 'CORE', 'OTHER'])],
             'base_uom' => ['required', 'string', 'max:20'],
-            'nominal_weight_kg' => ['nullable', 'numeric', 'gt:0', 'max:99999999.9999'],
             'description' => ['nullable', 'string'],
-            'active' => ['required', 'boolean'],
             ...Product::tradeRules(),
         ]);
+        $draft = ($data['save_as'] ?? 'current') === 'draft';
+        $note = filled($data['change_note'] ?? null) ? trim($data['change_note']) : null;
 
-        $product->update([
-            'code' => strtoupper(trim($data['code'])),
-            'name' => trim($data['name']),
-            'product_type' => $data['product_type'],
-            'base_uom' => $data['base_uom'],
-            'description' => $data['description'] ?? null,
-            'active' => $data['active'],
-            ...Arr::only($data, ['inventory_class', 'supply_type', 'tariff_code', 'tax_uom', 'origin_country']),
-        ]);
-        // The nominal weight is the current revision's net weight: changing it here changes that revision. Without a revision it is kept on the product.
-        if ($current = $product->currentRevision()) {
-            $current->update(['net_weight_kg' => $data['nominal_weight_kg'] ?? null]);
-        } else {
-            $product->update(['nominal_weight_kg' => $data['nominal_weight_kg'] ?? null]);
-        }
+        $target = DB::transaction(function () use ($data, $product, $map, $draft, $note) {
+            $product->update([
+                'name' => trim($data['name']),
+                'status' => $data['status'],
+                'customer_id' => $data['customer_id'] ?? null,
+                'product_type' => $data['product_type'],
+                'base_uom' => $data['base_uom'],
+                'description' => $data['description'] ?? null,
+                ...Arr::only($data, ['inventory_class', 'supply_type', 'tariff_code', 'tax_uom', 'origin_country']),
+            ]);
+
+            $current = $product->currentRevision();
+            $terms = ['customer_part_number', 'csr', 'approved_for', 'ppap_level', 'unit_price', 'annual_volume', 'packing_spec', 'default_delivery'];
+            $fields = collect($terms)->mapWithKeys(fn ($f) => [$f => filled($data[$f] ?? null) ? (is_string($data[$f]) ? trim($data[$f]) : $data[$f]) : null])->all()
+                + ['net_weight_kg' => $data['nominal_weight_kg'] ?? null];
+
+            if ($draft) {
+                $target = $product->revisions()->create($fields + [
+                    'revision' => ProductRevision::nextLabel($product->revisions()->pluck('revision')),
+                    'status' => 'DRAFT',
+                    'engineering_notes' => $note,
+                ]);
+            } elseif ($current) {
+                $target = tap($current)->update($fields);
+            } else {
+                // The nominal weight is the current revision's net weight; with no revision it is kept on the product.
+                $product->update(['nominal_weight_kg' => $data['nominal_weight_kg'] ?? null]);
+                $target = collect($fields)->except('net_weight_kg')->filter(fn ($v) => $v !== null)->isNotEmpty() || filled($data['iron_grade_id'] ?? null) || filled($data['pattern_id'] ?? null)
+                    ? tap($product->linkableRevision())->update($fields)
+                    : null;
+            }
+
+            if ($target) {
+                $planner = app(HeatPlanner::class);
+                if (filled($data['iron_grade_id'] ?? null) && $planner->gradeFor($target)?->id !== $data['iron_grade_id']) {
+                    $this->nameGrade($product, $target, \App\Models\IronGrade::findOrFail($data['iron_grade_id']));
+                }
+                // A draft is put on a pattern only when the pattern changes; it does not take a second cavity of the current one.
+                $cavities = $target->patternCavities()->with('patternRevision')->get();
+                $onPattern = ($draft && $current ? $current->patternCavities()->with('patternRevision')->get() : collect())->merge($cavities);
+                if (filled($data['pattern_id'] ?? null) && ! $onPattern->contains(fn ($c) => $c->patternRevision?->pattern_id === $data['pattern_id'])) {
+                    $this->linkToPattern($product, Pattern::findOrFail($data['pattern_id']), null, $target->id, null, $map);
+                    $cavities = $target->patternCavities()->with('patternRevision')->get();
+                }
+                $cavity = $cavities->filter(fn ($c) => $c->patternRevision)->sortByDesc(fn ($c) => $c->patternRevision->is_current)->first();
+                if ($cavity && (string) ($data['poured_weight_kg'] ?? '') !== '' && (float) $cavity->poured_weight_kg !== (float) $data['poured_weight_kg']) {
+                    $cavity->update(['poured_weight_kg' => $data['poured_weight_kg']]);
+                }
+            }
+
+            if ($note && ! $draft) {
+                app(\App\Services\Audit\Audit::class)->record('EDITED', 'Product', $product->id, $product->code, ['change_note' => ['new' => $note]], $note);
+            }
+
+            return $target;
+        });
 
         return redirect()
             ->route('products.show', $product)
-            ->with('success', 'Product updated successfully.');
+            ->with('success', $draft ? "Saved as revision {$target->revision} draft. Revision ".($product->currentRevision()?->revision ?? '—').' keeps running until it is approved.' : 'Product updated successfully.');
     }
 
     /** Sets or corrects the net weight and the engineering notes of a revision that already exists. */

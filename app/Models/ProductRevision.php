@@ -73,10 +73,26 @@ class ProductRevision extends Model
         'engineering_notes',
         'effective_from',
         'effective_to',
+        'customer_part_number',
+        'csr',
+        'approved_for',
+        'ppap_level',
+        'unit_price',
+        'annual_volume',
+        'packing_spec',
+        'default_delivery',
     ];
+
+    /** What a revision is approved for with the customer. */
+    public const APPROVED_FOR = ['SERIAL' => 'Serial supply', 'SAMPLES' => 'Samples only', 'PPAP_PENDING' => 'PPAP pending'];
+
+    public const DELIVERY = ['EX_WORKS' => 'Ex works', 'DELIVERED' => 'Delivered, customer plant'];
 
     protected $casts = [
         'net_weight_kg' => 'decimal:4',
+        'unit_price' => 'decimal:4',
+        'ppap_level' => 'integer',
+        'annual_volume' => 'integer',
         'effective_from' => 'date',
         'effective_to' => 'date',
     ];

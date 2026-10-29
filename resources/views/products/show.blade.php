@@ -12,15 +12,23 @@
         <a href="{{ route('products.index') }}" class="pd-crumb">Products</a>
         <span class="muted">/</span>
         <span class="pd-bar-title" title="{{ $product->code }} {{ $product->name }}">{{ $product->code }} {{ $product->name }}</span>
+        <span class="pd-edit-only muted">/</span><span class="pd-edit-only">Edit</span>
         <span class="pd-tabs-slot"></span>
     </div>
     <div class="pd-actions">
         @if ($product->trashed())
             <form method="POST" action="{{ route('products.restore', $product) }}" style="display:inline">@csrf<button class="pd-btn primary" type="submit">Restore product</button></form>
         @else
-            <form method="POST" action="{{ route('products.archive', $product) }}" style="display:inline" onsubmit="return confirm(@js('Archive '.$product->code.'? It leaves the product list and pickers but stays on old orders, and can be restored.'))">@csrf @method('DELETE')<button class="pd-btn" type="submit">Archive</button></form>
-            <button class="pd-btn" type="button" data-new-revision>New revision</button>
-            <a class="pd-btn primary" href="{{ route('products.edit', $product) }}">Edit product</a>
+            <span class="pd-view-only pd-actions">
+                <form method="POST" action="{{ route('products.archive', $product) }}" style="display:inline" onsubmit="return confirm(@js('Archive '.$product->code.'? It leaves the product list and pickers but stays on old orders, and can be restored.'))">@csrf @method('DELETE')<button class="pd-btn" type="submit">Archive</button></form>
+                <button class="pd-btn" type="button" data-new-revision>New revision</button>
+                <a class="pd-btn primary" href="{{ route('products.show', $product) }}?edit=1" data-edit-product>Edit product</a>
+            </span>
+            <span class="pd-edit-only pd-actions">
+                <button class="pd-btn" type="button" data-edit-cancel>Cancel</button>
+                <button class="pd-btn" type="submit" form="pd-edit-form" name="save_as" value="draft">Save as rev {{ \App\Models\ProductRevision::nextLabel($product->revisions->pluck('revision')) }} draft</button>
+                <button class="pd-btn primary" type="submit" form="pd-edit-form" name="save_as" value="current">Save changes</button>
+            </span>
         @endif
     </div>
 </div>
@@ -34,7 +42,8 @@
 @include('partials.quick-dialog', ['id' => 'qd-new-pattern', 'title' => 'New pattern', 'action' => route('patterns.quick'), 'submit' => 'Add pattern', 'fields' => 'products._new-pattern-fields'])
 @endunless
 <div class="tab-marker" data-tab-start="Overview"></div>
-@include('products._overview', ['product' => $product, 'facts' => $facts])
+<div class="pd-view-only">@include('products._overview', ['product' => $product, 'facts' => $facts])</div>
+@unless ($product->trashed())<div class="pd-edit-only">@include('products._overview-edit', ['product' => $product, 'facts' => $facts])</div>@endunless
 <div class="tab-marker" data-tab-start="Revisions"></div>
 <div class="panel">
     <div class="panel-header">
@@ -316,6 +325,25 @@
     .pd-note { margin: 0; color: #55585d; }
     .pd-callout { padding: 12px 14px; border: 1px solid #cdd9f5; border-radius: 8px; background: #fff; color: #2f5fd0; }
     @media (max-width: 1100px) { .pd-grid { grid-template-columns: 1fr; } .pd-side { border-left: 0; border-top: 1px solid #e6e7e9; } .pd-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pd-cols { grid-template-columns: 1fr; } .pd-bar { padding-left: 16px; padding-right: 16px; } }
+    body:not(.pd-editing) .pd-edit-only, body.pd-editing .pd-view-only { display: none !important; }
+    .pe-main { padding: 20px 28px 28px; display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+    .pe-sec { display: flex; flex-direction: column; gap: 12px; }
+    .pe-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+    .pe-rule { border-top: 1px solid #e6e7e9; }
+    .pe-f { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #6b6e73; margin: 0; font-weight: 400; }
+    .pe-f input, .pe-f select, .pe-f textarea { padding: 9px 10px; border: 1px solid #d9dbde; border-radius: 6px; font-size: 14px; background: #fff; color: #1c1d1f; font-family: inherit; width: 100%; box-sizing: border-box; margin: 0; }
+    .pe-f select { padding: 9px 8px; }
+    .pe-f textarea { min-height: 64px; resize: vertical; }
+    .pe-f .mono { font-family: ui-monospace, Menlo, monospace; font-size: 13px; }
+    .pe-f .ro, .pe-f input:disabled { background: #f8f8f9; color: #6b6e73; }
+    .pe-help { font-size: 11.5px; color: #8a8d92; }
+    .pe-changes > div { display: flex; flex-direction: column; gap: 2px; padding: 8px 0; border-bottom: 1px solid #e6e7e9; }
+    .pe-changes .k { font-size: 12px; color: #6b6e73; }
+    .pe-changes s { color: #8a8d92; }
+    .pe-changes .pe-none { color: #8a8d92; border: 0; }
+    .pe-callout-text { font-size: 12.5px; color: #55585d; line-height: 1.5; margin-top: 4px; }
+    .pe-more summary { cursor: pointer; font-size: 12px; font-weight: 600; color: #6b6e73; text-transform: uppercase; letter-spacing: .06em; }
+    @media (max-width: 1100px) { .pe-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pe-main { padding: 16px; } }
     .rev-edit { appearance: none; border: 0; background: transparent; padding: 0; font: inherit; font-size: 12px; font-weight: 600; color: var(--accent); cursor: pointer; }
     .rev-edit:hover { text-decoration: underline; }
 </style>
@@ -323,8 +351,62 @@
 document.addEventListener('DOMContentLoaded', function () {
     var bar = document.querySelector('.tabbar'), slot = document.querySelector('.pd-tabs-slot');
     if (bar && slot) { slot.replaceWith(bar); }
+    if (@json(($editing ?? false) || old('_pd_edit') !== null)) { pdEdit(true); }
 });
+// Edit product (design 10f) turns the overview tab into its form in place; Cancel puts back what was there.
+function pdEdit(on) {
+    var form = document.getElementById('pd-edit-form');
+    if (!form) { return; }
+    document.body.classList.toggle('pd-editing', on);
+    if (on) {
+        var tab = Array.prototype.find.call(document.querySelectorAll('.tabbar button'), function (b) { return b.textContent.indexOf('Overview') === 0; });
+        if (tab) { tab.click(); }
+        pdChanges();
+    }
+}
+function pdChanges() {
+    var form = document.getElementById('pd-edit-form');
+    if (!form) { return; }
+    var shown = function (el, original) {
+        if (el.tagName === 'SELECT') { var o = Array.prototype.find.call(el.options, function (x) { return original ? x.defaultSelected : x.selected; }) || el.options[0]; return o && o.value !== '' ? o.text : 'not set'; }
+        var v = original ? el.defaultValue : el.value;
+        return v === '' ? 'not set' : v + (el.dataset.unit ? ' ' + el.dataset.unit : '');
+    };
+    var esc = function (t) { var d = document.createElement('div'); d.textContent = t; return d.innerHTML; };
+    var rows = [], method = [];
+    form.querySelectorAll('[data-label]').forEach(function (el) {
+        var changed = el.tagName === 'SELECT' ? Array.prototype.some.call(el.options, function (o) { return o.selected !== o.defaultSelected; }) : el.value !== el.defaultValue;
+        if (!changed) { return; }
+        rows.push('<div><span class="k">' + esc(el.dataset.label) + '</span><span><s>' + esc(shown(el, true)) + '</s> → ' + esc(shown(el, false)) + '</span></div>');
+        if (el.hasAttribute('data-method')) { method.push(el.dataset.label); }
+    });
+    form.querySelector('[data-changes]').innerHTML = rows.length ? rows.join('') : '<div class="pe-none">Nothing changed yet.</div>';
+    var callout = form.querySelector('[data-needs-revision]');
+    callout.hidden = method.length === 0;
+    if (method.length) { form.querySelector('[data-method-names]').textContent = method.join(', ').replace(/^./, function (c) { return c.toUpperCase(); }); }
+
+    var fx = JSON.parse(form.dataset.effect), poured = parseFloat(form.querySelector('[data-poured]').value), cast = parseFloat(form.querySelector('[data-cast]').value);
+    var money = function (v) { return fx.currency.replace('#', v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })); };
+    var cost = form.querySelector('[data-effect-cost]'), metal = form.querySelector('[data-effect-metal]'), yieldNote = form.querySelector('[data-yield]');
+    var pouredChanged = fx.pouredKg && poured > 0 && Math.abs(poured - fx.pouredKg) > 1e-9;
+    if (fx.materialCost !== null) {
+        var now = fx.materialCost + (pouredChanged ? fx.perKgPoured * (poured - fx.pouredKg) : 0);
+        cost.textContent = pouredChanged && fx.perKgPoured ? money(fx.materialCost) + ' → ' + money(now) : money(fx.materialCost);
+    }
+    if (metal && fx.openOrder && fx.pouredKg) {
+        var t = function (kg) { return (kg * fx.openOrder.qty / 1000).toFixed(1); };
+        metal.textContent = pouredChanged ? t(fx.pouredKg) + ' → ' + t(poured) + ' t' : t(fx.pouredKg) + ' t';
+    }
+    if (yieldNote && poured > 0 && cast > 0) {
+        var was = fx.pouredKg && parseFloat(form.querySelector('[data-cast]').defaultValue) > 0 ? Math.round(100 * parseFloat(form.querySelector('[data-cast]').defaultValue) / fx.pouredKg) : null, y = Math.round(100 * cast / poured);
+        yieldNote.textContent = 'Yield ' + y + '%' + (was !== null && was !== y ? ', was ' + was + '%' : '');
+    }
+}
+document.addEventListener('input', function (e) { if (e.target.closest('#pd-edit-form')) { pdChanges(); } });
+document.addEventListener('change', function (e) { if (e.target.closest('#pd-edit-form')) { pdChanges(); } });
 document.addEventListener('click', function (e) {
+    if (e.target.closest('[data-edit-product]') && document.getElementById('pd-edit-form')) { e.preventDefault(); pdEdit(true); return; }
+    if (e.target.closest('[data-edit-cancel]')) { document.getElementById('pd-edit-form').reset(); pdEdit(false); return; }
     if (e.target.closest('[data-new-revision]')) {
         var tab = Array.prototype.find.call(document.querySelectorAll('.tabbar button'), function (b) { return b.textContent.indexOf('Revisions') === 0; });
         if (tab) { tab.click(); }

@@ -152,8 +152,14 @@ new class extends Component
                 ->orWhereHas('customerRequirements', fn ($d) => $d->whereIn('customer_grade', $this->designationsFor($this->metal))))))
             ->when($this->active === '1', fn ($q) => $q->where('active', true))
             ->when($this->active === '0', fn ($q) => $q->where('active', false))
-            ->when($this->active === 'dev', fn ($q) => $q->where('active', true)->whereHas('revisions', fn ($r) => $r->where('status', 'DRAFT'))
-                ->whereDoesntHave('revisions', fn ($r) => $r->where('status', 'APPROVED')));
+            ->when($this->active === 'dev', fn ($q) => $this->inDevelopment($q));
+    }
+
+    /** Products in development: set so, or still with only draft revisions. */
+    private function inDevelopment(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
+    {
+        return $query->where('active', true)->where(fn ($q) => $q->where('status', 'DEVELOPMENT')
+            ->orWhere(fn ($d) => $d->whereHas('revisions', fn ($r) => $r->where('status', 'DRAFT'))->whereDoesntHave('revisions', fn ($r) => $r->where('status', 'APPROVED'))));
     }
 
     /**
@@ -245,7 +251,7 @@ new class extends Component
             'summary' => $summary,
             'customers' => DB::table('customers as c')->join('parties as pa', 'pa.id', '=', 'c.party_id')->whereIn('c.id', DB::table('sales_orders')->select('customer_id'))->orderBy('pa.name')->pluck('pa.name', 'c.id'),
             'processes' => DB::table('patterns')->whereNotNull('sand_system')->where('sand_system', '!=', '')->distinct()->orderBy('sand_system')->pluck('sand_system'),
-            'inDevelopment' => Product::where('active', true)->whereHas('revisions', fn ($r) => $r->where('status', 'DRAFT'))->whereDoesntHave('revisions', fn ($r) => $r->where('status', 'APPROVED'))->count(),
+            'inDevelopment' => $this->inDevelopment(Product::query())->count(),
             'inactiveProducts' => Product::where('active', false)->count(),
             'products' => $products,
             'grades' => $grades,
@@ -360,7 +366,7 @@ new class extends Component
                             @php
                                 $g = $grades[$product->id] ?? null;
                                 $sand = ($patterns[$product->id] ?? null)?->pattern->madeForSand();
-                                $isDraft = $g && $g['revision']?->status === 'DRAFT' && ! $product->revisions->contains('status', 'APPROVED');
+                                $isDraft = $product->status === 'DEVELOPMENT' || ($g && $g['revision']?->status === 'DRAFT' && ! $product->revisions->contains('status', 'APPROVED'));
                             @endphp
                             <tr wire:key="product-{{ $product->id }}" wire:click="focus('{{ $product->id }}')" @class(['on' => $focus && (string) $focus->id === (string) $product->id])>
                                 <td><code>{{ $product->code }}</code></td>
@@ -374,6 +380,7 @@ new class extends Component
                                 <td>
                                     @if ($archived)<span class="pill">Archived</span> <form method="POST" action="{{ route('products.restore', $product) }}" style="display:inline" wire:click.stop>@csrf<button class="pc-link" type="submit">Restore</button></form>
                                     @elseif (! $product->active)<span class="pill">Obsolete</span>
+                                    @elseif ($product->status === 'ON_HOLD')<span class="pill warn">On hold</span>
                                     @elseif ($isDraft)<span class="pill info">In development</span>
                                     @else<span class="pill ok">Active</span>@endif
                                 </td>

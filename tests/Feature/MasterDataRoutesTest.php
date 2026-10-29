@@ -23,20 +23,17 @@ class MasterDataRoutesTest extends TestCase
     /** @return array<string, mixed> */
     private function productForm(array $over = []): array
     {
-        return $over + ['code' => 'FLG-1', 'name' => 'Flange', 'product_type' => 'CASTING', 'base_uom' => 'piece', 'active' => 1];
+        return $over + ['code' => 'FLG-1', 'name' => 'Flange', 'product_type' => 'CASTING', 'base_uom' => 'piece', 'active' => 1, 'status' => 'ACTIVE'];
     }
 
-    public function test_a_product_is_edited_with_a_unique_case_insensitive_code(): void
+    public function test_a_product_is_edited_on_its_page_and_keeps_the_code_it_was_created_with(): void
     {
         $product = $this->product();
-        $other = $this->product('VLV-1');
 
-        $this->get(route('products.edit', $product))->assertOk();
-        $this->put(route('products.update', $product), $this->productForm(['name' => 'Flange 6 inch', 'code' => 'flg-1']))->assertSessionHasNoErrors();
-        $this->assertSame('Flange 6 inch', $product->fresh()->name);
-        $this->assertSame('FLG-1', $product->fresh()->code);
+        $this->get(route('products.edit', $product))->assertRedirect(route('products.show', $product).'?edit=1');
+        $this->put(route('products.update', $product), $this->productForm(['name' => 'Flange 6 inch', 'code' => 'OTHER-1']))->assertSessionHasNoErrors();
+        $this->assertSame(['Flange 6 inch', 'FLG-1'], [$product->fresh()->name, $product->fresh()->code]);
 
-        $this->put(route('products.update', $other), $this->productForm(['code' => 'flg-1']))->assertSessionHasErrors('code');
         $this->put(route('products.update', $product), $this->productForm(['product_type' => 'GOLD']))->assertSessionHasErrors('product_type');
     }
 
