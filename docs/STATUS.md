@@ -30,6 +30,19 @@ Updated 2026-10-29.
 - Quick QC defect lines (`quality_defect_marks`): defect, pieces, reject or rework, pattern cavity, where on the casting, and piece IDs under the `defect_piece_ids` rule (off, optional, required); a 30-day table of defects by cavity.
 - Today board follows the day: orders, list, count, heat, moulds to pour, production queue, QC, ready to go out. `StepCountTest` pins this day at 14 steps from order to dispatch (Basic stays at 7).
 
+**Products, customers and enquiry (design pass, 2026-10)**
+- Products list: status tabs (all, active, in development, obsolete), customer and process filters, a Customer column, a summary side panel, and search that also finds a drawing number. Metal replaces the Category and Stock filters.
+- Product page: header with tabs, New revision and Edit product buttons; Overview (customer, technical, revision table, commercial side panel); BOM tab with material cost per casting.
+- Edit product: the overview becomes the form. The header shows Cancel, "Save as rev X draft" and Save changes; a side panel lists unsaved changes with their effect on material cost and open-order metal, and a new-revision hint for weight, alloy and tooling changes. Products have a status (active, development, on hold, obsolete) and a customer. Revisions keep customer part no., CSR, approved for, PPAP level, price, annual volume, packing spec and default delivery. Save as draft puts the changes on a new draft revision while the current one keeps running. The product code is fixed once created. Each section is a row with its explanation on the left, two fields per line, a New rev tag on alloy, casting weight, poured weight and pattern, and edited fields outlined with the old value beneath.
+- Per-product routing: the Routing tab copies the default route on Customise, and steps can be reordered, removed or added from the library for that product only. Back to default drops the copy. Lots, the traveller, after-pour moves, bulk stage moves, inspections, the queue and the stage order check all follow the product route (`ProductRouteTest`).
+- Charge recipes can be edited: an Edit recipe screen shares the new-recipe form and replaces the components. Each component has a role (metal charge, returns, alloy, coke, fuel, flux, limestone or other addition), set from the material type when picked. Coke, fuel, flux and additions sit on top of the metal charge, in kg per charge or as a percent of metal in a percentage recipe; only the metal counts towards 100% (`ChargeRecipeTotalTest`, `ChargePredictionTest`).
+- Customers: tabs for active, prospects and on hold, an overdue filter, a balance column and a side panel. New customers start as prospects and the first sales order makes them active. A new customer can carry a PPAP request. Display currency and a column chooser on customers and products. The Business partners menu entry is gone.
+- Enquiry and development: one intake page, a list with win/loss figures, a record once sent, and a close dialog. A won enquiry opens one pattern development per part, when a rule says so (on the win, or when the pattern is decided). A lost enquiry cancels its open developments; reaching Approved approves the draft revision the order waits on. A development can go back a stage with a reason, carries the tooling cost allowed, who pays, and the actual pattern cost. The enquiry flags a pattern near or past its service life. First-time customers start a new part, established ones a new product.
+- Feasibility: a queue of parts waiting for a decision and a review screen where each department signs; the worst verdict wins.
+- Contract review judges a repeating line by its earliest delivery still to come.
+- Dashboard is the owner's home; the old pipeline view is at `?layout=classic`. The melt panel shows the next scheduled heat.
+- Patterns: core boxes show in the patterns list with a Show filter. Core boxes and core stock sit under Engineering. Production orders are labelled Orders and sit right after Planning.
+
 **Production**
 - Moulding runs: bulk entry, three-step record screen, KPI strip, mould hardness, stations, sand test from a run.
 - Work lists: planned items, runs matched to the list, draft-list start setting, remake shortfall added in one click.
@@ -95,13 +108,13 @@ Updated 2026-10-29.
 
 ## Missing / next
 1. HR and the first part of Stores are done; Sales split done (sales orders and contract review in `app/Domains/Sales`; customers, production orders and the melting plan stay in core). Melting, pouring and moulding stay in core.
-2. Empty module folders still to fill or remove: Commercial, Costing, Engineering, MRP, Melting, Moulding, Pouring, Product, Production, Quality, Sand, Traceability.
+2. No module folder yet for Commercial, Costing, MRP, Melting, Moulding, Pouring, Product, Production, Quality, Sand or Traceability; these stay in core or are not started. Engineering exists now (bill of materials).
 3. Core still calls module classes directly (gauge calibration checks, tooling life panels). Planned fix: interfaces bound by modules, plus `dependsOn()`.
-4. STAGE2.md "not built yet" is out of date: inspection and dispatch screens now exist. Still to confirm: screens to add mould assemblies to a pour and to create casting lots.
+4. STAGE2.md is current: its "Built since" list covers mould assemblies on a pour, casting lots, inspections, packing and dispatch. Its "Still open" points to docs/PLAN.md.
 5. ISO 9001 readiness gaps listed in `iso-9001-readiness.pdf` are not tracked against the code.
 6. Quick QC tally (`/quick-qc`) records good, rework and rejected counts per product over open lots oldest first; the NCR threshold is a process-depth rule, and every process-depth rule can now be set on its own.
 7. Lot grouping rule (`lot_grouping`: MOULD or POUR): POUR makes one lot per pour and product, with every mould kept in `casting_lot_pour_mould_assembly`. The production queue moves ticked lots through several stages at once (`lots.bulk-stage`); packing and dispatch have an all-lots tick. Not done: a DAY grouping (needs several pours per lot). QuickFlow pours make lots since 2026-10-27.
-8. README is still the stock Laravel text.
+8. README is project-specific now, but links only STAGE2, STATUS and PLAN. It does not link STREAMLINE, AUDIT, HANDOFF or PPAP_APQP.
 
 ## Gap list: Synchro ERP / B&L Odyssey parity
 
@@ -111,13 +124,13 @@ Covered: order to pour, metallurgy and thermal, moulding, sand, patterns, toolin
 
 In priority order:
 1. **Stores/Inventory** (next in the module split): stock ledger, bins, issues, GRN, stock valuation.
-2. **Costing** (`Costing` is empty): actual versus standard cost per casting (metal, energy, labour, fettling).
-3. **MRP and scheduling** (`MRP`, `Production` are empty): material requirements planning, finite capacity scheduling.
+2. **Costing** (no module yet): actual versus standard cost per casting (metal, energy, labour, fettling).
+3. **MRP and scheduling** (no module yet): material requirements planning, finite capacity scheduling.
 4. **Finance** (in progress): invoicing, receivables, supplier bills, payables, the double-entry general ledger, P&L, balance sheet, bank reconciliation and the tax register are in; still to do, in order: purchase-side tax and returns, e-invoicing (list under Finance in Done).
 5. **Outside processing and machining routings**: subcontract flow, machining steps.
 6. **Reporting and BI**: management dashboards, customer scorecards, statutory report exports.
 7. **Integration**: EDI, e-invoicing and tax filing for the target market, barcode and device input.
-8. **Housekeeping**: track the ISO 9001 gaps against the code, replace direct core-to-module calls with interfaces and `dependsOn()`, write the README.
+8. **Housekeeping**: track the ISO 9001 gaps against the code, replace direct core-to-module calls with interfaces and `dependsOn()`, link the other docs from the README.
 
 **Notifications and reorder alerts**
 - `Notify` sends an `AppNotice` to everyone holding a permission, or to named roles; stored with Laravel's database notifications. The bell and growl-style toasts in the top bar (`notification-center`, Livewire) poll every 10 seconds. Websockets were not used: they need Reverb or Pusher and a socket server.
@@ -161,3 +174,14 @@ Plan for bought-in goods sold as they are, in order: (1) trade details on items,
 ### Menu
 Icons come from the free Untitled UI set (MIT), copied into `NavIcons` as inline SVG; factory, flame, sand, mould, crucible and planner are drawn by hand in the same style.
 Quick flow sits above Production (module nav groups take `'position' => 'top'`). Melting holds heats and furnaces; materials, charge recipes, suppliers and stock screens are under Purchases. Finished goods, packing and dispatch are under Sales & Planning.
+
+## Code inventory (2026-10-29)
+- Module folders in `app/Domains` (21): Cameras, Capa, Compliance, Core, Development, Dispatch, Documents, Engineering, Enquiry, Finance, Hr, Inventory, Ledger, Licensing, Maintenance, Parties, Purchasing, QuickFlow, Sales, Tax, Tooling. Each has a `routes.php`.
+- Largest by file count: Hr (116), Finance (89), Tooling (48), Ledger (41), Enquiry (39).
+- Thin: Inventory (routes and views; its code is in `app/Models`, `app/Services/Stock`), Core (contracts and defaults), Engineering, Parties, Capa, Compliance, Licensing.
+- Livewire components are blade views in `resources/views/livewire`; `app/Livewire` is empty.
+- Totals: 95 models, 80 services, 32 support classes, 81 controllers, 188 migrations, 233 blade views (plus domain views), 194 feature tests, 2 unit tests.
+- No TODO or FIXME in PHP source.
+- Test coverage by name is uneven. Finance, Purchasing, Documents, Parties, Inventory, Compliance, Engineering and Licensing have no test file named after them. Some may be covered under other names; check before relying on it.
+- `dependsOn()` is in the docs only, not in `app/`. Core still calls module classes directly.
+- Uncommitted at the time of this inventory: `public/css/app-overrides.css`, `resources/views/layouts/app.blade.php`, and untracked `.claudeignore`, `docs/design/`, and two CAD/zip files at the repo root.

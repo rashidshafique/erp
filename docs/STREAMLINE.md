@@ -1,6 +1,6 @@
 # Streamlining order-to-dispatch for small foundries
 
-Status 2026-10-27: phases 0 to 8 built and committed. Not done: a step-count pin for the Full path (only Basic is pinned); the melting plan and work lists screens still exist for Full.
+Status 2026-10-27: phases 0 to 8 built and committed. `StepCountTest` pins Basic at seven steps and the 14-step real day, which also runs on Basic (with `qc_after_steps=STEPS`). Not done: a step-count pin for the Full preset itself; the melting plan and work lists screens still exist for Full.
 
 ## Context
 
