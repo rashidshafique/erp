@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Domains\Development\Support\DevelopmentRules;
 use App\Domains\Maintenance\Support\CalibrationRules;
 
 /**
@@ -28,6 +29,7 @@ class ProcessDepth
 
     /** Where each rule lives: the class that reads and writes it. */
     private const CLASSES = [
+        'development_open' => DevelopmentRules::class,
         'contract_review' => OrderRules::class, 'order_flow' => OrderRules::class, 'order_completion' => OrderRules::class,
         'work_lists' => FloorRules::class, 'start_before_issue' => WorkListRules::class, 'mould_assembly' => FloorRules::class, 'floor_screens' => FloorRules::class,
         'melting_plan' => FloorRules::class, 'pour_entry' => FloorRules::class,
@@ -38,6 +40,7 @@ class ProcessDepth
 
     /** The rules page's sections, in the order work flows through the foundry. */
     public const GROUPS = [
+        'Enquiries' => ['development_open'],
         'Orders' => ['contract_review', 'order_flow', 'order_completion'],
         'Moulding' => ['floor_screens', 'work_lists', 'start_before_issue', 'mould_assembly'],
         'Melting and pouring' => ['melting_plan', 'pour_entry', 'gate_cupola', 'gate_induction', 'gate_other', 'hold_first_iron', 'containment'],

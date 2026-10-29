@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domains\Development\Models\PatternDevelopment;
+use App\Domains\Development\Support\DevelopmentRules;
 use App\Domains\Enquiry\Models\Enquiry;
 use App\Domains\Enquiry\Models\Quotation;
 use App\Domains\Enquiry\Services\QuotationService;
@@ -95,5 +96,26 @@ class EnquiryDevelopmentTest extends TestCase
 
         $this->assertSame(0, PatternDevelopment::count());
         $this->assertTrue($e->events()->where('text', 'like', 'No pattern development opened%')->exists());
+    }
+
+    public function test_under_the_decided_rule_the_pattern_decision_opens_the_development_before_the_quote(): void
+    {
+        $e = $this->enquiry();
+        $e->customer->update(['is_prospect' => true]);
+        $this->post(route('enquiries.pattern', $e), ['pattern_route' => 'NEW'])->assertSessionHasNoErrors();
+        $this->assertSame(0, PatternDevelopment::count(), 'by default the development waits for the win');
+
+        DevelopmentRules::set('development_open', 'DECIDED');
+        $this->post(route('enquiries.pattern', $e), ['pattern_route' => 'CUSTOMER']);
+        $this->post(route('enquiries.pattern', $e), ['pattern_route' => 'NEW'])->assertSessionHas('success', fn ($m) => str_contains($m, 'opened'));
+        $dev = PatternDevelopment::where('enquiry_id', $e->id)->where('status', 'OPEN')->sole();
+        $this->assertSame('NEW_PART', $dev->type);
+        $this->assertSame('Enquiry review', $dev->stageName(), 'opened before the win, it starts with the enquiry review');
+        $this->assertSame('CANCELLED', PatternDevelopment::where('type', 'CUSTOMER_PATTERN')->value('status'), 'the customer pattern one goes when the decision changes');
+
+        $this->issuedQuote($e->fresh());
+        $this->post(route('enquiries.close', $e), ['outcome' => 'WON'])->assertRedirect();
+        $this->assertSame(1, PatternDevelopment::where('status', 'OPEN')->count(), 'the win keeps it rather than opening another');
+        $this->get(route('settings.process-depth.edit'))->assertSee('When an enquiry opens its pattern development');
     }
 }

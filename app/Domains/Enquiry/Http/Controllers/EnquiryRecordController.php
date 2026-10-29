@@ -2,6 +2,9 @@
 
 namespace App\Domains\Enquiry\Http\Controllers;
 
+use App\Domains\Core\ModuleRegistry;
+use App\Domains\Development\Services\DevelopmentOpener;
+use App\Domains\Development\Support\DevelopmentRules;
 use App\Domains\Enquiry\Models\Enquiry;
 use App\Domains\Enquiry\Models\EnquiryEvent;
 use App\Domains\Enquiry\Models\EnquiryQuestion;
@@ -9,6 +12,7 @@ use App\Domains\Enquiry\Services\EnquiryCloser;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\Rule;
@@ -30,9 +34,23 @@ class EnquiryRecordController extends Controller
         $enquiry->update(['pattern_route' => $d['pattern_route'], 'pattern_id' => $d['pattern_route'] === 'EXISTING' ? $d['pattern_id'] : null]);
         if ($before !== $enquiry->pattern_route) {
             EnquiryEvent::system($enquiry, 'Tooling and pattern: '.Enquiry::PATTERN_ROUTES[$enquiry->pattern_route][0].($enquiry->pattern ? ' '.$enquiry->pattern->code : '').'.');
+            $opened = $this->developmentsOnDecision($enquiry);
+            if ($opened->isNotEmpty()) {
+                return back()->with('success', 'Pattern decision saved. Pattern development '.$opened->pluck('code')->implode(', ').' opened.');
+            }
         }
 
         return back()->with('success', 'Pattern decision saved.');
+    }
+
+    /** Under the "when the pattern is decided" rule, a changed decision opens the developments it needs now rather than on the win. */
+    private function developmentsOnDecision(Enquiry $enquiry): Collection
+    {
+        if (! class_exists(DevelopmentOpener::class) || ! app(ModuleRegistry::class)->isEnabled('development') || ! DevelopmentRules::opensWhenDecided()) {
+            return collect();
+        }
+
+        return app(DevelopmentOpener::class)->onDecision($enquiry->load('customer'));
     }
 
     public function question(Request $request, Enquiry $enquiry): RedirectResponse

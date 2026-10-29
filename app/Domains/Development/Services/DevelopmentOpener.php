@@ -59,6 +59,25 @@ class DevelopmentOpener
         return $opened;
     }
 
+    /**
+     * A changed pattern decision before the win: open developments of another kind are cancelled, and those the new decision
+     * needs are opened at their first stage.
+     *
+     * @return Collection<int, PatternDevelopment> the developments opened now
+     */
+    public function onDecision(Enquiry $enquiry): Collection
+    {
+        $type = self::typeFor($enquiry, (bool) $enquiry->customer?->isFirstTimeCustomer());
+        $route = Enquiry::PATTERN_ROUTES[$enquiry->pattern_route][0] ?? 'none';
+        foreach ($enquiry->developments()->where('status', 'OPEN')->where('type', '!=', $type ?? '')->get() as $stale) {
+            $stale->update(['status' => 'CANCELLED']);
+            $stale->events()->create(['kind' => 'CANCELLED', 'text' => "Cancelled: the pattern decision on {$enquiry->code} changed to {$route}.", 'user_name' => Auth::user()?->name]);
+            EnquiryEvent::system($enquiry, "Pattern development {$stale->code} cancelled: the pattern decision changed.");
+        }
+
+        return $this->open($enquiry, (bool) $enquiry->customer?->isFirstTimeCustomer(), false);
+    }
+
     private function create(Enquiry $enquiry, EnquiryItem $item, string $type, bool $won): PatternDevelopment
     {
         $start = $won ? (int) (config("pattern_developments.types.$type.enquiry_stages") ?? 0) : 0;
