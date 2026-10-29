@@ -1,6 +1,6 @@
 # Project status
 
-Updated 2026-10-27.
+Updated 2026-10-29.
 
 ## Done
 
@@ -21,6 +21,14 @@ Updated 2026-10-27.
 - Today board (`quick.today`), start page for the floor on the quick screens. "How you work" questions (Settings) set the rules.
 - Fixes: melting plan keeps started orders; quick and straight-to-production releases respect the release approval; a review goes stale after an edit and re-review leaves a live order live; sign-offs record the user (not both roles); quick pours follow the gate mode; Micro shows Packing.
 - `StepCountTest` pins Basic at seven forms from order to dispatch. Quick pours made before 2026-10-27 have no lots (no backfill).
+
+**A floor day, list to QC (2026-10-29)**
+- Moulding list (`DailyMouldingList`): the day's work list prepared from open orders after the moulds already made, spread over the stations, with unstarted rows of earlier lists carried over (`carried_from_item_id`). Prepared by `moulding:prepare-list` (work list rule `auto_prepare`: tomorrow at 18:00, today at 06:00, or off) or with Prepare list on the work lists page and the quick Moulding list page; rows change moulds or station, then the list is released (issued). A released list fills the quick moulds made grid.
+- Count moulds (`MouldCounter`, `/mould-count`): counted per pattern before pouring against assembled plus unassembled moulds; a shortfall needs a reason and is written off (unassembled of the oldest runs first, then the oldest assembled, scrapped with flasks back), moving moulds from the run's accepted to damaged so the orders need them again.
+- Close heat: furnace off time, metal left and where it went (pigged, returns, held, scrapped); a cupola still closes at its bottom drop and then records its leftover. Next heat lists heats not yet closed.
+- After pour (`AfterPour`, `/after-pour`): the active route steps before the first inspection, per product, with cooling time at knock-out; batches of pieces or moulds, or all, shared over open lots oldest first with rejects, so a lot can sit at two steps (`recordStage` takes `batch`). Quality rule `qc_after_steps`: QC straight after the pour (default) or only after these steps.
+- Quick QC defect lines (`quality_defect_marks`): defect, pieces, reject or rework, pattern cavity, where on the casting, and piece IDs under the `defect_piece_ids` rule (off, optional, required); a 30-day table of defects by cavity.
+- Today board follows the day: orders, list, count, heat, moulds to pour, after pour, QC, ready to go out. `StepCountTest` pins this day at 14 steps from order to dispatch (Basic stays at 7).
 
 **Production**
 - Moulding runs: bulk entry, three-step record screen, KPI strip, mould hardness, stations, sand test from a run.

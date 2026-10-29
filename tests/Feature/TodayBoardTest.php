@@ -16,11 +16,13 @@ class TodayBoardTest extends TestCase
         $lot = $this->castingLot();
 
         $this->get(route('quick.today'))->assertOk()
-            ->assertSeeInOrder(['Orders due', 'Moulds to make', 'Next heat', 'Moulds waiting to pour', 'Castings to check', 'Ready to go out'])
+            ->assertSeeInOrder(['Orders due', 'Moulding list', 'Count moulds', 'Heat', 'Moulds waiting to pour', 'After pour', 'Castings to check', 'Ready to go out'])
             ->assertSee($lot->productionOrder->production_order_number)
             ->assertSee('5 pieces in 1 lot')
             ->assertSee(route('quick-qc.index'), false)
-            ->assertSee(route('quick.floor.index', ['plan' => today()->toDateString()]), false);
+            ->assertSee(route('quick.list.index'), false)
+            ->assertSee(route('mould-count.index'), false)
+            ->assertSee(route('after-pour.index'), false);
     }
 
     public function test_packing_and_dispatch_leave_the_board_with_their_module(): void
