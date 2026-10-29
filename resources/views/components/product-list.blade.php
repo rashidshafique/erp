@@ -274,9 +274,10 @@ new class extends Component
     .pc-btn.primary { background: #2f5fd0; border-color: #2f5fd0; color: #fff; font-weight: 500; }
     .pc-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; }
     .pc-main { padding: 20px 28px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-    .pc-filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-    .pc-filters input[type=search] { flex: 1; max-width: 320px; padding: 7px 10px; border: 1px solid #d9dbde; border-radius: 6px; background: #fff; }
-    .pc-filters select { padding: 6px 10px; border: 1px solid #d9dbde; border-radius: 6px; background: #fff; color: #1c1d1f; }
+    .pc-filters { display: flex; gap: 8px; align-items: center; flex-wrap: nowrap; overflow-x: auto; }
+    .pc-filters input[type=search] { flex: 1 1 200px; width: auto; min-width: 140px; max-width: 320px; margin: 0; padding: 7px 10px; border: 1px solid #d9dbde; border-radius: 6px; background: #fff; }
+    .pc-filters select { flex: 0 0 auto; width: auto; min-width: 0; margin: 0; padding: 6px 10px; border: 1px solid #d9dbde; border-radius: 6px; background: #fff; color: #1c1d1f; }
+    .pc-filters .pc-btn, .pc-filters span { flex: 0 0 auto; white-space: nowrap; }
     .pc table { width: 100%; border-collapse: collapse; }
     .pc th { text-align: left; font-size: 12px; font-weight: 500; color: #6b6e73; padding: 8px 12px; border-bottom: 1px solid #e6e7e9; white-space: nowrap; }
     .pc td { padding: 10px 12px; border-bottom: 1px solid #e6e7e9; vertical-align: middle; }
