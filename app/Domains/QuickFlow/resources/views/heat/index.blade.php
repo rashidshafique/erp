@@ -13,6 +13,11 @@
         <span class="muted small" style="display:block">{{ $calendar['description'] }}</span></div>
     <a class="btn btn-small" href="{{ route('settings.melting-days.edit') }}">Melting days</a>
 </div></div>
+@if ($openHeats->isNotEmpty())
+<div class="panel"><div class="panel-header"><h2>Heats not closed</h2><span class="muted small">Close each when the furnace is turned off.</span></div>
+    <div class="table-wrap"><table><tbody>@foreach ($openHeats as $h)<tr><td><a href="{{ route('heats.show', $h) }}">{{ $h->heat_number }}</a></td><td>{{ $h->ironGrade?->code }} on {{ $h->furnace?->code }}</td>
+        <td>{{ ucfirst(strtolower(str_replace('_', ' ', $h->status))) }}</td><td style="text-align:right"><a class="btn btn-small" href="{{ route('heats.show', $h) }}#close-heat">Close heat</a></td></tr>@endforeach</tbody></table></div></div>
+@endif
 @if ($warnings)<div class="alert alert-warning"><strong>Not planned:</strong><ul>@foreach (array_unique($warnings) as $w)<li>{{ $w }}</li>@endforeach</ul></div>@endif
 
 @forelse ($heats as $i => $heat)

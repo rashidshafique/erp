@@ -5,6 +5,7 @@ namespace App\Domains\QuickFlow\Http\Controllers;
 use App\Domains\QuickFlow\Services\NextHeatPlan;
 use App\Http\Controllers\Controller;
 use App\Models\Furnace;
+use App\Models\Heat;
 use App\Models\IronGrade;
 use App\Services\FurnaceEligibility;
 use App\Services\Planning\HeatPlanner;
@@ -23,7 +24,9 @@ class NextHeatController extends Controller
         // With a melting rule set, each open order is checked: is there a melting day left before its due date allows?
         $dueChecks = $enabled ? $data['orders']->mapWithKeys(fn ($o) => [$o['order']->id => $o['due'] ? MeltingCalendar::checkDue($o['due']) : null]) : collect();
 
-        return view('quickflow::heat.index', $data + ['calendar' => ['enabled' => $enabled, 'description' => MeltingCalendar::describe(), 'next' => MeltingCalendar::next()], 'dueChecks' => $dueChecks]);
+        $open = Heat::with('furnace', 'ironGrade')->whereNotIn('status', ['CLOSED', 'CANCELLED', 'PLANNED'])->orderBy('created_at')->get();
+
+        return view('quickflow::heat.index', $data + ['calendar' => ['enabled' => $enabled, 'description' => MeltingCalendar::describe(), 'next' => MeltingCalendar::next()], 'dueChecks' => $dueChecks, 'openHeats' => $open]);
     }
 
     /** Starts the heat as planned, then goes to it for thermal tests. The weight can be changed before it starts. */

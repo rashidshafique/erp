@@ -335,6 +335,7 @@ Route::post('/heats/{heat}/chemistry', [HeatChemistryController::class, 'store']
 Route::post('/heats/{heat}/chemistry/import', [\App\Http\Controllers\HeatChemistryImportController::class, 'store'])->name('heats.chemistry.import');
 Route::get('/heats/{heat}/summary', [\App\Http\Controllers\HeatSummaryController::class, 'show'])->name('heats.summary');
 Route::put('/heats/{heat}/timeline', [\App\Http\Controllers\HeatTimelineController::class, 'update'])->name('heats.timeline');
+Route::post('/heats/{heat}/close', [\App\Http\Controllers\HeatTimelineController::class, 'close'])->name('heats.close');
 Route::post('/heats/{heat}/chemistry/{reading}/verify', [HeatChemistryController::class, 'verify'])->name('heats.chemistry.verify');
 Route::post('/moulding-runs/{mouldingRun}/assemblies', [MouldingRunController::class, 'assemble'])->name('moulding-runs.assemble');
 Route::post('/pours/{pour}/assemblies', [PourController::class, 'attachAssemblies'])->name('pours.assemblies.attach');

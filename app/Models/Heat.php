@@ -24,6 +24,9 @@ class Heat extends Model
         'melt_completed_at',
         'tapped_at',
         'closed_at',
+        'leftover_metal_kg',
+        'leftover_use',
+        'close_note',
         'target_metal_weight_kg',
         'actual_tapped_weight_kg',
         'target_temperature_c',
@@ -170,6 +173,9 @@ class Heat extends Model
     /**
      * Status light: red while held for a scrap or equipment problem, green while pouring, orange while the heat is in progress.
      */
+    /** Where metal left at the end of a heat went. */
+    public const LEFTOVER_USES = ['PIGGED' => 'Poured into pigs', 'RETURNS' => 'Back to returns', 'HELD' => 'Held in the furnace for the next heat', 'SCRAPPED' => 'Scrapped'];
+
     /** A heat is running from the start of the melt to the end of tapping; induction heats use IN_PROGRESS, cupola heats MELTING and TAPPING. */
     public const RUNNING_STATUSES = ['IN_PROGRESS', 'MELTING', 'TAPPING'];
 

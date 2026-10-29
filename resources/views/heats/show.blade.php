@@ -173,6 +173,7 @@
 @if ($heat->isCupola())
     @include('heats._timeline', ['heat' => $heat])
 @endif
+@include('heats._close', ['heat' => $heat])
 </div>
 <div>
 @include('heats._sampling', ['heat' => $heat])

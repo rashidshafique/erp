@@ -71,4 +71,31 @@ class HeatTimelineController extends Controller
 
         return back()->with('success', 'Timeline saved.'.($outcome === 'PREMATURE' ? ' Recorded as dropped prematurely.' : ''));
     }
+
+    /**
+     * Closes the heat when the furnace is turned off, with the metal left over and where it went. A cupola closes at its bottom
+     * drop, so for one this only records the leftover metal. A heat still pouring cannot close.
+     */
+    public function close(Request $request, Heat $heat): RedirectResponse
+    {
+        $d = $request->validate([
+            'closed_at' => ['nullable', 'date', 'before_or_equal:+5 minutes'],
+            'leftover_metal_kg' => ['nullable', 'numeric', 'min:0', 'max:9999999'],
+            'leftover_use' => ['nullable', 'required_with:leftover_metal_kg', \Illuminate\Validation\Rule::in(array_keys(Heat::LEFTOVER_USES))],
+            'close_note' => ['nullable', 'string', 'max:500'],
+        ], ['leftover_use.required_with' => 'Say where the leftover metal went.']);
+        if ($heat->status === 'CANCELLED' || ($heat->status === 'CLOSED' && ! $heat->isCupola())) {
+            return back()->withErrors(['close' => "Heat {$heat->heat_number} is already ".strtolower($heat->status).'.']);
+        }
+        if ($heat->pours()->where('status', 'IN_PROGRESS')->exists()) {
+            return back()->withErrors(['close' => 'A pour on this heat is still in progress. Complete it first.']);
+        }
+        if ($heat->isCupola() && ! $heat->dropped_at) {
+            return back()->withErrors(['close' => 'A cupola heat closes at its bottom drop. Enter the drop time on the timeline first.']);
+        }
+        $leftover = ['leftover_metal_kg' => $d['leftover_metal_kg'] ?? null, 'leftover_use' => filled($d['leftover_metal_kg'] ?? null) ? $d['leftover_use'] : null, 'close_note' => $d['close_note'] ?? null];
+        $heat->update($heat->isCupola() ? $leftover : $leftover + ['status' => 'CLOSED', 'closed_at' => isset($d['closed_at']) ? Carbon::parse($d['closed_at']) : now(), 'hold_reason' => null]);
+
+        return back()->with('success', "Heat {$heat->heat_number} closed".($leftover['leftover_metal_kg'] ? ': '.\App\Support\Formats::number($leftover['leftover_metal_kg'], 0).' kg '.strtolower(Heat::LEFTOVER_USES[$leftover['leftover_use']]).'.' : '.'));
+    }
 }
