@@ -50,7 +50,7 @@ class LotService
                 throw new InvalidArgumentException("Only {$held} piece(s) of the lot are left (poured {$lot->quantity_poured}, rejected so far ".$this->rejected($lot).').');
             }
             $last = $lot->stageEvents()->with('stage')->get()->map(fn ($e) => $e->stage?->sequence)->filter()->max();
-            if ($last !== null && $stage->sequence < $last) {
+            if ($last !== null && $stage->sequence < $last && empty($d['batch'])) {   // a batch (AfterPour) moves only pieces still waiting at the step
                 throw new InvalidArgumentException("This lot has already passed a later stage (sequence {$last}); {$stage->name} cannot be recorded after it.");
             }
             if ($rej > 0 && blank($d['rejection_reason'] ?? null)) {

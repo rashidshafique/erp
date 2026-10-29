@@ -54,6 +54,7 @@ class QuickFlowServiceProvider extends ModuleServiceProvider
                 ['label' => 'Count moulds', 'route' => 'mould-count.index', 'icon' => 'hash', 'active' => ['mould-count.*']],
                 ['label' => 'Next heat', 'route' => 'quick.heat.index', 'icon' => 'flame', 'active' => ['quick.heat.*']],
                 ['label' => 'Moulds made / poured', 'route' => 'quick.floor.index', 'icon' => 'mould', 'active' => ['quick.floor.*']],
+                ['label' => 'After pour', 'route' => 'after-pour.index', 'icon' => 'hourglass', 'active' => ['after-pour.*']],
                 ['label' => 'New order', 'route' => 'quick.orders.create', 'icon' => 'plus-circle', 'active' => ['quick.orders.*']],
             ],
         ]];

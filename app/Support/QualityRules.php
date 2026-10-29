@@ -19,6 +19,10 @@ class QualityRules
             'MOULD' => 'One lot per mould and product: full traceability to each mould',
             'POUR' => 'One lot per pour and product: castings from all moulds of the pour are handled together',
         ], 'MOULD'],
+        'qc_after_steps' => ['quality.qc_after_steps', 'When castings reach quality control', [
+            'STEPS' => 'After the steps before inspection: knock-out, fettling, shot blast and the like are recorded first',
+            'POUR' => 'Straight after the pour: the steps before inspection need not be recorded',
+        ], 'POUR'],
     ];
 
     public static function get(string $rule): string
@@ -57,5 +61,10 @@ class QualityRules
             'NEVER' => false,
             default => true,
         };
+    }
+
+    public static function qcWaitsForSteps(): bool
+    {
+        return self::get('qc_after_steps') === 'STEPS';
     }
 }

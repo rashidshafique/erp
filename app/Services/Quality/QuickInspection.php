@@ -8,6 +8,7 @@ use App\Models\NonconformanceReport;
 use App\Models\QualityDefect;
 use App\Models\QualityInspection;
 use App\Models\QualityInspectionResult;
+use App\Services\Production\AfterPour;
 use App\Services\Production\LotService;
 use App\Support\QualityRules;
 use Illuminate\Support\Collection;
@@ -36,12 +37,15 @@ class QuickInspection
             ->groupBy('product_revision_id');
     }
 
-    /** Pieces of the lot not yet rejected at a stage and not yet part of any inspection. */
+    /**
+     * Pieces of the lot not yet part of any inspection: those through every step before inspection, or, when quality control
+     * does not wait for the steps, those not rejected at a stage.
+     */
     public function toCheck(CastingLot $lot): int
     {
-        $stageRejected = (int) $lot->stageEvents()->sum('quantity_rejected');
+        $ready = QualityRules::qcWaitsForSteps() ? app(AfterPour::class)->progress($lot)['done'] : (int) $lot->quantity_poured - (int) $lot->stageEvents()->sum('quantity_rejected');
 
-        return max(0, (int) $lot->quantity_poured - $stageRejected - (int) $lot->inspections()->sum('quantity_inspected'));
+        return max(0, $ready - (int) $lot->inspections()->sum('quantity_inspected'));
     }
 
     public function hasApprovedPlan(int|string $productRevisionId): bool

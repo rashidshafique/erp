@@ -35,7 +35,7 @@ class ProcessDepth
         'melting_plan' => FloorRules::class, 'pour_entry' => FloorRules::class,
         'gate_cupola' => PouringRules::class, 'gate_induction' => PouringRules::class, 'gate_other' => PouringRules::class,
         'hold_first_iron' => PouringRules::class, 'containment' => PouringRules::class,
-        'overdue_use' => CalibrationRules::class, 'ncr_threshold' => QualityRules::class, 'lot_grouping' => QualityRules::class,
+        'overdue_use' => CalibrationRules::class, 'ncr_threshold' => QualityRules::class, 'lot_grouping' => QualityRules::class, 'qc_after_steps' => QualityRules::class,
     ];
 
     /** The rules page's sections, in the order work flows through the foundry. */
@@ -44,7 +44,7 @@ class ProcessDepth
         'Orders' => ['contract_review', 'order_flow', 'order_completion'],
         'Moulding' => ['floor_screens', 'work_lists', 'start_before_issue', 'mould_assembly'],
         'Melting and pouring' => ['melting_plan', 'pour_entry', 'gate_cupola', 'gate_induction', 'gate_other', 'hold_first_iron', 'containment'],
-        'Quality and gauges' => ['lot_grouping', 'ncr_threshold', 'overdue_use'],
+        'Quality and gauges' => ['lot_grouping', 'qc_after_steps', 'ncr_threshold', 'overdue_use'],
     ];
 
     public static function apply(string $preset): void
