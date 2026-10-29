@@ -405,6 +405,7 @@ Route::prefix('lots')->name('lots.')->controller(LotController::class)->group(fu
     Route::get('/queue', [LotQueueController::class, 'queue'])->name('queue');
     Route::post('/bulk', 'bulk')->name('bulk');
     Route::post('/bulk-stage', 'bulkStage')->name('bulk-stage');
+    Route::post('/batch-stage', 'batchStage')->name('batch-stage');
     Route::post('/release-first-iron', 'releaseFirstIron')->name('release-first-iron');
     Route::get('/{lot}', 'show')->name('show');
     Route::post('/{lot}/stages', 'storeStage')->name('stages.store');
@@ -472,8 +473,6 @@ Route::prefix('work-lists')->name('work-lists.')->controller(WorkListController:
 Route::get('/mould-readiness', [MouldReadinessController::class, 'index'])->name('mould-readiness.index');
 Route::get('/mould-count', [\App\Http\Controllers\MouldCountController::class, 'index'])->name('mould-count.index');
 Route::post('/mould-count', [\App\Http\Controllers\MouldCountController::class, 'store'])->name('mould-count.store');
-Route::get('/after-pour', [\App\Http\Controllers\AfterPourController::class, 'index'])->name('after-pour.index');
-Route::post('/after-pour', [\App\Http\Controllers\AfterPourController::class, 'store'])->name('after-pour.store');
 
 // ---- Custom fields ----
 Route::get('/settings/custom-fields', [CustomFieldController::class, 'index'])->name('custom-fields.index');

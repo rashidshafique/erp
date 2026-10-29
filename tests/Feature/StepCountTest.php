@@ -117,9 +117,9 @@ class StepCountTest extends TestCase
         $this->step('heats.close', ['leftover_metal_kg' => 20, 'leftover_use' => 'PIGGED'], Heat::sole());
         // 9-11. Next day: knock-out, fettling (two rejected), shot blast.
         $rev = $order->product_revision_id;
-        $this->step('after-pour.store', ['stage_definition_id' => ProductionStageDefinition::where('code', 'SHAKEOUT')->value('id'), 'product_revision_id' => $rev, 'cooling_override_reason' => 'test']);
-        $this->step('after-pour.store', ['stage_definition_id' => ProductionStageDefinition::where('code', 'CUTTING')->value('id'), 'product_revision_id' => $rev, 'rejected' => 2, 'rejection_reason' => 'Broken in fettling']);
-        $this->step('after-pour.store', ['stage_definition_id' => ProductionStageDefinition::where('code', 'SHOT_BLAST')->value('id'), 'product_revision_id' => $rev]);
+        $this->step('lots.batch-stage', ['stage_definition_id' => ProductionStageDefinition::where('code', 'SHAKEOUT')->value('id'), 'product_revision_id' => $rev, 'cooling_override_reason' => 'test']);
+        $this->step('lots.batch-stage', ['stage_definition_id' => ProductionStageDefinition::where('code', 'CUTTING')->value('id'), 'product_revision_id' => $rev, 'rejected' => 2, 'rejection_reason' => 'Broken in fettling']);
+        $this->step('lots.batch-stage', ['stage_definition_id' => ProductionStageDefinition::where('code', 'SHOT_BLAST')->value('id'), 'product_revision_id' => $rev]);
         // 12. QC with the defects marked by cavity.
         $this->step('quick-qc.store', ['rows' => [$rev => ['accepted' => 13, 'rejected' => 3, 'marks' => [
             ['defect_id' => QualityDefect::where('code', 'COLD-SHUT')->value('id'), 'quantity' => 3, 'disposition' => 'REJECT', 'cavity' => $revision->id.':2'],

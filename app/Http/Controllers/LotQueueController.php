@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CastingLot;
 use App\Models\PackingRecordItem;
 use App\Models\ProductionStageDefinition;
+use App\Services\Production\AfterPour;
 use App\Services\Production\LotService;
 use App\Services\Production\ShipmentService;
 use App\Support\QueueRules;
@@ -23,6 +24,7 @@ class LotQueueController extends Controller
         $lots = CastingLot::with(['product', 'stageEvents.stage', 'pourMouldAssembly.pour', 'pourMouldAssemblies.mouldAssembly', 'productionOrder'])
             ->whereIn('status', ['IN_PRODUCTION', 'ON_HOLD', 'READY'])->get();
 
+        $afterPour = app(AfterPour::class);
         $steps = [];
         foreach (QueueRules::steps() as $key => $label) {
             $steps[$key] = $this->step($key, $label);
@@ -44,8 +46,11 @@ class LotQueueController extends Controller
             }
 
             $poured = $lot->pourMouldAssembly?->pour?->completed_at;
+            $behind = $afterPour->stepsFor($lot->product_revision_id)->filter(fn ($st) => $st->sequence <= (int) ($last?->sequence ?? 0))
+                ->map(fn ($st) => [$st->name, $afterPour->progress($lot)['waiting'][$st->id] ?? 0])->filter(fn ($w) => $w[1] > 0)
+                ->map(fn ($w) => "{$w[1]} pcs still before {$w[0]}")->implode(', ');
             $steps[$key]['lots'][] = [
-                'lot' => $lot, 'last_seq' => (int) ($last?->sequence ?? 0), 'pieces' => $svc->pieces($lot), 'poured' => $poured, 'age_h' => $poured ? (int) $poured->diffInHours(now()) : null,
+                'lot' => $lot, 'last_seq' => (int) ($last?->sequence ?? 0), 'behind' => $behind, 'pieces' => $svc->pieces($lot), 'poured' => $poured, 'age_h' => $poured ? (int) $poured->diffInHours(now()) : null,
                 'cool' => $svc->cooling($lot), 'urgent' => $lot->productionOrder?->required_date,
                 'moulds' => $lot->pourMouldAssemblies->map(fn ($row) => ['number' => $row->mouldAssembly?->assembly_number ?? '—', 'pieces' => (int) $row->pivot->quantity])->all(),
             ];
@@ -80,6 +85,8 @@ class LotQueueController extends Controller
             'openLots' => $lots->count(),
             'view' => $request->query('view') === 'board' ? 'board' : 'list',
             'awaitingDispatch' => $awaitingDispatch,
+            'batches' => $afterPour->board()->groupBy(fn ($r) => $r['step']->id),
+            'defects' => \App\Models\QualityDefect::where('is_active', true)->orderBy('name')->pluck('name'),
         ]);
     }
 

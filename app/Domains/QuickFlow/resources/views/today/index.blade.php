@@ -25,7 +25,7 @@
         @if ($list)<div class="panel-body">{{ $list->items_count }} {{ $list->items_count === 1 ? 'row' : 'rows' }} on the stations.@if ($list->status === 'DRAFT') Check it and release it to the floor.@endif</div>
         @elseif ($toMake->isEmpty())<div class="empty-state">Nothing to make. Set each station's moulds per shift on the planner.</div>
         @else<div class="panel-body">{{ $toMake->sum('moulds') }} moulds suggested from open orders.</div>@endif
-        <div class="panel-body" style="display:flex;gap:8px"><a class="btn btn-small" href="{{ route('quick.list.index') }}">{{ $list ? 'Open the list' : 'Prepare the list' }}</a>
+        <div class="panel-body" style="display:flex;gap:8px"><a class="btn btn-small" href="{{ route('work-lists.index') }}">{{ $list ? 'Open the list' : 'Prepare the list' }}</a>
             @if ($list?->status === 'ISSUED')<a class="btn btn-small btn-primary" href="{{ route('quick.floor.index', ['plan' => today()->toDateString()]) }}">Record moulds made</a>@endif</div>
     </section>
 
@@ -59,7 +59,7 @@
         <div class="panel-header"><h2>6 · After pour</h2><span class="muted small">{{ $afterPour->sum() }} pieces between pour and QC</span></div>
         @if ($afterPour->isEmpty())<div class="empty-state">Nothing to knock out, fettle or clean.</div>@else
         <div class="table-wrap"><table><tbody>@foreach ($afterPour as $step => $pieces)<tr><td>{{ $step }}</td><td>{{ $pieces }} pcs</td></tr>@endforeach</tbody></table></div>@endif
-        <div class="panel-body"><a class="btn btn-small" href="{{ route('after-pour.index') }}">Knock-out, fettling, cleaning</a></div>
+        <div class="panel-body"><a class="btn btn-small" href="{{ route('lots.queue') }}">Production queue</a></div>
     </section>
 
     <section class="panel">

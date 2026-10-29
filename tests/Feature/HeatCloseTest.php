@@ -27,7 +27,9 @@ class HeatCloseTest extends TestCase
         $this->get(route('heats.show', $heat))->assertOk()->assertSee('Close heat');
         $this->post(route('heats.close', $heat), [])->assertSessionHasErrors('close');
 
-        $pour->update(['status' => 'COMPLETED']);
+        $heat->update(['actual_tapped_weight_kg' => 500]);
+        $pour->update(['status' => 'COMPLETED', 'total_poured_weight_kg' => 380]);
+        $this->get(route('heats.show', $heat))->assertSee('Tapped, not poured: 120.0 kg')->assertSeeHtml('name="leftover_metal_kg" min="0" step="1" value="120"');
         $this->post(route('heats.close', $heat), ['leftover_metal_kg' => 120])->assertSessionHasErrors('leftover_use');
         $this->post(route('heats.close', $heat), ['leftover_metal_kg' => 120, 'leftover_use' => 'PIGGED', 'closed_at' => now()->subMinutes(10)->format('Y-m-d\TH:i')])->assertSessionHasNoErrors();
 
@@ -36,7 +38,7 @@ class HeatCloseTest extends TestCase
         $this->assertNotNull($heat->closed_at);
         $this->assertSame('PIGGED', $heat->leftover_use);
         $this->assertNull($heat->light(), 'a closed heat leaves the top bar');
-        $this->get(route('heats.show', $heat))->assertSee('120 kg left · Poured into pigs');
+        $this->get(route('heats.show', $heat))->assertSee('120 kg left · Poured into pigs')->assertSee('Left at close (poured into pigs)');
         $this->get(route('quick.heat.index'))->assertDontSee('Heats not closed');
     }
 

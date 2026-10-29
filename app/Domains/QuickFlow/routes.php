@@ -1,7 +1,6 @@
 <?php
 
 use App\Domains\QuickFlow\Http\Controllers\FloorEntryController;
-use App\Domains\QuickFlow\Http\Controllers\MouldingListController;
 use App\Domains\QuickFlow\Http\Controllers\NextHeatController;
 use App\Domains\QuickFlow\Http\Controllers\QuickOrderController;
 use App\Domains\QuickFlow\Http\Controllers\TodayController;
@@ -11,7 +10,6 @@ Route::middleware('web')->prefix('quick')->name('quick.')->group(function () {
     Route::get('/today', [TodayController::class, 'index'])->name('today');
     Route::get('/orders/new', [QuickOrderController::class, 'create'])->name('orders.create');
     Route::post('/orders', [QuickOrderController::class, 'store'])->name('orders.store');
-    Route::get('/list', [MouldingListController::class, 'index'])->name('list.index');
     Route::get('/floor', [FloorEntryController::class, 'index'])->name('floor.index');
     Route::post('/floor/made', [FloorEntryController::class, 'made'])->name('floor.made');
     Route::post('/floor/poured', [FloorEntryController::class, 'poured'])->name('floor.poured');

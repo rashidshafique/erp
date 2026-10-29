@@ -91,6 +91,8 @@
 </nav>
 @endif
 
+@if ($view !== 'board' && $batches->isNotEmpty())@include('lots._queue-batch')@endif
+
 <form method="POST" action="{{ route('lots.bulk-stage') }}" x-ref="form" @change="changed($event)" @click="clicked($event)" @submit="submitting($event)">@csrf
 
 @if ($view === 'board' && $openLots)
@@ -127,7 +129,7 @@
                 </td>
                 <td><x-product-cell :product="$l->product" /></td>
                 <td>{{ $l->productionOrder?->production_order_number }}@if($r['urgent'])<div class="muted small" @if ($r['urgent']->lt(today())) style="color:var(--danger)" @endif>required {{ $r['urgent']->displayShortDate() }}</div>@endif</td>
-                <td>{{ $r['pieces'] }}</td>
+                <td>{{ $r['pieces'] }}@if ($r['behind'])<div class="muted small">{{ $r['behind'] }}</div>@endif</td>
                 <td>{{ $r['poured']?->displayShortDateTime() ?? '—' }}</td>
                 <td>{{ $r['age_h'] !== null ? $r['age_h'].' h' : '—' }}</td>
                 <td>@if($r['cool'])@if($r['cool']['wait'] > 0)<span class="status status-in-progress">wait {{ $r['cool']['wait'] }} min</span>@else <span class="muted small">met</span>@endif @endif</td>

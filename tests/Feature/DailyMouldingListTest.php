@@ -38,24 +38,24 @@ class DailyMouldingListTest extends TestCase
         $this->assertSame(2, MouldingWorkList::count());
     }
 
-    public function test_a_row_is_changed_before_release_and_the_released_list_fills_the_quick_grid(): void
+    public function test_basic_prepares_changes_and_releases_the_list_on_the_work_list_pages_and_the_released_list_fills_the_quick_grid(): void
     {
         FloorRules::set('work_lists', 'OFF');
         FloorRules::set('floor_screens', 'QUICK');
         $w = $this->world();
         $w['st']->update(['moulds_per_shift' => 60]);
-        $this->get(route('quick.list.index'))->assertOk()->assertSee('Prepare list');
-        $this->post(route('work-lists.prepare'), ['day' => today()->toDateString(), 'stay' => 1])->assertRedirect();
+        $this->get(route('work-lists.index'))->assertOk()->assertSee('Prepare from orders');
+        $this->post(route('work-lists.prepare'), ['day' => today()->toDateString()])->assertRedirect(route('work-lists.show', MouldingWorkList::sole()));
         $list = MouldingWorkList::sole();
         $row = $list->items()->sole();
 
         $this->put(route('work-lists.items.update', [$list, $row]), ['planned_moulds' => 35])->assertSessionHasNoErrors();
         $this->assertSame(35, $row->fresh()->planned_moulds);
-        $this->get(route('quick.list.index'))->assertOk()->assertSee('MP-7')->assertSee('Release to the floor');
+        $this->get(route('work-lists.show', $list))->assertOk()->assertSee('MP-7');
 
         $this->post(route('work-lists.issue', $list), ['issued_by' => 'Planner'])->assertSessionHasNoErrors();
-        $this->get(route('quick.list.index'))->assertSee('Released')->assertSee('Enter moulds made');
         $this->get(route('quick.floor.index', ['plan' => today()->toDateString()]))->assertOk()->assertSee('35');
+        $this->get(route('quick.today'))->assertOk()->assertSee('Record moulds made');
     }
 
     public function test_the_evening_job_prepares_tomorrow_unless_the_rule_is_off(): void

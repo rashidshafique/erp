@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\CastingLot;
 use App\Models\ProductionStageDefinition;
+use App\Services\Production\AfterPour;
 use App\Services\Production\LotCombiner;
 use App\Services\Production\LotService;
 use App\Services\Production\ProcessRoutes;
@@ -200,6 +201,28 @@ class LotController extends Controller
 
         return back()->with('success', "{$done} lot(s) moved through ".$stages->pluck('name')->implode(' and ').'.')
             ->with($skipped ? ['warning' => count($skipped).' problem(s): '.implode(' ', array_slice($skipped, 0, 3)).(count($skipped) > 3 ? ' ...' : '')] : []);
+    }
+
+    /**
+     * A batch through one step for a product: some moulds or pieces, or all that wait, taken from its open lots oldest first with
+     * the rejects on the first lots (AfterPour). The production queue's batch form posts here.
+     */
+    public function batchStage(Request $request, AfterPour $afterPour): RedirectResponse
+    {
+        $d = $request->validate([
+            'stage_definition_id' => ['required', 'uuid', 'exists:production_stage_definitions,id'], 'product_revision_id' => ['required', 'uuid', 'exists:product_revisions,id'],
+            'quantity' => ['nullable', 'integer', 'min:1', 'max:1000000'], 'unit' => ['nullable', Rule::in(['PIECES', 'MOULDS'])],
+            'rejected' => ['nullable', 'integer', 'min:0', 'max:1000000'], 'rejection_reason' => ['nullable', 'string', 'max:100'],
+            'cooling_override_reason' => ['nullable', 'string', 'max:300'], 'operator_name' => ['nullable', 'string', 'max:100'],
+        ]);
+        $step = ProductionStageDefinition::findOrFail($d['stage_definition_id']);
+        try {
+            $res = $afterPour->record($step, $d['product_revision_id'], $d);
+        } catch (InvalidArgumentException $e) {
+            return back()->withErrors(['batch' => $e->getMessage()])->withInput();
+        }
+
+        return back()->with('success', "{$res['pieces']} pieces through {$step->name}".($res['lots'] > 1 ? " from {$res['lots']} lots." : '.'));
     }
 
     /** Release every lot on hold only because it was first iron. Containment and manual holds stay. */

@@ -44,12 +44,12 @@ class AfterPourTest extends TestCase
         [$first, $second] = $this->twoLots();
         $rev = $first->product_revision_id;
         $this->assertSame(['SHAKEOUT', 'CUTTING', 'SHOT_BLAST'], app(AfterPour::class)->stepsFor($rev)->pluck('code')->all());
-        $this->get(route('after-pour.index'))->assertOk()->assertSee('Shakeout')->assertSee('10 pcs')->assertSee('≈ 2 moulds');
+        $this->get(route('lots.queue'))->assertOk()->assertSee('Move a batch')->assertSee('Shakeout')->assertSee('10 pcs')->assertSee('≈ 2 moulds');
 
-        $this->post(route('after-pour.store'), ['stage_definition_id' => $this->step('SHAKEOUT')->id, 'product_revision_id' => $rev])->assertSessionHasNoErrors();
-        $this->post(route('after-pour.store'), ['stage_definition_id' => $this->step('CUTTING')->id, 'product_revision_id' => $rev, 'quantity' => 1, 'unit' => 'MOULDS',
+        $this->post(route('lots.batch-stage'), ['stage_definition_id' => $this->step('SHAKEOUT')->id, 'product_revision_id' => $rev])->assertSessionHasNoErrors();
+        $this->post(route('lots.batch-stage'), ['stage_definition_id' => $this->step('CUTTING')->id, 'product_revision_id' => $rev, 'quantity' => 1, 'unit' => 'MOULDS',
             'rejected' => 1])->assertSessionHasErrors('batch');
-        $this->post(route('after-pour.store'), ['stage_definition_id' => $this->step('CUTTING')->id, 'product_revision_id' => $rev, 'quantity' => 1, 'unit' => 'MOULDS',
+        $this->post(route('lots.batch-stage'), ['stage_definition_id' => $this->step('CUTTING')->id, 'product_revision_id' => $rev, 'quantity' => 1, 'unit' => 'MOULDS',
             'rejected' => 1, 'rejection_reason' => 'Cold shut'])->assertSessionHasNoErrors();
 
         $this->assertSame(['waiting' => [$this->step('SHAKEOUT')->id => 0, $this->step('CUTTING')->id => 0, $this->step('SHOT_BLAST')->id => 4], 'done' => 0], app(AfterPour::class)->progress($first->fresh()));
@@ -57,13 +57,13 @@ class AfterPourTest extends TestCase
         $this->assertSame(1, $first->fresh()->quantity_rejected);
 
         // Part of the second lot is shot blasted before the rest is fettled: it sits at two steps.
-        $this->post(route('after-pour.store'), ['stage_definition_id' => $this->step('SHOT_BLAST')->id, 'product_revision_id' => $rev])->assertSessionHasNoErrors();
-        $this->post(route('after-pour.store'), ['stage_definition_id' => $this->step('CUTTING')->id, 'product_revision_id' => $rev, 'quantity' => 2])->assertSessionHasNoErrors();
-        $this->post(route('after-pour.store'), ['stage_definition_id' => $this->step('SHOT_BLAST')->id, 'product_revision_id' => $rev, 'quantity' => 2])->assertSessionHasNoErrors();
-        $this->post(route('after-pour.store'), ['stage_definition_id' => $this->step('CUTTING')->id, 'product_revision_id' => $rev])->assertSessionHasNoErrors();
+        $this->post(route('lots.batch-stage'), ['stage_definition_id' => $this->step('SHOT_BLAST')->id, 'product_revision_id' => $rev])->assertSessionHasNoErrors();
+        $this->post(route('lots.batch-stage'), ['stage_definition_id' => $this->step('CUTTING')->id, 'product_revision_id' => $rev, 'quantity' => 2])->assertSessionHasNoErrors();
+        $this->post(route('lots.batch-stage'), ['stage_definition_id' => $this->step('SHOT_BLAST')->id, 'product_revision_id' => $rev, 'quantity' => 2])->assertSessionHasNoErrors();
+        $this->post(route('lots.batch-stage'), ['stage_definition_id' => $this->step('CUTTING')->id, 'product_revision_id' => $rev])->assertSessionHasNoErrors();
         $this->assertSame(['waiting' => [$this->step('SHAKEOUT')->id => 0, $this->step('CUTTING')->id => 0, $this->step('SHOT_BLAST')->id => 3], 'done' => 2], app(AfterPour::class)->progress($second->fresh()));
 
-        $this->post(route('after-pour.store'), ['stage_definition_id' => $this->step('SHOT_BLAST')->id, 'product_revision_id' => $rev, 'quantity' => 9])->assertSessionHasErrors('batch');
+        $this->post(route('lots.batch-stage'), ['stage_definition_id' => $this->step('SHOT_BLAST')->id, 'product_revision_id' => $rev, 'quantity' => 9])->assertSessionHasErrors('batch');
     }
 
     public function test_quick_qc_waits_for_the_steps_when_the_rule_says_so(): void
@@ -75,9 +75,23 @@ class AfterPourTest extends TestCase
         QualityRules::set('qc_after_steps', 'STEPS');
         $this->assertSame(0, $qc->toCheck($first->fresh()));
         foreach (['SHAKEOUT', 'CUTTING', 'SHOT_BLAST'] as $code) {
-            $this->post(route('after-pour.store'), ['stage_definition_id' => $this->step($code)->id, 'product_revision_id' => $first->product_revision_id, 'quantity' => 3]);
+            $this->post(route('lots.batch-stage'), ['stage_definition_id' => $this->step($code)->id, 'product_revision_id' => $first->product_revision_id, 'quantity' => 3]);
         }
         $this->assertSame(3, $qc->toCheck($first->fresh()));
-        $this->get(route('after-pour.index'))->assertSee('Shot blasting');
+        $this->get(route('lots.queue'))->assertSee('Shot blasting');
+    }
+
+    public function test_the_production_queue_shows_the_batch_panel_and_where_a_lot_has_pieces_behind(): void
+    {
+        [$first] = $this->twoLots();
+        $rev = $first->product_revision_id;
+        $this->get(route('lots.queue'))->assertOk()->assertSee('Move a batch')->assertSee(route('lots.batch-stage'), false);
+
+        $this->post(route('lots.batch-stage'), ['stage_definition_id' => $this->step('SHAKEOUT')->id, 'product_revision_id' => $rev, 'quantity' => 5])->assertSessionHasNoErrors();
+        $this->post(route('lots.batch-stage'), ['stage_definition_id' => $this->step('CUTTING')->id, 'product_revision_id' => $rev, 'quantity' => 2])->assertSessionHasNoErrors();
+        $this->post(route('lots.batch-stage'), ['stage_definition_id' => $this->step('SHOT_BLAST')->id, 'product_revision_id' => $rev, 'quantity' => 1])->assertSessionHasNoErrors();
+
+        $this->get(route('lots.queue'))->assertOk()->assertSee('3 pcs still before Fettling');
+        $this->post(route('lots.batch-stage'), ['stage_definition_id' => $this->step('SHOT_BLAST')->id, 'product_revision_id' => $rev, 'quantity' => 99])->assertSessionHasErrors('batch');
     }
 }

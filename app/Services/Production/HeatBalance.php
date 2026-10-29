@@ -11,7 +11,7 @@ class HeatBalance
      * @return array{
      *     charged_kg: float, tapped_kg: ?float, poured_kg: float, first_iron_kg: float, pours: int, open_pours: int,
      *     lots: int, held_lots: int, net_casting_kg: float, poured_percent_of_charged: ?float, casting_yield_percent: ?float,
-     *     unpoured_kg: ?float, melt_rate_kg_per_hour: ?float, warnings: array<int, string>
+     *     unpoured_kg: ?float, leftover_kg: ?float, unaccounted_kg: ?float, melt_rate_kg_per_hour: ?float, warnings: array<int, string>
      * }
      */
     public function for(Heat $heat): array
@@ -47,6 +47,8 @@ class HeatBalance
             'poured_percent_of_charged' => $charged > 0 ? round($poured / $charged * 100, 1) : null,
             'casting_yield_percent' => $poured > 0 && $net > 0 ? round($net / $poured * 100, 1) : null,
             'unpoured_kg' => $tapped !== null ? round($tapped - $poured, 3) : null,
+            'leftover_kg' => $heat->leftover_metal_kg !== null ? (float) $heat->leftover_metal_kg : null,
+            'unaccounted_kg' => $tapped !== null && $heat->leftover_metal_kg !== null ? round($tapped - $poured - (float) $heat->leftover_metal_kg, 3) : null,
             'melt_rate_kg_per_hour' => $hours && $poured > 0 ? round($poured / $hours, 0) : null,
             'warnings' => $warnings,
         ];

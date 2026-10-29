@@ -20,9 +20,9 @@ class TodayBoardTest extends TestCase
             ->assertSee($lot->productionOrder->production_order_number)
             ->assertSee('5 pieces in 1 lot')
             ->assertSee(route('quick-qc.index'), false)
-            ->assertSee(route('quick.list.index'), false)
+            ->assertSee(route('work-lists.index'), false)
             ->assertSee(route('mould-count.index'), false)
-            ->assertSee(route('after-pour.index'), false);
+            ->assertSee(route('lots.queue'), false);
     }
 
     public function test_packing_and_dispatch_leave_the_board_with_their_module(): void

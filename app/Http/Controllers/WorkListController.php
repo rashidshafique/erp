@@ -144,9 +144,8 @@ class WorkListController extends Controller
         }
         $msg = $res['created'] ? "{$res['list']->list_number} prepared from open orders".($res['carried'] ? ", {$res['carried']} row(s) carried over from earlier lists." : '.') : "{$res['list']->list_number} is already the list for that day.";
 
-        $to = $request->boolean('stay') ? back() : redirect()->route('work-lists.show', $res['list']);
 
-        return $to->with('success', $msg)->with('warning', $res['skipped'] ? 'Left out: '.implode('; ', $res['skipped']) : null);
+        return redirect()->route('work-lists.show', $res['list'])->with('success', $msg)->with('warning', $res['skipped'] ? 'Left out: '.implode('; ', $res['skipped']) : null);
     }
 
     /** Change a row's mould count or station before it starts. */

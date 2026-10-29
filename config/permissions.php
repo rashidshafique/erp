@@ -58,7 +58,6 @@ return [
         ['pattern' => 'pours.*', 'permission' => 'pouring.operate'],
         ['pattern' => 'moulding-runs.*', 'permission' => 'moulding.operate'],
         ['pattern' => 'mould-count.*', 'permission' => 'shopfloor.record'],
-        ['pattern' => 'after-pour.*', 'permission' => 'shopfloor.record'],
         ['pattern' => 'work-lists.*', 'permission' => 'moulding.operate'],
         ['pattern' => 'moulding-teams.*', 'permission' => 'moulding.operate'],
         ['pattern' => 'sand-systems.*', 'permission' => 'settings.manage', 'reads' => true],
