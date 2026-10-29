@@ -1,4 +1,4 @@
-{{-- Design 10f: the overview tab's edit form, opened in place by Edit product. The side panel lists unsaved changes and what they
+{{-- Design 10g: the overview tab's edit form, one section per row, opened in place by Edit product. The side panel lists unsaved changes and what they
      affect; weight, alloy and tooling changes suggest saving as a new draft revision. $product, $facts. --}}
 @php
     $f = $facts;
@@ -29,61 +29,53 @@
         @if ($errors->any())<div class="alert alert-error" role="alert">{{ $errors->first() }}</div>@endif
 
         <div class="pe-sec">
-            <div class="pd-h">Identity</div>
+            <div class="pe-head"><div class="pe-title">Identity</div><div class="pe-desc">Code and revision are fixed. Change the revision from the Revisions tab.</div></div>
             <div class="pe-grid">
-                <label class="pe-f">Product code<input value="{{ $product->code }}" class="mono ro" readonly><span class="pe-help">Set on creation</span></label>
-                <label class="pe-f">Name<input name="name" value="{{ $val('name', $product->name) }}" required maxlength="255" data-label="Name"></label>
-                <label class="pe-f">Status<select name="status" data-label="Status">@foreach (\App\Models\Product::STATUSES as $code => $label)<option value="{{ $code }}" @selected($val('status', $product->status ?: ($product->active ? 'ACTIVE' : 'OBSOLETE')) === $code)>{{ $label }}</option>@endforeach</select></label>
-                <label class="pe-f">Revision<input value="{{ $revision?->revision ?? '—' }}" class="mono ro" readonly><span class="pe-help">{{ $revision ? ($revision->status === 'APPROVED' ? 'Released' : ucfirst(strtolower($revision->status))).($revision->effective_from ? ' '.$revision->effective_from->format('j M') : '') : 'None yet' }}</span></label>
+                <label class="pe-f"><span class="pe-l">Product code</span><input value="{{ $product->code }}" class="mono ro" readonly><span class="pe-help">Set on creation</span></label>
+                <label class="pe-f"><span class="pe-l">Name</span><input name="name" value="{{ $val('name', $product->name) }}" required maxlength="255" data-label="Name"></label>
+                <label class="pe-f"><span class="pe-l">Status</span><select name="status" data-label="Status">@foreach (\App\Models\Product::STATUSES as $code => $label)<option value="{{ $code }}" @selected($val('status', $product->status ?: ($product->active ? 'ACTIVE' : 'OBSOLETE')) === $code)>{{ $label }}</option>@endforeach</select></label>
+                <label class="pe-f"><span class="pe-l">Revision</span><input value="{{ $revision?->revision ?? '—' }}" class="mono ro" readonly><span class="pe-help">{{ $revision ? ($revision->status === 'APPROVED' ? 'Released' : ucfirst(strtolower($revision->status))).($revision->effective_from ? ' '.$revision->effective_from->format('j M') : '') : 'None yet' }}</span></label>
             </div>
         </div>
-        <div class="pe-rule"></div>
-
         <div class="pe-sec">
-            <div class="pd-h">Customer</div>
+            <div class="pe-head"><div class="pe-title">Customer</div><div class="pe-desc">Who buys it and under which requirements.</div></div>
             <div class="pe-grid">
-                <label class="pe-f">Customer<select name="customer_id" data-label="Customer"><option value="">{{ $f['customer'] && ! $product->customer_id ? $f['customer'].' (from orders)' : 'Not set' }}</option>@foreach ($customers as $c)<option value="{{ $c->id }}" @selected($val('customer_id', $product->customer_id) === $c->id)>{{ $c->name }}</option>@endforeach</select></label>
-                <label class="pe-f">Customer part no.<input name="customer_part_number" class="mono" maxlength="80" value="{{ $val('customer_part_number', $revision?->customer_part_number ?? $f['requirement']?->customer_document_number) }}" data-label="Customer part no."></label>
-                <label class="pe-f">CSR<input name="csr" maxlength="120" value="{{ $val('csr', $revision?->csr ?? ($f['requirement']?->requirement_code ? $f['requirement']->requirement_code.($f['requirement']->revision_code ? ' rev '.$f['requirement']->revision_code : '') : null)) }}" data-label="CSR"></label>
-                <label class="pe-f">Approved for<select name="approved_for" data-label="Approved for"><option value="">Not set</option>@foreach (\App\Models\ProductRevision::APPROVED_FOR as $code => $label)<option value="{{ $code }}" @selected($val('approved_for', $revision?->approved_for) === $code)>{{ $label }}</option>@endforeach</select></label>
+                <label class="pe-f"><span class="pe-l">Customer</span><select name="customer_id" data-label="Customer"><option value="">{{ $f['customer'] && ! $product->customer_id ? $f['customer'].' (from orders)' : 'Not set' }}</option>@foreach ($customers as $c)<option value="{{ $c->id }}" @selected($val('customer_id', $product->customer_id) === $c->id)>{{ $c->name }}</option>@endforeach</select></label>
+                <label class="pe-f"><span class="pe-l">Customer part no.</span><input name="customer_part_number" class="mono" maxlength="80" value="{{ $val('customer_part_number', $revision?->customer_part_number ?? $f['requirement']?->customer_document_number) }}" data-label="Customer part no."></label>
+                <label class="pe-f"><span class="pe-l">CSR</span><input name="csr" maxlength="120" value="{{ $val('csr', $revision?->csr ?? ($f['requirement']?->requirement_code ? $f['requirement']->requirement_code.($f['requirement']->revision_code ? ' rev '.$f['requirement']->revision_code : '') : null)) }}" data-label="CSR"></label>
+                <label class="pe-f"><span class="pe-l">Approved for</span><select name="approved_for" data-label="Approved for"><option value="">Not set</option>@foreach (\App\Models\ProductRevision::APPROVED_FOR as $code => $label)<option value="{{ $code }}" @selected($val('approved_for', $revision?->approved_for) === $code)>{{ $label }}</option>@endforeach</select></label>
             </div>
         </div>
-        <div class="pe-rule"></div>
-
         <div class="pe-sec">
-            <div class="pd-h">Technical</div>
+            <div class="pe-head"><div class="pe-title">Casting</div><div class="pe-desc">Changes to the fields tagged New rev alter the method and need a new revision.</div></div>
             <div class="pe-grid">
-                <label class="pe-f">Alloy<select name="iron_grade_id" data-label="Alloy" data-method><option value="">Not set</option>@foreach ($grades as $g)<option value="{{ $g->id }}" @selected($val('iron_grade_id', $f['grade']?->id) === $g->id)>{{ $g->code }}</option>@endforeach</select></label>
-                <label class="pe-f">Casting weight, kg<input name="nominal_weight_kg" type="number" step="any" min="0" value="{{ $val('nominal_weight_kg', $num($f['castingKg'], 4)) }}" data-label="Casting weight" data-unit="kg" data-method data-cast></label>
-                <label class="pe-f">Poured weight, kg<input name="poured_weight_kg" type="number" step="any" min="0" value="{{ $val('poured_weight_kg', $num($f['pouredKg'], 4)) }}" data-label="Poured weight" data-unit="kg" data-method data-poured @disabled(! $f['cavity'])><span class="pe-help" data-yield>{{ $f['cavity'] ? ($f['castingKg'] && $f['pouredKg'] ? 'Yield '.round(100 * $f['castingKg'] / $f['pouredKg']).'%' : 'Per casting, on the pattern cavity') : 'Link a pattern first' }}</span></label>
-                <label class="pe-f">Process<input value="{{ $f['process'] ?: '—' }}" class="ro" readonly><span class="pe-help">{{ $f['patternRevision'] ? 'From the pattern' : 'Comes from the pattern' }}</span></label>
-            </div>
-            <div class="pe-grid">
-                <label class="pe-f">Pattern<select name="pattern_id" class="mono" data-label="Pattern" data-method><option value="">{{ $f['patternRevision'] ? '' : 'Not linked' }}</option>@foreach ($patterns as $p)<option value="{{ $p->id }}" @selected($val('pattern_id', $f['patternRevision']?->pattern_id) === $p->id)>{{ $p->code }}{{ $p->name && $p->name !== $p->code ? ' · '.$p->name : '' }}</option>@endforeach</select></label>
-                <label class="pe-f">Core box<input value="{{ $f['cores']->map(fn ($c) => $c->coreDefinition?->coreBoxes()->value('code') ?? $c->coreDefinition?->mark_code)->filter()->implode(', ') ?: '—' }}" class="mono ro" readonly><span class="pe-help">From the cores</span></label>
-                <label class="pe-f">Cavities per mould<input value="{{ $f['perMould'] ?? '—' }}" class="ro" readonly><span class="pe-help">On the pattern revision</span></label>
-                <label class="pe-f">PPAP level<select name="ppap_level" data-label="PPAP level"><option value="">Not set</option>@foreach ([3, 2, 1, 4, 5] as $level)<option value="{{ $level }}" @selected((string) $val('ppap_level', $revision?->ppap_level) === (string) $level)>Level {{ $level }}</option>@endforeach</select></label>
+                <label class="pe-f"><span class="pe-l">Alloy<em class="pe-tag">New rev</em></span><select name="iron_grade_id" data-label="Alloy" data-method><option value="">Not set</option>@foreach ($grades as $g)<option value="{{ $g->id }}" @selected($val('iron_grade_id', $f['grade']?->id) === $g->id)>{{ $g->code }}</option>@endforeach</select></label>
+                <label class="pe-f"><span class="pe-l">Casting weight, kg<em class="pe-tag">New rev</em></span><input name="nominal_weight_kg" type="number" step="any" min="0" value="{{ $val('nominal_weight_kg', $num($f['castingKg'], 4)) }}" data-label="Casting weight" data-unit="kg" data-method data-cast></label>
+                <label class="pe-f"><span class="pe-l">Poured weight, kg<em class="pe-tag">New rev</em></span><input name="poured_weight_kg" type="number" step="any" min="0" value="{{ $val('poured_weight_kg', $num($f['pouredKg'], 4)) }}" data-label="Poured weight" data-unit="kg" data-method data-poured @disabled(! $f['cavity'])><span class="pe-help" data-yield>{{ $f['cavity'] ? ($f['castingKg'] && $f['pouredKg'] ? 'Yield '.round(100 * $f['castingKg'] / $f['pouredKg']).'%' : 'Per casting, on the pattern cavity') : 'Link a pattern first' }}</span></label>
+                <label class="pe-f"><span class="pe-l">Process</span><input value="{{ $f['process'] ?: '—' }}" class="ro" readonly><span class="pe-help">{{ $f['patternRevision'] ? 'From the pattern' : 'Comes from the pattern' }}</span></label>
+                <label class="pe-f"><span class="pe-l">Pattern<em class="pe-tag">New rev</em></span><select name="pattern_id" class="mono" data-label="Pattern" data-method><option value="">{{ $f['patternRevision'] ? '' : 'Not linked' }}</option>@foreach ($patterns as $p)<option value="{{ $p->id }}" @selected($val('pattern_id', $f['patternRevision']?->pattern_id) === $p->id)>{{ $p->code }}{{ $p->name && $p->name !== $p->code ? ' · '.$p->name : '' }}</option>@endforeach</select></label>
+                <label class="pe-f"><span class="pe-l">Core box</span><input value="{{ $f['cores']->map(fn ($c) => $c->coreDefinition?->coreBoxes()->value('code') ?? $c->coreDefinition?->mark_code)->filter()->implode(', ') ?: '—' }}" class="mono ro" readonly><span class="pe-help">From the cores</span></label>
+                <label class="pe-f"><span class="pe-l">Cavities per mould</span><input value="{{ $f['perMould'] ?? '—' }}" class="ro" readonly><span class="pe-help">On the pattern revision</span></label>
+                <label class="pe-f"><span class="pe-l">PPAP level</span><select name="ppap_level" data-label="PPAP level"><option value="">Not set</option>@foreach ([3, 2, 1, 4, 5] as $level)<option value="{{ $level }}" @selected((string) $val('ppap_level', $revision?->ppap_level) === (string) $level)>Level {{ $level }}</option>@endforeach</select></label>
             </div>
         </div>
-        <div class="pe-rule"></div>
-
         <div class="pe-sec">
-            <div class="pd-h">Commercial</div>
+            <div class="pe-head"><div class="pe-title">Commercial</div><div class="pe-desc">Saved to the current revision.</div></div>
             <div class="pe-grid">
-                <label class="pe-f">Price per piece{{ \App\Support\Formats::currencySuffix() ? ', '.trim(\App\Support\Formats::currencySuffix(), ' ()') : '' }}<input name="unit_price" type="number" step="any" min="0" value="{{ $val('unit_price', $num($f['price'], 4)) }}" data-label="Price"></label>
-                <label class="pe-f">Annual volume<input name="annual_volume" type="number" step="1" min="0" value="{{ $val('annual_volume', $revision?->annual_volume ?? ($f['volume'] > 0 ? (int) $f['volume'] : '')) }}" data-label="Annual volume"></label>
-                <label class="pe-f">Packing spec<input name="packing_spec" class="mono" maxlength="80" value="{{ $val('packing_spec', $revision?->packing_spec) }}" data-label="Packing spec"></label>
-                <label class="pe-f">Default delivery<select name="default_delivery" data-label="Default delivery"><option value="">Not set</option>@foreach (\App\Models\ProductRevision::DELIVERY as $code => $label)<option value="{{ $code }}" @selected($val('default_delivery', $revision?->default_delivery) === $code)>{{ $label }}</option>@endforeach</select></label>
+                <label class="pe-f"><span class="pe-l">Price per piece{{ \App\Support\Formats::currencySuffix() ? ', '.trim(\App\Support\Formats::currencySuffix(), ' ()') : '' }}</span><input name="unit_price" type="number" step="any" min="0" value="{{ $val('unit_price', $num($f['price'], 4)) }}" data-label="Price"></label>
+                <label class="pe-f"><span class="pe-l">Annual volume</span><input name="annual_volume" type="number" step="1" min="0" value="{{ $val('annual_volume', $revision?->annual_volume ?? ($f['volume'] > 0 ? (int) $f['volume'] : '')) }}" data-label="Annual volume"></label>
+                <label class="pe-f"><span class="pe-l">Packing spec</span><input name="packing_spec" class="mono" maxlength="80" value="{{ $val('packing_spec', $revision?->packing_spec) }}" data-label="Packing spec"></label>
+                <label class="pe-f"><span class="pe-l">Default delivery</span><select name="default_delivery" data-label="Default delivery"><option value="">Not set</option>@foreach (\App\Models\ProductRevision::DELIVERY as $code => $label)<option value="{{ $code }}" @selected($val('default_delivery', $revision?->default_delivery) === $code)>{{ $label }}</option>@endforeach</select></label>
             </div>
         </div>
 
-        <label class="pe-f">Change note<textarea name="change_note" maxlength="2000" placeholder="What changed and why. A draft revision keeps it as its change.">{{ old('change_note') }}</textarea></label>
+        <div class="pe-sec"><div class="pe-head"><div class="pe-title">Change note</div><div class="pe-desc">Shown in the revision log.</div></div><label class="pe-f"><textarea name="change_note" maxlength="2000" placeholder="What changed and why. A draft revision keeps it as its change.">{{ old('change_note') }}</textarea></label></div>
 
         <details class="pe-more" @if ($errors->hasAny(['product_type', 'base_uom', 'inventory_class', 'supply_type', 'tariff_code', 'tax_uom', 'origin_country'])) open @endif>
             <summary>Type, unit and tax details</summary>
             <div class="pe-grid" style="margin-top:12px">
-                <label class="pe-f">Product type<select name="product_type" data-label="Product type">@foreach (['CASTING' => 'Casting', 'CORE' => 'Core', 'OTHER' => 'Other'] as $code => $label)<option value="{{ $code }}" @selected($val('product_type', $product->product_type ?: 'CASTING') === $code)>{{ $label }}</option>@endforeach</select></label>
-                <label class="pe-f">Base unit<select name="base_uom" data-label="Base unit">@foreach (array_unique(['piece', 'kg', 'set', $product->base_uom ?: 'piece']) as $uom)<option value="{{ $uom }}" @selected($val('base_uom', $product->base_uom ?: 'piece') === $uom)>{{ $uom }}</option>@endforeach</select><span class="pe-help">kg: new order lines sell it by weight</span></label>
+                <label class="pe-f"><span class="pe-l">Product type</span><select name="product_type" data-label="Product type">@foreach (['CASTING' => 'Casting', 'CORE' => 'Core', 'OTHER' => 'Other'] as $code => $label)<option value="{{ $code }}" @selected($val('product_type', $product->product_type ?: 'CASTING') === $code)>{{ $label }}</option>@endforeach</select></label>
+                <label class="pe-f"><span class="pe-l">Base unit</span><select name="base_uom" data-label="Base unit">@foreach (array_unique(['piece', 'kg', 'set', $product->base_uom ?: 'piece']) as $uom)<option value="{{ $uom }}" @selected($val('base_uom', $product->base_uom ?: 'piece') === $uom)>{{ $uom }}</option>@endforeach</select><span class="pe-help">kg: new order lines sell it by weight</span></label>
                 <label class="pe-f" style="grid-column:span 2">Description<input name="description" value="{{ $val('description', $product->description) }}" data-label="Description"></label>
             </div>
             <div style="margin-top:12px">@include('partials.trade-fields', ['item' => $product])</div>

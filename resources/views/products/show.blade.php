@@ -326,15 +326,21 @@
     .pd-callout { padding: 12px 14px; border: 1px solid #cdd9f5; border-radius: 8px; background: #fff; color: #2f5fd0; }
     @media (max-width: 1100px) { .pd-grid { grid-template-columns: 1fr; } .pd-side { border-left: 0; border-top: 1px solid #e6e7e9; } .pd-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pd-cols { grid-template-columns: 1fr; } .pd-bar { padding-left: 16px; padding-right: 16px; } }
     body:not(.pd-editing) .pd-edit-only, body.pd-editing .pd-view-only { display: none !important; }
-    .pe-main { padding: 20px 28px 28px; display: flex; flex-direction: column; gap: 24px; min-width: 0; }
-    .pe-sec { display: flex; flex-direction: column; gap: 12px; }
-    .pe-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
-    .pe-rule { border-top: 1px solid #e6e7e9; }
-    .pe-f { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #6b6e73; margin: 0; font-weight: 400; }
-    .pe-f input, .pe-f select, .pe-f textarea { padding: 9px 10px; border: 1px solid #d9dbde; border-radius: 6px; font-size: 14px; background: #fff; color: #1c1d1f; font-family: inherit; width: 100%; box-sizing: border-box; margin: 0; }
-    .pe-f select { padding: 9px 8px; }
-    .pe-f textarea { min-height: 64px; resize: vertical; }
-    .pe-f .mono { font-family: ui-monospace, Menlo, monospace; font-size: 13px; }
+    .pe-main { padding: 4px 40px 12px; display: flex; flex-direction: column; min-width: 0; }
+    .pe-sec { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 32px; padding: 24px 0; border-bottom: 1px solid #e6e7e9; }
+    .pe-head { display: flex; flex-direction: column; gap: 4px; }
+    .pe-title { font-size: 15px; font-weight: 600; color: #1c1d1f; }
+    .pe-desc { font-size: 13px; color: #6b6e73; line-height: 1.5; text-wrap: pretty; }
+    .pe-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 20px; align-content: start; }
+    .pe-f { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #6b6e73; margin: 0; font-weight: 400; }
+    .pe-l { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: #3d4045; }
+    .pe-tag { font-style: normal; font-size: 11px; font-weight: 500; color: #2f5fd0; background: #eaf0fd; padding: 1px 6px; border-radius: 4px; }
+    .pe-f input, .pe-f select, .pe-f textarea { height: 38px; padding: 0 12px; border: 1px solid #d9dbde; border-radius: 6px; font-size: 14px; background: #fff; color: #1c1d1f; font-family: inherit; width: 100%; box-sizing: border-box; margin: 0; }
+    .pe-f select { padding: 0 8px; }
+    .pe-f textarea { height: auto; padding: 10px 12px; line-height: 1.5; min-height: 80px; resize: vertical; }
+    .pe-f.pe-edited input, .pe-f.pe-edited select { border-color: #2f5fd0; box-shadow: 0 0 0 3px #eaf0fd; }
+    .pe-was { font-size: 12px; color: #2f5fd0; }
+    .pe-f .mono { font-family: ui-monospace, Menlo, monospace; font-size: 13.5px; }
     .pe-f .ro, .pe-f input:disabled { background: #f8f8f9; color: #6b6e73; }
     .pe-help { font-size: 11.5px; color: #8a8d92; }
     .pe-changes > div { display: flex; flex-direction: column; gap: 2px; padding: 8px 0; border-bottom: 1px solid #e6e7e9; }
@@ -343,7 +349,7 @@
     .pe-changes .pe-none { color: #8a8d92; border: 0; }
     .pe-callout-text { font-size: 12.5px; color: #55585d; line-height: 1.5; margin-top: 4px; }
     .pe-more summary { cursor: pointer; font-size: 12px; font-weight: 600; color: #6b6e73; text-transform: uppercase; letter-spacing: .06em; }
-    @media (max-width: 1100px) { .pe-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pe-main { padding: 16px; } }
+    @media (max-width: 1100px) { .pe-sec { grid-template-columns: 1fr; gap: 14px; } .pe-main { padding: 4px 16px 12px; } }
     .rev-edit { appearance: none; border: 0; background: transparent; padding: 0; font: inherit; font-size: 12px; font-weight: 600; color: var(--accent); cursor: pointer; }
     .rev-edit:hover { text-decoration: underline; }
 </style>
@@ -353,7 +359,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (bar && slot) { slot.replaceWith(bar); }
     if (@json(($editing ?? false) || old('_pd_edit') !== null)) { pdEdit(true); }
 });
-// Edit product (design 10f) turns the overview tab into its form in place; Cancel puts back what was there.
+// Edit product (design 10g) turns the overview tab into its form in place; Cancel puts back what was there.
 function pdEdit(on) {
     var form = document.getElementById('pd-edit-form');
     if (!form) { return; }
@@ -376,7 +382,10 @@ function pdChanges() {
     var rows = [], method = [];
     form.querySelectorAll('[data-label]').forEach(function (el) {
         var changed = el.tagName === 'SELECT' ? Array.prototype.some.call(el.options, function (o) { return o.selected !== o.defaultSelected; }) : el.value !== el.defaultValue;
-        if (!changed) { return; }
+        var label = el.closest('.pe-f'), was = label && label.querySelector('.pe-was');
+        if (label) { label.classList.toggle('pe-edited', changed); }
+        if (!changed) { if (was) { was.remove(); } return; }
+        if (label && !el.hasAttribute('data-poured')) { if (!was) { was = document.createElement('span'); was.className = 'pe-was'; label.appendChild(was); } was.textContent = 'Was ' + shown(el, true); }
         rows.push('<div><span class="k">' + esc(el.dataset.label) + '</span><span><s>' + esc(shown(el, true)) + '</s> → ' + esc(shown(el, false)) + '</span></div>');
         if (el.hasAttribute('data-method')) { method.push(el.dataset.label); }
     });
@@ -399,7 +408,7 @@ function pdChanges() {
     }
     if (yieldNote && poured > 0 && cast > 0) {
         var was = fx.pouredKg && parseFloat(form.querySelector('[data-cast]').defaultValue) > 0 ? Math.round(100 * parseFloat(form.querySelector('[data-cast]').defaultValue) / fx.pouredKg) : null, y = Math.round(100 * cast / poured);
-        yieldNote.textContent = 'Yield ' + y + '%' + (was !== null && was !== y ? ', was ' + was + '%' : '');
+        yieldNote.textContent = (pouredChanged ? 'Was ' + fx.pouredKg + ' · yield ' : 'Yield ') + y + '%' + (was !== null && was !== y ? ', was ' + was + '%' : '');
     }
 }
 document.addEventListener('input', function (e) { if (e.target.closest('#pd-edit-form')) { pdChanges(); } });
