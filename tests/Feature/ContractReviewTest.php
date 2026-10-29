@@ -268,4 +268,19 @@ class ContractReviewTest extends TestCase
         $this->assertNotContains('DELIVERY_DATE', $this->codes($review, 'WARN'));
         $this->assertNotContains('DELIVERY_DATE', $this->codes($review, 'BLOCK'));
     }
+
+    public function test_a_repeating_line_ignores_periods_already_past_but_a_staggered_line_does_not(): void
+    {
+        $order = $this->order();
+        $line = $order->lines->first();
+        $line->deliveries()->create(['due_date' => today()->subDay(), 'quantity' => 10]);
+        $line->deliveries()->create(['due_date' => today()->addDays(30), 'quantity' => 10]);
+
+        $this->assertContains('DELIVERY_DATE', $this->codes(app(ContractReviewer::class)->evaluate($order), 'BLOCK'), 'a staggered line is judged by its earliest delivery');
+
+        $line->update(['repeat_every' => 'WEEK', 'repeat_qty' => 10, 'repeat_from' => today()->addDays(30)]);
+        $review = app(ContractReviewer::class)->evaluate($order->fresh());
+        $this->assertNotContains('DELIVERY_DATE', $this->codes($review, 'BLOCK'));
+        $this->assertContains('DELIVERY_DATE', $this->codes($review, 'PASS'));
+    }
 }

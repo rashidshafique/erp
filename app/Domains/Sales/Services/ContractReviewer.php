@@ -186,8 +186,9 @@ class ContractReviewer
         }
 
         // Delivery date
-        // A staggered line is judged by its earliest scheduled delivery.
-        $due = $line->deliveries()->min('due_date');
+        // A staggered line is judged by its earliest scheduled delivery; a repeating line by its earliest one still to come, as the
+        // periods already past are history the order form no longer shows.
+        $due = ($line->repeats() ? $line->deliveries()->where('due_date', '>=', today())->min('due_date') : null) ?? $line->deliveries()->min('due_date');
         $due = $due ? \Illuminate\Support\Carbon::parse($due) : ($line->requested_delivery_date ?? $order->requested_delivery_date);
         if ($due) {
             $min = now()->addDays((int) config('foundry.planner.lead_time_days'))->startOfDay();
