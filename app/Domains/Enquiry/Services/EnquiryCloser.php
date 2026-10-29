@@ -67,6 +67,7 @@ class EnquiryCloser
                 'winning_price' => $d['outcome'] === 'LOST' && filled($d['winning_price'] ?? null) ? $d['winning_price'] : null,
                 'follow_up_on' => $d['follow_up_on'] ?? null, 'follow_up_sent_at' => null,
             ]);
+            $this->cancelDevelopments($enquiry, strtolower(Enquiry::OUTCOMES[$d['outcome']][0]));
             $enquiry->quotations()->whereIn('status', ['ISSUED'])->update(['status' => 'REJECTED', 'decided_at' => now(), 'decision_note' => Enquiry::CLOSE_REASONS[$d['close_reason']]]);
             EnquiryEvent::system($enquiry, 'Closed as '.strtolower(Enquiry::OUTCOMES[$d['outcome']][0]).': '.Enquiry::CLOSE_REASONS[$d['close_reason']].'.'
                 .(filled($d['note'] ?? null) ? ' '.$d['note'] : '')
@@ -74,5 +75,18 @@ class EnquiryCloser
         });
 
         return ['order' => null, 'developments' => collect()];
+    }
+
+    /** Developments started before the enquiry was lost or declined have nothing left to make, so they are cancelled. */
+    private function cancelDevelopments(Enquiry $enquiry, string $outcome): void
+    {
+        if (! class_exists(PatternDevelopment::class)) {
+            return;
+        }
+        foreach ($enquiry->developments()->where('status', 'OPEN')->get() as $development) {
+            $development->update(['status' => 'CANCELLED']);
+            $development->events()->create(['kind' => 'CANCELLED', 'text' => "Cancelled: {$enquiry->code} was {$outcome}.", 'user_name' => auth()->user()?->name]);
+            EnquiryEvent::system($enquiry, "Pattern development {$development->code} cancelled.");
+        }
     }
 }

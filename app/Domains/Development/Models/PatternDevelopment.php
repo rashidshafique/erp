@@ -8,6 +8,7 @@ use App\Models\Concerns\GeneratesCodes;
 use App\Models\Customer;
 use App\Models\Pattern;
 use App\Models\Product;
+use App\Models\ProductRevision;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -49,6 +50,16 @@ class PatternDevelopment extends Model
     public function nextStageName(): ?string
     {
         return $this->stages()[$this->stage_index + 1] ?? null;
+    }
+
+    /** The part's draft revision that this development's last stage, Approved, also approves; none for a type that ends otherwise. */
+    public function draftRevision(): ?ProductRevision
+    {
+        if (last($this->stages()) !== 'Approved') {
+            return null;
+        }
+
+        return $this->product?->revisions()->where('status', 'DRAFT')->latest()->first();
     }
 
     public function isOpen(): bool

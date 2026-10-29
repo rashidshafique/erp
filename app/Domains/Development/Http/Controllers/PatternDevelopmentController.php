@@ -5,6 +5,7 @@ namespace App\Domains\Development\Http\Controllers;
 use App\Domains\Development\Models\PatternDevelopment;
 use App\Domains\Development\Services\DevelopmentOpener;
 use App\Domains\Enquiry\Models\Enquiry;
+use App\Domains\Enquiry\Models\EnquiryEvent;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\Pattern;
@@ -131,6 +132,10 @@ class PatternDevelopmentController extends Controller
                 $development->update(['status' => 'DONE']);
             }
             $this->log($development, 'STAGE', ($isLast ? 'Reached the last stage: ' : 'Moved to ').$next.'.');
+            if ($isLast && $revision = $development->draftRevision()) {
+                $revision->update(['status' => 'APPROVED', 'effective_from' => $revision->effective_from ?? today()]);
+                $this->log($development, 'STAGE', "Revision {$revision->revision} of {$development->product->code} approved, so orders for it can go ahead.");
+            }
         });
 
         return back()->with('success', 'Moved to '.$next.'.');
@@ -150,6 +155,9 @@ class PatternDevelopmentController extends Controller
         $d = $request->validate(['reason' => ['nullable', 'string', 'max:300']]);
         $development->update(['status' => 'CANCELLED']);
         $this->log($development, 'CANCELLED', 'Cancelled'.(filled($d['reason'] ?? null) ? ': '.$d['reason'] : '.'));
+        if ($development->enquiry) {
+            EnquiryEvent::system($development->enquiry, "Pattern development {$development->code} cancelled".(filled($d['reason'] ?? null) ? ': '.$d['reason'] : '.'));
+        }
 
         return back()->with('success', "{$development->code} cancelled.");
     }

@@ -118,4 +118,36 @@ class EnquiryDevelopmentTest extends TestCase
         $this->assertSame(1, PatternDevelopment::where('status', 'OPEN')->count(), 'the win keeps it rather than opening another');
         $this->get(route('settings.process-depth.edit'))->assertSee('When an enquiry opens its pattern development');
     }
+
+    public function test_approving_the_development_approves_the_parts_draft_revision(): void
+    {
+        $e = $this->enquiry(['pattern_route' => 'NEW']);
+        $this->issuedQuote($e);
+        $this->post(route('enquiries.close', $e), ['outcome' => 'WON'])->assertRedirect();
+        $dev = PatternDevelopment::where('enquiry_id', $e->id)->sole();
+        $revision = $dev->draftRevision();
+        $this->assertNotNull($revision, 'the accepted quote left a draft revision for the new part');
+
+        $this->post(route('developments.advance', $dev));
+        $this->post(route('developments.advance', $dev));
+        $this->assertSame('DRAFT', $revision->fresh()->status, 'only the last stage approves it');
+        $this->get(route('developments.show', $dev))->assertSee('also approves revision '.$revision->revision);
+        $this->post(route('developments.advance', $dev));
+
+        $this->assertSame('DONE', $dev->fresh()->status);
+        $this->assertSame('APPROVED', $revision->fresh()->status);
+    }
+
+    public function test_a_lost_enquiry_cancels_its_open_development_and_a_cancelled_development_shows_on_the_enquiry(): void
+    {
+        $e = $this->enquiry(['pattern_route' => 'NEW']);
+        $this->post(route('developments.store'), ['type' => 'NEW_PRODUCT', 'enquiry_id' => $e->id, 'customer_id' => $e->customer_id]);
+        $this->post(route('enquiries.close', $e), ['outcome' => 'LOST', 'close_reason' => 'PRICE'])->assertSessionHasNoErrors('close');
+        $this->assertSame('CANCELLED', PatternDevelopment::where('enquiry_id', $e->id)->value('status'));
+
+        $other = $this->enquiry();
+        $this->post(route('developments.store'), ['type' => 'NEW_PRODUCT', 'enquiry_id' => $other->id, 'customer_id' => $other->customer_id]);
+        $this->post(route('developments.cancel', PatternDevelopment::where('enquiry_id', $other->id)->sole()), ['reason' => 'Customer paused the project']);
+        $this->assertTrue($other->events()->where('text', 'like', '%cancelled: Customer paused the project')->exists());
+    }
 }
