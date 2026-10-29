@@ -1,7 +1,8 @@
 {{-- The enquiry (design 1b), one page for a new enquiry and for a saved one at any status. A bar with the code, the status and the
-     actions; on the left the customer and the kind of request, then each part with its volumes and quality requirements; on the
-     right the drawing, the files, similar parts we have made and what happens next. Won, lost and cancelled enquiries are read only.
-     A saved enquiry also has the Quotation and Files & history tabs. --}}
+     actions; on the left the customer, then each part with its volumes and quality requirements; on the right the drawing, the files and
+     similar parts we have made. Fields 1b does not show sit in a hidden block (data-kept) so they are still saved, and the kind of request
+     is kept there too, defaulting to a drawing; its note box and the own-part picker appear only when the kind needs them. Won, lost and
+     cancelled enquiries are read only. A saved enquiry also has the Quotation and Files & history tabs. --}}
 @extends('layouts.app')
 @section('title', $e?->code ?? 'New enquiry')
 @section('breadcrumb')<a href="{{ route('enquiries.index') }}">Enquiries</a> / {{ $e?->code ?? 'New' }} @endsection
@@ -14,13 +15,11 @@
     $statusLabel = ['NEW' => 'Draft', 'FEASIBILITY' => 'Feasibility', 'QUOTED' => 'Quoted', 'WON' => 'Won', 'LOST' => 'Lost', 'CANCELLED' => 'Cancelled'][$status];
     $statusTone = ['NEW' => 'ei-grey', 'FEASIBILITY' => 'ei-warn', 'QUOTED' => 'ei-blue', 'WON' => 'ei-ok', 'LOST' => 'ei-bad', 'CANCELLED' => 'ei-bad'][$status];
     $qcls = ['DRAFT' => 'ei-grey', 'ISSUED' => 'ei-blue', 'ACCEPTED' => 'ei-ok', 'REJECTED' => 'ei-bad', 'EXPIRED' => 'ei-bad', 'SUPERSEDED' => 'ei-grey'];
-    $kind = old('source_type', $e?->source_type ?? ($preset['scenario'] ?? null));
+    $kind = old('source_type', $e?->source_type ?? ($preset['scenario'] ?? 'DRAWING'));
     $customerId = old('customer_id', $e?->customer_id ?? ($preset['customer'] ?? null));
-    $customer = $customerId ? $customers->firstWhere('id', $customerId) ?? $e?->customer : null;
     $notes = EnquiryIntake::NOTES;
     $scJs = collect($scenarios)->map(fn ($s) => ['short' => $s['short'], 'advice' => $s['advice'], 'cat' => $s['file_category']])->all();
     $code = $e?->code ?? app(\App\Services\Codes\CodeGenerator::class)->preview('enquiry');
-    $draftQuote = $e?->quotations->firstWhere('status', 'DRAFT');
     $latestQuote = $e?->quotations->sortByDesc('version')->first();
     if (is_array(old('items'))) {
         $rows = collect(old('items'))->map(fn ($r, $k) => ['key' => $k, 'item' => ! empty($r['id']) ? $e?->items->firstWhere('id', $r['id']) : null]);
@@ -29,6 +28,7 @@
     } else {
         $rows = collect([['key' => 0, 'item' => null]]);
     }
+    $multi = $rows->count() > 1;
     $preview = $files->first(fn ($f) => $f->isInlineViewable());
     $guide = $e ? \App\Domains\Enquiry\Services\EnquiryGuide::steps($e) : [];
 @endphp
@@ -37,7 +37,6 @@
     .ei-card { background: var(--surface, #fff); border: 1px solid var(--border); border-radius: 10px; }
     .ei-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 14px 28px; border-bottom: 1px solid var(--border); }
     .ei-crumb { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); flex-wrap: wrap; } .ei-crumb code { color: var(--text); } .ei-crumb a { color: var(--muted); }
-    .ei-crumb strong { color: var(--text); font-weight: 500; margin-left: 4px; }
     .ei-actions { display: flex; gap: 8px; flex-wrap: wrap; }
     .ei-btn { padding: 7px 14px; border-radius: 6px; background: var(--surface, #fff); border: 1px solid var(--border); font-size: 13px; color: var(--text); cursor: pointer; text-decoration: none !important; white-space: nowrap; }
     .ei-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 500; }
@@ -47,8 +46,8 @@
     .ei-grid { display: grid; grid-template-columns: minmax(0, 1fr) 400px; }
     .ei-main { padding: 24px 28px; display: flex; flex-direction: column; gap: 24px; min-width: 0; }
     .ei-side { border-left: 1px solid var(--border); padding: 24px; background: #f8f8f9; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
-    .ei-h { font-size: 13px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
-    .ei-sub { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin: 16px 0 10px; }
+    .ei-h { font-size: 14px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .ei-sec { font-size: 14px; font-weight: 600; margin: 22px 0 12px; }
     .ei-grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
     .ei-grid4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
     .ei-s2 { grid-column: span 2; } .ei-s3 { grid-column: span 3; } .ei-s4, .ei-full { grid-column: 1 / -1; }
@@ -57,20 +56,21 @@
     .ei-f .error-text { font-size: 12px; }
     .ei-help { font-size: 11.5px; color: var(--muted); }
     .ei-checks { flex-direction: row; align-items: flex-end; gap: 14px; flex-wrap: wrap; } .ei-checks label { display: inline-flex; gap: 6px; align-items: center; color: var(--text); font-size: 13px; }
-    .ei-custrow { display: flex; align-items: center; gap: 10px; } .ei-custrow select { flex: 1 1 auto; min-width: 0; }
     .ei-opt { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; color: var(--text); font-size: 13px; }
-    .ei-badge { font-size: 11px; padding: 1px 6px; border-radius: 4px; background: #eaf0fd; color: var(--accent); white-space: nowrap; }
     .ei-chips { display: flex; flex-wrap: wrap; gap: 8px; font-size: 13px; }
     .ei-chip { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface, #fff); color: var(--text); cursor: pointer; position: relative; }
     .ei-chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
     .ei-chip input { position: absolute; opacity: 0; pointer-events: none; }
     .ei-chip:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 1px; }
+    .ei-chip select { font-size: 13px; width: auto; padding: 0 2px; border: 0; background: transparent; color: inherit; }
+    .ei-chip.on select option { color: var(--text); }
+    .ei-chip-other { border-style: dashed; color: var(--muted); }
+    .ei-chip-other input { position: static; opacity: 1; pointer-events: auto; width: 170px; border: 0; padding: 0; background: transparent; font: inherit; color: var(--text); outline: 0; }
     .ei-part { border-top: 1px solid var(--border); padding-top: 20px; } .ei-part:first-child { border-top: 0; padding-top: 0; }
     .ei-part-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-    .ei-part-head .ei-h { margin-bottom: 12px; }
+    .ei-part-head .ei-h { margin-bottom: 0; }
     .ei-remove { font-size: 12.5px; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; }
     .ei-link { border: 0; background: none; color: var(--accent); font-size: 13px; cursor: pointer; padding: 0; }
-    .ei-cost { margin-top: 14px; font-size: 13px; } .ei-cost summary { cursor: pointer; color: var(--muted); margin-bottom: 10px; }
     .ei-strip { margin-top: 14px; padding: 10px 12px; border-radius: 8px; background: #f8f8f9; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
     .ei-strip-forms { display: flex; flex-direction: column; gap: 6px; } .ei-inline { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; } .ei-inline select, .ei-inline input { max-width: 320px; }
     .ei-lab { font-size: 12px; color: var(--muted); margin-right: 4px; } .ei-muted { color: var(--muted); }
@@ -90,7 +90,7 @@
     .ei-star::after { content: '*'; color: #c0392b; font-weight: 600; }
     .ei-card input[type=checkbox], .ei-card input[type=radio] { accent-color: var(--accent); }
     @media (max-width: 1100px) { .ei-grid { grid-template-columns: 1fr; } .ei-side { border-left: 0; border-top: 1px solid var(--border); } }
-    @media (max-width: 700px) { .ei-grid3, .ei-grid4 { grid-template-columns: 1fr; } .ei-s2, .ei-s3 { grid-column: 1 / -1; } .ei-bar, .ei-main { padding-left: 16px; padding-right: 16px; } .ei-custrow { flex-wrap: wrap; } }
+    @media (max-width: 700px) { .ei-grid3, .ei-grid4 { grid-template-columns: 1fr; } .ei-s2, .ei-s3 { grid-column: 1 / -1; } .ei-bar, .ei-main { padding-left: 16px; padding-right: 16px; } }
 </style>
 
 @if ($e && $status === 'NEW')<div class="tab-marker" data-tab-start="Enquiry"></div>@endif
@@ -98,16 +98,15 @@
 <form method="POST" action="{{ $e ? route('enquiries.update', $e) : route('enquiries.store') }}" enctype="multipart/form-data" id="ei" novalidate data-no-save-bar>@csrf @if ($e) @method('PUT') @endif
 <div class="ei-card">
     <div class="ei-bar">
-        <div class="ei-crumb"><a href="{{ route('enquiries.index') }}">Enquiries</a><span>/</span><code>{{ $code }}</code><span class="ei-pill {{ $statusTone }}">{{ $statusLabel }}</span>@if ($e)<strong>{{ $e->title }}</strong>@endif</div>
+        <div class="ei-crumb"><a href="{{ route('enquiries.index') }}">Enquiries</a><span>/</span><code>{{ $code }}</code><span class="ei-pill {{ $statusTone }}">{{ $statusLabel }}</span></div>
         <div class="ei-actions">
             @if (! $e)
-                <a class="ei-btn" href="{{ route('enquiries.index') }}">Cancel</a>
                 <button class="ei-btn" type="submit" name="action" value="draft">Save draft</button>
                 <button class="ei-btn primary" type="submit" name="action" value="send">Send to feasibility</button>
             @elseif ($status === 'NEW')
                 <button class="ei-btn" type="button" data-quick="closeDialog">Close enquiry</button>
-                @if (Route::has('developments.create'))<a class="ei-btn" href="{{ route('developments.create', ['from' => 'enquiry:'.$e->id]) }}">Start pattern development</a>@endif
                 <button class="ei-btn" type="submit" name="action" value="draft">Save draft</button>
+                @if (Route::has('developments.create'))<a class="ei-btn" href="{{ route('developments.create', ['from' => 'enquiry:'.$e->id]) }}">Start pattern development</a>@endif
                 <button class="ei-btn primary" type="submit" name="action" value="send">Send to feasibility</button>
             @elseif ($open)
                 <a class="ei-btn" href="{{ route('enquiries.show', $e) }}">Back to the record</a>
@@ -125,44 +124,40 @@
             <div>
                 <div class="ei-h">Customer</div>
                 <div class="ei-grid3">
-                    <div class="ei-f ei-full"><span>Customer <span class="ei-star"></span></span>
-                        <div class="ei-custrow">
-                            <label class="ei-opt"><input type="radio" name="customer_mode" value="EXISTING" @checked(old('customer_mode', 'EXISTING') === 'EXISTING') aria-label="Existing customer"></label>
-                            <select id="customer_id" name="customer_id" data-search-select aria-label="Existing customer"><option value="">— choose existing customer —</option>@foreach ($customers as $c)<option value="{{ $c->id }}" data-sub="{{ $c->code }}" data-contact="{{ $c->contact_name }}" data-ppap="{{ $c->ppap_requested ? $c->ppap_level : '' }}" @selected($customerId === $c->id)>{{ $c->name }}</option>@endforeach
-                                @if ($e && $e->customer && ! $customers->contains('id', $e->customer_id))<option value="{{ $e->customer_id }}" selected>{{ $e->customer->name }} (inactive)</option>@endif</select>
-                            <span class="ei-badge" id="ppapBadge" @unless ($customer?->ppap_requested) hidden @endunless>PPAP L{{ $customer?->ppap_level }}</span>
-                            <label class="ei-opt"><input type="radio" name="customer_mode" value="NEW" @checked(old('customer_mode') === 'NEW')> New customer</label>
-                        </div>
+                    <label class="ei-f">Customer <span class="ei-star"></span>
+                        <select id="customer_id" name="customer_id" data-search-select aria-label="Customer"><option value="">— choose customer —</option>@foreach ($customers as $c)<option value="{{ $c->id }}" data-sub="{{ $c->code }}" data-contact="{{ $c->contact_name }}" data-ppap="{{ $c->ppap_requested ? $c->ppap_level : '' }}" @selected($customerId === $c->id)>{{ $c->name }}</option>@endforeach
+                            @if ($e && $e->customer && ! $customers->contains('id', $e->customer_id))<option value="{{ $e->customer_id }}" selected>{{ $e->customer->name }} (inactive)</option>@endif</select>
                         @error('customer_id')<span class="error-text">{{ $message }}</span>@enderror
-                    </div>
-                    <label class="ei-f" data-mode="NEW">Company name <span class="ei-star"></span><input name="new_name" value="{{ old('new_name') }}">@error('new_name')<span class="error-text">{{ $message }}</span>@enderror<span class="ei-help">A short customer code is made for you.</span></label>
-                    <label class="ei-f" data-mode="NEW">Contact person<input name="new_contact" value="{{ old('new_contact') }}"></label>
-                    <label class="ei-f" data-mode="NEW">Phone<input name="new_phone" value="{{ old('new_phone') }}"></label>
-                    <label class="ei-f" data-mode="NEW">Email<input type="email" name="new_email" value="{{ old('new_email') }}">@error('new_email')<span class="error-text">{{ $message }}</span>@enderror</label>
-                    <label class="ei-f" data-mode="NEW">Payment terms<input name="new_terms" value="{{ old('new_terms') }}" placeholder="e.g. 30 days"></label>
+                    </label>
                     <label class="ei-f">Customer RFQ ref<input name="customer_reference" maxlength="100" value="{{ old('customer_reference', $e?->customer_reference) }}"></label>
                     <label class="ei-f">Reply by<input type="date" name="due_on" value="{{ old('due_on', $e?->due_on?->toDateString()) }}"></label>
-                    <label class="ei-f">Contact for this request<input name="contact_name" maxlength="120" value="{{ old('contact_name', $e?->contact_name) }}" placeholder="Defaults to the customer's contact"></label>
+                </div>
+                <div data-kept hidden>
+                    <input type="hidden" name="customer_mode" value="EXISTING">
+                    <label class="ei-f">Contact for this request<input name="contact_name" maxlength="120" value="{{ old('contact_name', $e?->contact_name) }}"></label>
                     <label class="ei-f">Owner<select name="owner_id"><option value="">— me —</option>@foreach ($users as $u)<option value="{{ $u->id }}" @selected((string) old('owner_id', $e?->owner_id ?? auth()->id()) === (string) $u->id)>{{ $u->name }}</option>@endforeach</select></label>
-                    <label class="ei-f ei-s2">Enquiry title<input name="title" maxlength="200" value="{{ old('title', $e?->title) }}" placeholder="Left blank, it is made from the first part and the kind of request"></label>
+                    <label class="ei-f">Enquiry title<input name="title" maxlength="200" value="{{ old('title', $e?->title) }}"></label>
                 </div>
             </div>
 
-            <div>
-                <div class="ei-h">Kind of request <span class="ei-star"></span></div>
+            <div data-kept hidden>
                 <div class="ei-chips" id="kindChips">
                     @foreach (Enquiry::SOURCES as $k => $l)
                         <label class="ei-chip @if ($kind === $k) on @endif"><input type="radio" name="source_type" value="{{ $k }}" @checked($kind === $k)>{{ $scenarios[$k]['label'] ?? $l }}</label>
                     @endforeach
                 </div>
                 @error('source_type')<span class="error-text">{{ $message }}</span>@enderror
-                <label class="ei-f" style="margin-top:12px"><span id="noteLabel">{{ $notes[$kind] ?? 'What they said' }}</span><textarea name="summary" rows="3" id="noteBox" placeholder="Anything the customer said that the team should know">{{ old('summary', $e?->summary) }}</textarea>@error('summary')<span class="error-text">{{ $message }}</span>@enderror</label>
+                <label class="ei-f">Kind of file<select name="file_category" id="file_category">@foreach ($categories as $k => $l)<option value="{{ $k }}" @selected(old('file_category', $scenarios[$kind]['file_category'] ?? null) === $k)>{{ $l }}</option>@endforeach</select></label>
+            </div>
+
+            <div id="noteBlock" @unless (isset($notes[$kind])) hidden @endunless>
+                <label class="ei-f"><span id="noteLabel">{{ $notes[$kind] ?? '' }}</span><textarea name="summary" rows="3" id="noteBox" placeholder="Anything the customer said that the team should know">{{ old('summary', $e?->summary) }}</textarea>@error('summary')<span class="error-text">{{ $message }}</span>@enderror</label>
             </div>
 
             <div>
                 <div id="parts">
                     @foreach ($rows as $row)
-                        @include('enquiry::enquiries._intake_part', ['key' => $row['key'], 'it' => $row['item'], 'num' => $loop->iteration])
+                        @include('enquiry::enquiries._intake_part', ['key' => $row['key'], 'it' => $row['item'], 'num' => $loop->iteration, 'multi' => $multi])
                     @endforeach
                 </div>
                 @error('items')<span class="error-text">{{ $message }}</span>@enderror
@@ -181,7 +176,6 @@
                 <div class="ei-upload">
                     <label class="ei-f">Add drawing, model, photos or the customer's email<input type="file" name="files[]" multiple data-max-kb="{{ \App\Support\Uploads::effectiveMaxKb() }}"></label>
                     @error('files')<span class="error-text">{{ $message }}</span>@enderror @error('files.*')<span class="error-text">{{ $message }}</span>@enderror
-                    <label class="ei-f">Kind of file<select name="file_category" id="file_category">@foreach ($categories as $k => $l)<option value="{{ $k }}" @selected(old('file_category', $scenarios[$kind]['file_category'] ?? null) === $k)>{{ $l }}</option>@endforeach</select></label>
                 </div>
             @endif
 
@@ -196,7 +190,7 @@
                 @endif
             </div>
 
-            <div>
+            <div data-kept hidden>
                 <div class="ei-side-h">What happens next</div>
                 @if ($e)
                     <ul class="ei-guide">@foreach ($guide as $g)<li>@if ($g['done'] === true)<span style="color:var(--accent)">&#10003;</span> {{ $g['label'] }}@elseif ($g['done'] === false)<span class="ei-muted">&#9675;</span> {{ $g['label'] }}@else<span class="ei-muted">&rarr; {{ $g['label'] }}</span>@endif</li>@endforeach</ul>
@@ -217,7 +211,7 @@
 </div>
 </form>
 
-<template id="partTemplate">@include('enquiry::enquiries._intake_part', ['key' => '__I__', 'it' => null, 'num' => '__N__'])</template>
+<template id="partTemplate">@include('enquiry::enquiries._intake_part', ['key' => '__I__', 'it' => null, 'num' => '__N__', 'multi' => true])</template>
 
 @if ($e && $open)
     @foreach ($e->items as $it)
@@ -245,20 +239,11 @@
     function kind() { return checked('source_type'); }
     function toggle(g, on) { g.hidden = !on; g.querySelectorAll('input,select,textarea').forEach(function (i) { i.disabled = !on || form.querySelector('fieldset').disabled; }); }
 
-    function applyMode() {
-        var isNew = checked('customer_mode') === 'NEW';
-        form.querySelectorAll('[data-mode]').forEach(function (g) { toggle(g, g.getAttribute('data-mode') === (checked('customer_mode') || 'EXISTING')); });
-        form.querySelectorAll('#kindChips .ei-chip').forEach(function (c) {
-            var i = c.querySelector('input'), own = OWN.indexOf(i.value) >= 0;
-            c.hidden = isNew && own;
-            if (c.hidden && i.checked) { i.checked = false; applyKind(); }
-        });
-    }
     function applyKind() {
         var k = kind();
         form.querySelectorAll('#kindChips .ei-chip').forEach(function (c) { c.classList.toggle('on', c.querySelector('input').checked); });
-        var label = document.getElementById('noteLabel');
-        label.textContent = NOTES[k] || 'What they said';
+        document.getElementById('noteBlock').hidden = !NOTES[k];
+        if (NOTES[k]) document.getElementById('noteLabel').textContent = NOTES[k];
         parts.querySelectorAll('[data-own]').forEach(function (g) { toggle(g, OWN.indexOf(k) >= 0); });
         var list = document.getElementById('adviceList');
         if (list) { list.innerHTML = ''; ((SC[k] || {}).advice || ['Choose the kind of request to see what usually follows.']).forEach(function (a) { var li = document.createElement('li'); li.textContent = '→ ' + a; list.appendChild(li); }); }
@@ -266,31 +251,27 @@
         if (cat && SC[k] && !form.dataset.catTouched) cat.value = SC[k].cat;
     }
     function applyPart(p) {
-        p.querySelectorAll('[data-quality] .ei-chip').forEach(function (c) { c.classList.toggle('on', c.querySelector('input').checked); });
+        p.querySelectorAll('[data-quality] .ei-chip:not(.ei-chip-other)').forEach(function (c) { c.classList.toggle('on', c.querySelector('input').checked); });
         var ppap = p.querySelector('[data-ppap]'), lvl = p.querySelector('[data-ppap-level]');
         if (ppap && lvl) toggle(lvl, ppap.checked);
         var sel = p.querySelector('[data-material]'), box = p.querySelector('[data-material-new]');
         if (sel && box) toggle(box, sel.value === '__new__');
-        var lab = p.querySelector('[data-ppap-label]'), lv = p.querySelector('[name$="[ppap_level]"]');
-        if (lab) lab.textContent = ppap && ppap.checked && lv && lv.value ? ' Level ' + lv.value : '';
     }
-    function renumber() { parts.querySelectorAll('[data-part]').forEach(function (p, i) { var n = p.querySelector('[data-num]'); if (n) n.textContent = i + 1; }); }
-    function customerPpap() { var s = document.getElementById('customer_id'), o = s && s.selectedIndex > 0 ? s.options[s.selectedIndex] : null; return o && checked('customer_mode') !== 'NEW' ? o.dataset.ppap : ''; }
+    function renumber() {
+        var all = parts.querySelectorAll('[data-part]');
+        all.forEach(function (p, i) { p.querySelectorAll('[data-num]').forEach(function (n) { n.textContent = i + 1; n.hidden = all.length < 2; }); });
+    }
+    function customerPpap() { var s = document.getElementById('customer_id'), o = s && s.selectedIndex > 0 ? s.options[s.selectedIndex] : null; return o ? o.dataset.ppap : ''; }
     function presetPpap(p) {
         var level = customerPpap(), box = p.querySelector('[data-ppap]'), sel = p.querySelector('[name$="[ppap_level]"]');
         if (!level || !box || p.dataset.ppapTouched) return;
         box.checked = true; if (sel) sel.value = level;
     }
-    function applyCustomer() {
-        var level = customerPpap(), badge = document.getElementById('ppapBadge');
-        if (badge) { badge.hidden = !level; badge.textContent = 'PPAP L' + level; }
-        parts.querySelectorAll('[data-part][data-new]').forEach(function (p) { presetPpap(p); applyPart(p); });
-    }
+    function applyCustomer() { parts.querySelectorAll('[data-part][data-new]').forEach(function (p) { presetPpap(p); applyPart(p); }); }
 
     form.addEventListener('change', function (ev) {
         var t = ev.target, p = t.closest && t.closest('[data-part]');
-        if (t.name === 'customer_id' && t.value) { form.querySelector('[name=customer_mode][value=EXISTING]').checked = true; }
-        if (t.name === 'customer_mode' || t.name === 'customer_id') { applyMode(); applyCustomer(); }
+        if (t.name === 'customer_id') applyCustomer();
         if (t.name === 'source_type') applyKind();
         if (t.id === 'file_category') form.dataset.catTouched = '1';
         if (p) {
@@ -327,7 +308,7 @@
         }
         form.querySelectorAll('.ei-actions button[type=submit]').forEach(function (b) { b.disabled = true; });
     });
-    applyMode(); applyKind(); applyCustomer();
+    applyKind(); applyCustomer();
     parts.querySelectorAll('[data-part]').forEach(applyPart);
 })();
 </script>

@@ -38,11 +38,12 @@ class EnquiryIntakeTest extends TestCase
     public function test_the_page_shows_the_1b_sections_and_the_old_wizard_address_still_opens_it(): void
     {
         $this->get(route('enquiries.create'))->assertOk()
-            ->assertSee('Customer RFQ ref')->assertSee('Reply by')->assertSee('Kind of request')->assertSee('Volumes')->assertSee('Quality requirements')
+            ->assertSee('Customer RFQ ref')->assertSee('Reply by')->assertSee('Volumes')->assertSee('Quality requirements')
             ->assertSee('Similar parts we\'ve made', false)->assertSee('Save draft')->assertSee('Send to feasibility');
         foreach (config('enquiry_scenarios') as $s) {
             $this->get(route('enquiries.create'))->assertSee($s['label']);
         }
+        $this->get(route('enquiries.create'))->assertSeeHtml('value="DRAWING" checked');
         $customer = $this->customer();
         $this->get(route('enquiries.wizard', ['customer' => $customer->id, 'scenario' => 'SAMPLE']))->assertRedirect(route('enquiries.create', ['customer' => $customer->id, 'scenario' => 'SAMPLE']));
         $this->get(route('enquiries.create', ['customer' => $customer->id, 'scenario' => 'SAMPLE']))->assertOk()->assertSeeHtml('value="SAMPLE" checked');
@@ -145,7 +146,7 @@ class EnquiryIntakeTest extends TestCase
     {
         $customer = $this->customer();
         $customer->update(['ppap_requested' => true, 'ppap_level' => 3]);
-        $this->get(route('enquiries.create', ['customer' => $customer->id]))->assertOk()->assertSee('PPAP L3')->assertSeeHtml('data-ppap="3"');
+        $this->get(route('enquiries.create', ['customer' => $customer->id]))->assertOk()->assertSeeHtml('data-ppap="3"');
 
         $grade = \App\Models\IronGrade::listed()->first();
         $this->assertNotNull($grade, 'the seeded iron grades are needed');
