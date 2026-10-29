@@ -3,7 +3,7 @@
         "claude_code"
     ],
     "cloud": true,
-    "guidelines": true,
+    "guidelines": false,
     "mcp": true,
     "nightwatch": false,
     "sail": false,
@@ -12,6 +12,7 @@
         "deploying-to-cloud",
         "laravel-best-practices",
         "testing-best-practices",
+        "livewire-development",
         "tailwindcss-development"
     ]
 }
