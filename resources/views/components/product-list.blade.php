@@ -36,6 +36,15 @@ new class extends Component
     #[Url(except: '')]
     public string $active = '';
 
+    #[Url(except: '')]
+    public string $customer = '';
+
+    #[Url(except: '')]
+    public string $process = '';
+
+    /** The product whose summary shows in the side panel. */
+    public ?string $focused = null;
+
     #[Url(except: false)]
     public bool $archived = false;
 
@@ -44,7 +53,7 @@ new class extends Component
 
     public function updated(string $property): void
     {
-        if (in_array($property, ['search', 'category', 'stock', 'active', 'archived'], true)) {
+        if (in_array($property, ['search', 'category', 'stock', 'active', 'archived', 'customer', 'process'], true)) {
             $this->selected = [];
             $this->resetPage();
         }
@@ -52,13 +61,27 @@ new class extends Component
 
     public function resetFilters(): void
     {
-        $this->reset('search', 'category', 'stock', 'active', 'selected');
+        $this->reset('search', 'category', 'stock', 'active', 'customer', 'process', 'selected');
         $this->resetPage();
     }
 
     public function paginationView(): string
     {
         return 'livewire.pagination';
+    }
+
+    /** The status tabs: active products, those still in development (only draft revisions), and inactive (obsolete) ones. */
+    public function showStatus(string $status): void
+    {
+        $this->archived = false;
+        $this->active = $status;
+        $this->selected = [];
+        $this->resetPage();
+    }
+
+    public function focus(string $productId): void
+    {
+        $this->focused = $this->focused === $productId ? null : $productId;
     }
 
     public function toggleActive(string $productId): void
@@ -118,13 +141,26 @@ new class extends Component
             ->when($tracksStock, fn ($q) => $q->selectSub($this->stockQuery(), 'stock_qty'), fn ($q) => $q->selectRaw('null as stock_qty'))
             ->selectSub(DB::table('sales_order_lines as sol')->join('sales_orders as so', 'so.id', '=', 'sol.sales_order_id')
                 ->whereColumn('sol.product_id', 'products.id')->orderByDesc('so.order_date')->orderByDesc('sol.created_at')->limit(1)->select('sol.unit_price'), 'last_price')
+            ->selectSub($this->customerQuery()->select('pa.name'), 'customer_name')
             ->when($this->archived, fn ($q) => $q->onlyTrashed())
+            ->when($this->customer !== '', fn ($q) => $q->whereExists(fn ($e) => $e->select(DB::raw(1))->from('sales_order_lines as sol2')->join('sales_orders as so2', 'so2.id', '=', 'sol2.sales_order_id')
+                ->whereColumn('sol2.product_id', 'products.id')->where('so2.customer_id', $this->customer)))
+            ->when($this->process !== '', fn ($q) => $q->whereHas('revisions.patternCavities.patternRevision.pattern', fn ($p) => $p->where('sand_system', $this->process)))
             ->when($search !== '', fn ($query) => $query->where(fn ($q) => $q->where('code', 'ilike', "%{$search}%")->orWhere('name', 'ilike', "%{$search}%")))
             ->when($this->category !== '', fn ($q) => $q->where('product_type', $this->category))
             ->when($tracksStock && $this->stock === 'in', fn ($q) => $q->where($this->stockQuery(), '>', 0))
             ->when($tracksStock && $this->stock === 'out', fn ($q) => $q->where($this->stockQuery(), '<=', 0))
             ->when($this->active === '1', fn ($q) => $q->where('active', true))
-            ->when($this->active === '0', fn ($q) => $q->where('active', false));
+            ->when($this->active === '0', fn ($q) => $q->where('active', false))
+            ->when($this->active === 'dev', fn ($q) => $q->where('active', true)->whereHas('revisions', fn ($r) => $r->where('status', 'DRAFT'))
+                ->whereDoesntHave('revisions', fn ($r) => $r->where('status', 'APPROVED')));
+    }
+
+    /** The customer of a product's latest sales order line. */
+    private function customerQuery(): \Illuminate\Database\Query\Builder
+    {
+        return DB::table('sales_order_lines as sl')->join('sales_orders as so', 'so.id', '=', 'sl.sales_order_id')->join('customers as c', 'c.id', '=', 'so.customer_id')->join('parties as pa', 'pa.id', '=', 'c.party_id')
+            ->whereColumn('sl.product_id', 'products.id')->orderByDesc('so.order_date')->orderByDesc('sl.created_at')->limit(1);
     }
 
     /** Pieces of a product packed and not yet dispatched. */
@@ -189,7 +225,25 @@ new class extends Component
             ->whereNotIn('so.status', ['DRAFT', 'CANCELLED'])
             ->selectRaw('coalesce(sum(sol.ordered_qty * sol.unit_price), 0) as value, count(distinct sol.product_id) as products')->first();
 
+        $focus = $this->focused ? $products->getCollection()->firstWhere('id', $this->focused) : null;
+        $focusPattern = $focus ? ($patterns[$focus->id] ?? null) : null;
+        $summary = $focus ? [
+            'shipped' => $tracksStock ? (float) DB::table('dispatch_items as di')->join('dispatches as d', 'd.id', '=', 'di.dispatch_id')
+                ->join('packing_record_items as pri', 'pri.id', '=', 'di.packing_record_item_id')->join('casting_lots as cl', 'cl.id', '=', 'pri.casting_lot_id')
+                ->where('cl.product_id', $focus->id)->where('d.dispatched_at', '>=', now()->subYear())->sum('di.quantity_dispatched') : null,
+            'lastOrder' => DB::table('sales_order_lines as sol')->join('sales_orders as so', 'so.id', '=', 'sol.sales_order_id')
+                ->where('sol.product_id', $focus->id)->orderByDesc('so.order_date')->value('so.order_number'),
+            'cavity' => $grades[$focus->id]['revision']?->patternCavities->firstWhere('pattern_revision_id', $focusPattern?->id)?->cavity_number,
+        ] : null;
+
         return [
+            'focus' => $focus,
+            'summary' => $summary,
+            'focusPattern' => $focusPattern,
+            'customers' => DB::table('customers as c')->join('parties as pa', 'pa.id', '=', 'c.party_id')->whereIn('c.id', DB::table('sales_orders')->select('customer_id'))->orderBy('pa.name')->pluck('pa.name', 'c.id'),
+            'processes' => DB::table('patterns')->whereNotNull('sand_system')->where('sand_system', '!=', '')->distinct()->orderBy('sand_system')->pluck('sand_system'),
+            'inDevelopment' => Product::where('active', true)->whereHas('revisions', fn ($r) => $r->where('status', 'DRAFT'))->whereDoesntHave('revisions', fn ($r) => $r->where('status', 'APPROVED'))->count(),
+            'inactiveProducts' => Product::where('active', false)->count(),
             'products' => $products,
             'grades' => $grades,
             'patterns' => $patterns,
@@ -244,6 +298,18 @@ new class extends Component
     .catalog .cat-switch:disabled { cursor: default; opacity: .7; }
     .catalog .cat-actions { white-space: nowrap; }
     .catalog .cat-actions form { display: inline; }
+    .catalog .cat-tabs { display: flex; gap: 4px; padding: 12px 16px 0; }
+    .catalog .cat-tabs button { background: none; border: 0; border-radius: 6px; padding: 5px 12px; min-height: 0; font-size: 13px; color: var(--muted); cursor: pointer; }
+    .catalog .cat-tabs button[aria-selected=true] { background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--text); }
+    .catalog .cat-peek { background: none; border: 0; padding: 0 0 0 6px; min-height: 0; font-size: 12px; color: var(--accent); cursor: pointer; }
+    .catalog .cat-focused { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+    .catalog .cat-split.has-panel { display: grid; grid-template-columns: minmax(0, 1fr) 320px; align-items: start; }
+    .catalog .cat-side { border-left: 1px solid var(--border); padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; font-size: 13px; }
+    .catalog .cat-side-head { display: flex; justify-content: space-between; gap: 8px; }
+    .catalog .cat-side dl { display: grid; grid-template-columns: auto 1fr; gap: 8px 14px; margin: 0; }
+    .catalog .cat-side dt { color: var(--muted); }
+    .catalog .cat-side dd { margin: 0; text-align: right; }
+    @media (max-width: 1100px) { .catalog .cat-split.has-panel { grid-template-columns: 1fr; } .catalog .cat-side { border-left: 0; border-top: 1px solid var(--border); } }
     .catalog .num { text-align: right; white-space: nowrap; }
     @media (max-width: 768px) { .catalog .cat-bulk { margin-left: 0; } .catalog .cat-filters input[type=search] { min-width: 0; width: 100%; } }
 </style>
@@ -262,34 +328,13 @@ new class extends Component
     </div>
 </div>
 
-<div class="metrics">
-    <div class="metric">
-        <span class="metric-icon">{!! \App\Support\NavIcons::get('package', 20) !!}</span>
-        <div class="metric-label">Stock valuation</div>
-        <div class="metric-value">{{ $tracksStock ? Formats::money($stockValue) : '—' }}</div>
-        <div class="metric-note muted" title="Packed pieces not yet dispatched, at each product's latest sales price">{{ $tracksStock ? Formats::number($productsInStock).' products in stock' : 'Dispatch is switched off' }}</div>
-    </div>
-    <div class="metric">
-        <span class="metric-icon">{!! \App\Support\NavIcons::get('box', 20) !!}</span>
-        <div class="metric-label">Products</div>
-        <div class="metric-value">{{ Formats::number($totalProducts) }}</div>
-        <div class="metric-note muted">{{ Formats::number($activeProducts) }} active · {{ Formats::number($addedThisMonth) }} added this month</div>
-    </div>
-    <div class="metric">
-        <span class="metric-icon warn">{!! \App\Support\NavIcons::get('alert', 20) !!}</span>
-        <div class="metric-label">Out of stock</div>
-        <div class="metric-value">{{ $tracksStock ? Formats::number($outOfStock) : '—' }} <span class="muted" style="font-size:15px;font-weight:500">products</span></div>
-        <div class="metric-note muted">Active products with nothing packed and waiting</div>
-    </div>
-    <div class="metric">
-        <span class="metric-icon ok">{!! \App\Support\NavIcons::get('chart-line', 20) !!}</span>
-        <div class="metric-label">Sales this month</div>
-        <div class="metric-value">{{ Formats::money($monthSales) }}</div>
-        <div class="metric-note muted">{{ Formats::number($monthSalesProducts) }} {{ $monthSalesProducts === 1 ? 'product' : 'products' }} ordered in {{ now()->format('F') }}</div>
-    </div>
-</div>
-
 <div class="panel">
+    <div class="cat-tabs" role="tablist">
+        <button type="button" role="tab" aria-selected="{{ ! $archived && ! in_array($active, ['0', 'dev'], true) ? 'true' : 'false' }}" wire:click="showStatus('')">All {{ Formats::number($totalProducts) }}</button>
+        <button type="button" role="tab" aria-selected="{{ ! $archived && $active === '1' ? 'true' : 'false' }}" wire:click="showStatus('1')">Active {{ Formats::number($activeProducts) }}</button>
+        <button type="button" role="tab" aria-selected="{{ ! $archived && $active === 'dev' ? 'true' : 'false' }}" wire:click="showStatus('dev')">In development {{ Formats::number($inDevelopment) }}</button>
+        <button type="button" role="tab" aria-selected="{{ ! $archived && $active === '0' ? 'true' : 'false' }}" wire:click="showStatus('0')">Obsolete {{ Formats::number($inactiveProducts) }}</button>
+    </div>
     <div class="cat-filters" role="search">
         <input id="search" type="search" wire:model.live.debounce.300ms="search" placeholder="Search products…" aria-label="Search code or name" autocomplete="off">
         <select wire:model.live="category" aria-label="Category">
@@ -303,12 +348,15 @@ new class extends Component
                 <option value="out">Out of stock</option>
             </select>
         @endif
-        <select wire:model.live="active" aria-label="Product status">
-            <option value="">All statuses</option>
-            <option value="1">Active</option>
-            <option value="0">Inactive</option>
+        <select wire:model.live="customer" aria-label="Customer">
+            <option value="">Customer: all</option>
+            @foreach ($customers as $id => $name)<option value="{{ $id }}">{{ $name }}</option>@endforeach
         </select>
-        @if ($search !== '' || $category !== '' || $stock !== '' || $active !== '')<button class="btn" type="button" wire:click="resetFilters">Reset</button>@endif
+        <select wire:model.live="process" aria-label="Process">
+            <option value="">Process: all</option>
+            @foreach ($processes as $sand)<option value="{{ $sand }}">{{ $sand }}</option>@endforeach
+        </select>
+        @if ($search !== '' || $category !== '' || $stock !== '' || $active !== '' || $customer !== '' || $process !== '')<button class="btn" type="button" wire:click="resetFilters">Reset</button>@endif
         <span class="muted small" wire:loading>Updating…</span>
         @if ($canManage && ! $archived)
             <div class="cat-bulk">
@@ -330,7 +378,8 @@ new class extends Component
             <a class="btn btn-primary" href="{{ route('products.create') }}">Create product</a>
         </div>
     @else
-        <div style="display:flex;justify-content:flex-end;margin-bottom:8px"><x-column-picker table="products" :columns="['code' => 'Code', 'category' => 'Category', 'stock' => 'Stock level', 'price' => 'Unit price', 'weight' => 'Weight', 'status' => 'Status']" /></div>
+        <div style="display:flex;justify-content:flex-end;margin-bottom:8px"><x-column-picker table="products" :columns="['code' => 'Code', 'customer' => 'Customer', 'category' => 'Category', 'stock' => 'Stock level', 'price' => 'Unit price', 'weight' => 'Weight', 'status' => 'Status']" /></div>
+        <div class="cat-split @if ($focus) has-panel @endif">
         <div class="table-wrap">
             <table class="cat-table" data-table="products">
                 <thead>
@@ -338,6 +387,7 @@ new class extends Component
                         @if ($canManage && ! $archived)<th style="width:28px"><input type="checkbox" aria-label="Tick every product on this page" x-on:change="$wire.set('selected', $event.target.checked ? @js($products->pluck('id')->map(fn ($id) => (string) $id)->values()) : [])" @checked(count($selected) === $products->count())></th>@endif
                         <th>Name</th>
                         <th data-col="code">Code</th>
+                        <th data-col="customer">Customer</th>
                         <th data-col="category">Category</th>
                         @if ($tracksStock)<th data-col="stock">Stock level</th>@endif
                         <th class="num" data-col="price" title="Price on the product's latest sales order line">Unit price</th>
@@ -354,7 +404,7 @@ new class extends Component
                             $sand = $patternRevision?->pattern->madeForSand();
                             $yield = $patternRevision?->yieldPercent();
                         @endphp
-                        <tr wire:key="product-{{ $product->id }}">
+                        <tr wire:key="product-{{ $product->id }}" @class(['cat-focused' => $focused === (string) $product->id])>
                             @if ($canManage && ! $archived)<td><input type="checkbox" value="{{ $product->id }}" wire:model.live="selected" aria-label="Tick {{ $product->name }}"></td>@endif
                             <td>
                                 <div class="cat-photo">
@@ -364,7 +414,7 @@ new class extends Component
                                         @else<span class="product-cell-none" title="No photo of this product yet">{!! \App\Support\NavIcons::get('layers', 22) !!}</span>@endif
                                     </span>
                                     <div>
-                                        <a class="cat-name" href="{{ route('products.show', $product) }}">{{ $product->name }}</a>
+                                        <a class="cat-name" href="{{ route('products.show', $product) }}">{{ $product->name }}</a> <button type="button" class="cat-peek" wire:click="focus('{{ $product->id }}')" aria-pressed="{{ $focused === (string) $product->id ? 'true' : 'false' }}" title="Show a summary of {{ $product->name }}">Summary</button>
                                         <div class="cat-sub">@if ($product->tariff_code){{ \App\Support\TaxJurisdiction::tariffLabel() }}: {{ $product->tariff_code }} · @endif @if ($g && $g['revision'])Rev {{ $g['revision']->revision }}@endif{{ isset($lastCast[$product->id]) ? ' · last cast '.$lastCast[$product->id]->displayDate() : '' }}</div>
                                         <div class="cat-chips">
                                             @if ($sand)<span class="cat-chip">{{ $sand }}</span>@endif
@@ -376,6 +426,7 @@ new class extends Component
                                 </div>
                             </td>
                             <td class="muted" data-col="code" style="white-space:nowrap">{{ $product->code }}</td>
+                            <td data-col="customer">{{ $product->customer_name ?? '—' }}</td>
                             <td data-col="category"><span class="cat-pill">{{ \Illuminate\Support\Str::headline(strtolower($product->product_type)) }}</span></td>
                             @if ($tracksStock)
                                 <td class="cat-stock" data-col="stock">
@@ -408,6 +459,22 @@ new class extends Component
                     @endforeach
                 </tbody>
             </table>
+        </div>
+        @if ($focus)
+            @php $rev = $grades[$focus->id]['revision'] ?? null; @endphp
+            <aside class="cat-side" aria-label="Summary of {{ $focus->name }}">
+                <div class="cat-side-head"><div><strong>{{ $focus->code }} · {{ $focus->name }}</strong></div><button type="button" class="btn btn-small" wire:click="focus('{{ $focus->id }}')" aria-label="Close summary">✕</button></div>
+                <dl>
+                    <dt>Customer</dt><dd>{{ $focus->customer_name ?? '—' }}</dd>
+                    <dt>Grade</dt><dd>{{ $grades[$focus->id]['grade']?->code ?? 'No grade' }}</dd>
+                    <dt>Revision</dt><dd>{{ $rev?->revision ?? '—' }}{{ $rev ? ' · '.\Illuminate\Support\Str::lower($rev->status) : '' }}</dd>
+                    <dt>Pattern</dt><dd>@if ($focusPattern){{ $focusPattern->pattern->code }}@if ($summary['cavity']) · cavity {{ $summary['cavity'] }}@endif @else — @endif</dd>
+                    <dt>Price</dt><dd>{{ $focus->last_price !== null ? Formats::money($focus->last_price) : '—' }}{{ $summary['lastOrder'] ? ' · '.$summary['lastOrder'] : '' }}</dd>
+                    @if ($tracksStock)<dt>Shipped, last 12 months</dt><dd>{{ Formats::number($summary['shipped'], 0) }} pcs</dd>@endif
+                </dl>
+                <a class="btn btn-primary" href="{{ route('products.show', $focus) }}">Open product</a>
+            </aside>
+        @endif
         </div>
         <div class="pagination">
             <div class="muted small">

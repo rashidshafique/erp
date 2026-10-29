@@ -60,6 +60,20 @@ class ProductCatalogueTest extends TestCase
         $list->set('stock', 'out')->assertSee('CAP-1')->assertDontSee('VALVE-1');
     }
 
+    public function test_the_list_shows_each_product_customer_and_can_be_narrowed_by_customer_and_status_tab(): void
+    {
+        $revision = ProductRevision::create(['product_id' => $this->valve->id, 'revision' => 'A', 'status' => 'DRAFT']);
+        $customer = Customer::create(['code' => 'ACME', 'name' => 'Acme Pumps']);
+        $order = SalesOrder::create(['order_number' => 'SO-1', 'customer_id' => $customer->id, 'order_date' => today(), 'status' => 'CONFIRMED']);
+        SalesOrderLine::create(['sales_order_id' => $order->id, 'product_id' => $this->valve->id, 'product_revision_id' => $revision->id, 'line_number' => 1, 'ordered_qty' => 2, 'unit_price' => 50, 'uom' => 'piece']);
+
+        $list = Livewire::test('product-list');
+        $list->assertSee('Acme Pumps');
+        $list->set('customer', $customer->id)->assertSee('VALVE-1')->assertDontSee('CAP-1');
+        $list->call('resetFilters')->call('showStatus', 'dev')->assertSee('VALVE-1')->assertDontSee('CAP-1');
+        $list->call('focus', $this->valve->id)->assertSee('Open product')->assertSee('SO-1');
+    }
+
     public function test_the_status_switch_and_bulk_actions_set_products_active_or_inactive(): void
     {
         $list = Livewire::test('product-list')->call('toggleActive', $this->valve->id);
