@@ -5,6 +5,7 @@ use App\Models\CastingLot;
 use App\Models\IronGrade;
 use App\Models\Product;
 use App\Models\ProductRevision;
+use App\Models\ProductSpecification;
 use App\Services\Planning\HeatPlanner;
 use App\Support\Formats;
 use App\Support\TaxJurisdiction;
@@ -79,7 +80,7 @@ new class extends Component
 
     public function focus(string $productId): void
     {
-        $this->focused = $this->focused === $productId ? null : $productId;
+        $this->focused = $productId;
     }
 
     public function toggleActive(string $productId): void
@@ -208,7 +209,7 @@ new class extends Component
     public function with(): array
     {
         $products = $this->filtered()
-            ->withCount('revisions')->with('revisions.patternCavities.patternRevision.pattern.preferredStation')
+            ->with('revisions.patternCavities.patternRevision.pattern.preferredStation')
             ->orderBy('code')
             ->paginate(20);
         $grades = $this->gradesFor($products->getCollection());
@@ -220,38 +221,28 @@ new class extends Component
             return [$product->id => $cavities->sortByDesc(fn ($c) => $c->patternRevision->is_current)->first()?->patternRevision];
         });
 
-        // The day each product was last poured: its newest casting lot.
-        $lastCast = CastingLot::whereIn('product_id', $products->pluck('id'))->whereNotNull('created_from_pour_at')
-            ->groupBy('product_id')->selectRaw('product_id, max(created_from_pour_at) as last_cast')->pluck('last_cast', 'product_id')
-            ->map(fn ($d) => Carbon::parse($d));
-
-        $tracksStock = $this->tracksStock();
-        $onHand = $tracksStock
-            ? Product::query()->select('products.id')->selectSub($this->stockQuery(), 'stock_qty')
-                ->selectSub(DB::table('sales_order_lines as sol')->join('sales_orders as so', 'so.id', '=', 'sol.sales_order_id')
-                    ->whereColumn('sol.product_id', 'products.id')->orderByDesc('so.order_date')->orderByDesc('sol.created_at')->limit(1)->select('sol.unit_price'), 'last_price')
-                ->where('active', true)->get()
-            : collect();
-        $monthSales = DB::table('sales_order_lines as sol')->join('sales_orders as so', 'so.id', '=', 'sol.sales_order_id')
-            ->whereBetween('so.order_date', [now()->startOfMonth()->toDateString(), now()->endOfMonth()->toDateString()])
-            ->whereNotIn('so.status', ['DRAFT', 'CANCELLED'])
-            ->selectRaw('coalesce(sum(sol.ordered_qty * sol.unit_price), 0) as value, count(distinct sol.product_id) as products')->first();
-
-        $focus = $this->focused ? $products->getCollection()->firstWhere('id', $this->focused) : null;
-        $focusPattern = $focus ? ($patterns[$focus->id] ?? null) : null;
-        $summary = $focus ? [
-            'shipped' => $tracksStock ? (float) DB::table('dispatch_items as di')->join('dispatches as d', 'd.id', '=', 'di.dispatch_id')
-                ->join('packing_record_items as pri', 'pri.id', '=', 'di.packing_record_item_id')->join('casting_lots as cl', 'cl.id', '=', 'pri.casting_lot_id')
-                ->where('cl.product_id', $focus->id)->where('d.dispatched_at', '>=', now()->subYear())->sum('di.quantity_dispatched') : null,
-            'lastOrder' => DB::table('sales_order_lines as sol')->join('sales_orders as so', 'so.id', '=', 'sol.sales_order_id')
-                ->where('sol.product_id', $focus->id)->orderByDesc('so.order_date')->value('so.order_number'),
-            'cavity' => $grades[$focus->id]['revision']?->patternCavities->firstWhere('pattern_revision_id', $focusPattern?->id)?->cavity_number,
-        ] : null;
+        // The side panel shows the ticked row, else the first one on the page.
+        $focus = $products->getCollection()->firstWhere('id', $this->focused) ?? $products->getCollection()->first();
+        $summary = null;
+        if ($focus) {
+            $revision = $grades[$focus->id]['revision'] ?? null;
+            $focusPattern = $patterns[$focus->id] ?? null;
+            $summary = [
+                'pattern' => $focusPattern,
+                'cavity' => $revision?->patternCavities->firstWhere('pattern_revision_id', $focusPattern?->id)?->cavity_number,
+                'drawing' => $revision ? ProductSpecification::where('product_revision_id', $revision->id)->whereNotNull('drawing_number')->orderByDesc('created_at')->first() : null,
+                'order' => DB::table('sales_order_lines as sol')->join('sales_orders as so', 'so.id', '=', 'sol.sales_order_id')
+                    ->where('sol.product_id', $focus->id)->orderByDesc('so.order_date')->value('so.order_number'),
+                'shipped' => $this->tracksStock() ? (float) DB::table('dispatch_items as di')->join('dispatches as d', 'd.id', '=', 'di.dispatch_id')
+                    ->join('packing_record_items as pri', 'pri.id', '=', 'di.packing_record_item_id')->join('casting_lots as cl', 'cl.id', '=', 'pri.casting_lot_id')
+                    ->where('cl.product_id', $focus->id)->where('d.dispatched_at', '>=', now()->subYear())->sum('di.quantity_dispatched') : null,
+                'routing' => $revision ? $revision->extraSteps()->pluck('name')->implode(' → ') : '',
+            ];
+        }
 
         return [
             'focus' => $focus,
             'summary' => $summary,
-            'focusPattern' => $focusPattern,
             'customers' => DB::table('customers as c')->join('parties as pa', 'pa.id', '=', 'c.party_id')->whereIn('c.id', DB::table('sales_orders')->select('customer_id'))->orderBy('pa.name')->pluck('pa.name', 'c.id'),
             'processes' => DB::table('patterns')->whereNotNull('sand_system')->where('sand_system', '!=', '')->distinct()->orderBy('sand_system')->pluck('sand_system'),
             'inDevelopment' => Product::where('active', true)->whereHas('revisions', fn ($r) => $r->where('status', 'DRAFT'))->whereDoesntHave('revisions', fn ($r) => $r->where('status', 'APPROVED'))->count(),
@@ -259,15 +250,7 @@ new class extends Component
             'products' => $products,
             'grades' => $grades,
             'patterns' => $patterns,
-            'lastCast' => $lastCast,
-            'tracksStock' => $tracksStock,
             'grades_list' => IronGrade::listed(),
-            'stockValue' => $onHand->sum(fn ($p) => max(0, (float) $p->stock_qty) * (float) $p->last_price),
-            'productsInStock' => $onHand->filter(fn ($p) => (float) $p->stock_qty > 0)->count(),
-            'outOfStock' => $onHand->filter(fn ($p) => (float) $p->stock_qty <= 0)->count(),
-            'addedThisMonth' => Product::where('created_at', '>=', now()->startOfMonth())->count(),
-            'monthSales' => (float) $monthSales->value,
-            'monthSalesProducts' => (int) $monthSales->products,
             'totalProducts' => Product::count(),
             'activeProducts' => Product::where('active', true)->count(),
             'archivedProducts' => Product::onlyTrashed()->count(),
@@ -277,217 +260,154 @@ new class extends Component
 };
 ?>
 
-<div class="catalog">
+<div class="pc">
 <style global>
-    .catalog .metric { position: relative; }
-    .catalog .metric-icon { position: absolute; top: 16px; right: 16px; width: 40px; height: 40px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--accent) 10%, transparent); color: var(--accent); }
-    .catalog .metric-icon.warn { background: color-mix(in srgb, var(--warning) 14%, transparent); color: var(--warning); }
-    .catalog .metric-icon.ok { background: color-mix(in srgb, var(--success) 12%, transparent); color: var(--success); }
-    .catalog .metric-note { font-size: 12.5px; margin-top: 8px; }
-    .catalog .cat-filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 16px; }
-    .catalog .cat-filters input[type=search] { min-width: 220px; }
-    .catalog .cat-filters select { min-width: 150px; }
-    .catalog .cat-bulk { margin-left: auto; display: flex; gap: 14px; align-items: center; font-size: 12px; letter-spacing: .4px; text-transform: uppercase; color: var(--muted); }
-    .catalog .cat-bulk button { background: none; border: 0; padding: 0; min-height: 0; color: var(--accent); text-decoration: underline; text-transform: none; letter-spacing: 0; font-size: 13.5px; cursor: pointer; }
-    .catalog .cat-bulk button:disabled { color: var(--muted); text-decoration: none; cursor: default; }
-    .catalog .cat-table thead th { background: var(--accent); color: #fff; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .4px; padding-top: 14px; padding-bottom: 14px; }
-    .catalog .cat-table td { vertical-align: middle; padding-top: 14px; padding-bottom: 14px; }
-    .catalog .cat-name { font-size: 15px; font-weight: 600; color: var(--text); }
-    .catalog .cat-sub { color: var(--muted); font-size: 12.5px; margin: 2px 0 6px; }
-    .catalog .cat-chips { display: flex; flex-wrap: wrap; gap: 5px; max-width: 420px; }
-    .catalog .cat-chip { border: 1px solid var(--border); border-radius: 6px; padding: 2px 8px; font-size: 12px; color: var(--muted); white-space: nowrap; }
-    .catalog .cat-photo { display: flex; gap: 14px; align-items: flex-start; }
-    .catalog .cat-photo .product-cell > a, .catalog .cat-photo .product-cell-none { width: 64px; height: 64px; }
-    .catalog .cat-pill { display: inline-block; border-radius: 6px; padding: 3px 9px; font-size: 12px; font-weight: 600; white-space: nowrap; background: color-mix(in srgb, var(--accent) 10%, transparent); color: var(--accent-dark, var(--accent)); }
-    .catalog .cat-stock strong { display: block; font-size: 15px; }
-    .catalog .cat-stock .in, .catalog .cat-stock .out { display: inline-block; margin-top: 4px; border-radius: 6px; padding: 2px 8px; font-size: 11.5px; font-weight: 600; }
-    .catalog .cat-stock .in { background: #e4f5eb; color: #176b43; }
-    .catalog .cat-stock .out { background: #fce8e6; color: #a12820; }
-    .catalog .cat-switch { position: relative; width: 40px; height: 22px; min-height: 0; padding: 0; border: 0; border-radius: 11px; background: var(--border); cursor: pointer; transition: background .15s; }
-    .catalog .cat-switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .15s; }
-    .catalog .cat-switch[aria-checked=true] { background: var(--accent); }
-    .catalog .cat-switch[aria-checked=true]::after { transform: translateX(18px); }
-    .catalog .cat-switch:disabled { cursor: default; opacity: .7; }
-    .catalog .cat-actions { white-space: nowrap; }
-    .catalog .cat-actions form { display: inline; }
-    .catalog .cat-tabs { display: flex; gap: 4px; padding: 12px 16px 0; }
-    .catalog .cat-tabs button { background: none; border: 0; border-radius: 6px; padding: 5px 12px; min-height: 0; font-size: 13px; color: var(--muted); cursor: pointer; }
-    .catalog .cat-tabs button[aria-selected=true] { background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--text); }
-    .catalog .cat-peek { background: none; border: 0; padding: 0 0 0 6px; min-height: 0; font-size: 12px; color: var(--accent); cursor: pointer; }
-    .catalog .cat-focused { background: color-mix(in srgb, var(--accent) 6%, transparent); }
-    .catalog .cat-split.has-panel { display: grid; grid-template-columns: minmax(0, 1fr) 320px; align-items: start; }
-    .catalog .cat-side { border-left: 1px solid var(--border); padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; font-size: 13px; }
-    .catalog .cat-side-head { display: flex; justify-content: space-between; gap: 8px; }
-    .catalog .cat-side dl { display: grid; grid-template-columns: auto 1fr; gap: 8px 14px; margin: 0; }
-    .catalog .cat-side dt { color: var(--muted); }
-    .catalog .cat-side dd { margin: 0; text-align: right; }
-    @media (max-width: 1100px) { .catalog .cat-split.has-panel { grid-template-columns: 1fr; } .catalog .cat-side { border-left: 0; border-top: 1px solid var(--border); } }
-    .catalog .num { text-align: right; white-space: nowrap; }
-    @media (max-width: 768px) { .catalog .cat-bulk { margin-left: 0; } .catalog .cat-filters input[type=search] { min-width: 0; width: 100%; } }
+    .pc { background: #fff; border: 1px solid #e6e7e9; border-radius: 10px; font-size: 13px; color: #1c1d1f; overflow: hidden; }
+    .pc button, .pc select, .pc input { font: inherit; min-height: 0; }
+    .pc-bar { display: flex; align-items: center; justify-content: space-between; padding: 14px 28px; border-bottom: 1px solid #e6e7e9; gap: 16px; flex-wrap: wrap; }
+    .pc-bar-left { display: flex; align-items: center; gap: 16px; }
+    .pc-tabs { display: flex; gap: 4px; color: #6b6e73; }
+    .pc-tabs button { padding: 4px 10px; border-radius: 6px; background: none; border: 0; color: #6b6e73; cursor: pointer; }
+    .pc-tabs button[aria-selected=true] { background: #f0f1f3; color: #1c1d1f; }
+    .pc-btns { display: flex; gap: 8px; }
+    .pc-btn { padding: 7px 14px; border-radius: 6px; background: #fff; border: 1px solid #d9dbde; color: #1c1d1f; text-decoration: none; cursor: pointer; }
+    .pc-btn.primary { background: #2f5fd0; border-color: #2f5fd0; color: #fff; font-weight: 500; }
+    .pc-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; }
+    .pc-main { padding: 20px 28px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+    .pc-filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .pc-filters input[type=search] { flex: 1; max-width: 320px; padding: 7px 10px; border: 1px solid #d9dbde; border-radius: 6px; background: #fff; }
+    .pc-filters select { padding: 6px 10px; border: 1px solid #d9dbde; border-radius: 6px; background: #fff; color: #1c1d1f; }
+    .pc table { width: 100%; border-collapse: collapse; }
+    .pc th { text-align: left; font-size: 12px; font-weight: 500; color: #6b6e73; padding: 8px 12px; border-bottom: 1px solid #e6e7e9; white-space: nowrap; }
+    .pc td { padding: 10px 12px; border-bottom: 1px solid #e6e7e9; vertical-align: middle; }
+    .pc tbody tr { cursor: pointer; }
+    .pc tbody tr:last-child td { border-bottom: 0; }
+    .pc tbody tr.on { background: #f5f8fe; }
+    .pc th.r, .pc td.r { text-align: right; }
+    .pc code { font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; background: none; padding: 0; }
+    .pc .name { font-weight: 500; color: #1c1d1f; text-decoration: none; }
+    .pc .grade { color: #6b6e73; }
+    .pc .pill { font-size: 11.5px; padding: 2px 8px; border-radius: 999px; font-weight: 500; white-space: nowrap; background: #f0f1f3; color: #55585d; }
+    .pc .pill.ok { background: #e7f4ec; color: #1d7048; }
+    .pc .pill.info { background: #eaf0fd; color: #2f5fd0; }
+    .pc .pill.warn { background: #fbf0dc; color: #94610a; }
+    .pc .muted { color: #6b6e73; }
+    .pc-side { border-left: 1px solid #e6e7e9; padding: 20px 24px; background: #f8f8f9; display: flex; flex-direction: column; gap: 14px; }
+    .pc-side h3 { margin: 0; font-size: 13px; font-weight: 600; }
+    .pc-side h3 a { color: inherit; text-decoration: none; }
+    .pc-side .row { display: flex; justify-content: space-between; gap: 12px; }
+    .pc-side .row span:first-child { color: #6b6e73; }
+    .pc-side .row span:last-child { text-align: right; }
+    .pc-side .label { font-size: 12px; font-weight: 600; color: #6b6e73; text-transform: uppercase; letter-spacing: .06em; }
+    .pc-side .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .pc-side .stats .k { font-size: 12px; color: #6b6e73; }
+    .pc-note { padding: 10px 12px; border: 1px solid #f0d9a8; border-radius: 8px; background: #fffaf0; color: #94610a; font-size: 12.5px; }
+    .pc-link { background: none; border: 0; padding: 0 0 0 6px; color: #2f5fd0; cursor: pointer; }
+    .pc-foot { display: flex; justify-content: space-between; align-items: center; color: #6b6e73; font-size: 12.5px; }
+    .pc-foot a, .pc-foot button { color: #2f5fd0; background: none; border: 0; padding: 0; cursor: pointer; text-decoration: none; }
+    @media (max-width: 1100px) { .pc-grid { grid-template-columns: 1fr; } .pc-side { border-left: 0; border-top: 1px solid #e6e7e9; } .pc-bar, .pc-main { padding-left: 16px; padding-right: 16px; } .pc-main { overflow-x: auto; } }
 </style>
 
-<div class="page-heading">
-    <div>
-        <h1>Product catalogue</h1>
-        <p>The castings you sell: stock waiting to ship, latest price, grade, pattern and yield at a glance.</p>
+<div class="pc-bar">
+    <div class="pc-bar-left">
+        <strong>Products</strong>
+        <div class="pc-tabs" role="tablist">
+            <button type="button" role="tab" aria-selected="{{ ! $archived && $active === '1' ? 'true' : 'false' }}" wire:click="showStatus('1')">Active {{ Formats::number($activeProducts) }}</button>
+            <button type="button" role="tab" aria-selected="{{ ! $archived && $active === 'dev' ? 'true' : 'false' }}" wire:click="showStatus('dev')">In development {{ Formats::number($inDevelopment) }}</button>
+            <button type="button" role="tab" aria-selected="{{ ! $archived && $active === '0' ? 'true' : 'false' }}" wire:click="showStatus('0')">Obsolete {{ Formats::number($inactiveProducts) }}</button>
+        </div>
     </div>
-    <div class="actions">
-        <a class="btn" href="{{ route('imports.create', ['entity' => 'product']) }}">{!! \App\Support\NavIcons::get('upload', 15) !!} Import</a>
-        <button class="btn" type="button" wire:click="export">{!! \App\Support\NavIcons::get('file-text', 15) !!} Export</button>
-        <button class="btn" type="button" wire:click="$toggle('archived')" aria-pressed="{{ $archived ? 'true' : 'false' }}">{!! \App\Support\NavIcons::get('archive', 15) !!} {{ $archived ? 'Current products' : $archivedProducts.' archived' }}</button>
-        @if (Route::has('developments.create'))<a class="btn" href="{{ route('developments.create', ['from' => 'products']) }}">Start development</a>@endif
-        <a class="btn btn-primary" href="{{ route('products.create') }}">+ Add product</a>
+    <div class="pc-btns">
+        <a class="pc-btn" href="{{ route('imports.create', ['entity' => 'product']) }}">Import</a>
+        @if (Route::has('developments.create'))<a class="pc-btn" href="{{ route('developments.create', ['from' => 'products']) }}">Start development</a>@endif
+        <a class="pc-btn primary" href="{{ route('products.create') }}">New product</a>
     </div>
 </div>
 
-<div class="panel">
-    <div class="cat-tabs" role="tablist">
-        <button type="button" role="tab" aria-selected="{{ ! $archived && ! in_array($active, ['0', 'dev'], true) ? 'true' : 'false' }}" wire:click="showStatus('')">All {{ Formats::number($totalProducts) }}</button>
-        <button type="button" role="tab" aria-selected="{{ ! $archived && $active === '1' ? 'true' : 'false' }}" wire:click="showStatus('1')">Active {{ Formats::number($activeProducts) }}</button>
-        <button type="button" role="tab" aria-selected="{{ ! $archived && $active === 'dev' ? 'true' : 'false' }}" wire:click="showStatus('dev')">In development {{ Formats::number($inDevelopment) }}</button>
-        <button type="button" role="tab" aria-selected="{{ ! $archived && $active === '0' ? 'true' : 'false' }}" wire:click="showStatus('0')">Obsolete {{ Formats::number($inactiveProducts) }}</button>
-    </div>
-    <div class="cat-filters" role="search">
-        <input id="search" type="search" wire:model.live.debounce.300ms="search" placeholder="Search code, name or drawing" aria-label="Search code, name or drawing" autocomplete="off">
-        <select wire:model.live="customer" aria-label="Customer">
-            <option value="">Customer: all</option>
-            @foreach ($customers as $id => $name)<option value="{{ $id }}">{{ $name }}</option>@endforeach
-        </select>
-        <select wire:model.live="metal" aria-label="Metal">
-            <option value="">Metal: all</option>
-            @foreach ($grades_list as $grade)<option value="{{ $grade->id }}">{{ $grade->code }}</option>@endforeach
-        </select>
-        <select wire:model.live="process" aria-label="Process">
-            <option value="">Process: all</option>
-            @foreach ($processes as $sand)<option value="{{ $sand }}">{{ $sand }}</option>@endforeach
-        </select>
-        @if ($search !== '' || $metal !== '' || $active !== '' || $customer !== '' || $process !== '')<button class="btn" type="button" wire:click="resetFilters">Reset</button>@endif
-        <span class="muted small" wire:loading>Updating…</span>
-        @if ($canManage && ! $archived)
-            <div class="cat-bulk">
-                <span>Bulk actions{{ $selected ? ' ('.count($selected).')' : '' }}:</span>
-                <button type="button" wire:click="setActive(true)" @disabled(! $selected)>Activate</button>
-                <button type="button" wire:click="setActive(false)" @disabled(! $selected)>Deactivate</button>
-            </div>
-        @endif
-    </div>
-
-    @if ($archived)
-        <div class="panel-header"><h2>Archived products</h2><span class="muted small"><a href="#" wire:click.prevent="$set('archived', false)">Back to current products</a></span></div>
-    @endif
-
-    @if ($products->isEmpty())
-        <div class="empty-state">
-            <strong>{{ $archived ? 'No archived products' : 'No products found' }}</strong>
-            <p>Create your first product to start building the production workflow.</p>
-            <a class="btn btn-primary" href="{{ route('products.create') }}">Create product</a>
+<div class="pc-grid">
+    <div class="pc-main">
+        <div class="pc-filters" role="search">
+            <input id="search" type="search" wire:model.live.debounce.300ms="search" placeholder="Search code, name or drawing" aria-label="Search code, name or drawing" autocomplete="off">
+            <select wire:model.live="customer" aria-label="Customer">
+                <option value="">Customer: all</option>
+                @foreach ($customers as $id => $name)<option value="{{ $id }}">{{ $name }}</option>@endforeach
+            </select>
+            <select wire:model.live="metal" aria-label="Metal">
+                <option value="">Metal: all</option>
+                @foreach ($grades_list as $grade)<option value="{{ $grade->id }}">{{ $grade->code }}</option>@endforeach
+            </select>
+            <select wire:model.live="process" aria-label="Process">
+                <option value="">Process: all</option>
+                @foreach ($processes as $sand)<option value="{{ $sand }}">{{ $sand }}</option>@endforeach
+            </select>
+            @if ($search !== '' || $metal !== '' || $active !== '' || $customer !== '' || $process !== '')<button class="pc-btn" type="button" wire:click="resetFilters">Reset</button>@endif
+            <span class="muted" wire:loading>Updating…</span>
         </div>
-    @else
-        <div style="display:flex;justify-content:flex-end;margin-bottom:8px"><x-column-picker table="products" :columns="['code' => 'Code', 'customer' => 'Customer', 'category' => 'Category', 'stock' => 'Stock level', 'price' => 'Unit price', 'weight' => 'Weight', 'status' => 'Status']" /></div>
-        <div class="cat-split @if ($focus) has-panel @endif">
-        <div class="table-wrap">
-            <table class="cat-table" data-table="products">
-                <thead>
-                    <tr>
-                        @if ($canManage && ! $archived)<th style="width:28px"><input type="checkbox" aria-label="Tick every product on this page" x-on:change="$wire.set('selected', $event.target.checked ? @js($products->pluck('id')->map(fn ($id) => (string) $id)->values()) : [])" @checked(count($selected) === $products->count())></th>@endif
-                        <th>Name</th>
-                        <th data-col="code">Code</th>
-                        <th data-col="customer">Customer</th>
-                        <th data-col="category">Category</th>
-                        @if ($tracksStock)<th data-col="stock">Stock level</th>@endif
-                        <th class="num" data-col="price" title="Price on the product's latest sales order line">Unit price</th>
-                        <th class="num" data-col="weight">Weight</th>
-                        <th data-col="status">Status</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach ($products as $product)
-                        @php
-                            $g = $grades[$product->id] ?? null;
-                            $patternRevision = $patterns[$product->id] ?? null;
-                            $sand = $patternRevision?->pattern->madeForSand();
-                            $yield = $patternRevision?->yieldPercent();
-                        @endphp
-                        <tr wire:key="product-{{ $product->id }}" @class(['cat-focused' => $focused === (string) $product->id])>
-                            @if ($canManage && ! $archived)<td><input type="checkbox" value="{{ $product->id }}" wire:model.live="selected" aria-label="Tick {{ $product->name }}"></td>@endif
-                            <td>
-                                <div class="cat-photo">
-                                    @php $photo = \App\Models\Attachment::coverFor('product', (string) $product->id); @endphp
-                                    <span class="product-cell">
-                                        @if ($photo)<a href="{{ route('attachments.download', $photo) }}" data-lightbox="product-cells" data-caption="{{ $product->name }} · {{ $product->code }}"><img src="{{ route('attachments.download', $photo) }}" alt="" loading="lazy"></a>
-                                        @else<span class="product-cell-none" title="No photo of this product yet">{!! \App\Support\NavIcons::get('layers', 22) !!}</span>@endif
-                                    </span>
-                                    <div>
-                                        <a class="cat-name" href="{{ route('products.show', $product) }}">{{ $product->name }}</a> <button type="button" class="cat-peek" wire:click="focus('{{ $product->id }}')" aria-pressed="{{ $focused === (string) $product->id ? 'true' : 'false' }}" title="Show a summary of {{ $product->name }}">Summary</button>
-                                        <div class="cat-sub">@if ($product->tariff_code){{ \App\Support\TaxJurisdiction::tariffLabel() }}: {{ $product->tariff_code }} · @endif @if ($g && $g['revision'])Rev {{ $g['revision']->revision }}@endif{{ isset($lastCast[$product->id]) ? ' · last cast '.$lastCast[$product->id]->displayDate() : '' }}</div>
-                                        <div class="cat-chips">
-                                            @if ($sand)<span class="cat-chip">{{ $sand }}</span>@endif
-                                            @if ($g && $g['grade'])<span class="cat-chip" title="{{ $g['grade']->name }}">{{ $g['grade']->code }}</span>@else<span class="cat-chip" title="Set the grade on the product's Iron grade tab">No grade</span>@endif
-                                            @if ($patternRevision)<span class="cat-chip" title="Pattern">{{ $patternRevision->pattern->code }}</span>@endif
-                                            @if ($yield !== null)<span class="cat-chip" title="Casting weight as a share of the poured weight">{{ Formats::number($yield, 1) }} %</span>@endif
-                                        </div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="muted" data-col="code" style="white-space:nowrap">{{ $product->code }}</td>
-                            <td data-col="customer">{{ $product->customer_name ?? '—' }}</td>
-                            <td data-col="category"><span class="cat-pill">{{ \Illuminate\Support\Str::headline(strtolower($product->product_type)) }}</span></td>
-                            @if ($tracksStock)
-                                <td class="cat-stock" data-col="stock">
-                                    <strong>{{ Formats::number(max(0, (float) $product->stock_qty), 0) }} {{ $product->base_uom === 'piece' ? 'pcs' : $product->base_uom }}</strong>
-                                    @if ((float) $product->stock_qty > 0)<span class="in">● In stock</span>@else<span class="out">● Out of stock</span>@endif
-                                </td>
-                            @endif
-                            <td class="num" data-col="price">{{ $product->last_price !== null ? Formats::money($product->last_price) : '—' }}</td>
-                            <td class="num" data-col="weight">{{ $product->nominal_weight_kg !== null ? Formats::number((float) $product->nominal_weight_kg, 2).' kg' : '—' }}</td>
-                            <td data-col="status">
-                                @if ($archived)
-                                    <span class="status status-cancelled">ARCHIVED</span>
-                                @else
-                                    <button type="button" class="cat-switch" role="switch" aria-checked="{{ $product->active ? 'true' : 'false' }}" aria-label="{{ $product->name }} {{ $product->active ? 'active' : 'inactive' }}" title="{{ $product->active ? 'Active: click to deactivate' : 'Inactive: click to activate' }}" wire:click="toggleActive('{{ $product->id }}')" @disabled(! $canManage)></button>
-                                @endif
-                            </td>
-                            <td class="cat-actions">
-                                @if ($archived)
-                                    <form method="POST" action="{{ route('products.restore', $product) }}">@csrf<button class="btn btn-small" type="submit">Restore</button></form>
-                                @else
-                                    @include('partials.icon-button', ['type' => 'edit', 'name' => $product->name, 'href' => route('products.edit', $product)])
-                                    @if ($canManage)
-                                        <form method="POST" action="{{ route('products.archive', $product) }}">@csrf @method('DELETE')
-                                            @include('partials.icon-button', ['type' => 'delete', 'word' => 'Archive', 'name' => $product->name, 'confirm' => "Archive {$product->code}? It leaves the list and pickers and can be restored."])
-                                        </form>
-                                    @endif
-                                @endif
-                            </td>
+
+        @if ($products->isEmpty())
+            <p class="muted">{{ $archived ? 'No archived products.' : 'No products found.' }}</p>
+        @else
+            <div style="margin:0 -12px">
+                <table data-table="products">
+                    <thead>
+                        <tr>
+                            <th>Code</th><th>Name</th><th>Customer</th><th>Grade</th><th>Process</th><th class="r">Casting kg</th><th>Revision</th><th>PPAP</th><th>Status</th>
                         </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-        @if ($focus)
-            @php $rev = $grades[$focus->id]['revision'] ?? null; @endphp
-            <aside class="cat-side" aria-label="Summary of {{ $focus->name }}">
-                <div class="cat-side-head"><div><strong>{{ $focus->code }} · {{ $focus->name }}</strong></div><button type="button" class="btn btn-small" wire:click="focus('{{ $focus->id }}')" aria-label="Close summary">✕</button></div>
-                <dl>
-                    <dt>Customer</dt><dd>{{ $focus->customer_name ?? '—' }}</dd>
-                    <dt>Grade</dt><dd>{{ $grades[$focus->id]['grade']?->code ?? 'No grade' }}</dd>
-                    <dt>Revision</dt><dd>{{ $rev?->revision ?? '—' }}{{ $rev ? ' · '.\Illuminate\Support\Str::lower($rev->status) : '' }}</dd>
-                    <dt>Pattern</dt><dd>@if ($focusPattern){{ $focusPattern->pattern->code }}@if ($summary['cavity']) · cavity {{ $summary['cavity'] }}@endif @else — @endif</dd>
-                    <dt>Price</dt><dd>{{ $focus->last_price !== null ? Formats::money($focus->last_price) : '—' }}{{ $summary['lastOrder'] ? ' · '.$summary['lastOrder'] : '' }}</dd>
-                    @if ($tracksStock)<dt>Shipped, last 12 months</dt><dd>{{ Formats::number($summary['shipped'], 0) }} pcs</dd>@endif
-                </dl>
-                <a class="btn btn-primary" href="{{ route('products.show', $focus) }}">Open product</a>
-            </aside>
-        @endif
-        </div>
-        <div class="pagination">
-            <div class="muted small">
-                Showing {{ $products->firstItem() }}–{{ $products->lastItem() }}
-                of {{ $products->total() }}
+                    </thead>
+                    <tbody>
+                        @foreach ($products as $product)
+                            @php
+                                $g = $grades[$product->id] ?? null;
+                                $sand = ($patterns[$product->id] ?? null)?->pattern->madeForSand();
+                                $isDraft = $g && $g['revision']?->status === 'DRAFT' && ! $product->revisions->contains('status', 'APPROVED');
+                            @endphp
+                            <tr wire:key="product-{{ $product->id }}" wire:click="focus('{{ $product->id }}')" @class(['on' => $focus && (string) $focus->id === (string) $product->id])>
+                                <td><code>{{ $product->code }}</code></td>
+                                <td><a class="name" href="{{ route('products.show', $product) }}" wire:click.stop>{{ $product->name }}</a></td>
+                                <td>{{ $product->customer_name ?? '—' }}</td>
+                                <td><span class="grade">{{ $g['grade']->code ?? '—' }}</span></td>
+                                <td>{{ $sand ?: '—' }}</td>
+                                <td class="r">{{ $product->nominal_weight_kg !== null ? Formats::number((float) $product->nominal_weight_kg, 2) : '—' }}</td>
+                                <td>{{ $g['revision']->revision ?? '—' }}</td>
+                                <td><span class="muted">—</span></td>
+                                <td>
+                                    @if ($archived)<span class="pill">Archived</span> <form method="POST" action="{{ route('products.restore', $product) }}" style="display:inline" wire:click.stop>@csrf<button class="pc-link" type="submit">Restore</button></form>
+                                    @elseif (! $product->active)<span class="pill">Obsolete</span>
+                                    @elseif ($isDraft)<span class="pill info">In development</span>
+                                    @else<span class="pill ok">Active</span>@endif
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
             </div>
-            <div class="pagination-links">{{ $products->links() }}</div>
+            <div class="pc-foot">
+                <span>Showing {{ $products->firstItem() }}–{{ $products->lastItem() }} of {{ $products->total() }}</span>
+                <span class="pagination-links">{{ $products->links() }}</span>
+            </div>
+        @endif
+        <div class="pc-foot">
+            <button type="button" wire:click="$toggle('archived')">{{ $archived ? 'Back to current products' : $archivedProducts.' archived' }}</button>
+            <button type="button" wire:click="export">Export CSV</button>
         </div>
+    </div>
+
+    @if ($focus)
+        <aside class="pc-side" aria-label="Summary of {{ $focus->name }}">
+            <h3><a href="{{ route('products.show', $focus) }}">{{ $focus->code }} · {{ $focus->name }}</a></h3>
+            <div class="row"><span>Customer</span><span>{{ $focus->customer_name ?? '—' }}</span></div>
+            <div class="row"><span>Drawing</span><span>{{ $summary['drawing'] ? $summary['drawing']->drawing_number.($summary['drawing']->drawing_revision ? ' rev '.$summary['drawing']->drawing_revision : '') : '—' }}</span></div>
+            <div class="row"><span>Pattern</span><span>@if ($summary['pattern'])<code>{{ $summary['pattern']->pattern->code }}</code>@if ($summary['cavity']) cavity {{ $summary['cavity'] }}@endif @else — @endif</span></div>
+            <div class="row"><span>Price</span><span>{{ $focus->last_price !== null ? Formats::money($focus->last_price) : '—' }}{{ $summary['order'] ? ' · '.$summary['order'] : '' }}</span></div>
+            <div class="label">Last 12 months</div>
+            <div class="stats">
+                <div><div class="k">Shipped</div><div>{{ $summary['shipped'] !== null ? Formats::number($summary['shipped'], 0).' pcs' : '—' }}</div></div>
+                <div><div class="k">Scrap</div><div>—</div></div>
+                <div><div class="k">Margin</div><div>—</div></div>
+            </div>
+            <div class="label">Routing</div>
+            <div>{{ $summary['routing'] !== '' ? $summary['routing'] : '—' }}</div>
+        </aside>
     @endif
 </div>
 </div>

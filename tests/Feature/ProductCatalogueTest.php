@@ -38,7 +38,7 @@ class ProductCatalogueTest extends TestCase
         $this->cap = Product::create(['code' => 'CAP-1', 'name' => 'Cap']);
     }
 
-    public function test_stock_is_packed_less_dispatched_priced_at_the_latest_sales_line_and_can_be_filtered(): void
+    public function test_the_side_panel_shows_the_latest_sales_price_and_the_pieces_shipped(): void
     {
         $revision = ProductRevision::create(['product_id' => $this->valve->id, 'revision' => 'A', 'status' => 'APPROVED']);
         foreach (['pour_mould_assembly_id', 'production_order_id'] as $column) {
@@ -47,7 +47,7 @@ class ProductCatalogueTest extends TestCase
         $lot = CastingLot::create(['lot_number' => 'LOT-1', 'product_id' => $this->valve->id, 'product_revision_id' => $revision->id, 'status' => 'OPEN', 'quantity_poured' => 10]);
         $packed = PackingRecordItem::create(['packing_record_id' => PackingRecord::create(['packing_number' => 'PK-1', 'status' => 'DRAFT'])->id, 'casting_lot_id' => $lot->id, 'quantity_packed' => 10, 'uom' => 'PCS']);
         $customer = Customer::create(['code' => 'ACME', 'name' => 'Acme Pumps']);
-        $dispatch = Dispatch::create(['dispatch_number' => 'DS-1', 'customer_id' => $customer->id]);
+        $dispatch = Dispatch::create(['dispatch_number' => 'DS-1', 'customer_id' => $customer->id, 'dispatched_at' => now()]);
         DispatchItem::create(['dispatch_id' => $dispatch->id, 'packing_record_item_id' => $packed->id, 'quantity_dispatched' => 4]);
         foreach ([['SO-1', today()->subMonths(2), 100], ['SO-2', today(), 125]] as [$number, $date, $price]) {
             $order = SalesOrder::create(['order_number' => $number, 'customer_id' => $customer->id, 'order_date' => $date, 'status' => 'CONFIRMED']);
@@ -55,8 +55,7 @@ class ProductCatalogueTest extends TestCase
         }
 
         $list = Livewire::test('product-list');
-        $list->assertViewHas('stockValue', 6 * 125.0)->assertViewHas('outOfStock', 1)->assertViewHas('monthSales', 250.0)
-            ->assertSee('6 pcs')->assertSee('125.00');
+        $list->call('focus', $this->valve->id)->assertSee('125.00')->assertSee('4 pcs');   // the side panel: latest price and pieces shipped in a year
     }
 
     public function test_the_list_shows_each_product_customer_and_can_be_narrowed_by_customer_and_status_tab(): void
@@ -74,7 +73,7 @@ class ProductCatalogueTest extends TestCase
         ProductSpecification::create(['product_revision_id' => $revision->id, 'specification_code' => 'SP-1', 'title' => 'Valve spec', 'drawing_number' => 'DWG-77', 'material_grade' => 'EN-GJS-500-7']);
         $list->set('search', 'DWG-77')->assertSee('VALVE-1')->assertDontSee('CAP-1');
         $list->call('resetFilters')->set('metal', (string) \App\Models\IronGrade::resolve('EN-GJS-500-7')['grade']->id)->assertSee('VALVE-1')->assertDontSee('CAP-1');
-        $list->call('focus', $this->valve->id)->assertSee('Open product')->assertSee('SO-1');
+        $list->call('focus', $this->valve->id)->assertSee('SO-1');
     }
 
     public function test_the_status_switch_and_bulk_actions_set_products_active_or_inactive(): void
@@ -104,13 +103,11 @@ class ProductCatalogueTest extends TestCase
             'inventory_class' => 'STOCK_IN_TRADE', 'tariff_code' => '69022000', 'origin_country' => 'CN'])->assertSessionHasNoErrors();
         $liner = Product::where('name', 'Ladle liner')->sole();
         $this->assertSame(['STOCK_IN_TRADE', '6902.2000', 'CN'], array_values($liner->only('inventory_class', 'tariff_code', 'origin_country')));
-
-        Livewire::test('product-list')->assertSee('PCT code: 6902.2000');
     }
 
     public function test_products_sit_in_the_sales_menu(): void
     {
-        $html = $this->get(route('products.index'))->assertOk()->assertSee('Product catalogue')->getContent();
+        $html = $this->get(route('products.index'))->assertOk()->assertSee('Products')->getContent();
 
         $sales = substr($html, strpos($html, '<span>Sales &amp; Planning</span>'));
         $this->assertStringContainsString(route('products.index'), substr($sales, 0, strpos($sales, 'nav-group-toggle')));
