@@ -7,18 +7,20 @@
 @endsection
 
 @section('content')
-<div class="page-heading">
-    <div>
-        <h1>{{ $product->name }}</h1>
-        <p class="pills"><span class="mono">{{ $product->code }}</span><span class="pill">{{ $product->product_type }}</span></p>
+<div class="pd-bar">
+    <div class="pd-bar-left">
+        <a href="{{ route('products.index') }}" class="pd-crumb">Products</a>
+        <span class="muted">/</span>
+        <span>{{ $product->code }} {{ $product->name }}</span>
+        <span class="pd-tabs-slot"></span>
     </div>
-    <div class="actions">
-        <a class="btn" href="{{ route('products.index') }}">All products</a>
+    <div class="pd-actions">
         @if ($product->trashed())
-            <form method="POST" action="{{ route('products.restore', $product) }}" style="display:inline">@csrf<button class="btn btn-primary" type="submit">Restore product</button></form>
+            <form method="POST" action="{{ route('products.restore', $product) }}" style="display:inline">@csrf<button class="pd-btn primary" type="submit">Restore product</button></form>
         @else
-            <form method="POST" action="{{ route('products.archive', $product) }}" style="display:inline" onsubmit="return confirm(@js('Archive '.$product->code.'? It leaves the product list and pickers but stays on old orders, and can be restored.'))">@csrf @method('DELETE')<button class="btn" type="submit">Archive</button></form>
-            <a class="btn btn-primary" href="{{ route('products.edit', $product) }}">Edit product</a>
+            <form method="POST" action="{{ route('products.archive', $product) }}" style="display:inline" onsubmit="return confirm(@js('Archive '.$product->code.'? It leaves the product list and pickers but stays on old orders, and can be restored.'))">@csrf @method('DELETE')<button class="pd-btn" type="submit">Archive</button></form>
+            <button class="pd-btn" type="button" data-new-revision>New revision</button>
+            <a class="pd-btn primary" href="{{ route('products.edit', $product) }}">Edit product</a>
         @endif
     </div>
 </div>
@@ -31,100 +33,8 @@
 @include('partials.quick-dialog', ['id' => 'qd-link-pattern', 'title' => 'Link a pattern to '.$product->code, 'action' => route('products.link-pattern', $product), 'submit' => 'Link pattern', 'fields' => 'products._link-pattern-fields'])
 @include('partials.quick-dialog', ['id' => 'qd-new-pattern', 'title' => 'New pattern', 'action' => route('patterns.quick'), 'submit' => 'Add pattern', 'fields' => 'products._new-pattern-fields'])
 @endunless
-<div class="tab-marker" data-tab-start="Specification"></div>
-<div class="panel">
-    <div class="panel-header">
-        <h2>Product specification</h2>
-        <span class="status {{ $product->active ? 'status-completed' : 'status-cancelled' }}">
-            {{ $product->active ? 'ACTIVE' : 'INACTIVE' }}
-        </span>
-    </div>
-    <div class="panel-body">
-        @include('attachments._cover', ['type' => 'product', 'id' => $product->id])
-        <div style="margin:6px 0 10px">{!! \App\Support\Code128::svg($product->code, 40, 2) !!} <a class="small" href="{{ route('labels.show', ['product', $product->id]) }}" target="_blank">Print label →</a></div>
-        <div class="detail-grid">
-            <div>
-                <div class="detail-label">Product code</div>
-                <div class="detail-value">{{ $product->code }}</div>
-            </div>
-            <div>
-                <div class="detail-label">Product name</div>
-                <div class="detail-value">{{ $product->name }}</div>
-            </div>
-            <div>
-                <div class="detail-label">Product type</div>
-                <div class="detail-value">{{ $product->product_type }}</div>
-            </div>
-            <div>
-                <div class="detail-label">Base unit</div>
-                <div class="detail-value">{{ $product->base_uom }}</div>
-            </div>
-            <div>
-                <div class="detail-label">Nominal weight</div>
-                <div class="detail-value">
-                    {{ $product->nominal_weight_kg !== null
-                        ? \App\Support\Formats::number((float) $product->nominal_weight_kg, 4).' kg'
-                        : 'Not specified' }}
-                </div>
-            </div>
-            <div>
-                <div class="detail-label">Revision count</div>
-                <div class="detail-value">{{ $product->revisions->count() }}</div>
-            </div>
-            @php
-                $currentPatterns = $product->revisions->flatMap->patternCavities->map->patternRevision
-                    ->filter(fn ($r) => $r->is_current && ! $r->pattern->trashed())->unique('pattern_id')->map->pattern->sortBy('name');
-            @endphp
-            <div>
-                <div class="detail-label">Patterns</div>
-                <div class="detail-value">
-                    @forelse ($currentPatterns as $p)<a href="{{ route('patterns.show', $p) }}">{{ $p->name }}</a> <span class="muted small mono">{{ $p->code }}</span>@if (! $loop->last)<br>@endif
-                    @empty<span class="muted">None linked yet</span> @unless ($product->trashed())<a href="#" class="qd-add" data-quick="qd-link-pattern">Link a pattern</a>@endunless @endforelse
-                </div>
-            </div>
-        </div>
-
-        @if ($product->description)
-            <div style="margin-top:20px">
-                <div class="detail-label">Description</div>
-                <div>{{ $product->description }}</div>
-            </div>
-        @endif
-    </div>
-</div>
-<div class="tab-marker" data-tab-start="Iron grade"></div>
-@php
-    $planner = app(\App\Services\Planning\HeatPlanner::class);
-    $currentGrades = $product->revisions->mapWithKeys(fn ($r) => [$r->id => $planner->gradeFor($r)]);
-    $latest = $product->revisions->first();
-@endphp
-<div class="panel">
-    <div class="panel-header"><h2>Iron grade</h2></div>
-    <div class="panel-body">
-        @if ($product->revisions->isEmpty())
-            <p class="muted">Add a revision first.</p>
-        @else
-            <div class="table-wrap"><table>
-                <thead><tr><th>Revision</th><th>Current grade</th><th>Type</th></tr></thead>
-                <tbody>@foreach ($product->revisions as $revision)
-                    @php $current = $currentGrades[$revision->id]; @endphp
-                    <tr><td>{{ $revision->revision }} <span class="status">{{ $revision->status }}</span></td><td>{!! $current ? '<strong>'.e($current->code).'</strong>' : '<span class="muted">Not set</span>' !!}</td><td>{{ $current?->familyLabel() ?? '—' }}</td></tr>
-                @endforeach</tbody>
-            </table></div>
-            <form method="POST" action="{{ route('products.grade', $product) }}" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-top:12px">@csrf
-                <div class="field"><label for="grade_revision">Revision</label>
-                    <select id="grade_revision" name="product_revision_id" data-search-select>@foreach ($product->revisions as $revision)<option value="{{ $revision->id }}" data-sub="{{ $revision->status }}{{ $currentGrades[$revision->id] ? ' · '.$currentGrades[$revision->id]->code : '' }}" @selected($revision->id === $latest->id)>{{ $revision->revision }}</option>@endforeach</select></div>
-                <div class="field"><label for="grade_id">Iron grade</label>
-                    <select id="grade_id" name="iron_grade_id" data-search-select>@foreach (\App\Models\IronGrade::listed() as $g)<option value="{{ $g->id }}" data-sub="{{ $g->familyLabel() }}" @selected($currentGrades[$latest->id]?->id === $g->id)>{{ $g->code }}</option>@endforeach</select></div>
-                <button class="btn btn-primary" type="submit">Set grade</button>
-            </form>
-            @include('partials.search-select')
-            <p class="muted small">Records an approved specification naming the grade. The contract review and the melting plan read it.</p>
-        @endif
-    </div>
-</div>
-
-
+<div class="tab-marker" data-tab-start="Overview"></div>
+@include('products._overview', ['product' => $product, 'facts' => $facts])
 <div class="tab-marker" data-tab-start="Revisions"></div>
 <div class="panel">
     <div class="panel-header">
@@ -236,9 +146,107 @@
 </div>
 
 
+<div class="tab-marker" data-tab-start="BOM"></div>
+@include('products._bom', ['product' => $product, 'facts' => $facts])
+@foreach (app(\App\Domains\Core\ModuleRegistry::class)->panels('product.show') as $panel)@if (str_starts_with($panel, 'engineering::'))@include($panel, ['product' => $product])@endif @endforeach
+<div class="tab-marker" data-tab-start="Routing"></div>
 @include('products._extra-steps', ['product' => $product])
-@foreach (app(\App\Domains\Core\ModuleRegistry::class)->panels('product.show') as $panel)@include($panel, ['product' => $product])@endforeach
 @include('control-plans._panel', ['product' => $product])
+@foreach (app(\App\Domains\Core\ModuleRegistry::class)->panels('product.show') as $panel)@unless (str_starts_with($panel, 'engineering::'))@include($panel, ['product' => $product])@endunless@endforeach
+<div class="tab-marker" data-tab-start="Specification"></div>
+<div class="panel">
+    <div class="panel-header">
+        <h2>Product specification</h2>
+        <span class="status {{ $product->active ? 'status-completed' : 'status-cancelled' }}">
+            {{ $product->active ? 'ACTIVE' : 'INACTIVE' }}
+        </span>
+    </div>
+    <div class="panel-body">
+        @include('attachments._cover', ['type' => 'product', 'id' => $product->id])
+        <div style="margin:6px 0 10px">{!! \App\Support\Code128::svg($product->code, 40, 2) !!} <a class="small" href="{{ route('labels.show', ['product', $product->id]) }}" target="_blank">Print label →</a></div>
+        <div class="detail-grid">
+            <div>
+                <div class="detail-label">Product code</div>
+                <div class="detail-value">{{ $product->code }}</div>
+            </div>
+            <div>
+                <div class="detail-label">Product name</div>
+                <div class="detail-value">{{ $product->name }}</div>
+            </div>
+            <div>
+                <div class="detail-label">Product type</div>
+                <div class="detail-value">{{ $product->product_type }}</div>
+            </div>
+            <div>
+                <div class="detail-label">Base unit</div>
+                <div class="detail-value">{{ $product->base_uom }}</div>
+            </div>
+            <div>
+                <div class="detail-label">Nominal weight</div>
+                <div class="detail-value">
+                    {{ $product->nominal_weight_kg !== null
+                        ? \App\Support\Formats::number((float) $product->nominal_weight_kg, 4).' kg'
+                        : 'Not specified' }}
+                </div>
+            </div>
+            <div>
+                <div class="detail-label">Revision count</div>
+                <div class="detail-value">{{ $product->revisions->count() }}</div>
+            </div>
+            @php
+                $currentPatterns = $product->revisions->flatMap->patternCavities->map->patternRevision
+                    ->filter(fn ($r) => $r->is_current && ! $r->pattern->trashed())->unique('pattern_id')->map->pattern->sortBy('name');
+            @endphp
+            <div>
+                <div class="detail-label">Patterns</div>
+                <div class="detail-value">
+                    @forelse ($currentPatterns as $p)<a href="{{ route('patterns.show', $p) }}">{{ $p->name }}</a> <span class="muted small mono">{{ $p->code }}</span>@if (! $loop->last)<br>@endif
+                    @empty<span class="muted">None linked yet</span> @unless ($product->trashed())<a href="#" class="qd-add" data-quick="qd-link-pattern">Link a pattern</a>@endunless @endforelse
+                </div>
+            </div>
+        </div>
+
+        @if ($product->description)
+            <div style="margin-top:20px">
+                <div class="detail-label">Description</div>
+                <div>{{ $product->description }}</div>
+            </div>
+        @endif
+    </div>
+</div>
+<div class="tab-marker" data-tab-start="Iron grade"></div>
+@php
+    $planner = app(\App\Services\Planning\HeatPlanner::class);
+    $currentGrades = $product->revisions->mapWithKeys(fn ($r) => [$r->id => $planner->gradeFor($r)]);
+    $latest = $product->revisions->first();
+@endphp
+<div class="panel">
+    <div class="panel-header"><h2>Iron grade</h2></div>
+    <div class="panel-body">
+        @if ($product->revisions->isEmpty())
+            <p class="muted">Add a revision first.</p>
+        @else
+            <div class="table-wrap"><table>
+                <thead><tr><th>Revision</th><th>Current grade</th><th>Type</th></tr></thead>
+                <tbody>@foreach ($product->revisions as $revision)
+                    @php $current = $currentGrades[$revision->id]; @endphp
+                    <tr><td>{{ $revision->revision }} <span class="status">{{ $revision->status }}</span></td><td>{!! $current ? '<strong>'.e($current->code).'</strong>' : '<span class="muted">Not set</span>' !!}</td><td>{{ $current?->familyLabel() ?? '—' }}</td></tr>
+                @endforeach</tbody>
+            </table></div>
+            <form method="POST" action="{{ route('products.grade', $product) }}" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-top:12px">@csrf
+                <div class="field"><label for="grade_revision">Revision</label>
+                    <select id="grade_revision" name="product_revision_id" data-search-select>@foreach ($product->revisions as $revision)<option value="{{ $revision->id }}" data-sub="{{ $revision->status }}{{ $currentGrades[$revision->id] ? ' · '.$currentGrades[$revision->id]->code : '' }}" @selected($revision->id === $latest->id)>{{ $revision->revision }}</option>@endforeach</select></div>
+                <div class="field"><label for="grade_id">Iron grade</label>
+                    <select id="grade_id" name="iron_grade_id" data-search-select>@foreach (\App\Models\IronGrade::listed() as $g)<option value="{{ $g->id }}" data-sub="{{ $g->familyLabel() }}" @selected($currentGrades[$latest->id]?->id === $g->id)>{{ $g->code }}</option>@endforeach</select></div>
+                <button class="btn btn-primary" type="submit">Set grade</button>
+            </form>
+            @include('partials.search-select')
+            <p class="muted small">Records an approved specification naming the grade. The contract review and the melting plan read it.</p>
+        @endif
+    </div>
+</div>
+
+
 <div class="tab-marker" data-tab-start="Patterns"></div>
 @include('products._made-on-patterns', ['product' => $product])
 
@@ -267,11 +275,60 @@
 @include('attachments._panel', ['type' => 'product', 'id' => $product->id])
 @include('audit._history', ['type' => 'Product', 'id' => $product->id])
 <style>
+    .pd-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; background: #fff; border: 1px solid #e6e7e9; border-radius: 10px 10px 0 0; padding: 14px 28px; font-size: 13px; }
+    .pd-bar-left { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .pd-crumb { font-weight: 600; color: #1c1d1f; text-decoration: none; }
+    .pd-bar .tabbar { position: static; border: 0; margin: 0; padding: 0; background: none; gap: 4px; }
+    .pd-bar .tabbar button { padding: 4px 10px; margin: 0; border: 0; border-radius: 6px; font-size: 13px; font-weight: 400; color: #6b6e73; }
+    .pd-bar .tabbar button:hover { background: #f0f1f3; color: #1c1d1f; }
+    .pd-bar .tabbar button[aria-selected="true"] { background: #f0f1f3; color: #1c1d1f; }
+    .pd-actions { display: flex; gap: 8px; align-items: center; }
+    .pd-actions form { display: inline; }
+    .pd-btn { padding: 7px 14px; border-radius: 6px; background: #fff; border: 1px solid #d9dbde; color: #1c1d1f; font: inherit; font-size: 13px; text-decoration: none; cursor: pointer; }
+    .pd-btn.primary { background: #2f5fd0; border-color: #2f5fd0; color: #fff; font-weight: 500; }
+    .pd-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; background: #fff; border: 1px solid #e6e7e9; border-top: 0; border-radius: 0 0 10px 10px; font-size: 13px; color: #1c1d1f; margin-bottom: 18px; }
+    .pd-main { padding: 20px 28px; display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+    .pd-facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+    .pd-facts .k { font-size: 12px; color: #6b6e73; }
+    .pd-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; }
+    .pd-h { font-size: 12px; font-weight: 600; color: #6b6e73; text-transform: uppercase; letter-spacing: .06em; }
+    .pd-list { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; margin: 10px 0 0; }
+    .pd-list dt { color: #6b6e73; }
+    .pd-list dd { margin: 0; text-align: right; }
+    .pd-grid .mono { font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; }
+    .pd-table { width: 100%; border-collapse: collapse; }
+    .pd-table th { text-align: left; font-size: 12px; font-weight: 500; color: #6b6e73; padding: 8px 12px; border-bottom: 1px solid #e6e7e9; background: none; text-transform: none; letter-spacing: 0; color: #6b6e73; }
+    .pd-table td { padding: 10px 12px; border-bottom: 1px solid #e6e7e9; }
+    .pd-table tbody tr:last-child td { border-bottom: 0; }
+    .pd-table .r { text-align: right; }
+    .pd-pill { font-size: 11.5px; padding: 2px 8px; border-radius: 999px; font-weight: 500; white-space: nowrap; background: #f0f1f3; color: #55585d; }
+    .pd-pill.ok { background: #e7f4ec; color: #1d7048; }
+    .pd-pill.info { background: #eaf0fd; color: #2f5fd0; }
+    .pd-pill.warn { background: #fbf0dc; color: #94610a; }
+    .pd-side { border-left: 1px solid #e6e7e9; padding: 20px 24px; background: #f8f8f9; display: flex; flex-direction: column; gap: 14px; border-radius: 0 0 10px 0; }
+    .pd-row { display: flex; justify-content: space-between; gap: 12px; }
+    .pd-row span:first-child { color: #6b6e73; }
+    .pd-row span:last-child { text-align: right; }
+    .pd-side hr { border: 0; border-top: 1px solid #e6e7e9; margin: 2px 0; width: 100%; }
+    .pd-note { margin: 0; color: #55585d; }
+    .pd-callout { padding: 12px 14px; border: 1px solid #cdd9f5; border-radius: 8px; background: #fff; color: #2f5fd0; }
+    @media (max-width: 1100px) { .pd-grid { grid-template-columns: 1fr; } .pd-side { border-left: 0; border-top: 1px solid #e6e7e9; } .pd-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pd-cols { grid-template-columns: 1fr; } .pd-bar { padding-left: 16px; padding-right: 16px; } }
     .rev-edit { appearance: none; border: 0; background: transparent; padding: 0; font: inherit; font-size: 12px; font-weight: 600; color: var(--accent); cursor: pointer; }
     .rev-edit:hover { text-decoration: underline; }
 </style>
 <script>
+document.addEventListener('DOMContentLoaded', function () {
+    var bar = document.querySelector('.tabbar'), slot = document.querySelector('.pd-tabs-slot');
+    if (bar && slot) { slot.replaceWith(bar); }
+});
 document.addEventListener('click', function (e) {
+    if (e.target.closest('[data-new-revision]')) {
+        var tab = Array.prototype.find.call(document.querySelectorAll('.tabbar button'), function (b) { return b.textContent.indexOf('Revisions') === 0; });
+        if (tab) { tab.click(); }
+        var add = document.querySelector('[data-rev-add]');
+        if (add) { add.click(); }
+        return;
+    }
     var add = document.getElementById('add-revision');
     if (add && e.target.closest('[data-rev-add]')) { add.hidden = false; var first = add.querySelector('input[name="revision"]'); if (first) first.focus(); return; }
     if (add && e.target.closest('[data-rev-add-cancel]')) { add.hidden = true; return; }

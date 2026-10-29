@@ -76,6 +76,19 @@ class ProductCatalogueTest extends TestCase
         $list->call('focus', $this->valve->id)->assertSee('SO-1');
     }
 
+    public function test_the_product_page_overview_and_bom_tabs_show_the_commercial_facts_and_material_cost(): void
+    {
+        $revision = ProductRevision::create(['product_id' => $this->valve->id, 'revision' => 'A', 'status' => 'APPROVED', 'net_weight_kg' => 2]);
+        $customer = Customer::create(['code' => 'ACME', 'name' => 'Acme Pumps']);
+        $order = SalesOrder::create(['order_number' => 'SO-9', 'customer_id' => $customer->id, 'order_date' => today(), 'status' => 'CONFIRMED']);
+        SalesOrderLine::create(['sales_order_id' => $order->id, 'product_id' => $this->valve->id, 'product_revision_id' => $revision->id, 'line_number' => 1, 'ordered_qty' => 30, 'unit_price' => 14.8, 'uom' => 'piece']);
+        $filter = \App\Models\Material::create(['code' => 'FL-1', 'name' => 'Foam filter', 'material_type' => 'OTHER', 'base_uom' => 'piece', 'status' => 'ACTIVE', 'standard_cost_per_uom' => 1.25]);
+        \App\Domains\Engineering\Models\BomLine::create(['product_revision_id' => $revision->id, 'material_id' => $filter->id, 'quantity' => 2, 'basis' => 'PER_CASTING']);
+
+        $this->get(route('products.show', $this->valve))->assertOk()->assertSee('Acme Pumps')->assertSee('SO-9 · 30 pcs', false)->assertSee('14.80')
+            ->assertSee('Material cost per casting')->assertSee('Foam filter')->assertSee('2.50');
+    }
+
     public function test_the_status_switch_and_bulk_actions_set_products_active_or_inactive(): void
     {
         $list = Livewire::test('product-list')->call('toggleActive', $this->valve->id);

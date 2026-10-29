@@ -2,11 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Domains\Core\ModuleRegistry;
+use App\Models\CoreRequirement;
+use App\Models\CustomerProductRequirement;
 use App\Models\Pattern;
 use App\Models\Product;
 use App\Models\ProductRevision;
 use App\Models\ProductionOrder;
 use App\Services\PatternCavityMap;
+use App\Services\Planning\HeatPlanner;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -158,7 +162,66 @@ class ProductController extends Controller
             'revisions.patternCavities.patternRevision.pattern',
         ]);
 
-        return view('products.show', compact('product'));
+        return view('products.show', ['product' => $product, 'facts' => $this->facts($product)]);
+    }
+
+    /**
+     * What the overview and BOM tabs show about a product's current revision: customer, grade, weights, tooling, price,
+     * a year of orders and dispatches, and the cost of the bill of materials per casting.
+     *
+     * @return array<string, mixed>
+     */
+    private function facts(Product $product): array
+    {
+        $revision = $product->currentRevision()?->load('bomLines.material', 'patternCavities.patternRevision.pattern.preferredStation');
+        $cavity = $revision?->patternCavities->filter(fn ($c) => $c->patternRevision?->pattern)->sortByDesc(fn ($c) => $c->patternRevision->is_current)->first();
+        $patternRevision = $cavity?->patternRevision;
+        $castingKg = $revision?->net_weight_kg ?? $product->nominal_weight_kg;
+        $pouredKg = $cavity?->poured_weight_kg
+            ?: ($patternRevision?->pour_weight_kg && $patternRevision->cavities_per_mould ? (float) $patternRevision->pour_weight_kg / $patternRevision->cavities_per_mould : null);
+        $perMould = $patternRevision?->cavities_per_mould ?: null;
+
+        $order = fn () => DB::table('sales_order_lines as sol')->join('sales_orders as so', 'so.id', '=', 'sol.sales_order_id')->where('sol.product_id', $product->id);
+        $latest = $order()->orderByDesc('so.order_date')->orderByDesc('sol.created_at')->first(['sol.unit_price', 'so.order_number', 'so.customer_id']);
+        $customer = $latest ? DB::table('customers as c')->join('parties as pa', 'pa.id', '=', 'c.party_id')->where('c.id', $latest->customer_id)->value('pa.name') : null;
+        $open = $order()->whereIn('so.status', ['CONFIRMED', 'IN_PRODUCTION'])->orderByDesc('so.order_date')->first(['so.order_number', 'sol.ordered_qty']);
+        $requirement = $revision ? CustomerProductRequirement::where('product_revision_id', $revision->id)->whereNull('superseded_at')->orderByDesc('created_at')->first() : null;
+        $dispatched = app(ModuleRegistry::class)->isEnabled('dispatch')
+            ? (float) DB::table('dispatch_items as di')->join('dispatches as d', 'd.id', '=', 'di.dispatch_id')->join('packing_record_items as pri', 'pri.id', '=', 'di.packing_record_item_id')
+                ->join('casting_lots as cl', 'cl.id', '=', 'pri.casting_lot_id')->where('cl.product_id', $product->id)->where('d.dispatched_at', '>=', now()->subYear())->sum('di.quantity_dispatched')
+            : null;
+
+        $lines = ($revision?->bomLines ?? collect())->map(function ($line) use ($pouredKg, $perMould) {
+            $perCasting = match ($line->basis) {
+                'PER_MOULD' => $perMould ? (float) $line->quantity / $perMould : null,
+                'PER_KG_POURED' => $pouredKg ? (float) $line->quantity * (float) $pouredKg : null,
+                default => (float) $line->quantity,
+            };
+            $unitCost = $line->material?->standardCost();
+
+            return ['line' => $line, 'perCasting' => $perCasting, 'cost' => $perCasting !== null && $unitCost !== null ? $perCasting * $unitCost : null];
+        });
+
+        return [
+            'revision' => $revision,
+            'grade' => $revision ? app(HeatPlanner::class)->gradeFor($revision) : null,
+            'cavity' => $cavity,
+            'patternRevision' => $patternRevision,
+            'castingKg' => $castingKg !== null ? (float) $castingKg : null,
+            'pouredKg' => $pouredKg ? (float) $pouredKg : null,
+            'perMould' => $perMould,
+            'process' => $patternRevision?->pattern->madeForSand(),
+            'cores' => $revision ? CoreRequirement::where('product_revision_id', $revision->id)->with('coreDefinition')->get() : collect(),
+            'customer' => $customer,
+            'requirement' => $requirement,
+            'price' => $latest?->unit_price !== null ? (float) $latest->unit_price : null,
+            'volume' => (float) $order()->where('so.order_date', '>=', now()->subYear()->toDateString())->whereNotIn('so.status', ['DRAFT', 'CANCELLED'])->sum('sol.ordered_qty'),
+            'openOrder' => $open,
+            'dispatched' => $dispatched,
+            'bom' => $lines,
+            'materialCost' => $lines->contains(fn ($l) => $l['cost'] !== null) ? $lines->sum(fn ($l) => $l['cost'] ?? 0) : null,
+            'previous' => $product->revisions->where('id', '!=', $revision?->id)->where('status', 'APPROVED')->sortByDesc('created_at')->first(),
+        ];
     }
 
     /**
