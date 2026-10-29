@@ -48,7 +48,7 @@
 
             @include('layouts._module-nav-groups', ['position' => 'top'])
 
-            @if ($menu->showsAny(['patterns.index', 'casting-analyses.index', 'production-orders.index', 'planner.index', 'lots.queue', 'moulding-runs.index', 'pours.index', 'work-lists.index', 'moulding-teams.index', 'sand-systems.index', 'mould-readiness.index']))
+            @if ($menu->showsAny(['patterns.index', 'casting-analyses.index', 'production-orders.index', 'planner.index', 'lots.queue', 'moulding-runs.index', 'pours.index', 'work-lists.index', 'moulding-teams.index', 'sand-systems.index', 'mould-count.index', 'mould-readiness.index']))
             <div class="nav-group {{ request()->routeIs('patterns.*', 'pattern-ownership.*', 'casting-analyses.*', 'production-orders.*', 'planner.*', 'lots.queue', 'lots.bulk-stage', 'moulding-runs.*', 'pours.*', 'work-lists.*', 'moulding-teams.*', 'sand-systems.*', 'mould-readiness.*') ? 'is-active' : '' }}">
                 <button type="button" class="nav-group-toggle" aria-expanded="false">
                     <span class="nav-lab">{!! \App\Support\NavIcons::get('factory') !!}<span>Production</span>@if (($n = \App\Support\MenuCounts::sum($menuCounts, \App\Support\MenuCounts::PRODUCTION)) > 0)<span class="nav-count" title="Waiting for someone">{{ $n }}</span>@endif</span><span class="nav-chevron">›</span>
@@ -65,6 +65,7 @@
                     @if ($menu->shows('moulding-teams.index')) <a href="{{ route('moulding-teams.index') }}" class="nav-link {{ request()->routeIs('moulding-teams.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('users') !!}<span>Teams &amp; stations</span></a> @endif
                     @if ($menu->shows('sand-systems.index')) <a href="{{ route('sand-systems.index') }}" class="nav-link {{ request()->routeIs('sand-systems.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('mountain') !!}<span>Sand systems</span></a> @endif
                     @if ($menu->shows('mould-readiness.index')) <a href="{{ route('mould-readiness.index') }}" class="nav-link {{ request()->routeIs('mould-readiness.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('clipboard-check') !!}<span>Mould readiness</span>@if (($menuCounts['mould-readiness.index'] ?? 0) > 0)<span class="nav-count" title="Waiting for someone">{{ $menuCounts['mould-readiness.index'] }}</span>@endif</a> @endif
+                    @if ($menu->shows('mould-count.index') && ! \App\Support\FloorRules::usesQuickScreens()) <a href="{{ route('mould-count.index') }}" class="nav-link {{ request()->routeIs('mould-count.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('hash') !!}<span>Count moulds</span></a> @endif
                 </div>
             </div>
             @endif

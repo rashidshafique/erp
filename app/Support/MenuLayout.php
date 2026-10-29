@@ -26,7 +26,7 @@ class MenuLayout
         ['Production', 'factory', [
             ['/planner', 'Planning'], ['/heats', 'Melt & heats'], ['/calendar', null], ['/production-orders', null], ['/lots/queue', null],
             ['/moulding-runs', null], ['/pours', null], ['/work-lists', null], ['/moulding-teams', null], ['/sand-systems', null],
-            ['/mould-readiness', null], ['/furnaces', null], ['/heat-plan', null],
+            ['/mould-readiness', null], ['/mould-count', null], ['/furnaces', null], ['/heat-plan', null],
         ]],
         ['Quality', 'check-circle', [
             ['/inspections', 'Inspection'], ['/ncrs', 'NCR & CAPA'], ['/documents', 'Audits & documents'], ['/quick-qc', null],

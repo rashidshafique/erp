@@ -469,6 +469,8 @@ Route::prefix('work-lists')->name('work-lists.')->controller(WorkListController:
     Route::post('/{list}/cancel', 'cancel')->name('cancel');
 });
 Route::get('/mould-readiness', [MouldReadinessController::class, 'index'])->name('mould-readiness.index');
+Route::get('/mould-count', [\App\Http\Controllers\MouldCountController::class, 'index'])->name('mould-count.index');
+Route::post('/mould-count', [\App\Http\Controllers\MouldCountController::class, 'store'])->name('mould-count.store');
 
 // ---- Custom fields ----
 Route::get('/settings/custom-fields', [CustomFieldController::class, 'index'])->name('custom-fields.index');
