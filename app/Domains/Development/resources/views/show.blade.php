@@ -18,6 +18,12 @@
     <div class="actions"><a class="btn" href="{{ route('developments.index') }}">All developments</a>
         @if ($d->isOpen() && $next)<form method="POST" action="{{ route('developments.advance', $d) }}" style="display:inline">@csrf<button class="btn btn-primary" type="submit">Move to {{ $next }}</button></form>@endif</div>
 </div>
+@if ($d->isOpen() && $d->stage_index > 0)
+<form method="POST" action="{{ route('developments.back', $d) }}" style="display:flex;gap:8px;margin-bottom:14px">@csrf
+    <input name="reason" maxlength="300" required placeholder="Why it goes back, e.g. trial found shrinkage at the boss" style="flex:1" aria-label="Reason to go back" value="{{ old('reason') }}">
+    <button class="btn" type="submit">Back to {{ $stages[$d->stage_index - 1] }}</button></form>
+@error('reason')<div class="alert alert-error">{{ $message }}</div>@enderror
+@endif
 @if ($approves)<div class="alert alert-info">Moving to {{ $next }} also approves revision {{ $approves->revision }} of {{ $d->product->code }}, which orders for this part wait on.</div>@endif
 <div class="dv-bar">@foreach ($stages as $i => $name)<div class="{{ $d->status === 'DONE' || $i < $d->stage_index ? 'done' : ($i === $d->stage_index ? 'now' : '') }}">{{ $name }}</div>@endforeach</div>
 <div class="panel"><div class="panel-header"><h2>Details</h2><span class="muted small">{{ $info['note'] }}</span></div><div class="panel-body">

@@ -141,6 +141,18 @@ class PatternDevelopmentController extends Controller
         return back()->with('success', 'Moved to '.$next.'.');
     }
 
+    /** Back one stage, as when a trial fails and the pattern goes back for rework. The reason goes on the log. */
+    public function back(Request $request, PatternDevelopment $development): RedirectResponse
+    {
+        abort_unless($development->isOpen() && $development->stage_index > 0, 422);
+        $d = $request->validate(['reason' => ['required', 'string', 'max:300']], ['reason.required' => 'Say why it goes back, e.g. what the trial found.']);
+        $from = $development->stageName();
+        $development->decrement('stage_index');
+        $this->log($development, 'STAGE', "Back from {$from} to {$development->stageName()}: {$d['reason']}");
+
+        return back()->with('success', 'Back to '.$development->stageName().'.');
+    }
+
     public function note(Request $request, PatternDevelopment $development): RedirectResponse
     {
         $d = $request->validate(['text' => ['required', 'string', 'max:2000']]);

@@ -124,4 +124,20 @@ class PatternDevelopmentTest extends TestCase
         $this->get(route('patterns.show', $pattern))->assertOk()->assertSee('Replace pattern');
         $this->get(route('products.index'))->assertOk()->assertSee('Start development');
     }
+
+    public function test_a_failed_trial_goes_back_a_stage_with_its_reason(): void
+    {
+        $customer = $this->customer();
+        $this->post(route('developments.store'), ['type' => 'NEW_PRODUCT', 'title' => 'Valve body', 'customer_id' => $customer->id]);
+        $d = PatternDevelopment::sole();
+        $this->post(route('developments.back', $d))->assertStatus(422);
+        $this->post(route('developments.advance', $d));
+        $this->post(route('developments.advance', $d));
+        $this->assertSame('Trial & sample', $d->fresh()->stageName());
+
+        $this->post(route('developments.back', $d), [])->assertSessionHasErrors('reason');
+        $this->post(route('developments.back', $d), ['reason' => 'Shrinkage at the boss'])->assertSessionHasNoErrors();
+        $this->assertSame('Pattern build', $d->fresh()->stageName());
+        $this->assertTrue($d->events()->where('text', 'Back from Trial & sample to Pattern build: Shrinkage at the boss')->exists());
+    }
 }
