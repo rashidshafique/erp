@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\CastingLot;
 use App\Models\NonconformanceReport;
 use App\Models\QualityDefect;
+use App\Models\QualityDefectMark;
 use App\Models\QualityInspection;
 use App\Support\ProcessDepth;
 use App\Support\QualityRules;
@@ -77,5 +78,43 @@ class QuickQcTest extends TestCase
 
         $this->post(route('quick-qc.store'), ['rows' => [$lot->product_revision_id => ['accepted' => 40, 'rejected' => 10]]])->assertSessionHasNoErrors();
         $this->assertSame(1, NonconformanceReport::count());   // 20% is over it
+    }
+
+    public function test_defects_are_marked_by_cavity_and_where_shared_over_the_lots_with_the_rejects_and_rework(): void
+    {
+        $first = $this->castingLot();
+        $second = $this->secondLotOfSameProduct($first);
+        $plate = $first->mouldAssemblies()->first()->mouldingRun->patternRevision;
+        $plate->cavityMap()->create(['cavity_number' => 2, 'product_revision_id' => $first->product_revision_id]);
+        [$coldShut, $sand] = [QualityDefect::where('code', 'COLD-SHUT')->firstOrFail(), QualityDefect::where('code', 'SAND-INCL')->firstOrFail()];
+        $this->get(route('quick-qc.index'))->assertOk()->assertSee($plate->pattern->code.' cavity 2');
+
+        $row = fn (array $marks) => ['rows' => [$first->product_revision_id => ['accepted' => 4, 'rework' => 2, 'rejected' => 4, 'marks' => $marks]]];
+        $this->post(route('quick-qc.store'), $row([['defect_id' => $coldShut->id, 'quantity' => 5, 'disposition' => 'REJECT']]))->assertSessionHasErrors('quick');
+        $this->post(route('quick-qc.store'), $row([
+            ['defect_id' => $coldShut->id, 'quantity' => 3, 'disposition' => 'REJECT', 'cavity' => $plate->id.':2', 'location' => 'flange edge'],
+            ['defect_id' => $sand->id, 'quantity' => 1, 'disposition' => 'REJECT'],
+            ['defect_id' => $coldShut->id, 'quantity' => 2, 'disposition' => 'REWORK', 'cavity' => $plate->id.':2'],
+            ['defect_id' => '', 'quantity' => ''],
+        ]))->assertSessionHasNoErrors();
+
+        $this->assertSame(1, (int) QualityDefectMark::where('casting_lot_id', $first->id)->sum('quantity'), 'the first lot took 4 good and 1 rework');
+        $this->assertSame(5, (int) QualityDefectMark::where('casting_lot_id', $second->id)->sum('quantity'));
+        $mark = QualityDefectMark::where('location', 'flange edge')->sole();
+        $this->assertSame([3, 2, 'REJECT'], [$mark->quantity, $mark->cavity_number, $mark->disposition]);
+        $this->get(route('quick-qc.index'))->assertSee('Defects by cavity')->assertSee($plate->pattern->code.' cavity 2');
+    }
+
+    public function test_piece_ids_are_required_on_each_defect_line_when_the_rule_says_so(): void
+    {
+        $lot = $this->castingLot();
+        $defect = QualityDefect::where('code', 'COLD-SHUT')->firstOrFail();
+        QualityRules::set('defect_piece_ids', 'REQUIRED');
+        $post = fn (string $ids) => $this->post(route('quick-qc.store'), ['rows' => [$lot->product_revision_id => ['accepted' => 3, 'rejected' => 2,
+            'marks' => [['defect_id' => $defect->id, 'quantity' => 2, 'disposition' => 'REJECT', 'piece_ids' => $ids]]]]]);
+
+        $post('A-11')->assertSessionHasErrors('quick');
+        $post('A-11, A-14')->assertSessionHasNoErrors();
+        $this->assertSame('A-11, A-14', QualityDefectMark::sole()->piece_ids);
     }
 }

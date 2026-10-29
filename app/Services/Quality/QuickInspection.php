@@ -6,6 +6,7 @@ use App\Models\CastingLot;
 use App\Models\InspectionPlan;
 use App\Models\NonconformanceReport;
 use App\Models\QualityDefect;
+use App\Models\QualityDefectMark;
 use App\Models\QualityInspection;
 use App\Models\QualityInspectionResult;
 use App\Services\Production\AfterPour;
@@ -56,19 +57,25 @@ class QuickInspection
 
     /**
      * @param  array<string, int>  $defects  quality defect id => rejected pieces with that defect (optional split of $rejected)
+     * @param  list<array{defect_id: string, quantity: int, disposition: string, pattern_revision_id?: ?string, cavity_number?: ?int, location?: ?string, piece_ids?: ?string}>  $marks
+     *                                                                                                                                                                         defects marked by cavity and where, rejected or to rework
      * @return array{inspections: int, ncrs: int}
      */
-    public function record(string $productRevisionId, int $accepted, int $rejected, int $rework, array $defects = [], ?string $inspector = null): array
+    public function record(string $productRevisionId, int $accepted, int $rejected, int $rework, array $defects = [], ?string $inspector = null, array $marks = []): array
     {
         $total = $accepted + $rejected + $rework;
         if ($total <= 0) {
             throw new InvalidArgumentException('Enter how many castings were checked.');
         }
-        if (array_sum($defects) > $rejected) {
-            throw new InvalidArgumentException('The defect counts add up to more than the rejected castings.');
+        foreach ($defects as $id => $n) {
+            if ($n > 0) {
+                $marks[] = ['defect_id' => $id, 'quantity' => (int) $n, 'disposition' => 'REJECT'];
+            }
         }
+        $marks = array_values(array_filter($marks, fn ($m) => (int) $m['quantity'] > 0));
+        $this->checkMarks($marks, $rejected, $rework);
 
-        return DB::transaction(function () use ($productRevisionId, $accepted, $rejected, $rework, $defects, $inspector, $total) {
+        return DB::transaction(function () use ($productRevisionId, $accepted, $rejected, $rework, $marks, $inspector, $total) {
             $lots = CastingLot::where('product_revision_id', $productRevisionId)->whereIn('status', ['IN_PRODUCTION', 'READY'])
                 ->orderBy('created_at')->lockForUpdate()->get();
             $available = $lots->sum(fn (CastingLot $lot) => $this->toCheck($lot));
@@ -78,7 +85,7 @@ class QuickInspection
 
             $raiseNcr = QualityRules::raisesNcr($rejected + $rework, $total);
             $left = ['accepted' => $accepted, 'rework' => $rework, 'rejected' => $rejected];
-            $defectLeft = array_filter($defects, fn ($n) => $n > 0);
+            $marksLeft = $marks;
             $made = 0;
             $ncrs = 0;
 
@@ -94,16 +101,17 @@ class QuickInspection
                     $take -= $part[$kind];
                 }
 
-                $lotDefects = [];
-                $room = $part['rejected'];
-                foreach ($defectLeft as $id => $n) {
-                    $use = min($n, $room);
+                $lotMarks = [];
+                $room = ['REJECT' => $part['rejected'], 'REWORK' => $part['rework']];
+                foreach ($marksLeft as $i => $mark) {
+                    $use = min((int) $mark['quantity'], $room[$mark['disposition']]);
                     if ($use > 0) {
-                        $lotDefects[$id] = $use;
-                        $defectLeft[$id] -= $use;
-                        $room -= $use;
+                        $lotMarks[] = ['quantity' => $use] + $mark;
+                        $marksLeft[$i]['quantity'] -= $use;
+                        $room[$mark['disposition']] -= $use;
                     }
                 }
+                $lotDefects = collect($lotMarks)->groupBy('defect_id')->map(fn ($m) => (int) $m->sum('quantity'))->all();
 
                 $checked = $part['accepted'] + $part['rework'] + $part['rejected'];
                 $inspection = QualityInspection::create([
@@ -120,6 +128,14 @@ class QuickInspection
                         'quality_inspection_id' => $inspection->id, 'sequence' => ++$sequence, 'test_code' => substr((string) $defect?->code, 0, 50),
                         'test_name' => substr(($defect?->name ?? 'Defect').' × '.$n, 0, 150), 'result_type' => 'PASS_FAIL', 'passed' => false,
                         'quality_defect_id' => $defectId, 'text_result' => (string) $n, 'tested_by' => $inspector, 'tested_at' => now(),
+                    ]);
+                }
+
+                foreach ($lotMarks as $mark) {
+                    QualityDefectMark::create([
+                        'quality_inspection_id' => $inspection->id, 'casting_lot_id' => $lot->id, 'product_revision_id' => $productRevisionId, 'quality_defect_id' => $mark['defect_id'],
+                        'pattern_revision_id' => $mark['pattern_revision_id'] ?? null, 'cavity_number' => $mark['cavity_number'] ?? null, 'location' => $mark['location'] ?? null,
+                        'quantity' => $mark['quantity'], 'disposition' => $mark['disposition'], 'piece_ids' => $mark['piece_ids'] ?? null,
                     ]);
                 }
 
@@ -141,6 +157,36 @@ class QuickInspection
 
             return ['inspections' => $made, 'ncrs' => $ncrs];
         });
+    }
+
+    /**
+     * Defect marks cannot add up to more than the pieces rejected or sent to rework, and under the piece ID rule each mark names
+     * its pieces.
+     *
+     * @param  list<array{quantity: int, disposition: string, piece_ids?: ?string}>  $marks
+     */
+    private function checkMarks(array $marks, int $rejected, int $rework): void
+    {
+        $sum = fn (string $disposition) => (int) collect($marks)->where('disposition', $disposition)->sum('quantity');
+        if ($sum('REJECT') > $rejected) {
+            throw new InvalidArgumentException('The defect counts add up to more than the rejected castings.');
+        }
+        if ($sum('REWORK') > $rework) {
+            throw new InvalidArgumentException('The defect counts add up to more than the castings sent to rework.');
+        }
+        if (QualityRules::get('defect_piece_ids') === 'REQUIRED') {
+            foreach ($marks as $mark) {
+                if (count(self::pieceIds($mark['piece_ids'] ?? null)) !== (int) $mark['quantity']) {
+                    throw new InvalidArgumentException("Each defect line needs one piece ID per piece: {$mark['quantity']} on one line.");
+                }
+            }
+        }
+    }
+
+    /** @return list<string> piece IDs typed with commas, spaces or new lines between them */
+    public static function pieceIds(?string $text): array
+    {
+        return array_values(array_filter(preg_split('/[\s,;]+/', (string) $text) ?: [], fn ($id) => $id !== ''));
     }
 
     public function nextInspectionNumber(): string

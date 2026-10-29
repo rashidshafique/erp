@@ -23,6 +23,11 @@ class QualityRules
             'STEPS' => 'After the steps before inspection: knock-out, fettling, shot blast and the like are recorded first',
             'POUR' => 'Straight after the pour: the steps before inspection need not be recorded',
         ], 'POUR'],
+        'defect_piece_ids' => ['quality.defect_piece_ids', 'Piece IDs on defects found at inspection', [
+            'OFF' => 'Not asked: defects are counted per cavity or product',
+            'OPTIONAL' => 'Asked, not required: a defect line can list the pieces it covers',
+            'REQUIRED' => 'Required: every defect line lists one ID per piece',
+        ], 'OFF'],
     ];
 
     public static function get(string $rule): string
