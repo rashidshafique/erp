@@ -39,6 +39,16 @@
     @if ($d->who_pays)<div><dt class="muted small">Who pays</dt><dd style="margin:0">{{ config('pattern_developments.who_pays.'.$d->who_pays) }}</dd></div>@endif
     @if ($d->drawing_change)<div><dt class="muted small">Drawing change</dt><dd style="margin:0">{{ $d->drawing_change }}</dd></div>@endif
 </dl>
+@php
+    $amount = fn ($v) => $d->cost_currency ? $d->cost_currency.' '.\App\Support\Formats::number($v, 2) : \App\Support\Formats::money($v);
+    $over = $d->quoted_tooling_cost !== null && $d->actual_cost !== null ? $d->actual_cost - $d->quoted_tooling_cost : null;
+@endphp
+<form method="POST" action="{{ route('developments.cost', $d) }}" style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;margin-top:14px">@csrf @method('PUT')
+    <div><div class="muted small">Tooling allowed in the quote</div><div>{{ $d->quoted_tooling_cost !== null ? $amount($d->quoted_tooling_cost) : '—' }}</div></div>
+    <div><label class="muted small" for="dv-actual" style="display:block">Actual pattern cost</label><input id="dv-actual" name="actual_cost" type="number" step="0.01" min="0" value="{{ old('actual_cost', $d->actual_cost) }}" style="width:150px"></div>
+    <button class="btn" type="submit">Save cost</button>
+    @if ($over !== null)<span @if ($over > 0) style="color:#b3352c" @else class="muted" @endif>{{ $over > 0 ? 'Over the quote by '.$amount($over) : 'Within the quote by '.$amount(-$over) }}</span>@endif
+</form>
 @if ($d->notes)<p style="margin-top:14px">{{ $d->notes }}</p>@endif
 </div></div>
 <div class="panel"><div class="panel-header"><h2>Log</h2></div><div class="panel-body">

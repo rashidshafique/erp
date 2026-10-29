@@ -10,6 +10,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\Pattern;
 use App\Models\Product;
+use App\Support\Formats;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -151,6 +152,16 @@ class PatternDevelopmentController extends Controller
         $this->log($development, 'STAGE', "Back from {$from} to {$development->stageName()}: {$d['reason']}");
 
         return back()->with('success', 'Back to '.$development->stageName().'.');
+    }
+
+    /** What the pattern actually cost, set beside what the quote allowed. */
+    public function cost(Request $request, PatternDevelopment $development): RedirectResponse
+    {
+        $d = $request->validate(['actual_cost' => ['nullable', 'numeric', 'min:0', 'max:999999999999']]);
+        $development->update(['actual_cost' => $d['actual_cost'] ?? null]);
+        $this->log($development, 'NOTE', filled($d['actual_cost'] ?? null) ? 'Pattern cost recorded: '.Formats::number($d['actual_cost'], 2).'.' : 'Pattern cost cleared.');
+
+        return back()->with('success', 'Pattern cost saved.');
     }
 
     public function note(Request $request, PatternDevelopment $development): RedirectResponse

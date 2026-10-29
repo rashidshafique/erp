@@ -27,7 +27,7 @@ class PatternDevelopment extends Model
 
     protected function casts(): array
     {
-        return ['due_on' => 'date'];
+        return ['due_on' => 'date', 'quoted_tooling_cost' => 'float', 'actual_cost' => 'float'];
     }
 
     /** @return array<string, mixed> The type's name, stages, copies and note. */

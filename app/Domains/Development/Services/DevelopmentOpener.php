@@ -6,6 +6,7 @@ use App\Domains\Development\Models\PatternDevelopment;
 use App\Domains\Enquiry\Models\Enquiry;
 use App\Domains\Enquiry\Models\EnquiryEvent;
 use App\Domains\Enquiry\Models\EnquiryItem;
+use App\Domains\Enquiry\Models\Quotation;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 
@@ -34,9 +35,10 @@ class DevelopmentOpener
 
     /**
      * @param  bool  $won  opened on a won enquiry, so the stages the enquiry already covered are skipped
+     * @param  Quotation|null  $quote  the accepted quote, which sets the tooling cost allowed and who pays
      * @return Collection<int, PatternDevelopment> the developments opened now
      */
-    public function open(Enquiry $enquiry, bool $firstTime, bool $won): Collection
+    public function open(Enquiry $enquiry, bool $firstTime, bool $won, ?Quotation $quote = null): Collection
     {
         $type = self::typeFor($enquiry, $firstTime);
         if ($type === null) {
@@ -48,12 +50,14 @@ class DevelopmentOpener
 
         foreach ($items as $item) {
             $existing = $open->firstWhere('enquiry_item_id', $item->id) ?? ($items->count() === 1 ? $open->firstWhere('enquiry_item_id', null) : null);
+            $costs = $this->costs($type, $item, $quote);
             if ($existing) {
-                $existing->update(['enquiry_item_id' => $item->id, 'product_id' => $existing->product_id ?? $item->product_id]);
+                $existing->update(['enquiry_item_id' => $item->id, 'product_id' => $existing->product_id ?? $item->product_id]
+                    + ($quote ? $costs + ['who_pays' => $existing->who_pays ?? $costs['who_pays']] : []));
 
                 continue;
             }
-            $opened->push($this->create($enquiry, $item, $type, $won));
+            $opened->push($this->create($enquiry, $item, $type, $won, $costs));
         }
 
         return $opened;
@@ -78,10 +82,29 @@ class DevelopmentOpener
         return $this->open($enquiry, (bool) $enquiry->customer?->isFirstTimeCustomer(), false);
     }
 
-    private function create(Enquiry $enquiry, EnquiryItem $item, string $type, bool $won): PatternDevelopment
+    /**
+     * The tooling cost the quote allowed for the part and who pays for the pattern: the customer when tooling is charged up front
+     * or spread over the castings, or when it is the customer's own pattern; the foundry when the quote does not charge it.
+     *
+     * @return array{quoted_tooling_cost?: ?float, cost_currency?: ?string, who_pays?: ?string}
+     */
+    private function costs(string $type, EnquiryItem $item, ?Quotation $quote): array
+    {
+        if (! $quote) {
+            return [];
+        }
+        $line = $quote->lines->firstWhere('enquiry_item_id', $item->id);
+
+        return [
+            'quoted_tooling_cost' => $line ? (float) $line->tooling_cost : null, 'cost_currency' => $quote->currency,
+            'who_pays' => $type === 'CUSTOMER_PATTERN' || $quote->tooling_mode !== 'NONE' ? 'CUSTOMER' : 'FOUNDRY',
+        ];
+    }
+
+    private function create(Enquiry $enquiry, EnquiryItem $item, string $type, bool $won, array $costs = []): PatternDevelopment
     {
         $start = $won ? (int) (config("pattern_developments.types.$type.enquiry_stages") ?? 0) : 0;
-        $development = PatternDevelopment::create([
+        $development = PatternDevelopment::create($costs + [
             'type' => $type, 'title' => $item->description ?: $enquiry->title, 'enquiry_id' => $enquiry->id, 'enquiry_item_id' => $item->id,
             'customer_id' => $enquiry->customer_id, 'product_id' => $item->product_id, 'pattern_id' => $type === 'MODIFICATION' || $type === 'CUSTOMER_PATTERN' ? $enquiry->pattern_id : null,
             'pattern_by' => $type === 'CUSTOMER_PATTERN' ? 'CUSTOMER_SUPPLIED' : 'DECIDE_LATER', 'stage_index' => $start,

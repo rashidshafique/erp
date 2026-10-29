@@ -11,6 +11,7 @@ Route::middleware('web')->group(function () {
         Route::get('/{development}', 'show')->name('show');
         Route::post('/{development}/advance', 'advance')->name('advance');
         Route::post('/{development}/back', 'back')->name('back');
+        Route::put('/{development}/cost', 'cost')->name('cost');
         Route::post('/{development}/notes', 'note')->name('notes');
         Route::post('/{development}/cancel', 'cancel')->name('cancel');
     });

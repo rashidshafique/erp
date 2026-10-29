@@ -150,4 +150,21 @@ class EnquiryDevelopmentTest extends TestCase
         $this->post(route('developments.cancel', PatternDevelopment::where('enquiry_id', $other->id)->sole()), ['reason' => 'Customer paused the project']);
         $this->assertTrue($other->events()->where('text', 'like', '%cancelled: Customer paused the project')->exists());
     }
+
+    public function test_the_quote_sets_the_tooling_allowed_and_who_pays_and_the_actual_cost_shows_against_it(): void
+    {
+        $e = $this->enquiry(['pattern_route' => 'NEW']);
+        $q = $this->issuedQuote($e);
+        $q->update(['tooling_mode' => 'UPFRONT']);
+        $q->lines()->update(['tooling_cost' => 150000]);
+        $this->post(route('enquiries.close', $e), ['outcome' => 'WON'])->assertRedirect();
+
+        $dev = PatternDevelopment::where('enquiry_id', $e->id)->sole();
+        $this->assertSame(150000.0, $dev->quoted_tooling_cost);
+        $this->assertSame('CUSTOMER', $dev->who_pays);
+        $this->assertSame($q->currency, $dev->cost_currency);
+
+        $this->put(route('developments.cost', $dev), ['actual_cost' => 175000])->assertSessionHasNoErrors();
+        $this->get(route('developments.show', $dev))->assertSee('Over the quote by '.$q->currency.' 25,000.00');
+    }
 }

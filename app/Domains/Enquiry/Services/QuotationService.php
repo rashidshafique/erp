@@ -258,14 +258,14 @@ class QuotationService
             }
             $q->update(['status' => 'ACCEPTED', 'decided_at' => now(), 'sales_order_id' => $order->id]);
             $enquiry->update(['status' => 'WON', 'closed_at' => now()]);
-            $this->openDevelopments($enquiry, $firstTime);
+            $this->openDevelopments($enquiry, $firstTime, $q);
 
             return $order;
         });
     }
 
     /** A won enquiry gets the pattern developments its pattern decision needs, or a note on its log when the module is off. */
-    private function openDevelopments(Enquiry $enquiry, bool $firstTime): void
+    private function openDevelopments(Enquiry $enquiry, bool $firstTime, Quotation $quote): void
     {
         if (! class_exists(DevelopmentOpener::class) || DevelopmentOpener::typeFor($enquiry, $firstTime) === null) {
             return;
@@ -275,7 +275,7 @@ class QuotationService
 
             return;
         }
-        app(DevelopmentOpener::class)->open($enquiry, $firstTime, true);
+        app(DevelopmentOpener::class)->open($enquiry, $firstTime, true, $quote);
     }
 
     /** The current revision of a pattern that makes the item's product and has both weights recorded, newest first. */
