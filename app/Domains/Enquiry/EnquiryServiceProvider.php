@@ -11,6 +11,7 @@ use App\Domains\Enquiry\Services\EnquiryGuide;
 use App\Domains\Enquiry\Services\QuotationService;
 use App\Domains\Enquiry\Services\QuoteCalculator;
 use App\Domains\Enquiry\Services\Rates;
+use Livewire\Livewire;
 
 /** Customer enquiries, the guided request wizard, feasibility, and the costed quotations that follow. */
 class EnquiryServiceProvider extends ModuleServiceProvider
@@ -41,6 +42,13 @@ class EnquiryServiceProvider extends ModuleServiceProvider
         $this->mergeConfigFrom(__DIR__.'/config/quotation.php', 'quotation');
         $this->mergeConfigFrom(__DIR__.'/config/enquiry_scenarios.php', 'enquiry_scenarios');
         $this->mergeConfigFrom(__DIR__.'/config/feasibility.php', 'feasibility');
+    }
+
+    public function boot(): void
+    {
+        parent::boot();
+
+        Livewire::addNamespace('enquiry', viewPath: __DIR__.'/resources/views/livewire');
     }
 
     protected function classAliases(): array

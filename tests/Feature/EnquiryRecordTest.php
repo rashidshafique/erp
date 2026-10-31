@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Notifications\AppNotice;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 /** The enquiries list (design 14a), the record once sent (14b) and closing it as won, lost or declined (14c). */
@@ -148,5 +149,43 @@ class EnquiryRecordTest extends TestCase
         $this->post(route('enquiries.pattern', $e), ['pattern_route' => 'NEW'])->assertStatus(422);
         $this->get(route('enquiries.edit', $e))->assertRedirect(route('enquiries.show', $e));
         $this->get(route('enquiries.index', ['tab' => 'declined']))->assertSee($e->code);
+    }
+
+    public function test_the_record_actions_run_as_livewire_without_leaving_the_page(): void
+    {
+        $e = $this->enquiry();
+        $pattern = Pattern::create(['code' => 'PT-0302', 'name' => 'Bracket', 'customer_id' => $e->customer_id, 'status' => 'ACTIVE']);
+
+        Livewire::test('enquiry::record', ['enquiry' => $e])
+            ->set('route', 'EXISTING')->call('savePattern')->assertHasErrors('patternId')
+            ->set('patternId', $pattern->id)->call('savePattern')->assertHasNoErrors()
+            ->set('newQuestion', 'Is face B stock fixed?')->call('addQuestion')->assertHasNoErrors()
+            ->set('logText', 'Rang the buyer')->set('logKind', 'CALL')->call('addLog')->assertHasNoErrors()
+            ->set('logText', '')->call('addLog')->assertHasErrors('logText');
+
+        $e->refresh();
+        $this->assertSame('EXISTING', $e->pattern_route);
+        $this->assertSame($pattern->id, $e->pattern_id);
+        $question = $e->questions()->firstOrFail();
+
+        Livewire::test('enquiry::record', ['enquiry' => $e])
+            ->set('answers.'.$question->id, 'Yes, fixed')->call('saveAnswer', $question->id)->assertHasNoErrors();
+
+        $this->assertSame('Yes, fixed', $question->fresh()->answer);
+        $this->assertSame('Rang the buyer', $e->events()->where('kind', 'CALL')->firstOrFail()->text);
+    }
+
+    public function test_closing_from_the_livewire_dialog_needs_a_reason_then_closes_the_enquiry(): void
+    {
+        $e = $this->enquiry();
+
+        Livewire::test('enquiry::record', ['enquiry' => $e])
+            ->set('outcome', 'LOST')->call('closeEnquiry')->assertHasErrors()
+            ->set('closeReason', 'PRICE')->set('winningPrice', '31.5')->call('closeEnquiry')->assertRedirect(route('enquiries.show', $e));
+
+        $e->refresh();
+        $this->assertSame('LOST', $e->status);
+        $this->assertSame('PRICE', $e->close_reason);
+        Livewire::test('enquiry::record', ['enquiry' => $e])->set('newQuestion', 'x')->call('addQuestion')->assertStatus(422);
     }
 }

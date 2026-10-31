@@ -147,7 +147,8 @@ class EnquiryController extends Controller
 
         return ['status' => $life['status'], 'label' => $life['status_label'], 'percent' => $life['life_percent']];
     }
-    private function recordData(Enquiry $e): array
+    /** @return array<string, mixed> */
+    public static function recordData(Enquiry $e): array
     {
         $departments = config('feasibility.departments');
         $reviews = $e->items->flatMap->reviews;
@@ -207,7 +208,7 @@ class EnquiryController extends Controller
         }
         $enquiry->load('owner:id,name', 'pattern:id,code,name', 'questions', 'events', 'developments', 'quotations.salesOrder:id,order_number', 'items.reviews');
 
-        return view('enquiry::enquiries.record', $this->recordData($enquiry));
+        return view('enquiry::enquiries.record', self::recordData($enquiry));
     }
 
     /** The intake page (design 1b) for a sent enquiry: Edit details on the record. */
