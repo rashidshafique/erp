@@ -31,6 +31,7 @@
     .dv-bar > div { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; color: var(--muted); } .dv-bar > div::before { content: ''; height: 4px; border-radius: 2px; background: var(--border); }
     .dv-bar > div.done::before, .dv-bar > div.now::before { background: var(--accent); } .dv-bar > div.now { color: var(--text); font-weight: 600; }
     .dv-log { list-style: none; margin: 0; padding: 0; } .dv-log li { padding: 8px 0; border-bottom: 1px solid var(--border); display: flex; gap: 12px; justify-content: space-between; } .dv-log .when { color: var(--muted); font-size: 12px; white-space: nowrap; }
+    .btn.tl-danger { background: #b3352c; border-color: #b3352c; color: #fff; } .btn.tl-danger:hover { background: #952c24; border-color: #952c24; color: #fff; }
     .tl-badge { display: inline-flex; width: 26px; height: 22px; align-items: center; justify-content: center; margin-right: 8px; border: 1px solid var(--border); border-radius: 5px; font: 600 9.5px ui-monospace, Menlo, monospace; vertical-align: middle; }
     .tl-mini { display: flex; gap: 2px; width: 72px; margin-top: 5px; } .tl-mini i { flex: 1; height: 3px; border-radius: 2px; background: var(--border); } .tl-mini i.on { background: var(--accent); } .tl-mini.rework i.on { background: #b3352c; }
     .tl-menu > summary { list-style: none; cursor: pointer; padding: 0 8px; font-weight: 600; } .tl-menu > summary::-webkit-details-marker { display: none; }
@@ -163,7 +164,7 @@
                     <select name="record" required aria-label="Register record for {{ $t->label }}" style="flex:1;min-width:0"><option value="">Link to register record…</option>@foreach ($linkable as $r)<option value="{{ ($t->kind === 'CORE_BOX' ? 'box:' : 'pattern:').$r->id }}">{{ $r->code }} {{ $r->name }}</option>@endforeach</select><button class="btn" type="submit">Link</button></form>@endif
                 @endif
                 <hr>
-                <form method="POST" action="{{ route('developments.tools.destroy', [$d, $t]) }}" onsubmit="return confirm('Remove this tool?')">@csrf @method('DELETE')<button class="btn" type="submit" style="width:100%" aria-label="Remove {{ $t->label }}">Remove tool</button></form>
+                <form method="POST" action="{{ route('developments.tools.destroy', [$d, $t]) }}" onsubmit="return confirm('Remove this tool?')">@csrf @method('DELETE')<button class="btn tl-danger" type="submit" style="width:100%" aria-label="Remove {{ $t->label }}">Remove tool</button></form>
             </div></details>@endif</td>
         </tr>
     @endforeach
@@ -195,7 +196,7 @@ document.addEventListener('click', function (e) {
 </div></div>
 @if ($d->isOpen())
 @php $cancelErrors = collect($errors->getMessages())->filter(fn ($m, $k) => str_starts_with($k, 'decisions')); @endphp
-<button type="button" class="btn btn-danger" data-quick="dvCancel">Cancel development</button>
+<button type="button" class="btn tl-danger" data-quick="dvCancel">Cancel development</button>
 <dialog class="qd" id="dvCancel" aria-labelledby="dvCancelTitle" @if ($cancelErrors->isNotEmpty()) data-reopen='{}' @endif>
 <form method="POST" action="{{ route('developments.cancel', $d) }}">@csrf
     <div class="qd-head"><h2 id="dvCancelTitle">Cancel {{ $d->code }}?</h2><button type="button" class="qd-x" data-close aria-label="Close">&times;</button></div>
@@ -214,7 +215,7 @@ document.addEventListener('click', function (e) {
         @endif
         @if ($tools->count() > $started->count())<p class="muted small">Tools not started are dropped.</p>@endif
     </div>
-    <div class="qd-foot"><button type="button" class="btn" data-close>Keep open</button><button class="btn btn-danger" type="submit">Cancel development</button></div>
+    <div class="qd-foot"><button type="button" class="btn" data-close>Keep open</button><button class="btn tl-danger" type="submit">Cancel development</button></div>
 </form>
 </dialog>
 @endif

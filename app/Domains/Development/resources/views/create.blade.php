@@ -22,8 +22,8 @@
     .dv-stages { display: flex; gap: 6px; } .dv-stages > div { flex: 1; display: flex; flex-direction: column; gap: 6px; font-size: 12px; } .dv-stages > div::before { content: ''; height: 4px; border-radius: 2px; background: var(--accent); }
     .dv-note { font-size: 12px; color: var(--muted); }
     .dv-modal .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; } .dv-modal .field-full { grid-column: 1 / -1; }
-    .dv-tool { display: inline-flex; gap: 6px; align-items: center; font-size: 12px; padding: 4px 10px; border-radius: 999px; background: #f0f1f3; } .dv-tool button, .dv-addtool { border: 0; background: none; cursor: pointer; color: var(--accent); font-size: 12px; padding: 0; }
-    .dv-toolrow { display: grid; grid-template-columns: 76px 90px minmax(0, 1fr) 130px 20px; gap: 6px; align-items: center; font-size: 12px; } .dv-toolrow button { border: 0; background: none; cursor: pointer; color: var(--muted); }
+    .dv-tool { display: inline-flex; gap: 6px; align-items: center; font-size: 12px; padding: 4px 10px; border-radius: 999px; background: #f0f1f3; } .dv-tool button, .dv-addtool { border: 0; background: none; cursor: pointer; color: var(--accent); font-size: 12px; padding: 0; } .dv-tool button { color: #b3352c; font-weight: 600; }
+    .dv-toolrow { display: grid; grid-template-columns: 76px 90px minmax(0, 1fr) 130px 20px; gap: 6px; align-items: center; font-size: 12px; } .dv-toolrow button { border: 0; background: none; cursor: pointer; color: #b3352c; font-weight: 600; }
     .dv-modal [hidden] { display: none !important; }
     @media (max-width: 640px) { .dv-cards, .dv-modal .form-grid { grid-template-columns: 1fr; } .dv-stages { flex-wrap: wrap; } }
 </style>
