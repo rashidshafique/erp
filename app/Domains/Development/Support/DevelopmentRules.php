@@ -13,6 +13,11 @@ class DevelopmentRules
             'WIN' => 'When the enquiry is won: the pattern is worked out after the customer orders',
             'DECIDED' => 'When the pattern is decided on the enquiry: design discussion and pattern costing run before the quote',
         ], 'WIN'],
+        'tool_gate' => ['development.tool_gate', 'Tools must be built and trial-passed before a development moves on', [
+            'OFF' => 'Off: a development moves on whatever its tools show',
+            'WARN' => 'Warn: moving on asks to confirm and is logged as an override',
+            'BLOCK' => 'Block: it cannot move on until every tool has reached the stage',
+        ], 'WARN'],
     ];
 
     public static function get(string $rule): string

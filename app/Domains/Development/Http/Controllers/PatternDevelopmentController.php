@@ -3,6 +3,8 @@
 namespace App\Domains\Development\Http\Controllers;
 
 use App\Domains\Development\Models\PatternDevelopment;
+use App\Domains\Development\Models\PatternDevelopmentTool;
+use App\Domains\Development\Support\DevelopmentRules;
 use App\Domains\Development\Services\DevelopmentOpener;
 use App\Domains\Enquiry\Models\Enquiry;
 use App\Domains\Enquiry\Models\EnquiryEvent;
@@ -115,22 +117,40 @@ class PatternDevelopmentController extends Controller
 
     public function show(PatternDevelopment $development): View
     {
-        $development->load('enquiry:id,code', 'customer', 'product:id,code,name', 'pattern:id,code,name', 'events');
+        $development->load('enquiry:id,code', 'customer', 'product:id,code,name', 'pattern:id,code,name', 'events', 'tools');
 
         return view('development::show', ['d' => $development]);
     }
 
-    public function advance(PatternDevelopment $development): RedirectResponse
+    public function advance(Request $request, PatternDevelopment $development): RedirectResponse
     {
         abort_unless($development->isOpen(), 422);
         $next = $development->nextStageName();
         abort_if($next === null, 422);
 
-        DB::transaction(function () use ($development, $next) {
+        $stuck = $development->toolsInTheWay();
+        $override = null;
+        if ($stuck->isNotEmpty() && ($rule = DevelopmentRules::get('tool_gate')) !== 'OFF') {
+            $needs = strtolower(config('pattern_developments.tool_statuses.'.$development->gateStatus()));
+            $names = $stuck->pluck('label')->implode(', ');
+            $message = $names.($stuck->count() > 1 ? ' have' : ' has').' not reached '.$needs.' yet.';
+            if ($rule === 'BLOCK') {
+                return back()->withErrors(['gate' => $message.' A rule in settings holds the development here.']);
+            }
+            if (! $request->boolean('override')) {
+                return back()->with('gate_warn', $message);
+            }
+            $override = "Moved on with an override: {$message}";
+        }
+
+        DB::transaction(function () use ($development, $next, $override) {
             $development->increment('stage_index');
             $isLast = $development->nextStageName() === null;
             if ($isLast) {
                 $development->update(['status' => 'DONE']);
+            }
+            if ($override) {
+                $this->log($development, 'STAGE', $override);
             }
             $this->log($development, 'STAGE', ($isLast ? 'Reached the last stage: ' : 'Moved to ').$next.'.');
             if ($isLast && $revision = $development->draftRevision()) {
@@ -142,26 +162,93 @@ class PatternDevelopmentController extends Controller
         return back()->with('success', 'Moved to '.$next.'.');
     }
 
-    /** Back one stage, as when a trial fails and the pattern goes back for rework. The reason goes on the log. */
+    /** Back one stage, as when a trial fails and the tools go back for rework. The reason goes on the log; ticked tools go to Rework, the rest keep their status. */
     public function back(Request $request, PatternDevelopment $development): RedirectResponse
     {
         abort_unless($development->isOpen() && $development->stage_index > 0, 422);
-        $d = $request->validate(['reason' => ['required', 'string', 'max:300']], ['reason.required' => 'Say why it goes back, e.g. what the trial found.']);
+        $d = $request->validate([
+            'reason' => ['required', 'string', 'max:300'],
+            'tools' => ['nullable', 'array'],
+            'tools.*' => ['string', Rule::exists('pattern_development_tools', 'id')->where('pattern_development_id', $development->id)],
+        ], ['reason.required' => 'Say why it goes back, e.g. what the trial found.']);
         $from = $development->stageName();
-        $development->decrement('stage_index');
-        $this->log($development, 'STAGE', "Back from {$from} to {$development->stageName()}: {$d['reason']}");
+        $tools = $development->tools;
+        $ticked = $tools->count() === 1 ? $tools : $tools->whereIn('id', $d['tools'] ?? []);
+        DB::transaction(function () use ($development, $d, $from, $ticked) {
+            $development->decrement('stage_index');
+            foreach ($ticked as $tool) {
+                $tool->update(['status' => 'REWORK', 'status_note' => $d['reason']]);
+            }
+            $this->log($development, 'STAGE', "Back from {$from} to {$development->stageName()}: {$d['reason']}");
+            if ($ticked->isNotEmpty()) {
+                $this->log($development, 'NOTE', 'Rework: '.$ticked->pluck('label')->implode(', ').'.');
+            }
+        });
 
         return back()->with('success', 'Back to '.$development->stageName().'.');
     }
 
-    /** What the pattern actually cost, set beside what the quote allowed. */
+    /** What the pattern actually cost: set on the development's pattern, or its first tool, and the total follows. */
     public function cost(Request $request, PatternDevelopment $development): RedirectResponse
     {
         $d = $request->validate(['actual_cost' => ['nullable', 'numeric', 'min:0', 'max:999999999999']]);
-        $development->update(['actual_cost' => $d['actual_cost'] ?? null]);
+        $tool = $development->tools->firstWhere('kind', 'PATTERN') ?? $development->tools->first();
+        $tool?->update(['actual_cost' => $d['actual_cost'] ?? null]);
+        $development->syncCosts();
         $this->log($development, 'NOTE', filled($d['actual_cost'] ?? null) ? 'Pattern cost recorded: '.Formats::number($d['actual_cost'], 2).'.' : 'Pattern cost cleared.');
 
         return back()->with('success', 'Pattern cost saved.');
+    }
+
+    public function toolStore(Request $request, PatternDevelopment $development): RedirectResponse
+    {
+        abort_unless($development->isOpen(), 422);
+        $d = $request->validate([
+            'kind' => ['required', Rule::in(array_keys(config('pattern_developments.tool_kinds')))],
+            'label' => ['required', 'string', 'max:200'],
+            'route' => ['nullable', Rule::in(array_keys(config('pattern_developments.tool_routes')))],
+            'made_by' => ['nullable', Rule::in(array_keys(config('pattern_developments.pattern_by')))],
+            'maker' => ['nullable', 'string', 'max:150'],
+            'who_pays' => ['nullable', Rule::in(array_keys(config('pattern_developments.who_pays')))],
+            'quoted_cost' => ['nullable', 'numeric', 'min:0', 'max:999999999999'],
+            'due_on' => ['nullable', 'date'],
+        ], ['label.required' => 'Name the tool, e.g. Volute core box.']);
+        $tool = $development->tools()->create($d + ['route' => 'NEW', 'made_by' => 'DECIDE_LATER']);
+        $this->log($development, 'NOTE', 'Tool added: '.config('pattern_developments.tool_kinds.'.$tool->kind).' '.$tool->label.'.');
+
+        return back()->with('success', 'Tool added.');
+    }
+
+    public function toolUpdate(Request $request, PatternDevelopment $development, PatternDevelopmentTool $tool): RedirectResponse
+    {
+        abort_unless($tool->pattern_development_id === $development->id && $development->isOpen(), 404);
+        $d = $request->validate([
+            'status' => ['sometimes', Rule::in(array_keys(config('pattern_developments.tool_statuses')))],
+            'actual_cost' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:999999999999'],
+            'quoted_cost' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:999999999999'],
+            'maker' => ['sometimes', 'nullable', 'string', 'max:150'],
+        ]);
+        $before = $tool->status;
+        $tool->update($d + (isset($d['status']) ? ['status_note' => null] : []));
+        if (array_key_exists('actual_cost', $d)) {
+            $development->syncCosts();
+            $this->log($development, 'NOTE', "{$tool->label}: cost ".(isset($d['actual_cost']) ? 'recorded as '.Formats::number($d['actual_cost'], 2) : 'cleared').'.');
+        }
+        if (isset($d['status']) && $d['status'] !== $before) {
+            $this->log($development, 'NOTE', "{$tool->label}: {$tool->statusName()}.");
+        }
+
+        return back()->with('success', 'Tool saved.');
+    }
+
+    public function toolDestroy(PatternDevelopment $development, PatternDevelopmentTool $tool): RedirectResponse
+    {
+        abort_unless($tool->pattern_development_id === $development->id && $development->isOpen(), 404);
+        $tool->delete();
+        $development->syncCosts();
+        $this->log($development, 'NOTE', "Tool removed: {$tool->label}.");
+
+        return back()->with('success', 'Tool removed.');
     }
 
     public function note(Request $request, PatternDevelopment $development): RedirectResponse

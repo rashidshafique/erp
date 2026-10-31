@@ -14,5 +14,8 @@ Route::middleware('web')->group(function () {
         Route::put('/{development}/cost', 'cost')->name('cost');
         Route::post('/{development}/notes', 'note')->name('notes');
         Route::post('/{development}/cancel', 'cancel')->name('cancel');
+        Route::post('/{development}/tools', 'toolStore')->name('tools.store');
+        Route::put('/{development}/tools/{tool}', 'toolUpdate')->name('tools.update');
+        Route::delete('/{development}/tools/{tool}', 'toolDestroy')->name('tools.destroy');
     });
 });

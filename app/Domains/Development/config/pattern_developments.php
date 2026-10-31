@@ -38,6 +38,11 @@ return [
             'note' => 'We check, advise and trial the pattern; the customer owns it.',
         ],
     ],
+    'tool_kinds' => ['PATTERN' => 'Pattern', 'CORE_BOX' => 'Core box', 'GAUGE' => 'Gauge', 'FIXTURE' => 'Fixture', 'OTHER' => 'Other'],
+    'tool_routes' => ['NEW' => 'New', 'EXISTING' => 'Existing', 'MODIFY' => 'Modify'],
+    'tool_statuses' => ['NOT_STARTED' => 'Not started', 'BUILDING' => 'Building', 'BUILT' => 'Built', 'TRIAL_PASSED' => 'Trial passed', 'REWORK' => 'Rework', 'NOT_NEEDED' => 'Not needed'],
+    /** The statuses a tool moves through in order; a gate asks for BUILT before the trial and TRIAL_PASSED before approval. */
+    'tool_progress' => ['NOT_STARTED', 'BUILDING', 'BUILT', 'TRIAL_PASSED'],
     'pattern_by' => ['DECIDE_LATER' => 'Decide later', 'IN_HOUSE' => 'In-house', 'SUBCONTRACT' => 'Subcontract', 'CUSTOMER_BUILT' => 'Customer builds', 'CUSTOMER_SUPPLIED' => 'Customer supplies'],
     'who_pays' => ['CUSTOMER' => 'Customer', 'SHARED' => 'Shared', 'FOUNDRY' => 'Foundry'],
     'reasons' => ['LIFE_LIMIT' => 'Life limit reached', 'WORN' => 'Worn', 'DAMAGED' => 'Damaged', 'BEYOND_REPAIR' => 'Beyond repair', 'OTHER' => 'Other'],
