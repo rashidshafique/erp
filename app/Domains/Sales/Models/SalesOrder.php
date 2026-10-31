@@ -36,6 +36,14 @@ class SalesOrder extends Model
         return ['order_date' => 'date', 'requested_delivery_date' => 'date'];
     }
 
+    /** A prospect becomes a customer with their first sales order. */
+    protected static function booted(): void
+    {
+        static::created(function (SalesOrder $order) {
+            Customer::whereKey($order->customer_id)->where('is_prospect', true)->update(['is_prospect' => false]);
+        });
+    }
+
     /** Next order number of the year. Call inside a transaction; takes the same lock as manual order entry. */
     public static function nextNumber(): string
     {
