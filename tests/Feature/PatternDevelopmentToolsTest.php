@@ -272,7 +272,7 @@ class PatternDevelopmentToolsTest extends TestCase
         $make = fn (string $source) => \App\Domains\Enquiry\Models\Enquiry::create(['customer_id' => $customer->id, 'title' => 'Part', 'source_type' => $source, 'status' => 'FEASIBILITY', 'received_on' => today()]);
 
         $drawing = $this->get(route('developments.create', ['from' => 'enquiry:'.$make('DRAWING')->id]))->assertOk();
-        $drawing->assertSeeHtml('name="type" value="NEW_PART"')->assertSeeHtml('name="type" value="CUSTOMER_PATTERN"')
+        $drawing->assertSeeHtml('name="type" value="NEW_PRODUCT"')->assertSeeHtml('name="type" value="CUSTOMER_PATTERN"')
             ->assertDontSeeHtml('name="type" value="REPLACEMENT"')->assertDontSeeHtml('name="type" value="MODIFICATION"');
 
         $this->get(route('developments.create', ['from' => 'enquiry:'.$make('CHANGE')->id]))->assertOk()
