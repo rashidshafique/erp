@@ -265,4 +265,19 @@ class PatternDevelopmentToolsTest extends TestCase
             ->assertSee('window.location = '.\Illuminate\Support\Js::from(route('enquiries.show', $enquiry)), false);
         $this->get(route('developments.create'))->assertOk()->assertDontSee(' · New development', false);
     }
+
+    public function test_opened_from_an_enquiry_the_dialog_offers_only_the_types_that_can_follow(): void
+    {
+        $customer = Customer::create(['code' => 'ORB', 'name' => 'Orbis Auto', 'active' => true]);
+        $make = fn (string $source) => \App\Domains\Enquiry\Models\Enquiry::create(['customer_id' => $customer->id, 'title' => 'Part', 'source_type' => $source, 'status' => 'FEASIBILITY', 'received_on' => today()]);
+
+        $drawing = $this->get(route('developments.create', ['from' => 'enquiry:'.$make('DRAWING')->id]))->assertOk();
+        $drawing->assertSeeHtml('name="type" value="NEW_PART"')->assertSeeHtml('name="type" value="CUSTOMER_PATTERN"')
+            ->assertDontSeeHtml('name="type" value="REPLACEMENT"')->assertDontSeeHtml('name="type" value="MODIFICATION"');
+
+        $this->get(route('developments.create', ['from' => 'enquiry:'.$make('CHANGE')->id]))->assertOk()
+            ->assertSeeHtml('name="type" value="MODIFICATION"')->assertDontSeeHtml('name="type" value="REPLACEMENT"');
+
+        $this->get(route('developments.create'))->assertOk()->assertSeeHtml('name="type" value="REPLACEMENT"');
+    }
 }

@@ -41,7 +41,7 @@ class PatternDevelopmentController extends Controller
             'preset' => $preset,
             'openedFrom' => $openedFrom,
             'backUrl' => $this->backUrl((string) $request->query('from')),
-            'types' => config('pattern_developments.types'),
+            'types' => $this->typesFor((string) $request->query('from'), $preset['type']),
             'customers' => Customer::active()->orderedByName()->get(),
             'enquiries' => Enquiry::with('customer:id,party_id')->whereIn('status', ['NEW', 'FEASIBILITY', 'QUOTED', 'WON'])->latest()->limit(200)->get(['id', 'code', 'title', 'customer_id']),
             'products' => Product::orderBy('code')->get(['id', 'code', 'name']),
@@ -320,6 +320,26 @@ class PatternDevelopmentController extends Controller
      *
      * @return array{0: array<string, mixed>, 1: string}
      */
+    /**
+     * The kinds of development the dialog offers. Opened from an enquiry, only those that can follow from it: the new part or product
+     * its pattern decision points to, a customer pattern, and a modification when the enquiry is a change to a part we make. A
+     * replacement is started from the worn pattern or core box, not from an enquiry. Opened from anywhere else, all of them.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    private function typesFor(string $from, string $primary): array
+    {
+        $all = config('pattern_developments.types');
+        [$kind, $id] = array_pad(explode(':', $from, 2), 2, null);
+        $enquiry = $kind === 'enquiry' ? Enquiry::find($id) : null;
+        if (! $enquiry) {
+            return $all;
+        }
+        $keep = array_filter([$primary, 'CUSTOMER_PATTERN', $enquiry->source_type === 'CHANGE' ? 'MODIFICATION' : null]);
+
+        return array_intersect_key($all, array_flip($keep));
+    }
+
     /** Where closing the dialog goes: back to the record it was opened from, or the list. */
     private function backUrl(string $from): string
     {
