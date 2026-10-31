@@ -179,7 +179,7 @@ class EnquiryDevelopmentTest extends TestCase
         $this->assertSame($q->currency, $dev->cost_currency);
 
         $this->put(route('developments.cost', $dev), ['actual_cost' => 175000])->assertSessionHasNoErrors();
-        $this->get(route('developments.show', $dev))->assertSee('Over the quote by '.$q->currency.' 25,000.00');
+        $this->get(route('developments.show', $dev))->assertSee('over by '.$q->currency.' 25,000.00');
     }
 
     public function test_an_existing_pattern_near_its_life_limit_is_flagged_with_a_replacement_link(): void

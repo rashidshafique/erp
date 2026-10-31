@@ -1,6 +1,6 @@
 @extends('layouts.app')
-@section('title', $d->code)
-@section('breadcrumb')<a href="{{ route('developments.index') }}">Pattern developments</a> / {{ $d->code }} @endsection
+@section('title', $d->code.' '.$d->title)
+@section('breadcrumb')<a href="{{ route('developments.index') }}">Pattern developments</a> / <code>{{ $d->code }}</code> {{ $d->title }} @endsection
 @section('content')
 @php
     $cls = ['OPEN' => 'status-in-progress', 'DONE' => 'status-completed', 'CANCELLED' => 'status-cancelled'];
@@ -32,7 +32,10 @@
     .dv-bar > div.done::before, .dv-bar > div.now::before { background: var(--accent); } .dv-bar > div.now { color: var(--text); font-weight: 600; }
     .dv-log { list-style: none; margin: 0; padding: 0; } .dv-log li { padding: 8px 0; border-bottom: 1px solid var(--border); display: flex; gap: 12px; justify-content: space-between; } .dv-log .when { color: var(--muted); font-size: 12px; white-space: nowrap; }
     .btn.tl-danger { background: #b3352c; border-color: #b3352c; color: #fff; } .btn.tl-danger:hover { background: #952c24; border-color: #952c24; color: #fff; }
-    .tl-badge { display: inline-flex; width: 26px; height: 22px; align-items: center; justify-content: center; margin-right: 8px; border: 1px solid var(--border); border-radius: 5px; font: 600 9.5px ui-monospace, Menlo, monospace; vertical-align: middle; }
+    .tl-badge { flex: none; display: inline-flex; width: 24px; height: 24px; align-items: center; justify-content: center; border-radius: 5px; background: #f0f1f3; color: #1c1d1f; font: 600 9.5px ui-monospace, Menlo, monospace; }
+    .tl-tool { display: flex; gap: 10px; align-items: center; } .tl-tool .sub { font-size: 12px; color: #6b6e73; }
+    .tl-route { font-size: 11px; padding: 1px 7px; border-radius: 4px; border: 1px solid #c4c7cc; color: #6b6e73; white-space: nowrap; } .tl-route.NEW { border-color: #9db4ec; color: #2f5fd0; } .tl-route.MODIFY { border-color: #e5c78a; color: #94610a; }
+    .tl-num { text-align: right; } .tl-total { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; margin-top: 12px; padding: 10px 16px; border-radius: 8px; background: #f8f8f9; font-size: 12.5px; } .tl-total strong { font-weight: 600; } .tl-total .side { color: #6b6e73; }
     .tl-mini { display: flex; gap: 2px; width: 72px; margin-top: 5px; } .tl-mini i { flex: 1; height: 3px; border-radius: 2px; background: var(--border); } .tl-mini i.on { background: var(--accent); } .tl-mini.rework i.on { background: #b3352c; }
     .tl-menu > summary { list-style: none; cursor: pointer; padding: 0 8px; font-weight: 600; } .tl-menu > summary::-webkit-details-marker { display: none; }
     .tl-pop { position: fixed; z-index: 20; width: 300px; max-height: 70vh; overflow-y: auto; background: #fff; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 24px rgb(15 23 42 / 16%); padding: 12px; display: flex; flex-direction: column; gap: 10px; }
@@ -43,7 +46,7 @@
 </style>
 @include('partials.quick-dialog-assets')
 <div class="page-heading">
-    <div><h1>{{ $d->title }}</h1><p>{{ $d->code }} · {{ $info['name'] }} · {{ $d->customer?->name }} · <span class="status {{ $cls[$d->status] ?? '' }}">{{ $d->status === 'OPEN' ? $d->stageName() : \App\Domains\Development\Models\PatternDevelopment::STATUSES[$d->status] }}</span></p></div>
+    <div><h1><code>{{ $d->code }}</code> {{ $d->title }}</h1><p>{{ $info['name'] }} · {{ $d->customer?->name }} · <span class="status {{ $cls[$d->status] ?? '' }}">{{ $d->status === 'OPEN' ? $d->stageName() : \App\Domains\Development\Models\PatternDevelopment::STATUSES[$d->status] }}</span></p></div>
     <div class="actions"><a class="btn" href="{{ route('developments.index') }}">All developments</a>
         @if ($d->isOpen() && $backStage)<button type="button" class="btn" data-quick="dvBack">Back to {{ $backStage }}</button>@endif
         @if ($d->isOpen() && $next)<form method="POST" action="{{ route('developments.advance', $d) }}" style="display:inline">@csrf<button class="btn btn-primary" type="submit" @disabled($blocked)>Move to {{ $next }}</button></form>@endif</div>
@@ -123,22 +126,24 @@
         </fieldset></form>
     @elseif ($tools->isEmpty())<p class="muted">No tools yet. Add the pattern, core box or gauge this development will make or change.</p>
     @else
-    <div style="overflow-x:auto"><table class="table"><thead><tr><th>Tool</th><th>Route</th>@if ($full)<th>Made by</th><th>Pays</th><th>Quoted</th><th>Actual</th><th>Due</th>@endif<th>Status</th><th></th></tr></thead><tbody>
+    <div style="overflow-x:auto"><table class="table"><thead><tr><th>Tool</th><th>Route</th>@if ($full)<th>Made by</th><th>Pays</th><th class="tl-num">Quoted</th><th class="tl-num">Actual</th><th>Due</th>@endif<th>Status</th><th></th></tr></thead><tbody>
     @foreach ($tools as $t)
         @php $canRegister = $register->canCreate($t); @endphp
         <tr>
-            <td><span class="tl-badge">{{ $badges[$t->kind] ?? '··' }}</span><strong>{{ config('pattern_developments.tool_kinds.'.$t->kind) }}</strong>
-                @if ($t->pattern) <a href="{{ route('patterns.show', $t->pattern) }}" class="mono">{{ $t->pattern->code }}</a>@endif
-                @if ($t->coreBox) <a href="{{ route('core-boxes.show', $t->coreBox) }}" class="mono">{{ $t->coreBox->code }}</a>@endif
-                @if ($t->route === 'NEW') <span class="muted small">(new)</span>@endif
-                <br><span class="muted small">{{ $t->label }}@if ($canRegister) · not in register yet @endif @if ($t->coreBox?->status === 'INACTIVE') · out of service until built @endif</span>
-                @if ($t->replacesPattern ?? $t->replacesCoreBox)@php $old = $t->replacesPattern ?? $t->replacesCoreBox; @endphp<br><span class="muted small">replaces {{ $old->code }}@if ($t->retired_at), retired {{ $t->retired_at->displayDate() }}@endif</span>@endif</td>
-            <td>{{ config('pattern_developments.tool_routes.'.$t->route) }}</td>
+            <td><div class="tl-tool"><span class="tl-badge">{{ $badges[$t->kind] ?? '··' }}</span><div>
+                <div>{{ config('pattern_developments.tool_kinds.'.$t->kind) }}
+                    @if ($t->pattern) <a href="{{ route('patterns.show', $t->pattern) }}"><code>{{ $t->pattern->code }}</code></a>@endif
+                    @if ($t->coreBox) <a href="{{ route('core-boxes.show', $t->coreBox) }}"><code>{{ $t->coreBox->code }}</code></a>@endif
+                    @if ($t->route === 'NEW') <span class="muted">(new)</span>@endif</div>
+                <div class="sub">{{ $t->label }}@if ($canRegister) · not in register yet @endif @if ($t->coreBox?->status === 'INACTIVE') · out of service until built @endif</div>
+                @if ($t->replacesPattern ?? $t->replacesCoreBox)@php $old = $t->replacesPattern ?? $t->replacesCoreBox; @endphp<div class="sub">replaces {{ $old->code }}@if ($t->retired_at), retired {{ $t->retired_at->displayDate() }}@endif</div>@endif
+            </div></div></td>
+            <td><span class="tl-route {{ $t->route }}">{{ config('pattern_developments.tool_routes.'.$t->route) }}</span></td>
             @if ($full)
             <td>{{ config('pattern_developments.pattern_by.'.$t->made_by) }}@if ($t->maker)<br><span class="muted small">{{ $t->maker }}</span>@endif</td>
             <td>{{ $t->who_pays ? config('pattern_developments.who_pays.'.$t->who_pays) : '—' }}</td>
-            <td>{{ $t->quoted_cost !== null ? $amount($t->quoted_cost) : '—' }}</td>
-            <td>{{ $t->actual_cost !== null ? $amount($t->actual_cost) : '—' }}</td>
+            <td class="tl-num">{{ $t->quoted_cost !== null ? $amount($t->quoted_cost) : '—' }}</td>
+            <td class="tl-num">{{ $t->actual_cost !== null ? $amount($t->actual_cost) : '—' }}</td>
             <td>{{ $t->due_on?->displayDate() ?? '—' }}</td>
             @endif
             <td><span class="status {{ $pills[$t->status] ?? '' }}">{{ $t->statusName() }}</span>
@@ -171,9 +176,8 @@
     </tbody></table></div>
     @endif
     @if ($tools->isNotEmpty() && $depth !== 'LIST')
-    <p style="margin:12px 0 0">Total quoted {{ $quotedSum ? $amount($quotedSum) : '—' }} · actual {{ $actualSum !== null ? $amount($actualSum) : '—' }}
-        @if ($d->quoted_tooling_cost !== null) · Allowed in quote {{ $amount($d->quoted_tooling_cost) }}@endif
-        @if ($over !== null) · <span @if ($over > 0) style="color:#b3352c" @else class="muted" @endif>{{ $over > 0 ? 'Over the quote by '.$amount($over) : 'Within the quote by '.$amount(-$over) }}</span>@endif</p>
+    <div class="tl-total"><span>Total quoted <strong>{{ $quotedSum ? $amount($quotedSum) : '—' }}</strong> · actual <strong>{{ $actualSum !== null ? $amount($actualSum) : '—' }}@if ($actualSum !== null && $d->isOpen() && $tools->whereNull('actual_cost')->isNotEmpty()) so far @endif</strong></span>
+        @if ($d->quoted_tooling_cost !== null)<span class="side">Allowed in quote {{ $amount($d->quoted_tooling_cost) }}@if ($over !== null) · <span style="color:{{ $over > 0 ? '#b3352c' : '#1d7048' }}">{{ $over > 0 ? 'over by '.$amount($over) : 'within by '.$amount(-$over) }}</span>@endif</span>@endif</div>
     @endif
 </div></div>
 <script>
