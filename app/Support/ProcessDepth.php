@@ -19,17 +19,17 @@ class ProcessDepth
 
     /** @var array<string, array<string, string>> rule => value, per preset */
     private const VALUES = [
-        'BASIC' => ['contract_review' => 'SKIP', 'order_flow' => 'SIMPLE', 'order_completion' => 'POUR',
+        'BASIC' => ['tool_depth' => 'ONE', 'tool_gate' => 'OFF', 'contract_review' => 'SKIP', 'order_flow' => 'SIMPLE', 'order_completion' => 'POUR',
             'floor_screens' => 'QUICK', 'work_lists' => 'OFF', 'start_before_issue' => 'ALLOW', 'mould_assembly' => 'AUTO', 'melting_plan' => 'OFF', 'pour_entry' => 'ONE_STEP', 'gate_cupola' => 'OFF', 'gate_induction' => 'OFF', 'gate_other' => 'OFF', 'hold_first_iron' => 'FREE', 'containment' => 'NOTE',
             'overdue_use' => 'OFF', 'ncr_threshold' => 'OVER_5', 'lot_grouping' => 'POUR'],
-        'FULL' => ['contract_review' => 'REQUIRED', 'order_flow' => 'FULL', 'order_completion' => 'INSPECTION',
+        'FULL' => ['tool_depth' => 'FULL', 'tool_gate' => 'WARN', 'contract_review' => 'REQUIRED', 'order_flow' => 'FULL', 'order_completion' => 'INSPECTION',
             'floor_screens' => 'FULL', 'work_lists' => 'USED', 'start_before_issue' => 'BLOCK', 'mould_assembly' => 'MANUAL', 'melting_plan' => 'USED', 'pour_entry' => 'STEPS', 'gate_cupola' => 'ADVISORY', 'gate_induction' => 'ENFORCED', 'gate_other' => 'ENFORCED', 'hold_first_iron' => 'HOLD', 'containment' => 'HOLD',
             'overdue_use' => 'WARN', 'ncr_threshold' => 'ANY', 'lot_grouping' => 'MOULD'],
     ];
 
     /** Where each rule lives: the class that reads and writes it. */
     private const CLASSES = [
-        'development_open' => DevelopmentRules::class, 'tool_gate' => DevelopmentRules::class,
+        'development_open' => DevelopmentRules::class, 'tool_depth' => DevelopmentRules::class, 'tool_gate' => DevelopmentRules::class,
         'contract_review' => OrderRules::class, 'order_flow' => OrderRules::class, 'order_completion' => OrderRules::class,
         'work_lists' => FloorRules::class, 'start_before_issue' => WorkListRules::class, 'mould_assembly' => FloorRules::class, 'floor_screens' => FloorRules::class,
         'melting_plan' => FloorRules::class, 'pour_entry' => FloorRules::class,
@@ -40,7 +40,7 @@ class ProcessDepth
 
     /** The rules page's sections, in the order work flows through the foundry. */
     public const GROUPS = [
-        'Enquiries' => ['development_open', 'tool_gate'],
+        'Development' => ['development_open', 'tool_depth', 'tool_gate'],
         'Orders' => ['contract_review', 'order_flow', 'order_completion'],
         'Moulding' => ['floor_screens', 'work_lists', 'start_before_issue', 'mould_assembly'],
         'Melting and pouring' => ['melting_plan', 'pour_entry', 'gate_cupola', 'gate_induction', 'gate_other', 'hold_first_iron', 'containment'],

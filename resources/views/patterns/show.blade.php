@@ -116,7 +116,8 @@
                 @if ($nextPattern)<a class="btn" href="{{ route('patterns.show', array_filter(['pattern' => $nextPattern, 'link' => request('link')])) }}" title="Next: {{ $nextPattern->code }} — {{ $nextPattern->name }}" aria-label="Next pattern, {{ $nextPattern->code }}">&rarr;</a>@else<span class="btn" aria-disabled="true" style="opacity:.4;cursor:default">&rarr;</span>@endif
             </span>
             <a class="btn" href="{{ route('patterns.index') }}">All patterns</a>
-            @if (Route::has('developments.create') && ! $pattern->trashed())<a class="btn" href="{{ route('developments.create', ['from' => 'pattern:'.$pattern->id]) }}">Replace pattern</a>@endif
+            @if (Route::has('developments.create') && ! $pattern->trashed())<a class="btn" href="{{ route('developments.create', ['from' => 'pattern:'.$pattern->id]) }}">Start replacement</a>@endif
+            @if (Route::has('tooling-maintenance.create') && ! $pattern->trashed())<a class="btn" href="{{ route('tooling-maintenance.create', ['tooling_type' => 'PATTERN', 'pattern_id' => $pattern->id, 'activity_type' => 'REPAIR']) }}">Raise refurb request</a>@endif
             <a class="btn" href="{{ route('labels.show', ['pattern', $pattern->id]) }}" target="_blank">Print tag</a>
             @if ($pattern->trashed())
                 <form method="POST" action="{{ route('patterns.restore', $pattern) }}" style="display:inline">@csrf<button class="btn btn-primary" type="submit">Restore pattern</button></form>
@@ -290,6 +291,7 @@ document.querySelectorAll('[data-inplace]').forEach(function (panel) {
 
 <div class="tab-marker" data-tab-start="Ownership"></div>
 @include('patterns._ownership', ['pattern' => $pattern, 'owner' => $owner])
+@if (Route::has('developments.index'))@include('development::_register_block', ['record' => $pattern])@endif
 
 <div class="tab-marker" data-tab-start="Files & history"></div>
 @include('custom-fields._panel', ['entity' => 'pattern', 'id' => $pattern->id])

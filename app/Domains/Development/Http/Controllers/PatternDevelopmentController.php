@@ -9,6 +9,8 @@ use App\Domains\Development\Support\DevelopmentRules;
 use App\Domains\Development\Services\DevelopmentOpener;
 use App\Domains\Enquiry\Models\Enquiry;
 use App\Domains\Enquiry\Models\EnquiryEvent;
+use App\Domains\Tooling\Models\ToolingLifeLimit;
+use App\Domains\Tooling\Services\ToolingLifeStatusService;
 use App\Http\Controllers\Controller;
 use App\Models\CoreBox;
 use App\Models\Customer;
@@ -28,7 +30,7 @@ class PatternDevelopmentController extends Controller
 {
     public function index(Request $request): View
     {
-        return view('development::index', ['rows' => $this->rows($request)]);
+        return view('development::index', ['rows' => $this->rows($request), 'tabs' => $this->tabCounts()]);
     }
 
     /** The list with the dialog open over it. `from` says where it was opened: enquiry:ID, product:ID, pattern:ID, customer:ID or products. */
@@ -38,6 +40,7 @@ class PatternDevelopmentController extends Controller
 
         return view('development::create', [
             'rows' => $this->rows($request),
+            'tabs' => $this->tabCounts(),
             'preset' => $preset,
             'openedFrom' => $openedFrom,
             'backUrl' => $this->backUrl((string) $request->query('from')),
@@ -47,6 +50,7 @@ class PatternDevelopmentController extends Controller
             'products' => Product::orderBy('code')->get(['id', 'code', 'name']),
             'patterns' => Pattern::orderBy('code')->get(['id', 'code', 'name', 'owner_customer_id']),
             'coreBoxes' => app(ToolRegister::class)->toolingOn() ? CoreBox::orderBy('code')->get(['id', 'code', 'name']) : collect(),
+            'life' => $this->lifePercents(),
         ]);
     }
 
@@ -71,7 +75,13 @@ class PatternDevelopmentController extends Controller
             'drawing_change' => ['nullable', 'string', 'max:300'],
             'notes' => ['nullable', 'string', 'max:3000'],
             'opened_from' => ['nullable', 'string', 'max:100'],
-        ]);
+            'skip_first_tool' => ['nullable', 'boolean'],
+            'tools' => ['nullable', 'array', 'max:20'],
+            'tools.*.kind' => ['required', Rule::in(array_keys(config('pattern_developments.tool_kinds')))],
+            'tools.*.label' => ['required', 'string', 'max:200'],
+            'tools.*.route' => ['nullable', Rule::in(array_keys(config('pattern_developments.tool_routes')))],
+            'tools.*.made_by' => ['nullable', Rule::in(array_keys(config('pattern_developments.pattern_by')))],
+        ], ['tools.*.label.required' => 'Name each tool, e.g. Volute core box.']);
         $type = $d['type'];
         if (filled($d['tool_pick'] ?? null)) {   // the picker lists patterns and core boxes as pattern:ID or box:ID
             [$pickKind, $pickId] = array_pad(explode(':', $d['tool_pick'], 2), 2, null);
@@ -118,6 +128,13 @@ class PatternDevelopmentController extends Controller
                 'drawing_change' => $d['drawing_change'] ?? null, 'notes' => $d['notes'] ?? null,
                 'created_by_id' => Auth::id(), 'created_by_name' => Auth::user()?->name,
             ]);
+            $extra = $d['tools'] ?? [];
+            if ($extra && ($d['skip_first_tool'] ?? false)) {
+                $development->tools()->first()?->delete();
+            }
+            foreach ($extra as $tool) {
+                $development->tools()->create($this->withRegisterLink($tool) + ['route' => 'NEW', 'made_by' => 'DECIDE_LATER']);
+            }
             $this->log($development, 'CREATED', 'Opened'.(filled($d['opened_from'] ?? null) ? ' from '.$d['opened_from'] : '').'. First stage: '.$development->stageName().'.');
 
             return $development;
@@ -128,9 +145,13 @@ class PatternDevelopmentController extends Controller
 
     public function show(PatternDevelopment $development): View
     {
-        $development->load('enquiry:id,code', 'customer', 'product:id,code,name', 'pattern:id,code,name', 'events', 'tools');
+        $development->load('enquiry:id,code', 'customer', 'product:id,code,name', 'pattern:id,code,name', 'events', 'tools.pattern:id,code,name', 'tools.coreBox');
 
-        return view('development::show', ['d' => $development]);
+        return view('development::show', [
+            'd' => $development,
+            'registerPatterns' => Pattern::orderBy('code')->get(['id', 'code', 'name']),
+            'registerBoxes' => app(ToolRegister::class)->toolingOn() ? CoreBox::orderBy('code')->get(['id', 'code', 'name']) : collect(),
+        ]);
     }
 
     public function advance(Request $request, PatternDevelopment $development): RedirectResponse
@@ -242,11 +263,14 @@ class PatternDevelopmentController extends Controller
             'actual_cost' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:999999999999'],
             'quoted_cost' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:999999999999'],
             'maker' => ['sometimes', 'nullable', 'string', 'max:150'],
+            'made_by' => ['sometimes', Rule::in(array_keys(config('pattern_developments.pattern_by')))],
+            'who_pays' => ['sometimes', 'nullable', Rule::in(array_keys(config('pattern_developments.who_pays')))],
+            'due_on' => ['sometimes', 'nullable', 'date'],
         ]);
         $before = $tool->status;
-        $tool->update($d + (isset($d['status']) ? ['status_note' => null] : []));
+        $tool->update($d + (isset($d['status']) && $d['status'] !== $before ? ['status_note' => null] : []));
         app(ToolRegister::class)->sync($tool->fresh());
-        if (array_key_exists('actual_cost', $d)) {
+        if ($tool->wasChanged('actual_cost')) {
             $development->syncCosts();
             $this->log($development, 'NOTE', "{$tool->label}: cost ".(isset($d['actual_cost']) ? 'recorded as '.Formats::number($d['actual_cost'], 2) : 'cleared').'.');
         }
@@ -265,6 +289,16 @@ class PatternDevelopmentController extends Controller
         app(ToolRegister::class)->sync($tool->fresh());
 
         return back()->with('success', 'Added to the register.');
+    }
+
+    /** Links the planned tool to a pattern or core box already in the register. */
+    public function toolLink(Request $request, PatternDevelopment $development, PatternDevelopmentTool $tool): RedirectResponse
+    {
+        abort_unless($tool->pattern_development_id === $development->id && $development->isOpen(), 404);
+        $d = $request->validate(['record' => ['required', 'string', 'max:60']], ['record.required' => 'Choose the register record.']);
+        app(ToolRegister::class)->link($tool, $d['record']);
+
+        return back()->with('success', 'Linked to the register.');
     }
 
     public function toolDestroy(PatternDevelopment $development, PatternDevelopmentTool $tool): RedirectResponse
@@ -288,8 +322,17 @@ class PatternDevelopmentController extends Controller
     public function cancel(Request $request, PatternDevelopment $development): RedirectResponse
     {
         abort_unless($development->isOpen(), 422);
-        $d = $request->validate(['reason' => ['nullable', 'string', 'max:300']]);
-        $development->update(['status' => 'CANCELLED']);
+        $started = $development->startedTools();
+        $d = $request->validate([
+            'reason' => ['nullable', 'string', 'max:300'],
+            'decisions' => ['nullable', 'array'],
+            'decisions.*' => [Rule::in(array_keys(config('pattern_developments.cancel_decisions')))],
+        ] + $started->mapWithKeys(fn ($t) => ["decisions.{$t->id}" => ['required', Rule::in(array_keys(config('pattern_developments.cancel_decisions')))]])->all(),
+            $started->mapWithKeys(fn ($t) => ["decisions.{$t->id}.required" => "Decide what happens to {$t->label}."])->all());
+        DB::transaction(function () use ($development, $started, $d) {
+            app(ToolRegister::class)->settle($development, collect($d['decisions'] ?? [])->only($started->pluck('id'))->all());
+            $development->update(['status' => 'CANCELLED']);
+        });
         $this->log($development, 'CANCELLED', 'Cancelled'.(filled($d['reason'] ?? null) ? ': '.$d['reason'] : '.'));
         if ($development->enquiry) {
             EnquiryEvent::system($development->enquiry, "Pattern development {$development->code} cancelled".(filled($d['reason'] ?? null) ? ': '.$d['reason'] : '.'));
@@ -305,21 +348,67 @@ class PatternDevelopmentController extends Controller
 
     private function rows(Request $request)
     {
-        return PatternDevelopment::query()->with('customer', 'product:id,code,name', 'pattern:id,code,name')
+        return PatternDevelopment::query()->with('customer', 'product:id,code,name', 'pattern:id,code,name', 'tools.pattern:id,code,name', 'tools.coreBox')
             ->when($request->filled('search'), function ($q) use ($request) {
                 $s = '%'.trim($request->input('search')).'%';
-                $q->where(fn ($w) => $w->where('code', 'ilike', $s)->orWhere('title', 'ilike', $s));
+                $q->where(fn ($w) => $w->where('code', 'ilike', $s)->orWhere('title', 'ilike', $s)->orWhereHas('tools', fn ($t) => $t->where('label', 'ilike', $s)
+                    ->orWhereHas('pattern', fn ($r) => $r->where('code', 'ilike', $s))->orWhereHas('coreBox', fn ($r) => $r->where('code', 'ilike', $s))));
             })
+            ->when($request->input('tab') === 'waiting', fn ($q) => $this->waitingOnTools($q))
+            ->when($request->input('tab') === 'closed', fn ($q) => $q->where('status', '!=', 'OPEN'))
+            ->when($request->filled('made_by'), fn ($q) => $q->whereHas('tools', fn ($t) => $t->where('made_by', $request->input('made_by'))))
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status')))
             ->when($request->filled('type'), fn ($q) => $q->where('type', $request->input('type')))
             ->latest()->paginate(20)->withQueryString();
     }
 
+    /** Open developments with a tool being built or in rework. */
+    private function waitingOnTools($query)
+    {
+        return $query->where('status', 'OPEN')->whereHas('tools', fn ($t) => $t->whereIn('status', ['BUILDING', 'REWORK']));
+    }
+
+    /** @return array{open: int, waiting: int, closed: int} counts for the list's tabs */
+    private function tabCounts(): array
+    {
+        return [
+            'open' => PatternDevelopment::where('status', 'OPEN')->count(),
+            'waiting' => $this->waitingOnTools(PatternDevelopment::query())->count(),
+            'closed' => PatternDevelopment::where('status', '!=', 'OPEN')->count(),
+        ];
+    }
+
     /**
-     * What the dialog starts with, from where it was opened.
+     * A tool typed in the dialog that names a register record, as "CB-0118 — Volute core", links to that record.
      *
-     * @return array{0: array<string, mixed>, 1: string}
+     * @param  array<string, mixed>  $tool
+     * @return array<string, mixed>
      */
+    private function withRegisterLink(array $tool): array
+    {
+        $code = trim(explode(' — ', $tool['label'], 2)[0]);
+        $record = match ($tool['kind']) {
+            'PATTERN' => Pattern::where('code', $code)->first(),
+            'CORE_BOX' => app(ToolRegister::class)->toolingOn() ? CoreBox::where('code', $code)->first() : null,
+            default => null,
+        };
+
+        return $tool + ($record ? [$record instanceof CoreBox ? 'core_box_id' : 'pattern_id' => $record->id] : []);
+    }
+
+    /** @return array<string, int> register record id => percent of rated life used, for the replacement picker */
+    private function lifePercents(): array
+    {
+        if (! class_exists(ToolingLifeLimit::class) || ! app(ToolRegister::class)->toolingOn()) {
+            return [];
+        }
+        $service = app(ToolingLifeStatusService::class);
+
+        return ToolingLifeLimit::where('is_active', true)->whereIn('tooling_type', ['PATTERN', 'CORE_BOX'])->get()
+            ->mapWithKeys(fn ($limit) => [(string) ($limit->pattern_id ?? $limit->core_box_id) => $service->calculate($limit)['life_percent']])
+            ->filter(fn ($percent) => $percent !== null)->map(fn ($percent) => (int) round($percent))->all();
+    }
+
     /**
      * The kinds of development the dialog offers. Opened from an enquiry, only those that can follow from it: the new part or product
      * its pattern decision points to, a customer pattern, and a modification when the enquiry is a change to a part we make. A
@@ -355,6 +444,11 @@ class PatternDevelopmentController extends Controller
         return $back ?? route('developments.index');
     }
 
+    /**
+     * What the dialog starts with, from where it was opened.
+     *
+     * @return array{0: array<string, mixed>, 1: string}
+     */
     private function preset(string $from): array
     {
         [$kind, $id] = array_pad(explode(':', $from, 2), 2, null);

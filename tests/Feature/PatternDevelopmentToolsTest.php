@@ -53,7 +53,7 @@ class PatternDevelopmentToolsTest extends TestCase
 
         $this->delete(route('developments.tools.destroy', [$d, $box]))->assertSessionHasNoErrors();
         $this->assertSame(1720000.0, $d->fresh()->actual_cost);
-        $this->get(route('developments.show', $d))->assertOk()->assertSee('Tooling · 1 tool');
+        $this->get(route('developments.show', $d))->assertOk()->assertSeeHtml('<h2>Pattern</h2>');
     }
 
     public function test_a_plain_single_pattern_is_never_held_up_by_the_gate(): void
@@ -279,5 +279,132 @@ class PatternDevelopmentToolsTest extends TestCase
             ->assertSeeHtml('name="type" value="MODIFICATION"')->assertDontSeeHtml('name="type" value="REPLACEMENT"');
 
         $this->get(route('developments.create'))->assertOk()->assertSeeHtml('name="type" value="REPLACEMENT"');
+    }
+
+    public function test_the_enquiry_offers_no_start_button_when_it_uses_an_existing_pattern(): void
+    {
+        $customer = Customer::create(['code' => 'ORB', 'name' => 'Orbis Auto', 'active' => true]);
+        $pattern = Pattern::create(['code' => 'PT-0331', 'name' => 'Pump plate', 'pattern_type' => 'MATCHPLATE', 'status' => 'ACTIVE']);
+        $make = fn (array $over) => \App\Domains\Enquiry\Models\Enquiry::create($over + ['customer_id' => $customer->id, 'title' => 'Part', 'source_type' => 'REPEAT', 'status' => 'FEASIBILITY', 'received_on' => today()]);
+
+        $existing = $make(['pattern_route' => 'EXISTING', 'pattern_id' => $pattern->id]);
+        $this->get(route('enquiries.show', $existing))->assertOk()->assertDontSee('Start pattern development');
+
+        $new = $make(['pattern_route' => 'NEW']);
+        $this->get(route('enquiries.show', $new))->assertOk()->assertSee('Start pattern development');
+    }
+
+    public function test_the_dialog_adds_tools_and_can_leave_out_the_pattern(): void
+    {
+        $customer = Customer::create(['code' => 'ORB', 'name' => 'Orbis Auto', 'active' => true]);
+        $box = $this->coreBox();
+        $this->post(route('developments.store'), ['type' => 'NEW_PRODUCT', 'title' => 'Valve body', 'customer_id' => $customer->id, 'skip_first_tool' => 1, 'tools' => [
+            ['kind' => 'CORE_BOX', 'label' => $box->code.' — '.$box->name, 'route' => 'EXISTING'],
+            ['kind' => 'GAUGE', 'label' => 'Bore gauge'],
+        ]])->assertSessionHasNoErrors();
+
+        $tools = PatternDevelopment::sole()->tools;
+        $this->assertSame(['CORE_BOX', 'GAUGE'], $tools->pluck('kind')->sort()->values()->all());
+        $this->assertSame($box->id, $tools->firstWhere('kind', 'CORE_BOX')->core_box_id);
+    }
+
+    public function test_a_planned_tool_links_to_a_record_of_its_own_kind_only(): void
+    {
+        $d = $this->development();
+        $this->addBox($d);
+        $box = $this->coreBox();
+        $tool = $d->tools()->where('kind', 'CORE_BOX')->sole();
+        $pattern = Pattern::create(['code' => 'PT-0331', 'name' => 'Plate', 'pattern_type' => 'MATCHPLATE', 'status' => 'ACTIVE']);
+
+        $this->post(route('developments.tools.link', [$d, $tool]), ['record' => 'pattern:'.$pattern->id])->assertStatus(422);
+        $this->post(route('developments.tools.link', [$d, $tool]), ['record' => 'box:'.$box->id])->assertSessionHasNoErrors();
+        $this->assertSame($box->id, $tool->fresh()->core_box_id);
+    }
+
+    public function test_saving_a_tool_keeps_its_rework_note_and_logs_only_real_cost_changes(): void
+    {
+        $d = $this->development();
+        $tool = $d->tools()->sole();
+        $tool->update(['status' => 'REWORK', 'status_note' => 'Sand inclusion', 'actual_cost' => 100]);
+
+        $this->put(route('developments.tools.update', [$d, $tool]), ['status' => 'REWORK', 'actual_cost' => 100])->assertSessionHasNoErrors();
+
+        $this->assertSame('Sand inclusion', $tool->fresh()->status_note);
+        $this->assertFalse($d->events()->where('text', 'like', '%cost recorded%')->exists());
+    }
+
+    public function test_cancelling_needs_a_decision_on_each_started_tool_and_keeps_the_spend(): void
+    {
+        $d = $this->development();
+        $this->addBox($d);
+        $pattern = $d->tools()->where('kind', 'PATTERN')->sole();
+        $pattern->update(['status' => 'BUILT', 'actual_cost' => 1720000]);
+
+        $this->post(route('developments.cancel', $d), ['reason' => 'Part moved'])->assertSessionHasErrors("decisions.{$pattern->id}");
+        $this->assertSame('OPEN', $d->fresh()->status);
+
+        $this->post(route('developments.cancel', $d), ['reason' => 'Part moved', 'decisions' => [$pattern->id => 'HOLD']])->assertSessionHasNoErrors();
+        $this->assertSame('CANCELLED', $d->fresh()->status);
+        $this->assertSame('Hold for customer', $pattern->fresh()->status_note);
+        $this->assertSame(1720000.0, $pattern->fresh()->actual_cost);
+        $this->assertSame('NOT_NEEDED', $d->tools()->where('kind', 'CORE_BOX')->sole()->status);
+    }
+
+    public function test_stop_and_scrap_retires_only_a_record_the_development_made_new(): void
+    {
+        $d = $this->development();
+        $new = $d->tools()->sole();
+        $made = Pattern::create(['code' => 'PT-0500', 'name' => 'New', 'pattern_type' => 'MATCHPLATE', 'status' => 'ACTIVE']);
+        $new->update(['status' => 'BUILDING', 'pattern_id' => $made->id]);
+        $this->addBox($d);
+        $box = $this->coreBox();
+        $used = $d->tools()->where('kind', 'CORE_BOX')->sole();
+        $used->update(['status' => 'BUILDING', 'route' => 'MODIFY', 'core_box_id' => $box->id]);
+
+        $this->post(route('developments.cancel', $d), ['decisions' => [$new->id => 'SCRAP', $used->id => 'SCRAP']])->assertSessionHasNoErrors();
+
+        $this->assertSame('RETIRED', $made->fresh()->status);
+        $this->assertSame('SCRAPPED', $made->fresh()->custody);
+        $this->assertSame('ACTIVE', $box->fresh()->status);
+    }
+
+    public function test_the_list_shows_tools_finds_them_and_has_a_waiting_tab(): void
+    {
+        $d = $this->development();
+        $this->addBox($d);
+        $d->tools()->where('kind', 'CORE_BOX')->update(['status' => 'BUILDING']);
+
+        $this->get(route('developments.index'))->assertOk()->assertSee('2 · 0 built');
+        $this->get(route('developments.index', ['search' => 'Volute']))->assertSee($d->code);
+        $this->get(route('developments.index', ['search' => 'Nothing like it']))->assertDontSee($d->code);
+        $this->get(route('developments.index', ['tab' => 'waiting']))->assertSee($d->code);
+        $this->get(route('developments.index', ['tab' => 'closed']))->assertDontSee($d->code);
+    }
+
+    public function test_one_pattern_depth_shows_a_plain_block_and_basic_sets_it(): void
+    {
+        $d = $this->development();
+        \App\Support\ProcessDepth::apply('BASIC');
+
+        $this->assertSame('OFF', DevelopmentRules::get('tool_gate'));
+        $this->get(route('developments.show', $d))->assertOk()->assertSee('Actual pattern cost')->assertDontSee('+ Add tool')->assertDontSee('Create register record');
+    }
+
+    public function test_pattern_and_core_box_pages_list_their_developments(): void
+    {
+        $pattern = Pattern::create(['code' => 'PT-0331', 'name' => 'Plate', 'pattern_type' => 'MATCHPLATE', 'status' => 'ACTIVE']);
+        $box = $this->coreBox();
+        $this->post(route('developments.store'), ['type' => 'REPLACEMENT', 'tool_pick' => 'pattern:'.$pattern->id, 'reason' => 'WORN', 'who_pays' => 'FOUNDRY']);
+        $this->post(route('developments.store'), ['type' => 'REPLACEMENT', 'tool_pick' => 'box:'.$box->id, 'reason' => 'WORN', 'who_pays' => 'FOUNDRY']);
+
+        $this->get(route('patterns.show', $pattern))->assertOk()->assertSee('Being replaced')->assertSee('Raise refurb request');
+        $this->get(route('core-boxes.show', $box))->assertOk()->assertSee('Being replaced')->assertSee('Raise refurb request');
+    }
+
+    private function coreBox(): CoreBox
+    {
+        $core = CoreDefinition::create(['name' => 'Volute core', 'core_type' => 'STANDARD', 'status' => 'ACTIVE']);
+
+        return CoreBox::create(['core_definition_id' => $core->id, 'name' => 'Volute box', 'revision' => 'A', 'cavities' => 1, 'status' => 'ACTIVE', 'origin' => 'NEW']);
     }
 }

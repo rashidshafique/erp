@@ -12,10 +12,23 @@
         @else
             <a class="btn" href="{{ route('core-boxes.edit', $box) }}">Edit</a>
             @if (Route::has('developments.create'))<a class="btn" href="{{ route('developments.create', ['from' => 'core_box:'.$box->id]) }}">Start replacement</a>@endif
+            @if (Route::has('tooling-maintenance.create'))<a class="btn" href="{{ route('tooling-maintenance.create', ['tooling_type' => 'CORE_BOX', 'core_box_id' => $box->id, 'activity_type' => 'REPAIR']) }}">Raise refurb request</a>@endif
             <form method="POST" action="{{ route('core-boxes.archive', $box) }}" style="display:inline" onsubmit="return confirm(@js('Archive '.$box->code.'? It leaves the lists and pickers and can be restored.'))">@csrf @method('DELETE')<button class="btn" type="submit">Archive</button></form>
         @endif
     </div>
 </div>
+@if (Route::has('developments.index'))
+@php
+    $made = \App\Domains\Development\Models\PatternDevelopment::touching($box)->first(fn ($d) => $d->tools->contains(fn ($t) => $t->core_box_id === $box->id && $t->route === 'NEW'));
+    $used = $life ? app(\App\Domains\Tooling\Services\ToolingLifeStatusService::class)->calculate($life) : null;
+    $line = array_filter([
+        $made ? 'Built on '.$made->code : null,
+        $box->commissioned_on ? 'in use since '.$box->commissioned_on->displayDate() : null,
+        $used ? \App\Support\Formats::number($used['current_usage'], 0).' of '.\App\Support\Formats::number((float) $life->service_life_quantity, 0).' '.strtolower(str_replace('_', ' ', $life->usage_unit)) : null,
+    ]);
+@endphp
+@if ($line)<p class="muted" style="margin:0 0 12px">{{ implode(' · ', $line) }}</p>@endif
+@endif
 @if ($box->trashed())<div class="alert alert-warning">Archived on {{ $box->deleted_at->displayDate() }}. Restore it to use it again.</div>@endif
 <div class="tab-marker" data-tab-start="Core box"></div>
 <div class="panel"><div class="panel-header"><h2>Core box</h2></div><div class="panel-body">
@@ -68,6 +81,7 @@
     @forelse ($records as $r)<tr><td><a href="{{ route('tooling-maintenance.show', $r) }}">{{ $r->record_number }}</a></td><td>{{ str_replace('_', ' ', $r->activity_type) }}</td><td>{{ $r->status }}</td><td>{{ $r->reported_at?->displayDate() }}</td></tr>
     @empty<tr><td colspan="4" class="muted">No maintenance recorded.</td></tr>@endforelse</tbody></table></div>
 </div>
+@if (Route::has('developments.index'))@include('development::_register_block', ['record' => $box])@endif
 <div class="tab-marker" data-tab-start="Files & history"></div>
 @include('attachments._panel', ['type' => 'core_box', 'id' => $box->id])
 @include('audit._history', ['type' => 'CoreBox', 'id' => $box->id])

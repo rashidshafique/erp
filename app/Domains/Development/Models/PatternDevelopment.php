@@ -126,6 +126,44 @@ class PatternDevelopment extends Model
         return $tools->reject(fn (PatternDevelopmentTool $t) => $t->reached($required))->values();
     }
 
+    /** @return Collection<int, PatternDevelopmentTool> tools work or money has gone into */
+    public function startedTools(): Collection
+    {
+        return $this->tools->filter(fn (PatternDevelopmentTool $t) => $t->isStarted())->values();
+    }
+
+    /** The list's short summary, e.g. "3 · 1 built", "2 · 1 passed trial" or "1 · not started". */
+    public function toolSummary(): string
+    {
+        $tools = $this->tools;
+        $passed = $tools->where('status', 'TRIAL_PASSED')->count();
+        $built = $tools->filter(fn (PatternDevelopmentTool $t) => in_array($t->status, ['BUILT', 'TRIAL_PASSED'], true))->count();
+
+        return $tools->count().' · '.match (true) {
+            $passed > 0 => "{$passed} passed trial",
+            $built > 0 || $this->startedTools()->isNotEmpty() => "{$built} built",
+            default => 'not started',
+        };
+    }
+
+    /** What the development waits on, e.g. "CB-0146 building, CB-0127 not started". Empty when no tool holds it up. */
+    public function waitingOn(): string
+    {
+        return $this->toolsInTheWay()->map(fn (PatternDevelopmentTool $t) => ($t->registerCode() ?? $t->label).' '.strtolower($t->statusName()))->implode(', ');
+    }
+
+    /**
+     * The developments that made, changed or replaced a register record, newest first.
+     *
+     * @return Collection<int, PatternDevelopment>
+     */
+    public static function touching(Pattern|CoreBox $record): Collection
+    {
+        [$made, $replaced] = $record instanceof CoreBox ? ['core_box_id', 'replaces_core_box_id'] : ['pattern_id', 'replaces_pattern_id'];
+
+        return self::with('tools')->whereHas('tools', fn ($q) => $q->where($made, $record->id)->orWhere($replaced, $record->id))->latest()->get();
+    }
+
     /** Keeps the development's actual and quoted cost equal to the sum of its tools, which older screens and the quote comparison read. */
     public function syncCosts(): void
     {

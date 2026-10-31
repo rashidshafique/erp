@@ -77,6 +77,45 @@ class ToolRegister
         });
     }
 
+    /** Links a planned tool to a record already in the register, as "pattern:ID" or "box:ID". The kind must match. */
+    public function link(PatternDevelopmentTool $tool, string $pick): void
+    {
+        abort_unless($this->canCreate($tool), 422);
+        [$kind, $id] = array_pad(explode(':', $pick, 2), 2, null);
+        $record = match (true) {
+            $kind === 'pattern' && $tool->kind === 'PATTERN' => Pattern::findOrFail($id),
+            $kind === 'box' && $tool->kind === 'CORE_BOX' => CoreBox::findOrFail($id),
+            default => abort(422),
+        };
+        $tool->update([$kind === 'box' ? 'core_box_id' : 'pattern_id' => $record->id]);
+        if ($kind === 'pattern' && ! $tool->development->pattern_id) {
+            $tool->development->update(['pattern_id' => $record->id]);
+        }
+        $this->log($tool->development, "{$tool->label} linked to {$record->code} in the register.");
+    }
+
+    /**
+     * Carries out the decision on each tool of a cancelled development. Tools nobody started are dropped. Spend stays on the tool
+     * for billing. Only a record this development made new is scrapped: a tool it merely used or changed stays in the register.
+     *
+     * @param  array<string, string>  $decisions  tool id => HOLD, KEEP, SCRAP or DROP
+     */
+    public function settle(PatternDevelopment $development, array $decisions): void
+    {
+        foreach ($development->tools()->get() as $tool) {
+            $decision = $decisions[$tool->id] ?? 'DROP';
+            $name = config('pattern_developments.cancel_decisions.'.$decision);
+            if ($decision === 'SCRAP' && $tool->route === 'NEW') {
+                $tool->pattern?->update(['status' => 'RETIRED', 'custody' => 'SCRAPPED']);
+                $tool->coreBox?->update(['status' => 'RETIRED']);
+            }
+            $tool->update(in_array($decision, ['SCRAP', 'DROP'], true) ? ['status' => 'NOT_NEEDED', 'status_note' => $name] : ['status_note' => $name]);
+            if ($tool->isStarted() || isset($decisions[$tool->id])) {
+                $this->log($development, "{$tool->label}: {$name}.");
+            }
+        }
+    }
+
     /** Puts a core box this development created into service once its tool is built. */
     public function sync(PatternDevelopmentTool $tool): void
     {

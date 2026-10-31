@@ -73,13 +73,35 @@ class DevelopmentOpener
     {
         $type = self::typeFor($enquiry, (bool) $enquiry->customer?->isFirstTimeCustomer());
         $route = Enquiry::PATTERN_ROUTES[$enquiry->pattern_route][0] ?? 'none';
-        foreach ($enquiry->developments()->where('status', 'OPEN')->where('type', '!=', $type ?? '')->get() as $stale) {
+        foreach ($this->stale($enquiry, $type) as $stale) {
+            if ($stale->startedTools()->isNotEmpty()) {
+                EnquiryEvent::system($enquiry, "Pattern development {$stale->code} stays open: {$stale->startedTools()->pluck('label')->implode(', ')} already started.");
+
+                continue;
+            }
             $stale->update(['status' => 'CANCELLED']);
             $stale->events()->create(['kind' => 'CANCELLED', 'text' => "Cancelled: the pattern decision on {$enquiry->code} changed to {$route}.", 'user_name' => Auth::user()?->name]);
             EnquiryEvent::system($enquiry, "Pattern development {$stale->code} cancelled: the pattern decision changed.");
         }
 
         return $this->open($enquiry, (bool) $enquiry->customer?->isFirstTimeCustomer(), false);
+    }
+
+    /**
+     * Developments a changed decision no longer fits but which stay open because tools have started on them (design 18j).
+     *
+     * @return Collection<int, PatternDevelopment>
+     */
+    public function keptOpen(Enquiry $enquiry): Collection
+    {
+        return $this->stale($enquiry, self::typeFor($enquiry, (bool) $enquiry->customer?->isFirstTimeCustomer()))
+            ->filter(fn (PatternDevelopment $d) => $d->startedTools()->isNotEmpty())->values();
+    }
+
+    /** @return Collection<int, PatternDevelopment> */
+    private function stale(Enquiry $enquiry, ?string $type): Collection
+    {
+        return $enquiry->developments()->where('status', 'OPEN')->where('type', '!=', $type ?? '')->get();
     }
 
     /**

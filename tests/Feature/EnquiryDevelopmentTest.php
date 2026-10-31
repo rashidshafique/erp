@@ -140,6 +140,18 @@ class EnquiryDevelopmentTest extends TestCase
         $this->assertSame('APPROVED', $revision->fresh()->status);
     }
 
+    public function test_a_lost_enquiry_leaves_a_development_with_started_tools_open_for_a_decision(): void
+    {
+        $e = $this->enquiry(['pattern_route' => 'NEW']);
+        $this->post(route('developments.store'), ['type' => 'NEW_PRODUCT', 'enquiry_id' => $e->id, 'customer_id' => $e->customer_id]);
+        PatternDevelopment::where('enquiry_id', $e->id)->sole()->tools()->update(['status' => 'BUILDING']);
+
+        $this->post(route('enquiries.close', $e), ['outcome' => 'LOST', 'close_reason' => 'PRICE'])->assertSessionHasNoErrors('close');
+
+        $this->assertSame('OPEN', PatternDevelopment::where('enquiry_id', $e->id)->value('status'));
+        $this->assertTrue($e->events()->where('text', 'like', '%stays open%')->exists());
+    }
+
     public function test_a_lost_enquiry_cancels_its_open_development_and_a_cancelled_development_shows_on_the_enquiry(): void
     {
         $e = $this->enquiry(['pattern_route' => 'NEW']);

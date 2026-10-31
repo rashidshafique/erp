@@ -175,10 +175,11 @@ class ToolingMaintenanceRecordController extends Controller
         ]);
     }
 
-    public function create(): View
+    /** A link from a pattern or core box page opens the form with that tool chosen. */
+    public function create(Request $request): View
     {
         return view('tooling::tooling-maintenance.form', [
-            'record' => new ToolingMaintenanceRecord,
+            'record' => (new ToolingMaintenanceRecord)->forceFill($request->only('tooling_type', 'pattern_id', 'core_box_id', 'activity_type')),
             'toolingOptions' => $this->toolingOptions(),
             'activities' => self::ACTIVITIES,
             'statuses' => self::STATUSES,

@@ -38,6 +38,24 @@ class PatternDevelopmentTool extends Model
         return isset($order[$this->status]) && $order[$this->status] >= $order[$required];
     }
 
+    /** The register code once it has one, e.g. CB-0146. */
+    public function registerCode(): ?string
+    {
+        return $this->pattern?->code ?? $this->coreBox?->code;
+    }
+
+    /** Work has begun on it or money has gone on it, so stopping it needs a decision. */
+    public function isStarted(): bool
+    {
+        return ! in_array($this->status, ['NOT_STARTED', 'NOT_NEEDED'], true) || (float) $this->actual_cost > 0;
+    }
+
+    /** How far along the Build and Trial mini bar it is: 0 to 3 steps. */
+    public function steps(): int
+    {
+        return ['BUILDING' => 1, 'REWORK' => 1, 'BUILT' => 2, 'TRIAL_PASSED' => 3][$this->status] ?? 0;
+    }
+
     public function development(): BelongsTo
     {
         return $this->belongsTo(PatternDevelopment::class, 'pattern_development_id');

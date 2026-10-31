@@ -13,6 +13,11 @@ class DevelopmentRules
             'WIN' => 'When the enquiry is won: the pattern is worked out after the customer orders',
             'DECIDED' => 'When the pattern is decided on the enquiry: design discussion and pattern costing run before the quote',
         ], 'WIN'],
+        'tool_depth' => ['development.tool_depth', 'Tools on a development', [
+            'ONE' => 'One pattern: a single pattern block, no register links',
+            'LIST' => 'Tool list: a list of tools with their status',
+            'FULL' => 'Full detail: the list with maker, cost, who pays and due per tool',
+        ], 'FULL'],
         'tool_gate' => ['development.tool_gate', 'Tools must be built and trial-passed before a development moves on', [
             'OFF' => 'Off: a development moves on whatever its tools show',
             'WARN' => 'Warn: moving on asks to confirm and is logged as an override',

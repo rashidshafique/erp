@@ -21,7 +21,7 @@ return [
         ],
         'REPLACEMENT' => [
             'name' => 'Replacement pattern', 'sub' => 'Worn, damaged or beyond repair',
-            'stages' => ['Cost approval', 'Pattern build', 'Trial & first-off', 'Old pattern retired'],
+            'stages' => ['Cost approval', 'Pattern build', 'Trial & first-off', 'Old tool retired'],
             'copies' => ['Part and drawing', 'Pattern construction', 'Owner', 'Last pattern maker', 'Life and refurb history'],
             'note' => 'No design discussion; same drawing.',
         ],
@@ -43,6 +43,8 @@ return [
     'tool_statuses' => ['NOT_STARTED' => 'Not started', 'BUILDING' => 'Building', 'BUILT' => 'Built', 'TRIAL_PASSED' => 'Trial passed', 'REWORK' => 'Rework', 'NOT_NEEDED' => 'Not needed'],
     /** The statuses a tool moves through in order; a gate asks for BUILT before the trial and TRIAL_PASSED before approval. */
     'tool_progress' => ['NOT_STARTED', 'BUILDING', 'BUILT', 'TRIAL_PASSED'],
+    /** What happens to a started tool when its development is cancelled (design 18o). */
+    'cancel_decisions' => ['HOLD' => 'Hold for customer', 'KEEP' => 'Keep in register', 'SCRAP' => 'Stop and scrap', 'DROP' => 'Drop'],
     'pattern_by' => ['DECIDE_LATER' => 'Decide later', 'IN_HOUSE' => 'In-house', 'SUBCONTRACT' => 'Subcontract', 'CUSTOMER_BUILT' => 'Customer builds', 'CUSTOMER_SUPPLIED' => 'Customer supplies'],
     'who_pays' => ['CUSTOMER' => 'Customer', 'SHARED' => 'Shared', 'FOUNDRY' => 'Foundry'],
     'reasons' => ['LIFE_LIMIT' => 'Life limit reached', 'WORN' => 'Worn', 'DAMAGED' => 'Damaged', 'BEYOND_REPAIR' => 'Beyond repair', 'OTHER' => 'Other'],

@@ -121,7 +121,7 @@ class PatternDevelopmentTest extends TestCase
         $pattern = $this->pattern($customer);
 
         $this->get(route('enquiries.show', $enquiry))->assertOk()->assertSee('Start pattern development');
-        $this->get(route('patterns.show', $pattern))->assertOk()->assertSee('Replace pattern');
+        $this->get(route('patterns.show', $pattern))->assertOk()->assertSee('Start replacement');
         $this->get(route('products.index'))->assertOk()->assertSee('Start development');
     }
 

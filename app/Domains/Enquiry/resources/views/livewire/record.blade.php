@@ -119,6 +119,9 @@ new class extends Component
                 if ($opened->isNotEmpty()) {
                     $this->say('Pattern decision saved. Pattern development '.$opened->pluck('code')->implode(', ').' opened.');
                 }
+                foreach (app(DevelopmentOpener::class)->keptOpen($e) as $kept) {
+                    $this->say("Pattern decision saved. {$kept->code} stays open: {$kept->startedTools()->pluck('label')->implode(', ')} already started. Cancel it there if it should stop.", true);
+                }
             }
         }
     }
@@ -251,7 +254,7 @@ new class extends Component
                 <button class="er-btn" type="button" data-quick="closeDialog">Close enquiry</button>
                 @if (Route::has('developments.create'))
                     @if ($devOpen)<a class="er-btn primary" href="{{ route('developments.show', $development) }}">Open {{ $development->code }}</a>
-                    @else<a class="er-btn primary" href="{{ route('developments.create', ['from' => 'enquiry:'.$e->id]) }}">Start pattern development</a>@endif
+                    @elseif ($e->pattern_route !== 'EXISTING')<a class="er-btn primary" href="{{ route('developments.create', ['from' => 'enquiry:'.$e->id]) }}">Start pattern development</a>@endif
                 @endif
             @else
                 <a class="er-btn" href="{{ route('enquiries.index') }}">All enquiries</a>

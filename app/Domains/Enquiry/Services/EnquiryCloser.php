@@ -77,13 +77,18 @@ class EnquiryCloser
         return ['order' => null, 'developments' => collect()];
     }
 
-    /** Developments started before the enquiry was lost or declined have nothing left to make, so they are cancelled. */
+    /** Developments started before the enquiry was lost or declined have nothing left to make, so they are cancelled. One with started tools stays open until someone decides what happens to them (design 18o). */
     private function cancelDevelopments(Enquiry $enquiry, string $outcome): void
     {
         if (! class_exists(PatternDevelopment::class)) {
             return;
         }
         foreach ($enquiry->developments()->where('status', 'OPEN')->get() as $development) {
+            if ($development->startedTools()->isNotEmpty()) {
+                EnquiryEvent::system($enquiry, "Pattern development {$development->code} stays open: its started tools need a decision before it is cancelled.");
+
+                continue;
+            }
             $development->update(['status' => 'CANCELLED']);
             $development->events()->create(['kind' => 'CANCELLED', 'text' => "Cancelled: {$enquiry->code} was {$outcome}.", 'user_name' => auth()->user()?->name]);
             EnquiryEvent::system($enquiry, "Pattern development {$development->code} cancelled.");
