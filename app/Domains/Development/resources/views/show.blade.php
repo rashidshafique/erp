@@ -11,6 +11,8 @@
     $gateRule = \App\Domains\Development\Support\DevelopmentRules::get('tool_gate');
     $blocked = $stuck->isNotEmpty() && $gateRule === 'BLOCK';
     $gateNeeds = $d->gateStatus() ? strtolower(config('pattern_developments.tool_statuses.'.$d->gateStatus())) : '';
+    $register = app(\App\Domains\Development\Services\ToolRegister::class);
+    $kinds = collect(config('pattern_developments.tool_kinds'))->when(! $register->toolingOn(), fn ($k) => $k->except('CORE_BOX'));
     $pills = ['NOT_STARTED' => '', 'BUILDING' => 'status-in-progress', 'BUILT' => 'status-in-progress', 'TRIAL_PASSED' => 'status-completed', 'REWORK' => 'status-cancelled', 'NOT_NEEDED' => ''];
 @endphp
 <style>
@@ -66,7 +68,7 @@
 <div class="panel"><div class="panel-header"><h2>Tooling · {{ $tools->count() }} {{ \Illuminate\Support\Str::plural('tool', $tools->count()) }}</h2>
     @if ($d->isOpen())<details style="position:relative"><summary class="btn">+ Add tool</summary>
         <form method="POST" action="{{ route('developments.tools.store', $d) }}" class="form-grid" style="position:absolute;right:0;z-index:5;background:#fff;border:1px solid var(--border);border-radius:8px;padding:14px;width:420px;grid-template-columns:1fr 1fr;gap:10px">@csrf
-            <div class="field"><label for="tl-kind">Kind</label><select id="tl-kind" name="kind">@foreach (config('pattern_developments.tool_kinds') as $k => $l)<option value="{{ $k }}">{{ $l }}</option>@endforeach</select></div>
+            <div class="field"><label for="tl-kind">Kind</label><select id="tl-kind" name="kind">@foreach ($kinds as $k => $l)<option value="{{ $k }}">{{ $l }}</option>@endforeach</select></div>
             <div class="field"><label for="tl-route">Route</label><select id="tl-route" name="route">@foreach (config('pattern_developments.tool_routes') as $k => $l)<option value="{{ $k }}">{{ $l }}</option>@endforeach</select></div>
             <div class="field field-full" style="grid-column:1/-1"><label for="tl-label">Name</label><input id="tl-label" name="label" maxlength="200" required placeholder="e.g. Volute core box"></div>
             <div class="field"><label for="tl-by">Made by</label><select id="tl-by" name="made_by">@foreach (config('pattern_developments.pattern_by') as $k => $l)<option value="{{ $k }}">{{ $l }}</option>@endforeach</select></div>
@@ -80,7 +82,9 @@
     <div style="overflow-x:auto"><table class="table"><thead><tr><th>Tool</th><th>Route</th><th>Made by</th><th>Pays</th><th>Quoted</th><th>Actual</th><th>Due</th><th>Status</th><th></th></tr></thead><tbody>
     @foreach ($tools as $t)
         <tr>
-            <td><strong>{{ config('pattern_developments.tool_kinds.'.$t->kind) }}</strong> {{ $t->label }}@if ($t->pattern)<br><a class="small" href="{{ route('patterns.show', $t->pattern) }}">{{ $t->pattern->code }}</a>@endif</td>
+            <td><strong>{{ config('pattern_developments.tool_kinds.'.$t->kind) }}</strong> {{ $t->label }}@if ($t->pattern)<br><a class="small" href="{{ route('patterns.show', $t->pattern) }}">{{ $t->pattern->code }}</a>@endif
+                @if ($t->coreBox)<br><a class="small" href="{{ route('core-boxes.show', $t->coreBox) }}">{{ $t->coreBox->code }}</a>@if ($t->coreBox->status === 'INACTIVE') <span class="muted small">out of service until built</span>@endif @endif
+                @if ($t->replacesPattern ?? $t->replacesCoreBox)@php $old = $t->replacesPattern ?? $t->replacesCoreBox; @endphp<br><span class="muted small">replaces {{ $old->code }}@if ($t->retired_at), retired {{ $t->retired_at->displayDate() }}@endif</span>@endif</td>
             <td>{{ config('pattern_developments.tool_routes.'.$t->route) }}</td>
             <td>{{ config('pattern_developments.pattern_by.'.$t->made_by) }}@if ($t->maker)<br><span class="muted small">{{ $t->maker }}</span>@endif</td>
             <td>{{ $t->who_pays ? config('pattern_developments.who_pays.'.$t->who_pays) : '—' }}</td>
@@ -90,6 +94,7 @@
             <td>@if ($d->isOpen())<select name="status" form="tool-{{ $t->id }}" aria-label="Status of {{ $t->label }}" onchange="this.form.requestSubmit()">@foreach (config('pattern_developments.tool_statuses') as $k => $l)<option value="{{ $k }}" @selected($t->status === $k)>{{ $l }}</option>@endforeach</select>@else<span class="status {{ $pills[$t->status] ?? '' }}">{{ $t->statusName() }}</span>@endif
                 @if ($t->status === 'REWORK' && $t->status_note)<br><span class="muted small">{{ $t->status_note }}</span>@endif</td>
             <td>@if ($d->isOpen())<button class="btn" type="submit" form="tool-{{ $t->id }}">Save</button>
+                @if ($register->canCreate($t))<form method="POST" action="{{ route('developments.tools.register', [$d, $t]) }}" style="display:inline">@csrf<button class="btn" type="submit">Create register record</button></form>@endif
                 <form method="POST" action="{{ route('developments.tools.destroy', [$d, $t]) }}" style="display:inline" onsubmit="return confirm('Remove this tool?')">@csrf @method('DELETE')<button class="btn" type="submit" aria-label="Remove {{ $t->label }}">Remove</button></form>@endif</td>
         </tr>
     @endforeach

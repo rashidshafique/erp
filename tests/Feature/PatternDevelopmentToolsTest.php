@@ -4,7 +4,10 @@ namespace Tests\Feature;
 
 use App\Domains\Development\Models\PatternDevelopment;
 use App\Domains\Development\Support\DevelopmentRules;
+use App\Models\CoreBox;
+use App\Models\CoreDefinition;
 use App\Models\Customer;
+use App\Models\Pattern;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -152,5 +155,114 @@ class PatternDevelopmentToolsTest extends TestCase
 
         $this->get(route('developments.show', $d))->assertOk()->assertSee('Tooling · 2 tools')->assertSee('Volute core box')
             ->assertSee('0 of 2 built')->assertSee('not reached built yet');
+    }
+
+    private function oldBox(): CoreBox
+    {
+        $core = CoreDefinition::create(['name' => 'Impeller core 160', 'core_type' => 'STANDARD', 'status' => 'ACTIVE']);
+
+        return CoreBox::create(['core_definition_id' => $core->id, 'name' => 'Impeller core box 160', 'status' => 'ACTIVE', 'origin' => 'NEW', 'revision' => 'A', 'cavities' => 1]);
+    }
+
+    public function test_a_replacement_can_be_for_a_core_box_alone(): void
+    {
+        $old = $this->oldBox();
+        $this->post(route('developments.store'), ['type' => 'REPLACEMENT', 'tool_pick' => 'box:'.$old->id, 'reason' => 'WORN', 'who_pays' => 'FOUNDRY'])->assertSessionHasNoErrors();
+
+        $d = PatternDevelopment::sole();
+        $tool = $d->tools->sole();
+        $this->assertSame($old->id, $d->core_box_id);
+        $this->assertSame('CORE_BOX', $tool->kind);
+        $this->assertSame($old->id, $tool->replaces_core_box_id);
+        $this->assertNull($tool->core_box_id);
+        $this->assertStringContainsString('Replace '.$old->code, $d->title);
+    }
+
+    public function test_the_register_record_is_a_new_core_box_out_of_service_until_it_is_built_and_the_old_one_retires_at_the_end(): void
+    {
+        $old = $this->oldBox();
+        $this->post(route('developments.store'), ['type' => 'REPLACEMENT', 'tool_pick' => 'box:'.$old->id, 'reason' => 'WORN', 'who_pays' => 'FOUNDRY']);
+        $d = PatternDevelopment::sole();
+        $tool = $d->tools->sole();
+
+        $this->post(route('developments.tools.register', [$d, $tool]))->assertSessionHasNoErrors();
+        $new = $tool->fresh()->coreBox;
+        $this->assertSame('INACTIVE', $new->status);
+        $this->assertSame('MODIFIED_BOX', $new->origin);
+        $this->assertSame($old->id, $new->modified_from_core_box_id);
+        $this->post(route('developments.tools.register', [$d, $tool]))->assertStatus(422);
+
+        $this->post(route('developments.advance', $d));
+        $this->put(route('developments.tools.update', [$d, $tool]), ['status' => 'BUILT']);
+        $this->assertSame('ACTIVE', $new->fresh()->status);
+        $this->assertSame('ACTIVE', $old->fresh()->status);
+
+        $this->post(route('developments.advance', $d));
+        $this->put(route('developments.tools.update', [$d, $tool]), ['status' => 'TRIAL_PASSED']);
+        $this->post(route('developments.advance', $d));
+        $this->assertSame('DONE', $d->fresh()->status);
+        $this->assertSame('RETIRED', $old->fresh()->status);
+        $this->assertNotNull($tool->fresh()->retired_at);
+    }
+
+    public function test_the_old_tool_stays_in_use_when_the_new_one_did_not_pass_trial(): void
+    {
+        $old = $this->oldBox();
+        $this->post(route('developments.store'), ['type' => 'REPLACEMENT', 'tool_pick' => 'box:'.$old->id, 'reason' => 'WORN', 'who_pays' => 'FOUNDRY']);
+        $d = PatternDevelopment::sole();
+        DevelopmentRules::set('tool_gate', 'OFF');
+        foreach (range(1, 3) as $i) {
+            $this->post(route('developments.advance', $d));
+        }
+
+        $this->assertSame('DONE', $d->fresh()->status);
+        $this->assertSame('ACTIVE', $old->fresh()->status);
+        $this->assertTrue($d->events()->where('text', 'like', '%stays in use%')->exists());
+    }
+
+    public function test_a_pattern_tool_gets_a_register_record_owned_by_the_customer_who_pays(): void
+    {
+        $d = $this->development();
+        $tool = $d->tools->sole();
+        $this->put(route('developments.tools.update', [$d, $tool]), ['maker' => 'Erie Pattern Works']);
+        $tool->update(['who_pays' => 'CUSTOMER', 'label' => 'Valve body match plate']);
+
+        $this->post(route('developments.tools.register', [$d, $tool]))->assertSessionHasNoErrors();
+
+        $pattern = Pattern::sole();
+        $this->assertSame('Valve body match plate', $pattern->name);
+        $this->assertSame('CUSTOMER', $pattern->owner_type);
+        $this->assertSame($d->customer_id, $pattern->owner_customer_id);
+        $this->assertSame($pattern->id, $tool->fresh()->pattern_id);
+    }
+
+    public function test_a_gauge_has_no_register_record(): void
+    {
+        $d = $this->development();
+        $this->post(route('developments.tools.store', $d), ['kind' => 'GAUGE', 'label' => 'Checking gauge']);
+        $gauge = $d->fresh()->tools->firstWhere('kind', 'GAUGE');
+
+        $this->post(route('developments.tools.register', [$d, $gauge]))->assertStatus(422);
+    }
+
+    public function test_the_dialog_can_be_opened_from_a_core_box(): void
+    {
+        $box = $this->oldBox();
+
+        $this->get(route('developments.create', ['from' => 'core_box:'.$box->id]))->assertOk()
+            ->assertSeeHtml('name="type" value="REPLACEMENT" checked')->assertSee('Opened from core box '.$box->code)
+            ->assertSeeHtml('value="box:'.$box->id.'"')->assertSee('Tool to replace or modify');
+        $this->get(route('core-boxes.show', $box))->assertSee('Start replacement');
+    }
+
+    public function test_the_dialog_names_the_enquiry_and_closes_back_to_it(): void
+    {
+        $customer = Customer::create(['code' => 'ORB', 'name' => 'Orbis Auto', 'active' => true]);
+        $enquiry = \App\Domains\Enquiry\Models\Enquiry::create(['customer_id' => $customer->id, 'title' => 'Second part', 'source_type' => 'DRAWING', 'status' => 'FEASIBILITY', 'received_on' => today()]);
+
+        $this->get(route('developments.create', ['from' => 'enquiry:'.$enquiry->id]))->assertOk()
+            ->assertSee($enquiry->code.' · New development', false)
+            ->assertSee('window.location = '.\Illuminate\Support\Js::from(route('enquiries.show', $enquiry)), false);
+        $this->get(route('developments.create'))->assertOk()->assertDontSee(' · New development', false);
     }
 }

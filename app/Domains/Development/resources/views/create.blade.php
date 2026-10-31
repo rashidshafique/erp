@@ -32,7 +32,7 @@
 <dialog class="qd dv-modal" id="dvDialog" aria-labelledby="dvTitle">
 <form method="POST" action="{{ route('developments.store') }}" id="dv" novalidate>@csrf
     <input type="hidden" name="opened_from" value="{{ $openedFrom }}">
-    <div class="qd-head"><h2 id="dvTitle">New development</h2><button type="button" class="qd-x" data-close aria-label="Close">&times;</button></div>
+    <div class="qd-head"><h2 id="dvTitle">@if (\Illuminate\Support\Str::startsWith($openedFrom, 'enquiry ')){{ \Illuminate\Support\Str::after($openedFrom, 'enquiry ') }} · New development @else New development @endif</h2><button type="button" class="qd-x" data-close aria-label="Close">&times;</button></div>
     <div class="qd-body">
         <div class="alert alert-error qd-errors" role="alert" id="dvErrors" @unless ($errors->any()) hidden @endunless>@foreach ($errors->all() as $message)<div>{{ $message }}</div>@endforeach</div>
         <div class="dv-cards">
@@ -46,7 +46,10 @@
             <div class="field" data-for="NEW_PART CUSTOMER_PATTERN"><label for="dv-enquiry">Enquiry</label><select id="dv-enquiry" name="enquiry_id" data-search-select><option value="">— none —</option>@foreach ($enquiries as $e)<option value="{{ $e->id }}" data-sub="{{ $e->customer?->name }}" @selected($old('enquiry_id') === $e->id)>{{ $e->code }} — {{ $e->title }}</option>@endforeach</select></div>
             <div class="field" data-for="NEW_PART NEW_PRODUCT MODIFICATION REPLACEMENT CUSTOMER_PATTERN"><label for="dv-customer">Customer</label><select id="dv-customer" name="customer_id" data-search-select><option value="">— choose —</option>@foreach ($customers as $c)<option value="{{ $c->id }}" data-sub="{{ $c->code }}" @selected($old('customer_id') === $c->id)>{{ $c->name }}</option>@endforeach</select></div>
             <div class="field" data-for="NEW_PRODUCT MODIFICATION"><label for="dv-product" data-label-for="MODIFICATION:Part|NEW_PRODUCT:Similar part">Part</label><select id="dv-product" name="product_id" data-search-select><option value="">— none —</option>@foreach ($products as $p)<option value="{{ $p->id }}" data-sub="{{ $p->code }}" @selected($old('product_id') === $p->id)>{{ $p->name }}</option>@endforeach</select></div>
-            <div class="field" data-for="REPLACEMENT MODIFICATION CUSTOMER_PATTERN"><label for="dv-pattern">Pattern</label><select id="dv-pattern" name="pattern_id" data-search-select><option value="">— choose —</option>@foreach ($patterns as $pt)<option value="{{ $pt->id }}" data-sub="{{ $pt->code }}" @selected($old('pattern_id') === $pt->id)>{{ $pt->code }} — {{ $pt->name }}</option>@endforeach</select></div>
+            <div class="field" data-for="CUSTOMER_PATTERN"><label for="dv-pattern">Pattern</label><select id="dv-pattern" name="pattern_id" data-search-select><option value="">— choose —</option>@foreach ($patterns as $pt)<option value="{{ $pt->id }}" data-sub="{{ $pt->code }}" @selected($old('pattern_id') === $pt->id)>{{ $pt->code }} — {{ $pt->name }}</option>@endforeach</select></div>
+            <div class="field" data-for="REPLACEMENT MODIFICATION"><label for="dv-pick">Tool to replace or modify</label><select id="dv-pick" name="tool_pick" data-search-select><option value="">— choose —</option>
+                @if ($coreBoxes->isNotEmpty())<optgroup label="Core boxes">@foreach ($coreBoxes as $cb)<option value="box:{{ $cb->id }}" data-sub="{{ $cb->code }}" @selected($old('core_box_id') === $cb->id)>{{ $cb->code }} — {{ $cb->name }}</option>@endforeach</optgroup>@endif
+                <optgroup label="Patterns">@foreach ($patterns as $pt)<option value="pattern:{{ $pt->id }}" data-sub="{{ $pt->code }}" @selected($old('pattern_id') === $pt->id)>{{ $pt->code }} — {{ $pt->name }}</option>@endforeach</optgroup></select></div>
             <div class="field" data-for="REPLACEMENT"><label for="dv-reason">Reason</label><select id="dv-reason" name="reason"><option value="">— choose —</option>@foreach (config('pattern_developments.reasons') as $k => $l)<option value="{{ $k }}" @selected(old('reason') === $k)>{{ $l }}</option>@endforeach</select></div>
             <div class="field field-full" data-for="MODIFICATION"><label for="dv-change">Drawing change</label><input id="dv-change" name="drawing_change" maxlength="300" value="{{ old('drawing_change') }}" placeholder="e.g. Rev B → C · flange 22 → 24 mm"></div>
             <div class="field" data-for="REPLACEMENT MODIFICATION"><label for="dv-pays">Who pays</label><select id="dv-pays" name="who_pays"><option value="">— choose —</option>@foreach (config('pattern_developments.who_pays') as $k => $l)<option value="{{ $k }}" @selected(old('who_pays') === $k)>{{ $l }}</option>@endforeach</select></div>
@@ -58,7 +61,7 @@
         <div class="dv-sec"><h3>Copied in</h3><div class="dv-chips" id="dvCopies"></div></div>
         <div class="dv-sec"><h3>Stages for this type</h3><div class="dv-stages" id="dvStages"></div><div class="dv-note" id="dvNote"></div></div>
     </div>
-    <div class="qd-foot"><span class="muted small">Opened from {{ $openedFrom }}</span><div><a class="btn" href="{{ route('developments.index') }}">Cancel</a><button class="btn btn-primary" type="submit" id="dvSubmit">Create development</button></div></div>
+    <div class="qd-foot"><span class="muted small">Opened from {{ $openedFrom }}</span><div><a class="btn" href="{{ $backUrl }}">Cancel</a><button class="btn btn-primary" type="submit" id="dvSubmit">Create development</button></div></div>
 </form>
 </dialog>
 <script>
@@ -82,7 +85,7 @@
     }
     form.addEventListener('change', apply);
     form.addEventListener('submit', function () { document.getElementById('dvSubmit').disabled = true; });
-    dlg.addEventListener('close', function () { window.location = '{{ route('developments.index') }}'; });
+    dlg.addEventListener('close', function () { window.location = @js($backUrl); });
     apply();
     if (dlg.showModal) { dlg.showModal(); } else { dlg.setAttribute('open', ''); }
 })();

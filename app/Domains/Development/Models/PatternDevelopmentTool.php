@@ -2,6 +2,8 @@
 
 namespace App\Domains\Development\Models;
 
+use App\Models\CoreBox;
+use App\Models\CoreDefinition;
 use App\Models\Pattern;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -16,7 +18,7 @@ class PatternDevelopmentTool extends Model
 
     protected function casts(): array
     {
-        return ['due_on' => 'date', 'quoted_cost' => 'float', 'actual_cost' => 'float'];
+        return ['retired_at' => 'datetime', 'due_on' => 'date', 'quoted_cost' => 'float', 'actual_cost' => 'float'];
     }
 
     /** @return string The status name from config, e.g. "Trial passed". */
@@ -44,5 +46,27 @@ class PatternDevelopmentTool extends Model
     public function pattern(): BelongsTo
     {
         return $this->belongsTo(Pattern::class);
+    }
+
+    public function coreBox(): BelongsTo
+    {
+        return $this->belongsTo(CoreBox::class)->withTrashed();
+    }
+
+    public function coreDefinition(): BelongsTo
+    {
+        return $this->belongsTo(CoreDefinition::class)->withTrashed();
+    }
+
+    /** The old pattern this tool replaces, retired when the development ends. */
+    public function replacesPattern(): BelongsTo
+    {
+        return $this->belongsTo(Pattern::class, 'replaces_pattern_id')->withTrashed();
+    }
+
+    /** The old core box this tool replaces, retired when the development ends. */
+    public function replacesCoreBox(): BelongsTo
+    {
+        return $this->belongsTo(CoreBox::class, 'replaces_core_box_id')->withTrashed();
     }
 }

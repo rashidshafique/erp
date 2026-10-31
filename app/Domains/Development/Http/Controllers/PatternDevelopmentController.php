@@ -4,11 +4,13 @@ namespace App\Domains\Development\Http\Controllers;
 
 use App\Domains\Development\Models\PatternDevelopment;
 use App\Domains\Development\Models\PatternDevelopmentTool;
+use App\Domains\Development\Services\ToolRegister;
 use App\Domains\Development\Support\DevelopmentRules;
 use App\Domains\Development\Services\DevelopmentOpener;
 use App\Domains\Enquiry\Models\Enquiry;
 use App\Domains\Enquiry\Models\EnquiryEvent;
 use App\Http\Controllers\Controller;
+use App\Models\CoreBox;
 use App\Models\Customer;
 use App\Models\Pattern;
 use App\Models\Product;
@@ -38,11 +40,13 @@ class PatternDevelopmentController extends Controller
             'rows' => $this->rows($request),
             'preset' => $preset,
             'openedFrom' => $openedFrom,
+            'backUrl' => $this->backUrl((string) $request->query('from')),
             'types' => config('pattern_developments.types'),
             'customers' => Customer::active()->orderedByName()->get(),
             'enquiries' => Enquiry::with('customer:id,party_id')->whereIn('status', ['NEW', 'FEASIBILITY', 'QUOTED', 'WON'])->latest()->limit(200)->get(['id', 'code', 'title', 'customer_id']),
             'products' => Product::orderBy('code')->get(['id', 'code', 'name']),
             'patterns' => Pattern::orderBy('code')->get(['id', 'code', 'name', 'owner_customer_id']),
+            'coreBoxes' => app(ToolRegister::class)->toolingOn() ? CoreBox::orderBy('code')->get(['id', 'code', 'name']) : collect(),
         ]);
     }
 
@@ -56,6 +60,8 @@ class PatternDevelopmentController extends Controller
             'customer_id' => ['nullable', 'exists:customers,id'],
             'product_id' => ['nullable', 'exists:products,id'],
             'pattern_id' => ['nullable', 'exists:patterns,id'],
+            'core_box_id' => ['nullable', 'exists:core_boxes,id'],
+            'tool_pick' => ['nullable', 'string', 'max:60'],
             'pattern_by' => ['nullable', Rule::in(array_keys(config('pattern_developments.pattern_by')))],
             'pattern_maker' => ['nullable', 'string', 'max:150'],
             'owner_name' => ['nullable', 'string', 'max:150'],
@@ -67,14 +73,19 @@ class PatternDevelopmentController extends Controller
             'opened_from' => ['nullable', 'string', 'max:100'],
         ]);
         $type = $d['type'];
+        if (filled($d['tool_pick'] ?? null)) {   // the picker lists patterns and core boxes as pattern:ID or box:ID
+            [$pickKind, $pickId] = array_pad(explode(':', $d['tool_pick'], 2), 2, null);
+            $d[$pickKind === 'box' ? 'core_box_id' : 'pattern_id'] = $pickId;
+        }
         $need = fn (string $field, string $message) => blank($d[$field] ?? null) ? throw ValidationException::withMessages([$field => $message]) : null;
 
         $enquiry = ! empty($d['enquiry_id']) ? Enquiry::with('items')->find($d['enquiry_id']) : null;
         $pattern = ! empty($d['pattern_id']) ? Pattern::find($d['pattern_id']) : null;
+        $box = ! empty($d['core_box_id']) ? CoreBox::find($d['core_box_id']) : null;
         $product = ! empty($d['product_id']) ? Product::find($d['product_id']) : null;
 
         match ($type) {
-            'REPLACEMENT' => [$need('pattern_id', 'Choose the pattern to replace.'), $need('reason', 'Say why it is being replaced.'), $need('who_pays', 'Say who pays.')],
+            'REPLACEMENT' => [$need(filled($d['core_box_id'] ?? null) ? 'core_box_id' : 'pattern_id', 'Choose the pattern or core box to replace.'), $need('reason', 'Say why it is being replaced.'), $need('who_pays', 'Say who pays.')],
             'MODIFICATION' => [$need('product_id', 'Choose the part.'), $need('drawing_change', 'Say what the drawing change is.'), $need('who_pays', 'Say who pays.')],
             default => null,
         };
@@ -87,7 +98,7 @@ class PatternDevelopmentController extends Controller
         $title = trim((string) ($d['title'] ?? ''));
         if ($title === '') {
             $title = match (true) {
-                $type === 'REPLACEMENT' => 'Replace '.$pattern?->code.' '.$pattern?->name,
+                $type === 'REPLACEMENT' => 'Replace '.($box ?? $pattern)?->code.' '.($box ?? $pattern)?->name,
                 $type === 'MODIFICATION' => 'Modify '.$product?->name,
                 $enquiry !== null => (string) $enquiry->items->first()?->description ?: $enquiry->title,
                 $product !== null => 'Like '.$product->name,
@@ -101,7 +112,7 @@ class PatternDevelopmentController extends Controller
         $development = DB::transaction(function () use ($d, $type, $title, $customerId, $enquiry) {
             $development = PatternDevelopment::create([
                 'type' => $type, 'title' => $title, 'customer_id' => $customerId,
-                'enquiry_id' => $d['enquiry_id'] ?? null, 'enquiry_item_id' => $enquiry?->items->count() === 1 ? $enquiry->items->first()->id : null, 'product_id' => $d['product_id'] ?? null, 'pattern_id' => $d['pattern_id'] ?? null,
+                'enquiry_id' => $d['enquiry_id'] ?? null, 'enquiry_item_id' => $enquiry?->items->count() === 1 ? $enquiry->items->first()->id : null, 'product_id' => $d['product_id'] ?? null, 'pattern_id' => $d['pattern_id'] ?? null, 'core_box_id' => $d['core_box_id'] ?? null,
                 'pattern_by' => $d['pattern_by'] ?? 'DECIDE_LATER', 'pattern_maker' => $d['pattern_maker'] ?? null, 'owner_name' => $d['owner_name'] ?? Auth::user()?->name,
                 'due_on' => $d['due_on'] ?? null, 'reason' => $d['reason'] ?? null, 'who_pays' => $d['who_pays'] ?? null,
                 'drawing_change' => $d['drawing_change'] ?? null, 'notes' => $d['notes'] ?? null,
@@ -153,6 +164,10 @@ class PatternDevelopmentController extends Controller
                 $this->log($development, 'STAGE', $override);
             }
             $this->log($development, 'STAGE', ($isLast ? 'Reached the last stage: ' : 'Moved to ').$next.'.');
+            if ($isLast) {
+                app(ToolRegister::class)->linkRequirements($development);
+                app(ToolRegister::class)->retire($development);
+            }
             if ($isLast && $revision = $development->draftRevision()) {
                 $revision->update(['status' => 'APPROVED', 'effective_from' => $revision->effective_from ?? today()]);
                 $this->log($development, 'STAGE', "Revision {$revision->revision} of {$development->product->code} approved, so orders for it can go ahead.");
@@ -230,6 +245,7 @@ class PatternDevelopmentController extends Controller
         ]);
         $before = $tool->status;
         $tool->update($d + (isset($d['status']) ? ['status_note' => null] : []));
+        app(ToolRegister::class)->sync($tool->fresh());
         if (array_key_exists('actual_cost', $d)) {
             $development->syncCosts();
             $this->log($development, 'NOTE', "{$tool->label}: cost ".(isset($d['actual_cost']) ? 'recorded as '.Formats::number($d['actual_cost'], 2) : 'cleared').'.');
@@ -239,6 +255,16 @@ class PatternDevelopmentController extends Controller
         }
 
         return back()->with('success', 'Tool saved.');
+    }
+
+    /** Adds the planned tool to its register (patterns, or core boxes when Tooling is on) and links the two. */
+    public function toolRegister(PatternDevelopment $development, PatternDevelopmentTool $tool): RedirectResponse
+    {
+        abort_unless($tool->pattern_development_id === $development->id && $development->isOpen(), 404);
+        app(ToolRegister::class)->create($tool);
+        app(ToolRegister::class)->sync($tool->fresh());
+
+        return back()->with('success', 'Added to the register.');
     }
 
     public function toolDestroy(PatternDevelopment $development, PatternDevelopmentTool $tool): RedirectResponse
@@ -294,6 +320,21 @@ class PatternDevelopmentController extends Controller
      *
      * @return array{0: array<string, mixed>, 1: string}
      */
+    /** Where closing the dialog goes: back to the record it was opened from, or the list. */
+    private function backUrl(string $from): string
+    {
+        [$kind, $id] = array_pad(explode(':', $from, 2), 2, null);
+        $back = match ($kind) {
+            'enquiry' => Enquiry::find($id) ? route('enquiries.show', $id) : null,
+            'product' => Product::find($id) ? route('products.show', $id) : null,
+            'pattern' => Pattern::find($id) ? route('patterns.show', $id) : null,
+            'core_box' => CoreBox::find($id) ? route('core-boxes.show', $id) : null,
+            default => null,
+        };
+
+        return $back ?? route('developments.index');
+    }
+
     private function preset(string $from): array
     {
         [$kind, $id] = array_pad(explode(':', $from, 2), 2, null);
@@ -310,6 +351,9 @@ class PatternDevelopmentController extends Controller
         } elseif ($kind === 'pattern' && $pt = Pattern::find($id)) {
             $preset = ['type' => 'REPLACEMENT', 'pattern_id' => $pt->id, 'customer_id' => $pt->owner_customer_id, 'title' => 'Replace '.$pt->code.' '.$pt->name];
             $label = 'pattern register '.$pt->code;
+        } elseif ($kind === 'core_box' && $cb = CoreBox::find($id)) {
+            $preset = ['type' => 'REPLACEMENT', 'core_box_id' => $cb->id, 'title' => 'Replace '.$cb->code.' '.$cb->name];
+            $label = 'core box '.$cb->code;
         } elseif ($kind === 'customer' && $c = Customer::find($id)) {
             $preset = ['type' => 'NEW_PRODUCT', 'customer_id' => $c->id];
             $label = 'customer '.$c->name;

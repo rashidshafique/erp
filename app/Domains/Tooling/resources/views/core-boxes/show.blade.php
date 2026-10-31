@@ -11,6 +11,7 @@
             <form method="POST" action="{{ route('core-boxes.restore', $box) }}" style="display:inline">@csrf<button class="btn btn-primary" type="submit">Restore core box</button></form>
         @else
             <a class="btn" href="{{ route('core-boxes.edit', $box) }}">Edit</a>
+            @if (Route::has('developments.create'))<a class="btn" href="{{ route('developments.create', ['from' => 'core_box:'.$box->id]) }}">Start replacement</a>@endif
             <form method="POST" action="{{ route('core-boxes.archive', $box) }}" style="display:inline" onsubmit="return confirm(@js('Archive '.$box->code.'? It leaves the lists and pickers and can be restored.'))">@csrf @method('DELETE')<button class="btn" type="submit">Archive</button></form>
         @endif
     </div>

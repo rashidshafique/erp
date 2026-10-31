@@ -5,6 +5,7 @@ namespace App\Domains\Development\Models;
 use App\Domains\Enquiry\Models\Enquiry;
 use App\Domains\Enquiry\Models\EnquiryItem;
 use App\Models\Concerns\GeneratesCodes;
+use App\Models\CoreBox;
 use App\Models\Customer;
 use App\Models\Pattern;
 use App\Models\Product;
@@ -31,17 +32,27 @@ class PatternDevelopment extends Model
         return ['due_on' => 'date', 'quoted_tooling_cost' => 'float', 'actual_cost' => 'float'];
     }
 
-    /** Every development starts with its pattern as the first tool, taken from the pattern fields it was opened with. */
+    /**
+     * Every development starts with its first tool, taken from what it was opened for: a new pattern, or for a replacement the
+     * new tool standing in for the old pattern or core box, which is retired at the end, or for a modification the tool itself.
+     */
     protected static function booted(): void
     {
         static::created(function (PatternDevelopment $d) {
             if ($d->tools()->exists()) {
                 return;
             }
-            $routes = ['MODIFICATION' => 'MODIFY', 'CUSTOMER_PATTERN' => 'EXISTING'];
+            $old = $d->coreBox ?? $d->pattern;
+            $replacing = $d->type === 'REPLACEMENT' && $old !== null;
+            $isBox = $d->coreBox !== null;
             $d->tools()->create([
-                'kind' => 'PATTERN', 'label' => 'Pattern', 'route' => $routes[$d->type] ?? 'NEW', 'made_by' => $d->pattern_by ?: 'DECIDE_LATER',
-                'maker' => $d->pattern_maker, 'who_pays' => $d->who_pays, 'quoted_cost' => $d->quoted_tooling_cost, 'due_on' => $d->due_on, 'pattern_id' => $d->pattern_id,
+                'kind' => $isBox ? 'CORE_BOX' : 'PATTERN',
+                'label' => $replacing ? 'Replacement for '.trim($old->code.' '.$old->name) : ($old ? trim($old->code.' '.$old->name) : 'Pattern'),
+                'route' => match (true) { $d->type === 'MODIFICATION' => 'MODIFY', $d->type === 'CUSTOMER_PATTERN' => 'EXISTING', default => 'NEW' },
+                'made_by' => $d->pattern_by ?: 'DECIDE_LATER', 'maker' => $d->pattern_maker, 'who_pays' => $d->who_pays,
+                'quoted_cost' => $d->quoted_tooling_cost, 'due_on' => $d->due_on,
+                'pattern_id' => ! $isBox && ! $replacing ? $d->pattern_id : null, 'core_box_id' => $isBox && ! $replacing ? $d->core_box_id : null,
+                'replaces_pattern_id' => $replacing && ! $isBox ? $d->pattern_id : null, 'replaces_core_box_id' => $replacing && $isBox ? $d->core_box_id : null,
             ]);
         });
     }
@@ -155,6 +166,11 @@ class PatternDevelopment extends Model
     public function tools(): HasMany
     {
         return $this->hasMany(PatternDevelopmentTool::class)->orderBy('created_at');
+    }
+
+    public function coreBox(): BelongsTo
+    {
+        return $this->belongsTo(CoreBox::class)->withTrashed();
     }
 
     public function events(): HasMany
