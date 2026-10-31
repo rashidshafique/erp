@@ -140,4 +140,14 @@ class PatternDevelopmentTest extends TestCase
         $this->assertSame('Pattern build', $d->fresh()->stageName());
         $this->assertTrue($d->events()->where('text', 'Back from Trial & sample to Pattern build: Shrinkage at the boss')->exists());
     }
+
+    public function test_the_dialog_opened_from_an_enquiry_keeps_the_enquiry_even_when_its_type_hides_the_field(): void
+    {
+        $customer = $this->customer();
+        $enquiry = Enquiry::create(['customer_id' => $customer->id, 'title' => 'Second part', 'source_type' => 'DRAWING', 'status' => 'FEASIBILITY', 'received_on' => today()]);
+
+        $this->get(route('developments.create', ['from' => 'enquiry:'.$enquiry->id]))->assertOk()
+            ->assertSeeHtml('name="type" value="NEW_PRODUCT" checked')
+            ->assertSeeHtml('<input type="hidden" name="enquiry_id" value="'.$enquiry->id.'">');
+    }
 }
