@@ -58,7 +58,28 @@ class PostingRules
             default => throw new InvalidArgumentException('The ledger does not know how to post a '.class_basename($document).'.'),
         };
 
-        return $this->ledger->post($date, $lines, self::source($document), $memo);
+        return $this->ledger->post($date, $lines, self::source($document), $memo, voucher: $this->voucher($document));
+    }
+
+    /**
+     * The voucher a document posts as (design 19c): an invoice or bill under its own number, a receipt as a cash or bank receipt
+     * voucher and a payment as a cash or bank payment voucher, by the account the money went through; anything else a JV.
+     *
+     * @return array{number?: ?string, type?: string, reference?: ?string, counter_account_id?: string}
+     */
+    private function voucher(Model $document): array
+    {
+        return match (true) {
+            $document instanceof Invoice => ['number' => $document->invoice_number],
+            $document instanceof SupplierBill => ['number' => $document->bill_number],
+            $document instanceof Receipt, $document instanceof SupplierPayment => (function () use ($document) {
+                $through = LedgerSettings::methodAccount($document->method);
+                $in = $document instanceof Receipt;
+
+                return ['type' => (Vouchers::isCash($through) ? 'C' : 'B').($in ? 'RV' : 'PV'), 'reference' => $document->reference, 'counter_account_id' => $through->id];
+            })(),
+            default => [],
+        };
     }
 
     /** Reverses a document's journal on the given date. A document that never reached the ledger has nothing to reverse. */

@@ -28,6 +28,9 @@ class Journal extends Model
         'receipt' => ['Receipt', 'receipts.show'],
         'supplier_payment' => ['Supplier payment', 'supplier-payments.show'],
         'journal' => ['Journal', 'ledger.journals.show'],
+        'withholding_certificate' => ['Tax certificate', null],
+        'receipt_allocation' => ['Receipt', null],
+        'supplier_payment_allocation' => ['Supplier payment', null],
     ];
 
     protected function casts(): array
@@ -39,6 +42,22 @@ class Journal extends Model
     public function reverses(): BelongsTo { return $this->belongsTo(self::class, 'reverses_id'); }
     public function reversal(): HasOne { return $this->hasOne(self::class, 'reverses_id'); }
     public function user(): BelongsTo { return $this->belongsTo(User::class); }
+    public function counterAccount(): BelongsTo { return $this->belongsTo(LedgerAccount::class, 'counter_account_id'); }
+
+    /** JV, CPV, BPV, CRV or BRV for a voucher; the document's kind for one posted under a document's number. */
+    public function typeLabel(): string
+    {
+        if ($this->voucher_type) {
+            return $this->voucher_type;
+        }
+
+        return match ($this->source_type) {
+            'invoice' => str_starts_with((string) $this->memo, 'Credit note') ? 'Credit note' : 'Sales invoice',
+            'supplier_bill' => str_starts_with((string) $this->memo, 'Supplier credit note') ? 'Supplier credit' : 'Purchase invoice',
+            null => 'JV',
+            default => $this->sourceLabel(),
+        };
+    }
 
     public function sourceLabel(): string
     {

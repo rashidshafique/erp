@@ -2,7 +2,6 @@
 
 namespace App\Domains\Ledger\Services;
 
-use App\Domains\Finance\Services\InvoiceService;
 use App\Domains\Ledger\Models\Journal;
 use App\Domains\Ledger\Models\LedgerAccount;
 use Illuminate\Support\Carbon;
@@ -12,15 +11,15 @@ use InvalidArgumentException;
 /** The one way into the books. Every journal balances, posts only to active accounts with no sub-accounts, and falls after the closed date. */
 class Ledger
 {
-    public function __construct(private InvoiceService $numbers) {}
-
     /**
      * Posts a journal. Lines with nothing on them are dropped; lines on the same account, side and party are added together.
      *
      * @param  list<array{account_id: string, debit?: float, credit?: float, description?: ?string, party_type?: ?string, party_id?: ?string}>  $lines
      * @param  array{type: string, id: string}|null  $source
+     * @param  array{id?: string, number?: ?string, type?: ?string, reference?: ?string, counter_account_id?: ?string}  $voucher  the voucher it is
+     *         posted as: a manual voucher's id, number and type, or a document's own number; otherwise the next JV number
      */
-    public function post(string $date, array $lines, ?array $source = null, ?string $memo = null, string $kind = 'POST', ?string $reversesId = null): Journal
+    public function post(string $date, array $lines, ?array $source = null, ?string $memo = null, string $kind = 'POST', ?string $reversesId = null, array $voucher = []): Journal
     {
         $date = Carbon::parse($date)->toDateString();
         if (($closed = LedgerSettings::closedTo()) && $date <= $closed) {
@@ -55,19 +54,26 @@ class Ledger
             if (! $account->is_active) {
                 throw new InvalidArgumentException("Account {$account->label()} is switched off.");
             }
-            if ($account->isGroup()) {
-                throw new InvalidArgumentException("Account {$account->label()} has sub-accounts; post to one of them.");
+            if ($account->isGroup() || strlen($account->code) <= 5) {
+                throw new InvalidArgumentException("{$account->label()} is a category or section; post to an account in it.");
             }
         }
 
-        return DB::transaction(function () use ($date, $merged, $source, $memo, $kind, $reversesId, $debits) {
+        return DB::transaction(function () use ($date, $merged, $source, $memo, $kind, $reversesId, $debits, $voucher) {
             if ($source && Journal::where('source_type', $source['type'])->where('source_id', $source['id'])->where('kind', $kind)->exists()) {
                 throw new InvalidArgumentException('This is already in the ledger.');
             }
-            $journal = Journal::create([
-                'number' => $this->numbers->nextNumber('JV', 'ledger_journals', 'number'), 'journal_date' => $date, 'kind' => $kind,
+            $type = $voucher['type'] ?? null;
+            $number = $voucher['number'] ?? null;
+            if (! $number || Journal::where('number', $number)->exists()) {
+                $type = $number ? 'JV' : ($type ?? 'JV');
+                $number = Vouchers::next($type, $date);
+            }
+            $journal = Journal::create(array_filter(['id' => $voucher['id'] ?? null]) + [
+                'number' => $number, 'journal_date' => $date, 'kind' => $kind, 'voucher_type' => $type,
                 'source_type' => $source['type'] ?? null, 'source_id' => $source['id'] ?? null, 'reverses_id' => $reversesId,
-                'memo' => $memo ? mb_substr($memo, 0, 300) : null, 'total' => $debits, 'user_id' => auth()->id(),
+                'memo' => $memo ? mb_substr($memo, 0, 300) : null, 'reference' => isset($voucher['reference']) ? mb_substr((string) $voucher['reference'], 0, 100) : null,
+                'counter_account_id' => $voucher['counter_account_id'] ?? null, 'total' => $debits, 'user_id' => auth()->id(),
             ]);
             foreach ($merged as $line) {
                 $journal->lines()->create($line);

@@ -53,7 +53,7 @@ class LedgerServiceProvider extends ModuleServiceProvider
         return [[
             'key' => 'ledger', 'label' => 'Accounts', 'icon' => 'book', 'active' => ['ledger.*'],
             'items' => [
-                ['label' => 'Journals', 'route' => 'ledger.journals.index', 'icon' => 'file-text', 'active' => ['ledger.journals.*']],
+                ['label' => 'Day book', 'route' => 'ledger.journals.index', 'icon' => 'file-text', 'active' => ['ledger.journals.*', 'ledger.vouchers.*']],
                 ['label' => 'Chart of accounts', 'route' => 'ledger.accounts.index', 'icon' => 'list', 'active' => ['ledger.accounts.index', 'ledger.accounts.export', 'ledger.sections.*']],
                 ['label' => 'Bank accounts', 'route' => 'ledger.banks.index', 'icon' => 'bank', 'active' => ['ledger.banks.*', 'ledger.reconciliations.*']],
                 ['label' => 'Trial balance', 'route' => 'ledger.trial-balance', 'icon' => 'list-check', 'active' => ['ledger.trial-balance']],
@@ -62,6 +62,11 @@ class LedgerServiceProvider extends ModuleServiceProvider
                 ['label' => 'General ledger', 'route' => 'ledger.general-ledger', 'icon' => 'book-open', 'active' => ['ledger.general-ledger']],
             ],
         ]];
+    }
+
+    protected function attachables(): array
+    {
+        return ['ledger_voucher' => ['label' => 'Voucher', 'model' => \App\Domains\Ledger\Models\Journal::class, 'edit' => 'ledger.manage', 'view' => 'ledger.manage']];
     }
 
     protected function settingsLinks(): array

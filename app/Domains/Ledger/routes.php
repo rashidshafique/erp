@@ -16,9 +16,13 @@ Route::middleware('web')->prefix('ledger')->name('ledger.')->group(function () {
         Route::get('/', 'index')->name('index');
         Route::get('/create', 'create')->name('create');
         Route::post('/', 'store')->name('store');
+        Route::get('/export', 'export')->name('export');
         Route::get('/{journal}', 'show')->name('show');
+        Route::get('/{journal}/print', 'print')->name('print');
         Route::post('/{journal}/reverse', 'reverse')->name('reverse');
     });
+    Route::get('/vouchers/{voucher}', [JournalController::class, 'edit'])->name('vouchers.edit');
+    Route::get('/vouchers/{voucher}/print', [JournalController::class, 'printDraft'])->name('vouchers.print');
     Route::controller(BankController::class)->group(function () {
         Route::get('/banks', 'index')->name('banks.index');
         Route::post('/banks', 'store')->name('banks.store');

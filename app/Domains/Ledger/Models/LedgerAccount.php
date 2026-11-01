@@ -34,7 +34,7 @@ class LedgerAccount extends Model
 
     public function scopePostable(Builder $query): Builder
     {
-        return $query->where('is_active', true)->whereNotExists(fn ($q) => $q->from('ledger_accounts as c')->whereColumn('c.parent_id', 'ledger_accounts.id'));
+        return $query->where('is_active', true)->whereRaw('length(ledger_accounts.code) > 5')->whereNotExists(fn ($q) => $q->from('ledger_accounts as c')->whereColumn('c.parent_id', 'ledger_accounts.id'));
     }
 
     public function isGroup(): bool
