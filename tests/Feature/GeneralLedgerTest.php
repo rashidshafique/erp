@@ -166,9 +166,9 @@ class GeneralLedgerTest extends TestCase
     {
         app(InvoiceService::class)->issue($this->draftInvoice(100, '2026-09-01'));
         app(InvoiceService::class)->issue($this->draftInvoice(50, '2026-10-02'));
-        $n = fn (float $v) => Formats::number($v, 2);
+        $n = fn (float $v) => Formats::number($v, 0);
 
-        $this->get(route('ledger.trial-balance', ['as_at' => '2026-10-31']))->assertOk()->assertSeeInOrder(['Total', $n(300), $n(300)]);
+        $this->get(route('ledger.trial-balance', ['as_at' => '2026-10-31']))->assertOk()->assertSee('Balanced')->assertSeeInOrder(['Total', '0', $n(300), $n(300)]);
         $this->get(route('ledger.accounts.show', [$this->account('22-02-01'), 'from' => '2026-10-01', 'to' => '2026-10-31']))
             ->assertOk()->assertSeeInOrder(['Opening balance', $n(200).' Dr', $n(100), $n(300).' Dr', 'Closing balance']);
     }

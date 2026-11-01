@@ -44,6 +44,24 @@ class Journal extends Model
     public function user(): BelongsTo { return $this->belongsTo(User::class); }
     public function counterAccount(): BelongsTo { return $this->belongsTo(LedgerAccount::class, 'counter_account_id'); }
 
+    /** The memo without the "Invoice INV-… · " a document's journal starts with. */
+    public function narration(): string
+    {
+        $memo = (string) $this->memo;
+
+        return $this->source_type && str_contains($memo, ' · ') ? trim(substr($memo, strpos($memo, ' · ') + 3)) : $memo;
+    }
+
+    /** What posted it, for a statement: the document kind, or the voucher type's name for one entered by hand. */
+    public function sourceKind(): string
+    {
+        return match ($this->source_type) {
+            'invoice', 'supplier_bill' => $this->typeLabel(),
+            null => \App\Domains\Ledger\Services\Vouchers::TYPES[$this->voucher_type]['name'] ?? 'Journal',
+            default => $this->sourceLabel(),
+        };
+    }
+
     /** JV, CPV, BPV, CRV or BRV for a voucher; the document's kind for one posted under a document's number. */
     public function typeLabel(): string
     {

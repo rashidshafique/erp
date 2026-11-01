@@ -49,7 +49,7 @@ class DayBook
                 $rows->push([
                     'id' => $j->id, 'draft' => false, 'date' => $j->journal_date, 'number' => $j->number, 'type' => $j->typeLabel(),
                     'source' => $this->sourceText($j, $numbers), 'sourceUrl' => $j->source_type ? $j->sourceUrl() : null,
-                    'narration' => $this->narration($j), 'amount' => (float) $j->total,
+                    'narration' => $j->narration(), 'amount' => (float) $j->total,
                     'status' => $j->reversal ? 'reversed' : 'posted', 'by' => $j->source_type && $j->source_type !== 'journal' ? 'System' : ($j->user?->name ?? 'System'),
                     'url' => route('ledger.journals.show', $j),
                     'lines' => $j->lines->map(fn ($l) => ['code' => $l->account?->code, 'name' => $l->account?->name.(isset($parties[$l->party_type.':'.$l->party_id]) ? ' · '.$parties[$l->party_type.':'.$l->party_id] : ''), 'detail' => $l->description, 'debit' => (float) $l->debit, 'credit' => (float) $l->credit])->all(),
@@ -80,17 +80,6 @@ class DayBook
         }
 
         return $rows->sort(fn ($a, $b) => [$b['date']->toDateString(), $b['number']] <=> [$a['date']->toDateString(), $a['number']])->values();
-    }
-
-    /** Narration: the memo without the "Invoice INV-… · " prefix a document's journal starts with. */
-    private function narration(Journal $j): string
-    {
-        $memo = (string) $j->memo;
-        if ($j->source_type && str_contains($memo, ' · ')) {
-            $memo = trim(substr($memo, strpos($memo, ' · ') + 3));
-        }
-
-        return $memo;
     }
 
     /** @param array<string, array<string, string>> $numbers */
