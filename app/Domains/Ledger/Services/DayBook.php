@@ -140,6 +140,6 @@ class DayBook
     {
         $types = array_combine(array_keys(Vouchers::TYPES), array_keys(Vouchers::TYPES));
 
-        return $types + ['Sales invoice' => 'Sales invoice', 'Credit note' => 'Credit note', 'Purchase invoice' => 'Purchase invoice', 'Supplier credit' => 'Supplier credit', 'Tax certificate' => 'Tax certificate'];
+        return $types + ['OB' => 'OB', 'Sales invoice' => 'Sales invoice', 'Credit note' => 'Credit note', 'Purchase invoice' => 'Purchase invoice', 'Supplier credit' => 'Supplier credit', 'Tax certificate' => 'Tax certificate'];
     }
 }

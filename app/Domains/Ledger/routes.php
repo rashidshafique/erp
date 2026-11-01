@@ -35,6 +35,7 @@ Route::middleware('web')->prefix('ledger')->name('ledger.')->group(function () {
         Route::post('/statements/{reconciliation}/reopen', 'reopen')->name('reconciliations.reopen');
         Route::delete('/statements/{reconciliation}', 'discard')->name('reconciliations.destroy');
     });
+    Route::get('/opening-balances', fn () => view('ledger::opening-balances'))->name('opening-balances');
     Route::get('/trial-balance',[LedgerReportController::class, 'trialBalance'])->name('trial-balance');
     Route::get('/profit-and-loss', [LedgerReportController::class, 'profitAndLoss'])->name('profit-and-loss');
     Route::get('/balance-sheet', [LedgerReportController::class, 'balanceSheet'])->name('balance-sheet');

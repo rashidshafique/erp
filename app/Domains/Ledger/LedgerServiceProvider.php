@@ -55,6 +55,7 @@ class LedgerServiceProvider extends ModuleServiceProvider
             'items' => [
                 ['label' => 'Day book', 'route' => 'ledger.journals.index', 'icon' => 'file-text', 'active' => ['ledger.journals.*', 'ledger.vouchers.*']],
                 ['label' => 'Chart of accounts', 'route' => 'ledger.accounts.index', 'icon' => 'list', 'active' => ['ledger.accounts.index', 'ledger.accounts.export', 'ledger.sections.*']],
+                ['label' => 'Opening balances', 'route' => 'ledger.opening-balances', 'icon' => 'lock', 'active' => ['ledger.opening-balances']],
                 ['label' => 'Bank accounts', 'route' => 'ledger.banks.index', 'icon' => 'bank', 'active' => ['ledger.banks.*', 'ledger.reconciliations.*']],
                 ['label' => 'Trial balance', 'route' => 'ledger.trial-balance', 'icon' => 'list-check', 'active' => ['ledger.trial-balance']],
                 ['label' => 'Profit and loss', 'route' => 'ledger.profit-and-loss', 'icon' => 'trending-up', 'active' => ['ledger.profit-and-loss']],

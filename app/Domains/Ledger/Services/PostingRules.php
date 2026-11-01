@@ -45,7 +45,8 @@ class PostingRules
         }, 'id' => $document->getKey()];
     }
 
-    public function post(Model $document): Journal
+    /** Posts a document's journal; one dated before go-live is carried in the opening voucher instead and posts nothing. */
+    public function post(Model $document): ?Journal
     {
         [$date, $lines, $memo] = match (true) {
             $document instanceof Invoice => $this->invoice($document),
@@ -57,6 +58,10 @@ class PostingRules
             $document instanceof SupplierPaymentAllocation => $this->paymentAllocation($document),
             default => throw new InvalidArgumentException('The ledger does not know how to post a '.class_basename($document).'.'),
         };
+
+        if (OpeningBalances::beforeGoLive($date)) {
+            return null;
+        }
 
         return $this->ledger->post($date, $lines, self::source($document), $memo, voucher: $this->voucher($document));
     }
@@ -220,8 +225,9 @@ class PostingRules
         $skipped = [];
         foreach ($documents as [, $document]) {
             try {
-                $this->post($document);
-                $posted++;
+                if ($this->post($document)) {
+                    $posted++;
+                }
             } catch (InvalidArgumentException $e) {
                 $skipped[] = ($document->invoice_number ?? $document->bill_number ?? $document->receipt_number ?? $document->payment_number ?? $document->certificate_number).': '.$e->getMessage();
             }

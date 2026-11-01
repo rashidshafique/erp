@@ -20,7 +20,7 @@
         @if ($journal->reverses)<div class="ac-toast warn"><span>Reverses <a href="{{ route('ledger.journals.show', $journal->reverses) }}">{{ $journal->reverses->number }}</a>.</span></div>@endif
         @if ($journal->reversal)<div class="ac-toast warn"><span>Reversed by <a href="{{ route('ledger.journals.show', $journal->reversal) }}">{{ $journal->reversal->number }}</a> on {{ $journal->reversal->journal_date->displayDate() }}.</span></div>@endif
         <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px">
-            <div class="ac-field"><span class="lab">Voucher type</span><span>{{ $journal->voucher_type ? $journal->voucher_type.' '.$type['name'] : $journal->typeLabel() }}</span></div>
+            <div class="ac-field"><span class="lab">Voucher type</span><span>{{ $journal->voucher_type ? $journal->voucher_type.' '.($type['name'] ?? ($journal->voucher_type === 'OB' ? 'Opening balances' : '')) : $journal->typeLabel() }}</span></div>
             <div class="ac-field"><span class="lab">Date</span><span>{{ \App\Domains\Ledger\Services\Vouchers::periodLabel($journal->journal_date) }}</span></div>
             @if ($journal->counterAccount)<div class="ac-field"><span class="lab">{{ $type['counter'] ?? 'Through' }}</span><span><code>{{ $journal->counterAccount->code }}</code> {{ $journal->counterAccount->name }}</span></div>@endif
             <div class="ac-field"><span class="lab">{{ $type['ref'] ?? 'Reference' }}</span><span>{{ $journal->reference ?: '—' }}</span></div>

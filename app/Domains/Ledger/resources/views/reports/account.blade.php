@@ -58,7 +58,7 @@
             @endforeach
             <tr><td style="border:0"></td><td style="border:0"></td><td style="border:0"></td><td style="border:0;font-weight:600">Closing balance</td><td class="r" style="border:0;font-weight:600">{{ $n($debits) ?: '0' }}</td><td class="r" style="border:0;font-weight:600">{{ $n($credits) ?: '0' }}</td><td class="r" style="border:0;font-weight:600">{{ $bal($closing) }}</td></tr>
         </tbody></table></div>
-        <div class="ac-note">Without a party the same screen shows the whole account.@if ($customer) Ageing for this customer is on <a href="{{ route('receivables.statement', $customer) }}">their statement</a>.@endif</div>
+        <div class="ac-note">Without a party the same screen shows the whole account. @if ($customer) Ageing for this customer is on <a href="{{ route('receivables.statement', $customer) }}">their statement</a>.@endif</div>
     </div>
 </div>
 @endsection
