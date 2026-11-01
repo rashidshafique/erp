@@ -147,7 +147,7 @@ class PatternDevelopmentController extends Controller
 
     public function show(PatternDevelopment $development): View
     {
-        $development->load('enquiry:id,code', 'customer', 'product:id,code,name', 'pattern:id,code,name', 'events', 'tools.pattern:id,code,name', 'tools.coreBox', 'enquiryItem.reviews');
+        $development->load('enquiry:id,code', 'customer', 'product:id,code,name', 'pattern:id,code,name', 'events', 'tools.pattern:id,code,name', 'tools.coreBox', 'tools.sharedFrom.development:id,code', 'tools.sharedFrom.pattern:id,code', 'tools.sharedFrom.coreBox:id,code', 'tools.sharedBy.development:id,code', 'enquiryItem.reviews');
         $item = $development->enquiryItem;
         $files = $development->enquiry_id ? Attachment::where('attachable_type', 'enquiry')->where('attachable_id', $development->enquiry_id)->current()->orderByDesc('created_at')->get() : collect();
 
@@ -158,7 +158,25 @@ class PatternDevelopmentController extends Controller
             'signed' => $item?->reviews->whereNotNull('signed_at')->sortByDesc('signed_at')->first(),
             'registerPatterns' => Pattern::orderBy('code')->get(['id', 'code', 'name']),
             'registerBoxes' => app(ToolRegister::class)->toolingOn() ? CoreBox::orderBy('code')->get(['id', 'code', 'name']) : collect(),
+            'shareable' => $development->isOpen() ? $this->shareable($development) : collect(),
         ]);
+    }
+
+    /**
+     * Patterns and core boxes on other open developments that this one could share.
+     *
+     * @return \Illuminate\Support\Collection<int, PatternDevelopmentTool>
+     */
+    private function shareable(PatternDevelopment $development)
+    {
+        $kinds = app(ToolRegister::class)->toolingOn() ? ['PATTERN', 'CORE_BOX'] : ['PATTERN'];
+
+        return PatternDevelopmentTool::with('development:id,code', 'pattern:id,code', 'coreBox:id,code')
+            ->whereIn('kind', $kinds)->whereNull('shared_tool_id')->where('status', '!=', 'NOT_NEEDED')
+            ->where('pattern_development_id', '!=', $development->id)
+            ->whereHas('development', fn ($q) => $q->where('status', 'OPEN'))
+            ->whereNotIn('id', $development->tools->pluck('shared_tool_id')->filter())
+            ->latest()->limit(100)->get();
     }
 
     public function advance(Request $request, PatternDevelopment $development): RedirectResponse
@@ -213,7 +231,7 @@ class PatternDevelopmentController extends Controller
             'tools.*' => ['string', Rule::exists('pattern_development_tools', 'id')->where('pattern_development_id', $development->id)],
         ], ['reason.required' => 'Say why it goes back, e.g. what the trial found.']);
         $from = $development->stageName();
-        $tools = $development->tools;
+        $tools = $development->tools->reject->isShared();
         $ticked = $tools->count() === 1 ? $tools : $tools->whereIn('id', $d['tools'] ?? []);
         DB::transaction(function () use ($development, $d, $from, $ticked) {
             $development->decrement('stage_index');
@@ -244,6 +262,9 @@ class PatternDevelopmentController extends Controller
     public function toolStore(Request $request, PatternDevelopment $development): RedirectResponse
     {
         abort_unless($development->isOpen(), 422);
+        if ($request->filled('shared_tool_id')) {
+            return $this->toolShare($request, $development);
+        }
         $d = $request->validate([
             'kind' => ['required', Rule::in(array_keys(config('pattern_developments.tool_kinds')))],
             'label' => ['required', 'string', 'max:200'],
@@ -260,9 +281,39 @@ class PatternDevelopmentController extends Controller
         return back()->with('success', 'Tool added.');
     }
 
+    /**
+     * Adds a row standing for a tool made on another open development (design 18c). It has no cost of its own and follows that
+     * tool's status, so it counts toward this development's gate once the other one marks it built.
+     */
+    private function toolShare(Request $request, PatternDevelopment $development): RedirectResponse
+    {
+        $d = $request->validate(['shared_tool_id' => ['required', 'uuid', Rule::exists('pattern_development_tools', 'id')]]);
+        $source = PatternDevelopmentTool::with('development', 'pattern:id,code', 'coreBox:id,code')->findOrFail($d['shared_tool_id']);
+        $refusal = match (true) {
+            $source->pattern_development_id === $development->id => 'That tool is already on this development.',
+            $source->isShared() => 'That row is itself shared. Share the tool from '.$source->sharedFrom?->development?->code.' instead.',
+            ! $source->development->isOpen() => "{$source->development->code} is closed, so its tools cannot be shared.",
+            $development->tools()->where('shared_tool_id', $source->id)->exists() => 'That tool is already shared with this development.',
+            default => null,
+        };
+        if ($refusal) {
+            throw ValidationException::withMessages(['shared_tool_id' => $refusal]);
+        }
+        $development->tools()->create([
+            'shared_tool_id' => $source->id, 'kind' => $source->kind, 'label' => $source->label, 'route' => $source->route,
+            'made_by' => $source->made_by, 'status' => $source->status,
+        ]);
+        $name = config('pattern_developments.tool_kinds.'.$source->kind).' '.($source->registerCode() ?? $source->label);
+        $this->log($development, 'NOTE', "{$name} shared from {$source->development->code}.");
+        $this->log($source->development, 'NOTE', "{$name} also used by {$development->code}.");
+
+        return back()->with('success', 'Shared tool added.');
+    }
+
     public function toolUpdate(Request $request, PatternDevelopment $development, PatternDevelopmentTool $tool): RedirectResponse
     {
         abort_unless($tool->pattern_development_id === $development->id && $development->isOpen(), 404);
+        abort_if($tool->isShared(), 422, 'A shared tool is moved on its own development.');
         $d = $request->validate([
             'status' => ['sometimes', Rule::in(array_keys(config('pattern_developments.tool_statuses')))],
             'actual_cost' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:999999999999'],

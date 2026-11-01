@@ -8,6 +8,7 @@ use App\Models\Pattern;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /** One tool a development makes or changes: a pattern, core box, gauge, fixture or other. Its status feeds the development's gates. */
 class PatternDevelopmentTool extends Model
@@ -19,6 +20,36 @@ class PatternDevelopmentTool extends Model
     protected function casts(): array
     {
         return ['retired_at' => 'datetime', 'due_on' => 'date', 'quoted_cost' => 'float', 'actual_cost' => 'float'];
+    }
+
+    /** A shared row keeps its source's status, so gates, pills and the list read it like any other row. */
+    protected static function booted(): void
+    {
+        static::saved(function (PatternDevelopmentTool $tool) {
+            if (! $tool->wasChanged('status') && ! $tool->wasRecentlyCreated) {
+                return;
+            }
+            self::where('shared_tool_id', $tool->id)->whereHas('development', fn ($q) => $q->where('status', 'OPEN'))
+                ->where('status', '!=', $tool->status)->get()->each->update(['status' => $tool->status]);
+        });
+    }
+
+    /** Whether the row stands for a tool made and costed on another development. */
+    public function isShared(): bool
+    {
+        return $this->shared_tool_id !== null;
+    }
+
+    /** The tool on another development this row stands for. */
+    public function sharedFrom(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'shared_tool_id');
+    }
+
+    /** Rows on other developments that stand for this tool. */
+    public function sharedBy(): HasMany
+    {
+        return $this->hasMany(self::class, 'shared_tool_id');
     }
 
     /** @return string The status name from config, e.g. "Trial passed". */
@@ -41,13 +72,13 @@ class PatternDevelopmentTool extends Model
     /** The register code once it has one, e.g. CB-0146. */
     public function registerCode(): ?string
     {
-        return $this->pattern?->code ?? $this->coreBox?->code;
+        return $this->pattern?->code ?? $this->coreBox?->code ?? $this->sharedFrom?->registerCode();
     }
 
-    /** Work has begun on it or money has gone on it, so stopping it needs a decision. */
+    /** Work has begun on it or money has gone on it, so stopping it needs a decision. A shared row's work lives on its own development. */
     public function isStarted(): bool
     {
-        return ! in_array($this->status, ['NOT_STARTED', 'NOT_NEEDED'], true) || (float) $this->actual_cost > 0;
+        return ! $this->isShared() && ! in_array($this->status, ['NOT_STARTED', 'NOT_NEEDED'], true) || (float) $this->actual_cost > 0;
     }
 
     /** How far along the Build and Trial mini bar it is: 0 to 3 steps. */

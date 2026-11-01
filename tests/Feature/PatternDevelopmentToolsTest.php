@@ -434,6 +434,62 @@ class PatternDevelopmentToolsTest extends TestCase
         $this->get(route('core-boxes.show', $box))->assertOk()->assertSee('Being replaced')->assertSee('Raise refurb request');
     }
 
+    /** @return array{0: PatternDevelopment, 1: PatternDevelopment} the development that makes the core box, and one that shares it */
+    private function sharing(): array
+    {
+        $maker = $this->development();
+        $this->addBox($maker);
+        $this->post(route('developments.store'), ['type' => 'NEW_PRODUCT', 'title' => 'Bearing cap', 'customer_id' => $maker->customer_id]);
+        $user = PatternDevelopment::where('id', '!=', $maker->id)->sole();
+        $box = $maker->fresh()->tools->firstWhere('kind', 'CORE_BOX');
+        $this->post(route('developments.tools.store', $user), ['shared_tool_id' => $box->id])->assertSessionHasNoErrors();
+
+        return [$maker->fresh(), $user->fresh()];
+    }
+
+    public function test_a_shared_tool_follows_its_source_and_counts_toward_the_gate(): void
+    {
+        DevelopmentRules::set('tool_gate', 'BLOCK');
+        [$maker, $user] = $this->sharing();
+        $box = $maker->tools->firstWhere('kind', 'CORE_BOX');
+        $shared = $user->tools->firstWhere('shared_tool_id', $box->id);
+        $this->assertNull($shared->quoted_cost);
+        $this->put(route('developments.tools.update', [$user, $user->tools->firstWhere('kind', 'PATTERN')]), ['status' => 'BUILT']);
+        $this->post(route('developments.advance', $user));   // Design discussion has no gate
+
+        $this->post(route('developments.advance', $user))->assertSessionHasErrors('gate');
+        $this->put(route('developments.tools.update', [$maker, $box]), ['status' => 'BUILT'])->assertSessionHasNoErrors();
+        $this->assertSame('BUILT', $shared->fresh()->status);
+        $this->post(route('developments.advance', $user))->assertSessionHasNoErrors();
+
+        $this->assertSame('Trial & sample', $user->fresh()->stageName());
+        $this->get(route('developments.show', $user))->assertOk()->assertSee('Shared with')->assertSee('Status from '.$maker->code);
+        $this->get(route('developments.show', $maker))->assertOk()->assertSee('also used by');
+    }
+
+    public function test_a_shared_tool_is_not_changed_registered_or_started_here(): void
+    {
+        [, $user] = $this->sharing();
+        $shared = $user->tools->whereNotNull('shared_tool_id')->sole();
+
+        $this->put(route('developments.tools.update', [$user, $shared]), ['status' => 'BUILT'])->assertStatus(422);
+        $this->post(route('developments.tools.register', [$user, $shared]))->assertStatus(422);
+        $this->assertFalse($shared->isStarted());
+    }
+
+    public function test_sharing_is_refused_from_the_same_development_a_shared_row_or_a_closed_one(): void
+    {
+        [$maker, $user] = $this->sharing();
+        $box = $maker->tools->firstWhere('kind', 'CORE_BOX');
+        $shared = $user->tools->whereNotNull('shared_tool_id')->sole();
+
+        $this->post(route('developments.tools.store', $maker), ['shared_tool_id' => $box->id])->assertSessionHasErrors('shared_tool_id');
+        $this->post(route('developments.tools.store', $maker), ['shared_tool_id' => $shared->id])->assertSessionHasErrors('shared_tool_id');
+        $this->post(route('developments.tools.store', $user), ['shared_tool_id' => $box->id])->assertSessionHasErrors('shared_tool_id');
+        $maker->update(['status' => 'CANCELLED']);
+        $this->post(route('developments.tools.store', $user), ['shared_tool_id' => $maker->tools->firstWhere('kind', 'PATTERN')->id])->assertSessionHasErrors('shared_tool_id');
+    }
+
     private function coreBox(): CoreBox
     {
         $core = CoreDefinition::create(['name' => 'Volute core', 'core_type' => 'STANDARD', 'status' => 'ACTIVE']);

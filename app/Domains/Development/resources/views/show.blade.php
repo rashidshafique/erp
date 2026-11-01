@@ -15,7 +15,7 @@
     $kinds = collect(config('pattern_developments.tool_kinds'))->when(! $register->toolingOn(), fn ($k) => $k->except('CORE_BOX'));
     $depth = \App\Domains\Development\Support\DevelopmentRules::get('tool_depth');
     $full = $depth === 'FULL';
-    $block = $depth === 'ONE' && $tools->count() === 1 ? $tools->first() : null;   // one pattern, shown as a plain block (design 18c)
+    $block = $depth === 'ONE' && $tools->count() === 1 && ! $tools->first()->isShared() ? $tools->first() : null;   // one pattern, shown as a plain block (design 18c)
     $title = $tools->count() === 1 ? config('pattern_developments.tool_kinds.'.$tools->first()->kind) : 'Tooling'.($many ? ' · '.$tools->count().' tools' : '');
     $badges = ['PATTERN' => 'PT', 'CORE_BOX' => 'CB', 'GAUGE' => 'GA', 'FIXTURE' => 'FX', 'OTHER' => '··'];
     $kindSubs = ['PATTERN' => 'From register or new', 'CORE_BOX' => 'From register or new', 'GAUGE' => 'Checking gauge', 'FIXTURE' => 'Machining or fettling', 'OTHER' => 'Type a name'];
@@ -77,7 +77,7 @@
         <div class="alert alert-error qd-errors" role="alert" @error('reason') @else hidden @enderror>@error('reason'){{ $message }}@enderror</div>
         <div class="field"><label for="dvBackReason">Reason</label><textarea id="dvBackReason" name="reason" maxlength="300" required rows="3" placeholder="e.g. trial found shrinkage at the boss">{{ old('reason') }}</textarea></div>
         @if ($many)<div class="tl-list tl-back tl-pad"><strong>Tools to rework</strong>
-            @foreach ($tools as $t)<label><input type="checkbox" name="tools[]" value="{{ $t->id }}" @checked(in_array($t->id, old('tools', $trial && $t->status === 'BUILT' ? [$t->id] : [])))><span style="flex:1">{{ $toolName($t) }}</span><span class="muted keeps">{{ $t->statusName() }}</span><span class="to-rework">{{ $t->statusName() }} → Rework</span></label>@endforeach
+            @foreach ($tools->reject->isShared() as $t)<label><input type="checkbox" name="tools[]" value="{{ $t->id }}" @checked(in_array($t->id, old('tools', $trial && $t->status === 'BUILT' ? [$t->id] : [])))><span style="flex:1">{{ $toolName($t) }}</span><span class="muted keeps">{{ $t->statusName() }}</span><span class="to-rework">{{ $t->statusName() }} → Rework</span></label>@endforeach
             <span class="muted small">Ticked tools go to Rework. Unticked tools keep their status.</span></div>
         @elseif ($tools->count() === 1)<p>{{ $toolName($tools->first()) }} goes to Rework.</p>@endif
     </div>
@@ -110,7 +110,12 @@
             <div class="field"><label for="tl-due">Due</label><input id="tl-due" name="due_on" type="date"></div>
             @endif
             <div style="grid-column:1/-1"><button class="btn btn-primary" type="submit">Add tool</button></div>
-        </form></details>@endif</div>
+            @if ($shareable->isNotEmpty())
+            <div class="field" style="grid-column:1/-1;border-top:1px solid var(--border);padding-top:10px"><label for="tl-share">Or share a tool from another development</label>
+                <div style="display:flex;gap:6px"><select id="tl-share" name="shared_tool_id" form="tlShare" required style="flex:1;min-width:0"><option value="">Choose a tool…</option>@foreach ($shareable as $s)<option value="{{ $s->id }}">{{ $s->development->code }} · {{ $toolName($s) }}@if ($s->registerCode()) {{ $s->label }}@endif</option>@endforeach</select><button class="btn" type="submit" form="tlShare">Share</button></div>
+                <div class="help">It is costed and moved on its own development; it counts here once it is built.</div></div>
+            @endif
+        </form></details><form id="tlShare" method="POST" action="{{ route('developments.tools.store', $d) }}">@csrf</form>@endif</div>
 <div class="panel-body">
     @if ($block)
     <form method="POST" action="{{ route('developments.tools.update', [$d, $block]) }}">@csrf @method('PUT')
@@ -134,22 +139,25 @@
                     @if ($t->pattern) <a href="{{ route('patterns.show', $t->pattern) }}"><code>{{ $t->pattern->code }}</code></a>@endif
                     @if ($t->coreBox) <a href="{{ route('core-boxes.show', $t->coreBox) }}"><code>{{ $t->coreBox->code }}</code></a>@endif
                     @if ($t->route === 'NEW') <span class="muted">(new)</span>@endif</div>
-                <div class="sub">{{ $t->label }}@if ($canRegister) · not in register yet @endif @if ($t->coreBox?->status === 'INACTIVE') · out of service until built @endif</div>
+                @if ($t->isShared())<div class="sub">Shared with <a href="{{ route('developments.show', $t->sharedFrom->pattern_development_id) }}">{{ $t->sharedFrom->development->code }}</a> · {{ $t->label }}</div>@else
+                <div class="sub">{{ $t->label }}@if ($canRegister) · not in register yet @endif @if ($t->coreBox?->status === 'INACTIVE') · out of service until built @endif</div>@endif
+                @if ($t->sharedBy->isNotEmpty())<div class="sub">also used by @foreach ($t->sharedBy as $u)<a href="{{ route('developments.show', $u->pattern_development_id) }}">{{ $u->development->code }}</a>@if (! $loop->last), @endif @endforeach</div>@endif
                 @if ($t->replacesPattern ?? $t->replacesCoreBox)@php $old = $t->replacesPattern ?? $t->replacesCoreBox; @endphp<div class="sub">replaces {{ $old->code }}@if ($t->retired_at), retired {{ $t->retired_at->displayDate() }}@endif</div>@endif
             </div></div></td>
             <td><span class="tl-route {{ $t->route }}">{{ config('pattern_developments.tool_routes.'.$t->route) }}</span></td>
             @if ($full)
             <td>{{ config('pattern_developments.pattern_by.'.$t->made_by) }}@if ($t->maker)<br><span class="muted small">{{ $t->maker }}</span>@endif</td>
-            <td>{{ $t->who_pays ? config('pattern_developments.who_pays.'.$t->who_pays) : '—' }}</td>
+            <td>{{ $t->isShared() ? 'On '.$t->sharedFrom->development->code : ($t->who_pays ? config('pattern_developments.who_pays.'.$t->who_pays) : '—') }}</td>
             <td class="tl-num">{{ $t->quoted_cost !== null ? $amount($t->quoted_cost) : '—' }}</td>
             <td class="tl-num">{{ $t->actual_cost !== null ? $amount($t->actual_cost) : '—' }}</td>
             <td>{{ $t->due_on?->displayDate() ?? '—' }}</td>
             @endif
             <td><span class="status {{ $pills[$t->status] ?? '' }}">{{ $t->statusName() }}</span>
                 @if ($many)<div class="tl-mini {{ $t->status === 'REWORK' ? 'rework' : '' }}" aria-hidden="true">@foreach (range(1, 3) as $step)<i class="{{ $t->steps() >= $step ? 'on' : '' }}"></i>@endforeach</div>@endif
-                @if ($t->status_note)<br><span class="muted small">{{ $t->status_note }}</span>@endif
+                @if ($t->isShared())<br><span class="muted small">Status from {{ $t->sharedFrom->development->code }}</span>@elseif ($t->status_note)<br><span class="muted small">{{ $t->status_note }}</span>@endif
                 @if ($d->isOpen() && $canRegister && $t->status === 'BUILT')<br><form method="POST" action="{{ route('developments.tools.register', [$d, $t]) }}" style="display:inline">@csrf<button class="btn-link" type="submit" style="border:0;background:none;padding:0;color:var(--accent);cursor:pointer;font-size:12px">Add to register</button></form>@endif</td>
             <td style="text-align:right">@if ($d->isOpen())<details class="tl-menu"><summary aria-label="Actions for {{ $t->label }}">⋯</summary><div class="tl-pop">
+                @unless ($t->isShared())
                 <form method="POST" action="{{ route('developments.tools.update', [$d, $t]) }}">@csrf @method('PUT')
                     <div class="form-grid">
                         <div class="field wide"><label for="st-{{ $t->id }}">Change status</label><select id="st-{{ $t->id }}" name="status">@foreach (config('pattern_developments.tool_statuses') as $k => $l)<option value="{{ $k }}" @selected($t->status === $k)>{{ $l }}</option>@endforeach</select></div>
@@ -168,11 +176,13 @@
                     <select name="record" required aria-label="Register record for {{ $t->label }}" style="flex:1;min-width:0"><option value="">Link to register record…</option>@foreach ($linkable as $r)<option value="{{ ($t->kind === 'CORE_BOX' ? 'box:' : 'pattern:').$r->id }}">{{ $r->code }} {{ $r->name }}</option>@endforeach</select><button class="btn" type="submit">Link</button></form>@endif
                 @endif
                 <hr>
+                @endunless
                 <form method="POST" action="{{ route('developments.tools.destroy', [$d, $t]) }}" onsubmit="return confirm('Remove this tool?')">@csrf @method('DELETE')<button class="btn tl-danger" type="submit" style="width:100%" aria-label="Remove {{ $t->label }}">Remove tool</button></form>
             </div></details>@endif</td>
         </tr>
     @endforeach
     </tbody></table></div>
+    @if ($shared = $tools->first->isShared())<p class="muted small" style="margin:8px 0 0">Shared tools are costed and moved on their own development. This one counts toward the gate when {{ $shared->sharedFrom->development->code }} marks it {{ $trial ? 'Trial passed' : 'Built' }}.</p>@endif
     @endif
     @if ($tools->isNotEmpty() && $depth !== 'LIST')
     <div class="tl-total"><span>Total quoted <strong>{{ $quotedSum ? $amount($quotedSum) : '—' }}</strong> · actual <strong>{{ $actualSum !== null ? $amount($actualSum) : '—' }}@if ($actualSum !== null && $d->isOpen() && $tools->whereNull('actual_cost')->isNotEmpty()) so far @endif</strong></span>

@@ -25,7 +25,7 @@ class ToolRegister
     /** Whether the row can be given a register record now: a pattern or core box (when Tooling is on) that has none yet. */
     public function canCreate(PatternDevelopmentTool $tool): bool
     {
-        if ($tool->pattern_id || $tool->core_box_id) {
+        if ($tool->pattern_id || $tool->core_box_id || $tool->isShared()) {
             return false;
         }
 
