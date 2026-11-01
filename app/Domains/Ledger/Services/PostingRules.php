@@ -45,10 +45,40 @@ class PostingRules
         }, 'id' => $document->getKey()];
     }
 
+    /**
+     * The lines a document would post with the accounts set today, without posting (design 19g preview).
+     *
+     * @return list<array{account_id: string, debit: float, credit: float, party_type: ?string, party_id: ?string}>
+     */
+    public function preview(Model $document): array
+    {
+        $out = [];
+        foreach ($this->build($document)[1] as $l) {
+            $d = round((float) ($l['debit'] ?? 0), 2);
+            $c = round((float) ($l['credit'] ?? 0), 2);
+            if ($d != 0.0 || $c != 0.0) {
+                $out[] = ['account_id' => $l['account_id'], 'debit' => $d, 'credit' => $c, 'party_type' => $l['party_type'] ?? null, 'party_id' => $l['party_id'] ?? null];
+            }
+        }
+
+        return $out;
+    }
+
     /** Posts a document's journal; one dated before go-live is carried in the opening voucher instead and posts nothing. */
     public function post(Model $document): ?Journal
     {
-        [$date, $lines, $memo] = match (true) {
+        [$date, $lines, $memo] = $this->build($document);
+        if (OpeningBalances::beforeGoLive($date)) {
+            return null;
+        }
+
+        return $this->ledger->post($date, $lines, self::source($document), $memo, voucher: $this->voucher($document));
+    }
+
+    /** @return array{0: string, 1: list<array<string, mixed>>, 2: string} date, lines and memo */
+    private function build(Model $document): array
+    {
+        return match (true) {
             $document instanceof Invoice => $this->invoice($document),
             $document instanceof SupplierBill => $this->bill($document),
             $document instanceof Receipt => $this->receipt($document),
@@ -58,12 +88,6 @@ class PostingRules
             $document instanceof SupplierPaymentAllocation => $this->paymentAllocation($document),
             default => throw new InvalidArgumentException('The ledger does not know how to post a '.class_basename($document).'.'),
         };
-
-        if (OpeningBalances::beforeGoLive($date)) {
-            return null;
-        }
-
-        return $this->ledger->post($date, $lines, self::source($document), $memo, voucher: $this->voucher($document));
     }
 
     /**

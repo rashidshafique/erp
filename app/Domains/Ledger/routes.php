@@ -42,6 +42,7 @@ Route::middleware('web')->prefix('ledger')->name('ledger.')->group(function () {
     Route::get('/general-ledger', [LedgerReportController::class, 'generalLedger'])->name('general-ledger');
     Route::get('/settings', [LedgerSettingsController::class, 'edit'])->name('settings');
     Route::put('/settings', [LedgerSettingsController::class, 'update'])->name('settings.update');
+    Route::get('/settings/posting-rules', fn () => view('ledger::settings.posting-rules'))->name('settings.posting-rules');
     Route::get('/settings/sales-documents', [LedgerSettingsController::class, 'salesDocuments'])->name('settings.sales-documents');
     Route::put('/settings/sales-documents', [LedgerSettingsController::class, 'saveSalesDocuments'])->name('settings.sales-documents.update');
     Route::put('/settings/closing', [LedgerSettingsController::class, 'closing'])->name('settings.closing');
