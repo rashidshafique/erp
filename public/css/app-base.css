@@ -108,8 +108,6 @@ a:hover { text-decoration: underline; }
 .breadcrumb { color: var(--muted); font-size: 12px; }
 .breadcrumb strong { color: var(--text); }
 
-.topbar-date { color: var(--muted); font-size: 12px; }
-
 .page-content {
     width: 100%;
     max-width: 1500px;

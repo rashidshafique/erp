@@ -47,10 +47,10 @@ body { background: var(--page) !important; color: var(--text) !important; }
 .nav-link.active svg { color: var(--accent); }
 .nav-group-toggle { color: var(--muted) !important; font-weight: 500 !important; letter-spacing: .06em; }
 .nav-group.is-open > .nav-group-toggle { font-weight: 600 !important; color: var(--text) !important; }
-/* "Every link under section labels": the group heading is a label and its links are always shown. */
-.menu-labels .nav-group .nav-group-toggle { pointer-events: none; padding: 14px 10px 4px !important; font-size: 10.5px !important; color: var(--muted) !important; font-weight: 500 !important; }
-.menu-labels .nav-group-toggle .nav-ico, .menu-labels .nav-chevron { display: none; }
-.menu-labels .nav-submenu, .menu-labels .nav-submenu[hidden] { display: block !important; margin: 0 !important; padding: 0 !important; border-left: 0 !important; }
+/* Section headings are labels that open and close their links. */
+.menu-labels .nav-group .nav-group-toggle { padding: 14px 10px 4px !important; font-size: 10.5px !important; color: var(--muted) !important; font-weight: 500 !important; }
+.menu-labels .nav-group-toggle .nav-ico { display: none; }
+.menu-labels .nav-submenu { margin: 0 !important; padding: 0 !important; border-left: 0 !important; }
 .sidebar-bottom { flex: none; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
 .sidebar-profile { border-top-color: var(--border) !important; }
 .sp-avatar { border-radius: 10px !important; background: var(--text) !important; }
@@ -188,11 +188,11 @@ select:not([multiple]):not([size]) {
 /* Font chosen by the administrator under Administration → Display */
 body, button, input, select, textarea { font-family: var(--ui-font); }
 
-/* Phone top bar: the search box is an icon that opens over the bar, the date is hidden, the menu button is two lines. */
+/* Phone top bar: the search box is an icon that opens over the bar, the heat lights are hidden, the menu button is two lines. */
 .scan-open, .ico-hamburger { display: none; }
 @media (max-width: 768px) {
     .topbar { position: relative; gap: 8px; }
-    .topbar-date { display: none; }
+    .topbar-end .heat-lights { display: none; }
     .breadcrumb { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .menu-toggle .ico-panel { display: none; }
     .menu-toggle .ico-hamburger { display: inline-flex; }
@@ -223,11 +223,10 @@ body, button, input, select, textarea { font-family: var(--ui-font); }
     .scan-box:not(.is-open) .scan-type { display: none; }
 }
 
-/* Desktop: the search box sits in the middle of the top bar, the breadcrumb and the date share the space either side. */
+/* Desktop: the search box sits in the middle of the top bar, the breadcrumb and the heat lights with the bell share the space either side. */
 @media (min-width: 769px) {
-    .topbar .breadcrumb, .topbar .topbar-date { flex: 1 1 0; min-width: 0; }
+    .topbar .breadcrumb, .topbar .topbar-end { flex: 1 1 0; min-width: 0; }
     .topbar .breadcrumb { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-    .topbar .topbar-date { text-align: right; white-space: nowrap; }
     .topbar .scan-box { flex: none; margin: 0 12px; }
     .scan-results { right: auto; left: 50%; transform: translateX(-50%); }
 }
@@ -244,8 +243,9 @@ a.pager-item:hover { background: var(--page); color: var(--text); }
 .crumb-prev:hover { color: var(--text); text-decoration: underline; }
 .crumb-sep { color: var(--muted); white-space: pre; }
 
-/* Heat status lights in the top bar */
-.topbar-date { display: flex; align-items: center; justify-content: flex-end; gap: 14px; }
+/* The right end of the top bar: heat status lights, then the notifications bell at the edge. */
+.topbar-end { display: flex; align-items: center; justify-content: flex-end; gap: 14px; }
+.topbar-end .notice-center { margin-right: 0; }
 .heat-lights { display: flex; align-items: center; gap: 6px; }
 .heat-chip { display: inline-flex; align-items: center; padding: 3px 9px; border: 1px solid var(--border); border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--text); text-decoration: none; white-space: nowrap; }
 .heat-chip .dot, .heat-chip span[style] { margin-right: 6px; }
@@ -318,17 +318,35 @@ th { border-bottom-color: var(--border); }
 .menu-slim .simple-mode { display: none; }
 @media (prefers-reduced-motion: reduce) { .simple-switch, .simple-switch span { transition: none; } }
 
-/* Menu as in the design: one level. Section labels are 11px uppercase headings, their entries always show beneath, no icons or chevrons while the menu is wide. */
+/* Menu as in the design: one level. Section labels are 11px uppercase headings that open and close their entries;
+   the chevron on the right shows which. Icons stay off the links while the menu is wide. */
 .sidebar-nav { gap: 18px; }
 .menu-labels .nav-group { border-radius: 0; }
-.menu-labels .nav-group .nav-group-toggle { padding: 0 8px 4px !important; font-size: 11px !important; font-weight: 400 !important; letter-spacing: .06em; text-transform: uppercase; color: var(--text-faint) !important; background: transparent !important; cursor: default; }
+.menu-labels .nav-group .nav-group-toggle {
+    display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 5px 8px !important; border: 0; border-radius: 6px;
+    font: inherit; font-size: 11px !important; font-weight: 400 !important; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--text-faint) !important; background: transparent !important;
+    text-align: left; cursor: pointer;
+}
 .menu-labels .nav-group.is-active > .nav-group-toggle, .menu-labels .nav-group.is-open > .nav-group-toggle { color: var(--text-faint) !important; font-weight: 400 !important; }
+.menu-labels .nav-group .nav-group-toggle:hover,
+.menu-labels .nav-group .nav-group-toggle:focus-visible { color: var(--text) !important; background: var(--surface-pill) !important; outline: none; }
 .menu-labels .nav-group .nav-group-toggle .nav-count { display: none; }
+.menu-labels .nav-group-toggle .nav-chevron { display: inline-block; flex: none; font-size: 14px; color: currentColor; transform: rotate(0); transition: transform .18s ease; }
+.menu-labels .nav-group.is-open > .nav-group-toggle .nav-chevron { transform: rotate(90deg); }
 .menu-labels .nav-submenu { display: flex !important; flex-direction: column; gap: 2px; }
+.menu-labels .nav-submenu[hidden] { display: none !important; }
 .menu-labels .nav-submenu .nav-link { display: flex; align-items: center; justify-content: space-between; margin: 0; }
 .menu-labels .nav-submenu .nav-link .nav-ico { display: none; }
 .menu-labels .nav-submenu .nav-link .nav-count { float: none; margin-left: auto; }
 .menu-labels .sidebar-bottom .nav-link .nav-ico { display: none; }
+/* The icon rail always shows every entry, so opening or closing a section only applies to the full-width menu. */
+@media (min-width: 769px) {
+    .menu-slim .menu-labels .nav-submenu[hidden], .menu-hover .menu-labels .nav-submenu[hidden] { display: flex !important; }
+    .menu-slim .menu-labels .nav-group .nav-group-toggle, .menu-hover .menu-labels .nav-group .nav-group-toggle { pointer-events: none; }
+    .menu-slim .menu-labels .nav-group .nav-group-toggle .nav-chevron, .menu-hover .menu-labels .nav-group .nav-group-toggle .nav-chevron { display: none; }
+}
 .menu-slim .menu-labels .nav-link .nav-ico, .menu-slim .menu-labels .sidebar-bottom .nav-link .nav-ico { display: inline-block; }
 .nav-user-hidden { display: none !important; }
 .sidebar-bottom .nav-link { display: flex; align-items: center; gap: 8px; width: 100%; border: 0; font: inherit; text-align: left; cursor: pointer; }
@@ -347,8 +365,8 @@ th { border-bottom-color: var(--border); }
 .simple-check:focus { border: 0 !important; box-shadow: none !important; outline: none; }
 .simple-check:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .menu-edit { border: 0 !important; border-radius: 12px !important; overflow: hidden; outline: none; }
-.menu-edit .qd-head { border-bottom: 0; padding-bottom: 4px; }
-.menu-edit .qd-foot { border-top: 0; }
+.menu-edit .qd-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 0; padding: 12px 12px 4px 16px; }
+.menu-edit .qd-foot { display: flex; align-items: center; justify-content: flex-end; gap: 8px; border-top: 0; padding: 8px 16px 14px; }
 .menu-edit[open] { display: flex; flex-direction: column; max-height: min(86vh, 86dvh); }
 .menu-edit .qd-body { flex: 1 1 auto; min-height: 0; max-height: none; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
 .menu-edit .qd-head, .menu-edit .qd-foot { flex: none; }
@@ -364,6 +382,7 @@ html:has(.menu-edit[open]), html:has(.menu-edit[open]) body { overflow: hidden; 
 .btn-primary { border: 0 !important; font-weight: 500; box-shadow: none !important; }
 .btn-primary:hover { border: 0 !important; }
 .btn-danger { border-color: var(--border-input); color: var(--danger); }
+.btn-review-blocked:disabled { border-color: color-mix(in srgb, var(--warning) 45%, transparent); background: color-mix(in srgb, var(--warning) 9%, var(--surface)); color: var(--warning); opacity: 1; cursor: not-allowed; }
 input, select, textarea { min-height: 36px; padding: 9px 10px; border: 1px solid var(--border-input); border-radius: 6px !important; font-size: 14px; box-shadow: none; }
 select:not([multiple]):not([size]) { padding-right: 30px; }
 textarea { min-height: 80px; }
@@ -382,7 +401,6 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); min-h
 /* Heat status light: a dot with a lighter ring. The orange one (heat in progress) keeps blinking: its ring swells and fades while the dot dims.
    Plain rgba colours, so it also works in older browsers. */
 .heat-light { display: inline-block; width: 11px; height: 11px; border-radius: 50%; background: var(--hl); vertical-align: middle; box-shadow: 0 0 0 3px rgba(var(--hl-rgb), .2); }
-.btn-review-blocked:disabled { border-color: color-mix(in srgb, var(--warning) 45%, transparent); background: color-mix(in srgb, var(--warning) 9%, var(--surface)); color: var(--warning); opacity: 1; cursor: not-allowed; }
 .heat-light-orange { animation: heat-light-ring 1.2s ease-in-out infinite; }
 @keyframes heat-light-ring {
     0%, 100% { box-shadow: 0 0 0 3px rgba(var(--hl-rgb), .45); opacity: 1; }

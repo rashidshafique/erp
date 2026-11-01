@@ -17,3 +17,5 @@
 !/storage/framework/views/.gitkeep
 /storage/logs/*
 !/storage/logs/.gitkeep
+/storage/help.html
+/public/js/viewer

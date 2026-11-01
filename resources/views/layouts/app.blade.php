@@ -200,7 +200,7 @@
         <dialog id="hidden-items" class="qd menu-edit" aria-labelledby="hidden-items-title">
             <div class="qd-head"><h2 id="hidden-items-title">Menu</h2><button type="button" class="qd-x" data-menu-close aria-label="Close">×</button></div>
             <div class="qd-body"><p class="muted small" style="margin:0 0 10px">Choose which entries show in your menu.</p><div id="hidden-items-list"></div></div>
-            <div class="qd-foot"><button type="button" class="btn" id="hidden-items-reset">Show all</button><button type="button" class="btn btn-primary" data-menu-close>Done</button></div>
+            <div class="qd-foot"><button type="button" class="btn" id="hidden-items-reset">Show All</button><button type="button" class="btn btn-primary" data-menu-close>Done</button></div>
         </dialog>
 
         @if ($brand['logo'] && $brand['position'] === 'BOTTOM_LEFT')
@@ -374,10 +374,11 @@
                     });
                 })();
             </script>
-            @auth
-                <livewire:notification-center />
-            @endauth
-            <div class="topbar-date">@include('layouts._heat-lights'){{ now()->format('D, d M Y') }}
+            <div class="topbar-end">
+                @include('layouts._heat-lights')
+                @auth
+                    <livewire:notification-center />
+                @endauth
             </div>
         </header>
 
@@ -552,9 +553,26 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('hidden-items-reset').addEventListener('click', () => { menu.write([]); menu.apply(); build(); });
 });
 
-/* Foundry ERP sidebar submenu behavior */
-document.addEventListener('DOMContentLoaded', () => {
+/* Foundry ERP sidebar submenu behavior: each section heading opens and closes its links, and the choice is kept in this browser.
+   Runs as soon as the menu markup exists, so sections open where they belong without a flash. */
+(function () {
+    const KEY = 'erp.menuSections.{{ auth()->id() ?? 0 }}';
     const groups = [...document.querySelectorAll('.sidebar-nav .nav-group')];
+
+    const read = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } };
+    const save = (name, open) => {
+        const all = read();
+        all[name] = open;
+        try { localStorage.setItem(KEY, JSON.stringify(all)); } catch (e) {}
+    };
+    // The section's label is its key; counts change, so they are left out.
+    const nameOf = group => {
+        const lab = group.querySelector('.nav-lab');
+        if (!lab) return '';
+        const clone = lab.cloneNode(true);
+        clone.querySelectorAll('.nav-count').forEach(n => n.remove());
+        return (clone.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    };
 
     function setOpen(group, open) {
         const button = group.querySelector('.nav-group-toggle');
@@ -566,41 +584,26 @@ document.addEventListener('DOMContentLoaded', () => {
         submenu.hidden = !open;
     }
 
-    const labelsOnly = document.body.classList.contains('menu-labels');
-    groups.forEach(group => {
+    const remembered = read();
+    groups.forEach((group, i) => {
         const button = group.querySelector('.nav-group-toggle');
-        if (!button) return;
-        // "Every link under section labels": headings are labels, not buttons.
-        if (labelsOnly) { setOpen(group, true); button.tabIndex = -1; button.setAttribute('aria-hidden', 'true'); return; }
+        const submenu = group.querySelector('.nav-submenu');
+        if (!button || !submenu) return;
 
-        setOpen(group, group.classList.contains('is-active'));
+        if (!submenu.id) submenu.id = 'nav-section-' + (i + 1);
+        button.setAttribute('aria-controls', submenu.id);
+
+        const name = nameOf(group);
+        const open = typeof remembered[name] === 'boolean' ? remembered[name] : true;
+        setOpen(group, open);
 
         button.addEventListener('click', () => {
-            setOpen(group, !group.classList.contains('is-open'));
+            const next = !group.classList.contains('is-open');
+            setOpen(group, next);
+            save(name, next);
         });
-
-        // group.addEventListener('mouseenter', event => {
-        //     if (event.pointerType === 'touch') return;
-        //     setOpen(group, true);
-        // });
-
-        // group.addEventListener('mouseleave', event => {
-        //     if (event.pointerType === 'touch') return;
-        //     if (group.classList.contains('is-active')) {
-        //         setOpen(group, true);
-        //     } else {
-        //         setOpen(group, false);
-        //     }
-        // });
-
-        // group.addEventListener('focusout', event => {
-        //     if (!group.contains(event.relatedTarget) &&
-        //         !group.classList.contains('is-active')) {
-        //         setOpen(group, false);
-        //     }
-        // });
     });
-});
+})();
 </script>
 
 <script>
@@ -759,6 +762,7 @@ document.addEventListener('DOMContentLoaded', () => {
 @include("partials.table-ui")
 @include("partials.form-ui")
 @include("partials.lightbox")
+@include('partials.quick-dialog-assets')
 @stack('dialogs')
 @include("partials.rowlink")
 <script>
