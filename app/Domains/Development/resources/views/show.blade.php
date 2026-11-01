@@ -43,22 +43,27 @@
     .tl-kinds { display: grid; gap: 4px; grid-column: 1 / -1; } .tl-kinds label { display: flex; gap: 8px; align-items: center; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; } .tl-kinds label:has(input:checked) { border-color: var(--accent); }
     .tl-back .to-rework { display: none; color: #b3352c; } .tl-back input:checked ~ .to-rework { display: inline; } .tl-back input:checked ~ .keeps { display: none; }
     .tl-list { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; } .tl-list label, .tl-row { display: flex; gap: 8px; align-items: center; justify-content: space-between; }
-    .dv-cols { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; align-items: start; } .dv-main { min-width: 0; }
-    .dv-side { background: #f8f8f9; border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; display: flex; flex-direction: column; gap: 16px; font-size: 13px; } .dv-side-title { font-size: 16px; font-weight: 600; margin-top: 2px; }
+    .dv-frame { margin: -24px -28px; font-size: 13px; } @media (max-width: 768px) { .dv-frame { margin: -20px -14px; } }
+    .dv-top { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; padding: 14px 28px; border-bottom: 1px solid #e6e7e9; }
+    .dv-crumb { display: flex; align-items: center; gap: 16px; min-width: 0; flex-wrap: wrap; } .dv-crumb > .sep { color: #6b6e73; } .dv-top-actions { display: flex; gap: 8px; align-items: center; }
+    .dv-cols { display: grid; grid-template-columns: minmax(0, 1fr) 340px; align-items: stretch; }
+    .dv-main { padding: 20px 28px; display: flex; flex-direction: column; gap: 22px; min-width: 0; } .dv-main > .alert { margin: 0; }
+    .dv-stage { display: flex; gap: 28px; align-items: flex-start; } .dv-stage .dv-bar { flex: 1; margin: 0; min-width: 0; }
+    .dv-move { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; max-width: 280px; text-align: right; font-size: 12px; color: #6b6e73; } .dv-move form { margin: 0; } .dv-gate { color: #94610a; } .dv-gate.block { color: #b3352c; }
+    .dv-h { font-size: 12px; font-weight: 600; color: #6b6e73; text-transform: uppercase; letter-spacing: .06em; }
+    .dv-side { border-left: 1px solid #e6e7e9; padding: 20px 24px; background: #f8f8f9; display: flex; flex-direction: column; gap: 18px; } .dv-side-title { font-size: 16px; font-weight: 600; margin-top: 2px; }
     .dv-side-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; } .dv-side-h { font-size: 12px; font-weight: 600; color: #6b6e73; text-transform: uppercase; letter-spacing: .06em; }
-    .dv-links { margin-top: 8px; } .dv-links > div { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--border); text-align: right; } .dv-links > div:last-child { border-bottom: 0; } .dv-links > div > span:first-child { text-align: left; }
-    @media (max-width: 1100px) { .dv-cols { grid-template-columns: 1fr; } }
+    .dv-links { margin-top: 8px; } .dv-links > div { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid #e6e7e9; text-align: right; } .dv-links > div:last-child { border-bottom: 0; } .dv-links > div > span:first-child { text-align: left; }
+    @media (max-width: 1100px) { .dv-cols { grid-template-columns: 1fr; } .dv-side { border-left: 0; border-top: 1px solid #e6e7e9; } .dv-top, .dv-main { padding-left: 16px; padding-right: 16px; } .dv-stage { flex-direction: column; } .dv-move { align-items: flex-start; text-align: left; } }
 </style>
 @include('partials.quick-dialog-assets')
-<div class="page-heading">
-    <div><h1><code>{{ $d->code }}</code> {{ $d->title }}</h1><p>{{ $info['name'] }} · {{ $d->customer?->name }} · <span class="status {{ $cls[$d->status] ?? '' }}">{{ $d->status === 'OPEN' ? $d->stageName() : \App\Domains\Development\Models\PatternDevelopment::STATUSES[$d->status] }}</span></p></div>
-    <div class="actions"><a class="btn" href="{{ route('developments.index') }}">All developments</a>
-        @if ($d->isOpen() && $backStage)<button type="button" class="btn" data-quick="dvBack">Back to {{ $backStage }}</button>@endif
-        @if ($d->isOpen() && $next)<form method="POST" action="{{ route('developments.advance', $d) }}" style="display:inline">@csrf<button class="btn btn-primary" type="submit" @disabled($blocked)>Move to {{ $next }}</button></form>@endif</div>
+<div class="dv-frame">
+<div class="dv-top">
+    <div class="dv-crumb"><a href="{{ route('developments.index') }}" style="font-weight:600;color:inherit">Pattern development</a><span class="sep">/</span><span><code>{{ $d->code }}</code> {{ $d->title }}</span><span class="status {{ $cls[$d->status] ?? '' }}">{{ $d->status === 'OPEN' ? $d->stageName() : \App\Domains\Development\Models\PatternDevelopment::STATUSES[$d->status] }}</span></div>
+    <div class="dv-top-actions"><a class="btn" href="{{ route('developments.index') }}">All developments</a>
+        @if ($d->isOpen() && $backStage)<button type="button" class="btn" data-quick="dvBack">Back to {{ $backStage }}</button>@endif</div>
 </div>
-@if ($d->isOpen() && $stuck->isNotEmpty() && $gateRule !== 'OFF' && ! session('gate_warn'))
-<div class="alert alert-{{ $blocked ? 'error' : 'warning' }}">{{ $d->gateMessage() }}@if ($blocked) Set by a rule in <a href="{{ route('settings.process-depth.edit') }}">settings</a>.@endif</div>
-@endif
+<div class="dv-cols"><div class="dv-main">
 @if (session('gate_warn'))
 <div class="alert alert-warning"><div>{{ session('gate_warn') }}</div><div>Moving on is logged as an override with your name. {{ $d->gateStays() }}</div>
     <form method="POST" action="{{ route('developments.advance', $d) }}" style="margin-top:8px">@csrf<input type="hidden" name="override" value="1"><button class="btn btn-primary" type="submit">Move anyway</button> <a class="btn" href="{{ route('developments.show', $d) }}">Cancel</a></form></div>
@@ -80,9 +85,11 @@
 </form>
 </dialog>
 @endif
-@if ($approves)<div class="alert alert-info">Moving to {{ $next }} also approves revision {{ $approves->revision }} of {{ $d->product->code }}, which orders for this part wait on.</div>@endif
-<div class="dv-cols"><div class="dv-main">
-<div class="dv-bar">@foreach ($stages as $i => $name)<div class="{{ $d->status === 'DONE' || $i < $d->stage_index ? 'done' : ($i === $d->stage_index ? 'now' : '') }}">{{ $name }}@if ($many && ($g = \App\Domains\Development\Models\PatternDevelopment::gateFor($name)))<span style="font-weight:400;display:block">{{ $tools->filter(fn ($t) => $t->reached($g))->count() }} of {{ $tools->count() }} {{ $g === 'BUILT' ? 'built' : 'passed trial' }}@if ($g === 'TRIAL_PASSED' && $tools->where('status', 'REWORK')->isNotEmpty()) · {{ $tools->where('status', 'REWORK')->count() }} rework @endif</span>@endif</div>@endforeach</div>
+<div class="dv-stage"><div class="dv-bar">@foreach ($stages as $i => $name)<div class="{{ $d->status === 'DONE' || $i < $d->stage_index ? 'done' : ($i === $d->stage_index ? 'now' : '') }}">{{ $name }}@if ($many && ($g = \App\Domains\Development\Models\PatternDevelopment::gateFor($name)))<span style="font-weight:400;display:block">{{ $tools->filter(fn ($t) => $t->reached($g))->count() }} of {{ $tools->count() }} {{ $g === 'BUILT' ? 'built' : 'passed trial' }}@if ($g === 'TRIAL_PASSED' && $tools->where('status', 'REWORK')->isNotEmpty()) · {{ $tools->where('status', 'REWORK')->count() }} rework @endif</span>@endif</div>@endforeach</div>
+@if ($d->isOpen() && $next)<div class="dv-move"><form method="POST" action="{{ route('developments.advance', $d) }}">@csrf<button class="btn btn-primary" type="submit" @disabled($blocked)>Move to {{ $next }}</button></form>
+    @if ($approves)<span>Also approves revision {{ $approves->revision }}</span>@endif
+    @if ($stuck->isNotEmpty() && $gateRule !== 'OFF' && ! session('gate_warn'))<span class="dv-gate {{ $blocked ? 'block' : '' }}">{{ $d->gateMessage() }}@if ($blocked) Set by a rule in <a href="{{ route('settings.process-depth.edit') }}">settings</a>.@endif</span>@endif</div>@endif
+</div>
 @php
     $amount = fn ($v) => $d->cost_currency ? $d->cost_currency.' '.\App\Support\Formats::number($v, 2) : \App\Support\Formats::money($v);
     $quotedSum = $tools->whereNotNull('quoted_cost')->sum('quoted_cost');
@@ -185,11 +192,12 @@ document.addEventListener('click', function (e) {
     document.querySelectorAll('.tl-menu[open]').forEach(function (m) { if (!m.contains(e.target)) { m.open = false; } });
 });
 </script>
-<div class="panel"><div class="panel-header"><h2>Log</h2></div><div class="panel-body">
+<div><div class="dv-h" style="margin-bottom:10px">Log</div>
     <form method="POST" action="{{ route('developments.notes', $d) }}" style="display:flex;gap:8px;margin-bottom:10px">@csrf
         <input name="text" maxlength="2000" required placeholder="Add a note: what was agreed or sent" style="flex:1" aria-label="Note"><button class="btn" type="submit">Add note</button></form>
     <ul class="dv-log">@foreach ($d->events as $ev)<li><span>{{ $ev->text }}<span class="muted small"> · {{ $ev->user_name }}</span></span><span class="when">{{ $ev->created_at->displayDateTime() }}</span></li>@endforeach</ul>
-</div></div>
+</div>
+@if ($d->isOpen())<div><button type="button" class="btn tl-danger" data-quick="dvCancel">Cancel development</button></div>@endif
 </div>
 <aside class="dv-side">
     <div><code class="muted">{{ $d->code }}</code><div class="dv-side-title">{{ $d->title }}</div>
@@ -217,10 +225,9 @@ document.addEventListener('click', function (e) {
             <div><span>Tooling charge</span><span class="muted">{{ $d->quoted_tooling_cost !== null ? $amount($d->quoted_tooling_cost) : '—' }}</span></div>
             <div><span>Part record</span><span class="muted">@if ($d->product)<a href="{{ route('products.show', $d->product) }}">{{ $d->product->code }}</a>@elseif (in_array($d->type, ['NEW_PART', 'NEW_PRODUCT'], true))Created on approval @else — @endif</span></div>
         </div></div>
-</aside></div>
+</aside></div></div>
 @if ($d->isOpen())
 @php $cancelErrors = collect($errors->getMessages())->filter(fn ($m, $k) => str_starts_with($k, 'decisions')); @endphp
-<button type="button" class="btn tl-danger" data-quick="dvCancel">Cancel development</button>
 <dialog class="qd" id="dvCancel" aria-labelledby="dvCancelTitle" @if ($cancelErrors->isNotEmpty()) data-reopen='{}' @endif>
 <form method="POST" action="{{ route('developments.cancel', $d) }}">@csrf
     <div class="qd-head"><h2 id="dvCancelTitle">Cancel {{ $d->code }}?</h2><button type="button" class="qd-x" data-close aria-label="Close">&times;</button></div>

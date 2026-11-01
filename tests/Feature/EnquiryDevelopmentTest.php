@@ -133,7 +133,7 @@ class EnquiryDevelopmentTest extends TestCase
         $this->post(route('developments.advance', $dev));
         $this->post(route('developments.advance', $dev));
         $this->assertSame('DRAFT', $revision->fresh()->status, 'only the last stage approves it');
-        $this->get(route('developments.show', $dev))->assertSee('also approves revision '.$revision->revision);
+        $this->get(route('developments.show', $dev))->assertSee('Also approves revision '.$revision->revision);
         $this->post(route('developments.advance', $dev));
 
         $this->assertSame('DONE', $dev->fresh()->status);
