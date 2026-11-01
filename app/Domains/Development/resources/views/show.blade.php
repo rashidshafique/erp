@@ -43,6 +43,11 @@
     .tl-kinds { display: grid; gap: 4px; grid-column: 1 / -1; } .tl-kinds label { display: flex; gap: 8px; align-items: center; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; } .tl-kinds label:has(input:checked) { border-color: var(--accent); }
     .tl-back .to-rework { display: none; color: #b3352c; } .tl-back input:checked ~ .to-rework { display: inline; } .tl-back input:checked ~ .keeps { display: none; }
     .tl-list { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; } .tl-list label, .tl-row { display: flex; gap: 8px; align-items: center; justify-content: space-between; }
+    .dv-cols { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; align-items: start; } .dv-main { min-width: 0; }
+    .dv-side { background: #f8f8f9; border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; display: flex; flex-direction: column; gap: 16px; font-size: 13px; } .dv-side-title { font-size: 16px; font-weight: 600; margin-top: 2px; }
+    .dv-side-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; } .dv-side-h { font-size: 12px; font-weight: 600; color: #6b6e73; text-transform: uppercase; letter-spacing: .06em; }
+    .dv-links { margin-top: 8px; } .dv-links > div { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--border); text-align: right; } .dv-links > div:last-child { border-bottom: 0; } .dv-links > div > span:first-child { text-align: left; }
+    @media (max-width: 1100px) { .dv-cols { grid-template-columns: 1fr; } }
 </style>
 @include('partials.quick-dialog-assets')
 <div class="page-heading">
@@ -76,21 +81,8 @@
 </dialog>
 @endif
 @if ($approves)<div class="alert alert-info">Moving to {{ $next }} also approves revision {{ $approves->revision }} of {{ $d->product->code }}, which orders for this part wait on.</div>@endif
+<div class="dv-cols"><div class="dv-main">
 <div class="dv-bar">@foreach ($stages as $i => $name)<div class="{{ $d->status === 'DONE' || $i < $d->stage_index ? 'done' : ($i === $d->stage_index ? 'now' : '') }}">{{ $name }}@if ($many && ($g = \App\Domains\Development\Models\PatternDevelopment::gateFor($name)))<span style="font-weight:400;display:block">{{ $tools->filter(fn ($t) => $t->reached($g))->count() }} of {{ $tools->count() }} {{ $g === 'BUILT' ? 'built' : 'passed trial' }}@if ($g === 'TRIAL_PASSED' && $tools->where('status', 'REWORK')->isNotEmpty()) · {{ $tools->where('status', 'REWORK')->count() }} rework @endif</span>@endif</div>@endforeach</div>
-<div class="panel"><div class="panel-header"><h2>Details</h2><span class="muted small">{{ $info['note'] }}</span></div><div class="panel-body">
-<dl class="detail-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px 24px;margin:0">
-    <div><dt class="muted small">Customer</dt><dd style="margin:0">{{ $d->customer?->name ?? '—' }}</dd></div>
-    <div><dt class="muted small">Enquiry</dt><dd style="margin:0">@if ($d->enquiry)<a href="{{ route('enquiries.show', $d->enquiry) }}">{{ $d->enquiry->code }}</a>@else — @endif</dd></div>
-    <div><dt class="muted small">Part</dt><dd style="margin:0">@if ($d->product)<a href="{{ route('products.show', $d->product) }}">{{ $d->product->code }} {{ $d->product->name }}</a>@else — @endif</dd></div>
-    @if ($many)<div><dt class="muted small">Tools</dt><dd style="margin:0">{{ $d->toolSummary() }}</dd></div>@endif
-    <div><dt class="muted small">Owner</dt><dd style="margin:0">{{ $d->owner_name ?: '—' }}</dd></div>
-    <div><dt class="muted small">Due</dt><dd style="margin:0">{{ $d->due_on?->displayDate() ?? '—' }}</dd></div>
-    @if ($d->reason)<div><dt class="muted small">Reason</dt><dd style="margin:0">{{ config('pattern_developments.reasons.'.$d->reason) }}</dd></div>@endif
-    @if ($d->who_pays)<div><dt class="muted small">Who pays</dt><dd style="margin:0">{{ config('pattern_developments.who_pays.'.$d->who_pays) }}</dd></div>@endif
-    @if ($d->drawing_change)<div><dt class="muted small">Drawing change</dt><dd style="margin:0">{{ $d->drawing_change }}</dd></div>@endif
-</dl>
-@if ($d->notes)<p style="margin-top:14px">{{ $d->notes }}</p>@endif
-</div></div>
 @php
     $amount = fn ($v) => $d->cost_currency ? $d->cost_currency.' '.\App\Support\Formats::number($v, 2) : \App\Support\Formats::money($v);
     $quotedSum = $tools->whereNotNull('quoted_cost')->sum('quoted_cost');
@@ -198,6 +190,34 @@ document.addEventListener('click', function (e) {
         <input name="text" maxlength="2000" required placeholder="Add a note: what was agreed or sent" style="flex:1" aria-label="Note"><button class="btn" type="submit">Add note</button></form>
     <ul class="dv-log">@foreach ($d->events as $ev)<li><span>{{ $ev->text }}<span class="muted small"> · {{ $ev->user_name }}</span></span><span class="when">{{ $ev->created_at->displayDateTime() }}</span></li>@endforeach</ul>
 </div></div>
+</div>
+<aside class="dv-side">
+    <div><code class="muted">{{ $d->code }}</code><div class="dv-side-title">{{ $d->title }}</div>
+        <div class="muted">{{ $d->customer?->name ?? '—' }}@if ($d->enquiry) · from <a href="{{ route('enquiries.show', $d->enquiry) }}"><code>{{ $d->enquiry->code }}</code></a>@endif</div></div>
+    <div class="dv-side-grid">
+        <div><div class="muted small">Drawing</div><div>@if ($item?->drawing_rev)Rev {{ $item->drawing_rev }}@if ($item->drawing_ref) · {{ $item->drawing_ref }}@endif @elseif ($item?->drawing_ref){{ $item->drawing_ref }}@else — @endif</div></div>
+        <div><div class="muted small">Metal</div><div>{{ $item?->material_text ?: '—' }}</div></div>
+        <div><div class="muted small">Tools</div><div>{{ $tools->isEmpty() ? '—' : $d->toolSummary() }}</div></div>
+        <div><div class="muted small">Owner</div><div>{{ $d->owner_name ?: '—' }}</div></div>
+        <div><div class="muted small">Type</div><div>{{ $info['name'] }}</div></div>
+        <div><div class="muted small">Due</div><div>{{ $d->due_on?->displayDate() ?? '—' }}</div></div>
+        @if ($d->reason)<div><div class="muted small">Reason</div><div>{{ config('pattern_developments.reasons.'.$d->reason) }}</div></div>@endif
+        @if ($d->who_pays)<div><div class="muted small">Who pays</div><div>{{ config('pattern_developments.who_pays.'.$d->who_pays) }}</div></div>@endif
+    </div>
+    @if ($d->drawing_change)<div><div class="muted small">Drawing change</div><div>{{ $d->drawing_change }}</div></div>@endif
+    @if ($d->notes)<div><div class="muted small">Notes</div><div>{{ $d->notes }}</div></div>@endif
+    <div class="ei-preview" style="height:110px;border-radius:8px;border:1px solid #e0e1e4;background:repeating-linear-gradient(135deg,#fff 0 8px,#f1f2f4 8px 16px);display:flex;align-items:center;justify-content:center;overflow:hidden">
+        @if ($preview && $preview->isImage())<img src="{{ route('attachments.download', $preview) }}" alt="{{ $preview->original_name }}" style="max-width:100%;max-height:100%;object-fit:contain">
+        @elseif ($preview)<iframe src="{{ route('attachments.download', $preview) }}" title="{{ $preview->original_name }}" style="width:100%;height:100%;border:0;background:#fff"></iframe>
+        @else<code style="font-size:11.5px;color:#6b6e73;background:#fff;padding:4px 8px;border-radius:4px">{{ $d->enquiry ? 'No drawing yet' : 'latest drawing preview' }}</code>@endif
+    </div>
+    <div><div class="dv-side-h">Linked</div>
+        <div class="dv-links">
+            <div><span>Feasibility</span><span class="muted">@if ($signed)<a href="{{ route('feasibility.show', $item) }}">signed</a> {{ $signed->signed_at->displayDate() }}@elseif ($item)<a href="{{ route('feasibility.show', $item) }}">not signed yet</a>@else — @endif</span></div>
+            <div><span>Tooling charge</span><span class="muted">{{ $d->quoted_tooling_cost !== null ? $amount($d->quoted_tooling_cost) : '—' }}</span></div>
+            <div><span>Part record</span><span class="muted">@if ($d->product)<a href="{{ route('products.show', $d->product) }}">{{ $d->product->code }}</a>@elseif (in_array($d->type, ['NEW_PART', 'NEW_PRODUCT'], true))Created on approval @else — @endif</span></div>
+        </div></div>
+</aside></div>
 @if ($d->isOpen())
 @php $cancelErrors = collect($errors->getMessages())->filter(fn ($m, $k) => str_starts_with($k, 'decisions')); @endphp
 <button type="button" class="btn tl-danger" data-quick="dvCancel">Cancel development</button>

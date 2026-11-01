@@ -12,6 +12,7 @@ use App\Domains\Enquiry\Models\EnquiryEvent;
 use App\Domains\Tooling\Models\ToolingLifeLimit;
 use App\Domains\Tooling\Services\ToolingLifeStatusService;
 use App\Http\Controllers\Controller;
+use App\Models\Attachment;
 use App\Models\CoreBox;
 use App\Models\Customer;
 use App\Models\Pattern;
@@ -146,10 +147,15 @@ class PatternDevelopmentController extends Controller
 
     public function show(PatternDevelopment $development): View
     {
-        $development->load('enquiry:id,code', 'customer', 'product:id,code,name', 'pattern:id,code,name', 'events', 'tools.pattern:id,code,name', 'tools.coreBox');
+        $development->load('enquiry:id,code', 'customer', 'product:id,code,name', 'pattern:id,code,name', 'events', 'tools.pattern:id,code,name', 'tools.coreBox', 'enquiryItem.reviews');
+        $item = $development->enquiryItem;
+        $files = $development->enquiry_id ? Attachment::where('attachable_type', 'enquiry')->where('attachable_id', $development->enquiry_id)->current()->orderByDesc('created_at')->get() : collect();
 
         return view('development::show', [
             'd' => $development,
+            'item' => $item,
+            'preview' => $files->first(fn ($f) => $f->isInlineViewable()),
+            'signed' => $item?->reviews->whereNotNull('signed_at')->sortByDesc('signed_at')->first(),
             'registerPatterns' => Pattern::orderBy('code')->get(['id', 'code', 'name']),
             'registerBoxes' => app(ToolRegister::class)->toolingOn() ? CoreBox::orderBy('code')->get(['id', 'code', 'name']) : collect(),
         ]);

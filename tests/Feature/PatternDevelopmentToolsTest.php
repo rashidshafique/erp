@@ -157,6 +157,16 @@ class PatternDevelopmentToolsTest extends TestCase
             ->assertSee('0 of 2 built')->assertSee('not built yet.');
     }
 
+    public function test_the_sidebar_shows_the_part_facts_and_what_it_links_to(): void
+    {
+        $d = $this->development();
+        $d->update(['owner_name' => 'D. Ostrowski', 'quoted_tooling_cost' => 2330000]);
+        $this->addBox($d);
+
+        $this->get(route('developments.show', $d))->assertOk()->assertSee('Linked')->assertSee('Feasibility')->assertSee('Tooling charge')
+            ->assertSee('Part record')->assertSee('Created on approval')->assertSee('D. Ostrowski')->assertSee('2 · not started');
+    }
+
     public function test_the_gate_names_the_tool_and_what_stays_as_it_is(): void
     {
         $d = $this->development();
