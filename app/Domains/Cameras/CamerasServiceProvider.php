@@ -27,15 +27,11 @@ class CamerasServiceProvider extends ModuleServiceProvider
         return __DIR__;
     }
 
-    protected function navGroups(): array
+    protected function settingsLinks(): array
     {
-        return [[
-            'key' => 'cameras', 'label' => 'Cameras', 'icon' => 'camera', 'active' => ['cameras.*'],
-            'items' => [
-                ['label' => 'Live view', 'route' => 'cameras.index', 'icon' => 'monitor', 'active' => ['cameras.index', 'cameras.snapshot', 'cameras.stream']],
-                ['label' => 'Camera setup', 'route' => 'cameras.setup', 'icon' => 'sliders', 'active' => ['cameras.setup', 'cameras.dvrs.*', 'cameras.channels.*', 'cameras.update', 'cameras.destroy']],
-            ],
-        ]];
+        return [
+            ['section' => 'Foundry', 'label' => 'Cameras', 'route' => 'cameras.index', 'active' => ['cameras.*']],
+        ];
     }
 
     protected function permissionCatalog(): array

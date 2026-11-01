@@ -52,9 +52,9 @@ class CameraViewerTest extends TestCase
         return $user;
     }
 
-    public function test_the_menu_has_a_cameras_group_with_the_live_view_and_the_setup(): void
+    public function test_the_cameras_live_under_settings_and_not_in_the_main_menu(): void
     {
-        $html = $this->get(route('cameras.index'))->assertOk()->getContent();
+        $html = $this->get(route('cameras.index'))->assertOk()->assertSee('class="settings-nav"', false)->getContent();
         $menu = [];
         foreach (array_slice(preg_split('/<div class="nav-group/', $html), 1) as $group) {
             preg_match('/<span class="nav-lab">.*?<span>(.*?)<\/span><\/span>/s', $group, $title);
@@ -62,7 +62,8 @@ class CameraViewerTest extends TestCase
             $menu[html_entity_decode($title[1])] = array_map('html_entity_decode', $items[1]);
         }
 
-        $this->assertSame(['Live view', 'Camera setup'], $menu['Cameras']);
+        $this->assertArrayNotHasKey('Cameras', $menu);
+        $this->assertMatchesRegularExpression('#aria-current="page"\s*><span>Cameras</span>#', $html);
     }
 
     public function test_the_recorder_is_set_up_with_its_password_kept_encrypted_and_never_shown(): void
