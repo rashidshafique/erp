@@ -5,6 +5,7 @@ namespace App\Domains\Development\Services;
 use App\Domains\Core\ModuleRegistry;
 use App\Domains\Development\Models\PatternDevelopment;
 use App\Domains\Development\Models\PatternDevelopmentTool;
+use App\Domains\Tooling\Models\ToolingLifeLimit;
 use App\Models\CoreBox;
 use App\Models\CoreDefinition;
 use App\Models\CoreRequirement;
@@ -41,17 +42,23 @@ class ToolRegister
         return app(ModuleRegistry::class)->isEnabled('tooling');
     }
 
-    /** Creates the Pattern or CoreBox for the row and links it. A core box starts out of service unless the row is already built. */
-    public function create(PatternDevelopmentTool $tool): void
+    /**
+     * Creates the Pattern or CoreBox for the row and links it. A core box starts out of service unless the row is already built.
+     * The owner follows who pays unless the dialog says otherwise (design 18c).
+     *
+     * @param  array{owner_customer_id?: string|null, custody_location?: string|null, rated_life?: int|float|null, cavities?: int|null}  $details
+     */
+    public function create(PatternDevelopmentTool $tool, array $details = []): void
     {
         abort_unless($this->canCreate($tool), 422);
         $development = $tool->development;
-        DB::transaction(function () use ($tool, $development) {
+        $ownerId = array_key_exists('owner_customer_id', $details) ? $details['owner_customer_id'] : ($tool->who_pays === 'CUSTOMER' ? $development->customer_id : null);
+        $owner = ['owner_type' => $ownerId ? 'CUSTOMER' : 'FOUNDRY', 'owner_customer_id' => $ownerId, 'custody_location' => $details['custody_location'] ?? null];
+        $life = $details['rated_life'] ?? null;
+        DB::transaction(function () use ($tool, $development, $owner, $life, $details) {
             if ($tool->kind === 'PATTERN') {
-                $pattern = new Pattern([
+                $pattern = new Pattern($owner + [
                     'name' => $tool->label, 'pattern_type' => 'OTHER', 'status' => 'ACTIVE',
-                    'owner_type' => $tool->who_pays === 'CUSTOMER' && $development->customer_id ? 'CUSTOMER' : 'FOUNDRY',
-                    'owner_customer_id' => $tool->who_pays === 'CUSTOMER' ? $development->customer_id : null,
                     'supplied_by_customer' => $tool->made_by === 'CUSTOMER_SUPPLIED',
                 ]);
                 $pattern->save();
@@ -59,19 +66,21 @@ class ToolRegister
                 if (! $development->pattern_id) {
                     $development->update(['pattern_id' => $pattern->id]);
                 }
+                $this->ratedLife('pattern_id', $pattern->id, 'MOULDS', $life);
                 $this->log($development, "Pattern {$pattern->code} added to the register for {$tool->label}.");
 
                 return;
             }
             $core = CoreDefinition::create(['name' => $tool->label, 'core_type' => 'STANDARD', 'status' => 'ACTIVE']);
             $from = $tool->replacesCoreBox;
-            $box = CoreBox::create([
-                'core_definition_id' => $core->id, 'name' => $tool->label, 'revision' => 'A', 'cavities' => 1,
+            $box = CoreBox::create($owner + [
+                'core_definition_id' => $core->id, 'name' => $tool->label, 'revision' => 'A', 'cavities' => max(1, (int) ($details['cavities'] ?? 1)),
                 'status' => in_array($tool->status, self::MADE, true) ? 'ACTIVE' : 'INACTIVE',
                 'origin' => $from ? 'MODIFIED_BOX' : 'NEW', 'modified_from_core_box_id' => $from?->id,
                 'commissioned_on' => in_array($tool->status, self::MADE, true) ? today() : null,
             ]);
             $tool->update(['core_box_id' => $box->id, 'core_definition_id' => $core->id]);
+            $this->ratedLife('core_box_id', $box->id, 'CORES', $life);
             $this->log($development, "Core box {$box->code} added to the register for {$tool->label}, out of service until it is built.");
             $this->linkRequirements($development);
         });
@@ -158,6 +167,18 @@ class ToolRegister
             $tool->update(['retired_at' => now()]);
             $this->log($development, "{$old->code} retired.");
         }
+    }
+
+    /** A life limit for the new record when a rated life was given and Tooling is on. */
+    private function ratedLife(string $column, string $id, string $unit, int|float|null $quantity): void
+    {
+        if (! $quantity || ! $this->toolingOn()) {
+            return;
+        }
+        ToolingLifeLimit::create([
+            'tooling_type' => $column === 'core_box_id' ? 'CORE_BOX' : 'PATTERN', $column => $id, 'usage_unit' => $unit,
+            'service_life_quantity' => $quantity, 'warning_threshold_percent' => 80, 'usage_at_last_inspection' => 0, 'is_active' => true,
+        ]);
     }
 
     private function log(PatternDevelopment $development, string $text): void

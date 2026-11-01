@@ -22,6 +22,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -159,6 +160,7 @@ class PatternDevelopmentController extends Controller
             'registerPatterns' => Pattern::orderBy('code')->get(['id', 'code', 'name']),
             'registerBoxes' => app(ToolRegister::class)->toolingOn() ? CoreBox::orderBy('code')->get(['id', 'code', 'name']) : collect(),
             'shareable' => $development->isOpen() ? $this->shareable($development) : collect(),
+            'owners' => Customer::active()->orderedByName()->get(),
         ]);
     }
 
@@ -338,10 +340,19 @@ class PatternDevelopmentController extends Controller
     }
 
     /** Adds the planned tool to its register (patterns, or core boxes when Tooling is on) and links the two. */
-    public function toolRegister(PatternDevelopment $development, PatternDevelopmentTool $tool): RedirectResponse
+    public function toolRegister(Request $request, PatternDevelopment $development, PatternDevelopmentTool $tool): RedirectResponse
     {
         abort_unless($tool->pattern_development_id === $development->id && $development->isOpen(), 404);
-        app(ToolRegister::class)->create($tool);
+        $d = $request->validate([
+            'owner' => ['sometimes', 'nullable', 'string', 'max:60'],
+            'custody_location' => ['nullable', 'string', 'max:150'],
+            'rated_life' => ['nullable', 'integer', 'min:1', 'max:100000000'],
+            'cavities' => ['nullable', 'integer', 'min:1', 'max:50'],
+        ]);
+        if ($request->has('owner')) {   // the dialog sends FOUNDRY or a customer's id; the quick link leaves the owner to who pays
+            $d['owner_customer_id'] = ($d['owner'] ?? 'FOUNDRY') === 'FOUNDRY' ? null : (Str::isUuid($d['owner']) ? Customer::findOrFail($d['owner'])->id : abort(422));
+        }
+        app(ToolRegister::class)->create($tool, array_intersect_key($d, array_flip(['owner_customer_id', 'custody_location', 'rated_life', 'cavities'])));
         app(ToolRegister::class)->sync($tool->fresh());
 
         return back()->with('success', 'Added to the register.');

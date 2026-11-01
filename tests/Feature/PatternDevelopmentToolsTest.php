@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Domains\Development\Models\PatternDevelopment;
 use App\Domains\Development\Support\DevelopmentRules;
+use App\Domains\Tooling\Models\ToolingLifeLimit;
 use App\Models\CoreBox;
 use App\Models\CoreDefinition;
 use App\Models\Customer;
@@ -502,6 +503,39 @@ class PatternDevelopmentToolsTest extends TestCase
         $this->put(route('developments.tools.update', [$d, $tool]), ['status' => 'BUILT']);
 
         $this->get(route('core-boxes.show', $box))->assertOk()->assertSee('Trial cores allowed');
+    }
+
+    public function test_the_register_dialog_sets_owner_location_cores_per_fill_and_rated_life(): void
+    {
+        $d = $this->development();
+        $this->post(route('developments.tools.store', $d), ['kind' => 'CORE_BOX', 'label' => 'Volute core box', 'route' => 'NEW', 'who_pays' => 'CUSTOMER']);
+        $tool = $d->fresh()->tools->firstWhere('kind', 'CORE_BOX');
+        $this->get(route('developments.show', $d))->assertOk()->assertSee('Owner follows who pays')->assertSee('There is no part record yet');
+
+        $this->post(route('developments.tools.register', [$d, $tool]), ['owner' => $d->customer_id, 'custody_location' => 'Core shop', 'rated_life' => 50000, 'cavities' => 2])->assertSessionHasNoErrors();
+
+        $box = $tool->fresh()->coreBox;
+        $this->assertSame('CUSTOMER', $box->owner_type);
+        $this->assertSame($d->customer_id, $box->owner_customer_id);
+        $this->assertSame('Core shop', $box->custody_location);
+        $this->assertSame(2, $box->cavities);
+        $this->assertSame(50000.0, (float) ToolingLifeLimit::where('core_box_id', $box->id)->sole()->service_life_quantity);
+    }
+
+    public function test_the_register_dialog_can_make_a_customer_paid_pattern_foundry_owned_and_the_quick_link_follows_who_pays(): void
+    {
+        $d = $this->development();
+        $pattern = $d->tools->sole();
+        $pattern->update(['who_pays' => 'CUSTOMER']);
+        $this->post(route('developments.tools.register', [$d, $pattern]), ['owner' => 'FOUNDRY'])->assertSessionHasNoErrors();
+        $this->assertSame('FOUNDRY', $pattern->fresh()->pattern->owner_type);
+
+        $this->addBox($d);
+        $box = $d->fresh()->tools->firstWhere('kind', 'CORE_BOX');
+        $box->update(['who_pays' => 'CUSTOMER']);
+        $this->post(route('developments.tools.register', [$d, $box]))->assertSessionHasNoErrors();
+        $this->assertSame($d->customer_id, $box->fresh()->coreBox->owner_customer_id);
+        $this->assertSame(0, ToolingLifeLimit::count());
     }
 
     private function coreBox(): CoreBox

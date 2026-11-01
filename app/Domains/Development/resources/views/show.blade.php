@@ -170,7 +170,7 @@
                         <div class="wide"><button class="btn btn-primary" type="submit">Save</button></div>
                     </div></form>
                 @if ($canRegister)<hr>
-                <form method="POST" action="{{ route('developments.tools.register', [$d, $t]) }}">@csrf<button class="btn" type="submit" style="width:100%">Create register record</button></form>
+                <button type="button" class="btn" style="width:100%" data-quick="reg-{{ $t->id }}">Create register record</button>
                 @php $linkable = $t->kind === 'CORE_BOX' ? $registerBoxes : $registerPatterns; @endphp
                 @if ($linkable->isNotEmpty())<form method="POST" action="{{ route('developments.tools.link', [$d, $t]) }}" style="display:flex;gap:6px">@csrf
                     <select name="record" required aria-label="Register record for {{ $t->label }}" style="flex:1;min-width:0"><option value="">Link to register record…</option>@foreach ($linkable as $r)<option value="{{ ($t->kind === 'CORE_BOX' ? 'box:' : 'pattern:').$r->id }}">{{ $r->code }} {{ $r->name }}</option>@endforeach</select><button class="btn" type="submit">Link</button></form>@endif
@@ -182,6 +182,26 @@
         </tr>
     @endforeach
     </tbody></table></div>
+    @foreach ($tools->filter(fn ($t) => $d->isOpen() && $register->canCreate($t)) as $t)
+        @php $isBox = $t->kind === 'CORE_BOX'; $ownerDefault = $t->who_pays === 'CUSTOMER' && $d->customer_id ? $d->customer_id : 'FOUNDRY'; @endphp
+        <dialog class="qd" id="reg-{{ $t->id }}" aria-labelledby="reg-{{ $t->id }}-t">
+        <form method="POST" action="{{ route('developments.tools.register', [$d, $t]) }}">@csrf
+            <div class="qd-head"><h2 id="reg-{{ $t->id }}-t">Create register record</h2><button type="button" class="qd-x" data-close aria-label="Close">&times;</button></div>
+            <div class="qd-body">
+                <div class="alert alert-error qd-errors" role="alert" hidden></div>
+                <p class="muted small" style="margin:0 0 10px">{{ $isBox ? 'Core box' : 'Pattern' }} · {{ $t->label }}. The code is given when the record is created.</p>
+                <div class="qd-fields">
+                    <div class="field field-full"><label for="reg-{{ $t->id }}-o">Owner</label><select id="reg-{{ $t->id }}-o" name="owner"><option value="FOUNDRY">Foundry-owned</option>@foreach ($owners as $c)<option value="{{ $c->id }}" @selected($ownerDefault === $c->id)>{{ $c->name }} · customer-owned</option>@endforeach</select><div class="help">Owner follows who pays{{ $t->who_pays ? ' ('.strtolower(config('pattern_developments.who_pays.'.$t->who_pays)).')' : '' }}.</div></div>
+                    <div class="field"><label for="reg-{{ $t->id }}-l">Location</label><input id="reg-{{ $t->id }}-l" name="custody_location" maxlength="150" placeholder="{{ $isBox ? 'Core shop' : 'Pattern store' }}"></div>
+                    @if ($register->toolingOn())<div class="field"><label for="reg-{{ $t->id }}-r">Rated life, {{ $isBox ? 'cores' : 'moulds' }}</label><input id="reg-{{ $t->id }}-r" name="rated_life" type="number" min="1" step="1"></div>@endif
+                    @if ($isBox)<div class="field"><label for="reg-{{ $t->id }}-c">Cores per fill</label><input id="reg-{{ $t->id }}-c" name="cavities" type="number" min="1" max="50" value="1"></div>@endif
+                </div>
+                @if (! $d->product_id)<p class="muted small" style="margin:10px 0 0">There is no part record yet. The {{ $isBox ? 'core box' : 'pattern' }} is registered against {{ $d->code }} and linked to the part when the development is approved and creates it.</p>@endif
+            </div>
+            <div class="qd-foot"><button type="button" class="btn" data-close>Cancel</button><button class="btn btn-primary" type="submit">Create record</button></div>
+        </form>
+        </dialog>
+    @endforeach
     @if ($shared = $tools->first->isShared())<p class="muted small" style="margin:8px 0 0">Shared tools are costed and moved on their own development. This one counts toward the gate when {{ $shared->sharedFrom->development->code }} marks it {{ $trial ? 'Trial passed' : 'Built' }}.</p>@endif
     @endif
     @if ($tools->isNotEmpty() && $depth !== 'LIST')
