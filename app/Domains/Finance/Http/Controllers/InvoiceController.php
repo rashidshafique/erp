@@ -179,7 +179,7 @@ class InvoiceController extends Controller
     {
         $d = $request->validate(['reason' => ['required', 'string', 'min:3', 'max:500']]);
         try {
-            $note = $service->creditNote($invoice, $this->lines($request), $d['reason']);
+            $note = $service->creditNote($invoice, $this->lines($request), $d['reason'], $this->adjustments($request));
         } catch (InvalidArgumentException $e) {
             return back()->withErrors(['invoice' => $e->getMessage()])->withInput();
         }
@@ -209,7 +209,20 @@ class InvoiceController extends Controller
             'place_of_supply' => ['nullable', 'string', 'max:10'],
         ]);
 
-        return $d;
+        return $d + ['adjustments' => $this->adjustments($request)];
+    }
+
+    /**
+     * Charge and deduction boxes (design 19o); InvoiceService keeps those with an offered account and an amount.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function adjustments(Request $request): array
+    {
+        return array_values($request->validate([
+            'adjustments' => ['nullable', 'array', 'max:6'], 'adjustments.*.kind' => ['required', 'in:charge,deduction'],
+            'adjustments.*.account_id' => ['nullable', 'uuid'], 'adjustments.*.amount' => ['nullable', 'numeric', 'min:0'],
+        ])['adjustments'] ?? []);
     }
 
     /** @return list<array<string, mixed>> */

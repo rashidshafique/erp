@@ -17,6 +17,7 @@
     <td><button type="button" class="btn btn-small" @click="lines.splice(i, 1)" x-show="lines.length > 1" aria-label="Remove line">✕</button></td>
 </tr></template>
 </tbody><tfoot><tr><th colspan="4" class="num">Credit total</th><th class="num" x-text="money(subtotal + tax)"></th><td></td></tr></tfoot></table></div></div>
+@include('finance::invoices._charges', ['document' => 'credit_note', 'adjustments' => old('adjustments', [])])
 <div class="panel"><div class="panel-body"><label>Reason<input name="reason" value="{{ old('reason') }}" maxlength="500" required placeholder="Rejected castings, price correction, returned goods…"></label></div>
 <div class="panel-body"><button class="btn btn-primary" onclick="return confirm('Issue this credit note? It is final.')">Issue credit note</button> <a class="btn" href="{{ route('invoices.show', $invoice) }}">Cancel</a></div></div>
 </form>

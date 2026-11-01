@@ -44,6 +44,7 @@
 @php $span = ($taxPack ? 7 : 5) + ($discounts ? 1 : 0); @endphp
 <tfoot><tr><td colspan="{{ $span }}" class="num muted">Subtotal</td><td class="num" x-text="money(subtotal)"></td><td></td></tr>@if ($taxPack)<tr><td colspan="{{ $span }}" class="num muted">Tax is worked out by the tax rules when the draft is saved.</td><td></td><td></td></tr>@else<tr><td colspan="{{ $span }}" class="num muted">Tax</td><td class="num" x-text="money(tax)"></td><td></td></tr><tr><th colspan="{{ $span }}" class="num">Total</th><th class="num" x-text="money(subtotal + tax)"></th><td></td></tr>@endif</tfoot></table></div>
 <div class="panel-body"><button type="button" class="btn btn-small" @click="lines.push({description: '', quantity: 1, uom: '', unit_price: 0, discount_percent: 0, tax_rate_id: lines[0]?.tax_rate_id ?? '', supply_type: 'GOODS', tariff_code: '', inventory_class: '', sales_order_line_id: null, dispatch_item_id: null})">+ Add a line</button></div></div>
+@include('finance::invoices._charges', ['document' => 'invoice', 'adjustments' => old('adjustments', $invoice?->adjustments ?? [])])
 <div class="panel"><div class="panel-body"><label>Notes on the invoice<textarea name="notes" rows="2" maxlength="2000">{{ old('notes', $invoice?->notes) }}</textarea></label></div>
 <div class="panel-body"><button class="btn btn-primary" type="submit">Save draft</button> <a class="btn" href="{{ $invoice ? route('invoices.show', $invoice) : route('invoices.index') }}">Cancel</a></div></div>
 </form>

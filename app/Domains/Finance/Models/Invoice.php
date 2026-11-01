@@ -21,7 +21,23 @@ class Invoice extends Model
     protected function casts(): array
     {
         return ['invoice_date' => 'date', 'due_date' => 'date', 'issued_at' => 'datetime', 'voided_at' => 'datetime',
-            'subtotal' => 'float', 'tax_total' => 'float', 'total' => 'float', 'tax_withheld' => 'float'];
+            'subtotal' => 'float', 'tax_total' => 'float', 'total' => 'float', 'tax_withheld' => 'float', 'adjustments' => 'array'];
+    }
+
+    /** Value with tax, before any charge or deduction: what "Total" shows above the boxes (design 19o). */
+    public function grossTotal(): float
+    {
+        return round((float) $this->subtotal + (float) $this->tax_total, 2);
+    }
+
+    /**
+     * Charges and deductions after tax, each with its account and a signed amount (charges add, deductions take off).
+     *
+     * @return list<array{kind: string, account_id: string, code: ?string, name: string, amount: float}>
+     */
+    public function adjustmentLines(): array
+    {
+        return array_values(array_filter((array) $this->adjustments, fn ($a) => (float) ($a['amount'] ?? 0) > 0));
     }
 
     public function customer(): BelongsTo { return $this->belongsTo(Customer::class); }

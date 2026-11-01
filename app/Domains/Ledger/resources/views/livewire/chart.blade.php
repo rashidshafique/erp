@@ -14,6 +14,7 @@ new class extends Component
 {
     use ChartDialog;
 
+    #[\Livewire\Attributes\Url(except: '')]
     public string $q = '';
 
     public bool $showInactive = false;

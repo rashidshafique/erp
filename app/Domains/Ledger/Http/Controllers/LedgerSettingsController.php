@@ -3,6 +3,7 @@
 namespace App\Domains\Ledger\Http\Controllers;
 
 use App\Domains\Core\ModuleRegistry;
+use App\Domains\Finance\Services\ChargeBoxes;
 use App\Domains\Ledger\Models\LedgerAccount;
 use App\Domains\Ledger\Services\LedgerSettings;
 use App\Domains\Ledger\Services\PostingRules;
@@ -79,5 +80,24 @@ class LedgerSettingsController extends Controller
         $back = back()->with('success', "Posted {$result['posted']} documents to the ledger.");
 
         return $result['skipped'] === [] ? $back : $back->withErrors(['ledger' => 'Not posted: '.implode(' ', array_slice($result['skipped'], 0, 10))]);
+    }
+
+    /** How many charge and deduction boxes sales documents show, and on which documents (design 19n). */
+    public function salesDocuments(): View
+    {
+        return view('ledger::settings.sales-documents', [
+            'charges' => ChargeBoxes::charges(), 'deductions' => ChargeBoxes::deductions(), 'documents' => ChargeBoxes::documents(), 'accounts' => ChargeBoxes::accounts(),
+        ]);
+    }
+
+    public function saveSalesDocuments(Request $request): RedirectResponse
+    {
+        $d = $request->validate([
+            'charges' => ['required', 'integer', 'min:0', 'max:'.ChargeBoxes::MAX], 'deductions' => ['required', 'integer', 'min:0', 'max:'.ChargeBoxes::MAX],
+            'documents' => ['nullable', 'array'], 'documents.*' => ['in:'.implode(',', array_keys(ChargeBoxes::DOCUMENT_LABELS))],
+        ]);
+        ChargeBoxes::save((int) $d['charges'], (int) $d['deductions'], $d['documents'] ?? []);
+
+        return back()->with('success', 'Sales document settings saved.');
     }
 }

@@ -252,6 +252,13 @@ class InvoiceLayouts
                 if ($charged->isEmpty()) {
                     $rows[] = ['label' => 'Tax', 'value' => $n($invoice->tax_total), 'strong' => false];
                 }
+            } elseif ($key === 'total' && $invoice->adjustmentLines()) {
+                // charge and deduction boxes after tax, then the net (design 19o); empty boxes are left off
+                $rows[] = ['label' => 'Total including tax', 'value' => $n($invoice->grossTotal()), 'strong' => false];
+                foreach ($invoice->adjustmentLines() as $a) {
+                    $rows[] = ['label' => ($a['kind'] === 'deduction' ? 'Less ' : '').$a['name'], 'value' => $a['kind'] === 'deduction' ? '('.$n($a['amount']).')' : $n($a['amount']), 'strong' => false];
+                }
+                $rows[] = ['label' => 'Net '.$invoice->currency, 'value' => $n($invoice->total), 'strong' => true];
             } elseif ($key === 'total') {
                 $rows[] = ['label' => 'Total including tax '.$invoice->currency, 'value' => $n($invoice->total), 'strong' => true];
             } elseif ($key === 'withheld') {

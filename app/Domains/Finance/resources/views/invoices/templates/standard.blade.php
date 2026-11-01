@@ -13,7 +13,13 @@
 <tr><th colspan="{{ $span + 1 }}" class="num">Value excluding tax</th><td class="num">{{ $n($invoice->subtotal) }}</td></tr>
 @foreach ($breakdown->reject(fn ($t) => $t['withheld']) as $t)<tr><th colspan="{{ $span + 1 }}" class="num">{{ $t['label'] }} @ {{ $pct($t['rate']) }}@if ($t['authority']) ({{ $t['authority'] }})@endif</th><td class="num">{{ $n($t['amount']) }}</td></tr>@endforeach
 @if ($breakdown->reject(fn ($t) => $t['withheld'])->isEmpty())<tr><th colspan="{{ $span + 1 }}" class="num">Tax</th><td class="num">{{ $n($invoice->tax_total) }}</td></tr>@endif
+@if ($invoice->adjustmentLines())
+<tr><th colspan="{{ $span + 1 }}" class="num">Total including tax</th><td class="num">{{ $n($invoice->grossTotal()) }}</td></tr>
+@foreach ($invoice->adjustmentLines() as $adj)<tr><th colspan="{{ $span + 1 }}" class="num">{{ $adj['kind'] === 'deduction' ? 'Less ' : '' }}{{ $adj['name'] }}</th><td class="num">{{ $adj['kind'] === 'deduction' ? '('.$n($adj['amount']).')' : $n($adj['amount']) }}</td></tr>@endforeach
+<tr><th colspan="{{ $span + 1 }}" class="num">Net {{ $invoice->currency }}</th><th class="num">{{ $n($invoice->total) }}</th></tr>
+@else
 <tr><th colspan="{{ $span + 1 }}" class="num">Total including tax {{ $invoice->currency }}</th><th class="num">{{ $n($invoice->total) }}</th></tr>
+@endif
 @foreach ($breakdown->filter(fn ($t) => $t['withheld']) as $t)<tr><td colspan="{{ $span + 1 }}" class="num muted">Less {{ strtolower($t['label']) }} @ {{ $pct($t['rate']) }}</td><td class="num muted">({{ $n($t['amount']) }})</td></tr>@endforeach
 @if ($invoice->tax_withheld > 0)<tr><th colspan="{{ $span + 1 }}" class="num">Payable to {{ $brand }}</th><th class="num">{{ $n($invoice->payableToUs()) }}</th></tr>@endif
 </tfoot></table>

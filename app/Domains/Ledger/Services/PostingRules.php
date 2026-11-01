@@ -117,6 +117,12 @@ class PostingRules
             }
         }
 
+        foreach ($invoice->adjustmentLines() as $a) {
+            // a charge credits its account and a deduction debits it (the other way on a credit note); receivables already hold the net
+            $chargeSide = ($a['kind'] === 'charge') !== $credit ? 'credit' : 'debit';
+            $lines[] = [$chargeSide => (float) $a['amount'], 'account_id' => $a['account_id']];
+        }
+
         return [$invoice->invoice_date->toDateString(), $lines, ($credit ? 'Credit note ' : 'Invoice ').$invoice->invoice_number.' · '.$invoice->customer?->name];
     }
 

@@ -32,7 +32,8 @@ class InvoiceService
     public function saveDraft(array $head, array $lines, ?Invoice $invoice = null): Invoice
     {
         $taxDate = $head['tax_date'] ?? null;   // a credit note is taxed as at its invoice's date
-        unset($head['tax_date']);
+        $adjustments = (array) ($head['adjustments'] ?? []);   // charge and deduction boxes (design 19o)
+        unset($head['tax_date'], $head['adjustments']);
         $lines = array_values(array_filter($lines, fn ($l) => trim((string) ($l['description'] ?? '')) !== ''));
         if ($lines === []) {
             throw new InvalidArgumentException('Add at least one line with a description.');
@@ -41,7 +42,7 @@ class InvoiceService
             throw new InvalidArgumentException("Only a draft can be changed; this one is {$invoice->status}.");
         }
 
-        return DB::transaction(function () use ($head, $lines, $invoice, $taxDate) {
+        return DB::transaction(function () use ($head, $lines, $invoice, $taxDate, $adjustments) {
             $customer = Customer::findOrFail($head['customer_id']);
             $head += ['kind' => 'INVOICE', 'invoice_date' => today()->toDateString(), 'currency' => FinanceRules::currency()];
             $head['payment_terms'] = $head['payment_terms'] ?? $customer->payment_terms;
@@ -77,7 +78,12 @@ class InvoiceService
                 $tax += $taxes->charged($i);
                 $withheld += $taxes->withheld($i);
             }
-            $invoice->update(['subtotal' => round($subtotal, 2), 'tax_total' => round($tax, 2), 'total' => round($subtotal + $tax, 2), 'tax_withheld' => round($withheld, 2)]);
+            $adjustments = ChargeBoxes::clean($adjustments);
+            $net = round($subtotal + $tax + array_sum(array_map(fn ($a) => $a['kind'] === 'deduction' ? -$a['amount'] : $a['amount'], $adjustments)), 2);
+            if ($net < 0) {
+                throw new InvalidArgumentException('Deductions cannot take the invoice below zero.');
+            }
+            $invoice->update(['subtotal' => round($subtotal, 2), 'tax_total' => round($tax, 2), 'total' => $net, 'tax_withheld' => round($withheld, 2), 'adjustments' => $adjustments ?: null]);
 
             return $invoice->fresh('lines');
         });
@@ -137,7 +143,7 @@ class InvoiceService
      *
      * @param  list<array<string, mixed>>  $lines
      */
-    public function creditNote(Invoice $original, array $lines, string $reason): Invoice
+    public function creditNote(Invoice $original, array $lines, string $reason, array $adjustments = []): Invoice
     {
         if ($original->status !== 'ISSUED' || $original->isCreditNote()) {
             throw new InvalidArgumentException('A credit note can only be raised against an issued invoice.');
@@ -146,6 +152,7 @@ class InvoiceService
             'kind' => 'CREDIT_NOTE', 'customer_id' => $original->customer_id, 'original_invoice_id' => $original->id, 'currency' => $original->currency,
             'payment_terms' => $original->payment_terms, 'customer_reference' => $original->customer_reference, 'notes' => $reason,
             'source_type' => 'invoice', 'source_id' => $original->id, 'place_of_supply' => $original->place_of_supply, 'tax_date' => $original->invoice_date->toDateString(),
+            'adjustments' => $adjustments,
         ], $lines);
         $room = round($original->total - $original->credited(), 2);
         if ($note->total > $room) {
