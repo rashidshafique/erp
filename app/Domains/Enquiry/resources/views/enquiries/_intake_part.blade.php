@@ -13,17 +13,17 @@
 @endphp
 <div class="ei-part" data-part data-key="{{ $key }}" @if (! $it) data-new @endif>
     @if ($it)<input type="hidden" name="{{ $n }}[id]" value="{{ $it->id }}">@endif
-    <div class="ei-part-head">
-        <div class="ei-h">Part <span data-num @unless ($multi) hidden @endunless>{{ $num }}</span></div>
+    <div class="ei-part-no"><span data-num>{{ $num }}</span>
         @if ($open)
-            @if ($it)<label class="ei-remove"><input type="checkbox" name="{{ $n }}[remove]" value="1" @checked(old("items.$key.remove"))> Remove this part</label>
-            @else<button type="button" class="ei-link" data-remove-part>Remove</button>@endif
+            @if ($it)<label class="ei-remove" title="Remove this part"><input type="checkbox" name="{{ $n }}[remove]" value="1" @checked(old("items.$key.remove")) aria-label="Remove this part"></label>
+            @else<button type="button" class="ei-link" data-remove-part title="Remove this part" aria-label="Remove this part">×</button>@endif
         @endif
     </div>
+    <div class="ei-part-body">
     @if ($err('remove'))<div class="error-text">{{ $err('remove') }}</div>@endif
 
-    <div class="ei-grid4" style="margin-top:14px">
-        <label class="ei-f ei-s2">Description <span class="ei-star"></span><input name="{{ $n }}[description]" value="{{ $v('description') }}" maxlength="200" placeholder="e.g. Brake caliper bracket, front LH" @if ($err('description')) aria-invalid="true" @endif>@if ($err('description'))<span class="error-text">{{ $err('description') }}</span>@endif</label>
+    <div class="ei-grid4">
+        <label class="ei-f ei-s2"><span>Description <span class="ei-star"></span></span><input name="{{ $n }}[description]" value="{{ $v('description') }}" maxlength="200" placeholder="e.g. Brake caliper bracket, front LH" @if ($err('description')) aria-invalid="true" @endif>@if ($err('description'))<span class="error-text">{{ $err('description') }}</span>@endif</label>
         <label class="ei-f">Drawing no.<input name="{{ $n }}[drawing_ref]" value="{{ $v('drawing_ref') }}" maxlength="100" @if ($err('drawing_ref')) aria-invalid="true" @endif>@if ($err('drawing_ref'))<span class="error-text">{{ $err('drawing_ref') }}</span>@endif</label>
         <label class="ei-f">Revision<input name="{{ $n }}[drawing_rev]" value="{{ $v('drawing_rev') }}" maxlength="20"></label>
         <div class="ei-f ei-s2" data-own hidden><label for="p-{{ $key }}">Which of our parts? <span class="ei-star"></span></label>
@@ -52,7 +52,7 @@
     <div class="ei-sec">Quality requirements</div>
     <div class="ei-chips" data-quality>
         @foreach (\App\Domains\Enquiry\Models\EnquiryItem::QUALITY as $k => $l)
-            <label class="ei-chip @if (in_array($k, $tests, true)) on @endif"><input type="checkbox" name="{{ $n }}[quality][]" value="{{ $k }}" @checked(in_array($k, $tests, true)) @if ($k === 'PPAP') data-ppap @endif>{{ $l }}
+            <label class="ei-chip @if (in_array($k, $tests, true)) on @endif" @isset(\App\Domains\Enquiry\Models\EnquiryItem::QUALITY_FAMILY[$k]) data-only-family="{{ \App\Domains\Enquiry\Models\EnquiryItem::QUALITY_FAMILY[$k] }}" @endisset><input type="checkbox" name="{{ $n }}[quality][]" value="{{ $k }}" @checked(in_array($k, $tests, true)) @if ($k === 'PPAP') data-ppap @endif>{{ $l }}
                 @if ($k === 'PPAP')<span data-ppap-level @unless (in_array('PPAP', $tests, true)) hidden @endunless><select name="{{ $n }}[ppap_level]" aria-label="PPAP level" @unless (in_array('PPAP', $tests, true)) disabled @endunless><option value="">Level…</option>@foreach (range(1, 5) as $lv)<option value="{{ $lv }}" @selected((string) $level === (string) $lv)>Level {{ $lv }}</option>@endforeach</select></span>@endif
             </label>
         @endforeach
@@ -92,5 +92,6 @@
                 @endif
             </div>
         @endif
+    </div>
     </div>
 </div>

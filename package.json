@@ -4,6 +4,7 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
+        "build:viewer": "vite build -c vite.viewer.config.js && cp node_modules/occt-import-js/dist/occt-import-js.wasm public/js/viewer/",
         "dev": "vite"
     },
     "devDependencies": {
@@ -15,5 +16,9 @@
     },
     "optionalDependencies": {
         "@laravel/multiplex": "^0.4.1"
+    },
+    "dependencies": {
+        "occt-import-js": "^0.0.23",
+        "three": "^0.187.0"
     }
 }

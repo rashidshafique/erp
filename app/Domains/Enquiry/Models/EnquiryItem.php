@@ -26,6 +26,9 @@ class EnquiryItem extends Model
         'ULTRASONIC' => 'Ultrasonic', 'HYDRO' => 'Hydro / leak test', 'CERT_31' => '3.1 certificate',
     ];
 
+    /** @var array<string, string> Quality chips that only make sense for one iron family; the intake screen shows them once that family is chosen. */
+    public const QUALITY_FAMILY = ['NODULARITY' => 'DUCTILE'];
+
     protected $guarded = [];
 
     /**
