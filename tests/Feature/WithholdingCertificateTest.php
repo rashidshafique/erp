@@ -69,7 +69,7 @@ class WithholdingCertificateTest extends TestCase
         $certificate = WithholdingCertificate::sole();
         $this->assertSame(['WHC-'.now()->format('Y').'-0001', 'Income tax withheld on supply of goods', 59.0], [$certificate->certificate_number, $certificate->tax_label, $certificate->amount]);
         $this->assertSame([36.0, 36.0, 0.0], [$invoice->balance(), $invoice->withheldOpen('WHT_ST'), $invoice->withheldOpen('WHT_IT_GOODS')]);
-        $this->assertSame([59.0, 36.0], [$this->net('1163'), $this->net('1130')]);
+        $this->assertSame([59.0, 36.0], [$this->net('22-03-01'), $this->net('22-02-01')]);
         $this->assertSame('2026-10-20', Journal::where('source_type', 'withholding_certificate')->sole()->journal_date->toDateString());
         $this->assertSame(36.0, app(Receivables::class)->statement($this->customer)['balance']);
 
@@ -97,7 +97,7 @@ class WithholdingCertificateTest extends TestCase
         $this->post(route('invoices.void', $invoice), ['reason' => 'Raised twice'])->assertSessionHasErrors('invoice');
         $this->post(route('withholding-certificates.void', $certificate), ['reason' => 'Wrong customer'])->assertSessionHasNoErrors();
 
-        $this->assertSame([95.0, 0.0, 95.0], [$invoice->balance(), $this->net('1163'), $this->net('1130')]);
+        $this->assertSame([95.0, 0.0, 95.0], [$invoice->balance(), $this->net('22-03-01'), $this->net('22-02-01')]);
         $this->assertSame(1, Journal::where('reverses_id', Journal::where('source_type', 'withholding_certificate')->where('kind', 'POST')->value('id'))->count());
     }
 

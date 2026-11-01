@@ -39,7 +39,7 @@ class GeneralLedgerTest extends TestCase
     /** @return array<string, float> account code => debits less credits, for accounts that moved */
     private function balances(): array
     {
-        return LedgerAccount::tree()->where('is_group', false)->filter(fn ($a) => $a->net != 0.0)->mapWithKeys(fn ($a) => [$a->code => $a->net])->all();
+        return LedgerAccount::tree()->where('is_group', false)->filter(fn ($a) => $a->net != 0.0)->mapWithKeys(fn ($a) => [$a->code => $a->net])->sortKeys()->all();
     }
 
     private function account(string $code): LedgerAccount
@@ -65,10 +65,10 @@ class GeneralLedgerTest extends TestCase
 
         $this->post(route('invoices.issue', $invoice))->assertSessionHasNoErrors();
 
-        $this->assertSame(['1130' => 1180.0, '2140' => -180.0, '4100' => -1000.0], $this->balances());
+        $this->assertSame(['12-03-01' => -180.0, '22-02-01' => 1180.0, '41-01-01' => -1000.0], $this->balances());
         $journal = Journal::where('source_type', 'invoice')->where('source_id', $invoice->id)->sole();
         $this->assertSame(['2026-10-01', 1180.0], [$journal->journal_date->toDateString(), $journal->total]);
-        $this->assertSame($this->customer->id, $journal->lines()->where('account_id', $this->account('1130')->id)->value('party_id'));
+        $this->assertSame($this->customer->id, $journal->lines()->where('account_id', $this->account('22-02-01')->id)->value('party_id'));
 
         $this->post(route('invoices.void', $invoice), ['reason' => 'Raised twice'])->assertSessionHasNoErrors();
 
@@ -80,47 +80,47 @@ class GeneralLedgerTest extends TestCase
     {
         app(TaxSetup::class)->loadDefaults(TaxJurisdiction::pack());
         PartyTaxProfile::updateOrCreate(['party_id' => $this->customer->party_id], ['tax_status' => 'REGISTERED', 'region' => 'PB', 'registrations' => ['NTN' => '1234567-8', 'STRN' => '32-77-8761-123-45']]);
-        AppSetting::setValue(LedgerSettings::TAX_ACCOUNTS, json_encode(['PRA' => $this->account('2141')->id]));
+        AppSetting::setValue(LedgerSettings::TAX_ACCOUNTS, json_encode(['PRA' => $this->account('12-03-02')->id]));
         $invoice = app(InvoiceService::class)->saveDraft(['customer_id' => $this->customer->id, 'invoice_date' => '2025-03-10'],
             [['description' => 'Pattern repair', 'quantity' => 1, 'unit_price' => 1000, 'supply_type' => 'SERVICE']]);
         app(InvoiceService::class)->issue($invoice);
 
         app(InvoiceService::class)->creditNote($invoice->fresh(), [['description' => 'Pattern repair', 'quantity' => 1, 'unit_price' => 500, 'supply_type' => 'SERVICE']], 'Half the work');
 
-        $this->assertSame(['1130' => 580.0, '2141' => -80.0, '4100' => -1000.0, '4900' => 500.0], $this->balances());
+        $this->assertSame(['12-03-02' => -80.0, '22-02-01' => 580.0, '41-01-01' => -1000.0, '41-03-01' => 500.0], $this->balances());
     }
 
     public function test_a_bill_debits_each_line_account_and_input_tax_and_its_credit_note_goes_back_to_the_same_accounts(): void
     {
         $supplier = $this->supplier();
         $this->post(route('bills.store'), ['supplier_id' => $supplier->id, 'bill_date' => '2026-10-01', 'supplier_bill_number' => 'S-1', 'lines' => [
-            ['description' => 'Electricity', 'quantity' => 1, 'unit_price' => 1000, 'tax_percent' => 10, 'account_id' => $this->account('5310')->id],
+            ['description' => 'Electricity', 'quantity' => 1, 'unit_price' => 1000, 'tax_percent' => 10, 'account_id' => $this->account('51-02-01')->id],
             ['description' => 'Stationery', 'quantity' => 1, 'unit_price' => 200, 'tax_percent' => 0],
         ]])->assertSessionHasNoErrors();
         $bill = SupplierBill::sole();
 
         $this->post(route('bills.post', $bill))->assertSessionHasNoErrors();
 
-        $this->assertSame(['1161' => 100.0, '2110' => -1300.0, '5310' => 1000.0, '6600' => 200.0], $this->balances());
+        $this->assertSame(['12-01-01' => -1300.0, '22-04-01' => 100.0, '51-02-01' => 1000.0, '61-02-01' => 200.0], $this->balances());
 
         $this->post(route('bills.credit.store', $bill), ['supplier_bill_number' => 'SC-1', 'reason' => 'Meter misread',
             'lines' => [['description' => 'Electricity', 'quantity' => 1, 'unit_price' => 400, 'tax_percent' => 10]]])->assertSessionHasNoErrors();
 
-        $this->assertSame(['1161' => 60.0, '2110' => -860.0, '5310' => 600.0, '6600' => 200.0], $this->balances());
+        $this->assertSame(['12-01-01' => -860.0, '22-04-01' => 60.0, '51-02-01' => 600.0, '61-02-01' => 200.0], $this->balances());
     }
 
     public function test_receipts_and_payments_move_cash_or_bank_by_method_and_money_not_on_a_document_is_an_advance(): void
     {
         $invoice = app(InvoiceService::class)->issue($this->draftInvoice(300));
         $supplier = $this->supplier();
-        AppSetting::setValue(LedgerSettings::METHODS, json_encode(['cheque' => $this->account('1110')->id]));
+        AppSetting::setValue(LedgerSettings::METHODS, json_encode(['cheque' => $this->account('22-01-01')->id]));
 
         $this->post(route('receipts.store'), ['customer_id' => $this->customer->id, 'received_on' => '2026-10-05', 'amount' => 1000, 'method' => 'Bank transfer', 'alloc' => [$invoice->id => 600]])->assertSessionHasNoErrors();
         $this->post(route('supplier-payments.store'), ['supplier_id' => $supplier->id, 'paid_on' => '2026-10-06', 'amount' => 150, 'method' => 'Cash'])->assertSessionHasNoErrors();
         $this->post(route('supplier-payments.store'), ['supplier_id' => $supplier->id, 'paid_on' => '2026-10-06', 'amount' => 50, 'method' => 'CHEQUE'])->assertSessionHasNoErrors();
 
         // 400 of the receipt is on no invoice and both payments on no bill: they are advances, never netted inside receivables or payables
-        $this->assertSame(['1110' => -200.0, '1121' => 1000.0, '1140' => 200.0, '2130' => -400.0, '4100' => -600.0], $this->balances());
+        $this->assertSame(['12-06-02' => -400.0, '22-01-01' => -200.0, '22-01-03' => 1000.0, '22-05-01' => 200.0, '41-01-01' => -600.0], $this->balances());
     }
 
     public function test_a_manual_journal_must_balance_post_to_an_account_with_no_sub_accounts_and_fall_after_the_closed_date(): void
@@ -129,14 +129,14 @@ class GeneralLedgerTest extends TestCase
         $line = fn (string $code, float $debit, float $credit) => ['account_id' => $this->account($code)->id, 'debit' => $debit, 'credit' => $credit];
         $journal = fn (string $date, array $lines) => $this->post(route('ledger.journals.store'), ['journal_date' => $date, 'memo' => 'Opening balances', 'lines' => $lines]);
 
-        $journal('2026-10-01', [$line('1121', 500, 0), $line('3900', 0, 400)])->assertSessionHasErrors('journal');
-        $journal('2026-10-01', [$line('1120', 500, 0), $line('3900', 0, 500)])->assertSessionHasErrors('journal');
-        $journal('2026-09-30', [$line('1121', 500, 0), $line('3900', 0, 500)])->assertSessionHasErrors('journal');
+        $journal('2026-10-01', [$line('22-01-03', 500, 0), $line('31-03-02', 0, 400)])->assertSessionHasErrors('journal');
+        $journal('2026-10-01', [$line('22-01', 500, 0), $line('31-03-02', 0, 500)])->assertSessionHasErrors('journal');
+        $journal('2026-09-30', [$line('22-01-03', 500, 0), $line('31-03-02', 0, 500)])->assertSessionHasErrors('journal');
         $this->assertSame(0, Journal::count());
 
-        $journal('2026-10-01', [$line('1121', 500, 0), $line('3900', 0, 500)])->assertSessionHasNoErrors();
+        $journal('2026-10-01', [$line('22-01-03', 500, 0), $line('31-03-02', 0, 500)])->assertSessionHasNoErrors();
 
-        $this->assertSame(['1121' => 500.0, '3900' => -500.0], $this->balances());
+        $this->assertSame(['22-01-03' => 500.0, '31-03-02' => -500.0], $this->balances());
     }
 
     public function test_an_invoice_dated_in_a_closed_period_stays_a_draft(): void
@@ -159,20 +159,7 @@ class GeneralLedgerTest extends TestCase
         $this->artisan('ledger:post-missing')->assertSuccessful();
 
         $this->assertSame(1, Journal::where('source_id', $invoice->id)->count());
-        $this->assertSame(['1130' => 500.0, '4100' => -500.0], $this->balances());
-    }
-
-    public function test_a_sub_account_cannot_go_under_an_account_with_postings_and_such_an_account_cannot_be_deleted(): void
-    {
-        app(InvoiceService::class)->issue($this->draftInvoice(100));
-        $sales = $this->account('4100');
-
-        $this->post(route('ledger.accounts.store'), ['code' => '4101', 'name' => 'Export sales', 'parent_id' => $sales->id])->assertSessionHasErrors('account');
-        $this->delete(route('ledger.accounts.destroy', $sales))->assertSessionHasErrors('account');
-        $this->post(route('ledger.accounts.store'), ['code' => '6610', 'name' => 'Printing', 'parent_id' => $this->account('6600')->id])->assertSessionHasNoErrors();
-
-        $this->assertModelExists($sales);
-        $this->assertSame([null, 'EXPENSE'], [LedgerAccount::where('code', '4101')->first(), LedgerAccount::where('code', '6610')->value('type')]);
+        $this->assertSame(['22-02-01' => 500.0, '41-01-01' => -500.0], $this->balances());
     }
 
     public function test_the_trial_balance_agrees_and_the_account_ledger_runs_from_its_opening_balance(): void
@@ -182,7 +169,7 @@ class GeneralLedgerTest extends TestCase
         $n = fn (float $v) => Formats::number($v, 2);
 
         $this->get(route('ledger.trial-balance', ['as_at' => '2026-10-31']))->assertOk()->assertSeeInOrder(['Total', $n(300), $n(300)]);
-        $this->get(route('ledger.accounts.show', [$this->account('1130'), 'from' => '2026-10-01', 'to' => '2026-10-31']))
+        $this->get(route('ledger.accounts.show', [$this->account('22-02-01'), 'from' => '2026-10-01', 'to' => '2026-10-31']))
             ->assertOk()->assertSeeInOrder(['Opening balance', $n(200).' Dr', $n(100), $n(300).' Dr', 'Closing balance']);
     }
 
@@ -195,6 +182,6 @@ class GeneralLedgerTest extends TestCase
             $this->get($url)->assertOk();
         }
         $this->get(route('invoices.show', $journal->source_id))->assertOk()->assertSee($journal->number);
-        $this->get(route('bills.create'))->assertOk()->assertSee('5310 Electricity');
+        $this->get(route('bills.create'))->assertOk()->assertSee('51-02-01 Melting power and gas');
     }
 }

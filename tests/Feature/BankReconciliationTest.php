@@ -25,7 +25,7 @@ class BankReconciliationTest extends TestCase
         $admin = User::factory()->create(['is_active' => true, 'must_change_password' => false]);
         $admin->roles()->attach(Role::where('code', 'ADMIN')->value('id'));
         $this->actingAs($admin);
-        $this->post(route('ledger.banks.store'), ['bank_name' => 'Meezan Bank', 'account_number' => '0101-555', 'account_id' => $this->account('1121')->id])->assertSessionHasNoErrors();
+        $this->post(route('ledger.banks.store'), ['bank_name' => 'Meezan Bank', 'account_number' => '0101-555', 'account_id' => $this->account('22-01-03')->id])->assertSessionHasNoErrors();
         $this->bank = BankAccount::sole();
     }
 
@@ -40,7 +40,7 @@ class BankReconciliationTest extends TestCase
         $customer = Customer::firstOrCreate(['code' => 'ACME'], ['name' => 'Acme Pumps']);
         $this->post(route('receipts.store'), ['customer_id' => $customer->id, 'received_on' => $date, 'amount' => $amount, 'method' => 'Bank transfer'])->assertSessionHasNoErrors();
 
-        return JournalLine::where('account_id', $this->account('1121')->id)->latest('created_at')->get()->firstWhere('debit', $amount);
+        return JournalLine::where('account_id', $this->account('22-01-03')->id)->latest('created_at')->get()->firstWhere('debit', $amount);
     }
 
     private function start(string $date, float $balance): Reconciliation
@@ -77,10 +77,10 @@ class BankReconciliationTest extends TestCase
         $a = $this->receipt('2026-10-02', 1000);
         $rec = $this->start('2026-10-31', 985);
 
-        $this->post(route('ledger.reconciliations.line', $rec), ['date' => '2026-10-31', 'direction' => 'out', 'amount' => 15, 'account_id' => $this->account('6800')->id, 'memo' => 'Bank charges', 'lines' => [$a->id]])
+        $this->post(route('ledger.reconciliations.line', $rec), ['date' => '2026-10-31', 'direction' => 'out', 'amount' => 15, 'account_id' => $this->account('63-01-01')->id, 'memo' => 'Bank charges', 'lines' => [$a->id]])
             ->assertSessionHasNoErrors();
 
-        $this->assertSame([985.0, 15.0], [$this->account('1121')->balance(), $this->account('6800')->balance()]);
+        $this->assertSame([985.0, 15.0], [$this->account('22-01-03')->balance(), $this->account('63-01-01')->balance()]);
         $this->put(route('ledger.reconciliations.update', $rec), ['lines' => $rec->lines()->pluck('ledger_journal_lines.id')->all(), 'finish' => 1])->assertSessionHasNoErrors();
         $this->assertSame('DONE', $rec->fresh()->status);
     }
@@ -101,18 +101,18 @@ class BankReconciliationTest extends TestCase
         $this->delete(route('ledger.reconciliations.destroy', $second))->assertSessionHasNoErrors();
 
         $this->assertModelMissing($second);
-        $this->assertSame([$journals, 1000.0], [Journal::count(), $this->account('1121')->balance()]);
+        $this->assertSame([$journals, 1000.0], [Journal::count(), $this->account('22-01-03')->balance()]);
         $this->get(route('ledger.banks.index'))->assertOk()->assertSee('Meezan Bank');
         $this->get(route('ledger.banks.show', $this->bank))->assertOk()->assertSee('Reconciled');
     }
 
-    public function test_a_bank_can_be_added_on_a_new_ledger_account_under_the_bank_group_but_not_twice_on_one_account(): void
+    public function test_a_bank_can_be_added_on_a_new_ledger_account_with_the_next_code_in_the_bank_section_but_not_twice_on_one_account(): void
     {
-        $this->post(route('ledger.banks.store'), ['bank_name' => 'HBL', 'account_number' => '7788', 'new_code' => '1122'])->assertSessionHasNoErrors();
-        $this->post(route('ledger.banks.store'), ['bank_name' => 'HBL again', 'account_id' => $this->account('1121')->id])->assertSessionHasErrors('bank');
+        $this->post(route('ledger.banks.store'), ['bank_name' => 'HBL', 'account_number' => '7788'])->assertSessionHasNoErrors();
+        $this->post(route('ledger.banks.store'), ['bank_name' => 'HBL again', 'account_id' => $this->account('22-01-03')->id])->assertSessionHasErrors('bank');
 
-        $new = $this->account('1122');
-        $this->assertSame(['HBL 7788', '1120', 'ASSET'], [$new->name, $new->parent->code, $new->type]);
+        $new = $this->account('22-01-06');
+        $this->assertSame(['HBL 7788', '22-01', 'ASSET'], [$new->name, $new->parent->code, $new->type]);
         $this->assertSame(2, BankAccount::count());
     }
 }

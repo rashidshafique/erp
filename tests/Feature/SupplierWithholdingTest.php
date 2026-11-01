@@ -58,7 +58,7 @@ class SupplierWithholdingTest extends TestCase
         $bill = $this->postedBill([['description' => 'Pig iron', 'unit_price' => 1000, 'tax_percent' => 18, 'supply_type' => 'GOODS']]);
 
         $this->assertSame([1180.0, 95.0, 1085.0, 1085.0], [$bill->total, $bill->tax_withheld, $bill->payableToSupplier(), $bill->balance()]);
-        $this->assertSame([-1085.0, -95.0, 180.0], [$this->net('2110'), $this->net('2150'), $this->net('1161')]);
+        $this->assertSame([-1085.0, -95.0, 180.0], [$this->net('12-01-01'), $this->net('12-04-01'), $this->net('22-04-01')]);
         $summary = app(TaxRegister::class)->summary(app(TaxRegister::class)->rows('purchases', '2025-03-01', '2025-03-31'));
         $this->assertSame([['ST_GOODS', false, 180.0], ['WHT_IT_GOODS', true, 59.0], ['WHT_ST', true, 36.0]],
             $summary->map(fn ($s) => [$s['code'], $s['withheld'], $s['amount']])->all());
@@ -82,7 +82,7 @@ class SupplierWithholdingTest extends TestCase
         $bill = $this->postedBill([['description' => 'Pig iron', 'unit_price' => 1000, 'tax_percent' => 18, 'supply_type' => 'GOODS']]);
 
         $this->assertSame([0.0, 1180.0], [$bill->tax_withheld, $bill->balance()]);
-        $this->assertSame(0.0, $this->net('2150'));
+        $this->assertSame(0.0, $this->net('12-04-01'));
     }
 
     public function test_a_country_loaded_earlier_gets_the_new_taxes_and_rules_without_touching_edited_ones(): void

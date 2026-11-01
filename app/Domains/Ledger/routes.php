@@ -9,10 +9,9 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('web')->prefix('ledger')->name('ledger.')->group(function () {
     Route::get('/accounts', [AccountController::class, 'index'])->name('accounts.index');
-    Route::post('/accounts', [AccountController::class, 'store'])->name('accounts.store');
+    Route::get('/accounts/export', [AccountController::class, 'export'])->name('accounts.export');
+    Route::get('/sections', [AccountController::class, 'sections'])->name('sections.index');
     Route::get('/accounts/{account}', [LedgerReportController::class, 'account'])->name('accounts.show');
-    Route::put('/accounts/{account}', [AccountController::class, 'update'])->name('accounts.update');
-    Route::delete('/accounts/{account}', [AccountController::class, 'destroy'])->name('accounts.destroy');
     Route::prefix('journals')->name('journals.')->controller(JournalController::class)->group(function () {
         Route::get('/', 'index')->name('index');
         Route::get('/create', 'create')->name('create');

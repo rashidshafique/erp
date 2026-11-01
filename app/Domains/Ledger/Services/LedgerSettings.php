@@ -11,21 +11,21 @@ class LedgerSettings
 {
     /** @var array<string, array{0: string, 1: string}> Role => [label, default account code]. */
     public const ROLES = [
-        'receivables' => ['Customers owe us (receivables)', '1130'],
-        'payables' => ['We owe suppliers (payables)', '2110'],
-        'sales' => ['Sales', '4100'],
-        'sales_returns' => ['Credit notes to customers', '4900'],
-        'purchases' => ['Bill lines from a purchase order', '5100'],
-        'expense' => ['Other bill lines', '6600'],
-        'input_tax' => ['Tax on supplier bills', '1161'],
-        'output_tax' => ['Tax on invoices', '2140'],
-        'tax_withheld' => ['Tax customers withheld (settled by their certificates)', '1163'],
-        'withheld_from_suppliers' => ['Tax we withheld from suppliers (owed to the authority)', '2150'],
-        'customer_advances' => ['Money from customers not yet on an invoice (advances)', '2130'],
-        'supplier_advances' => ['Money paid to suppliers not yet on a bill (advances)', '1140'],
-        'bank' => ['Money in and out (except cash)', '1121'],
-        'cash' => ['Cash', '1110'],
-        'opening_equity' => ['Opening balances', '3900'],
+        'receivables' => ['Customers owe us (receivables)', '22-02-01'],
+        'payables' => ['We owe suppliers (payables)', '12-01-01'],
+        'sales' => ['Sales', '41-01-01'],
+        'sales_returns' => ['Credit notes to customers', '41-03-01'],
+        'purchases' => ['Bill lines from a purchase order', '51-01-01'],
+        'expense' => ['Other bill lines', '61-02-01'],
+        'input_tax' => ['Tax on supplier bills', '22-04-01'],
+        'output_tax' => ['Tax on invoices', '12-03-01'],
+        'tax_withheld' => ['Tax customers withheld (settled by their certificates)', '22-03-01'],
+        'withheld_from_suppliers' => ['Tax we withheld from suppliers (owed to the authority)', '12-04-01'],
+        'customer_advances' => ['Money from customers not yet on an invoice (advances)', '12-06-02'],
+        'supplier_advances' => ['Money paid to suppliers not yet on a bill (advances)', '22-05-01'],
+        'bank' => ['Money in and out (except cash)', '22-01-03'],
+        'cash' => ['Cash', '22-01-01'],
+        'opening_equity' => ['Opening balances', '31-03-02'],
     ];
 
     public const CLOSED_TO = 'ledger.closed_to';
@@ -80,14 +80,14 @@ class LedgerSettings
         return json_decode((string) AppSetting::getValue(self::TAX_ACCOUNTS, '{}'), true) ?: [];
     }
 
-    /** The top-level expense account the profit and loss shows before gross profit: the one set under Settings, else 5000 if it is one; none when set to "none". */
+    /** The top-level expense account the profit and loss shows before gross profit: the one set under Settings, else category 51 if it is one; none when set to "none". */
     public static function costOfSales(): ?LedgerAccount
     {
         $id = AppSetting::getValue(self::COST_OF_SALES);
         if ($id === 'none') {
             return null;
         }
-        $account = $id ? LedgerAccount::find($id) : LedgerAccount::where('code', '5000')->first();
+        $account = $id ? LedgerAccount::find($id) : LedgerAccount::where('code', '51')->first();
 
         return $account && $account->type === 'EXPENSE' && $account->parent_id === null ? $account : null;
     }

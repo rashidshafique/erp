@@ -31,9 +31,9 @@ class BankController extends Controller
 
     public function store(Request $request, Reconciler $reconciler): RedirectResponse
     {
-        $d = $this->validated($request) + $request->validate(['account_id' => ['nullable', 'uuid'], 'new_code' => ['nullable', 'string', 'max:20']]);
+        $d = $this->validated($request) + $request->validate(['account_id' => ['nullable', 'uuid']]);
         try {
-            $bank = $reconciler->addBank(collect($d)->except(['account_id', 'new_code'])->all(), $d['account_id'] ?? null, $d['new_code'] ?? null);
+            $bank = $reconciler->addBank(collect($d)->except(['account_id'])->all(), $d['account_id'] ?? null);
         } catch (InvalidArgumentException $e) {
             return back()->withErrors(['bank' => $e->getMessage()])->withInput();
         }

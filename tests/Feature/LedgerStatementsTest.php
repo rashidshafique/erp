@@ -43,7 +43,7 @@ class LedgerStatementsTest extends TestCase
         $invoices->issue($invoices->saveDraft(['customer_id' => $customer->id, 'invoice_date' => $date], [['description' => 'Pump casing', 'quantity' => 2, 'unit_price' => 500]]));
         $supplier = $this->supplier ??= Supplier::create(['name' => 'Wapda', 'review_interval_days' => 180, 'approval_status' => 'APPROVED']);
         $this->post(route('bills.store'), ['supplier_id' => $supplier->id, 'bill_date' => $date, 'supplier_bill_number' => 'E-'.$date, 'lines' => [
-            ['description' => 'Electricity', 'quantity' => 1, 'unit_price' => 400, 'tax_percent' => 0, 'account_id' => $this->account('5310')->id],
+            ['description' => 'Electricity', 'quantity' => 1, 'unit_price' => 400, 'tax_percent' => 0, 'account_id' => $this->account('51-02-01')->id],
             ['description' => 'Stationery', 'quantity' => 1, 'unit_price' => 100, 'tax_percent' => 0],
         ]])->assertSessionHasNoErrors();
         $this->post(route('bills.post', SupplierBill::where('supplier_bill_number', 'E-'.$date)->sole()))->assertSessionHasNoErrors();
@@ -58,18 +58,18 @@ class LedgerStatementsTest extends TestCase
         $pl = app(Statements::class)->profitAndLoss('2026-10-01', '2026-10-31', ['2026-09-01', '2026-09-30']);
 
         $this->assertSame(['income' => [2000.0, 1000.0], 'gross' => [1200.0, 600.0], 'expenses' => [200.0, 100.0], 'net' => [1000.0, 500.0]], $pl['totals']);
-        $this->assertSame('5000', $pl['costOfSales']['account']->code);
-        $this->assertSame(['6000', '7000'], array_map(fn ($s) => $s['account']->code, $pl['expenses']));
+        $this->assertSame('51', $pl['costOfSales']['account']->code);
+        $this->assertSame(['61', '62', '63', '64'], array_map(fn ($s) => $s['account']->code, $pl['expenses']));
         $n = fn (float $v) => Formats::number($v, 2);
         $this->get(route('ledger.profit-and-loss', ['from' => '2026-10-01', 'to' => '2026-10-31', 'compare' => 'previous']))->assertOk()
-            ->assertSeeInOrder(['Sales: castings', $n(2000), $n(1000), 'Electricity', $n(800), $n(400), 'Gross profit', $n(1200), $n(600), 'Net profit', $n(1000), $n(500)]);
+            ->assertSeeInOrder(['Casting sales', $n(2000), $n(1000), 'Melting power and gas', $n(800), $n(400), 'Gross profit', $n(1200), $n(600), 'Net profit', $n(1000), $n(500)]);
     }
 
     public function test_without_a_cost_of_sales_group_there_is_no_gross_profit_and_only_a_top_level_expense_can_be_chosen(): void
     {
         $this->trade('2026-10-10');
 
-        $this->put(route('ledger.settings.update'), ['cost_of_sales' => $this->account('5310')->id])->assertSessionHasErrors('cost_of_sales');
+        $this->put(route('ledger.settings.update'), ['cost_of_sales' => $this->account('51-02-01')->id])->assertSessionHasErrors('cost_of_sales');
         $this->put(route('ledger.settings.update'), ['cost_of_sales' => 'none'])->assertSessionHasNoErrors();
 
         $pl = app(Statements::class)->profitAndLoss('2026-10-01', '2026-10-31');
@@ -82,7 +82,7 @@ class LedgerStatementsTest extends TestCase
     {
         $this->trade('2026-10-10');
         $line = fn (string $code, float $debit, float $credit) => ['account_id' => $this->account($code)->id, 'debit' => $debit, 'credit' => $credit];
-        $this->post(route('ledger.journals.store'), ['journal_date' => '2026-10-01', 'memo' => 'Capital', 'lines' => [$line('1121', 5000, 0), $line('3100', 0, 5000)]])->assertSessionHasNoErrors();
+        $this->post(route('ledger.journals.store'), ['journal_date' => '2026-10-01', 'memo' => 'Capital', 'lines' => [$line('22-01-03', 5000, 0), $line('31-01-01', 0, 5000)]])->assertSessionHasNoErrors();
 
         $bs = app(Statements::class)->balanceSheet('2026-10-31', '2026-09-30');
 
@@ -90,7 +90,7 @@ class LedgerStatementsTest extends TestCase
             'assets' => [6000.0, 0.0], 'liabilities' => [500.0, 0.0], 'profit' => [500.0, 0.0], 'equity' => [5500.0, 0.0], 'claims' => [6000.0, 0.0],
         ], $bs['totals']);
         $this->get(route('ledger.balance-sheet', ['as_at' => '2026-10-31']))->assertOk()
-            ->assertSeeInOrder(['Trade receivables', 'Total assets', Formats::number(6000, 2), 'Trade payables', "Owner's capital", 'not yet closed', 'Total liabilities and equity', Formats::number(6000, 2)], false)
+            ->assertSeeInOrder(['Trade receivables', 'Total assets', Formats::number(6000, 2), 'Trade payables', 'Share capital', 'not yet closed', 'Total liabilities and equity', Formats::number(6000, 2)], false)
             ->assertDontSee('differ by');
     }
 
@@ -103,10 +103,10 @@ class LedgerStatementsTest extends TestCase
 
         $gl = collect(app(Statements::class)->generalLedger('2026-10-01', '2026-10-31'))->keyBy(fn ($r) => $r['account']->code);
 
-        $this->assertEqualsCanonicalizing(['1121', '1130', '2110', '4100', '5310', '6600'], $gl->keys()->map(fn ($k) => (string) $k)->all());
-        $this->assertSame([1000.0, 0.0, 300.0, 700.0], [$gl['1130']['opening'], $gl['1130']['debit'], $gl['1130']['credit'], $gl['1130']['closing']]);
-        $this->assertSame(['1121', '1130'], array_map(fn ($r) => $r['account']->code, app(Statements::class)->generalLedger('2026-10-01', '2026-10-31', 'ASSET')));
+        $this->assertEqualsCanonicalizing(['22-01-03', '22-02-01', '12-01-01', '41-01-01', '51-02-01', '61-02-01'], $gl->keys()->map(fn ($k) => (string) $k)->all());
+        $this->assertSame([1000.0, 0.0, 300.0, 700.0], [$gl['22-02-01']['opening'], $gl['22-02-01']['debit'], $gl['22-02-01']['credit'], $gl['22-02-01']['closing']]);
+        $this->assertSame(['22-01-03', '22-02-01'], array_map(fn ($r) => $r['account']->code, app(Statements::class)->generalLedger('2026-10-01', '2026-10-31', 'ASSET')));
         $this->get(route('ledger.general-ledger', ['from' => '2026-10-01', 'to' => '2026-10-31']))->assertOk()
-            ->assertSeeInOrder(['1130 Trade receivables', 'Opening balance', Formats::number(1000, 2).' Dr', Formats::number(700, 2).' Dr']);
+            ->assertSeeInOrder(['22-02-01 Trade receivables', 'Opening balance', Formats::number(1000, 2).' Dr', Formats::number(700, 2).' Dr']);
     }
 }

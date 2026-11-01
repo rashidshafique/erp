@@ -1,6 +1,5 @@
 <?php
 
-use App\Domains\Ledger\Services\DefaultChart;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -62,7 +61,7 @@ return new class extends Migration
             $table->index(['party_type', 'party_id']);
         });
 
-        DefaultChart::install();
+        // the starting chart is installed by 2026_11_01_100000_chart_by_category_and_section, once its columns exist
 
         if (Schema::hasTable('roles') && ($role = DB::table('roles')->where('code', 'ACCOUNTS')->value('id'))
             && ! DB::table('role_permissions')->where('role_id', $role)->where('permission', 'ledger.manage')->exists()) {

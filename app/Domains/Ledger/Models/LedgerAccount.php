@@ -10,8 +10,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
 
 /**
- * An account in the chart. An account with sub-accounts is a group: it adds up its children and takes no postings of its own.
- * A sub-account always has its parent's type.
+ * An account in the chart (design 19a): a category (`22`), a section under it (`22-06`) or a nominal account in a section
+ * (`22-06-01`). Categories and sections are groups that add up the accounts under them and take no postings of their own.
+ * Codes are given in order and never change. A section carries the report line it shows on; an account can be offered in the
+ * charge and deduction boxes of sales documents (`is_charge`), and a control account (`control`) is posted only by its documents.
  */
 class LedgerAccount extends Model
 {
@@ -23,7 +25,7 @@ class LedgerAccount extends Model
 
     protected function casts(): array
     {
-        return ['is_active' => 'boolean'];
+        return ['is_active' => 'boolean', 'is_charge' => 'boolean', 'sort_order' => 'integer'];
     }
 
     public function parent(): BelongsTo { return $this->belongsTo(self::class, 'parent_id'); }
@@ -38,6 +40,33 @@ class LedgerAccount extends Model
     public function isGroup(): bool
     {
         return $this->children()->exists();
+    }
+
+    public function isCategory(): bool
+    {
+        return strlen($this->code) === 2;
+    }
+
+    public function isSection(): bool
+    {
+        return strlen($this->code) === 5;
+    }
+
+    public function hasPostings(): bool
+    {
+        return $this->lines()->exists();
+    }
+
+    /**
+     * The next free code under a category (`22` gives `22-11`) or a section (`22-07` gives `22-07-06`), or null when all 99 are taken.
+     * Codes already used are never given again while they exist.
+     */
+    public static function nextCode(string $parent): ?string
+    {
+        $last = self::where('code', 'like', $parent.'-__')->max('code');
+        $n = ($last ? (int) substr($last, -2) : 0) + 1;
+
+        return $n > 99 ? null : $parent.'-'.str_pad((string) $n, 2, '0', STR_PAD_LEFT);
     }
 
     /** Assets and expenses grow with debits; liabilities, equity and income with credits. */
@@ -85,7 +114,7 @@ class LedgerAccount extends Model
      */
     public static function tree(?string $to = null, ?string $from = null): Collection
     {
-        $accounts = self::orderBy('code')->get();
+        $accounts = self::orderBy('sort_order')->orderBy('code')->get();
         $sums = JournalLine::join('ledger_journals', 'ledger_journals.id', '=', 'ledger_journal_lines.journal_id')
             ->when($to, fn ($q) => $q->where('journal_date', '<=', $to))->when($from, fn ($q) => $q->where('journal_date', '>=', $from))
             ->groupBy('account_id')->selectRaw('account_id, sum(debit) - sum(credit) net')->pluck('net', 'account_id');

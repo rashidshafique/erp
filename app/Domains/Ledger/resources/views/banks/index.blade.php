@@ -23,8 +23,8 @@
     <label>IBAN<input name="iban" value="{{ old('iban') }}" maxlength="40"></label>
     <label>Ledger account
         <select name="account_id" x-show="existing" :disabled="!existing"><option value="">—</option>@foreach ($accounts as $a)<option value="{{ $a->id }}" @selected(old('account_id') === $a->id)>{{ $a->label() }}</option>@endforeach</select>
-        <input name="new_code" x-show="!existing" :disabled="existing" value="{{ old('new_code') }}" maxlength="20" placeholder="Code for the new account, e.g. 1122">
-        <span class="small"><a href="#" @click.prevent="existing = !existing" x-text="existing ? 'Or add a new ledger account under the bank group' : 'Or use an existing ledger account'"></a></span>
+        <span x-show="!existing" class="small muted">A new account in the bank section, with the next free code.</span>
+        <span class="small"><a href="#" @click.prevent="existing = !existing" x-text="existing ? 'Or add a new ledger account in the bank section' : 'Or use an existing ledger account'"></a></span>
     </label>
 </div>
 <div class="panel-body"><button class="btn btn-primary">Add bank account</button></div></form></div>

@@ -49,21 +49,21 @@ class AdvanceLedgerTest extends TestCase
         $paid = $this->invoice(300);
         $this->post(route('receipts.store'), ['customer_id' => $this->customer->id, 'received_on' => today()->toDateString(), 'amount' => 1000, 'alloc' => [$paid->id => 300]])->assertSessionHasNoErrors();
 
-        $this->assertSame([0.0, -700.0, 1000.0], [$this->net('1130'), $this->net('2130'), $this->net('1121')]);
+        $this->assertSame([0.0, -700.0, 1000.0], [$this->net('22-02-01'), $this->net('12-06-02'), $this->net('22-01-03')]);
 
         $later = $this->invoice(600);
         $this->post(route('invoices.apply-credit', $later))->assertSessionHasNoErrors();
 
-        $this->assertSame([0.0, -100.0], [$this->net('1130'), $this->net('2130')]);
+        $this->assertSame([0.0, -100.0], [$this->net('22-02-01'), $this->net('12-06-02')]);
         $this->post(route('receipts.allocate', Receipt::sole()), ['alloc' => [$this->invoice(50)->id => 50]])->assertSessionHasNoErrors();
-        $this->assertSame([0.0, -50.0], [$this->net('1130'), $this->net('2130')]);
+        $this->assertSame([0.0, -50.0], [$this->net('22-02-01'), $this->net('12-06-02')]);
     }
 
     public function test_money_paid_to_a_supplier_ahead_is_an_advance_to_suppliers_until_it_is_put_on_a_bill(): void
     {
         $supplier = Supplier::create(['name' => 'Acme Pig Iron', 'review_interval_days' => 180, 'approval_status' => 'APPROVED']);
         $this->post(route('supplier-payments.store'), ['supplier_id' => $supplier->id, 'paid_on' => today()->toDateString(), 'amount' => 500])->assertSessionHasNoErrors();
-        $this->assertSame([500.0, 0.0], [$this->net('1140'), $this->net('2110')]);
+        $this->assertSame([500.0, 0.0], [$this->net('22-05-01'), $this->net('12-01-01')]);
 
         $this->post(route('bills.store'), ['supplier_id' => $supplier->id, 'bill_date' => today()->toDateString(), 'supplier_bill_number' => 'S-1',
             'lines' => [['description' => 'Pig iron', 'quantity' => 1, 'unit_price' => 400, 'tax_percent' => 0]]])->assertSessionHasNoErrors();
@@ -71,7 +71,7 @@ class AdvanceLedgerTest extends TestCase
         $this->post(route('bills.post', $bill))->assertSessionHasNoErrors();
         $this->post(route('bills.apply-advances', $bill))->assertSessionHasNoErrors();
 
-        $this->assertSame([100.0, 0.0], [$this->net('1140'), $this->net('2110')]);
+        $this->assertSame([100.0, 0.0], [$this->net('22-05-01'), $this->net('12-01-01')]);
     }
 
     public function test_money_on_account_posted_the_old_way_is_moved_once(): void
@@ -81,13 +81,13 @@ class AdvanceLedgerTest extends TestCase
             ['debit' => 800, 'account_id' => LedgerSettings::account('bank')->id],
             ['credit' => 800, 'account_id' => LedgerSettings::account('receivables')->id, 'party_type' => 'customer', 'party_id' => $this->customer->id],
         ], ['type' => 'receipt', 'id' => $receipt->id]);
-        $this->assertSame(-800.0, $this->net('1130'));
+        $this->assertSame(-800.0, $this->net('22-02-01'));
 
         $this->assertSame(1, app(AdvanceReclass::class)->run());
         $this->assertSame(0, app(AdvanceReclass::class)->run());
 
-        $this->assertSame([0.0, -800.0], [$this->net('1130'), $this->net('2130')]);
+        $this->assertSame([0.0, -800.0], [$this->net('22-02-01'), $this->net('12-06-02')]);
         $this->post(route('invoices.apply-credit', $this->invoice(800)))->assertSessionHasNoErrors();
-        $this->assertSame([0.0, 0.0], [$this->net('1130'), $this->net('2130')]);
+        $this->assertSame([0.0, 0.0], [$this->net('22-02-01'), $this->net('12-06-02')]);
     }
 }

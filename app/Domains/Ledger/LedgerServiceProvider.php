@@ -10,6 +10,7 @@ use App\Domains\Ledger\Console\LedgerPostMissing;
 use App\Domains\Ledger\Listeners\PostDocument;
 use App\Domains\Ledger\Listeners\ReverseDocument;
 use Illuminate\Support\Facades\Event;
+use Livewire\Livewire;
 
 /**
  * Double-entry books: chart of accounts, journals posted by every Finance document as it counts (and reversed when it is voided),
@@ -40,6 +41,7 @@ class LedgerServiceProvider extends ModuleServiceProvider
     public function boot(): void
     {
         parent::boot();
+        Livewire::addNamespace('ledger', viewPath: __DIR__.'/resources/views/livewire');
         if ($this->app->make(ModuleRegistry::class)->isEnabled($this->moduleName())) {
             Event::listen(DocumentPosted::class, PostDocument::class);
             Event::listen(DocumentVoided::class, ReverseDocument::class);
@@ -52,7 +54,7 @@ class LedgerServiceProvider extends ModuleServiceProvider
             'key' => 'ledger', 'label' => 'Accounts', 'icon' => 'book', 'active' => ['ledger.*'],
             'items' => [
                 ['label' => 'Journals', 'route' => 'ledger.journals.index', 'icon' => 'file-text', 'active' => ['ledger.journals.*']],
-                ['label' => 'Chart of accounts', 'route' => 'ledger.accounts.index', 'icon' => 'list', 'active' => ['ledger.accounts.*']],
+                ['label' => 'Chart of accounts', 'route' => 'ledger.accounts.index', 'icon' => 'list', 'active' => ['ledger.accounts.index', 'ledger.accounts.export', 'ledger.sections.*']],
                 ['label' => 'Bank accounts', 'route' => 'ledger.banks.index', 'icon' => 'bank', 'active' => ['ledger.banks.*', 'ledger.reconciliations.*']],
                 ['label' => 'Trial balance', 'route' => 'ledger.trial-balance', 'icon' => 'list-check', 'active' => ['ledger.trial-balance']],
                 ['label' => 'Profit and loss', 'route' => 'ledger.profit-and-loss', 'icon' => 'trending-up', 'active' => ['ledger.profit-and-loss']],

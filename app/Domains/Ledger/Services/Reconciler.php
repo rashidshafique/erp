@@ -25,18 +25,16 @@ class Reconciler
      *
      * @param  array{bank_name: string, branch?: ?string, account_title?: ?string, account_number?: ?string, iban?: ?string, notes?: ?string}  $details
      */
-    public function addBank(array $details, ?string $accountId, ?string $newCode = null): BankAccount
+    public function addBank(array $details, ?string $accountId): BankAccount
     {
-        return DB::transaction(function () use ($details, $accountId, $newCode) {
+        return DB::transaction(function () use ($details, $accountId) {
             if ($accountId) {
                 $account = LedgerAccount::postable()->where('type', 'ASSET')->find($accountId)
                     ?? throw new InvalidArgumentException('Choose an asset account with no sub-accounts.');
             } else {
-                $group = LedgerSettings::account('bank')->parent ?? throw new InvalidArgumentException('The bank account set under Ledger accounts has no group to add a new account under; choose an existing account.');
-                if (! $newCode || LedgerAccount::where('code', $newCode)->exists()) {
-                    throw new InvalidArgumentException('Give the new ledger account a code that is not taken.');
-                }
-                $account = LedgerAccount::create(['code' => $newCode, 'name' => trim($details['bank_name'].' '.($details['account_number'] ?? '')), 'type' => $group->type, 'parent_id' => $group->id]);
+                $group = LedgerSettings::account('bank')->parent ?? throw new InvalidArgumentException('The bank account set under Ledger accounts has no section to add a new account under; choose an existing account.');
+                $code = LedgerAccount::nextCode($group->code) ?? throw new InvalidArgumentException("Section {$group->code} is full (99 accounts). Choose an existing account.");
+                $account = LedgerAccount::create(['code' => $code, 'name' => trim($details['bank_name'].' '.($details['account_number'] ?? '')), 'type' => $group->type, 'parent_id' => $group->id]);
             }
             if (BankAccount::where('account_id', $account->id)->exists()) {
                 throw new InvalidArgumentException("{$account->label()} already has bank details.");
