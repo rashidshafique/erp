@@ -1,6 +1,6 @@
 @extends('layouts.app')
 @section('title', $d->code.' '.$d->title)
-@section('breadcrumb')<a href="{{ route('developments.index') }}">Pattern developments</a> / <code>{{ $d->code }}</code> {{ $d->title }} @endsection
+@section('breadcrumb', 'Pattern developments')
 @section('content')
 @php
     $cls = ['OPEN' => 'status-in-progress', 'DONE' => 'status-completed', 'CANCELLED' => 'status-cancelled'];
@@ -43,9 +43,9 @@
     .tl-kinds { display: grid; gap: 4px; grid-column: 1 / -1; } .tl-kinds label { display: flex; gap: 8px; align-items: center; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; } .tl-kinds label:has(input:checked) { border-color: var(--accent); }
     .tl-back .to-rework { display: none; color: #b3352c; } .tl-back input:checked ~ .to-rework { display: inline; } .tl-back input:checked ~ .keeps { display: none; }
     .tl-list { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; } .tl-list label, .tl-row { display: flex; gap: 8px; align-items: center; justify-content: space-between; }
-    .dv-frame { margin: -24px -28px; font-size: 13px; } @media (max-width: 768px) { .dv-frame { margin: -20px -14px; } }
+    .dv-frame { background: #fff; border: 1px solid #e6e7e9; border-radius: 10px; overflow: hidden; font-size: 13px; color: #1c1d1f; }
     .dv-top { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; padding: 14px 28px; border-bottom: 1px solid #e6e7e9; }
-    .dv-crumb { display: flex; align-items: center; gap: 16px; min-width: 0; flex-wrap: wrap; } .dv-crumb > .sep { color: #6b6e73; } .dv-top-actions { display: flex; gap: 8px; align-items: center; }
+    .dv-crumb { display: flex; align-items: center; gap: 16px; min-width: 0; flex-wrap: wrap; } .dv-chip { padding: 4px 10px; border-radius: 6px; background: #f0f1f3; color: #1c1d1f; } .dv-top-actions { display: flex; gap: 8px; align-items: center; }
     .dv-cols { display: grid; grid-template-columns: minmax(0, 1fr) 340px; align-items: stretch; }
     .dv-main { padding: 20px 28px; display: flex; flex-direction: column; gap: 22px; min-width: 0; } .dv-main > .alert { margin: 0; }
     .dv-stage { display: flex; gap: 28px; align-items: flex-start; } .dv-stage .dv-bar { flex: 1; margin: 0; min-width: 0; }
@@ -59,7 +59,7 @@
 @include('partials.quick-dialog-assets')
 <div class="dv-frame">
 <div class="dv-top">
-    <div class="dv-crumb"><a href="{{ route('developments.index') }}" style="font-weight:600;color:inherit">Pattern development</a><span class="sep">/</span><span><code>{{ $d->code }}</code> {{ $d->title }}</span><span class="status {{ $cls[$d->status] ?? '' }}">{{ $d->status === 'OPEN' ? $d->stageName() : \App\Domains\Development\Models\PatternDevelopment::STATUSES[$d->status] }}</span></div>
+    <div class="dv-crumb"><strong><code>{{ $d->code }}</code> · {{ $d->title }}</strong><span class="dv-chip">{{ $d->status === 'OPEN' ? $d->stageName() : \App\Domains\Development\Models\PatternDevelopment::STATUSES[$d->status] }}</span></div>
     <div class="dv-top-actions"><a class="btn" href="{{ route('developments.index') }}">All developments</a>
         @if ($d->isOpen() && $backStage)<button type="button" class="btn" data-quick="dvBack">Back to {{ $backStage }}</button>@endif</div>
 </div>
