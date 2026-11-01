@@ -52,10 +52,10 @@
         @if ($d->isOpen() && $next)<form method="POST" action="{{ route('developments.advance', $d) }}" style="display:inline">@csrf<button class="btn btn-primary" type="submit" @disabled($blocked)>Move to {{ $next }}</button></form>@endif</div>
 </div>
 @if ($d->isOpen() && $stuck->isNotEmpty() && $gateRule !== 'OFF' && ! session('gate_warn'))
-<div class="alert alert-{{ $blocked ? 'error' : 'warning' }}">{{ $stuck->pluck('label')->implode(', ') }} {{ $stuck->count() > 1 ? 'have' : 'has' }} not reached {{ $gateNeeds }} yet.@if ($blocked) A rule in settings holds the development here.@endif</div>
+<div class="alert alert-{{ $blocked ? 'error' : 'warning' }}">{{ $d->gateMessage() }}@if ($blocked) Set by a rule in <a href="{{ route('settings.process-depth.edit') }}">settings</a>.@endif</div>
 @endif
 @if (session('gate_warn'))
-<div class="alert alert-warning"><div>{{ session('gate_warn') }} Moving on is logged as an override with your name.</div>
+<div class="alert alert-warning"><div>{{ session('gate_warn') }}</div><div>Moving on is logged as an override with your name. {{ $d->gateStays() }}</div>
     <form method="POST" action="{{ route('developments.advance', $d) }}" style="margin-top:8px">@csrf<input type="hidden" name="override" value="1"><button class="btn btn-primary" type="submit">Move anyway</button> <a class="btn" href="{{ route('developments.show', $d) }}">Cancel</a></form></div>
 @endif
 @error('gate')<div class="alert alert-error">{{ $message }}</div>@enderror

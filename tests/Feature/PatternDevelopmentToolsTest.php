@@ -154,7 +154,30 @@ class PatternDevelopmentToolsTest extends TestCase
         $this->post(route('developments.advance', $d));
 
         $this->get(route('developments.show', $d))->assertOk()->assertSee('Tooling · 2 tools')->assertSee('Volute core box')
-            ->assertSee('0 of 2 built')->assertSee('not reached built yet');
+            ->assertSee('0 of 2 built')->assertSee('not built yet.');
+    }
+
+    public function test_the_gate_names_the_tool_and_what_stays_as_it_is(): void
+    {
+        $d = $this->development();
+        $this->addBox($d);
+        $this->post(route('developments.advance', $d));
+
+        $this->from(route('developments.show', $d))->followingRedirects()->post(route('developments.advance', $d))
+            ->assertSee('not built yet.')->assertSee('Moving on is logged as an override with your name.')->assertSee('stays Not started.');
+
+        DevelopmentRules::set('tool_gate', 'BLOCK');
+        $this->from(route('developments.show', $d))->followingRedirects()->post(route('developments.advance', $d))->assertSee('Set by a rule in')->assertSee('settings');
+    }
+
+    public function test_the_list_filters_by_customer_and_shows_what_each_waits_on(): void
+    {
+        $d = $this->development();
+        $this->addBox($d);
+        $this->post(route('developments.advance', $d));
+
+        $this->get(route('developments.index', ['customer_id' => $d->customer_id]))->assertOk()->assertSee($d->code)->assertSee('not started');
+        $this->get(route('developments.index', ['customer_id' => (string) \Illuminate\Support\Str::uuid()]))->assertOk()->assertDontSee($d->code);
     }
 
     private function oldBox(): CoreBox

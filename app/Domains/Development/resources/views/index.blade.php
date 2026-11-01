@@ -20,6 +20,7 @@
         <div class="field"><label for="search">Search</label><input id="search" name="search" value="{{ request('search') }}" placeholder="Code, part or tool"></div>
         <div class="field"><label for="status">Status</label><select id="status" name="status"><option value="">All</option>@foreach (\App\Domains\Development\Models\PatternDevelopment::STATUSES as $k => $l)<option value="{{ $k }}" @selected(request('status') === $k)>{{ $l }}</option>@endforeach</select></div>
         <div class="field"><label for="type">Type</label><select id="type" name="type"><option value="">All</option>@foreach (config('pattern_developments.types') as $k => $t)<option value="{{ $k }}" @selected(request('type') === $k)>{{ $t['name'] }}</option>@endforeach</select></div>
+        <div class="field"><label for="customer_id">Customer</label><select id="customer_id" name="customer_id"><option value="">All</option>@foreach ($customers as $c)<option value="{{ $c->id }}" @selected(request('customer_id') === $c->id)>{{ $c->name }}</option>@endforeach</select></div>
         <div class="field"><label for="made_by">Made by</label><select id="made_by" name="made_by"><option value="">All</option>@foreach (config('pattern_developments.pattern_by') as $k => $l)<option value="{{ $k }}" @selected(request('made_by') === $k)>{{ $l }}</option>@endforeach</select></div>
         <button class="btn btn-primary" type="submit">Filter</button><a class="btn" href="{{ route('developments.index') }}">Reset</a>
     </form>
@@ -40,7 +41,7 @@
                     <td data-col="customer">{{ $r->customer?->name ?? '—' }}</td>
                     <td data-col="type" class="small">{{ $r->typeInfo()['name'] }}</td>
                     <td data-col="stage"><span class="status {{ $cls[$r->status] ?? '' }}">{{ $r->status === 'OPEN' ? $r->stageName() : \App\Domains\Development\Models\PatternDevelopment::STATUSES[$r->status] }}</span></td>
-                    <td data-col="tools" class="small">{{ $r->toolSummary() }}</td>
+                    <td data-col="tools" class="small">{{ $r->toolSummary() }}@if ($r->isOpen() && $r->waitingOn())<br><span class="muted">{{ $r->waitingOn() }}</span>@endif</td>
                     <td data-col="waiting" class="small">{{ $r->isOpen() ? ($r->waitingOn() ?: '—') : '—' }}</td>
                     <td data-col="by" class="small">{{ config('pattern_developments.pattern_by.'.$r->pattern_by) }}</td>
                     <td data-col="owner" class="small">{{ $r->owner_name ?: '—' }}</td>

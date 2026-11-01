@@ -146,6 +146,25 @@ class PatternDevelopment extends Model
         };
     }
 
+    /** Why the gate holds the move (design 18d), e.g. "Core box CB-0146 is not built yet." Empty when no tool is in the way. */
+    public function gateMessage(): string
+    {
+        $stuck = $this->toolsInTheWay();
+        if ($stuck->isEmpty()) {
+            return '';
+        }
+        $names = $stuck->map(fn (PatternDevelopmentTool $t) => config('pattern_developments.tool_kinds.'.$t->kind).' '.($t->registerCode() ?? $t->label))->implode(', ');
+        $many = $stuck->count() > 1;
+
+        return $names.' '.($this->gateStatus() === 'TRIAL_PASSED' ? ($many ? 'have' : 'has').' not passed trial yet.' : ($many ? 'are' : 'is').' not built yet.');
+    }
+
+    /** What stays as it is if the move goes ahead anyway, e.g. "CB-0146 stays Building." */
+    public function gateStays(): string
+    {
+        return $this->toolsInTheWay()->map(fn (PatternDevelopmentTool $t) => ($t->registerCode() ?? $t->label).' stays '.$t->statusName().'.')->implode(' ');
+    }
+
     /** What the development waits on, e.g. "CB-0146 building, CB-0127 not started". Empty when no tool holds it up. */
     public function waitingOn(): string
     {

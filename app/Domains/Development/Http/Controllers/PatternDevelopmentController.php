@@ -30,7 +30,7 @@ class PatternDevelopmentController extends Controller
 {
     public function index(Request $request): View
     {
-        return view('development::index', ['rows' => $this->rows($request), 'tabs' => $this->tabCounts()]);
+        return view('development::index', ['rows' => $this->rows($request), 'tabs' => $this->tabCounts(), 'customers' => $this->listCustomers()]);
     }
 
     /** The list with the dialog open over it. `from` says where it was opened: enquiry:ID, product:ID, pattern:ID, customer:ID or products. */
@@ -41,6 +41,7 @@ class PatternDevelopmentController extends Controller
         return view('development::create', [
             'rows' => $this->rows($request),
             'tabs' => $this->tabCounts(),
+            'customers' => $this->listCustomers(),
             'preset' => $preset,
             'openedFrom' => $openedFrom,
             'backUrl' => $this->backUrl((string) $request->query('from')),
@@ -163,11 +164,9 @@ class PatternDevelopmentController extends Controller
         $stuck = $development->toolsInTheWay();
         $override = null;
         if ($stuck->isNotEmpty() && ($rule = DevelopmentRules::get('tool_gate')) !== 'OFF') {
-            $needs = strtolower(config('pattern_developments.tool_statuses.'.$development->gateStatus()));
-            $names = $stuck->pluck('label')->implode(', ');
-            $message = $names.($stuck->count() > 1 ? ' have' : ' has').' not reached '.$needs.' yet.';
+            $message = $development->gateMessage();
             if ($rule === 'BLOCK') {
-                return back()->withErrors(['gate' => $message.' A rule in settings holds the development here.']);
+                return back()->withErrors(['gate' => $message.' Set by a rule in settings.']);
             }
             if (! $request->boolean('override')) {
                 return back()->with('gate_warn', $message);
@@ -357,9 +356,16 @@ class PatternDevelopmentController extends Controller
             ->when($request->input('tab') === 'waiting', fn ($q) => $this->waitingOnTools($q))
             ->when($request->input('tab') === 'closed', fn ($q) => $q->where('status', '!=', 'OPEN'))
             ->when($request->filled('made_by'), fn ($q) => $q->whereHas('tools', fn ($t) => $t->where('made_by', $request->input('made_by'))))
+            ->when($request->filled('customer_id'), fn ($q) => $q->where('customer_id', $request->input('customer_id')))
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status')))
             ->when($request->filled('type'), fn ($q) => $q->where('type', $request->input('type')))
             ->latest()->paginate(20)->withQueryString();
+    }
+
+    /** @return \Illuminate\Support\Collection<int, Customer> the customers that have a development, for the list's filter */
+    private function listCustomers()
+    {
+        return Customer::whereIn('id', PatternDevelopment::query()->whereNotNull('customer_id')->select('customer_id'))->orderedByName()->get();
     }
 
     /** Open developments with a tool being built or in rework. */
