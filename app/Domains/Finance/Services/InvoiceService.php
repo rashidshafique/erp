@@ -67,7 +67,7 @@ class InvoiceService
             foreach ($lines as $i => $l) {
                 $taxLine = $taxLines[$i];
                 InvoiceLine::create([
-                    'invoice_id' => $invoice->id, 'line_number' => $i + 1, 'description' => trim($l['description']), 'quantity' => round((float) $l['quantity'], 3), 'uom' => $l['uom'] ?? null,
+                    'invoice_id' => $invoice->id, 'line_number' => $i + 1, 'product_id' => ($l['product_id'] ?? null) ?: null, 'description' => trim($l['description']), 'quantity' => round((float) $l['quantity'], 3), 'uom' => $l['uom'] ?? null,
                     'unit_price' => round((float) $l['unit_price'], 4), 'discount_percent' => self::discount($l), 'tax_rate_id' => $l['tax_rate_id'] ?? null, 'tax_percent' => $taxes->chargedRate($i),
                     'line_net' => $taxLine->net, 'line_tax' => $taxes->charged($i), 'line_withheld' => $taxes->withheld($i),
                     'supply_type' => $taxLine->supplyType, 'tariff_code' => $taxLine->tariffCode, 'inventory_class' => $taxLine->inventoryClass,
@@ -183,7 +183,7 @@ class InvoiceService
             return [
                 'description' => trim(($product?->code ? $product->code.' ' : '').($product?->name ?? 'Castings')), 'quantity' => $byKg ? (float) $i->net_weight_kg : (float) $i->quantity_dispatched,
                 'uom' => $byKg ? 'kg' : ($i->uom ?: $i->salesOrderLine?->uom), 'unit_price' => (float) ($i->salesOrderLine?->unit_price ?? 0), 'discount_percent' => (float) ($i->salesOrderLine?->discount_percent ?? 0), 'tax_rate_id' => $default,
-                'sales_order_line_id' => $i->sales_order_line_id, 'dispatch_item_id' => $i->id, ...$this->taxDetails($product),
+                'sales_order_line_id' => $i->sales_order_line_id, 'dispatch_item_id' => $i->id, 'product_id' => $product?->id, ...$this->taxDetails($product),
             ];
         })->values()->all();
     }
@@ -202,7 +202,7 @@ class InvoiceService
 
             return $left > 0 ? [
                 'description' => trim(($l->product?->code ? $l->product->code.' ' : '').($l->product?->name ?? 'Castings')), 'quantity' => $left, 'uom' => $l->uom,
-                'unit_price' => (float) $l->unit_price, 'discount_percent' => (float) $l->discount_percent, 'tax_rate_id' => $default, 'sales_order_line_id' => $l->id, 'dispatch_item_id' => null,
+                'unit_price' => (float) $l->unit_price, 'discount_percent' => (float) $l->discount_percent, 'tax_rate_id' => $default, 'sales_order_line_id' => $l->id, 'dispatch_item_id' => null, 'product_id' => $l->product_id,
                 ...$this->taxDetails($l->product),
             ] : null;
         })->filter()->values()->all();

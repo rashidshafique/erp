@@ -11,9 +11,11 @@ use App\Domains\Finance\Services\InvoiceService;
 use App\Domains\Finance\Services\InvoiceTemplates;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Models\Product;
 use App\Domains\Sales\Models\SalesOrder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -103,7 +105,7 @@ class InvoiceController extends Controller
         if ($invoice->status !== 'DRAFT') {
             return redirect()->route('invoices.show', $invoice)->withErrors(['invoice' => 'Only a draft can be changed.']);
         }
-        $lines = $invoice->lines->map(fn ($l) => $l->only(['description', 'quantity', 'uom', 'unit_price', 'discount_percent', 'tax_rate_id', 'sales_order_line_id', 'dispatch_item_id', 'supply_type', 'tariff_code', 'inventory_class']))->all();
+        $lines = $invoice->lines->map(fn ($l) => $l->only(['product_id', 'description', 'quantity', 'uom', 'unit_price', 'discount_percent', 'tax_rate_id', 'sales_order_line_id', 'dispatch_item_id', 'supply_type', 'tariff_code', 'inventory_class']))->all();
 
         return view('finance::invoices.form', $this->formData($invoice, $invoice->only(['customer_id', 'source_type', 'source_id', 'customer_reference', 'place_of_supply']), $lines) + ['notice' => null]);
     }
@@ -193,10 +195,30 @@ class InvoiceController extends Controller
         $service = app(InvoiceService::class);
 
         return [
-            'invoice' => $invoice, 'head' => $head, 'lines' => $lines ?: [['description' => '', 'quantity' => 1, 'uom' => '', 'unit_price' => 0, 'discount_percent' => 0, 'tax_rate_id' => $service->defaultTaxRateId(), 'sales_order_line_id' => null, 'dispatch_item_id' => null]],
+            'invoice' => $invoice, 'head' => $head, 'lines' => $lines ?: [['product_id' => null, 'description' => '', 'quantity' => 1, 'uom' => '', 'unit_price' => 0, 'discount_percent' => 0, 'tax_rate_id' => $service->defaultTaxRateId(), 'sales_order_line_id' => null, 'dispatch_item_id' => null]],
             'customers' => Customer::orderedByName()->get(), 'taxRates' => TaxRate::where('is_active', true)->orderBy('name')->get(),
-            'currency' => $invoice?->currency ?? FinanceRules::currency(),
+            'currency' => $invoice?->currency ?? FinanceRules::currency(), 'products' => $this->products(array_column($lines, 'product_id')),
         ];
+    }
+
+    /**
+     * The products a line can be picked from, keyed by id, with what a picked line is filled with: active products, plus any
+     * already on the lines. The price is the last one the product was sold at; the form asks the price lists first.
+     *
+     * @param  list<string|null>  $onLines
+     * @return array<string, array{code: string, name: string, uom: string, price: ?float, kg: ?float, supply_type: string, tariff_code: ?string, inventory_class: ?string}>
+     */
+    private function products(array $onLines): array
+    {
+        $last = DB::table('sales_order_lines')->whereNotNull('unit_price')->selectRaw('DISTINCT ON (product_id) product_id, unit_price')
+            ->orderBy('product_id')->orderByDesc('created_at')->pluck('unit_price', 'product_id');
+
+        return Product::where(fn ($q) => $q->where('active', true)->orWhereIn('id', array_filter($onLines)))->orderBy('code')->get()
+            ->mapWithKeys(fn (Product $p) => [$p->id => [
+                'code' => (string) $p->code, 'name' => (string) $p->name, 'uom' => $p->base_uom ?: 'pcs',
+                'price' => isset($last[$p->id]) ? (float) $last[$p->id] : null, 'kg' => $p->nominal_weight_kg !== null ? (float) $p->nominal_weight_kg : null,
+                'supply_type' => $p->supply_type ?: 'GOODS', 'tariff_code' => $p->tariff_code, 'inventory_class' => $p->inventory_class,
+            ]])->all();
     }
 
     /** @return array<string, mixed> */
@@ -229,7 +251,7 @@ class InvoiceController extends Controller
     private function lines(Request $request): array
     {
         return array_values($request->validate([
-            'lines' => ['required', 'array', 'min:1'], 'lines.*.description' => ['nullable', 'string', 'max:300'],
+            'lines' => ['required', 'array', 'min:1'], 'lines.*.product_id' => ['nullable', 'uuid', 'exists:products,id'], 'lines.*.description' => ['nullable', 'string', 'max:300'],
             'lines.*.quantity' => ['nullable', 'numeric', 'gt:0'], 'lines.*.uom' => ['nullable', 'string', 'max:20'], 'lines.*.unit_price' => ['nullable', 'numeric', 'min:0'], 'lines.*.discount_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'lines.*.tax_rate_id' => ['nullable', 'uuid', 'exists:tax_rates,id'], 'lines.*.sales_order_line_id' => ['nullable', 'uuid'], 'lines.*.dispatch_item_id' => ['nullable', 'uuid'],
             'lines.*.supply_type' => ['nullable', 'in:GOODS,SERVICE'], 'lines.*.tariff_code' => ['nullable', 'string', 'max:20'], 'lines.*.inventory_class' => ['nullable', 'string', 'max:20'],

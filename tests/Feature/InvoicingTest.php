@@ -90,6 +90,29 @@ class InvoicingTest extends TestCase
         $this->assertSame(0.0, app(\App\Domains\Finance\Services\InvoiceService::class)->invoicedQuantity($line->id), 'a voided invoice frees the quantity');
     }
 
+    public function test_a_line_can_be_picked_from_the_products_and_keeps_the_product(): void
+    {
+        $customer = $this->customer();
+        $product = Product::create(['code' => 'VB-7', 'name' => 'Valve body', 'base_uom' => 'kg']);
+        Product::create(['code' => 'OLD-1', 'name' => 'Retired casting', 'active' => false]);
+        $revision = ProductRevision::create(['product_id' => $product->id, 'revision' => 'A', 'status' => 'APPROVED']);
+        $order = SalesOrder::create(['order_number' => 'SO-7', 'customer_id' => $customer->id, 'order_date' => today(), 'status' => 'CONFIRMED']);
+        SalesOrderLine::create(['sales_order_id' => $order->id, 'product_id' => $product->id, 'product_revision_id' => $revision->id, 'line_number' => 1, 'ordered_qty' => 5, 'unit_price' => 42.5, 'uom' => 'kg']);
+
+        $this->get(route('invoices.create'))->assertOk()->assertSee('data-search-select', false)->assertSee('Valve body')->assertDontSee('Retired casting')
+            ->assertViewHas('products', fn (array $p) => [$p[$product->id]['uom'], $p[$product->id]['price']] === ['kg', 42.5]);
+
+        $this->post(route('invoices.store'), $this->form($customer, [
+            ['product_id' => $product->id, 'description' => 'VB-7 Valve body', 'quantity' => 2, 'uom' => 'kg', 'unit_price' => 42.5],
+            ['product_id' => '', 'description' => 'Freight', 'quantity' => 1, 'unit_price' => 10],
+        ]))->assertSessionHasNoErrors();
+        $invoice = Invoice::with('lines')->firstOrFail();
+
+        $this->assertSame([$product->id, null], $invoice->lines->sortBy('line_number')->pluck('product_id')->all(), 'a free-text line has no product');
+        $this->get(route('invoices.edit', $invoice))->assertOk()->assertSee($product->id);
+        $this->assertSame($product->id, collect(app(\App\Domains\Finance\Services\InvoiceService::class)->linesFromOrder($order->fresh('lines.product')))->first()['product_id']);
+    }
+
     public function test_receipts_pay_invoices_oldest_first_and_cannot_overpay_one(): void
     {
         $customer = $this->customer('Net 30');
