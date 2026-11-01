@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\CoreBox;
 use App\Models\CoreDefinition;
+use App\Models\Customer;
 use App\Models\Pattern;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -130,5 +131,24 @@ class CoreScreensTest extends TestCase
         $this->get(route('core-boxes.create', ['core' => $core->id]))->assertOk()->assertSee($core->name);
         $this->get(route('core-boxes.edit', $box))->assertOk();
         $this->get(route('core-boxes.show', $box))->assertOk();
+    }
+
+    public function test_a_core_box_owner_and_custody_are_saved_and_shown(): void
+    {
+        $this->post(route('core-boxes.store'), $this->boxPayload($this->core()));
+        $box = CoreBox::sole();
+        $this->assertSame('FOUNDRY', $box->owner_type);
+        $customer = Customer::create(['code' => 'NL', 'name' => 'Nordline', 'active' => true]);
+
+        $this->put(route('core-boxes.ownership', $box), ['owner_type' => 'CUSTOMER', 'custody' => 'IN_STORE'])->assertSessionHasErrors('owner_customer_id');
+        $this->put(route('core-boxes.ownership', $box), ['owner_type' => 'FOUNDRY', 'custody' => 'LENT'])->assertSessionHasErrors('custody_location');
+        $this->put(route('core-boxes.ownership', $box), ['owner_type' => 'CUSTOMER', 'owner_customer_id' => $customer->id, 'custody' => 'IN_STORE',
+            'custody_location' => 'CS-R2-04', 'ownership_reference' => 'NL-T-0121', 'return_notice_days' => 14])->assertSessionHasNoErrors();
+
+        $this->assertSame($customer->id, $box->fresh()->owner_customer_id);
+        $this->get(route('core-boxes.show', $box))->assertOk()->assertSee('Nordline · customer-owned')->assertSee('In our store · CS-R2-04')
+            ->assertSee('Ownership tag NL-T-0121')->assertSee('Return on request: 14 days');
+        $this->put(route('core-boxes.ownership', $box), ['owner_type' => 'FOUNDRY', 'owner_customer_id' => $customer->id, 'custody' => 'IN_STORE']);
+        $this->assertNull($box->fresh()->owner_customer_id);
     }
 }

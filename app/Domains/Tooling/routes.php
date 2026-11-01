@@ -84,6 +84,7 @@ Route::middleware('web')->group(function () {
         Route::get('/{coreBox}/edit', 'edit')->name('edit');
         Route::put('/{coreBox}', 'update')->name('update');
         Route::put('/{coreBox}/cavities', 'updateCavities')->name('cavities');
+        Route::put('/{coreBox}/ownership', 'updateOwnership')->name('ownership');
         Route::delete('/{coreBox}', 'archive')->name('archive');
         Route::post('/{coreBox}/restore', 'restore')->name('restore')->withTrashed();
     });

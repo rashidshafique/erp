@@ -7,6 +7,7 @@ use App\Domains\Tooling\Models\ToolingMaintenanceRecord;
 use App\Http\Controllers\Controller;
 use App\Models\CoreBox;
 use App\Models\CoreDefinition;
+use App\Models\Customer;
 use App\Models\Pattern;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -62,6 +63,7 @@ class CoreBoxController extends Controller
             'records' => ToolingMaintenanceRecord::where('core_box_id', $coreBox->id)->latest('reported_at')->limit(10)->get(),
             'life' => ToolingLifeLimit::where('core_box_id', $coreBox->id)->where('is_active', true)->first(),
             'derived' => CoreBox::where('modified_from_core_box_id', $coreBox->id)->orderBy('code')->get(),
+            'customers' => Customer::active()->orderedByName()->get(),
         ]);
     }
 
@@ -97,6 +99,28 @@ class CoreBoxController extends Controller
         $coreBox->saveCavityMap($map);
 
         return back()->with('success', 'Cores per cavity saved.');
+    }
+
+    /** Who owns the box and where it is (design 18h). */
+    public function updateOwnership(Request $request, CoreBox $coreBox): RedirectResponse
+    {
+        $data = $request->validate([
+            'owner_type' => ['required', Rule::in(['FOUNDRY', 'CUSTOMER'])],
+            'owner_customer_id' => ['required_if:owner_type,CUSTOMER', 'nullable', 'uuid', Rule::exists('customers', 'id')],
+            'custody' => ['required', Rule::in(CoreBox::CUSTODIES)],
+            'custody_location' => ['required_if:custody,LENT', 'nullable', 'string', 'max:150'],
+            'ownership_reference' => ['nullable', 'string', 'max:100'],
+            'return_notice_days' => ['nullable', 'integer', 'min:0', 'max:365'],
+        ], [
+            'owner_customer_id.required_if' => 'Choose the customer who owns the core box.',
+            'custody_location.required_if' => 'Say who the core box is lent to.',
+        ], ['custody' => 'where it is']);
+        if ($data['owner_type'] === 'FOUNDRY') {
+            $data['owner_customer_id'] = null;
+        }
+        $coreBox->update($data);
+
+        return back()->with('success', "Ownership of {$coreBox->code} saved.");
     }
 
     public function archive(CoreBox $coreBox): RedirectResponse

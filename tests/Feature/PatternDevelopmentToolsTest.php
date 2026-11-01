@@ -490,6 +490,20 @@ class PatternDevelopmentToolsTest extends TestCase
         $this->post(route('developments.tools.store', $user), ['shared_tool_id' => $maker->tools->firstWhere('kind', 'PATTERN')->id])->assertSessionHasErrors('shared_tool_id');
     }
 
+    public function test_a_core_box_made_by_an_open_development_allows_trial_cores_once_built_and_names_who_paid(): void
+    {
+        $d = $this->development();
+        $this->post(route('developments.tools.store', $d), ['kind' => 'CORE_BOX', 'label' => 'Volute core box', 'route' => 'NEW', 'who_pays' => 'CUSTOMER']);
+        $tool = $d->fresh()->tools->firstWhere('kind', 'CORE_BOX');
+        $this->post(route('developments.tools.register', [$d, $tool]));
+        $box = $tool->fresh()->coreBox;
+        $this->get(route('core-boxes.show', $box))->assertOk()->assertDontSee('Trial cores allowed')->assertSee('Paid by Orbis Auto, on '.$d->code);
+
+        $this->put(route('developments.tools.update', [$d, $tool]), ['status' => 'BUILT']);
+
+        $this->get(route('core-boxes.show', $box))->assertOk()->assertSee('Trial cores allowed');
+    }
+
     private function coreBox(): CoreBox
     {
         $core = CoreDefinition::create(['name' => 'Volute core', 'core_type' => 'STANDARD', 'status' => 'ACTIVE']);

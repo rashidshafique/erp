@@ -36,9 +36,19 @@ class CoreBox extends Model
         'description',
         'notes',
         'commissioned_on',
+        'owner_type',
+        'owner_customer_id',
+        'custody',
+        'custody_location',
+        'ownership_reference',
+        'return_notice_days',
     ];
 
+    /** Custodies a core box can be set to by hand; the names are the pattern ones (Pattern::CUSTODIES). */
+    public const CUSTODIES = ['IN_STORE', 'PATTERN_SHOP', 'LENT'];
+
     protected $casts = [
+        'return_notice_days' => 'integer',
         'cavities' => 'integer',
         'nominal_core_weight_kg' => 'decimal:4',
         'commissioned_on' => 'date',
@@ -47,6 +57,23 @@ class CoreBox extends Model
     public function coreDefinition(): BelongsTo
     {
         return $this->belongsTo(CoreDefinition::class);
+    }
+
+    public function ownerCustomer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class, 'owner_customer_id')->withTrashed();
+    }
+
+    /** e.g. "Foundry-owned" or "Nordline · customer-owned". */
+    public function ownerLabel(): string
+    {
+        return $this->owner_type === 'FOUNDRY' || ! $this->ownerCustomer ? 'Foundry-owned' : $this->ownerCustomer->name.' · customer-owned';
+    }
+
+    /** e.g. "In our store · CS-R2-04". */
+    public function custodyLabel(): string
+    {
+        return (Pattern::CUSTODIES[$this->custody] ?? $this->custody).($this->custody_location ? ' · '.$this->custody_location : '');
     }
 
     protected static function booted(): void

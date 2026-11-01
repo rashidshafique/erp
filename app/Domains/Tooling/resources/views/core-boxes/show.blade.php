@@ -23,6 +23,7 @@
     $used = $life ? app(\App\Domains\Tooling\Services\ToolingLifeStatusService::class)->calculate($life) : null;
     $line = array_filter([
         $made ? 'Built on '.$made->code : null,
+        $made && $made->isOpen() && $box->status === 'ACTIVE' && $made->tools->contains(fn ($t) => $t->core_box_id === $box->id && in_array($t->status, ['BUILT', 'TRIAL_PASSED'], true)) ? 'Trial cores allowed' : null,
         $box->commissioned_on ? 'in use since '.$box->commissioned_on->displayDate() : null,
         $used ? \App\Support\Formats::number($used['current_usage'], 0).' of '.\App\Support\Formats::number((float) $life->service_life_quantity, 0).' '.strtolower(str_replace('_', ' ', $life->usage_unit)) : null,
     ]);
@@ -46,6 +47,8 @@
     @include('tooling::tools._mark', ['tool' => $box, 'type' => 'core_box'])
     <div class="muted small" style="margin-top:8px">Barcode</div>{!! \App\Support\Code128::svg($box->code, 44, 2) !!}
 </div></div>
+
+@include('tooling::core-boxes._ownership')
 
 <div class="panel"><div class="panel-header"><h2>Core made in each cavity</h2><span class="muted small">Leave a cavity empty when it is blocked off or not in use.</span></div>
     <form method="POST" action="{{ route('core-boxes.cavities', $box) }}">@csrf @method('PUT')
