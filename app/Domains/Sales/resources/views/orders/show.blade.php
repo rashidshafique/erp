@@ -85,7 +85,7 @@
                     <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:flex-end">
                     @if ($l->fromPieces($sched) < (float) $l->ordered_qty - 0.0005)
                         <form method="POST" action="{{ route('sales-orders.lines.production-order', [$order, $l]) }}">@csrf
-                            <button class="btn" type="submit" @disabled($reviewBlocksProduction) @if ($reviewBlocksProduction) title="Needs an approved contract review: sales and quality must both sign it off" @endif>+ Production Order</button></form>
+                            <button class="btn @if ($reviewBlocksProduction) btn-review-blocked @endif" type="submit" @disabled($reviewBlocksProduction) @if ($reviewBlocksProduction) title="Needs an approved contract review: sales and quality must both sign it off" @endif>+ Production Order</button></form>
                     @endif
                     @if ($isOpen)
                         <button type="button" class="btn" data-quick="qd-delivery-{{ $l->id }}">+ Add delivery</button>

@@ -179,4 +179,14 @@ class CustomerListTest extends TestCase
         $plain = Customer::where('ppap_requested', false)->firstOrFail();
         $this->assertNull($plain->ppap_level);
     }
+
+    public function test_a_prospect_is_labelled_beside_its_name_in_the_all_list(): void
+    {
+        $this->customer('NEW1', 'Newcomer Ltd', ['is_prospect' => true]);
+        $this->customer('ACME', 'Acme Pumps');
+
+        $html = preg_replace('/<!--\[if (BLOCK|ENDBLOCK)\]><!\[endif\]-->/', '', Livewire::test('customer-list')->html());
+        $this->assertMatchesRegularExpression('/Newcomer Ltd\s*<span class="cl-pill cl-warn">Prospect<\/span>/', $html);
+        $this->assertDoesNotMatchRegularExpression('/Acme Pumps\s*<span class="cl-pill cl-warn">Prospect/', $html);
+    }
 }

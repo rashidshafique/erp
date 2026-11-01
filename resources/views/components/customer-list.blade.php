@@ -355,7 +355,7 @@ new class extends Component
                     @foreach ($customers as $row)
                         @php $st = $row->stage(); $o = $owed->get($row->id); @endphp
                         <tr wire:key="customer-{{ $row->id }}" @class(['sel' => $c && $c->id === $row->id]) wire:click="select('{{ $row->id }}')">
-                            <td><div style="font-weight:500">{{ $row->name }}</div><div class="cl-sub">{{ $sub($row) ?: $row->code }}</div></td>
+                            <td><div style="font-weight:500">{{ $row->name }}@if ($st === 'prospect') <span class="cl-pill {{ $stages['prospect'][1] }}">Prospect</span>@endif</div><div class="cl-sub">{{ $sub($row) ?: $row->code }}</div></td>
                             <td data-col="supply">{{ $row->sales_orders_count ? 'Serial' : '—' }}</td>
                             <td class="r" data-col="parts">{{ $parts[$row->id] ?? 0 }}</td>
                             <td class="r" data-col="open">{{ $openValue[$row->id] !== null ? $money($openValue[$row->id]) : '—' }}</td>
