@@ -59,7 +59,7 @@
 <div class="field"><label><input type="checkbox" name="paid" value="1" @checked($t->paid)> Paid</label><label><input type="checkbox" name="allow_half_day" value="1" @checked($t->allow_half_day)> Half days allowed</label><label><input type="checkbox" name="counts_days_off" value="1" @checked($t->counts_days_off)> Days off count too</label><label><input type="checkbox" name="after_probation_only" value="1" @checked($t->after_probation_only)> After probation only</label><label><input type="checkbox" name="active" value="1" @checked($t->active)> In use</label></div>
 <div class="field"><button class="btn btn-primary">Save</button></div></form></details></td></tr>
 @endforeach</tbody></table></div>
-<div class="panel-body"><p class="muted small">The days and rules above are starting values, not legal advice. Set them to what your province's labour law and your contracts say.</p>
+<div class="panel-body"><p class="muted small">Starting values, not legal advice. Match them to your labour law and contracts.</p>
 <form method="POST" action="{{ route('hr.leave.types.store') }}">@csrf<div class="form-grid">
 @include('hr::_in', ['name' => 'code', 'label' => 'Code', 'val' => '', 'required' => true, 'ph' => 'e.g. HL']) @include('hr::_in', ['name' => 'name', 'label' => 'New leave type', 'val' => '', 'required' => true])
 @include('hr::_in', ['name' => 'annual_days', 'label' => 'Days a year', 'type' => 'number', 'val' => 0, 'required' => true])
@@ -72,7 +72,7 @@
 <p class="muted">Gives everyone this year's up-front leave and every completed month of monthly leave. Safe to run again: nothing is added twice. The same run is available from the command line as <code>php artisan hr:leave-accrue</code>.</p>
 <form method="POST" action="{{ route('hr.leave.accrue') }}">@csrf<button class="btn btn-primary">Run now</button></form></div></div>
 <div class="panel"><div class="panel-header"><h2>Close a year</h2></div><div class="panel-body">
-<p class="muted">Carries each balance forward up to the leave type's limit and writes off the rest. Run it once the year has ended, then run the entitlements for the new year.</p>
+<p class="muted">Carries balances forward up to each type's limit and writes off the rest. Run after year end, then the new entitlements.</p>
 <form method="POST" action="{{ route('hr.leave.close-year') }}" class="form-grid" onsubmit="return confirm('Write off leave above the carry-forward limit for this year?')">@csrf
 @include('hr::_in', ['name' => 'year', 'label' => 'Year', 'type' => 'number', 'val' => $year - 1, 'required' => true])<div class="field"><label>&nbsp;</label><button class="btn">Close the year</button></div></form></div></div>
 @if ($tab)<script>document.addEventListener('DOMContentLoaded', function () { var m = {requests:'Requests',balances:'Balances',types:'Leave types',runs:'Yearly runs'}[@json($tab)]; var b = [].slice.call(document.querySelectorAll('.tabbar button')).filter(function (x) { return x.textContent.trim().indexOf(m) === 0; })[0]; if (b) b.click(); });</script>@endif

@@ -6,7 +6,7 @@
 @section('content')
 @php $archived = request()->boolean('archived'); @endphp
 <div class="page-heading">
-    <div><h1>Core boxes</h1><p>The tooling that makes cores: new boxes, boxes modified from existing tooling, and the core made in each cavity.</p></div>
+    <div><h1>Core boxes</h1><p>Tooling that makes cores and the core made in each cavity.</p></div>
     <div class="actions"><a class="btn" href="{{ route('cores.index') }}">Cores</a> <a class="btn" href="{{ route('imports.create', ['entity' => 'core_box']) }}">Import</a> <a class="btn btn-primary" href="{{ route('core-boxes.create') }}">+ New core box</a></div>
 </div>
 <div class="panel"><div class="panel-body">

@@ -64,7 +64,7 @@
                             </option>
                         @endforeach
                     </select>
-                    <div class="help">Kilogram: new sales order lines sell it by weight (priced per kg, invoiced on the weighed kg). A line can still be changed to pieces.</div>
+                    <div class="help">Kilogram: order lines sell by weight, priced per kg. A line can switch to pieces.</div>
                 </div>
 
                 <div class="field">
@@ -103,8 +103,7 @@
         <div class="panel-header"><h2>Initial product revision</h2></div>
         <div class="panel-body">
             <p class="muted small">
-                Each product needs a revision before it can be used in a production order.
-                This creates the initial revision with the product.
+                This creates the product's first revision, needed for production orders.
             </p>
             <div class="form-grid" data-progressive="3">
                 <div class="field">

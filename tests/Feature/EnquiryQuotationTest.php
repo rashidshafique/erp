@@ -251,7 +251,7 @@ class EnquiryQuotationTest extends TestCase
             $this->assertStringContainsString('expired', $ex->getMessage());
         }
         $this->assertNotSame('WON', $e->fresh()->status);
-        $this->get(route('quotations.show', $q))->assertOk()->assertSee('passed its valid-until');
+        $this->get(route('quotations.show', $q))->assertOk()->assertSee('has expired');
         $this->assertSame('EXPIRED', $q->fresh()->status);
     }
 

@@ -2,7 +2,7 @@
 @section('title', 'Record a payment')
 @section('content')
 @php $m = fn ($v) => \App\Support\Formats::number($v, 2); @endphp
-<div class="page-heading"><div><h1>Record a payment</h1><p>Pick the supplier to see what we owe them, then say how much of the payment settles each bill. Anything left stays as an advance.</p></div></div>
+<div class="page-heading"><div><h1>Record a payment</h1><p>Pick the supplier, then how much of the payment settles each bill. The rest stays as an advance.</p></div></div>
 <div class="panel"><div class="panel-body"><form method="GET" class="filters"><div class="field"><label for="supplier">Supplier</label><select id="supplier" name="supplier" onchange="this.form.submit()"><option value="">—</option>@foreach ($suppliers as $c)<option value="{{ $c->id }}" @selected($supplierId === $c->id)>{{ $c->name }}</option>@endforeach</select></div></form></div></div>
 @if ($supplierId)
 <form method="POST" action="{{ route('supplier-payments.store') }}" x-data="{ amount: {{ (float) old('amount', 0) }}, alloc: {}, get used() { return Object.values(this.alloc).reduce((n, v) => n + (Number(v) || 0), 0); },

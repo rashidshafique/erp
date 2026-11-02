@@ -2,7 +2,7 @@
 @section('title', 'Bank accounts')
 @section('content')
 @php $bal = fn ($v) => \App\Support\Formats::number(abs($v), 2).($v < 0 ? ' overdrawn' : ''); @endphp
-<div class="page-heading"><div><h1>Bank accounts</h1><p>Each bank sits on a ledger account. Reconcile its statements by ticking the lines that cleared; the books are never changed by it.</p></div></div>
+<div class="page-heading"><div><h1>Bank accounts</h1><p>Each bank sits on a ledger account. Reconcile by ticking cleared lines; the books are not changed.</p></div></div>
 @error('bank')<div class="alert alert-error">{{ $message }}</div>@enderror
 <div class="panel"><div class="table-wrap"><table><thead><tr><th>Bank</th><th>Account number</th><th>Ledger account</th><th class="num">Balance in the books</th><th>Reconciled to</th><th class="num">Not yet cleared</th><th></th></tr></thead><tbody>
 @forelse ($banks as $b)

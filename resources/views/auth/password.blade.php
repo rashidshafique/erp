@@ -9,7 +9,7 @@
 @error('profile_image')<p class="field-error" style="color:var(--danger)">{{ $message }}</p>@enderror
 @if($me->profile_image_path)<label style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="remove_image" value="1"> Remove my uploaded image</label>@endif
 <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="use_gravatar" value="1" @checked(old('use_gravatar', $me->use_gravatar))> Use my Gravatar when no image is uploaded</label>
-<p class="muted small">Gravatar is looked up from your email address on gravatar.com. If none exists, your initials are shown.</p>
+<p class="muted small">Gravatar is looked up from your email; otherwise your initials show.</p>
 <p><button class="btn btn-primary">Save profile</button></p></form></div></div>
 <div class="page-heading"><div><h1>Change password</h1><p>At least 10 characters with letters and numbers.</p></div></div>
 <div class="panel"><div class="panel-body"><form method="POST" action="{{ route('account.password.update') }}" style="max-width:380px">@csrf @method('PUT')

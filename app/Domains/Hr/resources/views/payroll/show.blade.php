@@ -51,7 +51,7 @@
 <div class="panel"><div class="panel-body">
 @forelse ($checks['blockers'] as $b)<div class="alert alert-error">{{ $b }}</div>@empty<p style="color:var(--success)"><strong>No blockers.</strong> Nothing stops this payroll being approved.</p>@endforelse
 @foreach ($checks['warnings'] as $w)<div class="alert" style="background:#fff8e1;border:1px solid #e6c36a;color:#7a5b00">{{ $w }}</div>@endforeach
-<p class="muted small">Blockers are open attendance exceptions, overtime still waiting for a decision and negative net pay. Fix them where they come from, then recalculate.</p>
+<p class="muted small">Blockers: open attendance exceptions, undecided overtime and negative net pay. Fix them, then recalculate.</p>
 </div></div>
 
 <div class="tab-marker" data-tab-start="By department"></div>
@@ -70,5 +70,5 @@
 @include('hr::_in', ['name' => 'name', 'label' => 'What for', 'val' => '', 'required' => true, 'keep' => true]) @include('hr::_in', ['name' => 'amount', 'label' => 'Amount'.\App\Support\Formats::currencySuffix(), 'type' => 'number', 'val' => '', 'required' => true, 'keep' => true])
 @include('hr::_in', ['name' => 'note', 'label' => 'Note', 'val' => ''])
 <div class="field"><label><input type="checkbox" name="taxable" value="1" checked> Counts as taxable income</label></div></div><p><button class="btn btn-primary">Add item</button></p></form></div>
-@else<div class="panel-body muted small">This payroll is approved, so items can no longer be added. Send it back for changes, or add the item to next month.</div>@endif</div>
+@else<div class="panel-body muted small">Approved, so no more items. Send it back, or add the item next month.</div>@endif</div>
 @endsection

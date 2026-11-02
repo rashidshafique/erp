@@ -2,7 +2,7 @@
      Each row is its own form, so this sits outside the form that moves ticked lots. --}}
 <datalist id="defect-names">@foreach ($defects as $name)<option value="{{ $name }}">@endforeach</datalist>
 <details class="panel" open>
-    <summary class="panel-header" style="cursor:pointer"><h2>Move a batch</h2><span class="muted small">Record a step for some moulds or pieces of a product, or leave the quantity empty for all of it. Taken from the oldest lots first.</span></summary>
+    <summary class="panel-header" style="cursor:pointer"><h2>Move a batch</h2><span class="muted small">Record a step for part of a product, or leave the quantity empty for all. Oldest lots first.</span></summary>
     @error('batch')<div class="alert alert-error">{{ $message }}</div>@enderror
     <div class="table-wrap"><table><thead><tr><th>Step</th><th>Product</th><th>Waiting</th><th>Record</th></tr></thead><tbody>
     @foreach ($batches as $stepRows)

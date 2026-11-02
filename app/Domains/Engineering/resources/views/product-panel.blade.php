@@ -6,7 +6,7 @@
     $revisions = $product->revisions->load('bomLines.material');
 @endphp
 <div class="panel" id="bom">
-    <div class="panel-header"><h2>Bill of materials</h2><span class="muted small">Items used besides the metal, which the planner works out from the cavity map. Per casting counts every piece, per mould counts each mould made, per kg poured follows the metal.</span></div>
+    <div class="panel-header"><h2>Bill of materials</h2><span class="muted small">Non-metal items the planner works out from the cavity map: per casting, per mould or per kg poured.</span></div>
     <div class="panel-body">
         @if ($errors->has('bom'))<div class="alert alert-error">{{ $errors->first('bom') }}</div>@endif
         @forelse ($revisions as $revision)

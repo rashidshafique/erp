@@ -7,7 +7,7 @@
     $bal = fn ($v) => \App\Support\Formats::number(abs($v), 2).($v > 0 ? ' Dr' : ($v < 0 ? ' Cr' : ''));
     $d = fn (string $date) => \Illuminate\Support\Carbon::parse($date)->displayDate();
 @endphp
-<div class="page-heading"><div><h1>General ledger</h1><p>{{ $d($from) }} to {{ $d($to) }}: every account that carries a balance into the period or moved in it, with its postings and running balance.</p></div>
+<div class="page-heading"><div><h1>General ledger</h1><p>{{ $d($from) }} to {{ $d($to) }}: every account with a balance or movement, with postings and running balance.</p></div>
 <div class="actions"><a class="btn" href="{{ route('ledger.trial-balance', ['as_at' => $to]) }}">Trial balance</a><button class="btn btn-primary" onclick="window.print()">Print</button></div></div>
 <div class="panel no-print"><div class="panel-body"><form method="GET" class="filters">
     <div class="field"><label for="from">From</label><input type="date" id="from" name="from" value="{{ $from }}"></div>

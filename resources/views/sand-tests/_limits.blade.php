@@ -7,7 +7,7 @@
     <div class="panel-header"><h2>{{ $system ? 'Limits for '.$system->name.' sand' : 'Limits for all sands' }}</h2></div>
     <div class="panel-body">
         @if ($errors->has('limit'))<div class="alert alert-error">{{ $errors->first('limit') }}</div>@endif
-        <p class="muted small">Minimum and maximum for each test. Tick "required" to stop a lot being released until a passing result exists for its heat. Results keep the limits they were judged against.</p>
+        <p class="muted small">Min and max per test. "Required" blocks release until the heat has a passing result. Results keep their limits.</p>
         <details @if ($errors->has('limit')) open @endif style="margin-top:10px"><summary class="btn btn-primary" style="display:inline-block;cursor:pointer;list-style:none">+ Add limit</summary>
         <div style="margin-top:12px">
         <form method="POST" action="{{ route('limits.store') }}" class="form-grid">@csrf

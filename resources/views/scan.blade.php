@@ -2,7 +2,7 @@
 @section('title', 'Scan or find')
 @section('content')
 @php $types = \App\Support\GlobalSearch::typesFor(auth()->user()); @endphp
-<div class="page-heading"><div><h1>Scan or find</h1><p>Scan a barcode or type a code or name: a product, pattern, material, tooling code or engraved mark, a lot, heat, pour, order or enquiry.</p></div></div>
+<div class="page-heading"><div><h1>Scan or find</h1><p>Scan or type a code or name: product, pattern, material, tool or mark, lot, heat, pour, order or enquiry.</p></div></div>
 <div class="panel"><div class="panel-body">
 <form method="GET" action="{{ route('scan') }}" style="display:flex;gap:8px;max-width:620px">
     <select name="type" style="width:auto"><option value="">Everything</option>@foreach ($types as $k => $l)<option value="{{ $k }}" @selected(($type ?? null) === $k)>{{ $l }}</option>@endforeach</select>

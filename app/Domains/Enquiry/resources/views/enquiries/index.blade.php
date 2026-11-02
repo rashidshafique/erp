@@ -88,7 +88,7 @@
             </table></div>
             <div class="pagination"><div class="pagination-links">{{ $rows->links() }}</div></div>
             @endif
-            <div class="el-note">On hold rows follow the customer's credit hold. Won enquiries link to their sales order and development.</div>
+            <div class="el-note">On hold follows the customer's credit hold. Won enquiries link to their order and development.</div>
         </div>
         <aside class="el-side">
             <div><div class="el-h">Last 90 days</div><div style="margin-top:8px">

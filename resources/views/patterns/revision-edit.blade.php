@@ -8,7 +8,7 @@
 <div class="page-heading">
     <div>
         <h1>Edit details of {{ $revision->code }}</h1>
-        <p>Fill in what is missing, or correct a recorded value. Filling a blank is free; changing a value already recorded needs a reason, which goes in the audit trail. The code, status and mould layout are not changed here.</p>
+        <p>Fill in or correct values. Changing a recorded value needs a reason (audited). Code, status and layout are not changed here.</p>
     </div>
     <div class="actions">
         <a class="btn" href="{{ route('patterns.show', $pattern) }}">Back to pattern</a>

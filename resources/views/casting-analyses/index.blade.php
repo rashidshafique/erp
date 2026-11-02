@@ -7,7 +7,7 @@
 <div class="page-heading">
     <div>
         <h1>Casting analysis</h1>
-        <p>Upload an STL or STEP model to see where it freezes last, how to feed it, how castable it is and what to melt.</p>
+        <p>Upload an STL or STEP model to see where it freezes last, how to feed it and what to melt.</p>
     </div>
     <div class="actions">
         <a class="btn btn-primary" href="{{ route('casting-analyses.create') }}">+ New analysis</a>
@@ -44,7 +44,7 @@
     @if ($rows->isEmpty())
         <div class="empty-state">
             <strong>No analyses yet</strong>
-            <p>Export a part as STL from your CAD system and upload it. STEP files work when the converter is installed.</p>
+            <p>Export as STL from CAD and upload. STEP works when the converter is installed.</p>
             <a class="btn btn-primary" href="{{ route('casting-analyses.create') }}">Start an analysis</a>
         </div>
     @else

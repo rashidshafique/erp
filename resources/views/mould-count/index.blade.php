@@ -5,7 +5,7 @@
 
 @section('content')
 <div class="page-heading">
-    <div><h1>Count moulds before pouring</h1><p>Count what is on the floor for each pattern. Moulds short of the records are written off, and the orders need them again.</p></div>
+    <div><h1>Count moulds before pouring</h1><p>Count moulds on the floor per pattern. Missing moulds are written off and needed again.</p></div>
     <div class="actions">@if (Route::has('quick.floor.index') && \App\Support\FloorRules::usesQuickScreens())<a class="btn" href="{{ route('quick.floor.index') }}">Moulds poured</a>@else<a class="btn" href="{{ route('pours.create') }}">New pour</a>@endif</div>
 </div>
 @if (session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
@@ -33,7 +33,7 @@
         <label>For heat<select name="heat_id"><option value="">—</option>@foreach ($heats as $h)<option value="{{ $h->id }}" @selected(old('heat_id') === $h->id)>{{ $h->heat_number }}</option>@endforeach</select></label>
         <button class="btn btn-primary">Save count</button>
     </div>
-    <p class="panel-body muted small" style="margin:0">Leave a pattern empty to skip it. Moulds counted above the records are kept as counted; the pour records them.</p>
+    <p class="panel-body muted small" style="margin:0">Leave a pattern empty to skip it. Extra moulds are kept as counted.</p>
 </form>
 @endif
 </div>

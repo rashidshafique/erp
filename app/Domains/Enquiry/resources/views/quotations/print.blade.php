@@ -27,5 +27,5 @@ h1 { font-size: 22px; margin: 0 0 4px; } table { border-collapse: collapse; widt
 @if ($q->notes)<p>{{ $q->notes }}</p>@endif
 @php $conds = $q->lines->filter(fn ($l) => $l->item->feasibility_status === 'CONDITIONAL' && $l->item->feasibility_notes); @endphp
 @if ($conds->isNotEmpty())<p><strong>Conditions</strong></p><ul>@foreach ($conds as $l)<li>Item {{ $l->line_no }}: {{ $l->item->feasibility_notes }}</li>@endforeach</ul>@endif
-<p class="muted">Prices are per casting, as cast and fettled unless stated. Production starts after the first samples are approved.</p>
+<p class="muted">Prices per casting, as cast and fettled unless stated. Production starts after samples are approved.</p>
 </body></html>

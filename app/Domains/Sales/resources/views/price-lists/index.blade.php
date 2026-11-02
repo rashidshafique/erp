@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Price lists')
 @section('content')
-<div class="page-heading"><div><h1>Price lists</h1><p>Product prices per piece or per kg, with quantity breaks. A customer given its own list is priced from it first; the default list prices everyone else and fills the gaps. Order lines pick up the price when the product is chosen.</p></div></div>
+<div class="page-heading"><div><h1>Price lists</h1><p>Prices per piece or per kg with quantity breaks. A customer's own list comes first; the default fills the gaps.</p></div></div>
 <div class="panel"><div class="table-wrap"><table><thead><tr><th>Code</th><th>Name</th><th>Valid</th><th class="num">Prices</th><th class="num">Customers</th><th></th></tr></thead><tbody>
 @forelse ($lists as $l)<tr><td><a class="mono" href="{{ route('price-lists.show', $l) }}">{{ $l->code }}</a></td><td>{{ $l->name }}</td>
 <td class="small">{{ $l->valid_from?->displayShortDate() ?? 'Always' }}{{ $l->valid_to ? ' to '.$l->valid_to->displayShortDate() : '' }}</td><td class="num">{{ $l->items_count }}</td><td class="num">{{ $l->is_default ? 'Everyone else' : $l->customers_count }}</td>
@@ -17,7 +17,7 @@
 </div><div class="panel-body"><button class="btn btn-primary">Add</button></div></form></div>
 <div class="panel"><div class="panel-header"><h2>Check and discounts</h2></div><form method="POST" action="{{ route('price-lists.settings') }}">@csrf @method('PUT')<div class="panel-body form-grid">
     <label>An order line priced under its list price<select name="check">@foreach (\App\Domains\Sales\Services\PriceLists::CHECK_OPTIONS as $k => $v)<option value="{{ $k }}" @selected($check === $k)>{{ $v }}</option>@endforeach</select></label>
-    <label><span><input type="checkbox" name="line_discounts" value="1" @checked($discounts)> Lines can have a discount</span><span class="muted small">Adds a percent-off box to order and invoice lines. Lines that already have a discount keep it if this is switched off.</span></label>
+    <label><span><input type="checkbox" name="line_discounts" value="1" @checked($discounts)> Lines can have a discount</span><span class="muted small">Adds a percent-off box to lines. Existing discounts stay if switched off.</span></label>
     <label>Flag a discount above (percent)<input type="number" name="discount_limit" step="any" min="0" max="100" value="{{ old('discount_limit', $discountLimit) }}"><span class="muted small">Contract review warns. 0 allows any discount.</span></label>
 </div><div class="panel-body"><button class="btn">Save</button></div></form></div>
 @endsection

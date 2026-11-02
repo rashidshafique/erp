@@ -51,7 +51,7 @@
         @endforelse
         </tbody></table></div>
         @if ($rows->hasPages())<div class="pagination"><div class="pagination-links">{{ $rows->links() }}</div></div>@endif
-        <div class="ac-note">Documents post their own vouchers under their document code. Manual vouchers use JV, CPV, BPV, CRV and BRV numbers per financial year.</div>
+        <div class="ac-note">Documents post under their own code. Manual vouchers use JV, CPV, BPV, CRV and BRV per year.</div>
     </div>
 </div>
 @endsection

@@ -67,7 +67,7 @@
 
 @if($editable)
 <div class="panel"><div class="panel-header"><h2>Add work for a moulding line</h2></div><div class="panel-body">
-<p class="muted small" style="margin-top:0">Pick the moulding line: its team is the line's own team, and its sand system fills in by itself and can be changed. Then list the pattern plates and how many moulds of each. An automated line takes one pattern at a time, so its rows run in order; a manual station can take several plates at once.</p>
+<p class="muted small" style="margin-top:0">Pick the line: its team and sand fill in. Then list the plates and moulds of each. An automated line runs one pattern at a time; a manual station can take several.</p>
 <form method="POST" action="{{ route('work-lists.rows.add', $list) }}" id="add-work">@csrf
 <div class="form-grid">
 @include('partials.quick-dialog', ['id' => 'qd-station', 'title' => 'Add a station', 'action' => route('moulding-teams.stations.store'), 'submit' => 'Add station', 'fields' => 'moulding-teams._quick-station'])

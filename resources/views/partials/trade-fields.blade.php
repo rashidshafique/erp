@@ -9,7 +9,7 @@
                 <option value="{{ $value }}" @selected(old('inventory_class', $item->inventory_class ?: $item->defaultInventoryClass()->value) === $value)>{{ $label }}</option>
             @endforeach
         </select>
-        <div class="help">The line of the accounts its stock and cost are reported in. Goods bought to sell as they are are stock-in-trade.</div>
+        <div class="help">The account line its stock and cost report under. Goods bought for resale are stock-in-trade.</div>
         @error('inventory_class')<div class="error">{{ $message }}</div>@enderror
     </div>
     <div class="field">

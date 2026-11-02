@@ -8,7 +8,7 @@
     $saved = collect($state['layout']['body']['columns'] ?? [])->keyBy('key');
     $state['layout']['body']['columns'] = $saved->values()->concat(collect(\App\Domains\Finance\Services\InvoiceLayouts::COLUMNS)->reject(fn ($l, $k) => $saved->has($k))->map(fn ($l, $k) => ['key' => $k, 'label' => $l, 'show' => false, 'width' => 0])->values())->all();
 @endphp
-<div class="page-heading"><div><h1>{{ $template->exists ? 'Edit template' : 'New invoice template' }}</h1><p>Arrange the header, the lines and the footer. The preview on the right is drawn from what you have typed, saved or not.</p></div>
+<div class="page-heading"><div><h1>{{ $template->exists ? 'Edit template' : 'New invoice template' }}</h1><p>Arrange header, lines and footer. The preview follows what you type.</p></div>
 <div class="actions"><a class="btn" href="{{ route('invoice-templates.index') }}">Back</a></div></div>
 @error('layout')<div class="alert alert-error">{{ $message }}</div>@enderror
 <style>

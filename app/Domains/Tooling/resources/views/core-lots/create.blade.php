@@ -4,7 +4,7 @@
 @section('breadcrumb')<a href="{{ route('core-lots.index') }}">Core stock</a> / Cores made @endsection
 
 @section('content')
-<div class="page-heading"><div><h1>Cores made</h1><p>Record a batch of one core made in one core box. Tick "used straight away" when the cores go into moulds the same day.</p></div></div>
+<div class="page-heading"><div><h1>Cores made</h1><p>One batch of one core from one box. Tick "used straight away" for same-day use.</p></div></div>
 <form method="POST" action="{{ route('core-lots.store') }}">
     @csrf
     <div class="panel"><div class="panel-body"><div class="form-grid">

@@ -6,7 +6,7 @@
 
 @section('content')
 <div class="page-heading">
-    <div><h1>{{ $isNew ? 'New core box' : 'Edit '.$box->code }}</h1><p>A box with several cavities can make different cores; set the core in each cavity on the box page after saving.</p></div>
+    <div><h1>{{ $isNew ? 'New core box' : 'Edit '.$box->code }}</h1><p>A multi-cavity box can make different cores; set each cavity on the box page after saving.</p></div>
 </div>
 <form method="POST" action="{{ $isNew ? route('core-boxes.store') : route('core-boxes.update', $box) }}">
     @csrf @if (! $isNew) @method('PUT') @endif

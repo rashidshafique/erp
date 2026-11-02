@@ -62,7 +62,7 @@
                     @endif
                 @endforeach
             </div>
-            @if ($loginRequired && $approvers->isEmpty())<p class="muted small">Nobody else has the "approve controlled documents" permission yet. Give it to a role on the Roles screen.</p>@endif
+            @if ($loginRequired && $approvers->isEmpty())<p class="muted small">Nobody can approve controlled documents yet. Give a role that permission under Roles.</p>@endif
             <button class="btn btn-primary" type="submit">Submit for approval</button>
         </form>
     @endif

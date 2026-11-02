@@ -121,7 +121,7 @@
                         This heat has already started, at the time given as "Planned start"</label>
                     <label id="fill-row" style="display:none;gap:8px;align-items:flex-start;margin-left:26px"><input type="checkbox" id="fill_charges" name="fill_charges" value="1" style="width:auto;margin-top:3px" @checked(old('fill_charges', true))>
                         <span>Fill in the charges since the start from the recipe, each at its scheduled time. <strong id="fill-preview"></strong>
-                            <span class="muted small" style="display:block">They are marked as filled in from the schedule, and can be corrected on the Charge tab. Inventory is not deducted.</span></span></label>
+                            <span class="muted small" style="display:block">Marked as from the schedule; correct them on the Charge tab. Stock is not deducted.</span></span></label>
                 </div>
             </div>
 

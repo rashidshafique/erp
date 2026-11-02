@@ -2,7 +2,7 @@
 @section('title', 'Teams and stations')
 @section('content')
 <div class="page-heading">
-    <div><h1>Moulding teams and stations</h1><p>Records are read-only until you choose Edit. Team and station setup is maintained in dialogs; the figures are the last 30 days.</p></div>
+    <div><h1>Moulding teams and stations</h1><p>Read-only until Edit. Figures are the last 30 days.</p></div>
     <div class="actions"><button type="button" class="btn" data-quick="qd-team">+ Add team</button><button type="button" class="btn btn-primary" data-quick="qd-station">+ Add station</button></div>
 </div>
 

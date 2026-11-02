@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Sand lab')
 @section('content')
-<div class="page-heading" style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px"><div><h1>Sand lab</h1><p>Test the sand each shift. A failed or missing test is shown on the moulding run and when a run is started.</p></div>
+<div class="page-heading" style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px"><div><h1>Sand lab</h1><p>Test sand each shift. A failed or missing test shows on the run.</p></div>
 <form method="GET">@if($run)<input type="hidden" name="moulding_run_id" value="{{ $run->id }}">@endif<select name="system" onchange="this.form.submit()" aria-label="Sand system"><option value="all" @selected(! $system)>Sand System: All Sands</option>@foreach($systems as $s)<option value="{{ $s->id }}" @selected($system?->id === $s->id)>Sand System: {{ $s->name }}</option>@endforeach</select></form></div>
 @if($run)<div class="panel"><div class="panel-body">Testing for moulding run <strong class="code">{{ $run->run_number }}</strong>@if($run->patternRevision?->pattern) · {{ $run->patternRevision->pattern->name }} <span class="code muted">{{ $run->patternRevision->pattern->code }}</span>@endif · <a href="{{ route('moulding-runs.show', $run) }}">Back to the run</a></div></div>@endif
 @if($errors->has('sand'))<div class="alert alert-error">{{ $errors->first('sand') }}</div>@endif

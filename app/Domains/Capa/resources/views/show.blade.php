@@ -30,7 +30,7 @@
             <div class="field field-full"><label for="corrective_action">Corrective action (removes the cause)</label><textarea id="corrective_action" name="corrective_action" rows="3" maxlength="2000" @disabled(! $editable)>{{ old('corrective_action', $capa->corrective_action) }}</textarea></div>
             <div class="field field-full"><label for="preventive_action">Preventive action (stops it happening elsewhere)</label><textarea id="preventive_action" name="preventive_action" rows="2" maxlength="2000" @disabled(! $editable)>{{ old('preventive_action', $capa->preventive_action) }}</textarea></div>
         </div>
-        @if ($editable)<button class="btn btn-primary" type="submit">Save</button> <span class="muted small">The action moves to "in progress" once the root cause, corrective action, owner and due date are all filled in.</span>@endif
+        @if ($editable)<button class="btn btn-primary" type="submit">Save</button> <span class="muted small">Moves to in progress once root cause, action, owner and due date are filled in.</span>@endif
     </form>
 </div></div>
 

@@ -18,7 +18,7 @@
 
 @section('content')
 <div class="page-heading">
-    <div><h1>Calendar</h1><p>Planned and past heats, pours, moulding runs and order due dates. Shaded days are campaign days under the melting calendar.</p></div>
+    <div><h1>Calendar</h1><p>Heats, pours, runs and due dates. Shaded days are campaign days.</p></div>
     <div class="actions" style="gap:8px">
         <div class="cal-switch">@foreach (['week' => 'Week', 'month' => 'Month', 'year' => 'Year', 'gantt' => 'Gantt'] as $v => $name)<a class="btn btn-small {{ $view === $v ? 'btn-primary' : '' }}" href="{{ $url($v, $anchor) }}">{{ $name }}</a>@endforeach</div>
         <a class="btn btn-small" href="{{ $url($view, $previous) }}" aria-label="Previous">‹</a>
@@ -36,7 +36,7 @@
         $pct = fn ($d) => max(0, min(100, $start->diffInDays($d->copy()->startOfDay(), false) / $days * 100));
         $todayPct = today()->between($start, $end) ? $pct(today()) + 50 / $days : null;
     @endphp
-    <p class="muted small">One bar per open production order, from when it started to its due date. Dark is poured, light is made, the rest is still to do. Red is late, orange means no campaign day is left to pour in time.</p>
+    <p class="muted small">One bar per open production order, start to due. Dark is poured, light is made. Red is late, orange has no campaign day left in time.</p>
     @if ($bars->isEmpty())
         <div class="empty-state">No open production orders fall in these weeks.</div>
     @else

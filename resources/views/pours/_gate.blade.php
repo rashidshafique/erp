@@ -14,8 +14,8 @@
             <div class="alert alert-error">{{ $errors->first('gate') ?: $errors->first('complete') }}</div>
         @endif
 
-        @if ($mode === 'ADVISORY' && ! $gate['ok'])<div class="alert alert-warning">Advisory only: the pour can start, and what is missing will be recorded on the pour. Take the samples when you can; a sample that fails later holds the lots poured in its period.</div>@endif
-        @if ($mode === 'OFF')<div class="alert alert-warning">Checks before pouring are switched off for this furnace type (Settings → Pouring rules).</div>@endif
+        @if ($mode === 'ADVISORY' && ! $gate['ok'])<div class="alert alert-warning">Advisory: the pour can start and what is missing is recorded. A later failed sample holds that period's lots.</div>@endif
+        @if ($mode === 'OFF')<div class="alert alert-warning">Checks before pouring are switched off for this furnace type (Settings → Process rules).</div>@endif
         @if ($pour->is_first_iron)<div class="alert alert-warning">First iron: lots made from this pour are held until QC passes.</div>@endif
         @if ($pour->containment_note)<div class="alert alert-error"><strong>Containment:</strong> {{ $pour->containment_note }} Release the lots from their hold once QC clears them.</div>@endif
         @if ($pour->gate_note)<div class="alert alert-warning">{{ $pour->gate_note }}</div>@endif

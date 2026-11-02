@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="{{ $css('app-base') }}">
     @if (\App\Support\UiSettings::all()['compact'])<link rel="stylesheet" href="{{ $css('app-compact') }}">@endif
     <link rel="stylesheet" href="{{ $css('app-overrides') }}">
-    {{-- Values the administrator sets under Settings → Display; everything else lives in public/css/app-*.css --}}
+    {{-- Values the administrator sets under Settings → General; everything else lives in public/css/app-*.css --}}
     <style>
         :root {
             --accent: {{ \App\Support\UiSettings::theme()['accent'] }} !important;
@@ -212,7 +212,7 @@
                 <form method="POST" action="{{ route('settings.rules.update') }}" class="simple-mode">@csrf @method('PUT')
                     <input type="hidden" name="preset" value="{{ $simple ? 'FULL' : 'BASIC' }}">
                     <span id="simple-mode-label">Simple mode</span>
-                    <button type="submit" class="simple-switch" role="switch" aria-checked="{{ $simple ? 'true' : 'false' }}" aria-labelledby="simple-mode-label" title="{{ $simple ? 'On: Basic process depth. Switch to Full.' : 'Off. Switch to Basic process depth.' }}"><span></span></button>
+                    <button type="submit" class="simple-switch" role="switch" aria-checked="{{ $simple ? 'true' : 'false' }}" aria-labelledby="simple-mode-label" title="{{ $simple ? 'On (Basic). Switch to Full.' : 'Off. Switch to Basic.' }}"><span></span></button>
                 </form>
             @endif
             @php($me = auth()->user())

@@ -56,7 +56,7 @@
         <div class="field" data-repeat-field @unless ($repeats) hidden @endunless><label>First delivery</label><input type="date" name="lines[{{ $i }}][repeat_from]" value="{{ $line['repeat_from'] ?? '' }}"></div>
         <div class="field" data-repeat-field @unless ($repeats) hidden @endunless><label>Until (optional)</label><input type="date" name="lines[{{ $i }}][repeat_until]" value="{{ $line['repeat_until'] ?? '' }}"></div>
         <span class="muted small" data-repeat-note @if ($repeats) hidden @endif>Leave empty to use the order's requested delivery. {{ $record ? 'Tick staggered deliveries to split the quantity over several dates.' : 'Staggered deliveries can be set once the order is saved.' }}</span>
-        <span class="muted small" data-repeat-field @unless ($repeats) hidden @endunless>No PO each time: the quantity box is the quantity of each delivery, and the next deliveries are added on their own. The line's total is its deliveries, so a one-off quantity is replaced; for a one-off as well, add the product again as a second line. Stopping keeps the deliveries already scheduled.</span>
+        <span class="muted small" data-repeat-field @unless ($repeats) hidden @endunless>No PO each time: the quantity is per delivery and later deliveries are added automatically. For an extra one-off, add the product again. Stopping keeps scheduled deliveries.</span>
     </div>
     @if ($record)
     <div class="so-deliveries" data-deliveries @unless ($staggered) hidden @endunless>

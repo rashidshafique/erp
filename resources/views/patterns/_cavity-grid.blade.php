@@ -18,13 +18,13 @@
             <input type="hidden" name="cavities_per_mould" value="{{ $count ?: '' }}" data-cavity-count data-cavity-source="cv-{{ $revision->id }}">
             @if ($mine)@error('cavities_per_mould')<div class="error-text">{{ $message }}</div>@enderror @endif
             <h4>Cavity map of {{ $revision->shortCode() }}</h4>
-            <p class="muted small">One row per cavity, following the cavities per level in this revision's layout. Choose the product each cavity makes; leave a row empty if the cavity is not used.</p>
+            <p class="muted small">One row per cavity, per the revision's layout. Choose each cavity's product; leave unused ones empty.</p>
         @else
             {{-- A pattern with no revision has no layout form yet, so the count is asked here and its first revision is recorded with the map. --}}
             <div class="field"><label for="cg-count-{{ $revision->id }}">Cavities on the layout</label>
                 <input id="cg-count-{{ $revision->id }}" type="number" name="cavities_per_mould" min="1" max="200" value="{{ $count ?: '' }}" required data-cavity-count placeholder="e.g. 4">
                 @if ($mine)@error('cavities_per_mould')<div class="error-text">{{ $message }}</div>@enderror @endif</div>
-            <p class="muted small">One row per cavity. Choose the product each cavity makes; leave a row empty if the cavity is not used. Rows follow the count.</p>
+            <p class="muted small">One row per cavity. Choose each cavity's product; leave unused ones empty.</p>
         @endif
     </div>
     <div class="cg-tools">
@@ -48,7 +48,7 @@
             <div class="field"><label>Component</label><input data-cd="component_label" maxlength="100" placeholder="if a component"></div>
             <div class="field"><label>Pieces per product</label><input type="number" data-cd="pieces_per_product" min="1" value="1"></div>
             <div class="field"><label>Poured kg, own gating</label><input type="number" data-cd="poured_weight_kg" min="0" step="any"></div>
-            <div class="field field-full"><label class="cd-check"><input type="checkbox" data-cd="is_closed"> Cavity closed, gating removed</label><div class="help">A closed cavity stays on the map but makes no casting: it is left out of the castings and metal per mould, and moulds assembled afterwards record no casting for it.</div></div>
+            <div class="field field-full"><label class="cd-check"><input type="checkbox" data-cd="is_closed"> Cavity closed, gating removed</label><div class="help">A closed cavity stays on the map but makes no casting and adds no metal.</div></div>
             <div class="field field-full"><label>Notes</label><input data-cd="notes" maxlength="2000"></div>
         </div></div>
         <div class="qd-foot"><button type="button" class="btn" data-close>Cancel</button><button type="button" class="btn btn-primary" data-cd-save>Apply</button></div>

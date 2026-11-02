@@ -2,7 +2,7 @@
 @section('title', 'Organisation')
 @section('breadcrumb', 'People organisation')
 @section('content')
-<div class="page-heading"><div><h1>Organisation</h1><p>Departments, designations and grades, locations, cost centres and the joining and leaving checklists.</p></div></div>
+<div class="page-heading"><div><h1>Organisation</h1><p>Departments, designations, grades, locations, cost centres and joining and leaving checklists.</p></div></div>
 @if (session('error'))<div class="alert alert-error">{{ session('error') }}</div>@endif
 @php
     $tab = request('tab');

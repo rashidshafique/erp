@@ -186,7 +186,7 @@ new class extends Component
                 </div>
             </li>
         @empty
-            <li><span class="muted">No steps: lots go straight from the pour to inspection and packing. Add a step or put one back from the library.</span></li>
+            <li><span class="muted">No steps: lots go straight from pour to inspection and packing.</span></li>
         @endforelse
         <li class="fixed"><span class="route-n">·</span><div class="route-main"><strong>Ready to pack, then dispatch</strong><div class="small">A lot is ready once it passes its final inspection or quick QC.</div></div></li>
     </ol>

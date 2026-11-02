@@ -8,7 +8,7 @@
 @endphp
 
 @section('content')
-<div class="page-heading"><div><h1>Record thermal test</h1><p>Key in the readings from the thermal analysis unit for the white and/or grey cup. Add the full cooling curve when you have it.</p></div></div>
+<div class="page-heading"><div><h1>Record thermal test</h1><p>Key in the white and/or grey cup readings. Add the cooling curve when you have it.</p></div></div>
 
 <form method="POST" action="{{ route('thermal.store') }}" enctype="multipart/form-data">@csrf
 @include('thermal._fields', ['ip' => '', 'mine' => true])

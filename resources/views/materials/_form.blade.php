@@ -84,7 +84,7 @@
 <div class="panel">
     <div class="panel-header"><h2>Chemistry <span class="muted small">(optional)</span></h2></div>
     <div class="panel-body">
-        <p class="muted">The typical analysis of this material, in percent. When it is on file, a heat's charge is worked out from it and compared with the iron grade before the metal is tested. Leave it blank for materials you do not track, and for any element you do not know.</p>
+        <p class="muted">Typical analysis in %. Used to predict a heat's chemistry before testing. Leave blank if unknown.</p>
         @php $chem = $material->exists ? $material->elements->keyBy('element') : collect(); @endphp
         <div class="table-wrap"><table>
             <thead><tr><th>Element</th><th>Typical %</th><th>Lowest %</th><th>Highest %</th><th>Recovery %</th></tr></thead>
@@ -102,7 +102,7 @@
             @endforeach
             </tbody>
         </table></div>
-        <div class="help">Recovery is how much of the element ends up in the iron: below 100 for what burns off (silicon, manganese), above 100 for what the melt picks up. Blank means 100. The lowest and highest figures widen the prediction; blank uses the typical value.</div>
+        <div class="help">Recovery: % of the element that ends up in the iron (under 100 burns off). Blank = 100. Low and high widen the prediction.</div>
     </div>
 </div>
 

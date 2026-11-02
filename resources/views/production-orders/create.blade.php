@@ -7,7 +7,7 @@
     <div class="page-heading">
         <div>
             <h1>New production order</h1>
-            <p>Create a draft first. Release it only when it is ready for the shop floor. The order number is assigned when you save.</p>
+            <p>Save a draft; release it when ready for the floor. The number is given on save.</p>
         </div>
         <a href="{{ route('production-orders.index') }}" class="btn">Back to orders</a>
     </div>

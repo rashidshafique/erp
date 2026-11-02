@@ -15,7 +15,7 @@
         <option value="" id="sand-follows-station">Not recorded (suits any)</option>
         @foreach ($sands as $sd)<option value="{{ $sd }}" @selected(old('sand_system', $pattern->sand_system) === $sd)>{{ $sd }}</option>@endforeach
     </select>
-    <div class="help">Left on the first option, the sand follows the preferred station's default. Choose a sand here to use that one instead.</div>
+    <div class="help">On the first option, sand follows the station's default.</div>
 </div>
 <script>
 (function () {
@@ -33,7 +33,7 @@
         <option value="">As its sand system says</option>
         @foreach (\App\Services\Production\FlaskManager::FREED as $key => $text)<option value="{{ $key }}" @selected(old('flasks_freed', $pattern->flasks_freed) === $key)>{{ $text }}</option>@endforeach
     </select>
-    <div class="help">At pour: the flask is stripped and the sand cake handled without it. Work lists, runs and the pour start from this and can change it.</div>
+    <div class="help">At pour: the flask is stripped and the sand cake handled without it. Lists, runs and pours can change it.</div>
 </div>
 <div class="field">
     <label>Also works on</label>

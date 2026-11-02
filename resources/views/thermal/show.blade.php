@@ -65,7 +65,7 @@
                 @else TEmin meets the floor. @endif
             </div>
         @endif
-        @if (! empty($pts))<p class="muted small">Always confirm the picked points on the chart. A very strong primary arrest (high-carbon hypereutectic iron) can be mistaken for the eutectic.</p>@endif
+        @if (! empty($pts))<p class="muted small">Confirm the picked points on the chart: a strong primary arrest can look like the eutectic.</p>@endif
     </div>
 </div>
 

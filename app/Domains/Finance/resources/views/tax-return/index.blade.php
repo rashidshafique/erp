@@ -7,7 +7,7 @@
     $d = fn (string $date) => \Illuminate\Support\Carbon::parse($date)->displayDate();
     $register = fn (string $side, ?string $authority) => route('finance.tax-register', ['side' => $side, 'from' => $from, 'to' => $to, 'authority' => $authority ?? '-']);
 @endphp
-<div class="page-heading"><div><h1>Tax return</h1><p>{{ $d($from) }} to {{ $d($to) }}. Worked out from the tax registers: issued invoices and posted bills by their own date, voids left out. Check it against the authority's own form before filing.</p></div>
+<div class="page-heading"><div><h1>Tax return</h1><p>{{ $d($from) }} to {{ $d($to) }}. From the tax registers, voids left out. Check against the authority's form before filing.</p></div>
 <div class="actions">@if (Route::has('ledger.journals.create'))<a class="btn" href="{{ route('ledger.journals.create') }}" title="Debit the tax account, credit the bank">Record a payment to the authority</a>@endif<button class="btn btn-primary" onclick="window.print()">Print</button></div></div>
 <div class="panel no-print"><div class="panel-body"><form method="GET" class="filters">
     <div class="field"><label for="month">Month</label><input type="month" id="month" name="month" value="{{ $month }}" onchange="this.form.submit()"></div>

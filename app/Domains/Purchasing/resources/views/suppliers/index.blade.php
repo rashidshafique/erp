@@ -7,7 +7,7 @@
 <div class="page-heading">
     <div>
         <h1>Suppliers</h1>
-        <p>The approved supplier list. Material lots can name the supplier they came from; suspended suppliers cannot be received from.</p>
+        <p>The approved supplier list. Suspended suppliers cannot be received from.</p>
     </div>
 </div>
 

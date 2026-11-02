@@ -51,7 +51,7 @@
             <label>Title (optional)<input name="title" maxlength="200"></label>
             <div><button class="btn btn-primary">Attach</button></div>
         </form>
-        <p class="muted small">PDF, images, Excel/Word, CSV, text and CAD files up to {{ \App\Support\Uploads::megabytes(\App\Support\Uploads::effectiveMaxKb()) }} each, 10 files at a time. Files are stored privately.</p>
+        <p class="muted small">PDF, images, Office, CSV, text and CAD up to {{ \App\Support\Uploads::megabytes(\App\Support\Uploads::effectiveMaxKb()) }} each, 10 at a time. Stored privately.</p>
         @if (\App\Support\Uploads::serverLimitsApp())<p class="small" style="color:var(--warning)">This server's PHP upload limit ({{ \App\Support\Uploads::megabytes(\App\Support\Uploads::phpFileLimitKb()) }}) is lower than the app setting ({{ \App\Support\Uploads::megabytes(\App\Support\Uploads::appMaxKb()) }}). Ask the administrator to raise upload_max_filesize and post_max_size.</p>@endif
     </div>
     @endif

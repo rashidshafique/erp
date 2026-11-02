@@ -246,7 +246,7 @@
             <span class="muted small">{{ $run->mouldAssemblies->count() }} of {{ $run->accepted_mould_qty }} accepted moulds assembled @if ($flaskInfo['flaskless'])· flaskless moulds are assembled at the station, so this is automatic @endif</span>
         </div>
         <div class="panel-body">
-            <p class="muted small">Each assembly is one finished mould that will be poured. Its cavities are copied from the pattern's cavity map, so every cavity already knows which product (or part of a product) it makes.</p>
+            <p class="muted small">Each assembly is one mould to pour, with cavities copied from the pattern's cavity map.</p>
             @if ($run->mouldAssemblies->isNotEmpty())
                 <div class="table-wrap"><table>
                     <thead><tr><th>Assembly</th><th>Status</th><th>Assembled</th><th>Pour</th><th>Flasks</th></tr></thead>
@@ -375,7 +375,7 @@
     })();
     </script>
     <section class="panel" id="crew">
-        <div class="panel-header"><h2>Station, team and sand</h2><span class="muted small">The bulk editor takes team and sand from the station; correct them here. A sand test started from this run uses the station.</span></div>
+        <div class="panel-header"><h2>Station, team and sand</h2><span class="muted small">Bulk entry takes team and sand from the station; correct them here.</span></div>
         <div class="panel-body">
             <form method="POST" action="{{ route('moulding-runs.crew', $run) }}" class="form-grid">
                 @csrf @method('PUT')

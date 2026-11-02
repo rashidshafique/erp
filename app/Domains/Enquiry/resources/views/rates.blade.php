@@ -2,7 +2,7 @@
 @section('title', 'Quotation rates')
 @section('content')
 <div class="page-heading"><div><h1>Quotation rates</h1><p>The costs behind every quotation, in {{ $currency }}.</p></div></div>
-@if ($unset)<div class="alert alert-error">The figures in grey are placeholders to show the screen working. Replace every one with your own costs before issuing a real quotation.</div>@endif
+@if ($unset)<div class="alert alert-error">Grey figures are placeholders. Replace them with your own costs before a real quotation.</div>@endif
 <form method="POST" action="{{ route('settings.quotation.update') }}">@csrf @method('PUT')
 <div class="panel"><div class="panel-body"><div class="form-grid">
 @foreach ($labels as $k => [$label, $help])

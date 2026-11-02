@@ -10,7 +10,7 @@
 <div class="actions"><a class="btn" href="{{ route('price-lists.index') }}">All lists</a></div></div>
 @error('items')<div class="alert alert-error">{{ $message }}</div>@enderror
 <form method="POST" action="{{ route('price-lists.items', $list) }}" x-data="{ rows: @js(array_values($rows) ?: [$blank]) }">@csrf @method('PUT')
-<div class="panel"><div class="panel-header"><h2>Prices</h2><span class="muted small">A break applies from its quantity up: pieces for a price per piece, kg for a price per kg. 0 is the base price.</span></div>
+<div class="panel"><div class="panel-header"><h2>Prices</h2><span class="muted small">A break applies from its quantity up (pieces or kg). 0 is the base price.</span></div>
 <div class="table-wrap"><table><thead><tr><th style="width:45%">Product</th><th>Price</th><th></th><th>From quantity</th><th></th></tr></thead><tbody>
 <template x-for="(r, i) in rows" :key="i"><tr>
     <td><select :name="`items[${i}][product_id]`" x-model="r.product_id" style="width:100%"><option value="">Select product</option>@foreach ($products as $p)<option value="{{ $p->id }}">{{ $p->code }} · {{ $p->name }}</option>@endforeach</select></td>

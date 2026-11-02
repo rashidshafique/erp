@@ -271,8 +271,7 @@
 
             <h3 style="margin-top:24px">Planned vs actual charge</h3>
             <p class="muted small">
-                Variance is actual minus planned. Positive means over plan; negative means under plan.
-                Internal returns count as positive charge inputs. Materials not in the recipe are shown separately.
+                Variance = actual − planned. Internal returns count as inputs. Materials outside the recipe are listed apart.
             </p>
             <div class="table-wrap">
                 <table>
@@ -349,7 +348,7 @@
             @error('charge_round')<div class="alert alert-error">{{ $message }}</div>@enderror
         @endif
         <livewire:heat-skipped-charges :heat-id="$heat->id" />
-        <p class="muted small">The recipe quantities are filled in. Change a weight if it was different, then record. The oldest accepted lot of each material is used unless you pick another.</p>
+        <p class="muted small">Recipe quantities are filled in; change any that differed, then record. The oldest accepted lot is used unless you pick another.</p>
         <form method="POST" action="{{ route('heats.charge-rounds.store', $heat) }}">
             @csrf
             <input type="hidden" name="charge_round" value="{{ $nextRound }}">
@@ -411,8 +410,7 @@
         @if(!in_array($heat->status, ['CLOSED', 'CANCELLED'], true))
             <h3>Record charge material</h3>
             <p class="muted">
-                Purchased materials use the cost recorded against an accepted lot.
-                Internal returns require a positive transfer cost. Saving a charge does not deduct inventory.
+                Purchased materials use their lot's cost. Internal returns need a transfer cost. Saving does not deduct stock.
             </p>
 
             <form method="POST" action="{{ route('heats.charge-entries.store', $heat) }}">
@@ -530,15 +528,10 @@
                 </p>
             @else
                 <p>
-                    Posting will deduct purchased materials from their selected
-                    lots using FIFO cost layers and create inventory movements.
-                    Internal returns will be costed but will not be deducted
-                    from purchased-material inventory.
+                    Posting deducts purchased materials from their lots (FIFO) and records stock movements. Internal returns are costed, not deducted.
                 </p>
                 <p class="muted">
-                    Verify the quantities, lots and transfer costs in the
-                    charge history before proceeding. Posting should be
-                    treated as an inventory transaction, not a draft save.
+                    Check quantities, lots and costs first. Posting is a stock transaction, not a draft.
                 </p>
 
                 <form method="POST"
@@ -606,8 +599,7 @@ document.addEventListener('DOMContentLoaded', function () {
         <div class="panel-header"><h2>Record induction meter reading</h2></div>
         <div class="panel-body">
             <p class="muted">
-                Enter the values shown on the meter. At least one meter value is required.
-                Cumulative kWh is the meter total, not the energy used in this interval.
+                Enter the meter readings; at least one is needed. Cumulative kWh is the meter total.
             </p>
             <form method="POST" action="{{ route('heats.power-readings.store', $heat) }}">
                 @csrf
@@ -674,9 +666,7 @@ document.addEventListener('DOMContentLoaded', function () {
         <div class="panel-header"><h2>Record cupola process reading</h2></div>
         <div class="panel-body">
             <p class="muted">
-                Use a consistent parameter code and unit for repeat readings.
-                Examples might include blast pressure or temperature, but enter only parameters
-                you actually measure at your furnace.
+                Use the same code and unit for repeat readings. Enter only what you actually measure.
             </p>
             <form method="POST" action="{{ route('heats.process-readings.store', $heat) }}">
                 @csrf

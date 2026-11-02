@@ -4,7 +4,7 @@
         <div>
             <span class="live"><i class="dot"></i>Live</span>
             <h1>Foundry operations overview</h1>
-            <p>Melt shop, moulding, quality and the order book on one page. Everything here is read from the live records.</p>
+            <p>Melt shop, moulding, quality and orders on one page, from live records.</p>
         </div>
         <div style="display:flex;flex-direction:column;gap:10px;align-items:flex-end">
             <div class="switch" title="Choose a dashboard layout">

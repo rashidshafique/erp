@@ -213,7 +213,7 @@ new class extends Component
             @endforeach
         </div>
         @unless ($journal)
-        <div class="ac-filters"><label class="ac-muted" style="display:flex;gap:8px;align-items:center;margin:0">Go-live date <input type="date" wire:model.live="goLive" style="width:auto;padding:6px 10px"></label><span class="ac-note">The opening voucher is dated the day before. Documents dated before go-live are carried here and not posted one by one.</span></div>
+        <div class="ac-filters"><label class="ac-muted" style="display:flex;gap:8px;align-items:center;margin:0">Go-live date <input type="date" wire:model.live="goLive" style="width:auto;padding:6px 10px"></label><span class="ac-note">The opening voucher is dated the day before. Earlier documents are carried here, not posted one by one.</span></div>
         @endunless
         <div class="ac-table"><table class="ob-table"><thead><tr><th>Code</th><th>Account</th><th class="r">Debit{{ $cur ? ' ('.$cur.')' : '' }}</th><th class="r">Credit{{ $cur ? ' ('.$cur.')' : '' }}</th><th>Source</th>@unless ($journal)<th></th>@endunless</tr></thead><tbody>
             @foreach ($rows as $r)

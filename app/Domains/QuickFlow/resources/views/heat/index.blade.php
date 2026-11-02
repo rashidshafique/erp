@@ -5,7 +5,7 @@
 
 @section('content')
 <div class="page-heading">
-    <div><h1>Next heat</h1><p>What to melt next, from open orders. Metal for moulds already made comes first, then moulds still to make, by due date. A heat holds no more than its furnace's working capacity.</p></div>
+    <div><h1>Next heat</h1><p>What to melt next: metal for moulds made first, then moulds to make, by due date, up to the furnace's capacity.</p></div>
     <div class="actions"><a class="btn" href="{{ route('quick.floor.index') }}">Moulds made / poured</a><a class="btn btn-primary" href="{{ route('quick.orders.create') }}">+ New order</a></div>
 </div>
 <div class="panel"><div class="panel-body" style="display:flex;gap:12px 24px;flex-wrap:wrap;align-items:center;justify-content:space-between">

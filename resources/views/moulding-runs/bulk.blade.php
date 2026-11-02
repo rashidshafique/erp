@@ -30,7 +30,7 @@
 <div class="page-heading">
     <div>
         <h1>Moulding runs</h1>
-        <p>Enter a shift's runs in one go, or open a shift to correct what was saved. Rows are saved all together or not at all.</p>
+        <p>Enter a shift's runs at once, or open a shift to correct it. Rows save together or not at all.</p>
     </div>
     <div class="actions"><a href="{{ route('moulding-runs.create') }}" class="btn">+ Record one run</a></div>
 </div>
@@ -73,7 +73,7 @@
     <input type="hidden" name="opened_date" value="{{ $openedDate }}">
     <input type="hidden" name="opened_shift" value="{{ $openedShift }}">
 
-    <div class="panel"><div class="panel-header"><h2>Defaults for new rows</h2><span class="muted small">Every new row starts with these; a blank cell in a row also falls back to them. Team and sand come from the station; change them on a run's own page.</span></div><div class="panel-body">
+    <div class="panel"><div class="panel-header"><h2>Defaults for new rows</h2><span class="muted small">New rows start with these; blank cells fall back to them. Team and sand come from the station.</span></div><div class="panel-body">
         <div class="bulk-bar">
             <div class="field"><label for="h-date">Date</label><input id="h-date" type="date" name="header[run_date]" value="{{ $h['run_date'] ?? '' }}" data-header="run_date"></div>
             <div class="field"><label for="h-shift">Shift</label><select id="h-shift" name="header[shift]" data-header="shift"><option value="">—</option>@foreach ($shifts as $s)<option @selected(($h['shift'] ?? null) === $s)>{{ $s }}</option>@endforeach</select></div>
@@ -82,7 +82,7 @@
     </div></div>
 
     <div class="panel">
-        <div class="panel-header"><h2>Runs</h2><span class="muted small">Rejected moulds are counted out of moulds made. Order “Automatic” picks the open order that needs the pattern.</span></div>
+        <div class="panel-header"><h2>Runs</h2><span class="muted small">Rejected moulds come out of moulds made. "Automatic" picks the open order for the pattern.</span></div>
         <div class="table-wrap">
             <table class="bulk" data-editable-many>
                 <thead><tr>
@@ -119,7 +119,7 @@
     <details class="panel" @if ($errors->has('paste')) open @endif>
         <summary class="panel-header" style="cursor:pointer"><h2>Paste from a spreadsheet</h2></summary>
         <div class="panel-body">
-            <p class="muted small" style="margin-top:0">Copy rows from Excel or Google Sheets and paste them here. Columns in this order (later ones may be left off): date, shift, station code, pattern code, revision code (blank = current), cavities, order number, made, rejected, defect code, remarks. Team and sand come from the station. A heading row is skipped.</p>
+            <p class="muted small" style="margin-top:0">Paste rows from a spreadsheet. Columns: date, shift, station, pattern, revision (blank = current), cavities, order, made, rejected, defect, remarks. Later ones may be left off; a heading row is skipped.</p>
             <div class="field field-full"><textarea name="paste" rows="5" style="max-width:none;font-family:ui-monospace,Menlo,monospace" aria-label="Rows to paste">{{ old('paste') }}</textarea></div>
             <button type="submit" class="btn" name="action" value="paste" formnovalidate>Load pasted rows</button>
         </div>

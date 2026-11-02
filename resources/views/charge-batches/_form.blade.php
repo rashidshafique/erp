@@ -69,7 +69,7 @@
 
     <hr>
     <h2>Recipe components</h2>
-    <p>Enter the metal components (metal charge, returns, alloy) all as fixed kg or all as percentages of the target total charge. Coke, fuel, flux and other additions go on top: kg per charge, or in a percentage recipe also a percent of the metal charge. They are not counted in the 100%.</p>
+    <p>Enter metal components all in kg or all as % of the total charge. Coke, fuel, flux and additions go on top and are not in the 100%.</p>
 
     <div style="overflow-x:auto">
         <table class="table" id="components-table">

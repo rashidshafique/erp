@@ -10,7 +10,7 @@
 @endphp
 
 @section('content')
-<div class="page-heading"><div><h1>New customer checklist</h1><p>From the first call to the first casting poured, in the order the system needs it. Pick a customer to see which steps are already done.</p></div></div>
+<div class="page-heading"><div><h1>New customer checklist</h1><p>From first call to first pour, in the order the system needs it. Pick a customer to see what is done.</p></div></div>
 
 <div class="panel"><div class="panel-body">
     <form method="GET" action="{{ route('help.new-customer') }}" data-no-toolbar style="display:flex;gap:10px;align-items:end;flex-wrap:wrap">
@@ -38,7 +38,7 @@
                     </tr>
                 @endforeach</tbody>
             </table></div>
-            <p class="muted small" style="margin-bottom:0">"Foundry-owned" is fine if the foundry made the patterns; set the owner on the pattern's Ownership tab when the customer's own patterns are used.</p>
+            <p class="muted small" style="margin-bottom:0">"Foundry-owned" is fine for patterns the foundry made; mark customer patterns on the pattern's Ownership tab.</p>
         @endif
     @endif
 </div></div>
@@ -47,43 +47,42 @@
     <ol class="help-steps">
         <li><strong>The customer.</strong> Sales → Customers, or just type the name on the quick order screen. Add address and terms later.
             <div class="help-go">{!! $go('customers.create', 'New customer') !!}</div></li>
-        <li><strong>The product.</strong> Products → New product: code, name, type, nominal weight. A first revision (0) is made for you when it is needed.
+        <li><strong>The product.</strong> Products → New product: code, name, type, weight. Revision 0 is made when needed.
             <div class="help-go">{!! $go('products.create', 'New product') !!}</div></li>
-        <li><strong>The metal.</strong> On the product page, Iron grade tab: choose revision 0 and the grade (for example EN-GJL-200), then Set grade. The melting plan cannot size a heat without it.</li>
-        <li><strong>The patterns.</strong> Patterns → New pattern, one per plate. The pattern type is the tooling (for flaskless plates, "Vertical plates (DISA type)"); the mould arrangement (vertically parted, flaskless) follows from it.
-            Then, on the pattern's Ownership tab, mark customer-owned patterns, where they are kept and who holds them.
+        <li><strong>The metal.</strong> Product page, Iron grade tab: pick revision 0 and the grade, then Set grade. Heats cannot be sized without it.</li>
+        <li><strong>The patterns.</strong> Patterns → New pattern, one per plate. The type sets the mould arrangement. Mark customer-owned patterns on the Ownership tab.
             <div class="help-go">{!! $go('patterns.create', 'New pattern') !!}</div></li>
-        <li><strong>Link patterns to the product.</strong> On the product page choose "Link a pattern" (or fill the pattern's cavity map). Set the cavities on the plate, and the casting weight if it is known. This is what lets the system count products per mould and match moulds to the order.</li>
+        <li><strong>Link patterns to the product.</strong> On the product page, "Link a pattern": set cavities and casting weight. This lets moulds be counted against orders.</li>
         <li><strong>The order.</strong> Quick flow → New order: customer, product, quantity, due date. It releases the production order at once.
             @if ($meltingSet)<div class="help-note">Next melting day: <strong>{{ $nextMeltingDay?->isToday() ? 'today' : ($nextMeltingDay?->format('D j M') ?? 'none soon') }}</strong>. {{ $meltingRule }} A due date with no melting day in time is flagged.</div>
-            @else<div class="help-note">Tell the system which days the furnace is lit under Settings → Melting days, and orders are checked against them.</div>@endif
+            @else<div class="help-note">Set the furnace days under Settings → Melting days; orders are checked against them.</div>@endif
             <div class="help-go">{!! $go('quick.orders.create', 'New order') !!} {!! $go('settings.melting-days.edit', 'Melting days') !!}</div></li>
-        <li><strong>Plan the heat.</strong> Quick flow → Next heat shows what to melt, from the pieces and casting weights. Start the heat on the campaign day.
+        <li><strong>Plan the heat.</strong> Quick flow → Next heat shows what to melt. Start the heat on the campaign day.
             <div class="help-go">{!! $go('quick.heat.index', 'Next heat') !!}</div></li>
-        <li><strong>Plan the moulding.</strong> Moulding work lists: add a row for each plate (pattern, station, number of moulds), issue the list, and the moulders start and complete each run. The flaskless line takes one pattern at a time.
+        <li><strong>Plan the moulding.</strong> Work lists: one row per plate (pattern, station, moulds), issue it, then moulders start and complete runs. A flaskless line takes one pattern at a time.
             <div class="help-go">{!! $go('work-lists.index', 'Work lists') !!}</div></li>
-        <li><strong>Pour.</strong> Record the pour on the pour register for customer work: it attaches the moulds, which is what creates the casting lots for inspection and dispatch.
+        <li><strong>Pour.</strong> Record customer pours on the pour register: attaching moulds creates the lots for inspection and dispatch.
             <div class="help-go">{!! $go('pours.index', 'Pour register') !!}</div></li>
-        <li><strong>After the pour.</strong> Thermal and chemistry tests on the heat, the minimum cooling before shakeout, then casting lots, inspection and dispatch.
+        <li><strong>After the pour.</strong> Thermal and chemistry tests, cooling before shakeout, then lots, inspection and dispatch.
             <div class="help-go">{!! $go('lots.index', 'Casting lots') !!} {!! $go('dispatches.index', 'Dispatch') !!}</div></li>
     </ol>
 </div></div>
 
 <div class="panel"><div class="panel-header"><h2>Which way to do it</h2></div><div class="panel-body">
-    <p class="muted small" style="margin-top:0">The system has more than one way to do some jobs. They do not all produce the same records, so choose with care.</p>
+    <p class="muted small" style="margin-top:0">Some jobs can be done more than one way, with different records. Choose with care.</p>
     <div class="table-wrap"><table class="help-table">
         <thead><tr><th>Job</th><th>Ways</th><th>Use</th></tr></thead>
         <tbody>
             <tr><td>Enter an order</td><td>Quick order · Sales order with contract review · Enquiry and quotation</td>
-                <td>Quick order for repeat or urgent work. The full sales order when quality must sign off first: the quick order skips the contract review.</td></tr>
+                <td>Quick order for repeat or urgent work. Full sales order when quality must sign off first.</td></tr>
             <tr><td>Record moulds made</td><td>Work list · Moulding run page · Bulk run grid · Moulds made grid</td>
-                <td>Plan on a work list. The others record after the fact; do not record the same plates in two of them or the moulds are counted twice.</td></tr>
+                <td>Plan on a work list. The others record afterwards; never record the same plates twice.</td></tr>
             <tr><td>Record a pour</td><td>Pour register · Moulds poured grid</td>
                 <td><strong>Pour register for customer orders.</strong> The grid records the pour but attaches no moulds, so it creates no casting lots.</td></tr>
             <tr><td>Start a heat</td><td>Next heat · Melting plan · New heat by hand</td>
                 <td>Next heat for quick-flow work; the Melting plan when heats are planned days ahead.</td></tr>
             <tr><td>Record charges</td><td>Charge form · One-click confirm · Fill in past charges · Add missing from the total</td>
-                <td>One-click confirm as the schedule says; "add missing from the total" if charging was not recorded at the time.</td></tr>
+                <td>Confirm as scheduled, or "add missing from the total" if charges were not recorded live.</td></tr>
         </tbody>
     </table></div>
 </div></div>

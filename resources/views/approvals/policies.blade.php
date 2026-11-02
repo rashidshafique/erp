@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Approval rules')
 @section('content')
-<div class="page-heading"><div><h1>Approval rules</h1><p>Switch an action on to require sign-off before it can happen. Segregation of duties: the person who raised a request cannot approve it (unless allowed here) and nobody can approve twice.</p></div></div>
+<div class="page-heading"><div><h1>Approval rules</h1><p>Switch an action on to need sign-off. The requester cannot approve (unless allowed) and nobody approves twice.</p></div></div>
 <form method="POST" action="{{ route('approval-policies.update') }}">@csrf @method('PUT')
 <div class="panel"><div class="table-wrap"><table><thead><tr><th>Action</th><th>Needs approval</th><th>Approvals needed</th><th>Who can approve</th><th>Requester may approve own</th></tr></thead><tbody>
 @foreach($actions as $key => $label)@php($p = $policies[$key] ?? null)<tr><td>{{ $label }}<div class="muted small">{{ $key }}</div></td>

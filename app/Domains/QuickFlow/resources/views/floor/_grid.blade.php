@@ -35,7 +35,7 @@
             </table></div>
             <template data-fg-template>@include('quickflow::floor._grid-row', ['n' => '__n__', 'row' => []])</template>
             <div class="actions" style="margin-top:10px"><button type="button" class="btn" data-fg-add>+ Add row</button><button class="btn btn-primary" type="submit">{{ $submit }}</button></div>
-            @if ($pouring)<p class="muted small">A missing or failed thermal test shows a warning and is noted on the pour. It does not stop the pour being recorded.</p>@endif
+            @if ($pouring)<p class="muted small">A missing or failed thermal test is a warning noted on the pour; it does not stop it.</p>@endif
         </form>
     </div>
 </div>

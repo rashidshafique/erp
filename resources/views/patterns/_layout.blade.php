@@ -28,7 +28,7 @@
 <details class="layout-form" @if ($mine || $revision->is_current) open @endif>
     <summary>Mould layout of {{ $revision->shortCode() }}</summary>
     @if ($assembled)
-        <div class="alert alert-warning" style="margin:0 0 8px">Moulds have been assembled with this layout. Correct it only if it was entered wrongly: those moulds keep the castings they recorded, and the reason is kept in the audit trail. If the tooling itself changed, record a new revision instead.</div>
+        <div class="alert alert-warning" style="margin:0 0 8px">Moulds already use this layout. Correct it only if it was wrong; those moulds keep their castings. A tooling change needs a new revision.</div>
     @endif
         <form method="POST" action="{{ route('patterns.revisions.layout', [$pattern, $revision]) }}" class="lf-grid">
             @csrf @method('PUT')<input type="hidden" name="_layout" value="{{ $revision->id }}">

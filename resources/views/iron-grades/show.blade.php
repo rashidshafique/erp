@@ -44,7 +44,7 @@
 <div class="panel">
     <div class="panel-header"><h2>Thermal analysis acceptance window (grey / stable cup)</h2></div>
     <div class="panel-body">
-        <p class="muted small">Set these from your own correlation of cooling curves with metallography and mechanical results. A field left empty is not judged. With every field empty, tests are recorded but not judged and the pouring gate does not ask for a thermal test.</p>
+        <p class="muted small">Set from your own curve-to-metallography correlation. Empty fields are not judged; all empty means tests are recorded but not checked before pouring.</p>
         <form method="POST" action="{{ route('iron-grades.window', $grade) }}">@csrf @method('PUT')
             <div class="form-grid">
                 @foreach (['tl_min_c' => 'TL min °C', 'tl_max_c' => 'TL max °C', 'ce_min' => 'CE from TL min', 'ce_max' => 'CE from TL max', 'te_min_floor_c' => 'TEmin at least °C', 'recal_min_c' => 'Recalescence min °C', 'recal_max_c' => 'Recalescence max °C', 'solidus_min_c' => 'Solidus at least °C'] as $k => $l)
@@ -95,7 +95,7 @@
         @endforelse
         </tbody>
     </table></div>
-    <div class="panel-body muted small">Default: induction furnaces can melt every family; cupolas only grey iron. Change the defaults in config/foundry.php.</div>
+    <div class="panel-body muted small">By default induction melts every family, cupolas grey iron only (config/foundry.php).</div>
 </div>
 
 <div class="tab-marker" data-tab-start="Designations & limits"></div>

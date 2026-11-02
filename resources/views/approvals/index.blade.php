@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Approvals')
 @section('content')
-<div class="page-heading"><div><h1>Approvals</h1><p>Requests raised when someone tries an action that needs sign-off. Once approved, the person repeats the action and it goes through once.</p></div>
+<div class="page-heading"><div><h1>Approvals</h1><p>Actions waiting for sign-off. Once approved, repeat the action and it goes through once.</p></div>
 <a class="btn" href="{{ route('approval-policies.index') }}">Approval rules</a></div>
 <div class="panel"><div class="panel-body"><form method="GET">@foreach(['OPEN'=>'Open','PENDING'=>'Waiting','APPROVED'=>'Approved, not yet used','REJECTED'=>'Rejected','USED'=>'Used','CANCELLED'=>'Cancelled','ALL'=>'All'] as $k=>$l)<a class="btn {{ $status===$k?'btn-primary':'' }}" href="?status={{ $k }}">{{ $l }}</a> @endforeach</form></div></div>
 <div class="panel"><div class="table-wrap"><table><thead><tr><th>Action</th><th>For</th><th>Raised by</th><th>Status</th><th>Decisions</th><th></th></tr></thead><tbody>

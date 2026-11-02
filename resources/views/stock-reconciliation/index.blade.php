@@ -5,8 +5,7 @@
     <div>
         <h1 class="text-2xl font-semibold">Stock Reconciliation</h1>
         <p class="mt-1 text-sm text-gray-600">
-            Read-only comparison of stock movement activity and remaining cost layers.
-            Quantities are shown in each material's base unit.
+            Read-only: stock movements vs remaining cost layers, in each material's base unit.
         </p>
     </div>
 
@@ -165,10 +164,7 @@
 </div>
 
 <p class="text-sm text-gray-500">
-    Movement balance = receipts − issues. This report is read-only.
-    Transfers and other movement types are flagged for review until their
-    quantity conventions are implemented. Reconciliation compares total
-    movement quantities with remaining cost-layer quantities.
+    Movement balance = receipts − issues, compared with cost-layer quantities. Transfers are flagged for review.
 </p>
 
     

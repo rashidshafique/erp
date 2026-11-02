@@ -26,7 +26,7 @@
 <div class="tab-marker" data-tab-start="Final settlement"></div>
 <div class="panel"><div class="panel-header"><h2>Final settlement</h2></div><div class="panel-body">
 @if ($st)<p>Status: <strong>{{ $st->status }}</strong> · net {{ \App\Support\Formats::money($st->net, 0) }}. <a class="btn btn-small" href="{{ route('hr.payroll.settlements.show', $st) }}">Open settlement</a></p>
-@else<p class="muted">Salary not yet paid, leave, gratuity and any loan balance are worked out here. It can be started before or after the exit is completed.</p><form method="POST" action="{{ route('hr.payroll.settlements.open', $x) }}">@csrf<button class="btn btn-primary">Calculate settlement</button></form>@endif
+@else<p class="muted">Unpaid salary, leave, gratuity and loans are worked out here, before or after the exit.</p><form method="POST" action="{{ route('hr.payroll.settlements.open', $x) }}">@csrf<button class="btn btn-primary">Calculate settlement</button></form>@endif
 </div></div>
 @endif
 

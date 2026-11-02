@@ -194,7 +194,7 @@
                         boxes.forEach(function (b) { b.addEventListener('change', function () { all.checked = [].every.call(boxes, function (x) { return x.checked; }); }); });
                     })();
                     </script>
-                    <span class="muted small">Only moulds from released production orders are listed. Each mould is checked against the heat's iron grade.</span></div>
+                    <span class="muted small">Only moulds from released orders, each checked against the heat's grade.</span></div>
                 <button class="btn btn-primary" type="submit">Add selected moulds</button>
             </form>
         @elseif (in_array($pour->status, ['PLANNED', 'IN_PROGRESS'], true))

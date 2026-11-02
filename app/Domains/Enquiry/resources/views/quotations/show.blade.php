@@ -21,7 +21,7 @@
 </div>
 @if (session('error'))<div class="alert alert-error">{{ session('error') }}</div>@endif
 @if ($q->status === 'ACCEPTED' && $q->salesOrder)<div class="alert alert-success">Accepted. Sales order @if (Route::has('sales-orders.show'))<a href="{{ route('sales-orders.show', $q->salesOrder) }}">{{ $q->salesOrder->order_number }}</a>@else{{ $q->salesOrder->order_number }}@endif was created.</div>@endif
-@if ($q->status === 'EXPIRED')<div class="alert alert-error">This quotation passed its valid-until date. Create a new version from the enquiry and issue it again.</div>@endif
+@if ($q->status === 'EXPIRED')<div class="alert alert-error">This quotation has expired. Make a new version from the enquiry and issue it.</div>@endif
 
 <div class="tab-marker" data-tab-start="Prices"></div>
 <form method="POST" action="{{ route('quotations.update', $q) }}">@csrf @method('PUT')
@@ -74,7 +74,7 @@
 @if ($draft)
 <div class="panel"><div class="panel-header"><h2>Before it can go out</h2></div><div class="panel-body">
 @if ($blockers)<ul>@foreach ($blockers as $b)<li>{{ $b }}</li>@endforeach</ul>@else<p>Every part is assessed and priced.</p>@endif
-@if ($low < $min)<p class="muted">The lowest margin is {{ $n($low, 1) }}%, below the {{ $n($min, 1) }}% minimum. Issuing will ask for approval if that approval policy is switched on.</p>@endif
+@if ($low < $min)<p class="muted">Lowest margin {{ $n($low, 1) }}%, below the {{ $n($min, 1) }}% minimum. Issuing may need approval.</p>@endif
 <div style="display:flex;gap:8px;flex-wrap:wrap">
 <form method="POST" action="{{ route('quotations.refresh', $q) }}">@csrf<button class="btn" type="submit">Re-read the enquiry</button></form>
 <form method="POST" action="{{ route('quotations.issue', $q) }}" onsubmit="return confirm('Issue this quotation to the customer?')">@csrf<button class="btn btn-primary" type="submit" @disabled($blockers)>Issue quotation</button></form>

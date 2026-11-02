@@ -54,7 +54,7 @@
             @endif
         </div>
     @endforeach
-    <p class="muted small" style="margin-top:6px">Lunch and tea breaks are not punched in this system, so they are not drawn. Worked time already has the shift's break taken off.</p>
+    <p class="muted small" style="margin-top:6px">Breaks are not punched, so not drawn. Worked time already has the break taken off.</p>
 </div>
 
 <div class="hr-pane" data-p="o">

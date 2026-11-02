@@ -2,7 +2,7 @@
 @section('title', 'New journal')
 @section('content')
 @php $start = old('lines', [['account_id' => '', 'debit' => '', 'credit' => '', 'description' => ''], ['account_id' => '', 'debit' => '', 'credit' => '', 'description' => '']]); @endphp
-<div class="page-heading"><div><h1>New journal</h1><p>Debits and credits must be equal. Use it for opening balances (against Opening balance equity), depreciation, accruals and corrections.</p></div></div>
+<div class="page-heading"><div><h1>New journal</h1><p>Debits must equal credits. For opening balances, depreciation, accruals and corrections.</p></div></div>
 @error('journal')<div class="alert alert-error">{{ $message }}</div>@enderror
 <form method="POST" action="{{ route('ledger.journals.store') }}" x-data="journalLines(@js($start))">@csrf
 <div class="panel"><div class="panel-body form-grid">

@@ -7,7 +7,7 @@
 <div class="page-heading">
     <div>
         <h1>Edit {{ $pattern->name }}</h1>
-        <p>Correct the tooling record and the current revision's mould layout. Changes are kept in the audit trail. If the tooling itself was changed, record a new revision instead.</p>
+        <p>Correct the tooling record and current layout (audited). A tooling change needs a new revision.</p>
     </div>
     <div class="actions">
         <a class="btn" href="{{ route('patterns.show', $pattern) }}">Back to pattern</a>

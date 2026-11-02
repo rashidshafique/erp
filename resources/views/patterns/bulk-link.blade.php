@@ -7,7 +7,7 @@
 <div class="page-heading">
     <div>
         <h1>Link patterns to products</h1>
-        <p>One row per pattern with no cavity linked to a product. Choose the products it makes and how many cavities each has; + Add product puts another product in the cavities after. Rows left without a product are skipped.</p>
+        <p>One row per pattern not yet linked. Choose its products and cavities; + Add product adds another. Rows without a product are skipped.</p>
     </div>
     <div class="actions">
         <a class="btn" href="{{ route('patterns.index', ['link' => 'unlinked']) }}">List them one by one</a>

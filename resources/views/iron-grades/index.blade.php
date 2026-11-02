@@ -5,7 +5,7 @@
 
 @section('content')
 <div class="page-heading"><div><h1>Iron grades</h1><p>Chemistry windows, standards equivalents, furnace capability and thermal acceptance windows.</p></div></div>
-<div class="alert">Chemistry windows are starting values. Review each grade against your control plan and the customer's specification before relying on the gates.</div>
+<div class="alert">Starting values. Check each grade against your control plan and the customer spec.</div>
 
 <div class="panel"><div class="table-wrap"><table>
     <thead><tr><th>Grade</th><th>Type</th><th>Min tensile</th><th>Min yield</th><th>Elong.</th><th>CE</th><th>Equivalents</th><th>Thermal window</th></tr></thead>

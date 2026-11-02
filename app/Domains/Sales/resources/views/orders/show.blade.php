@@ -115,7 +115,7 @@
                                     <div class="qd-head"><h2 id="{{ $fid }}-title">Forecast · line {{ $l->line_number }}, {{ $l->product?->name }}</h2><button type="button" class="qd-x" data-close aria-label="Close">&times;</button></div>
                                     <div class="qd-body">
                                         <div class="alert alert-error qd-errors" role="alert" @unless ($fail) hidden @endunless>@if ($fail)@foreach ($errors->all() as $message)<div>{{ $message }}</div>@endforeach @endif</div>
-                                        <p class="help" style="margin-top:0">Set the quantity of each period still to come. 0 removes the period; it is not added back. Periods before today stay as they are.</p>
+                                        <p class="help" style="margin-top:0">Set each future period's quantity. 0 removes it. Past periods stay.</p>
                                         <table>
                                             <thead><tr><th>Due</th><th style="text-align:right">Quantity</th></tr></thead>
                                             <tbody>
@@ -192,7 +192,7 @@
         @if ($review)@php $openWarns = $review->items->where('severity', 'WARN')->whereNull('acknowledgement')->count(); @endphp<span>@if (($n = $review->items->where('severity', 'BLOCK')->count()) > 0)<span class="nav-count" style="float:none" title="Blocks">{{ $n }} blocked</span> @endif @if ($openWarns > 0)<span class="nav-count" style="float:none" title="Warnings not yet acknowledged">{{ $openWarns }} {{ $openWarns === 1 ? 'warning' : 'warnings' }}</span> @endif<span class="status {{ $review->status === 'APPROVED' ? 'status-completed' : ($review->verdict === 'BLOCK' ? 'status-cancelled' : 'status-on-hold') }}">{{ $review->status }} · {{ $review->verdict }}</span></span>@endif
     </div>
     @if (! $review)
-        <div class="empty-state">No review yet. Run the contract review to check the order against specifications, customer requirements, grade, furnaces, thermal window, pattern and control plan.</div>
+        <div class="empty-state">No review yet. Run it to check specs, requirements, grade, furnaces, thermal window, pattern and control plan.</div>
     @else
         <div class="panel-body">
             <div class="form-grid">

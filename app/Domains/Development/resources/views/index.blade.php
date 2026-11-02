@@ -29,7 +29,7 @@
     <div class="panel-header"><h2>Developments</h2><span style="display:flex;gap:12px;align-items:center"><span class="muted small">{{ $rows->total() }} records</span>
         <x-column-picker table="developments" :columns="['customer' => 'Customer', 'type' => 'Type', 'stage' => 'Stage', 'tools' => 'Tools', 'waiting' => 'Waiting on', 'by' => 'Pattern by', 'owner' => 'Owner', 'due' => 'Due']" /></span></div>
     @if ($rows->isEmpty())
-        <div class="empty-state"><strong>No pattern developments yet</strong><p>Start one from an enquiry, a part, a pattern or a customer when a new or replacement pattern is needed.</p><a class="btn btn-primary" href="{{ route('developments.create') }}">Start development</a></div>
+        <div class="empty-state"><strong>No pattern developments yet</strong><p>Start one from an enquiry, part, pattern or customer when a new pattern is needed.</p><a class="btn btn-primary" href="{{ route('developments.create') }}">Start development</a></div>
     @else
         <div class="table-wrap"><table data-table="developments">
             <thead><tr><th>Code</th><th>Part</th><th data-col="customer">Customer</th><th data-col="type">Type</th><th data-col="stage">Stage</th><th data-col="tools">Tools</th><th data-col="waiting">Waiting on</th><th data-col="by">Pattern by</th><th data-col="owner">Owner</th><th data-col="due">Due</th><th></th></tr></thead>

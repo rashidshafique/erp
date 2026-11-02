@@ -51,7 +51,7 @@
         <p class="muted small" style="margin:12px 0 0">
             @if ($burnIn !== null)Blast on to first tap: {{ $burnIn }} min. @endif
             @if ($m = $minutesBetween($heat->actual_start_at, $heat->dropped_at))Light-up to bottom drop: {{ intdiv($m, 60) }} h {{ $m % 60 }} min. @endif
-            The first pour started on this heat sets the first tap if it is blank; pours in the first {{ \App\Support\PouringRules::minutes('first_iron_minutes') }} minutes after it are marked as first iron (Settings → Pouring rules).
+            The first pour started on this heat sets the first tap if it is blank; pours in the first {{ \App\Support\PouringRules::minutes('first_iron_minutes') }} minutes after it are marked as first iron (Settings → Process rules).
         </p>
     </div>
 </div>

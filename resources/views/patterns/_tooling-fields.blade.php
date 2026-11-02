@@ -9,7 +9,7 @@
 <div class="field">
     <label for="mark_code">Engraved mark</label>
     <input id="mark_code" name="mark_code" minlength="3" maxlength="20" pattern="[A-Za-z0-9]+" value="{{ old('mark_code', $pattern->mark_code) }}" placeholder="Optional" style="font-family:ui-monospace,Menlo,monospace;letter-spacing:2px;text-transform:uppercase">
-    <div class="help">Optional. Fill it in only if the tool is already engraved with a number. Letters and digits, unique across all tools.</div>
+    <div class="help">Optional: only if the tool is already engraved. Unique across all tools.</div>
 </div>
 <div class="field">
     <label for="name">Pattern name *</label>
@@ -42,7 +42,7 @@
             <option value="{{ $grade }}" @selected(old('condition_grade', $pattern->condition_grade) === $grade)>{{ $grade }} · {{ $meaning }}</option>
         @endforeach
     </select>
-    <div class="help">Grade it after inspection or repair. A = good, B = worn but usable, C = needs repair, D = unfit for use.</div>
+    <div class="help">A = good, B = worn, C = needs repair, D = unfit.</div>
 </div>
 <div class="field">
     <label for="material">Pattern / plate material</label>

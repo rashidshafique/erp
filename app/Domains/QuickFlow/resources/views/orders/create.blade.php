@@ -6,7 +6,7 @@
 @section('content')
 @include('partials.search-select')
 <div class="page-heading">
-    <div><h1>New order</h1><p>Customer, products, quantities and due date. The order goes straight into the next heat plan: no contract review, no separate production order.</p></div>
+    <div><h1>New order</h1><p>Customer, products, quantities and due date. Goes straight into the next heat plan.</p></div>
     <div class="actions"><a class="btn" href="{{ route('quick.heat.index') }}">Next heat</a></div>
 </div>
 <form method="POST" action="{{ route('quick.orders.store') }}">@csrf
@@ -32,7 +32,7 @@
         </tbody>
     </table></div>
     </div>
-    <p class="muted small">Iron grade and casting weight are only asked for when the product does not have them yet. They are saved on the product.</p>
+    <p class="muted small">Grade and weight are asked only when the product lacks them, and are saved on it.</p>
     <div class="actions"><button class="btn btn-primary" type="submit">Enter order</button></div>
 </form>
 @endsection

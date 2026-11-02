@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Roles and permissions')
 @section('content')
-<div class="page-heading"><div><h1>Roles and permissions</h1><p>Administrators always have everything. Any signed-in user can read pages; permissions control who can change things.</p></div></div>
+<div class="page-heading"><div><h1>Roles and permissions</h1><p>Administrators have everything. Anyone signed in can read; permissions control changes.</p></div></div>
 <form method="POST" action="{{ route('roles.update') }}">@csrf @method('PUT')
 <div class="panel"><div class="table-wrap"><table><thead><tr><th>Permission</th>@foreach($roles as $r)<th>{{ $r->name }}</th>@endforeach</tr></thead><tbody>
 @foreach($catalog as $key => $label)<tr><td>{{ $label }}<div class="muted small">{{ $key }}</div></td>

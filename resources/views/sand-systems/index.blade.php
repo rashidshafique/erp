@@ -3,7 +3,7 @@
 @section('content')
 @include('partials.editable-rows')
 <style>.sand-pick summary { cursor: pointer; font-size: 12.5px; color: var(--muted); margin-top: 4px; } .sand-pick label { display: flex; gap: 6px; align-items: center; font-weight: 400; white-space: nowrap; } .sand-pick input[type=checkbox] { accent-color: var(--accent); }</style>
-<div class="page-heading"><div><h1>Sand systems</h1><p>The sands this foundry moulds with. They are offered on patterns, moulding stations, work lists and imports, in this order. The first active one is the default for a station with none set.</p></div>
+<div class="page-heading"><div><h1>Sand systems</h1><p>The sands you mould with, offered in this order. The first active one is a station's default.</p></div>
 <div class="actions"><button type="button" class="btn btn-primary" data-quick="qd-sand">+ Add sand system</button><button type="button" class="btn" data-quick="qd-base">+ Add sand</button></div></div>
 @include('partials.quick-dialog', ['id' => 'qd-sand', 'title' => 'Add a sand system', 'action' => route('sand-systems.store'), 'submit' => 'Add sand system', 'fields' => 'sand-systems._quick-fields'])
 @include('partials.quick-dialog', ['id' => 'qd-base', 'title' => 'Add a sand', 'action' => route('sand-systems.base.store'), 'submit' => 'Add sand', 'fields' => 'sand-systems._quick-base-fields'])
@@ -47,7 +47,7 @@
 <form id="f-sd-{{ $sd->id }}" method="POST" action="{{ route('sand-systems.update', $sd) }}">@csrf @method('PUT')<input type="hidden" name="_row" value="sd-{{ $sd->id }}"></form>
 <form id="del-sand-{{ $sd->id }}" method="POST" action="{{ route('sand-systems.destroy', $sd) }}">@csrf @method('DELETE')</form>
 @endforeach
-<div class="panel-body"><p class="muted small">Renaming a sand system changes it everywhere it is recorded. A sand system in use cannot be deleted; set it to inactive to stop offering it while keeping the records that use it.</p></div></div>
+<div class="panel-body"><p class="muted small">Renaming changes it everywhere. A sand in use cannot be deleted; set it inactive.</p></div></div>
 
 <div class="tab-marker" data-tab-start="Sands"></div>
 <div class="panel" id="base-sands"><div class="panel-header"><h2>Sands</h2><span class="muted small">The grain each sand system is made of. Link a sand to its raw material to follow it in inventory.</span></div>

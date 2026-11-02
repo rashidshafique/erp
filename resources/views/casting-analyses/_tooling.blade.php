@@ -45,7 +45,7 @@
             </tr>
         @endforeach</tbody>
     </table></div>
-    <div class="panel-body small muted">Diameter is the larger of the modulus requirement and the feeding-volume requirement. Height is 1.5 × diameter. Use a breaker core under the feeder to make fettling easier. Treat these as a starting point for the first trial.</div>
+    <div class="panel-body small muted">Diameter meets both modulus and feed volume; height 1.5 × diameter. Use a breaker core. A first-trial starting point.</div>
 </div>
 
 @if (! empty($rec['chills']))
@@ -71,6 +71,6 @@
             <div><div class="detail-label">Areas (cm²)</div><div class="detail-value">sprue {{ $n($gt['sprue_area_cm2'], 1) }} · runner {{ $n($gt['runner_area_cm2'], 1) }} · ingates {{ $n($gt['ingate_area_cm2'], 1) }}</div></div>
             <div><div class="detail-label">Filter</div><div class="detail-value small">{{ $gt['filter'] }}</div></div>
         </div>
-        <p class="muted small" style="margin-top:12px">Estimated from poured weight and a typical pouring-time rule. Bottom gating lowers the head and lengthens the time; adjust for your pattern layout.</p>
+        <p class="muted small" style="margin-top:12px">From poured weight and a typical rule. Bottom gating lengthens the time.</p>
     </div>
 </div>

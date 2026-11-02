@@ -12,7 +12,7 @@
 @include('hr::_in', ['name' => 'amounts['.$c->id.']', 'label' => $c->name, 'type' => 'number', 'val' => $has?->amount, 'keep' => true, 'help' => $cur ? ($has ? null : 'Not paid now. Enter an amount to add it.') : 'Leave blank for the default ('.($c->calc === 'PERCENT_BASIC' ? rtrim(rtrim(\App\Support\Formats::number($c->default_value, 2), '0'), '.').'% of basic' : $m($c->default_value)).'). Enter 0 for none.'])
 @endforeach
 @include('hr::_in', ['name' => 'reason', 'label' => 'Reason', 'val' => '', 'ph' => 'Joining, annual increment, promotion…'])</div>
-<p class="muted small">Blank allowances take their default; 0 leaves one out. Earlier months keep the salary that applied then.</p><p><button class="btn btn-primary">Save salary</button></p></form></details></div></div>
+<p class="muted small">Blank allowances take their default; 0 leaves one out. Earlier months keep their salary.</p><p><button class="btn btn-primary">Save salary</button></p></form></details></div></div>
 
 <div class="panel"><div class="panel-header"><h2>Pay profile</h2></div><div class="panel-body"><form method="POST" action="{{ route('hr.payroll.profile', $e) }}">@csrf @method('PUT')
 <div class="form-grid">@include('hr::_sel', ['name' => 'pay_mode', 'label' => 'Paid by', 'items' => config('payroll.pay_modes'), 'sel' => $e->pay_mode, 'required' => true, 'keep' => true, 'blank' => false])</div>

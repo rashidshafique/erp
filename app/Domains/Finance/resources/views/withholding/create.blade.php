@@ -2,7 +2,7 @@
 @section('title', 'Record a tax certificate')
 @section('content')
 @php $m = fn ($v) => \App\Support\Formats::number($v, 2); @endphp
-<div class="page-heading"><div><h1>Record a tax certificate</h1><p>Pick the customer and the tax the certificate is for, then say how much of it each invoice carries. That part of the invoices is then settled.</p></div></div>
+<div class="page-heading"><div><h1>Record a tax certificate</h1><p>Pick the customer and tax, then how much each invoice carries. That part is then settled.</p></div></div>
 @error('certificate')<div class="alert alert-error">{{ $message }}</div>@enderror
 <div class="panel"><div class="panel-body"><form method="GET" class="filters">
     <div class="field"><label for="customer">Customer</label><select id="customer" name="customer" onchange="this.form.tax && (this.form.tax.value = ''); this.form.submit()"><option value="">—</option>@foreach ($customers as $c)<option value="{{ $c->id }}" @selected($customerId === $c->id)>{{ $c->name }}</option>@endforeach</select></div>

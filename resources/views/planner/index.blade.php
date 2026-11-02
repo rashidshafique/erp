@@ -8,7 +8,7 @@
     $states = ['LATE' => ['Late', 'status-cancelled'], 'AT_RISK' => ['At risk', 'status-on-hold'], 'ON_TRACK' => ['On track', 'status-completed'], 'NO_PATTERN' => ['No pattern', ''], 'NO_RATE' => ['No station rate', ''], 'NO_FLASKS' => ['No flasks', 'status-cancelled']];
 @endphp
 <div class="page-heading">
-    <div><h1>Planner</h1><p>Open production orders, earliest due first: what to mould next, when each will finish, and what is waiting downstream.</p></div>
+    <div><h1>Planner</h1><p>Open orders, earliest due first: what to mould next, when each finishes, what waits downstream.</p></div>
     <div class="actions">
         <form method="GET" action="{{ route('planner.index') }}" style="display:flex;gap:8px;align-items:center">
             <label class="small muted" for="plan-day">Plan from</label><input id="plan-day" type="date" name="day" value="{{ $day->toDateString() }}">
@@ -24,7 +24,7 @@
 <div class="panel">
     <div class="panel-header"><h2>Next shift</h2><span class="muted small">{{ $day->displayDate() }} · moulds already on open work lists are not suggested again</span></div>
     @if (empty($suggestion))
-        <div class="empty-state">Nothing to mould: every open order is covered by open work lists, or needs a pattern or a station rate.</div>
+        <div class="empty-state">Nothing to mould: orders are covered by work lists, or need a pattern or station rate.</div>
     @else
         <div class="table-wrap"><table>
             <thead><tr><th>Station</th><th>Pattern</th><th>Orders</th><th>Moulds</th></tr></thead>
@@ -104,7 +104,7 @@
             @endforeach
             <div><button class="btn" type="submit">Save</button></div>
         </form>
-        <p class="muted small">Projected finish = the day the order's last moulds are made, plus the days from moulding to finished. Stations are loaded up to their moulds per shift, after the moulds already on work lists from this day on; a pattern goes to its preferred station when that has a rate. A station that moulds several patterns at once shares its shift among at least that many.</p>
+        <p class="muted small">Finish = day the last moulds are made + days to finished. Stations fill up to their moulds per shift after work-list moulds; patterns go to their preferred station when it has a rate.</p>
     </div>
 </div>
 @endsection

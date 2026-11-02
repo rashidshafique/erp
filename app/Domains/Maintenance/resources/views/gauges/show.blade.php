@@ -73,7 +73,7 @@
 <div class="panel"><div class="panel-header"><h2>Measured with this instrument</h2></div>
     @if ($doubtfulSince)
         @php $doubtful = $measured->filter(fn ($m) => $m['at']->gte($doubtfulSince)); @endphp
-        <div class="panel-body"><div class="alert alert-error" style="margin:0">The last calibration failed. {{ $doubtful->count() }} {{ $doubtful->count() === 1 ? 'result was' : 'results were' }} measured since the last good calibration on {{ $doubtfulSince->displayDate() }}; they are marked below. Check them and raise an NCR where a result decided a release.</div></div>
+        <div class="panel-body"><div class="alert alert-error" style="margin:0">The last calibration failed. {{ $doubtful->count() }} {{ $doubtful->count() === 1 ? 'result was' : 'results were' }} measured since the last good calibration on {{ $doubtfulSince->displayDate() }}; marked below. Check them and raise an NCR where a result decided a release.</div></div>
     @endif
     @if ($measured->isEmpty())
         <div class="panel-body muted">No results have been recorded with this instrument.</div>

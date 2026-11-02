@@ -21,7 +21,7 @@ class FoundrySize implements MenuFilter
     public const SIZES = [
         'MICRO' => ['label' => 'Micro', 'description' => 'Owner-run shop: orders, moulds, pours, quick QC, dispatch. About 12 menu entries. Basic rules.', 'preset' => 'BASIC'],
         'SMALL' => ['label' => 'Small', 'description' => 'Teams and a melt shop: full production, quality, HR and documents, without heavy extras. Basic rules.', 'preset' => 'BASIC'],
-        'FULL' => ['label' => 'Full', 'description' => 'Every screen. Applies Full process depth.', 'preset' => 'FULL'],
+        'FULL' => ['label' => 'Full', 'description' => 'Every screen. Full rules.', 'preset' => 'FULL'],
     ];
 
     /** Micro shows only these routes (and the quick flow pages). */

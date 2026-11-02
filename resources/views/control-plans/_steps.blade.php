@@ -57,6 +57,6 @@
     @if ($editable) </details> @else </div> @endif
 @endforeach
 @if ($editable)
-    <div class="actions" style="margin-top:12px"><button class="btn btn-primary" type="submit">{{ $submit ?? 'Save rows' }}</button><span class="muted small">Clear the name of a row to remove it. The last row of each step is always blank, ready for the next control.</span></div>
+    <div class="actions" style="margin-top:12px"><button class="btn btn-primary" type="submit">{{ $submit ?? 'Save rows' }}</button><span class="muted small">Clear a row's name to remove it. Each step keeps one blank row.</span></div>
 </form>
 @endif

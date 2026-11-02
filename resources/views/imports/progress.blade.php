@@ -8,7 +8,7 @@
     <div style="background:#e6ebe8;border-radius:999px;height:14px;overflow:hidden"><div style="width:{{ $pct }}%;height:100%;background:var(--accent)"></div></div>
     <p><strong>{{ \App\Support\Formats::number($done) }}</strong> of {{ \App\Support\Formats::number($total) }} rows handled · {{ $b->counts['CREATE'] }} added · {{ $b->counts['UPDATE'] }} updated · {{ $b->counts['ERROR'] }} errors</p>
     <form method="POST" action="{{ route('imports.commit', $b) }}" id="goOn">@csrf<button class="btn btn-primary" type="submit">Continue</button></form>
-    <p class="muted small">If this page was closed or the connection dropped, open it again from Import data → Recent imports and press Continue. Rows already saved are not repeated.</p>
+    <p class="muted small">If the page was closed, reopen it from Import data → Recent imports and press Continue. Saved rows are not repeated.</p>
 </div></div>
 <script>setTimeout(function () { var f = document.getElementById('goOn'); f.querySelector('button').disabled = true; f.submit(); }, 400);</script>
 @endsection

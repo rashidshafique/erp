@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="page-header">
-    <div><h1>Charge recipes</h1><p>Controlled charge compositions for cupola and induction heats. Every recipe shows its total charge weight in kg.</p></div>
+    <div><h1>Charge recipes</h1><p>Charge recipes for cupola and induction heats, each with its total charge weight.</p></div>
     <a class="btn btn-primary" href="{{ route('charge-batches.create') }}">+ New recipe</a>
 </div>
 

@@ -2,7 +2,7 @@
 @section('title', 'Invoice templates')
 @section('content')
 @php $ready = app(\App\Domains\Finance\Services\InvoiceTemplates::class)->options(); @endphp
-<div class="page-heading"><div><h1>Invoice templates</h1><p>How an invoice or credit note prints. Pick one per invoice on its page, or set the default under Settings &gt; Invoicing &amp; tax.</p></div>
+<div class="page-heading"><div><h1>Invoice templates</h1><p>How invoices and credit notes print. Pick one per invoice, or set the default under Settings &gt; Invoicing.</p></div>
 <div class="actions"><a class="btn btn-primary" href="{{ route('invoice-templates.create') }}">+ New template</a></div></div>
 @error('template')<div class="alert alert-error">{{ $message }}</div>@enderror
 <div class="panel"><div class="panel-header"><h2>Ready-made</h2></div><div class="table-wrap"><table><thead><tr><th>Name</th><th>What it is</th><th></th></tr></thead><tbody>

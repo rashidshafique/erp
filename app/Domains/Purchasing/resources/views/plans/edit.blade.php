@@ -25,7 +25,7 @@
         @endforeach
         </tbody>
     </table></div></div>
-    <p class="muted small">Leave a row's characteristic blank to remove it. Save again to get more blank rows. Past inspections keep the limits they were measured against.</p>
+    <p class="muted small">Blank a characteristic to remove it; save for more rows. Past inspections keep their limits.</p>
     <div class="actions"><button class="btn btn-primary" type="submit">Save plan</button></div>
 </form>
 @endsection

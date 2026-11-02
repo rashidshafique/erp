@@ -6,7 +6,7 @@
     <div class="panel-header"><h2>{{ $title ?? 'Test requirements' }}</h2></div>
     <div class="panel-body">
         @if ($errors->has('limit'))<div class="alert alert-error">{{ $errors->first('limit') }}</div>@endif
-        <p class="muted small">Minimum and maximum for each test. Tick "required" to stop a lot being released until a passing result exists for its heat. Results keep the limits they were judged against.</p>
+        <p class="muted small">Min and max per test. "Required" blocks release until the heat has a passing result. Results keep their limits.</p>
     </div>
     <div class="table-wrap"><table>
         <thead><tr><th>Group</th><th>Characteristic</th><th>Min</th><th>Max</th><th>Unit</th><th>Required for release</th><th></th></tr></thead>
@@ -30,7 +30,7 @@
             <input type="hidden" name="subject_type" value="{{ $type }}"><input type="hidden" name="subject_id" value="{{ $id }}">
             <label>Group<select name="test_group">@foreach ($groups as $k => $l)<option value="{{ $k }}">{{ $l }}</option>@endforeach</select></label>
             <label>Characteristic name<input name="name" required placeholder="e.g. Hardness"></label>
-            <label>Key (optional)<input name="characteristic_key" placeholder="hardness_hb"><span class="muted small">Use a key from the entry form to attach limits to it (for example hardness_hb). Leave empty for a new test.</span></label>
+            <label>Key (optional)<input name="characteristic_key" placeholder="hardness_hb"><span class="muted small">Use a key from the entry form (e.g. hardness_hb). Empty for a new test.</span></label>
             <label>Min<input type="number" step="any" name="min_value"></label><label>Max<input type="number" step="any" name="max_value"></label><label>Unit<input name="unit"></label>
             <label><input type="checkbox" name="is_required_for_release" value="1"> Required for release</label>
             <div><button class="btn btn-primary">Add limit</button></div>

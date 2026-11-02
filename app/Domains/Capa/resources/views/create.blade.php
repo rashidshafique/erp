@@ -5,7 +5,7 @@
 
 @section('content')
 <div class="page-heading">
-    <div><h1>Raise a corrective action</h1><p>For an NCR, use "Raise corrective action" on the NCR so it carries over what is already written. Use this for complaints, audit findings, supplier problems and anything else.</p></div>
+    <div><h1>Raise a corrective action</h1><p>For an NCR, use "Raise corrective action" on the NCR. Use this for complaints, audits, suppliers and the rest.</p></div>
     <div class="actions"><a class="btn" href="{{ route('capa.index') }}">Cancel</a></div>
 </div>
 <form method="POST" action="{{ route('capa.store') }}">@csrf

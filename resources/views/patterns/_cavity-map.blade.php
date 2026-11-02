@@ -78,7 +78,7 @@
         @endforeach
         @if ($pattern->revisions->isEmpty() && ! $pattern->trashed())
             @php($firstRevision = tap((new \App\Models\PatternRevision)->forceFill(['id' => 'first']), fn ($r) => $r->setRelation('cavityMap', collect())))
-            <p class="muted small">This pattern has no revision yet. Link a product below and its first revision (Rev 0) is recorded when you save.</p>
+            <p class="muted small">No revision yet. Link a product below and Rev 0 is recorded on save.</p>
             @include('patterns._cavity-grid', ['revision' => $firstRevision, 'pattern' => $pattern, 'productRevisions' => $productRevisions, 'assembled' => false, 'action' => route('patterns.cavities.first-map', $pattern)])
         @endif
         <style>

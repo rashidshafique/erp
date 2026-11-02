@@ -124,7 +124,7 @@ class ProductLinkPatternTest extends TestCase
     {
         $pattern = Pattern::create(['code' => 'P-0100', 'name' => 'Valve plate']);
 
-        $this->get(route('patterns.show', $pattern))->assertOk()->assertSee(route('patterns.cavities.first-map', $pattern))->assertSee('first revision (Rev 0)');
+        $this->get(route('patterns.show', $pattern))->assertOk()->assertSee(route('patterns.cavities.first-map', $pattern))->assertSee('Rev 0 is recorded');
         $this->assertSame(0, $pattern->revisions()->count());
 
         $this->put(route('patterns.cavities.first-map', $pattern), ['cavities_per_mould' => 2, 'rows' => [1 => ['product_revision_id' => $this->productRevision->id]]])

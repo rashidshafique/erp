@@ -5,7 +5,7 @@
     $startLines = old('lines', $lines);
     $matJson = $materials->mapWithKeys(fn ($x) => [$x->id => ['name' => $x->code.' '.$x->name, 'uom' => $x->base_uom, 'price' => (float) $x->standard_cost_per_uom]])->all();
 @endphp
-<div class="page-heading"><div><h1>{{ $order ? 'Edit draft purchase order' : 'New purchase order' }}</h1><p>Pick a material to fill the description, unit and a starting price, or type a free line. Nothing counts until the order is issued.</p></div></div>
+<div class="page-heading"><div><h1>{{ $order ? 'Edit draft purchase order' : 'New purchase order' }}</h1><p>Pick a material to fill the line, or type a free one. Nothing counts until issued.</p></div></div>
 <form method="POST" action="{{ $order ? route('purchase-orders.update', $order) : route('purchase-orders.store') }}" x-data="poLines(@js($startLines), @js($matJson))">@csrf @if ($order) @method('PUT') @endif
 <div class="panel"><div class="panel-body form-grid">
     <label>Supplier<select name="supplier_id" required><option value="">—</option>@foreach ($suppliers as $s)<option value="{{ $s->id }}" @selected(old('supplier_id', $head['supplier_id'] ?? null) === $s->id)>{{ $s->name }}</option>@endforeach</select></label>

@@ -77,7 +77,7 @@ class SalesOrderStatus
         DB::transaction(function () use ($order, $releaseAll) {
             $order = SalesOrder::lockForUpdate()->findOrFail($order->id);
             if (\App\Support\OrderRules::reviewRequired() && ! $order->hasApprovedReview() && $this->openStatus($order) !== 'IN_PRODUCTION') {
-                $this->refuse('A contract review must be approved first. Run it, or set contract review to not required under Settings > Order rules.');
+                $this->refuse('A contract review must be approved first. Run it, or turn it off under Settings > Process rules.');
             }
             if ($releaseAll) {
                 $factory = app(ProductionOrderFactory::class);

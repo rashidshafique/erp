@@ -2,7 +2,7 @@
 @section('title', 'Supplier bills')
 @section('content')
 @php $m = fn ($v) => \App\Support\Formats::money($v); @endphp
-<div class="page-heading"><div><h1>Supplier bills</h1><p>What suppliers have billed us and credit notes they sent. Enter one from a purchase order, or on its own.</p></div><div class="actions"><a class="btn btn-primary" href="{{ route('bills.create') }}">+ New bill</a></div></div>
+<div class="page-heading"><div><h1>Supplier bills</h1><p>Supplier bills and credit notes. Enter one from a purchase order or on its own.</p></div><div class="actions"><a class="btn btn-primary" href="{{ route('bills.create') }}">+ New bill</a></div></div>
 <div class="panel"><div class="panel-body">
     <form method="GET" class="filters">
         <div class="field"><label for="supplier">Supplier</label><select id="supplier" name="supplier" onchange="this.form.submit()"><option value="">All suppliers</option>@foreach ($suppliers as $s)<option value="{{ $s->id }}" @selected($supplierId === $s->id)>{{ $s->name }} ({{ $s->code }})</option>@endforeach</select></div>

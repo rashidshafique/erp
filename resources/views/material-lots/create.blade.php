@@ -99,7 +99,7 @@
         </div>
     </div></div></div>
 
-    <p class="muted">Saving this form records the lot details; it does not post inventory or create a cost layer. Post the receipt from the material page.</p>
+    <p class="muted">Records the lot only; post the receipt from the material page.</p>
 
     <div class="actions"><button class="btn btn-primary" type="submit">Save lot</button>
     <a class="btn" href="{{ route('materials.show', $material) }}">Cancel</a></div>

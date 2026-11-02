@@ -4,7 +4,7 @@
 @section('breadcrumb')<a href="{{ route('customers.index') }}">Customers</a> / {{ $customer->code }} / Requirements @endsection
 
 @section('content')
-<div class="page-heading"><div><h1>{{ $customer->name }}</h1><p>Which requirement profiles apply to this customer. Where profiles differ, the strictest value applies.</p></div></div>
+<div class="page-heading"><div><h1>{{ $customer->name }}</h1><p>Profiles for this customer. Where they differ, the strictest applies.</p></div></div>
 <form method="POST" action="{{ route('customer-requirements.update', $customer) }}">
     @csrf @method('PUT')
     <div class="panel"><div class="panel-header"><h2>Profiles</h2><a class="small" href="{{ route('requirements.index') }}">Edit profiles →</a></div><div class="panel-body">

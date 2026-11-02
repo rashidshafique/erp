@@ -5,7 +5,7 @@
 
 @section('content')
 <div class="page-heading">
-    <div><h1>Controlled documents</h1><p>Procedures, work instructions, forms and specifications. Each has one revision in force; a change is a new revision that is approved before it replaces the old one.</p></div>
+    <div><h1>Controlled documents</h1><p>Procedures, instructions, forms and specs. One revision in force; a change is approved before it replaces the old.</p></div>
     @if ($canManage)<div class="actions"><a class="btn btn-primary" href="{{ route('documents.create') }}">+ New document</a></div>@endif
 </div>
 

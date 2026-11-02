@@ -5,7 +5,7 @@
 
 @section('content')
 <div class="page-heading">
-    <div><h1>Requirement profiles</h1><p>What each customer or standard demands. A customer holds one or more profiles and the strictest value applies. Values shown are starting points; edit them to match the customer's supplier manual.</p></div>
+    <div><h1>Requirement profiles</h1><p>What each customer or standard demands; the strictest value applies. Edit the starting values to match the customer's manual.</p></div>
     <div class="actions"><a class="btn btn-primary" href="{{ route('requirements.create') }}">+ Add profile</a></div>
 </div>
 <div class="panel"><div class="table-wrap"><table>

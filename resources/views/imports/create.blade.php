@@ -13,10 +13,10 @@
         <label><input type="radio" name="source" value="GOOGLE" @checked(old('source') === 'GOOGLE')> Google Sheets link</label>
         <label><input type="radio" name="source" value="PASTE" @checked(old('source') === 'PASTE')> Paste cells</label>
     </div>
-    <div class="src" data-src="FILE"><div class="field"><label for="file">File (.xlsx or .csv, up to {{ round($maxKb / 1024) }} MB)</label><input id="file" type="file" name="file" accept=".csv,.tsv,.txt,.xlsx"><div class="help">The first sheet is read; you can choose another on the next screen. Old .xls files: open them in Excel and save as .xlsx.</div></div></div>
+    <div class="src" data-src="FILE"><div class="field"><label for="file">File (.xlsx or .csv, up to {{ round($maxKb / 1024) }} MB)</label><input id="file" type="file" name="file" accept=".csv,.tsv,.txt,.xlsx"><div class="help">The first sheet is read; choose another next. Old .xls: save as .xlsx in Excel first.</div></div></div>
     <div class="src" data-src="GOOGLE"><div class="field"><label for="google_url">Google Sheets address</label><input id="google_url" name="google_url" value="{{ old('google_url') }}" placeholder="https://docs.google.com/spreadsheets/d/…/edit#gid=0">
-        <div class="help">The sheet must be shared as <strong>Anyone with the link → Viewer</strong>. To import a different tab, open that tab first and copy the address from the browser, so it ends with its own gid. A private sheet: use File → Download → CSV in Google Sheets, or the paste option.</div></div></div>
-    <div class="src" data-src="PASTE"><div class="field"><label for="pasted">Paste cells</label><textarea id="pasted" class="paste" name="pasted" placeholder="Select the cells in Google Sheets or Excel, including the heading row, copy and paste here.">{{ old('pasted') }}</textarea><div class="help">Include the heading row. Tabs between columns are what a spreadsheet copies, and are read automatically.</div></div></div>
+        <div class="help">The sheet must be shared as <strong>Anyone with the link → Viewer</strong>. For another tab, open it and copy its address (with its own gid). Private sheet: download as CSV or paste.</div></div></div>
+    <div class="src" data-src="PASTE"><div class="field"><label for="pasted">Paste cells</label><textarea id="pasted" class="paste" name="pasted" placeholder="Select the cells in Google Sheets or Excel, including the heading row, copy and paste here.">{{ old('pasted') }}</textarea><div class="help">Include the heading row. Spreadsheet tabs are read automatically.</div></div></div>
     <p><button class="btn btn-primary" type="submit">Read the data</button> <a class="btn" href="{{ route('imports.index') }}">Cancel</a></p>
 </div></div>
 </form>

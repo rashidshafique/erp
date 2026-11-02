@@ -24,7 +24,7 @@
                 @endforeach
             </tbody>
         </table>
-        <div class="help">Moulds use the designed-for size when the station handles it and flasks are free, otherwise another size it fits. A flaskless arrangement takes a block size instead: tick the block size it makes and leave the flask sizes.</div>
+        <div class="help">Uses the designed size if the station fits it and flasks are free, else another that fits. Flaskless takes a block size instead.</div>
     @endif
 </div>
 @once

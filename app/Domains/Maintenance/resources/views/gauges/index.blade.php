@@ -6,7 +6,7 @@
 @section('content')
 @php $state = request('state'); @endphp
 <div class="page-heading">
-    <div><h1>Gauges &amp; calibration</h1><p>Every measuring instrument, when it was last calibrated and when it is next due. Results can name the instrument they were measured with.</p></div>
+    <div><h1>Gauges &amp; calibration</h1><p>Every instrument, its last calibration and next due date.</p></div>
     <div class="actions">
         <a class="btn" href="{{ route('settings.rules').'#calibration' }}">Calibration rules</a>
         <a class="btn btn-primary" href="{{ route('gauges.create') }}">+ Add instrument</a>

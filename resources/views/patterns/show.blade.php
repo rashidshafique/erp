@@ -210,7 +210,7 @@ document.querySelectorAll('[data-inplace]').forEach(function (panel) {
 @endif
 
 <div class="panel"><div class="panel-header"><h2>Sand system &amp; line match</h2></div><div class="panel-body">
-    <p class="muted small" style="margin-top:0">A pattern is made with the taper and allowances of one sand system. The work list warns when it is put on a line running a sand system that is not listed here.</p>
+    <p class="muted small" style="margin-top:0">Made for one sand system's taper and allowances. Work lists warn on a line running another sand.</p>
     <form method="POST" action="{{ route('patterns.sand', $pattern) }}" class="form-grid">@csrf @method('PUT')
         @include('patterns._sand', ['sands' => \App\Models\SandSystem::choices($pattern->sand_system, ...($pattern->compatible_sands ?? []))])
         <div><button class="btn btn-primary">Save sand system</button></div>
@@ -223,7 +223,7 @@ document.querySelectorAll('[data-inplace]').forEach(function (panel) {
 
 <div class="tab-marker" data-tab-start="Revisions"></div>
 <div class="panel">
-    <div class="panel-header"><h2>Tooling revisions</h2><span class="muted small">One current revision; older ones are superseded and kept. Repairs and repainting go in the maintenance log, not here.</span></div>
+    <div class="panel-header"><h2>Tooling revisions</h2><span class="muted small">One current revision; older ones are kept. Repairs go in the maintenance log.</span></div>
 
     @if ($pattern->revisions->isEmpty())
         <div class="empty-state">No revisions recorded. Press “+ New revision” to record the first one.</div>

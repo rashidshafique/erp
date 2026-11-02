@@ -5,7 +5,7 @@
 
 @section('content')
 <div class="page-heading">
-    <div><h1>{{ $party->exists ? 'Edit '.$party->code : 'Add partner' }}</h1><p>General data shared by every role. Role details (payment terms, approval) are kept on the customer and supplier pages.</p></div>
+    <div><h1>{{ $party->exists ? 'Edit '.$party->code : 'Add partner' }}</h1><p>Shared data for every role. Terms and approval are on the customer and supplier pages.</p></div>
     <div class="actions"><a class="btn" href="{{ $party->exists ? route('parties.show', $party) : route('parties.index') }}">Cancel</a></div>
 </div>
 @php $v = fn ($f) => old($f, $party->{$f}); @endphp

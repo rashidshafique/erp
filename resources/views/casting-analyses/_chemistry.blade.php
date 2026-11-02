@@ -40,7 +40,7 @@
     <div class="panel-header"><h2>Magnesium treatment</h2></div>
     <div class="panel-body">
         <p style="margin:0">{{ $m['mg']['text'] }}</p>
-        <p class="muted small" style="margin-bottom:0">Base sulphur above 0.025 % wastes magnesium and risks low nodularity. Too much magnesium forms carbides; too little gives flake or compacted graphite.</p>
+        <p class="muted small" style="margin-bottom:0">Base sulphur over 0.025 % wastes magnesium. Too much magnesium forms carbides; too little gives flake graphite.</p>
     </div>
 </div>
 @endif
@@ -55,7 +55,7 @@
                     <tr><td><strong>{{ $g['code'] }}</strong></td><td>{{ $g['name'] }}</td><td>{{ $g['min_tensile_mpa'] ?? '—' }} MPa</td><td>{{ $g['min_yield_mpa'] ?? '—' }} MPa</td><td>{{ $g['min_elongation_pct'] ?? '—' }} %</td></tr>
                 @endforeach</tbody>
             </table></div>
-            <p class="muted small" style="margin-bottom:0">Lowest strength that still meets the requirement first. Section size lowers the strength actually reached in a casting compared with a separately cast test bar, so keep a margin.</p>
+            <p class="muted small" style="margin-bottom:0">Lowest strength meeting the requirement first. Thick sections fall short of test bars, so keep a margin.</p>
         @else
             <p class="muted" style="margin:0">No active {{ $rec['family_label'] }} grade in your list meets the entered requirement. Add grades under Quality → Iron grades, or relax the requirement.</p>
         @endif

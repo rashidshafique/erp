@@ -5,7 +5,7 @@
 
 @section('content')
 <div class="page-heading">
-    <div><h1>Melting plan</h1><p>Released production orders grouped by iron grade, sequenced to limit changeover, placed on eligible furnaces.</p></div>
+    <div><h1>Melting plan</h1><p>Released orders by iron grade, sequenced to limit changeover, on eligible furnaces.</p></div>
     <div class="actions">
         <form method="POST" action="{{ route('heat-plan.rebuild') }}" style="display:flex;gap:8px;align-items:center">@csrf
             <input type="date" name="from" value="{{ old('from', today()->toDateString()) }}" min="{{ today()->toDateString() }}" required>
@@ -15,7 +15,7 @@
 @if (! empty($skipped))
     <div class="alert alert-error"><strong>Not planned:</strong><ul>@foreach ($skipped as $s)<li>{{ $s }}</li>@endforeach</ul></div>
 @endif
-<p class="muted small">Rebuilding replaces heats that are still only planned. Released heats are kept and their metal is not planned twice. Planned weights come from the cavity map (poured weights), else casting weight or net weight divided by the default yield.</p>
+<p class="muted small">Rebuilding replaces planned-only heats; released heats are kept. Weights come from the cavity map, else casting weight over default yield.</p>
 
 <div class="panel">
     @if ($heats->isEmpty())

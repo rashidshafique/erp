@@ -21,7 +21,7 @@
             <div class="ac-field"><span class="lab">Description</span><textarea wire:model.live.debounce.250ms="m.desc" placeholder="Description" rows="2" maxlength="300" style="resize:vertical" aria-label="Description"></textarea></div>
             <div class="ac-box" wire:click="toggleCharge" role="checkbox" aria-checked="{{ ($m['dc'] ?? false) ? 'true' : 'false' }}" tabindex="0" wire:keydown.space.prevent="toggleCharge">
                 <span @class(['ac-tick', 'on' => $m['dc'] ?? false])>{{ ($m['dc'] ?? false) ? '✓' : '' }}</span>
-                <div style="display:flex;flex-direction:column;gap:2px"><span>Deduction and charge</span><span class="ac-note">Offer this account in the charge and deduction boxes on sales invoices, credit notes and orders, e.g. freight, packing, discount.</span></div>
+                <div style="display:flex;flex-direction:column;gap:2px"><span>Deduction and charge</span><span class="ac-note">Offer it in the charge and deduction boxes, e.g. freight, packing, discount.</span></div>
             </div>
             @else
             <div class="ac-field"><span class="lab">Report line <span class="req">*</span></span>

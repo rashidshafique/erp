@@ -5,7 +5,7 @@
 
 @section('content')
 <div class="page-heading">
-    <div><h1>Corrective actions</h1><p>One register for every corrective and preventive action, whatever raised it: a nonconformance report, a customer complaint, an audit finding or a supplier problem. Each stays open until its effectiveness has been checked.</p></div>
+    <div><h1>Corrective actions</h1><p>Every corrective and preventive action, whatever raised it. Each stays open until its effectiveness is checked.</p></div>
     <div class="actions"><a class="btn btn-primary" href="{{ route('capa.create') }}">+ Raise an action</a></div>
 </div>
 

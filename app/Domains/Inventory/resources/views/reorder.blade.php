@@ -7,7 +7,7 @@
 <div class="page-heading">
     <div>
         <h1>Reorder alerts</h1>
-        <p>Materials that have fallen to their minimum stock. Everyone who manages stores is told once each time a material drops to its minimum.</p>
+        <p>Materials at their minimum. Store managers are told once each time one drops.</p>
     </div>
 </div>
 

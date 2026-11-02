@@ -44,7 +44,7 @@
 @endif
 @php $costChanges = \App\Domains\Finance\Models\LotCostAdjustment::with('lot')->where('supplier_bill_id', $bill->id)->orderBy('created_at')->get(); @endphp
 @if ($costChanges->isNotEmpty())
-<div class="panel"><div class="panel-header"><h2>Lot cost changes</h2><span class="muted small">Lots received on this bill's order lines, re-costed at the billed price. Stock already used kept its cost; the last column is the difference on it.</span></div>
+<div class="panel"><div class="panel-header"><h2>Lot cost changes</h2><span class="muted small">Lots on this bill's order lines, re-costed at the billed price. Used stock kept its cost; the last column is the difference.</span></div>
 <div class="table-wrap"><table><thead><tr><th>Lot</th><th></th><th class="num">Unit cost was</th><th class="num">Now</th><th class="num">In stock</th><th class="num">Already used</th><th class="num">Difference on used</th></tr></thead><tbody>
 @foreach ($costChanges as $c)<tr><td>{{ $c->lot?->lot_number }}</td><td class="muted small">{{ $c->reason === 'VOIDED' ? 'bill voided' : 'billed' }}</td><td class="num">{{ \App\Support\Formats::number($c->from_unit_cost, 4) }}</td><td class="num">{{ \App\Support\Formats::number($c->to_unit_cost, 4) }}</td><td class="num">{{ \App\Support\Formats::number($c->quantity_on_hand, 3) }}</td><td class="num">{{ \App\Support\Formats::number($c->quantity_used, 3) }}</td><td class="num">{{ $m($c->variance_on_used) }}</td></tr>@endforeach
 </tbody></table></div></div>

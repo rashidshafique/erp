@@ -8,7 +8,7 @@
     $first = $sample[0][1] ?? [];
     $sampleBy = fn ($i) => collect($sample)->map(fn ($r) => $r[1][$i] ?? '')->filter(fn ($v) => $v !== '')->first() ?? '';
 @endphp
-<div class="page-heading"><div><h1>Match columns to fields</h1><p>{{ $b->source_label }} · {{ $rowCount }} data rows. Choose which column feeds each field; anything you leave out is simply not imported.</p></div>
+<div class="page-heading"><div><h1>Match columns to fields</h1><p>{{ $b->source_label }} · {{ $rowCount }} data rows. Pick a column for each field; the rest is skipped.</p></div>
 <div class="actions"><form method="POST" action="{{ route('imports.destroy', $b) }}" onsubmit="return confirm('Discard this import?')">@csrf @method('DELETE')<button class="btn btn-danger" type="submit">Discard</button></form></div></div>
 
 <div class="panel"><div class="panel-body">
@@ -33,7 +33,7 @@
 @else<input name="mapping[{{ $k }}][default]" value="{{ $m['default'] ?? '' }}" placeholder="{{ isset($f['default']) ? 'new records: '.$f['default'] : '' }}">@endif</td></tr>
 @endforeach
 </tbody></table></div>
-<div class="panel-body muted small">A fixed value is used when the cell is blank or no column is chosen. For new records, blank fields get the default shown in grey. Blank cells never erase existing data.</div></div>
+<div class="panel-body muted small">A fixed value fills blank cells. New records get the grey default. Blank cells never erase data.</div></div>
 
 <div class="panel"><div class="panel-header"><h2>How to import</h2></div><div class="panel-body"><div class="form-grid">
     <div class="field"><label>Existing records</label><select name="mode"><option value="UPSERT" @selected($opt['mode'] === 'UPSERT')>Add new and update existing</option><option value="CREATE" @selected($opt['mode'] === 'CREATE')>Only add new (skip ones that exist)</option><option value="UPDATE" @selected($opt['mode'] === 'UPDATE')>Only update existing (skip new)</option></select></div>

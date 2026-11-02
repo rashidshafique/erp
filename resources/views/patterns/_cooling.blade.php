@@ -1,7 +1,7 @@
 <div class="panel">
     <div class="panel-header"><h2>Cooling before shakeout</h2></div>
     <div class="panel-body">
-        <p class="muted small">Minimum minutes a casting must stay in the mould after the pour, set per revision (heavy sections need longer). Shakeout earlier than this needs a written reason. Leave empty for no rule.</p>
+        <p class="muted small">Minimum minutes in the mould after pouring, per revision. Earlier shakeout needs a reason. Empty for none.</p>
         @foreach ($pattern->revisions as $revision)
             <form method="POST" action="{{ route('pattern-revisions.cooling', $revision->id) }}" style="display:flex;gap:10px;align-items:center;margin-bottom:8px">@csrf @method('PUT')
                 <span style="width:90px">{{ $revision->shortCode() }}</span>

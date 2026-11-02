@@ -2,7 +2,7 @@
 @section('title', 'Record a receipt')
 @section('content')
 @php $m = fn ($v) => \App\Support\Formats::number($v, 2); @endphp
-<div class="page-heading"><div><h1>Record a receipt</h1><p>Pick the customer to see what they owe, then say how much of the money pays each invoice. Anything left stays on account.</p></div></div>
+<div class="page-heading"><div><h1>Record a receipt</h1><p>Pick the customer, then how much of the money pays each invoice. The rest stays on account.</p></div></div>
 <div class="panel"><div class="panel-body"><form method="GET" class="filters"><div class="field"><label for="customer">Customer</label><select id="customer" name="customer" onchange="this.form.submit()"><option value="">—</option>@foreach ($customers as $c)<option value="{{ $c->id }}" @selected($customerId === $c->id)>{{ $c->name }}</option>@endforeach</select></div></form></div></div>
 @if ($customerId)
 <form method="POST" action="{{ route('receipts.store') }}" x-data="{ amount: {{ (float) old('amount', 0) }}, alloc: {}, get used() { return Object.values(this.alloc).reduce((n, v) => n + (Number(v) || 0), 0); },

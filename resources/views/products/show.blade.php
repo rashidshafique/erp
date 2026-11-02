@@ -251,7 +251,7 @@
                 <button class="btn btn-primary" type="submit">Set grade</button>
             </form>
             @include('partials.search-select')
-            <p class="muted small">Records an approved specification naming the grade. The contract review and the melting plan read it.</p>
+            <p class="muted small">Records an approved spec naming the grade, used by contract review and the melting plan.</p>
         @endif
     </div>
 </div>
@@ -268,7 +268,7 @@
         <a class="btn btn-primary btn-small" href="{{ route('casting-analyses.create', ['product' => $product->id]) }}">+ Analyse a model</a>
     </div>
     @if ($analyses->isEmpty())
-        <div class="panel-body muted">No analysis yet. Attach an STL or STEP model on the Files tab, or upload one here, to find hotspots, size feeders and get a manufacturability score.</div>
+        <div class="panel-body muted">No analysis yet. Attach an STL or STEP model to find hotspots, size feeders and score castability.</div>
     @else
         <div class="table-wrap"><table>
             <thead><tr><th>Code</th><th>Name</th><th>Score</th><th>Status</th><th>When</th><th></th></tr></thead>

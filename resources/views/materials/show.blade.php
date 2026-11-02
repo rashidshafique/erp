@@ -38,7 +38,7 @@
 <div class="panel">
 <div class="panel-header"><h2>Chemistry</h2><a class="btn btn-small" href="{{ route('materials.edit', $material) }}">{{ $material->elements->isEmpty() ? 'Add chemistry' : 'Edit' }}</a></div>
 @if ($material->elements->isEmpty())
-    <div class="panel-body"><p class="muted">No chemistry on file. It is optional: add the typical analysis and a heat's charge can be checked against the iron grade before it is tested.</p></div>
+    <div class="panel-body"><p class="muted">No chemistry on file. Optional: add it to check a heat's charge against the grade.</p></div>
 @else
     <div class="table-wrap"><table>
         <thead><tr><th>Element</th><th>Typical %</th><th>Range %</th><th>Recovery %</th></tr></thead>
