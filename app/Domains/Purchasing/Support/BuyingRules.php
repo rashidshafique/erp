@@ -12,7 +12,7 @@ class BuyingRules
     /** key => [setting, label, options (value => description), default] */
     public const RULES = [
         'over_receipt' => ['purchasing.over_receipt', 'Receiving more than was ordered', [
-            'BLOCK' => 'Not allowed: a line can only be received up to its ordered quantity',
+            'BLOCK' => 'Not allowed: up to the ordered quantity',
             'TEN' => 'Allowed up to 10% over the ordered quantity',
             'ANY' => 'Allowed by any amount',
         ], 'TEN'],

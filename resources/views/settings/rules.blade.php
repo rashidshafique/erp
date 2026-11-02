@@ -41,7 +41,7 @@
                         @else
                             @foreach ($rule['options'] as $value => $text)<label><input type="radio" name="{{ $key }}" value="{{ $value }}" @checked((string) old($key, $rule['value']) === (string) $value)> {{ $text }}</label>@endforeach
                         @endif
-                        @if (in_array($key, $waiting, true))<p class="muted small">Needs the Quick flow module; the first choice applies until it is on.</p>@endif
+                        @if (in_array($key, $waiting, true))<p class="muted small">Needs Quick flow; the first choice applies until then.</p>@endif
                     </fieldset>
                 @endforeach
             </div></div>

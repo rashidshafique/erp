@@ -13,8 +13,8 @@ class ProcessDepth
 {
     /** label and description of each preset */
     public const PRESETS = [
-        'BASIC' => ['Basic', 'Fast entry for a small foundry: a saved order goes straight to production; moulds made and poured are typed into the quick grids, with no work lists or melting plan; moulds are assembled as they are made and a pour is recorded, completed and given its lots in one step; no pouring gates, first-iron holds or calibration blocks; an order completes when its castings are poured, one lot per pour and product, and the quick QC tally raises a nonconformance only above 5% rejects.'],
-        'FULL' => ['Full', 'Every step and check in force: the full shop floor screens, contract review, work lists issued before runs start, the melting plan, mould assembly and pours step by step, pouring gates, first-iron and containment holds, calibration warnings, and completion after final inspection.'],
+        'BASIC' => ['Basic', 'Few screens for a small foundry: orders go straight to production, quick grids for moulds and pours, one-step pours, no gates or holds, done at pour.'],
+        'FULL' => ['Full', 'Every step and check: contract review, work lists, melting plan, step-by-step pours, gates and holds, done after final inspection.'],
     ];
 
     /** @var array<string, array<string, string>> rule => value, per preset */

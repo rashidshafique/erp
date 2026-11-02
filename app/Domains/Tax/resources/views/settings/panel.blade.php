@@ -12,7 +12,7 @@
     .tax-checks label { display: inline-flex; gap: 5px; align-items: center; margin: 0; font-weight: 400; }
     .tax-rule-form summary { cursor: pointer; }
 </style>
-<div class="page-heading"><div><h2 style="margin:0">Taxation</h2><p>The country whose tax rules apply, your registrations, the tax rates by date and the rules that put them on each line.</p></div></div>
+<div class="page-heading"><div><h2 style="margin:0">Taxation</h2><p>Country, registrations, tax rates by date and the rules that apply them.</p></div></div>
 
 @if ($errors->any())<div class="alert alert-error">{{ $errors->first() }}</div>@endif
 
@@ -20,21 +20,21 @@
 <div class="panel"><div class="panel-header"><h2>Country and registration</h2></div><div class="panel-body"><div class="form-grid">
     <div class="field"><label for="jurisdiction">Country</label>
         <select id="jurisdiction" name="jurisdiction">@foreach ($countries as $c => $name)<option value="{{ $c }}" @selected($code === $c)>{{ $name }}</option>@endforeach</select>
-        <div class="help">Each country is a pack of authorities, taxes and rules. More countries are added as packs.</div></div>
+        <div class="help">Each country is a pack of authorities, taxes and rules.</div></div>
     @if ($regions)
         <div class="field"><label for="region">Your region</label>
             <select id="region" name="region"><option value="">—</option>@foreach ($regions as $r => $name)<option value="{{ $r }}" @selected(($company['region'] ?? null) === $r)>{{ $name }}</option>@endforeach</select>
-            <div class="help">Where your services are supplied when a document does not say.</div></div>
+            <div class="help">Used when a document does not say.</div></div>
     @endif
     @foreach ($pack?->registrationFields() ?? [] as $key => $label)
         <div class="field"><label for="reg-{{ $key }}">{{ $label }}</label><input id="reg-{{ $key }}" name="registrations[{{ $key }}]" maxlength="60" value="{{ $company['registrations'][$key] ?? '' }}"></div>
     @endforeach
     <div class="field field-full"><label><input type="hidden" name="withholding_agent" value="0"><input type="checkbox" name="withholding_agent" value="1" @checked($company['withholding_agent'] ?? false)> We are a withholding agent</label>
-        <div class="help">We keep back tax from what we pay suppliers and pay it to the authority. Rules marked "withholding agent" on the purchase side then apply to our bills.</div></div>
+        <div class="help">We withhold tax from supplier payments; withholding-agent rules then apply to our bills.</div></div>
     @if ($authorities->isNotEmpty())
         <div class="field field-full"><label>Registered with</label>
             <div class="tax-checks">@foreach ($authorities as $a)<label><input type="checkbox" name="registered[]" value="{{ $a->id }}" @checked($a->is_registered)> {{ $a->name }} <span class="muted small">({{ $a->code }})</span></label>@endforeach</div>
-            <div class="help">You charge an authority's tax only once registered with it. Its registers and returns are produced separately.</div></div>
+            <div class="help">Tax is charged only once registered with the authority.</div></div>
     @endif
 </div></div><div class="panel-body"><button class="btn btn-primary">Save</button></div></div>
 </form>
@@ -58,7 +58,7 @@
 </div></div>
 @endif
 
-<div class="panel"><div class="panel-header"><h2>Tax rates in force</h2><span class="muted small">A new rate starts from a date; earlier documents keep the rate they were made at.</span></div>
+<div class="panel"><div class="panel-header"><h2>Tax rates in force</h2><span class="muted small">A new rate starts on a date; older documents keep theirs.</span></div>
 <div class="table-wrap"><table><thead><tr><th>Tax</th><th>Authority</th><th>Kind</th><th>Rate</th><th>On</th><th>From</th><th>New rate from a date</th></tr></thead><tbody>
 @forelse ($current as $c)
     <tr>
@@ -82,7 +82,7 @@
 @endif
 </div>
 
-<div class="panel"><div class="panel-header"><h2>Rules</h2><span class="muted small">Every rule whose conditions hold adds its taxes. A condition left blank matches anything.</span></div>
+<div class="panel"><div class="panel-header"><h2>Rules</h2><span class="muted small">Every matching rule adds its taxes. A blank condition matches anything.</span></div>
 <div class="table-wrap"><table><thead><tr><th>Order</th><th>Rule</th><th>Applies to</th><th>When</th><th>Adds</th><th></th></tr></thead><tbody>
 @forelse ($rules as $rule)
     @php $cond = $rule->conditions ?? []; @endphp

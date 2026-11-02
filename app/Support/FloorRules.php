@@ -17,24 +17,24 @@ class FloorRules
     /** key => [setting, label, options (value => description), default] */
     public const RULES = [
         'work_lists' => ['floor.work_lists', 'Moulding work lists', [
-            'USED' => 'Used: shifts are planned on work lists, which are issued to the teams',
-            'OFF' => 'Not used: the planner\'s first shift fills the moulds made grid, and work lists leave the menu',
+            'USED' => 'Used: shifts planned on issued work lists',
+            'OFF' => 'Not used: the planner fills the moulds made grid',
         ], 'USED'],
         'mould_assembly' => ['floor.mould_assembly', 'Assembling moulds after moulding', [
-            'MANUAL' => 'A step of its own: accepted moulds are assembled on the run page (flaskless moulds are always automatic)',
-            'AUTO' => 'Automatic: every accepted mould is assembled as soon as the output is saved',
+            'MANUAL' => 'Own step on the run page (flaskless is always automatic)',
+            'AUTO' => 'Automatic when the output is saved',
         ], 'MANUAL'],
         'pour_entry' => ['floor.pour_entry', 'Recording a pour', [
-            'STEPS' => 'Step by step: create the pour, add moulds, start it, then complete it',
-            'ONE_STEP' => 'One step: pick the heat and the moulds poured, and the pour is recorded, completed and its lots made',
+            'STEPS' => 'Step by step: create, add moulds, start, complete',
+            'ONE_STEP' => 'One step: heat and moulds in, pour completed with its lots',
         ], 'STEPS'],
         'melting_plan' => ['floor.melting_plan', 'Melting plan', [
-            'USED' => 'Used: heats are planned ahead from released orders',
-            'OFF' => 'Not used: Next heat says what to melt from the moulds waiting, and the melting plan leaves the menu',
+            'USED' => 'Used: heats planned from released orders',
+            'OFF' => 'Not used: Next heat melts for the moulds waiting',
         ], 'USED'],
         'floor_screens' => ['floor.screens', 'Shop floor screens', [
-            'FULL' => 'Full screens: moulding runs, mould readiness and the pour register',
-            'QUICK' => 'Quick screens: moulds made and poured are typed into grids, and the full screens leave the menu',
+            'FULL' => 'Full: moulding runs, mould readiness, pour register',
+            'QUICK' => 'Quick: moulds made and poured typed into grids',
         ], 'FULL'],
     ];
 

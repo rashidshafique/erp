@@ -16,25 +16,25 @@ class ProcessSetup
     public const QUESTIONS = [
         'review' => ['Do you review an order before making it?', [
             'ALWAYS' => ['Always, signed off by sales and quality', ['contract_review' => 'REQUIRED']],
-            'WHEN_OFF' => ['Only when something is off: a clean order goes ahead by itself', ['contract_review' => 'AUTO']],
+            'WHEN_OFF' => ['Only when something is off', ['contract_review' => 'AUTO']],
             'NO' => ['No', ['contract_review' => 'SKIP']],
         ]],
         'flow' => ['What should saving an order do?', [
-            'STRAIGHT' => ['Send it straight to production once nothing holds it', ['order_flow' => 'SIMPLE']],
-            'STEPS' => ['Keep it as a draft; we release production orders ourselves', ['order_flow' => 'FULL']],
+            'STRAIGHT' => ['Straight to production', ['order_flow' => 'SIMPLE']],
+            'STEPS' => ['Keep it as a draft; we release it', ['order_flow' => 'FULL']],
         ]],
         'screens' => ['How does the floor record its work?', [
-            'QUICK' => ['Typing moulds made and poured into quick grids', ['floor_screens' => 'QUICK']],
-            'FULL' => ['On the full screens: moulding runs, mould readiness, pour register', ['floor_screens' => 'FULL']],
+            'QUICK' => ['Quick grids', ['floor_screens' => 'QUICK']],
+            'FULL' => ['Full screens: runs, readiness, pour register', ['floor_screens' => 'FULL']],
         ]],
-        'lists' => ['Do you plan each shift on a work list for the moulders?', [
+        'lists' => ['Do moulders work from a shift work list?', [
             'YES' => ['Yes, and a list is issued before work starts', ['work_lists' => 'USED', 'start_before_issue' => 'BLOCK']],
-            'DRAFT' => ['Yes, but moulders may start before it is issued', ['work_lists' => 'USED', 'start_before_issue' => 'ALLOW']],
+            'DRAFT' => ['Yes, but they may start before it is issued', ['work_lists' => 'USED', 'start_before_issue' => 'ALLOW']],
             'NO' => ['No', ['work_lists' => 'OFF', 'start_before_issue' => 'ALLOW']],
         ]],
         'assembly' => ['Are moulds assembled as a step of their own?', [
             'AUTO' => ['No, a mould is ready to pour once it is made', ['mould_assembly' => 'AUTO']],
-            'MANUAL' => ['Yes, we record closing and checking the moulds', ['mould_assembly' => 'MANUAL']],
+            'MANUAL' => ['Yes, we record closing them', ['mould_assembly' => 'MANUAL']],
         ]],
         'heats' => ['Do you plan heats days ahead?', [
             'YES' => ['Yes, from the orders released', ['melting_plan' => 'USED']],
@@ -42,18 +42,18 @@ class ProcessSetup
         ]],
         'pours' => ['How is a pour recorded?', [
             'ONE_STEP' => ['In one go once it is done', ['pour_entry' => 'ONE_STEP']],
-            'STEPS' => ['As it happens: planned, started, then completed', ['pour_entry' => 'STEPS']],
+            'STEPS' => ['As it happens: planned, started, completed', ['pour_entry' => 'STEPS']],
         ]],
-        'gate' => ['Must chemistry and a thermal test pass before pouring?', [
-            'ENFORCED' => ['Yes, a pour is refused without them (a cupola only warns)', ['gate_cupola' => 'ADVISORY', 'gate_induction' => 'ENFORCED', 'gate_other' => 'ENFORCED']],
+        'gate' => ['Must chemistry and thermal pass before pouring?', [
+            'ENFORCED' => ['Yes, refused without them (cupola only warns)', ['gate_cupola' => 'ADVISORY', 'gate_induction' => 'ENFORCED', 'gate_other' => 'ENFORCED']],
             'WARN' => ['Warn, but let the pour go ahead', ['gate_cupola' => 'ADVISORY', 'gate_induction' => 'ADVISORY', 'gate_other' => 'ADVISORY']],
             'NO' => ['No', ['gate_cupola' => 'OFF', 'gate_induction' => 'OFF', 'gate_other' => 'OFF']],
         ]],
-        'holds' => ['Are first iron and castings from a failed test held for QC?', [
+        'holds' => ['Hold first iron and failed-test castings for QC?', [
             'HOLD' => ['Yes, held until QC releases them', ['hold_first_iron' => 'HOLD', 'containment' => 'HOLD']],
             'NOTE' => ['No, just noted', ['hold_first_iron' => 'FREE', 'containment' => 'NOTE']],
         ]],
-        'lots' => ['How are castings kept together after pouring?', [
+        'lots' => ['How are castings grouped after pouring?', [
             'MOULD' => ['A lot per mould, traced to each mould', ['lot_grouping' => 'MOULD']],
             'POUR' => ['A lot per pour and product', ['lot_grouping' => 'POUR']],
         ]],

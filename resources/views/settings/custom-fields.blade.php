@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Custom fields')
 @section('content')
-<div class="page-heading"><div><h1>Custom fields</h1><p>Extra descriptive information for your records: drawing references, box sizes, special notes. Measured quality data (chemistry, tests) is not stored here.</p></div></div>
+<div class="page-heading"><div><h1>Custom fields</h1><p>Extra details on records, e.g. drawing refs, box sizes. Not for test results.</p></div></div>
 <div class="panel"><div class="panel-header"><h2>Add a field</h2></div><div class="panel-body"><form method="POST" action="{{ route('custom-fields.store') }}" class="form-grid">@csrf
 <label>Applies to<select name="entity_type">@foreach($entities as $k => $e)<option value="{{ $k }}" @selected(old('entity_type')===$k)>{{ $e[0] }}</option>@endforeach</select></label>
 <label>Label<input name="label" value="{{ old('label') }}" required></label>

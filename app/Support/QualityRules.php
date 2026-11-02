@@ -10,23 +10,23 @@ class QualityRules
     /** key => [setting, label, options (value => description), default] */
     public const RULES = [
         'ncr_threshold' => ['quality.ncr_threshold', 'A quick QC tally raises a nonconformance', [
-            'ANY' => 'Whenever a piece is rejected or sent to rework',
-            'OVER_5' => 'When more than 5% of the pieces checked are rejected or sent to rework',
-            'OVER_10' => 'When more than 10% of the pieces checked are rejected or sent to rework',
+            'ANY' => 'Any reject or rework',
+            'OVER_5' => 'Over 5% rejected or reworked',
+            'OVER_10' => 'Over 10% rejected or reworked',
             'NEVER' => 'Never: the defect tally is the record',
         ], 'ANY'],
         'lot_grouping' => ['quality.lot_grouping', 'Casting lots made when a pour is completed', [
-            'MOULD' => 'One lot per mould and product: full traceability to each mould',
-            'POUR' => 'One lot per pour and product: castings from all moulds of the pour are handled together',
+            'MOULD' => 'Per mould and product: full traceability',
+            'POUR' => 'Per pour and product: moulds handled together',
         ], 'MOULD'],
         'qc_after_steps' => ['quality.qc_after_steps', 'When castings reach quality control', [
-            'STEPS' => 'After the steps before inspection: knock-out, fettling, shot blast and the like are recorded first',
-            'POUR' => 'Straight after the pour: the steps before inspection need not be recorded',
+            'STEPS' => 'After the pre-inspection steps (knock-out, fettling, blast)',
+            'POUR' => 'Straight after the pour',
         ], 'POUR'],
         'defect_piece_ids' => ['quality.defect_piece_ids', 'Piece IDs on defects found at inspection', [
-            'OFF' => 'Not asked: defects are counted per cavity or product',
-            'OPTIONAL' => 'Asked, not required: a defect line can list the pieces it covers',
-            'REQUIRED' => 'Required: every defect line lists one ID per piece',
+            'OFF' => 'Not asked',
+            'OPTIONAL' => 'Optional',
+            'REQUIRED' => 'Required: one ID per piece',
         ], 'OFF'],
     ];
 

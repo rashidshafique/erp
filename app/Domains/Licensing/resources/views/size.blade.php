@@ -5,11 +5,11 @@
 
 @section('content')
 <div class="page-heading">
-    <div><h1>Foundry size</h1><p>Choose the size that fits this foundry. It shortens the menu and applies a process depth. Nothing is deleted or blocked: hidden screens still open from search or their address, and every process rule stays editable on its own page.</p></div>
+    <div><h1>Foundry size</h1><p>Sets the menu and the process rules preset. Hidden screens still open by address, and every rule stays editable.</p></div>
 </div>
 <div class="panel"><div class="panel-body">
     @if ($depth === 'CUSTOM')
-        <p class="muted" style="margin-top:0">The process rules are currently a custom mix. Choosing a size replaces them with its preset.</p>
+        <p class="muted" style="margin-top:0">Rules are a custom mix; a size replaces them with its preset.</p>
     @endif
     <div class="rule-grid">
         @foreach ($sizes as $key => $option)

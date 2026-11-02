@@ -10,33 +10,33 @@ class OrderRules
     /** key => [setting, label, options (value => description), default] */
     public const RULES = [
         'contract_review' => ['orders.contract_review', 'Contract review before an order can go live', [
-            'REQUIRED' => 'Required: an order goes live only after its contract review is signed off by sales and quality',
-            'AUTO' => 'Only when something is off: the review runs when the order is saved; a clean review approves itself, warnings need one sign-off and blocks stop the order',
-            'SKIP' => 'Not required: an order can be made live straight from the order page',
+            'REQUIRED' => 'Required: sales and quality sign off first',
+            'AUTO' => 'When something is off: clean orders approve themselves',
+            'SKIP' => 'Not required',
         ], 'REQUIRED'],
         'order_flow' => ['orders.flow', 'What saving an order does', [
-            'SIMPLE' => 'Straight to production: a saved order goes live and a production order is created and released for every line',
-            'FULL' => 'Step by step: a saved order stays a draft; review, go live and release each production order separately',
+            'SIMPLE' => 'Straight to production: goes live and releases every line',
+            'FULL' => 'Step by step: draft, review, go live, release each',
         ], 'FULL'],
         'order_completion' => ['orders.completion', 'A production order is complete', [
-            'INSPECTION' => 'When enough good castings have passed final inspection',
-            'POUR' => 'When the castings poured reach the planned quantity (no inspection needed)',
+            'INSPECTION' => 'When enough castings pass final inspection',
+            'POUR' => 'When enough castings are poured',
         ], 'INSPECTION'],
         'customer_requirement' => ['orders.customer_requirement', 'Customer requirements on an order', [
-            'OPTIONAL' => 'Optional: a customer may hold requirement profiles, but an order is not held up when none is selected',
-            'ENFORCED' => 'Enforced: contract review fails for a product when the customer holds no requirement profile and has no requirement for that product',
+            'OPTIONAL' => 'Optional: no profile does not hold the order',
+            'ENFORCED' => 'Enforced: review fails without a requirement for the product',
         ], 'OPTIONAL'],
-        'delivery_lead_time' => ['orders.delivery_lead_time', 'Requested delivery sooner than the standard lead time', [
-            'OFF' => 'No check: accept any delivery date that is not in the past',
-            'WARN' => 'Warn: contract review notes it, and the order can still be approved',
-            'ENFORCED' => 'Enforced: contract review fails until the delivery date allows the standard lead time',
+        'delivery_lead_time' => ['orders.delivery_lead_time', 'Delivery sooner than the standard lead time', [
+            'OFF' => 'No check (past dates are still refused)',
+            'WARN' => 'Warn: noted in contract review',
+            'ENFORCED' => 'Enforced: review fails until the date allows it',
         ], 'WARN'],
         'prices' => ['orders.prices', 'Prices on sales orders', [
-            'HIDE' => 'Hidden: orders are entered without prices; an invoice is priced when it is raised',
-            'SHOW' => 'Shown: each line has a unit price and the order shows its total',
+            'HIDE' => 'Hidden: priced at invoicing',
+            'SHOW' => 'Shown: unit prices and order total',
         ], 'HIDE'],
-        'repeat_ahead' => ['orders.repeat_ahead', 'How far ahead a repeating order line schedules its deliveries', [
-            '4' => '4 weeks: production sees about a month of repeat demand',
+        'repeat_ahead' => ['orders.repeat_ahead', 'Repeat orders schedule ahead', [
+            '4' => '4 weeks',
             '8' => '8 weeks',
             '13' => '13 weeks: a full quarter ahead',
         ], '8'],

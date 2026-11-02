@@ -13,12 +13,12 @@ class PatternOwnershipRules
             'BLOCK' => 'Block it', 'WARN' => 'Allow it with a warning', 'ALLOW' => 'Allow it',
         ], 'BLOCK'],
         'pay_off' => ['patterns.pay_off', 'When a pattern being paid off is fully paid', [
-            'MANUAL' => 'Show it as ready; ownership passes when someone records it',
-            'AUTO' => 'Ownership passes to the customer automatically',
+            'MANUAL' => 'Manual: shown as ready, recorded by hand',
+            'AUTO' => 'Automatic',
         ], 'MANUAL'],
-        'idle_months' => ['patterns.idle_months', 'A pattern counts as idle after this many months unused', null, '12'],
+        'idle_months' => ['patterns.idle_months', 'Idle after months unused', null, '12'],
         'storage' => ['patterns.storage', "Storing customers' patterns", [
-            'FREE' => 'Free of charge', 'CHARGE' => 'Charged per pattern per month after a free period',
+            'FREE' => 'Free of charge', 'CHARGE' => 'Charged monthly after a free period',
         ], 'FREE'],
         'storage_free_months' => ['patterns.storage_free_months', 'Free storage, in months unused', null, '12'],
         'storage_rate' => ['patterns.storage_rate', 'Storage charge per pattern per month (PKR)', null, '0'],

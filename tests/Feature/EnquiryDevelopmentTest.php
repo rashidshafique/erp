@@ -118,7 +118,7 @@ class EnquiryDevelopmentTest extends TestCase
         $this->issuedQuote($e->fresh());
         $this->post(route('enquiries.close', $e), ['outcome' => 'WON'])->assertRedirect();
         $this->assertSame(1, PatternDevelopment::where('status', 'OPEN')->count(), 'the win keeps it rather than opening another');
-        $this->get(route('settings.rules'))->assertSee('When an enquiry opens its pattern development');
+        $this->get(route('settings.rules'))->assertSee('Pattern development opens');
     }
 
     public function test_approving_the_development_approves_the_parts_draft_revision(): void

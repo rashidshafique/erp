@@ -4,7 +4,7 @@
 @section('breadcrumb', 'Settings / Melting days')
 
 @section('content')
-<div class="page-heading"><div><h1>Melting days</h1><p>The days the furnace is lit. The Next heat page and the order screen use this to say when the next pour can be and whether an order's due date allows it.</p></div></div>
+<div class="page-heading"><div><h1>Melting days</h1><p>Days the furnace is lit. Used to date the next pour and check due dates.</p></div></div>
 
 <form method="POST" action="{{ route('settings.melting-days') }}">@csrf @method('PUT')
 <div class="panel"><div class="panel-body">
@@ -31,12 +31,12 @@
             <div style="display:flex;gap:14px;flex-wrap:wrap">@foreach (\App\Support\MeltingCalendar::DAYS as $n => $name)
                 <label class="check-field" style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" name="skip[]" value="{{ $n }}" @checked(in_array($n, (array) old('skip', $s['skip']))) style="width:auto;min-height:0"> {{ $name }}</label>
             @endforeach</div>
-            <div class="help">A campaign that falls on one of these days does not happen; the count carries on from the next one.</div></div>
+            <div class="help">Skipped; the count carries on.</div></div>
     </div>
 
     <div class="field" style="margin-top:16px"><label for="after_pour_days">Days needed after the pour</label>
         <input id="after_pour_days" name="after_pour_days" type="number" min="0" max="30" value="{{ old('after_pour_days', $s['after_pour_days']) }}" style="width:100px">
-        <div class="help">Cooling, shakeout, fettling and dispatch. An order due on the 25th with 1 day here must be poured by the 24th.</div></div>
+        <div class="help">Cooling to dispatch. Due the 25th with 1 day: pour by the 24th.</div></div>
     <button class="btn btn-primary" type="submit">Save melting days</button>
 </div></div>
 </form>

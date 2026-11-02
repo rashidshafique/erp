@@ -5,7 +5,7 @@
 
 @section('content')
 <div class="page-heading">
-    <div><h1>Modules</h1><p>Switch off the parts of the system this foundry does not use. Nothing is deleted: the data stays and comes back when the module is switched on again.</p></div>
+    <div><h1>Modules</h1><p>Switch off what this foundry does not use. Data is kept and returns when switched back on.</p></div>
 </div>
 <form method="POST" action="{{ route('settings.modules') }}">
     @csrf @method('PUT')
@@ -20,7 +20,7 @@
                 </fieldset>
             @endforeach
         </div>
-        <p class="muted small" style="margin:16px 0 0">Switching a module off hides its menu entries and pages. Other screens that link to it drop the link.</p>
+        <p class="muted small" style="margin:16px 0 0">An off module's menu entries, pages and links are hidden.</p>
     </div></div>
     <div class="actions"><button class="btn btn-primary" type="submit">Save modules</button></div>
 </form>

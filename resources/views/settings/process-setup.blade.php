@@ -5,7 +5,7 @@
 
 @section('content')
 <div class="page-heading">
-    <div><h1>How you work</h1><p>A few questions about your foundry. Your answers set the process rules, which you can still change one by one on the <a href="{{ route('settings.rules') }}">process rules</a> page.</p></div>
+    <div><h1>How you work</h1><p>Your answers set the rules; change any one later on the <a href="{{ route('settings.rules') }}">process rules</a> page.</p></div>
 </div>
 @if ($errors->any())<div class="alert alert-error">@foreach ($errors->all() as $e)<div>{{ $e }}</div>@endforeach</div>@endif
 
@@ -33,7 +33,7 @@
                     <tr @if ($change['changes']) style="font-weight:600" @endif><td>{{ $change['label'] }}</td><td>{{ $change['now'] }}</td><td>{{ $change['then'] }}</td></tr>
                 @endforeach</tbody>
             </table></div>
-            <div class="panel-body muted small">Change any of these later on the process rules page.</div>
+            <div class="panel-body muted small">Change any later on Process rules.</div>
         </div>
         <div class="actions"><button class="btn btn-primary" type="submit">Set these rules</button><a class="btn" href="{{ route('settings.process-setup.edit') }}">Start again</a></div>
     @else

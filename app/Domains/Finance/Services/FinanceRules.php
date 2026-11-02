@@ -20,7 +20,7 @@ class FinanceRules
     public const MATCH_OPTIONS = [
         'OFF' => 'Not checked',
         'WARN' => 'Shown on the bill; it can still be posted',
-        'BLOCK' => 'The bill cannot be posted until it matches the order and what was received',
+        'BLOCK' => 'Blocked until it matches the order and receipt',
     ];
 
     public const CREDIT_CHECK = 'finance.credit_check';
@@ -32,8 +32,8 @@ class FinanceRules
     /** What happens when a customer is over its limit or has invoices long overdue, at contract review and at dispatch. */
     public const CREDIT_OPTIONS = [
         'OFF' => 'Not checked',
-        'WARN' => 'Shown at contract review and dispatch; they can go ahead',
-        'BLOCK' => 'Contract review and dispatch stop until it is paid down or released',
+        'WARN' => 'Warn at contract review and dispatch',
+        'BLOCK' => 'Stop contract review and dispatch until paid or released',
     ];
 
     /** @return 'OFF'|'WARN'|'BLOCK' */
@@ -60,7 +60,7 @@ class FinanceRules
 
     /** Whether a supplier bill's price replaces the order price as the cost of the lots received on that order line. */
     public const BILL_COST_OPTIONS = [
-        'ON' => 'The billed price becomes the cost of the lots received on that order line (what is left in stock)',
+        'ON' => 'Billed price becomes the cost of the stock left',
         'OFF' => 'Lots keep the order price',
     ];
 
@@ -76,8 +76,8 @@ class FinanceRules
 
     /** What happens to money already received from a customer or paid to a supplier when their next invoice or bill counts. */
     public const ADVANCE_OPTIONS = [
-        'MANUAL' => 'Stays on account until someone uses it (a button on the invoice or bill)',
-        'AUTO' => 'Goes on the invoice or bill as soon as it is issued or posted, the same order\'s money first',
+        'MANUAL' => 'Stays on account until applied by hand',
+        'AUTO' => 'Applied when the invoice or bill is issued, same order first',
     ];
 
     /** @return 'MANUAL'|'AUTO' */

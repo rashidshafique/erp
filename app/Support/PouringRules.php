@@ -9,16 +9,16 @@ class PouringRules
 
     public const GATE_MODES = [
         'OFF' => 'No check: pour whenever the moulds are ready',
-        'ADVISORY' => 'Advisory: show what is missing, let the pour start, and record that it was missing',
-        'ENFORCED' => 'Enforced: the pour cannot start until the checks pass',
+        'ADVISORY' => 'Advisory: warn, pour, record what was missing',
+        'ENFORCED' => 'Enforced: no pour until checks pass',
     ];
 
     /** What packing does with the chemistry and thermal analysis checks of a lot's heat. */
     public const PACKING_MODES = [
-        'FOLLOW' => 'Same as for pouring: the mode of the furnace type the heat was made in',
-        'OFF' => 'No check: pack without chemistry or thermal analysis results',
-        'ADVISORY' => 'Advisory: show what is missing or failed, but let the lot be packed',
-        'ENFORCED' => 'Enforced: the lot cannot be packed until they pass, unless someone waives them for that lot with a reason',
+        'FOLLOW' => 'Same as pouring for the heat\'s furnace',
+        'OFF' => 'No check',
+        'ADVISORY' => 'Advisory: warn but allow packing',
+        'ENFORCED' => 'Enforced: no packing until passed or waived with a reason',
     ];
 
     /** key => [setting, label, options (value => description) or null for a number, default] */
@@ -26,28 +26,28 @@ class PouringRules
         'gate_cupola' => ['pouring.gate.cupola', 'Checks before pouring: cupola heats', self::GATE_MODES, 'ADVISORY'],
         'gate_induction' => ['pouring.gate.induction', 'Checks before pouring: induction heats', self::GATE_MODES, 'ENFORCED'],
         'gate_other' => ['pouring.gate.other', 'Checks before pouring: other furnaces', self::GATE_MODES, 'ENFORCED'],
-        'gate_packing' => ['pouring.gate.packing', 'Chemistry and thermal analysis checks at packing', self::PACKING_MODES, 'FOLLOW'],
-        'first_iron_minutes' => ['pouring.first_iron_minutes', 'Cupola: minutes after the first tap that count as first iron (0 = no first iron)', null, '30'],
+        'gate_packing' => ['pouring.gate.packing', 'Chemistry and thermal checks at packing', self::PACKING_MODES, 'FOLLOW'],
+        'first_iron_minutes' => ['pouring.first_iron_minutes', 'Cupola: first-iron minutes after first tap (0 = none)', null, '30'],
         'hold_first_iron' => ['pouring.hold_first_iron', 'Lots made from first iron', [
             'HOLD' => 'Hold them until QC passes',
             'FREE' => 'Treat them like any other lot',
         ], 'HOLD'],
-        'lightup_to_first_charge_minutes' => ['charging.lightup_to_first_charge_minutes', 'Cupola: minutes from light-up to the first metal charge (the bed burns first; a recorded blast-on time takes over)', null, '60'],
-        'drop_finished_percent' => ['pouring.drop_finished_percent', 'Cupola: percent of the expected run time at the bottom drop that counts as finished without asking (a shorter run asks whether the campaign finished or was dropped early)', null, '90'],
-        'test_interval_minutes' => ['pouring.test_interval_minutes', 'Minutes between samples while a cupola is running (reminder only)', null, '30'],
+        'lightup_to_first_charge_minutes' => ['charging.lightup_to_first_charge_minutes', 'Cupola: minutes from light-up to first charge', null, '60'],
+        'drop_finished_percent' => ['pouring.drop_finished_percent', 'Cupola: % of expected run that counts as finished at drop', null, '90'],
+        'test_interval_minutes' => ['pouring.test_interval_minutes', 'Cupola: minutes between samples (reminder)', null, '30'],
         'auto_charge' => ['charging.auto', 'Charges that come due on a running heat', [
-            'AUTO' => 'Record them automatically every minute, from the recipe, at the time the furnace speed puts them due',
-            'MANUAL' => 'Wait for someone to confirm each charge (or add them back by hand)',
+            'AUTO' => 'Automatic: recorded from the recipe when due',
+            'MANUAL' => 'Manual: someone confirms each charge',
         ], 'AUTO'],
         'containment' => ['pouring.containment', 'When a sample comes back out of limits', [
             'HOLD' => 'Hold the lots poured in the affected period',
-            'NOTE' => 'Only flag the affected pours; do not hold lots',
+            'NOTE' => 'Flag the pours only',
         ], 'HOLD'],
-        'treatment' => ['enforce_treatment_records', 'Treatment before pouring (grades that need it)', [
-            'false' => 'Warn: a missing or late treatment is noted on the pour',
-            'true' => 'Enforced: no pour without treatment and inoculation in time',
+        'treatment' => ['enforce_treatment_records', 'Treatment before pouring', [
+            'false' => 'Warn: noted on the pour',
+            'true' => 'Enforced: treatment and inoculation in time',
         ], 'false'],
-        'max_fade_minutes' => ['max_fade_minutes', 'Minutes from magnesium treatment to pour (fade)', null, '15'],
+        'max_fade_minutes' => ['max_fade_minutes', 'Fade minutes, treatment to pour', null, '15'],
         'auto_post_returns' => ['auto_post_internal_returns_to_stock', 'Internal returns on a heat charge', [
             'false' => 'Costed in the charge only',
             'true' => 'Posted back to stock as traceable receipts',
