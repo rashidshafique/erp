@@ -38,11 +38,9 @@ class FinanceServiceProvider extends ModuleServiceProvider
     protected function navGroups(): array
     {
         return [[
-            'key' => 'finance', 'label' => 'Finance', 'icon' => 'banknote', 'active' => ['invoices.*', 'invoice-templates.*', 'receipts.*', 'withholding-certificates.*', 'receivables.*', 'bills.*', 'supplier-payments.*', 'payables.*', 'finance.*'],
+            'key' => 'finance', 'label' => 'Finance', 'icon' => 'banknote', 'active' => ['invoice-templates.*', 'withholding-certificates.*', 'receivables.*', 'bills.*', 'supplier-payments.*', 'payables.*', 'finance.*'],
             'items' => [
-                ['label' => 'Invoices', 'route' => 'invoices.index', 'icon' => 'file-text', 'active' => ['invoices.*'], 'count' => fn (): int => Invoice::where('status', 'DRAFT')->count()],
                 ['label' => 'Invoice templates', 'route' => 'invoice-templates.index', 'icon' => 'file-text', 'active' => ['invoice-templates.*']],
-                ['label' => 'Receipts', 'route' => 'receipts.index', 'icon' => 'arrow-down-circle', 'active' => ['receipts.*']],
                 ['label' => 'Tax certificates', 'route' => 'withholding-certificates.index', 'icon' => 'stamp', 'active' => ['withholding-certificates.*']],
                 ['label' => 'Receivables', 'route' => 'receivables.index', 'icon' => 'inbox', 'active' => ['receivables.*']],
                 ['label' => 'Supplier bills', 'route' => 'bills.index', 'icon' => 'receipt', 'active' => ['bills.*'], 'count' => fn (): int => SupplierBill::where('status', 'DRAFT')->count()],
@@ -52,6 +50,15 @@ class FinanceServiceProvider extends ModuleServiceProvider
                 ['label' => 'Tax return', 'route' => 'finance.tax-return', 'icon' => 'scale', 'active' => ['finance.tax-return']],
             ],
         ]];
+    }
+
+    /** Invoices and receipts sit in the Sales & Planning menu. */
+    protected function navItems(): array
+    {
+        return [
+            ['group' => 'sales', 'label' => 'Invoices', 'route' => 'invoices.index', 'icon' => 'file-text', 'active' => ['invoices.*'], 'count' => fn (): int => Invoice::where('status', 'DRAFT')->count()],
+            ['group' => 'sales', 'label' => 'Receipts', 'route' => 'receipts.index', 'icon' => 'arrow-down-circle', 'active' => ['receipts.*']],
+        ];
     }
 
     public function boot(): void
