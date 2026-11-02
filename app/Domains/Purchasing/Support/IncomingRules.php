@@ -2,11 +2,13 @@
 
 namespace App\Domains\Purchasing\Support;
 
-use App\Models\AppSetting;
+use App\Support\RuleSet;
 
 /** What a received lot needs before it can be accepted, set under Settings. A small foundry can leave both off; a certified one switches them on. */
 class IncomingRules
 {
+    use RuleSet;
+
     /** key => [setting, label, options (value => description), default] */
     public const RULES = [
         'certificate' => ['incoming.certificate', 'Supplier certificate needed to accept a lot', [
@@ -20,22 +22,4 @@ class IncomingRules
             'REQUIRED' => 'The lot must have a passed inspection, or one accepted by concession',
         ], 'OFF'],
     ];
-
-    public static function get(string $rule): string
-    {
-        [$key, , $options, $default] = self::RULES[$rule];
-        try {
-            $value = AppSetting::getValue($key, $default);
-        } catch (\Throwable) {
-            return $default;
-        }
-
-        return isset($options[$value]) ? $value : $default;
-    }
-
-    public static function set(string $rule, string $value): void
-    {
-        [$key, $label] = self::RULES[$rule];
-        AppSetting::setValue($key, $value, $label);
-    }
 }

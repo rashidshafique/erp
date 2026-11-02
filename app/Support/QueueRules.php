@@ -2,9 +2,9 @@
 
 namespace App\Support;
 
-use App\Models\AppSetting;
 use App\Models\ProductionStageDefinition;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 /**
  * How the production queue flags work that is piling up, set under Settings: the age at which a step turns amber and red,
@@ -12,6 +12,8 @@ use Illuminate\Support\Str;
  */
 class QueueRules
 {
+    use RuleSet;
+
     public const WIP_UNITS = [
         'LOTS' => 'Count lots',
         'PIECES' => 'Count pieces',
@@ -55,26 +57,25 @@ class QueueRules
         return $rules;
     }
 
-    public static function get(string $rule): string
+    /** @return array<string, array{0: string, 1: string, 2: array<string, string>|null, 3: string}> */
+    public static function rules(): array
     {
-        // A step's limit is read straight from its key, so the queue does not look the stages up again for every step.
-        [$key, , $options, $default] = self::RULES[$rule] ?? ['queue.wip.'.substr($rule, 4), '', null, '0'];
-        try {
-            $value = AppSetting::getValue($key, $default);
-        } catch (\Throwable) {
-            return $default;
-        }
-        if ($options === null) {
-            return ctype_digit((string) $value) ? (string) $value : $default;
-        }
-
-        return isset($options[$value]) ? $value : $default;
+        return self::all();
     }
 
-    public static function set(string $rule, string $value): void
+    /** @return array<string, list<mixed>> */
+    public static function validation(): array
     {
-        [$key, $label] = self::all()[$rule];
-        AppSetting::setValue($key, $value, $label);
+        return array_merge(collect(self::all())->map(fn (array $definition, string $rule) => $definition[2] === null
+            ? ['sometimes', 'nullable', 'integer', 'min:0', 'max:100000']   // a blank limit is no limit
+            : ['sometimes', 'required', Rule::in(array_keys($definition[2]))])->all(),
+            ['amber_hours' => ['sometimes', 'required', 'integer', 'min:1', 'max:2000'], 'red_hours' => ['sometimes', 'required', 'integer', 'min:1', 'max:2000', 'gt:amber_hours']]);
+    }
+
+    /** A step's limit is read straight from its key, so the queue does not look the stages up again for every step. */
+    protected static function definition(string $rule): array
+    {
+        return self::RULES[$rule] ?? ['queue.wip.'.substr($rule, 4), 'Work-in-progress limit', null, '0'];
     }
 
     public static function amberHours(): int

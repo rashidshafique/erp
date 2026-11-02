@@ -2,11 +2,13 @@
 
 namespace App\Domains\Tooling\Support;
 
-use App\Models\AppSetting;
+use App\Support\RuleSet;
 
 /** How the foundry handles made cores, set under Settings. A small foundry leaves both off; a larger one turns them on. */
 class CoreRules
 {
+    use RuleSet;
+
     /** key => [setting, label, options (value => description), default] */
     public const RULES = [
         'qc' => ['cores.qc', 'Check cores before they are used', [
@@ -18,22 +20,4 @@ class CoreRules
             'REQUIRED' => 'A lot that is not used straight away must be given a place',
         ], 'OPTIONAL'],
     ];
-
-    public static function get(string $rule): string
-    {
-        [$key, , $options, $default] = self::RULES[$rule];
-        try {
-            $value = AppSetting::getValue($key, $default);
-        } catch (\Throwable) {
-            return $default;
-        }
-
-        return isset($options[$value]) ? $value : $default;
-    }
-
-    public static function set(string $rule, string $value): void
-    {
-        [$key, $label] = self::RULES[$rule];
-        AppSetting::setValue($key, $value, $label);
-    }
 }

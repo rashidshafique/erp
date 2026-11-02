@@ -2,11 +2,11 @@
 
 namespace App\Support;
 
-use App\Models\AppSetting;
-
 /** How customer orders are handled, set under Settings. */
 class OrderRules
 {
+    use RuleSet;
+
     /** key => [setting, label, options (value => description), default] */
     public const RULES = [
         'contract_review' => ['orders.contract_review', 'Contract review before an order can go live', [
@@ -42,30 +42,14 @@ class OrderRules
         ], '8'],
     ];
 
-    public static function get(string $rule): string
+    protected static function defaultFor(string $rule, string $default): string
     {
-        [$key, , $options, $default] = self::RULES[$rule];
-        if ($rule === 'contract_review' && ! config('foundry.require_contract_review')) {
-            $default = 'SKIP';
-        }
-        try {
-            $value = AppSetting::getValue($key, $default);
-        } catch (\Throwable) {
-            return $default;
-        }
-
-        return isset($options[$value]) ? $value : $default;
+        return $rule === 'contract_review' && ! config('foundry.require_contract_review') ? 'SKIP' : $default;
     }
 
     public static function showsPrices(): bool
     {
         return self::get('prices') === 'SHOW';
-    }
-
-    public static function set(string $rule, string $value): void
-    {
-        [$key, $label] = self::RULES[$rule];
-        AppSetting::setValue($key, $value, $label);
     }
 
     public static function completesAtPour(): bool

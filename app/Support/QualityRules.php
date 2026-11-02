@@ -2,11 +2,11 @@
 
 namespace App\Support;
 
-use App\Models\AppSetting;
-
 /** How lots are made and how quality records are raised, set through the process depth. */
 class QualityRules
 {
+    use RuleSet;
+
     /** key => [setting, label, options (value => description), default] */
     public const RULES = [
         'ncr_threshold' => ['quality.ncr_threshold', 'A quick QC tally raises a nonconformance', [
@@ -29,24 +29,6 @@ class QualityRules
             'REQUIRED' => 'Required: every defect line lists one ID per piece',
         ], 'OFF'],
     ];
-
-    public static function get(string $rule): string
-    {
-        [$key, , $options, $default] = self::RULES[$rule];
-        try {
-            $value = AppSetting::getValue($key, $default);
-        } catch (\Throwable) {
-            return $default;
-        }
-
-        return isset($options[$value]) ? $value : $default;
-    }
-
-    public static function set(string $rule, string $value): void
-    {
-        [$key, $label] = self::RULES[$rule];
-        AppSetting::setValue($key, $value, $label);
-    }
 
     public static function groupsByPour(): bool
     {

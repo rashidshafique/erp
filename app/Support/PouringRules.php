@@ -2,11 +2,11 @@
 
 namespace App\Support;
 
-use App\Models\AppSetting;
-
 /** How pouring is controlled, set under Settings. Each rule has a default that suits the furnace type. */
 class PouringRules
 {
+    use RuleSet;
+
     public const GATE_MODES = [
         'OFF' => 'No check: pour whenever the moulds are ready',
         'ADVISORY' => 'Advisory: show what is missing, let the pour start, and record that it was missing',
@@ -45,31 +45,16 @@ class PouringRules
         ], 'HOLD'],
     ];
 
-    public static function get(string $rule): string
+    /** @return list<string> */
+    protected static function numberRule(string $rule): array
     {
-        [$key, , $options, $default] = self::RULES[$rule];
-        try {
-            $value = AppSetting::getValue($key, $default);
-        } catch (\Throwable) {
-            return $default;
-        }
-        if ($options === null) {
-            return ctype_digit((string) $value) ? (string) $value : $default;
-        }
-
-        return isset($options[$value]) ? $value : $default;
+        return ['integer', 'min:0', 'max:1440'];
     }
 
     /** Whether due charges are recorded by the scheduler without anyone confirming them. */
     public static function autoCharges(): bool
     {
         return self::get('auto_charge') === 'AUTO';
-    }
-
-    public static function set(string $rule, string $value): void
-    {
-        [$key, $label] = self::RULES[$rule];
-        AppSetting::setValue($key, $value, $label);
     }
 
     public static function minutes(string $rule): int

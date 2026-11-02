@@ -2,11 +2,13 @@
 
 namespace App\Domains\Maintenance\Support;
 
-use App\Models\AppSetting;
+use App\Support\RuleSet;
 
 /** How strictly calibration is applied, set under Settings. A small foundry can leave it as a warning; a certified one can block. */
 class CalibrationRules
 {
+    use RuleSet;
+
     /** key => [setting, label, options (value => description) or null for a number, default] */
     public const RULES = [
         'overdue_use' => ['calibration.overdue_use', 'Using an instrument that is overdue, uncalibrated or out of service', [
@@ -17,24 +19,9 @@ class CalibrationRules
         'due_soon_days' => ['calibration.due_soon_days', 'Days before the due date to show "due soon"', null, '30'],
     ];
 
-    public static function get(string $rule): string
+    /** @return list<string> */
+    protected static function numberRule(string $rule): array
     {
-        [$key, , $options, $default] = self::RULES[$rule];
-        try {
-            $value = AppSetting::getValue($key, $default);
-        } catch (\Throwable) {
-            return $default;
-        }
-        if ($options === null) {
-            return ctype_digit((string) $value) ? (string) $value : $default;
-        }
-
-        return isset($options[$value]) ? $value : $default;
-    }
-
-    public static function set(string $rule, string $value): void
-    {
-        [$key, $label] = self::RULES[$rule];
-        AppSetting::setValue($key, $value, $label);
+        return ['integer', 'min:0', 'max:365'];
     }
 }

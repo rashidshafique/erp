@@ -2,11 +2,11 @@
 
 namespace App\Support;
 
-use App\Models\AppSetting;
-
 /** How the foundry handles flasks, set on the flask board. Each rule has a safe default. */
 class FlaskRules
 {
+    use RuleSet;
+
     /** key => [setting, label, options (value => description), default] */
     public const RULES = [
         'shortage' => ['flasks.shortage', 'Too few free flasks when assembling moulds', [
@@ -28,22 +28,4 @@ class FlaskRules
             'COUNT' => 'A run claims a set of flasks for each mould it makes; release them from the run',
         ], 'ASSEMBLED'],
     ];
-
-    public static function get(string $rule): string
-    {
-        [$key, , $options, $default] = self::RULES[$rule];
-        try {
-            $value = AppSetting::getValue($key, $default);
-        } catch (\Throwable) {
-            return $default;
-        }
-
-        return isset($options[$value]) ? $value : $default;
-    }
-
-    public static function set(string $rule, string $value): void
-    {
-        [$key, $label] = self::RULES[$rule];
-        AppSetting::setValue($key, $value, $label);
-    }
 }

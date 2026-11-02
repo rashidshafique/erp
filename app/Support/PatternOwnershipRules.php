@@ -2,11 +2,11 @@
 
 namespace App\Support;
 
-use App\Models\AppSetting;
-
 /** How the foundry treats patterns it does not own, set on the pattern ownership page. Each rule has a safe default. */
 class PatternOwnershipRules
 {
+    use RuleSet;
+
     /** key => [setting, label, options (value => description) or null for a number, default] */
     public const RULES = [
         'other_customer' => ['patterns.other_customer', "A customer's pattern on another customer's or a stock order", [
@@ -24,21 +24,9 @@ class PatternOwnershipRules
         'storage_rate' => ['patterns.storage_rate', 'Storage charge per pattern per month (PKR)', null, '0'],
     ];
 
-    public static function get(string $rule): string
+    /** @return list<string> */
+    protected static function numberRule(string $rule): array
     {
-        [$key, , $options, $default] = self::RULES[$rule];
-        try {
-            $value = AppSetting::getValue($key, $default) ?? $default;
-        } catch (\Throwable) {
-            return $default;
-        }
-
-        return $options === null ? (is_numeric($value) ? $value : $default) : (isset($options[$value]) ? $value : $default);
-    }
-
-    public static function set(string $rule, string $value): void
-    {
-        [$key, $label] = self::RULES[$rule];
-        AppSetting::setValue($key, $value, $label);
+        return ['numeric', 'min:0', 'max:1000000'];
     }
 }

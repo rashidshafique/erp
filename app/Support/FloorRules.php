@@ -3,7 +3,6 @@
 namespace App\Support;
 
 use App\Domains\Core\ModuleRegistry;
-use App\Models\AppSetting;
 
 /**
  * Which steps the shop floor goes through between a released order and its lots, set through the process depth. Each "full"
@@ -11,6 +10,10 @@ use App\Models\AppSetting;
  */
 class FloorRules
 {
+    use RuleSet {
+        get as stored;   // the saved choice, whether or not the quick flow pages are on
+    }
+
     /** key => [setting, label, options (value => description), default] */
     public const RULES = [
         'work_lists' => ['floor.work_lists', 'Moulding work lists', [
@@ -38,36 +41,10 @@ class FloorRules
     /** Rules whose second value relies on the quick flow pages, so they stay on the full value while that module is off. */
     private const NEED_QUICK_FLOW = ['melting_plan' => 'USED', 'floor_screens' => 'FULL', 'work_lists' => 'USED'];
 
+    /** The choice in force: a choice that needs the switched-off quick flow pages falls back to the full one. */
     public static function get(string $rule): string
     {
-        [$key, , $options, $default] = self::RULES[$rule];
-        try {
-            $value = AppSetting::getValue($key, $default);
-        } catch (\Throwable) {
-            return $default;
-        }
-        $value = isset($options[$value]) ? $value : $default;
-
-        return isset(self::NEED_QUICK_FLOW[$rule]) && ! self::quickFlowOn() ? self::NEED_QUICK_FLOW[$rule] : $value;
-    }
-
-    /** The stored choice, ignoring whether the quick flow pages are on, for the settings page. */
-    public static function stored(string $rule): string
-    {
-        [$key, , $options, $default] = self::RULES[$rule];
-        try {
-            $value = AppSetting::getValue($key, $default);
-        } catch (\Throwable) {
-            return $default;
-        }
-
-        return isset($options[$value]) ? $value : $default;
-    }
-
-    public static function set(string $rule, string $value): void
-    {
-        [$key, $label] = self::RULES[$rule];
-        AppSetting::setValue($key, $value, $label);
+        return isset(self::NEED_QUICK_FLOW[$rule]) && ! self::quickFlowOn() ? self::NEED_QUICK_FLOW[$rule] : self::stored($rule);
     }
 
     /** True when the rule's choice needs the quick flow pages, which are switched off. */
