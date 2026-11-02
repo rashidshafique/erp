@@ -105,4 +105,18 @@ class SidebarMenuTest extends TestCase
         $this->assertStringNotContainsString('>Quotations<', $nav, 'quotations are reached from their enquiry, not the menu');
         $this->assertStringNotContainsString('nav-top', $nav);
     }
+
+    public function test_basic_only_menu_shows_just_invoicing_bills_and_inventory(): void
+    {
+        config(['foundry.menu_basic_only' => true]);
+        $html = $this->get(route('dashboard'))->assertOk()->getContent();
+        $nav = substr($html, strpos($html, '<nav class="sidebar-nav"'), strpos($html, '</nav>') - strpos($html, '<nav class="sidebar-nav"'));
+        foreach (['Invoices', 'Supplier bills', 'Stock by location'] as $label) {
+            $this->assertStringContainsString('<span>'.$label.'</span>', $nav);
+        }
+        foreach (['Patterns', 'Melting heats', 'Inspections', 'Day book', 'Employees', 'Calendar'] as $label) {
+            $this->assertStringNotContainsString('<span>'.$label.'</span>', $nav);
+        }
+        $this->get(route('patterns.index'))->assertOk();
+    }
 }

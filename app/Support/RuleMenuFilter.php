@@ -14,6 +14,10 @@ class RuleMenuFilter implements MenuFilter
 
     public function shows(string $route): bool
     {
+        if (config('foundry.menu_basic_only') && ! in_array($route, config('foundry.menu_basic_routes'), true)) {
+            return false;
+        }
+
         return ! in_array($route, $this->hidden(), true) && $this->inner->shows($route);
     }
 

@@ -29,6 +29,15 @@ return [
         'family_sequence' => ['GREY', 'CGI', 'DUCTILE', 'ALLOY', 'WHITE'],
     ],
 
+    // For now the menu shows only basic invoicing, bills and inventory. Set FOUNDRY_MENU_BASIC_ONLY=false for the full menu.
+    // Hidden pages still open by their address and in search.
+    'menu_basic_only' => (bool) env('FOUNDRY_MENU_BASIC_ONLY', true),
+    'menu_basic_routes' => [
+        'customers.index', 'products.index', 'invoices.index', 'receipts.index', 'receivables.index',
+        'suppliers.index', 'bills.index', 'supplier-payments.index', 'payables.index',
+        'materials.index', 'stock-balances.index', 'stock-locations.index', 'stock-reorder.index',
+    ],
+
     // Off until the first administrator exists (php artisan foundry:make-admin), then set FOUNDRY_REQUIRE_LOGIN=true.
     'require_login' => (bool) env('FOUNDRY_REQUIRE_LOGIN', false),
 
