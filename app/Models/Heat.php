@@ -184,7 +184,10 @@ class Heat extends Model
         if ($this->hold_reason !== null) {
             return 'red';
         }
-        if ($this->pours()->where('status', 'IN_PROGRESS')->exists()) {
+        $pouring = $this->relationLoaded('pours')
+            ? $this->pours->contains('status', 'IN_PROGRESS')
+            : $this->pours()->where('status', 'IN_PROGRESS')->exists();
+        if ($pouring) {
             return 'green';
         }
 

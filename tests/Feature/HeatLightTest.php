@@ -60,6 +60,22 @@ class HeatLightTest extends TestCase
         $this->assertStringContainsString('#d93025', $html);
     }
 
+    public function test_the_top_bar_lights_use_the_pours_already_loaded(): void
+    {
+        foreach (range(1, 3) as $i) {
+            $heat = $this->heat('IN_PROGRESS');
+            \App\Models\Pour::create(['pour_number' => 'P-'.$i, 'heat_id' => $heat->id, 'status' => 'IN_PROGRESS', 'started_at' => now()]);
+        }
+        $this->heat('MELTING');
+
+        \Illuminate\Support\Facades\DB::enableQueryLog();
+        $heats = Heat::withLight();
+        $heats->each(fn (Heat $h) => $h->lightLabel());
+
+        $this->assertSame(['green', 'green', 'green', 'orange'], $heats->map->light()->all());
+        $this->assertCount(2, \Illuminate\Support\Facades\DB::getQueryLog(), 'Heats and their pours, no query per heat.');
+    }
+
     public function test_the_heat_page_shows_the_furnace_type_status_and_running_time_beside_the_heat_number(): void
     {
         $this->travelTo(now()->setTime(10, 0));

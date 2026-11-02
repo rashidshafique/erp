@@ -58,7 +58,14 @@ class AppServiceProvider extends ServiceProvider
         Paginator::defaultView('vendor.pagination.minimal');
         DevCommands::artisan('schedule:work', 'scheduler');   // automatic heat charges and the other scheduled jobs, under composer run dev
         Formats::registerCarbonMacros();
-        View::composer('layouts.app', fn ($view) => $view->with('topbarHeats', \Schema::hasTable('heats') ? Heat::withLight() : collect()));
+        View::composer('layouts.app', function ($view): void {
+            try {
+                $heats = Heat::withLight();
+            } catch (\Illuminate\Database\QueryException) {
+                $heats = collect();   // before the heats table is migrated
+            }
+            $view->with('topbarHeats', $heats);
+        });
 
         // Every model change, anywhere in the app, is written to the audit log.
         foreach (['created' => 'CREATED', 'updated' => 'UPDATED', 'deleted' => 'DELETED'] as $event => $action) {
