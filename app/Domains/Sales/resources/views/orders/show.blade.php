@@ -69,6 +69,7 @@
     <div class="table-wrap"><table>
         <thead><tr><th>#</th><th>Product</th><th>Rev</th><th>Ordered</th><th>Scheduled</th><th>Shipped</th><th>Production orders</th><th style="text-align:right"><button type="button" id="lines-toggle-all" data-state="open" title="Collapse all" aria-label="Collapse or expand all lines" style="border:0;background:none;padding:0 4px;cursor:pointer;color:inherit;font-size:20px;line-height:1">&#9662;</button></th></tr></thead>
         <tbody>
+        @php \App\Models\Attachment::primeCovers('product', $order->lines->pluck('product_id')->all()); @endphp
         @foreach ($order->lines as $l)
             @php $isOpen = in_array($order->status, \App\Domains\Sales\Models\SalesOrder::OPEN, true); @endphp
             @php $sched = (float) $l->productionOrders->where('status', '!=', 'CANCELLED')->sum('planned_qty'); $kgUnit = $l->isSoldByKg() ? ' kg' : ''; @endphp

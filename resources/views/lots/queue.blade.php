@@ -119,6 +119,7 @@
     </div>
     <div class="table-wrap" x-show="open" @if ($isReady) x-cloak @endif><table>
         <thead><tr><th><input type="checkbox" class="bucket-all" aria-label="Select all in this step"></th><th>Lot</th><th>Product</th><th>Order</th><th>Pieces</th><th>Poured</th><th>Age</th><th>Cooling</th><th>Status</th><th>Actions</th></tr></thead>
+        @php \App\Models\Attachment::primeCovers('product', collect($b['lots'])->pluck('lot.product_id')->all()); @endphp
         @foreach ($b['lots'] as $r)
         @php $l = $r['lot']; $moulds = count($r['moulds']); @endphp
         <tbody x-data="{ moulds: false }" @queue-moulds.window="if ($event.detail.step === '{{ $b['key'] }}') moulds = $event.detail.open" @if ($isReady && $loop->index >= 15) x-show="all" x-cloak @endif>

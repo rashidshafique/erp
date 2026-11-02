@@ -106,6 +106,7 @@
                     </tr>
                     </thead>
                     <tbody>
+                    @php(\App\Models\Attachment::primeCovers('product', $runs->pluck('productionOrder.product_id')->all()))
                     @foreach ($runs as $run)
                         <tr>
                             <td>

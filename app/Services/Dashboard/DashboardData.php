@@ -275,8 +275,9 @@ class DashboardData
     public function queue(int $n = 6)
     {
         $rows = ProductionOrder::open()->with(['product', 'salesOrderLine.salesOrder.customer'])->orderByRaw('required_date is null')->orderBy('required_date')->limit($n)->get();
-        $rows->each(function ($o) {
-            $o->cover = $o->product_id ? Attachment::coverFor('product', $o->product_id) : null;
+        $covers = Attachment::coversFor('product', $rows->pluck('product_id')->filter()->map(fn ($id) => (string) $id)->unique()->values()->all());
+        $rows->each(function ($o) use ($covers) {
+            $o->cover = $covers[$o->product_id] ?? null;
         });
 
         return $rows;

@@ -54,6 +54,7 @@
                     <tr><th>Code</th><th>Name</th><th>Product</th><th>Material</th><th>Score</th><th>Last to freeze</th><th>Status</th><th>When</th><th></th></tr>
                 </thead>
                 <tbody>
+                    @php(\App\Models\Attachment::primeCovers('product', $rows->pluck('product_id')->all()))
                     @foreach ($rows as $r)
                         @php($rec = $r->recommendation)
                         <tr>

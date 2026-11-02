@@ -1,8 +1,9 @@
 {{-- A product: its photo on the left, the name on the right with the product code under it.
-     $product (may be null), optional $revision and $href, and $photo (main photo, looked up when not given). --}}
+     $product (may be null), optional $revision and $href, and $photo (main photo, looked up when not given).
+     A list primes the photos first with Attachment::primeCovers('product', $ids) so the rows need no query each. --}}
 @props(['product' => null, 'revision' => null, 'href' => null, 'photo' => null, 'fallbackName' => 'Product not set'])
 @php
-    $photo ??= $product ? \App\Models\Attachment::coverFor('product', (string) $product->id) : null;
+    $photo ??= $product ? \App\Models\Attachment::cachedCover('product', (string) $product->id) : null;
     $name = $product->name ?? $fallbackName;
 @endphp
 <span {{ $attributes->class(['product-cell']) }}>

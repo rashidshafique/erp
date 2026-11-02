@@ -11,6 +11,9 @@ class Attachment extends Model
 {
     use HasUuids;
 
+    /** Container key for the main photos already looked up this request (or job); scoped, so nothing carries over between requests. */
+    public const COVERS = 'attachments.covers';
+
     protected $guarded = [];
 
     protected static function booted(): void
@@ -18,6 +21,8 @@ class Attachment extends Model
         static::creating(function (self $attachment) {
             $attachment->document_id ??= $attachment->id;
         });
+        static::saved(fn () => static::forgetCovers());
+        static::deleted(fn () => static::forgetCovers());
     }
 
     protected function casts(): array
@@ -71,6 +76,52 @@ class Attachment extends Model
             ->orderByDesc('is_cover')->orderByRaw("case when category = 'PHOTO' then 0 else 1 end")
             ->orderByDesc('created_at')->orderByDesc('id')
             ->get()->unique('attachable_id')->keyBy('attachable_id')->all();
+    }
+
+    /**
+     * Looks up the main photo of many records in one query and keeps them for the rest of the request, so a list that shows a
+     * photo on every row (lots, orders, runs) asks cachedCover() without a query per row. Records already kept are skipped.
+     *
+     * @param  array<int, string|int|null>  $ids
+     */
+    public static function primeCovers(string $type, array $ids): void
+    {
+        $covers = static::keptCovers();
+        $ids = array_values(array_filter(array_unique(array_map('strval', array_filter($ids))), fn (string $id) => ! $covers->offsetExists($type.':'.$id)));
+        if ($ids === []) {
+            return;
+        }
+        $found = static::coversFor($type, $ids);
+        foreach ($ids as $id) {
+            $covers[$type.':'.$id] = $found[$id] ?? null;
+        }
+    }
+
+    /** The main photo of a record, kept for the rest of the request (see primeCovers). Same choice as coverFor. */
+    public static function cachedCover(string $type, string $id): ?self
+    {
+        $covers = static::keptCovers();
+        if (! $covers->offsetExists($type.':'.$id)) {
+            $covers[$type.':'.$id] = static::coverFor($type, $id);
+        }
+
+        return $covers[$type.':'.$id];
+    }
+
+    /** Drops the kept main photos so the next look-up goes to the database. */
+    public static function forgetCovers(): void
+    {
+        app()->forgetInstance(self::COVERS);
+    }
+
+    /** @return \ArrayObject<string, self|null> "type:id" => main photo, or null when the record has none */
+    private static function keptCovers(): \ArrayObject
+    {
+        if (! app()->bound(self::COVERS)) {
+            app()->scoped(self::COVERS, fn () => new \ArrayObject);
+        }
+
+        return app(self::COVERS);
     }
 
     /**

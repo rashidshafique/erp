@@ -61,6 +61,7 @@
                 </tr>
                 </thead>
                 <tbody>
+                @php(\App\Models\Attachment::primeCovers('product', $orders->pluck('product_id')->all()))
                 @forelse ($orders as $order)
                     <tr>
                         <td>

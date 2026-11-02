@@ -38,6 +38,7 @@
         @endif
     </div>
     <div class="table-wrap"><table><thead><tr><th>#</th><th>Customer</th><th>Order / product</th><th>Pattern</th><th>Sand</th><th>Moulds</th><th>Result</th><th>Status</th><th></th></tr></thead><tbody>
+    @php \App\Models\Attachment::primeCovers('product', $items->pluck('productionOrder.product_id')->all()); @endphp
     @foreach($items as $i)<tr>
         <td>{{ $i->sequence }}</td>
         <td>{{ $i->productionOrder?->customerLabel() ?? '—' }}</td>
