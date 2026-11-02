@@ -1,7 +1,6 @@
 <?php
 
 use App\Domains\Capa\CapaServiceProvider;
-use App\Domains\Cameras\CamerasServiceProvider;
 use App\Domains\Compliance\ComplianceServiceProvider;
 use App\Domains\Development\DevelopmentServiceProvider;
 use App\Domains\Dispatch\DispatchServiceProvider;
@@ -26,7 +25,6 @@ return [
     AppServiceProvider::class,
     LicensingServiceProvider::class,
     CapaServiceProvider::class,
-    CamerasServiceProvider::class,
     ComplianceServiceProvider::class,
     SalesServiceProvider::class,
     DispatchServiceProvider::class,
