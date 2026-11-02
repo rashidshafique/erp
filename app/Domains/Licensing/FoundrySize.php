@@ -8,7 +8,7 @@ use App\Support\ProcessDepth;
 
 /**
  * The size of foundry this installation is set up for. A size shortens the menu and applies a process-depth preset; the
- * individual rules stay editable on their own pages and do not change the size. Full, the default, shows everything.
+ * individual rules stay editable on the Process rules page and do not change the size. Full, the default, shows everything.
  * Temporary: like the Modules page it is meant to move out of this system, so the layout only ever asks MenuFilter.
  */
 class FoundrySize implements MenuFilter

@@ -121,10 +121,10 @@ class IncomingInspectionTest extends TestCase
 
     public function test_the_rules_are_saved_from_settings(): void
     {
-        $this->put(route('incoming.settings.update'), ['certificate' => 'ATTACHED', 'inspection' => 'REQUIRED'])->assertSessionHasNoErrors();
+        $this->put(route('settings.rules.update'), ['certificate' => 'ATTACHED', 'inspection' => 'REQUIRED'])->assertSessionHasNoErrors();
 
         $this->assertSame(['ATTACHED', 'REQUIRED'], [IncomingRules::get('certificate'), IncomingRules::get('inspection')]);
-        $this->put(route('incoming.settings.update'), ['certificate' => 'BOGUS', 'inspection' => 'OFF'])->assertSessionHasErrors('certificate');
+        $this->put(route('settings.rules.update'), ['certificate' => 'BOGUS', 'inspection' => 'OFF'])->assertSessionHasErrors('certificate');
     }
 
     public function test_the_lot_page_and_settings_page_render(): void
@@ -133,6 +133,6 @@ class IncomingInspectionTest extends TestCase
 
         $this->get(route('incoming.lots.show', $lot))->assertOk()->assertSee('Record an inspection');
         $this->get(route('incoming.plan.edit', $lot->material))->assertOk();
-        $this->get(route('incoming.settings.edit'))->assertOk();
+        $this->get(route('settings.rules'))->assertOk();
     }
 }

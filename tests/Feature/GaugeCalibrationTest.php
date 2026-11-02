@@ -300,11 +300,11 @@ class GaugeCalibrationTest extends TestCase
 
     public function test_the_calibration_rules_can_be_changed_on_their_screen(): void
     {
-        $this->get(route('settings.calibration.edit'))->assertOk()->assertSee('Calibration rules');
+        $this->get(route('settings.rules'))->assertOk()->assertSee('Calibration');
 
-        $this->put(route('settings.calibration'), ['overdue_use' => 'BLOCK', 'due_soon_days' => 14])->assertSessionHasNoErrors();
+        $this->put(route('settings.rules.update'), ['overdue_use' => 'BLOCK', 'due_soon_days' => 14])->assertSessionHasNoErrors();
 
         $this->assertSame(['BLOCK', '14'], [CalibrationRules::get('overdue_use'), CalibrationRules::get('due_soon_days')]);
-        $this->put(route('settings.calibration'), ['overdue_use' => 'NEVER', 'due_soon_days' => 14])->assertSessionHasErrors('overdue_use');
+        $this->put(route('settings.rules.update'), ['overdue_use' => 'NEVER', 'due_soon_days' => 14])->assertSessionHasErrors('overdue_use');
     }
 }

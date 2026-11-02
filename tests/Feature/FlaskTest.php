@@ -473,10 +473,10 @@ class FlaskTest extends TestCase
 
     public function test_the_rules_are_saved_on_the_board(): void
     {
-        $this->put(route('settings.flasks'), ['shortage' => 'WARN', 'pairing' => 'FIXED', 'release' => 'MANUAL', 'run_claims' => 'COUNT'])->assertSessionHasNoErrors();
+        $this->put(route('settings.rules.update'), ['shortage' => 'WARN', 'pairing' => 'FIXED', 'release' => 'MANUAL', 'run_claims' => 'COUNT'])->assertSessionHasNoErrors();
 
         $this->assertSame(['WARN', 'FIXED', 'MANUAL', 'COUNT'], [FlaskRules::get('shortage'), FlaskRules::get('pairing'), FlaskRules::get('release'), FlaskRules::get('run_claims')]);
-        $this->put(route('settings.flasks'), ['shortage' => 'NONSENSE', 'pairing' => 'ANY', 'release' => 'POUR', 'run_claims' => 'ASSEMBLED'])->assertSessionHasErrors('shortage');
+        $this->put(route('settings.rules.update'), ['shortage' => 'NONSENSE', 'pairing' => 'ANY', 'release' => 'POUR', 'run_claims' => 'ASSEMBLED'])->assertSessionHasErrors('shortage');
     }
 
     public function test_the_flask_pages_and_the_run_page_show_flasks(): void

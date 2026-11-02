@@ -8,7 +8,7 @@
 <div class="page-heading">
     <div><h1>Core stock</h1><p>Cores made, kept and used. A core can be used the day it is made or taken from the shelf later.</p></div>
     <div class="actions">
-        @if (\App\Support\SettingsNav::canOpen())<a class="btn" href="{{ route('settings.cores.edit') }}">Core rules</a>@endif
+        @if (\App\Support\SettingsNav::canOpen())<a class="btn" href="{{ route('settings.rules').'#cores' }}">Core rules</a>@endif
         <a class="btn" href="{{ route('cores.index') }}">Cores</a>
         <a class="btn btn-primary" href="{{ route('core-lots.create') }}">+ Cores made</a>
     </div>

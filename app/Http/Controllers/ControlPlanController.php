@@ -7,7 +7,6 @@ use App\Models\Product;
 use App\Models\ProductionStageDefinition;
 use App\Models\ProductRevision;
 use App\Services\Production\ControlPlans;
-use App\Support\ControlPlanRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -16,29 +15,6 @@ use Illuminate\View\View;
 class ControlPlanController extends Controller
 {
     public function __construct(private ControlPlans $plans) {}
-
-    public function rules(): View
-    {
-        return view('settings.rules', [
-            'title' => 'Control plan rules', 'intro' => 'How control plans are checked and what a pattern change does to them.',
-            'rules' => ControlPlanRules::RULES, 'values' => collect(ControlPlanRules::RULES)->map(fn ($r, $k) => ControlPlanRules::get($k))->all(),
-            'action' => route('settings.control-plans'), 'backUrl' => route('settings.process'), 'backLabel' => 'Our process',
-            'note' => 'Every product follows Our process until a revision is given its own plan. A small foundry can leave the defaults: a pattern change only asks someone to confirm the plan still holds. Full PPAP asks for a new, approved revision.',
-        ]);
-    }
-
-    public function saveRules(Request $request): RedirectResponse
-    {
-        $rules = [];
-        foreach (ControlPlanRules::RULES as $key => [, , $options]) {
-            $rules[$key] = ['sometimes', 'required', Rule::in(array_keys($options))];
-        }
-        foreach ($request->validate($rules) as $key => $value) {
-            ControlPlanRules::set($key, $value);
-        }
-
-        return back()->with('success', 'Control plan rules saved.');
-    }
 
     public function saveDefault(Request $request): RedirectResponse
     {

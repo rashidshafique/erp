@@ -129,27 +129,4 @@ class CoreLotController extends Controller
 
         return back()->with('success', "{$data['quantity']} {$core->name} issued to {$mouldingRun->run_number}.");
     }
-
-    public function editRules(): View
-    {
-        return view('settings.rules', [
-            'title' => 'Core rules', 'intro' => 'How the whole foundry handles made cores.',
-            'rules' => CoreRules::RULES, 'values' => collect(CoreRules::RULES)->map(fn ($r, $k) => CoreRules::get($k))->all(),
-            'action' => route('settings.cores'), 'backUrl' => route('core-lots.index'), 'backLabel' => 'Core stock',
-            'note' => 'A small foundry can leave both off: cores are recorded when made and when used. Turn the check on when cores must be inspected before they go into a mould.',
-        ]);
-    }
-
-    public function updateRules(Request $request): RedirectResponse
-    {
-        $rules = [];
-        foreach (CoreRules::RULES as $key => [, , $options]) {
-            $rules[$key] = ['required', Rule::in(array_keys($options))];
-        }
-        foreach ($request->validate($rules) as $key => $value) {
-            CoreRules::set($key, $value);
-        }
-
-        return back()->with('success', 'Core rules saved.');
-    }
 }

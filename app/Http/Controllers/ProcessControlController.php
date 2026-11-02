@@ -2,32 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\AppSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
-/** Switches for how strictly the pour gate treats treatment records. */
+/** A pattern revision's minimum cooling time before shakeout. */
 class ProcessControlController extends Controller
 {
-    public static function enforceTreatment(): bool
-    {
-        return filter_var(AppSetting::getValue('enforce_treatment_records', 'false'), FILTER_VALIDATE_BOOLEAN);
-    }
-
-    public static function maxFadeMinutes(): int
-    {
-        return (int) AppSetting::getValue('max_fade_minutes', '15');
-    }
-
-    public function update(Request $request): RedirectResponse
-    {
-        $d = $request->validate(['max_fade_minutes' => ['required', 'integer', 'min:1', 'max:120']]);
-        AppSetting::setValue('enforce_treatment_records', $request->boolean('enforce_treatment_records') ? 'true' : 'false', 'Block pouring unless magnesium treatment and inoculation are recorded and within fade time.');
-        AppSetting::setValue('max_fade_minutes', (string) $d['max_fade_minutes'], 'Maximum minutes from magnesium treatment to pouring.');
-
-        return back()->with('success', 'Process controls saved.');
-    }
-
     public function cooling(Request $request, string $revision): RedirectResponse
     {
         $d = $request->validate(['min_cooling_minutes' => ['nullable', 'integer', 'min:0', 'max:10080']]);

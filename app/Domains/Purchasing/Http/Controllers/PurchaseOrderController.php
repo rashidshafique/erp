@@ -5,7 +5,6 @@ namespace App\Domains\Purchasing\Http\Controllers;
 use App\Domains\Purchasing\Models\PurchaseOrder;
 use App\Domains\Purchasing\Models\Supplier;
 use App\Domains\Purchasing\Services\PurchaseOrderService;
-use App\Domains\Purchasing\Support\BuyingRules;
 use App\Http\Controllers\Controller;
 use App\Models\Material;
 use App\Services\Approvals\ApprovalGate;
@@ -143,29 +142,6 @@ class PurchaseOrderController extends Controller
         $purchaseOrder->delete();
 
         return redirect()->route('purchase-orders.index')->with('success', 'Draft deleted.');
-    }
-
-    public function editSettings(): View
-    {
-        return view('settings.rules', [
-            'title' => 'Purchase order rules', 'intro' => 'How receiving against purchase orders behaves.',
-            'rules' => BuyingRules::RULES, 'values' => collect(BuyingRules::RULES)->map(fn ($r, $k) => BuyingRules::get($k))->all(),
-            'action' => route('purchase-orders.settings.update'), 'backUrl' => route('purchase-orders.index'), 'backLabel' => 'Purchase orders',
-            'note' => 'To have orders approved before they go to the supplier, add a policy for "Issue a purchase order" under Approvals.',
-        ]);
-    }
-
-    public function updateSettings(Request $request): RedirectResponse
-    {
-        $rules = [];
-        foreach (BuyingRules::RULES as $key => [, , $options]) {
-            $rules[$key] = ['required', Rule::in(array_keys($options))];
-        }
-        foreach ($request->validate($rules) as $key => $value) {
-            BuyingRules::set($key, $value);
-        }
-
-        return back()->with('success', 'Purchase order rules saved.');
     }
 
     /** @return array<string, mixed> */

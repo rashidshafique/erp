@@ -16,6 +16,9 @@ class ModuleRegistry
     /** @var array<string, list<array{label: string, route: string, active: list<string>}>> */
     private array $settingsLinks = [];
 
+    /** @var array<string, list<class-string>> */
+    private array $ruleSections = [];
+
     /** @var array<string, array{0: string, 1: class-string, 2: string, 3: string|null}> */
     private array $attachables = [];
 
@@ -97,6 +100,18 @@ class ModuleRegistry
     public function settingsLinks(): array
     {
         return $this->settingsLinks;
+    }
+
+    /** @param class-string $rules a class using RuleSet, all of whose rules go under this section of Process rules */
+    public function addRuleSection(string $section, string $rules): void
+    {
+        $this->ruleSections[$section][] = $rules;
+    }
+
+    /** @return array<string, list<class-string>> section => rules classes */
+    public function ruleSections(): array
+    {
+        return $this->ruleSections;
     }
 
     /** A record that can carry files: its label, model, the permission to add files and the permission to read them (null when any signed-in user may). */

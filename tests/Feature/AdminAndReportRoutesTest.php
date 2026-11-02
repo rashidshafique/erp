@@ -64,8 +64,8 @@ class AdminAndReportRoutesTest extends TestCase
 
     public function test_the_automatic_stock_posting_setting_is_saved(): void
     {
-        $this->put(route('settings.update'), [])->assertSessionHasErrors('auto_post_internal_returns_to_stock');
-        $this->put(route('settings.update'), ['auto_post_internal_returns_to_stock' => 1])->assertRedirect(route('settings.edit'));
+        $this->put(route('settings.rules.update'), ['auto_post_returns' => 'maybe'])->assertSessionHasErrors('auto_post_returns');
+        $this->put(route('settings.rules.update'), ['auto_post_returns' => 'true'])->assertSessionHasNoErrors();
 
         $this->assertSame('true', AppSetting::getValue('auto_post_internal_returns_to_stock', 'false'));
     }

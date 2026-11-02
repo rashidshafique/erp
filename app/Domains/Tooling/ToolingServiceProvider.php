@@ -44,7 +44,7 @@ class ToolingServiceProvider extends ModuleServiceProvider
     protected function navItems(): array
     {
         return [
-            ['group' => 'equipment', 'label' => 'Cores', 'route' => 'cores.index', 'icon' => 'cylinder', 'active' => ['cores.*', 'core-boxes.*', 'core-lots.*', 'settings.cores*']],
+            ['group' => 'equipment', 'label' => 'Cores', 'route' => 'cores.index', 'icon' => 'cylinder', 'active' => ['cores.*', 'core-boxes.*', 'core-lots.*']],
             ['group' => 'equipment', 'label' => 'Maintenance dashboard', 'route' => 'tooling-maintenance.dashboard', 'icon' => 'dashboard', 'active' => ['tooling-maintenance.dashboard']],
             ['group' => 'equipment', 'label' => 'Maintenance records', 'route' => 'tooling-maintenance.index', 'icon' => 'wrench', 'active' => ['tooling-maintenance.index', 'tooling-maintenance.show', 'tooling-maintenance.edit'],
                 'count' => fn (): int => ToolingMaintenanceRecord::whereIn('status', ['OPEN', 'IN_PROGRESS'])->count()],
@@ -52,11 +52,9 @@ class ToolingServiceProvider extends ModuleServiceProvider
         ];
     }
 
-    protected function settingsLinks(): array
+    protected function ruleSections(): array
     {
-        return [
-            ['section' => 'Foundry', 'label' => 'Core rules', 'route' => 'settings.cores.edit', 'active' => ['settings.cores*']],
-        ];
+        return ['Cores' => [\App\Domains\Tooling\Support\CoreRules::class]];
     }
 
     protected function attachables(): array

@@ -222,11 +222,11 @@ class SalesOrderStatusTest extends TestCase
 
     public function test_the_contract_review_rule_is_saved_from_settings(): void
     {
-        $this->put(route('settings.orders'), ['contract_review' => 'SKIP'])->assertSessionHasNoErrors();
+        $this->put(route('settings.rules.update'), ['contract_review' => 'SKIP'])->assertSessionHasNoErrors();
 
         $this->assertFalse(OrderRules::reviewRequired());
-        $this->get(route('settings.orders.edit'))->assertOk();
-        $this->put(route('settings.orders'), ['contract_review' => 'BOGUS'])->assertSessionHasErrors('contract_review');
+        $this->get(route('settings.rules'))->assertOk();
+        $this->put(route('settings.rules.update'), ['contract_review' => 'BOGUS'])->assertSessionHasErrors('contract_review');
     }
 
     public function test_the_order_page_offers_the_status_dropdown(): void

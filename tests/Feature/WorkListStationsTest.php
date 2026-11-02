@@ -399,7 +399,7 @@ class WorkListStationsTest extends TestCase
 
         $this->post(route('work-lists.items.start', [$list, $item]))->assertSessionHasErrors('item');            // default: issue first
 
-        $this->put(route('settings.work-lists'), ['start_before_issue' => 'ALLOW'])->assertSessionHasNoErrors();
+        $this->put(route('settings.rules.update'), ['start_before_issue' => 'ALLOW'])->assertSessionHasNoErrors();
         $this->post(route('work-lists.items.start', [$list, $item]))->assertSessionHasNoErrors();
         $this->assertSame('DRAFT', $list->fresh()->status);
         $this->assertSame('Started ahead of list', $item->fresh()->run->planningNote());

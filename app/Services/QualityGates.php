@@ -68,8 +68,8 @@ class QualityGates
 
         // Treatment: magnesium treatment and inoculation, and the time since magnesium went in (fade)
         if ($grade->needs_mg_treatment || $grade->needs_inoculation) {
-            $enforce = \App\Http\Controllers\ProcessControlController::enforceTreatment();
-            $maxFade = \App\Http\Controllers\ProcessControlController::maxFadeMinutes();
+            $enforce = \App\Support\PouringRules::enforcesTreatment();
+            $maxFade = \App\Support\PouringRules::minutes('max_fade_minutes');
             $tr = $heat->treatments()->get();
             $verdict = fn (bool $bad) => $bad ? ($enforce ? false : null) : true;
             $note = $enforce ? '' : ' (recorded as a warning; not enforced)';

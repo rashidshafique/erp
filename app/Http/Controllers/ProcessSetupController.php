@@ -27,7 +27,7 @@ class ProcessSetupController extends Controller
     {
         ProcessSetup::apply($this->answers($request));
 
-        return redirect()->route('settings.process-depth.edit')->with('success', 'Your answers are set as the process rules. Any rule can still be changed below.');
+        return redirect()->route('settings.rules')->with('success', 'Your answers are set as the process rules. Any rule can still be changed below.');
     }
 
     /** @return array<string, string> */

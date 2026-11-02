@@ -44,7 +44,7 @@ class StepCountTest extends TestCase
 
     public function test_basic_takes_an_order_to_dispatch_in_seven_steps(): void
     {
-        $this->put(route('settings.process-depth'), ['preset' => 'BASIC']);
+        $this->put(route('settings.rules.update'), ['preset' => 'BASIC']);
         Furnace::create(['code' => 'IF1', 'name' => 'Induction 1', 'furnace_type' => 'INDUCTION', 'status' => 'ACTIVE', 'rated_capacity_kg' => 1000, 'nominal_melting_rate_kg_per_hour' => 500]);
         $customer = Customer::create(['code' => 'ACME', 'name' => 'Acme Pumps']);
         $product = Product::create(['code' => 'PUMP-1', 'name' => 'Pump body']);
@@ -80,7 +80,7 @@ class StepCountTest extends TestCase
 
     public function test_a_real_day_with_the_list_count_heat_close_after_pour_steps_and_qc_by_cavity_takes_fourteen_steps(): void
     {
-        $this->put(route('settings.process-depth'), ['preset' => 'BASIC']);
+        $this->put(route('settings.rules.update'), ['preset' => 'BASIC']);
         QualityRules::set('qc_after_steps', 'STEPS');
         QualityRules::set('ncr_threshold', 'NEVER');   // the defect marks by cavity are the record
         app(ProcessRoutes::class)->saveDefault(collect(['SHAKEOUT', 'CUTTING', 'SHOT_BLAST', 'FINAL_INSPECTION'])->map(fn ($c) => ProductionStageDefinition::where('code', $c)->value('id'))->all());

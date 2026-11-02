@@ -99,8 +99,7 @@ Route::middleware('web')->group(function () {
         Route::post('/{coreLot}/take', 'take')->name('take');
     });
     Route::post('/moulding-runs/{mouldingRun}/cores', [CoreLotController::class, 'issueToRun'])->name('core-lots.issue-to-run');
-    Route::get('/settings/cores', [CoreLotController::class, 'editRules'])->name('settings.cores.edit');
-    Route::put('/settings/cores', [CoreLotController::class, 'updateRules'])->name('settings.cores');
+    Route::redirect('/settings/cores', '/settings/rules#cores');
 
     Route::post('/core-requirements', [CoreRequirementController::class, 'store'])->name('core-requirements.store');
     Route::delete('/core-requirements/{requirement}', [CoreRequirementController::class, 'destroy'])->name('core-requirements.destroy');

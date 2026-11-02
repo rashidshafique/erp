@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\ApprovalPolicyController;
-use App\Http\Controllers\AppSettingController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\AuditController;
 use App\Http\Controllers\AuthController;
@@ -279,13 +278,7 @@ Route::post(
     [HeatReadingController::class, 'postCharge']
 )->name('heats.charge-postings.store');
 
-Route::prefix('settings')
-    ->name('settings.')
-    ->controller(AppSettingController::class)
-    ->group(function () {
-        Route::get('/', 'edit')->name('edit');
-        Route::put('/', 'update')->name('update');
-    });
+Route::redirect('/settings', '/settings/display');
 
 // ---- Orders, contract review, planning, thermal analysis, quality gates ----
 Route::prefix('customers')->name('customers.')->controller(CustomerController::class)->group(function () {
@@ -350,8 +343,6 @@ Route::put('/work-lists/{list}/items/{item}/flasks', [\App\Http\Controllers\Flas
 // ---- Pattern ownership ----
 Route::controller(PatternOwnershipController::class)->group(function () {
     Route::get('/pattern-ownership', 'index')->name('pattern-ownership.index');
-    Route::get('/settings/pattern-ownership', 'editRules')->name('settings.pattern-ownership.edit');
-    Route::put('/settings/pattern-ownership', 'rules')->name('settings.pattern-ownership');
     Route::put('/patterns/{pattern}/ownership', 'update')->name('patterns.ownership');
     Route::post('/patterns/{pattern}/pay-off', 'payOff')->name('patterns.pay-off');
     Route::post('/patterns/{pattern}/return', 'returnToCustomer')->name('patterns.return');
@@ -368,28 +359,19 @@ Route::prefix('flasks')->name('flasks.')->controller(FlaskController::class)->gr
     Route::post('/{flask}/status', 'status')->name('status');
     Route::post('/{flask}/release', 'release')->name('release');
 });
-Route::get('/settings/flasks', [FlaskController::class, 'editRules'])->name('settings.flasks.edit');
-Route::put('/settings/flasks', [FlaskController::class, 'rules'])->name('settings.flasks');
-Route::get('/settings/process-depth', [\App\Http\Controllers\ProcessDepthController::class, 'edit'])->name('settings.process-depth.edit');
-Route::put('/settings/process-depth', [\App\Http\Controllers\ProcessDepthController::class, 'update'])->name('settings.process-depth');
+Route::get('/settings/rules', [\App\Http\Controllers\ProcessRulesController::class, 'edit'])->name('settings.rules');
+Route::put('/settings/rules', [\App\Http\Controllers\ProcessRulesController::class, 'update'])->name('settings.rules.update');
+foreach (['process-depth' => '', 'orders' => '#orders', 'work-lists' => '#moulding', 'flasks' => '#flasks', 'pouring' => '#melting-and-pouring', 'queue' => '#production-queue', 'control-plans' => '#quality', 'pattern-ownership' => '#patterns'] as $old => $section) {
+    Route::redirect('/settings/'.$old, '/settings/rules'.$section);   // the pages these rules had before Process rules
+}
 Route::get('/settings/how-you-work', [\App\Http\Controllers\ProcessSetupController::class, 'edit'])->name('settings.process-setup.edit');
 Route::post('/settings/how-you-work/review', [\App\Http\Controllers\ProcessSetupController::class, 'review'])->name('settings.process-setup.review');
 Route::put('/settings/how-you-work', [\App\Http\Controllers\ProcessSetupController::class, 'update'])->name('settings.process-setup');
-Route::get('/settings/work-lists', [\App\Http\Controllers\WorkListRulesController::class, 'edit'])->name('settings.work-lists.edit');
-Route::put('/settings/work-lists', [\App\Http\Controllers\WorkListRulesController::class, 'update'])->name('settings.work-lists');
-Route::get('/settings/orders', [\App\Http\Controllers\OrderRulesController::class, 'edit'])->name('settings.orders.edit');
-Route::put('/settings/orders', [\App\Http\Controllers\OrderRulesController::class, 'update'])->name('settings.orders');
 Route::get('/help/new-customer', [\App\Http\Controllers\HelpController::class, 'newCustomer'])->name('help.new-customer');
 Route::get('/settings/melting-days', [\App\Http\Controllers\MeltingDaysController::class, 'edit'])->name('settings.melting-days.edit');
 Route::put('/settings/melting-days', [\App\Http\Controllers\MeltingDaysController::class, 'update'])->name('settings.melting-days');
-Route::get('/settings/pouring', [\App\Http\Controllers\PouringRulesController::class, 'edit'])->name('settings.pouring.edit');
-Route::put('/settings/pouring', [\App\Http\Controllers\PouringRulesController::class, 'update'])->name('settings.pouring');
 Route::view('/settings/process', 'settings.process')->name('settings.process');
-Route::get('/settings/control-plans', [\App\Http\Controllers\ControlPlanController::class, 'rules'])->name('settings.control-plans.edit');
-Route::put('/settings/control-plans', [\App\Http\Controllers\ControlPlanController::class, 'saveRules'])->name('settings.control-plans');
 Route::put('/settings/process/control-plan', [\App\Http\Controllers\ControlPlanController::class, 'saveDefault'])->name('settings.process.control-plan');
-Route::get('/settings/queue', [\App\Http\Controllers\QueueRulesController::class, 'edit'])->name('settings.queue.edit');
-Route::put('/settings/queue', [\App\Http\Controllers\QueueRulesController::class, 'update'])->name('settings.queue');
 Route::prefix('flask-sizes')->name('flask-sizes.')->controller(FlaskSizeController::class)->group(function () {
     Route::post('/', 'store')->name('store');
     Route::get('/{flaskSize}/edit', 'edit')->name('edit');
@@ -495,7 +477,6 @@ Route::post('/sand-tests', [SandTestController::class, 'store'])->name('sand-tes
 // ---- Melt treatment and process controls ----
 Route::post('/heats/{heat}/treatments', [HeatTreatmentController::class, 'store'])->name('heats.treatments.store');
 Route::delete('/heats/{heat}/treatments/{treatment}', [HeatTreatmentController::class, 'destroy'])->name('heats.treatments.destroy');
-Route::put('/settings/process-controls', [ProcessControlController::class, 'update'])->name('process-controls.update');
 Route::put('/pattern-revisions/{revision}/cooling', [ProcessControlController::class, 'cooling'])->name('pattern-revisions.cooling');
 
 // ---- Reports and defect list ----
@@ -549,7 +530,6 @@ Route::put('/settings/documents', [DocumentSettingsController::class, 'update'])
 Route::get('/scan', [ScanController::class, 'find'])->name('scan');
 Route::get('/scan/suggest', [ScanController::class, 'suggest'])->name('scan.suggest');
 Route::get('/labels/{type}/{id}', [LabelController::class, 'show'])->where('type', '[a-z_]+')->name('labels.show');
-Route::put('/settings/interface', [AppSettingController::class, 'updateInterface'])->name('settings.interface.update');
 Route::get('/settings/display', [DisplaySettingsController::class, 'edit'])->name('settings.display');
 Route::put('/settings/display', [DisplaySettingsController::class, 'update'])->name('settings.display.update');
 Route::put('/settings/display/font', [DisplaySettingsController::class, 'updateFont'])->name('settings.display.font');

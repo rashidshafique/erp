@@ -22,7 +22,7 @@ class Breadcrumb
         'Furnaces' => 'furnaces.index',
         'Iron grades' => 'iron-grades.index',
         'Sales orders' => 'sales-orders.index',
-        'Settings' => 'settings.edit',
+        'Settings' => 'settings.display',
     ];
 
     /**

@@ -1,16 +1,17 @@
 @extends('layouts.app')
-@section('title', 'Display')
+@section('title', 'General')
 @section('content')
-<div class="page-heading"><div><h1>Display</h1><p>How lists and pages behave. These apply to everyone.</p></div></div>
+<div class="page-heading"><div><h1>General</h1><p>How screens look and behave, for everyone.</p></div></div>
 <form method="POST" action="{{ route('settings.display.update') }}">@csrf @method('PUT')
 <div class="panel"><div class="panel-body">
 <label style="display:flex;gap:10px;align-items:flex-start;margin-bottom:12px"><input type="checkbox" name="table_toolbar" value="1" @checked($ui['toolbar'])>
 <span><strong>Search and filters in the table header</strong><br><span class="muted small">Puts the search box and filters on the same line as the table title, so lists use less height. Turn off to keep them in a separate bar above the table.</span></span></label>
+<label style="display:flex;gap:10px;align-items:flex-start;margin-bottom:12px"><input type="checkbox" name="row_click" value="1" @checked(\App\Models\AppSetting::getValue('ui.row_click', '1') === '1')>
+<span><strong>Click a table row to open it</strong><br><span class="muted small">Ctrl/Cmd-click opens a new tab.</span></span></label>
 <label style="display:flex;gap:10px;align-items:flex-start;margin-bottom:16px"><input type="checkbox" name="tidy_forms" value="1" @checked($ui['tidy_forms'])>
 <span><strong>Keep long forms short</strong><br><span class="muted small">On long forms, optional fields that are still blank are tucked behind "Show more optional fields", so a form opens with only what is needed. Turn off to always show every field.</span></span></label>
 <div class="field" style="max-width:420px"><span class="muted small">Anyone can shrink the menu to icons with the button at the top left of the page, and hide menu entries with the Hidden items button at the bottom of the menu; both are kept in their own browser.</span></div>
 <div class="field" style="max-width:260px"><label>Spacing of lists and tables</label><select name="density"><option value="COMPACT" @selected($ui['compact'])>Compact</option><option value="COMFORTABLE" @selected(! $ui['compact'])>Comfortable (roomier)</option></select></div>
-<p class="muted small">Clicking a table row to open it is switched on or off under <a href="{{ route('settings.edit') }}">Foundry settings → Screen behaviour</a>.</p>
 </div></div>
 <p><button class="btn btn-primary">Save</button></p></form>
 

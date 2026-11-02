@@ -11,7 +11,7 @@
 <div class="page-heading">
     <div><h1>Flasks</h1><p>Every flask by size: free, in a mould or in repair. Moulds claim a set when they are assembled and give it back when they are knocked out.</p></div>
     <div class="actions">
-        @if (\App\Support\SettingsNav::canOpen())<a class="btn" href="{{ route('settings.flasks.edit') }}">Flask rules</a>@endif
+        @if (\App\Support\SettingsNav::canOpen())<a class="btn" href="{{ route('settings.rules').'#flasks' }}">Flask rules</a>@endif
         <button type="button" class="btn" data-quick="qd-flask-size">+ Flask size</button>
         <button type="button" class="btn btn-primary" data-quick="qd-flasks" @if ($sizes->isEmpty()) disabled title="Add a flask size first" @endif>+ Add flasks</button>
     </div>

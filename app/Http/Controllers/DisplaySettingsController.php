@@ -62,10 +62,11 @@ class DisplaySettingsController extends Controller
     {
         $request->validate(['density' => 'required|in:COMPACT,COMFORTABLE']);
         AppSetting::setValue('ui.table_toolbar', $request->boolean('table_toolbar') ? '1' : '0', 'Search and filters sit in the table header');
+        AppSetting::setValue('ui.row_click', $request->boolean('row_click') ? '1' : '0', 'Clicking a table row opens its detail page');
         AppSetting::setValue('ui.tidy_forms', $request->boolean('tidy_forms') ? '1' : '0', 'Long forms hide blank optional fields behind Show more');
         AppSetting::setValue('ui.density', $request->input('density'), 'Spacing of the interface');
         UiSettings::flush();
 
-        return back()->with('success', 'Display settings saved.');
+        return back()->with('success', 'Settings saved.');
     }
 }

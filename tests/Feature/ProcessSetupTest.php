@@ -38,7 +38,7 @@ class ProcessSetupTest extends TestCase
 
     public function test_setting_the_answers_fills_the_rules_which_stay_editable_one_by_one(): void
     {
-        $this->put(route('settings.process-setup'), $this->smallShop())->assertRedirect(route('settings.process-depth.edit'));
+        $this->put(route('settings.process-setup'), $this->smallShop())->assertRedirect(route('settings.rules'));
 
         $this->assertSame('AUTO', OrderRules::get('contract_review'));
         $this->assertTrue(FloorRules::usesQuickScreens());
@@ -46,7 +46,7 @@ class ProcessSetupTest extends TestCase
         $this->assertTrue(ProcessSetup::answered());
         $this->get(route('dashboard'))->assertDontSee(route('settings.process-setup.edit'), false);
 
-        $this->put(route('settings.process-depth'), ['contract_review' => 'SKIP'])->assertSessionHasNoErrors();
+        $this->put(route('settings.rules.update'), ['contract_review' => 'SKIP'])->assertSessionHasNoErrors();
         $this->assertSame('SKIP', OrderRules::get('contract_review'));
     }
 }

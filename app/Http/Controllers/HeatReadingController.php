@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\AppSetting;
 use App\Models\ChargeBatch;
 use App\Models\Furnace;
 use App\Models\Heat;
@@ -514,10 +513,7 @@ class HeatReadingController extends Controller
 
                     $returnCost = round($quantity * $unitCost, 4);
 
-                    $autoPostReturns = filter_var(
-                        AppSetting::getValue('auto_post_internal_returns_to_stock', 'false'),
-                        FILTER_VALIDATE_BOOLEAN
-                    );
+                    $autoPostReturns = \App\Support\PouringRules::postsReturnsToStock();
 
                     if ($autoPostReturns) {
                         if (! $returnMaterial->is_stock_tracked) {

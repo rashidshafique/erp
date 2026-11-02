@@ -134,10 +134,10 @@ class CodesAndMarksTest extends TestCase
     public function test_row_click_setting_switches_the_behaviour(): void
     {
         $this->get(route('dashboard'))->assertSee('data-row-click="1"', false);
-        $this->put(route('settings.interface.update'), [])->assertSessionHasNoErrors();
+        $this->put(route('settings.display.update'), ['density' => 'COMPACT', 'table_toolbar' => 1, 'tidy_forms' => 1])->assertSessionHasNoErrors();
         $this->get(route('dashboard'))->assertSee('data-row-click="0"', false);
-        $this->put(route('settings.interface.update'), ['row_click' => 1]);
-        $this->get(route('settings.edit'))->assertOk()->assertSee('Click anywhere on a table row');
+        $this->put(route('settings.display.update'), ['density' => 'COMPACT', 'table_toolbar' => 1, 'tidy_forms' => 1, 'row_click' => 1]);
+        $this->get(route('settings.display'))->assertOk()->assertSee('Click a table row to open it');
         $this->get(route('dashboard'))->assertSee('data-row-click="1"', false);
     }
 

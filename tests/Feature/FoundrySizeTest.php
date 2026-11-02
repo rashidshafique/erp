@@ -47,7 +47,7 @@ class FoundrySizeTest extends TestCase
         $this->put(route('settings.size'), ['size' => 'FULL']);
         $this->assertSame('FULL', ProcessDepth::current());
 
-        $this->put(route('settings.process-depth'), ['gate_induction' => 'OFF']);
+        $this->put(route('settings.rules.update'), ['gate_induction' => 'OFF']);
         $this->assertSame('CUSTOM', ProcessDepth::current());
         $this->assertSame('FULL', app(FoundrySize::class)->current());
         $this->assertSame('FULL', AppSetting::getValue('foundry.size'));

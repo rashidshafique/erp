@@ -51,11 +51,9 @@ class MaintenanceServiceProvider extends ModuleServiceProvider
         ];
     }
 
-    protected function settingsLinks(): array
+    protected function ruleSections(): array
     {
-        return [
-            ['section' => 'Foundry', 'label' => 'Calibration rules', 'route' => 'settings.calibration.edit', 'active' => ['settings.calibration*']],
-        ];
+        return ['Calibration' => [CalibrationRules::class]];
     }
 
     protected function attachables(): array

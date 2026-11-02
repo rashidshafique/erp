@@ -7,7 +7,7 @@ use App\Domains\Maintenance\Support\CalibrationRules;
 
 /**
  * One choice for how much checking the shop floor goes through. Basic is for small foundries that want few screens and quick
- * entry; Full keeps every check in force. Each preset just sets the individual rules, which stay editable on their own pages.
+ * entry; Full keeps every check in force. Each preset just sets the individual rules, which stay editable on the Process rules page.
  */
 class ProcessDepth
 {
@@ -38,8 +38,8 @@ class ProcessDepth
         'overdue_use' => CalibrationRules::class, 'ncr_threshold' => QualityRules::class, 'lot_grouping' => QualityRules::class, 'qc_after_steps' => QualityRules::class, 'defect_piece_ids' => QualityRules::class,
     ];
 
-    /** The rules page's sections, in the order work flows through the foundry. */
-    public const GROUPS = [
+    /** The rules a preset or How you work can set, in the order work flows through the foundry. */
+    private const GROUPS = [
         'Development' => ['development_open', 'tool_depth', 'tool_gate'],
         'Orders' => ['contract_review', 'order_flow', 'order_completion'],
         'Moulding' => ['floor_screens', 'work_lists', 'start_before_issue', 'mould_assembly'],

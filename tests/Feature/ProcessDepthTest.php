@@ -7,7 +7,14 @@ use App\Domains\Maintenance\Support\CalibrationRules;
 use App\Support\FloorRules;
 use App\Support\OrderRules;
 use App\Support\PouringRules;
+use App\Support\ControlPlanRules;
+use App\Support\FlaskRules;
+use App\Support\PatternOwnershipRules;
 use App\Support\ProcessDepth;
+use App\Support\ProcessRules;
+use App\Support\QualityRules;
+use App\Support\QueueRules;
+use App\Support\WorkListRules;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -20,7 +27,7 @@ class ProcessDepthTest extends TestCase
     public function test_the_shop_starts_on_full_depth(): void
     {
         $this->assertSame('FULL', ProcessDepth::current());
-        $this->get(route('settings.process-depth.edit'))->assertOk()->assertSee('In use');
+        $this->get(route('settings.rules'))->assertOk()->assertSee('In use');
     }
 
     public function test_the_menu_switch_shows_simple_mode_and_flips_between_basic_and_full(): void
@@ -39,7 +46,7 @@ class ProcessDepthTest extends TestCase
 
     public function test_basic_depth_loosens_the_checks_and_full_restores_them(): void
     {
-        $this->put(route('settings.process-depth'), ['preset' => 'BASIC'])->assertSessionHasNoErrors();
+        $this->put(route('settings.rules.update'), ['preset' => 'BASIC'])->assertSessionHasNoErrors();
 
         $this->assertSame('BASIC', ProcessDepth::current());
         $this->assertSame('OFF', PouringRules::get('gate_other'));
@@ -48,29 +55,51 @@ class ProcessDepthTest extends TestCase
         $this->assertSame('SKIP', OrderRules::get('contract_review'));
         $this->assertTrue(OrderRules::completesAtPour());
 
-        $this->put(route('settings.process-depth'), ['preset' => 'FULL'])->assertSessionHasNoErrors();
+        $this->put(route('settings.rules.update'), ['preset' => 'FULL'])->assertSessionHasNoErrors();
         $this->assertSame('FULL', ProcessDepth::current());
         $this->assertFalse(OrderRules::completesAtPour());
     }
 
     public function test_changing_a_single_rule_makes_the_depth_custom(): void
     {
-        $this->put(route('settings.process-depth'), ['preset' => 'BASIC']);
+        $this->put(route('settings.rules.update'), ['preset' => 'BASIC']);
         PouringRules::set('containment', 'HOLD');
 
         $this->assertSame('CUSTOM', ProcessDepth::current());
-        $this->put(route('settings.process-depth'), ['preset' => 'NOPE'])->assertSessionHasErrors('preset');
+        $this->put(route('settings.rules.update'), ['preset' => 'NOPE'])->assertSessionHasErrors('preset');
     }
 
     public function test_the_rules_page_shows_every_rule_in_its_section_and_saves_a_floor_rule(): void
     {
-        $this->get(route('settings.process-depth.edit'))->assertOk()
-            ->assertSeeInOrder(['Orders', 'Moulding', 'Melting and pouring', 'Quality and gauges'])->assertSee('Moulding work lists');
+        $this->get(route('settings.rules'))->assertOk()
+            ->assertSeeInOrder(['data-tab-start="Development"', 'data-tab-start="Orders"', 'data-tab-start="Moulding"', 'data-tab-start="Flasks"', 'data-tab-start="Melting and pouring"', 'data-tab-start="Quality"', 'data-tab-start="Patterns"', 'data-tab-start="Purchasing"'], false)
+            ->assertSee('Moulding work lists');
 
-        $this->put(route('settings.process-depth'), ['work_lists' => 'OFF'])->assertSessionHasNoErrors();
+        $this->put(route('settings.rules.update'), ['work_lists' => 'OFF'])->assertSessionHasNoErrors();
 
         $this->assertFalse(FloorRules::usesWorkLists());
-        $this->put(route('settings.process-depth'), ['work_lists' => 'SOMETIMES'])->assertSessionHasErrors('work_lists');
+        $this->put(route('settings.rules.update'), ['work_lists' => 'SOMETIMES'])->assertSessionHasErrors('work_lists');
+    }
+
+    public function test_every_rule_is_on_the_page_once_and_the_old_rule_pages_open_its_tab(): void
+    {
+        $shown = collect(ProcessRules::sections())->flatMap(fn (array $rules) => array_keys($rules));
+        $this->assertSame($shown->count(), $shown->unique()->count());
+        foreach ([OrderRules::class, PouringRules::class, QueueRules::class, WorkListRules::class, FlaskRules::class, PatternOwnershipRules::class, QualityRules::class, ControlPlanRules::class, CalibrationRules::class] as $class) {
+            $this->assertSame([], array_values(array_diff(array_keys($class::rules()), $shown->all())), $class);
+        }
+
+        $this->get('/settings/pouring')->assertRedirect('/settings/rules#melting-and-pouring');
+        $this->get('/settings/process-depth')->assertRedirect('/settings/rules');
+    }
+
+    public function test_a_number_rule_is_checked_and_saved_from_its_tab(): void
+    {
+        $this->put(route('settings.rules.update'), ['max_fade_minutes' => 0])->assertSessionHasErrors('max_fade_minutes');
+        $this->put(route('settings.rules.update'), ['max_fade_minutes' => 20, 'treatment' => 'true'])->assertSessionHasNoErrors();
+
+        $this->assertSame(20, PouringRules::minutes('max_fade_minutes'));
+        $this->assertTrue(PouringRules::enforcesTreatment());
     }
 
     public function test_a_rule_switched_off_hides_its_screen_from_the_menu_but_the_screen_still_opens(): void

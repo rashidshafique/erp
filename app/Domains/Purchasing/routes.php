@@ -6,6 +6,8 @@ use App\Domains\Purchasing\Http\Controllers\SupplierController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('web')->group(function () {
+    Route::redirect('/incoming/settings', '/settings/rules#purchasing');
+    Route::redirect('/purchase-orders/settings', '/settings/rules#purchasing');
     Route::prefix('suppliers')->name('suppliers.')->controller(SupplierController::class)->group(function () {
         Route::get('/', 'index')->name('index');
         Route::get('/create', 'create')->name('create');
@@ -17,8 +19,6 @@ Route::middleware('web')->group(function () {
     });
 
     Route::prefix('incoming')->name('incoming.')->controller(IncomingController::class)->group(function () {
-        Route::get('/settings', 'editSettings')->name('settings.edit');
-        Route::put('/settings', 'updateSettings')->name('settings.update');
         Route::get('/materials/{material}/plan', 'editPlan')->name('plan.edit');
         Route::put('/materials/{material}/plan', 'updatePlan')->name('plan.update');
         Route::get('/lots/{lot}', 'showLot')->name('lots.show');
@@ -31,8 +31,6 @@ Route::middleware('web')->group(function () {
         Route::get('/', 'index')->name('index');
         Route::get('/create', 'create')->name('create');
         Route::post('/', 'store')->name('store');
-        Route::get('/settings', 'editSettings')->name('settings.edit');
-        Route::put('/settings', 'updateSettings')->name('settings.update');
         Route::get('/{purchaseOrder}', 'show')->name('show');
         Route::get('/{purchaseOrder}/print', 'print')->name('print');
         Route::get('/{purchaseOrder}/edit', 'edit')->name('edit');

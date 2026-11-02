@@ -6,7 +6,7 @@ use App\Models\AppSetting;
 
 /**
  * "How you work": plain questions about the foundry, each answer setting one or more process rules. It only fills in the rules,
- * which stay editable one by one on the process depth page.
+ * which stay editable one by one on the Process rules page.
  */
 class ProcessSetup
 {

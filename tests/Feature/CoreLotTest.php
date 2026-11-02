@@ -131,7 +131,7 @@ class CoreLotTest extends TestCase
         $this->assertSame([$this->core->id => 7], app(\App\Domains\Tooling\Services\CoreLotService::class)->onHand());
         $this->get(route('cores.index'))->assertOk();
         $this->get(route('core-lots.create'))->assertOk();
-        $this->get(route('settings.cores.edit'))->assertOk();
+        $this->get(route('settings.rules'))->assertOk();
     }
 
     /** A run of $moulds moulds of a pattern with two cavities for one product that needs 2 of the box's core per casting. */

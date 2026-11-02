@@ -43,12 +43,33 @@ class PouringRules
             'HOLD' => 'Hold the lots poured in the affected period',
             'NOTE' => 'Only flag the affected pours; do not hold lots',
         ], 'HOLD'],
+        'treatment' => ['enforce_treatment_records', 'Treatment before pouring (grades that need it)', [
+            'false' => 'Warn: a missing or late treatment is noted on the pour',
+            'true' => 'Enforced: no pour without treatment and inoculation in time',
+        ], 'false'],
+        'max_fade_minutes' => ['max_fade_minutes', 'Minutes from magnesium treatment to pour (fade)', null, '15'],
+        'auto_post_returns' => ['auto_post_internal_returns_to_stock', 'Internal returns on a heat charge', [
+            'false' => 'Costed in the charge only',
+            'true' => 'Posted back to stock as traceable receipts',
+        ], 'false'],
     ];
 
     /** @return list<string> */
     protected static function numberRule(string $rule): array
     {
-        return ['integer', 'min:0', 'max:1440'];
+        return $rule === 'max_fade_minutes' ? ['integer', 'min:1', 'max:120'] : ['integer', 'min:0', 'max:1440'];
+    }
+
+    /** Whether a pour is refused until magnesium treatment and inoculation are recorded within the fade time. */
+    public static function enforcesTreatment(): bool
+    {
+        return self::get('treatment') === 'true';
+    }
+
+    /** Whether internal returns on a posted heat charge go back to stock with their own receipts and cost layers. */
+    public static function postsReturnsToStock(): bool
+    {
+        return self::get('auto_post_returns') === 'true';
     }
 
     /** Whether due charges are recorded by the scheduler without anyone confirming them. */

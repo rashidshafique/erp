@@ -88,7 +88,7 @@
 <div class="dv-stage"><div class="dv-bar">@foreach ($stages as $i => $name)<div class="{{ $d->status === 'DONE' || $i < $d->stage_index ? 'done' : ($i === $d->stage_index ? 'now' : '') }}">{{ $name }}@if ($many && ($g = \App\Domains\Development\Models\PatternDevelopment::gateFor($name)))<span style="font-weight:400;display:block">{{ $tools->filter(fn ($t) => $t->reached($g))->count() }} of {{ $tools->count() }} {{ $g === 'BUILT' ? 'built' : 'passed trial' }}@if ($g === 'TRIAL_PASSED' && $tools->where('status', 'REWORK')->isNotEmpty()) · {{ $tools->where('status', 'REWORK')->count() }} rework @endif</span>@endif</div>@endforeach</div>
 @if ($d->isOpen() && $next)<div class="dv-move"><form method="POST" action="{{ route('developments.advance', $d) }}">@csrf<button class="btn btn-primary" type="submit" @disabled($blocked)>Move to {{ $next }}</button></form>
     @if ($approves)<span>Also approves revision {{ $approves->revision }}</span>@endif
-    @if ($stuck->isNotEmpty() && $gateRule !== 'OFF' && ! session('gate_warn'))<span class="dv-gate {{ $blocked ? 'block' : '' }}">{{ $d->gateMessage() }}@if ($blocked) Set by a rule in <a href="{{ route('settings.process-depth.edit') }}">settings</a>.@endif</span>@endif</div>@endif
+    @if ($stuck->isNotEmpty() && $gateRule !== 'OFF' && ! session('gate_warn'))<span class="dv-gate {{ $blocked ? 'block' : '' }}">{{ $d->gateMessage() }}@if ($blocked) Set by a rule in <a href="{{ route('settings.rules').'#development' }}">settings</a>.@endif</span>@endif</div>@endif
 </div>
 @php
     $amount = fn ($v) => $d->cost_currency ? $d->cost_currency.' '.\App\Support\Formats::number($v, 2) : \App\Support\Formats::money($v);

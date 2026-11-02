@@ -134,9 +134,9 @@ class CupolaPouringTest extends TestCase
 
     public function test_pouring_rules_can_be_changed_on_their_screen(): void
     {
-        $this->get(route('settings.pouring.edit'))->assertOk()->assertSee('Pouring rules');
+        $this->get(route('settings.rules'))->assertOk()->assertSee('Melting and pouring');
 
-        $this->put(route('settings.pouring'), [
+        $this->put(route('settings.rules.update'), [
             'gate_cupola' => 'ENFORCED', 'gate_induction' => 'ENFORCED', 'gate_other' => 'OFF', 'gate_packing' => 'ADVISORY', 'first_iron_minutes' => 45, 'hold_first_iron' => 'FREE',
             'test_interval_minutes' => 20, 'containment' => 'NOTE', 'auto_charge' => 'MANUAL', 'lightup_to_first_charge_minutes' => 75, 'drop_finished_percent' => 85,
         ])->assertSessionHasNoErrors();
@@ -145,7 +145,7 @@ class CupolaPouringTest extends TestCase
         $this->assertSame(85, PouringRules::minutes('drop_finished_percent'));
 
         $this->assertSame(['ENFORCED', 'OFF', 'ADVISORY', 45, 'FREE', 20, 'NOTE'], [PouringRules::get('gate_cupola'), PouringRules::get('gate_other'), PouringRules::get('gate_packing'), PouringRules::minutes('first_iron_minutes'), PouringRules::get('hold_first_iron'), PouringRules::minutes('test_interval_minutes'), PouringRules::get('containment')]);
-        $this->put(route('settings.pouring'), ['gate_cupola' => 'MAYBE'] + PouringRules::RULES)->assertSessionHasErrors('gate_cupola');
+        $this->put(route('settings.rules.update'), ['gate_cupola' => 'MAYBE'] + PouringRules::RULES)->assertSessionHasErrors('gate_cupola');
     }
 
     /** A completed pour with one mould of two castings, so lots are made. */

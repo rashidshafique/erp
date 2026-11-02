@@ -80,9 +80,9 @@ class PurchasingServiceProvider extends ModuleServiceProvider
         return ['purchase_order.issue' => 'Issue a purchase order'];
     }
 
-    protected function settingsLinks(): array
+    protected function ruleSections(): array
     {
-        return [['section' => 'Foundry', 'label' => 'Purchase orders', 'route' => 'purchase-orders.settings.edit', 'active' => ['purchase-orders.settings.*']]];
+        return ['Purchasing' => [\App\Domains\Purchasing\Support\IncomingRules::class, \App\Domains\Purchasing\Support\BuyingRules::class]];
     }
 
     protected function codeKinds(): array

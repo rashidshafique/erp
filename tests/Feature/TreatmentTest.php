@@ -44,7 +44,7 @@ class TreatmentTest extends TestCase
     {
         $heat = $this->heat();
         $this->assertNull($this->check($heat, 'Magnesium treatment')['ok']);       // warning only
-        $this->put(route('process-controls.update'), ['enforce_treatment_records' => 1, 'max_fade_minutes' => 15])->assertSessionHasNoErrors();
+        $this->put(route('settings.rules.update'), ['treatment' => 'true', 'max_fade_minutes' => 15])->assertSessionHasNoErrors();
         $this->assertFalse($this->check($heat, 'Magnesium treatment')['ok']);
         $this->assertFalse($this->check($heat, 'Inoculation')['ok']);
 
@@ -54,8 +54,8 @@ class TreatmentTest extends TestCase
         $this->assertTrue($this->check($heat, 'Treatment fade')['ok']);
         $heat->treatments()->create(['treatment_type' => 'INOCULATION_STREAM', 'treated_at' => now()->subMinutes(2)]);
         $this->assertTrue($this->check($heat, 'Inoculation')['ok']);
-        $this->assertSame(15, \App\Http\Controllers\ProcessControlController::maxFadeMinutes());
-        $this->get(route('settings.edit'))->assertOk()->assertSee('Process controls');
+        $this->assertSame(15, \App\Support\PouringRules::minutes('max_fade_minutes'));
+        $this->get(route('settings.rules'))->assertOk()->assertSee('Treatment before pouring');
     }
 
     public function test_pattern_cooling_time_is_saved(): void

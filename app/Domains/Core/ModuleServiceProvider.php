@@ -60,6 +60,16 @@ abstract class ModuleServiceProvider extends ServiceProvider
     }
 
     /**
+     * Rules this module adds to Settings > Process rules: section heading => classes using RuleSet.
+     *
+     * @return array<string, list<class-string>>
+     */
+    protected function ruleSections(): array
+    {
+        return [];
+    }
+
+    /**
      * Records of this module that can carry files, keyed by the name stored with the attachment.
      *
      * @return array<string, array{label: string, model: class-string, edit: string, view?: string|null}>
@@ -214,6 +224,11 @@ abstract class ModuleServiceProvider extends ServiceProvider
         }
         foreach ($this->settingsLinks() as $link) {
             $registry->addSettingsLink($link['section'], $link);
+        }
+        foreach ($this->ruleSections() as $section => $classes) {
+            foreach ($classes as $class) {
+                $registry->addRuleSection($section, $class);
+            }
         }
         foreach ($this->attachables() as $key => $entity) {
             $registry->addAttachable($key, $entity['label'], $entity['model'], $entity['edit'], $entity['view'] ?? null);

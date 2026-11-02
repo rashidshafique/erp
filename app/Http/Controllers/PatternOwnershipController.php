@@ -96,28 +96,4 @@ class PatternOwnershipController extends Controller
 
         return redirect()->route('patterns.show', $pattern)->with('success', "{$pattern->code} scrapped and archived.");
     }
-
-    /** The pattern ownership rules, under Settings. */
-    public function editRules(): View
-    {
-        return view('settings.rules', [
-            'title' => 'Pattern ownership rules', 'intro' => 'How the foundry treats patterns it holds for customers.',
-            'rules' => PatternOwnershipRules::RULES, 'values' => collect(PatternOwnershipRules::RULES)->map(fn ($r, $k) => PatternOwnershipRules::get($k))->all(),
-            'action' => route('settings.pattern-ownership'), 'backUrl' => route('pattern-ownership.index'), 'backLabel' => 'Pattern ownership',
-            'note' => "Scrapping a customer's pattern always needs their written consent and an approval (Settings → Approvals). Returned and scrapped patterns can never be moulded.",
-        ]);
-    }
-
-    public function rules(Request $request): RedirectResponse
-    {
-        $rules = [];
-        foreach (PatternOwnershipRules::RULES as $key => [, , $options]) {
-            $rules[$key] = $options === null ? ['required', 'numeric', 'min:0', 'max:1000000'] : ['required', Rule::in(array_keys($options))];
-        }
-        foreach ($request->validate($rules) as $key => $value) {
-            PatternOwnershipRules::set($key, (string) $value);
-        }
-
-        return back()->with('success', 'Pattern ownership rules saved.');
-    }
 }

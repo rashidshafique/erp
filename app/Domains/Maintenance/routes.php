@@ -1,12 +1,10 @@
 <?php
 
-use App\Domains\Maintenance\Http\Controllers\CalibrationRulesController;
 use App\Domains\Maintenance\Http\Controllers\GaugeController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('web')->group(function () {
-    Route::get('/settings/calibration', [CalibrationRulesController::class, 'edit'])->name('settings.calibration.edit');
-    Route::put('/settings/calibration', [CalibrationRulesController::class, 'update'])->name('settings.calibration');
+    Route::redirect('/settings/calibration', '/settings/rules#calibration');
     Route::prefix('gauges')->name('gauges.')->controller(GaugeController::class)->group(function () {
         Route::get('/', 'index')->name('index');
         Route::get('/create', 'create')->name('create');

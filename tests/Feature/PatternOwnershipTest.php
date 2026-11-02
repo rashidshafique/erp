@@ -204,7 +204,7 @@ class PatternOwnershipTest extends TestCase
 
         $this->get(route('pattern-ownership.index'))->assertOk()->assertSee('PT-1')->assertDontSee('PT-NEW')->assertDontSee('Storage due');
 
-        $this->put(route('settings.pattern-ownership'), ['other_customer' => 'BLOCK', 'pay_off' => 'MANUAL', 'idle_months' => 12, 'storage' => 'CHARGE', 'storage_free_months' => 12, 'storage_rate' => 1000])->assertSessionHasNoErrors();
+        $this->put(route('settings.rules.update'), ['other_customer' => 'BLOCK', 'pay_off' => 'MANUAL', 'idle_months' => 12, 'storage' => 'CHARGE', 'storage_free_months' => 12, 'storage_rate' => 1000])->assertSessionHasNoErrors();
 
         $row = app(PatternOwnership::class)->idle()->sole();
         $this->assertSame([20, 8000.0], [$row['months'], $row['charge']]);

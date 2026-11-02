@@ -15,20 +15,14 @@ class SettingsNav
     /** label => [route to open, route patterns that make it the current entry] */
     public const SECTIONS = [
         'Foundry' => [
-            'General' => ['settings.edit', ['settings.edit', 'settings.update']],
-            'Display & branding' => ['settings.display', ['settings.display*', 'settings.branding*']],
+            'General' => ['settings.display', ['settings.display*', 'settings.branding*']],
             'Codes & marking' => ['settings.codes', ['settings.codes*']],
             'Documents' => ['settings.documents', ['settings.documents*']],
             'Custom fields' => ['custom-fields.index', ['custom-fields.*']],
-            'Flask rules' => ['settings.flasks.edit', ['settings.flasks*']],
             'How you work' => ['settings.process-setup.edit', ['settings.process-setup*']],
-            'Process depth' => ['settings.process-depth.edit', ['settings.process-depth*']],
-            'Order rules' => ['settings.orders.edit', ['settings.orders*']],
-            'Pouring rules' => ['settings.pouring.edit', ['settings.pouring*']],
+            'Process rules' => ['settings.rules', ['settings.rules*']],
             'Our process' => ['settings.process', ['settings.process']],
-            'Production queue rules' => ['settings.queue.edit', ['settings.queue*']],
             'Melting days' => ['settings.melting-days.edit', ['settings.melting-days*']],
-            'Pattern ownership rules' => ['settings.pattern-ownership.edit', ['settings.pattern-ownership*']],
         ],
         'Access & data' => [
             'Users' => ['users.index', ['users.*']],

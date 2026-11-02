@@ -6,7 +6,6 @@ use App\Domains\Core\ModuleRegistry;
 use App\Domains\Maintenance\Models\Gauge;
 use App\Domains\Purchasing\Models\IncomingInspection;
 use App\Domains\Purchasing\Services\IncomingGate;
-use App\Domains\Purchasing\Support\IncomingRules;
 use App\Http\Controllers\Controller;
 use App\Models\Material;
 use App\Models\MaterialLot;
@@ -20,29 +19,6 @@ use Illuminate\View\View;
 class IncomingController extends Controller
 {
     public const CERTIFICATE_TYPES = ['EN10204_21' => 'EN 10204 2.1', 'EN10204_22' => 'EN 10204 2.2', 'EN10204_31' => 'EN 10204 3.1', 'EN10204_32' => 'EN 10204 3.2'];
-
-    public function editSettings(): View
-    {
-        return view('settings.rules', [
-            'title' => 'Incoming material rules', 'intro' => 'What a received lot needs before it can be accepted into stock.',
-            'rules' => IncomingRules::RULES, 'values' => collect(IncomingRules::RULES)->map(fn ($r, $k) => IncomingRules::get($k))->all(),
-            'action' => route('incoming.settings.update'), 'backUrl' => route('suppliers.index'), 'backLabel' => 'Suppliers',
-            'note' => 'Both are off by default. A lot from a blocked supplier is always refused. Rules apply when a lot is accepted, not when it is recorded in quarantine.',
-        ]);
-    }
-
-    public function updateSettings(Request $request): RedirectResponse
-    {
-        $rules = [];
-        foreach (IncomingRules::RULES as $key => [, , $options]) {
-            $rules[$key] = ['required', Rule::in(array_keys($options))];
-        }
-        foreach ($request->validate($rules) as $key => $value) {
-            IncomingRules::set($key, $value);
-        }
-
-        return back()->with('success', 'Incoming material rules saved.');
-    }
 
     public function editPlan(Material $material): View
     {

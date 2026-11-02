@@ -7,7 +7,7 @@
             <p class="muted small">Grade {{ $heat->ironGrade->code }}:
                 {{ $heat->ironGrade->needs_mg_treatment ? 'needs magnesium treatment' : 'no magnesium treatment' }},
                 {{ $heat->ironGrade->needs_inoculation ? 'needs inoculation' : 'no inoculation required' }}.
-                Fade limit {{ \App\Http\Controllers\ProcessControlController::maxFadeMinutes() }} min.</p>
+                Fade limit {{ \App\Support\PouringRules::minutes('max_fade_minutes') }} min.</p>
         @endif
     </div>
     @if ($trs->isNotEmpty())

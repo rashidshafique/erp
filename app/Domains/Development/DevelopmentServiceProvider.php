@@ -40,6 +40,11 @@ class DevelopmentServiceProvider extends ModuleServiceProvider
         ];
     }
 
+    protected function ruleSections(): array
+    {
+        return ['Development' => [\App\Domains\Development\Support\DevelopmentRules::class]];
+    }
+
     protected function permissionRoutes(): array
     {
         return [

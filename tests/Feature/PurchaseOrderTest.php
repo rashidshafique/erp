@@ -130,7 +130,7 @@ class PurchaseOrderTest extends TestCase
         $this->get(route('purchase-orders.create'))->assertOk();
         $this->get(route('purchase-orders.show', $order))->assertOk()->assertSee('Receive goods');
         $this->get(route('purchase-orders.print', $order))->assertOk();
-        $this->get(route('purchase-orders.settings.edit'))->assertOk();
+        $this->get(route('settings.rules'))->assertOk();
     }
 
     public function test_receiving_tells_everyone_who_manages_quality_that_a_lot_waits_for_incoming_inspection(): void
