@@ -593,15 +593,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!submenu.id) submenu.id = 'nav-section-' + (i + 1);
         button.setAttribute('aria-controls', submenu.id);
 
-        const name = nameOf(group);
-        const open = typeof remembered[name] === 'boolean' ? remembered[name] : true;
-        setOpen(group, open);
-
-        button.addEventListener('click', () => {
-            const next = !group.classList.contains('is-open');
-            setOpen(group, next);
-            save(name, next);
-        });
+        // Sections no longer open and close: every heading is a plain label with its links always shown.
+        setOpen(group, true);
+        button.tabIndex = -1;
+        button.removeAttribute('aria-expanded');
     });
 })();
 </script>

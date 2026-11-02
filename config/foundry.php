@@ -29,9 +29,9 @@ return [
         'family_sequence' => ['GREY', 'CGI', 'DUCTILE', 'ALLOY', 'WHITE'],
     ],
 
-    // For now the menu shows only basic invoicing, bills and inventory. Set FOUNDRY_MENU_BASIC_ONLY=false for the full menu.
+    // FOUNDRY_MENU_BASIC_ONLY=true shows only basic invoicing, bills and inventory in the menu.
     // Hidden pages still open by their address and in search.
-    'menu_basic_only' => (bool) env('FOUNDRY_MENU_BASIC_ONLY', true),
+    'menu_basic_only' => (bool) env('FOUNDRY_MENU_BASIC_ONLY', false),
     'menu_basic_routes' => [
         'customers.index', 'products.index', 'invoices.index', 'receipts.index', 'receivables.index',
         'suppliers.index', 'bills.index', 'supplier-payments.index', 'payables.index',

@@ -338,6 +338,12 @@ th { border-bottom-color: var(--border); }
 .menu-labels .nav-submenu { display: flex !important; flex-direction: column; gap: 2px; }
 .menu-labels .nav-submenu[hidden] { display: none !important; }
 .menu-labels .nav-submenu .nav-link { display: flex; align-items: center; justify-content: space-between; margin: 0; }
+/* Sections do not expand or collapse: headings are plain labels, no chevron, no hover, links always shown. */
+.menu-labels .nav-group .nav-group-toggle { cursor: default; pointer-events: none; }
+.menu-labels .nav-group .nav-group-toggle:hover,
+.menu-labels .nav-group .nav-group-toggle:focus-visible { color: var(--text-faint) !important; background: transparent !important; }
+.menu-labels .nav-group-toggle .nav-chevron, .nav-chevron { display: none !important; }
+.menu-labels .nav-submenu[hidden] { display: flex !important; }
 .menu-labels .nav-submenu .nav-link .nav-ico { display: none; }
 .menu-labels .nav-submenu .nav-link .nav-count { float: none; margin-left: auto; }
 .menu-labels .sidebar-bottom .nav-link .nav-ico { display: none; }
