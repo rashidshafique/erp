@@ -73,9 +73,9 @@ class LedgerServiceProvider extends ModuleServiceProvider
     protected function settingsLinks(): array
     {
         return [
-            ['section' => 'Foundry', 'label' => 'Ledger accounts', 'route' => 'ledger.settings', 'active' => ['ledger.settings', 'ledger.settings.update', 'ledger.settings.closing', 'ledger.settings.post-missing']],
-            ['section' => 'Foundry', 'label' => 'Posting rules', 'route' => 'ledger.settings.posting-rules', 'active' => ['ledger.settings.posting-rules']],
-            ['section' => 'Foundry', 'label' => 'Sales documents', 'route' => 'ledger.settings.sales-documents', 'active' => ['ledger.settings.sales-documents*']],
+            ['section' => 'Accounts', 'label' => 'Ledger accounts', 'route' => 'ledger.settings', 'active' => ['ledger.settings', 'ledger.settings.update', 'ledger.settings.closing', 'ledger.settings.post-missing']],
+            ['section' => 'Accounts', 'label' => 'Posting rules', 'route' => 'ledger.settings.posting-rules', 'active' => ['ledger.settings.posting-rules']],
+            ['section' => 'Accounts', 'label' => 'Sales documents', 'route' => 'ledger.settings.sales-documents', 'active' => ['ledger.settings.sales-documents*']],
         ];
     }
 

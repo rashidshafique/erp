@@ -24,6 +24,7 @@ class SettingsNav
             'Our process' => ['settings.process', ['settings.process']],
             'Melting days' => ['settings.melting-days.edit', ['settings.melting-days*']],
         ],
+        'Accounts' => [],   // filled by the Finance and Ledger modules; here so it sits between the other two
         'Access & data' => [
             'Users' => ['users.index', ['users.*']],
             'Roles & permissions' => ['roles.index', ['roles.*']],
@@ -47,7 +48,7 @@ class SettingsNav
             }
         }
 
-        return $sections;
+        return array_filter($sections);   // a heading with no links is left out
     }
 
     /** True on any page that belongs to the Settings area. */
