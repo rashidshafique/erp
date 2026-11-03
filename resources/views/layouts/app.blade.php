@@ -192,7 +192,7 @@
         <div class="sidebar-bottom">
             <a href="{{ route('help.new-customer') }}" class="nav-link {{ request()->routeIs('help.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('help-circle') !!}<span>Help: new customer</span></a>
             @if (\App\Support\SettingsNav::canOpen())
-                <a href="{{ route('settings.home') }}" class="nav-link {{ \App\Support\SettingsNav::isSettingsPage() ? 'active' : '' }}">{!! \App\Support\NavIcons::get('settings') !!}<span>Settings</span></a>
+                <a href="{{ route('settings.home') }}" class="nav-link {{ \App\Support\SettingsNav::isSettingsPage() || request()->routeIs('settings.home') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('settings') !!}<span>Settings</span></a>
             @endif
             <button type="button" class="nav-link nav-hidden-open" id="hidden-items-open" aria-haspopup="dialog">{!! \App\Support\NavIcons::get('eye-off') !!}<span>Hidden items</span><span class="nav-count" id="hidden-items-count" hidden></span></button>
         </div>

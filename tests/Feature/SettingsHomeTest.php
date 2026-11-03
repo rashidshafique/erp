@@ -9,14 +9,16 @@ class SettingsHomeTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_settings_opens_on_a_home_listing_every_area_and_the_developer_values(): void
+    public function test_settings_home_shows_the_areas_with_pages_and_the_developer_values_and_no_settings_column(): void
     {
         $this->get('/settings')->assertOk()
-            ->assertSee('Process rules')
+            ->assertSee('Company')
+            ->assertSee('Production')
+            ->assertSee('Needs')
             ->assertSee(route('settings.rules'), false)
-            ->assertSee('Users')
             ->assertSee('Sign-in is off.')
             ->assertSee('Set by your developer')
-            ->assertSee('Attachment limit');
+            ->assertSee('Attachment limit')
+            ->assertDontSee('class="settings-nav"', false);
     }
 }

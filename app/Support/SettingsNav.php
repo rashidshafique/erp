@@ -14,9 +14,6 @@ class SettingsNav
 {
     /** label => [route to open, route patterns that make it the current entry] */
     public const SECTIONS = [
-        'Overview' => [
-            'All settings' => ['settings.home', ['settings.home']],
-        ],
         'Foundry' => [
             'General' => ['settings.display', ['settings.display*', 'settings.branding*']],
             'Codes & marking' => ['settings.codes', ['settings.codes*']],
