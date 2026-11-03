@@ -4,6 +4,7 @@ namespace App\Domains\Sales\Services;
 
 use App\Domains\Sales\Models\SalesOrder;
 use App\Services\Orders\ProductionOrderFactory;
+use App\Models\User;
 use App\Support\OrderRules;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -69,6 +70,51 @@ class SalesOrderStatus
             $review->verdict === 'BLOCK' => 'saved, but the contract review found '.$review->items->where('severity', 'BLOCK')->count().' blocking problem(s) to fix first',
             default => 'saved. The contract review has warnings: acknowledge them and approve it to go on',
         };
+    }
+
+    /**
+     * One click from the order page: runs the review when there is none or it is stale, refuses while it blocks or has warnings
+     * without a note, signs the user's open side, and once the review is approved makes the order live with every line released.
+     * When a second person still has to sign, the sign-off is kept and nothing is released. Returns the message to show.
+     */
+    public function approveAndRelease(SalesOrder $order, ?User $user = null, ?string $name = null): string
+    {
+        $order = $order->fresh();
+        if (! in_array($order->status, ['DRAFT', 'UNDER_REVIEW', 'CONFIRMED'], true)) {
+            $this->refuse('Only an order that is not live yet can be approved and released.');
+        }
+        $review = null;
+        if (OrderRules::reviewRequired()) {
+            $reviewer = app(ContractReviewer::class);
+            $review = $order->currentReview();
+            // Kept even when a refusal follows, so the warnings it finds can be given a note.
+            if (! $review || $order->changedSince($review)) {
+                $review = $reviewer->evaluate($order);
+            }
+            if ($review->items->where('severity', 'BLOCK')->isNotEmpty()) {
+                $this->refuse('The contract review blocks this order. Fix '.$review->items->where('severity', 'BLOCK')->count().' finding(s) and try again.');
+            }
+            $open = $review->items->where('severity', 'WARN')->whereNull('acknowledgement')->count();
+            if ($open > 0) {
+                $this->refuse($open.' '.($open === 1 ? 'warning needs' : 'warnings need').' a note before the order can be approved.');
+            }
+        }
+
+        return DB::transaction(function () use ($order, $review, $user, $name) {
+            if ($review && $review->status !== 'APPROVED') {
+                $role = $review->sales_signed_at ? 'quality' : 'sales';
+                $review = app(ContractReviewer::class)->sign($review, $role, $name, $user);
+                if ($review->status !== 'APPROVED') {
+                    return ucfirst($role).' sign-off recorded. Someone else signs as '.($role === 'sales' ? 'quality' : 'sales').' to release the order.';
+                }
+            }
+            $lineIds = $order->lines()->select('id');
+            $before = \App\Models\ProductionOrder::whereIn('sales_order_line_id', $lineIds)->count();
+            $this->makeLive($order->fresh(), true);
+            $made = \App\Models\ProductionOrder::whereIn('sales_order_line_id', $lineIds)->count() - $before;
+
+            return ($review ? 'Approved and released' : 'Released').": {$made} production ".str('order')->plural($made).' created.';
+        });
     }
 
     /** Makes the order live. With $releaseAll every line gets a released production order for what is still unscheduled. */

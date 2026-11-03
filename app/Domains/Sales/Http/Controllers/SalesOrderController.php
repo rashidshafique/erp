@@ -245,6 +245,14 @@ class SalesOrderController extends Controller
         return redirect()->route('sales-orders.show', $salesOrder)->with('success', "Production order {$po->production_order_number} created as a draft.");
     }
 
+    public function approveAndRelease(Request $request, SalesOrder $salesOrder, SalesOrderStatus $status): RedirectResponse
+    {
+        $data = $request->validate(['name' => [$request->user() ? 'nullable' : 'required', 'string', 'max:100']]);
+        $done = $status->approveAndRelease($salesOrder, $request->user(), $data['name'] ?? null);
+
+        return redirect()->route('sales-orders.show', $salesOrder)->with('success', $done)->with('warning', ProductionOrderFactory::awaitingApprovalNote($salesOrder));
+    }
+
     public function changeStatus(Request $request, SalesOrder $salesOrder, SalesOrderStatus $status): RedirectResponse
     {
         $data = $request->validate([

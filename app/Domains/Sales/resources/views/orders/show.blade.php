@@ -53,8 +53,16 @@
                     })();
                 </script>
             @endif
+            @php $canRelease = in_array($order->status, ['DRAFT', 'UNDER_REVIEW', 'CONFIRMED'], true) && $order->lines->contains(fn ($l) => $l->fromPieces((float) $l->productionOrders->where('status', '!=', 'CANCELLED')->sum('planned_qty')) < (float) $l->ordered_qty - 0.0005); @endphp
+            @if ($canRelease)
+                <form method="POST" action="{{ route('sales-orders.approve-release', $order) }}" style="display:inline">@csrf
+                    @unless (auth()->user())<input name="name" placeholder="Your name" required maxlength="100" aria-label="Your name">@endunless
+                    <button class="el-btn primary" type="submit" title="{{ \App\Support\OrderRules::reviewRequired() ? 'Runs the review if needed, signs for you, makes the order live and releases a production order per line' : 'Makes the order live and releases a production order per line' }}">{{ \App\Support\OrderRules::reviewRequired() ? 'Approve & release' : 'Release' }}</button></form>
+            @endif
+            @unless ($canRelease)
             <form method="POST" action="{{ route('sales-orders.review', $order) }}" style="display:inline">@csrf
                 <button class="el-btn primary" type="submit">{{ $review ? 'Re-run contract review' : 'Run contract review' }}</button></form>
+            @endunless
         </div>
     </div>
     <div class="el-facts">
@@ -199,6 +207,7 @@
 <div class="el-card" style="margin-top:16px">
     <div class="el-bar">
         <span style="font-weight:600;font-size:13px">Contract review{{ $review ? ' '.$review->review_number : '' }}</span>
+        @if ($canRelease)<form method="POST" action="{{ route('sales-orders.review', $order) }}" style="margin-left:auto">@csrf<button class="el-btn" type="submit">{{ $review ? 'Re-run review' : 'Run review' }}</button></form>@endif
         @if ($review)@php $openWarns = $review->items->where('severity', 'WARN')->whereNull('acknowledgement')->count(); $nBlocks = $review->items->where('severity', 'BLOCK')->count(); @endphp
             <span style="display:flex;gap:6px;align-items:center">@if ($nBlocks > 0)<span class="el-pill el-bad">{{ $nBlocks }} to fix</span>@endif @if ($openWarns > 0)<span class="el-pill el-warn">{{ $openWarns }} {{ $openWarns === 1 ? 'note' : 'notes' }} needed</span>@endif<span class="el-pill {{ $review->status === 'APPROVED' ? 'el-ok' : ($review->verdict === 'BLOCK' ? 'el-bad' : 'el-warn') }}">{{ $review->status }} · {{ $review->verdict }}</span></span>
         @endif
