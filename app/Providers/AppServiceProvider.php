@@ -48,6 +48,12 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(StockMovementTypes::class);
         $this->app->singleton(\App\Services\Stock\StockLocationTypes::class);
         $this->app->scoped(\App\Services\Production\MouldAssembler::class);   // one per request, so its last warning can be read back
+
+        // Telescope is for local development only; it never registers, and so never records, outside it.
+        if ($this->app->environment('local') && class_exists(\Laravel\Telescope\TelescopeServiceProvider::class)) {
+            $this->app->register(\Laravel\Telescope\TelescopeServiceProvider::class);
+            $this->app->register(TelescopeServiceProvider::class);
+        }
     }
 
     /**
