@@ -29,11 +29,11 @@
     @foreach ($pack?->registrationFields() ?? [] as $key => $label)
         <div class="field"><label for="reg-{{ $key }}">{{ $label }}</label><input id="reg-{{ $key }}" name="registrations[{{ $key }}]" maxlength="60" value="{{ $company['registrations'][$key] ?? '' }}"></div>
     @endforeach
-    <div class="field field-full"><label><input type="hidden" name="withholding_agent" value="0"><input type="checkbox" name="withholding_agent" value="1" @checked($company['withholding_agent'] ?? false)> We are a withholding agent</label>
+    <div class="field field-full"><label><input type="hidden" name="withholding_agent" value="0"><input class="switch" type="checkbox" name="withholding_agent" value="1" @checked($company['withholding_agent'] ?? false)> We are a withholding agent</label>
         <div class="help">We withhold tax from supplier payments; withholding-agent rules then apply to our bills.</div></div>
     @if ($authorities->isNotEmpty())
         <div class="field field-full"><label>Registered with</label>
-            <div class="tax-checks">@foreach ($authorities as $a)<label><input type="checkbox" name="registered[]" value="{{ $a->id }}" @checked($a->is_registered)> {{ $a->name }} <span class="muted small">({{ $a->code }})</span></label>@endforeach</div>
+            <div class="tax-checks">@foreach ($authorities as $a)<label><input class="switch" type="checkbox" name="registered[]" value="{{ $a->id }}" @checked($a->is_registered)> {{ $a->name }} <span class="muted small">({{ $a->code }})</span></label>@endforeach</div>
             <div class="help">Tax is charged only once registered with the authority.</div></div>
     @endif
 </div></div><div class="panel-body"><button class="btn btn-primary">Save</button></div></div>

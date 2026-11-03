@@ -6,8 +6,8 @@
 <label>Name</label><input name="name" value="{{ old('name', $user->name) }}" required>
 <label>Email</label><input type="email" name="email" value="{{ old('email', $user->email) }}" required>
 <label>{{ $user->exists ? 'New password (leave blank to keep)' : 'Password' }}</label><input type="password" name="password" {{ $user->exists ? '' : 'required' }}>
-<label><input type="checkbox" name="must_change_password" value="1" checked> Must change password at next sign-in</label>
-@if($user->exists)<label><input type="checkbox" name="is_active" value="1" @checked(old('is_active', $user->is_active))> Active</label>@else<input type="hidden" name="is_active" value="1">@endif
+<label><input class="switch" type="checkbox" name="must_change_password" value="1" checked> Must change password at next sign-in</label>
+@if($user->exists)<label><input class="switch" type="checkbox" name="is_active" value="1" @checked(old('is_active', $user->is_active))> Active</label>@else<input type="hidden" name="is_active" value="1">@endif
 <fieldset style="margin-top:12px"><legend>Roles</legend>@foreach($roles as $r)<label style="display:block"><input type="checkbox" name="roles[]" value="{{ $r->id }}" @checked(in_array($r->id, old('roles', $user->roles->pluck('id')->all())))> {{ $r->name }}</label>@endforeach</fieldset>
 <p><button class="btn btn-primary">Save</button> <a href="{{ route('users.index') }}">Cancel</a></p></form></div></div>
 @endsection

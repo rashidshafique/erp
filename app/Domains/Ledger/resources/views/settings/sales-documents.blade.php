@@ -19,7 +19,7 @@
                 <div class="ac-field"><label class="lab" for="sd-d">Additional deductions</label><select id="sd-d" name="deductions">@for ($i = 0; $i <= $cb::MAX; $i++)<option value="{{ $i }}" @selected($deductions === $i)>{{ $plural($i) }}</option>@endfor</select><span class="hint">After tax, before Net. E.g. discount.</span></div>
             </div>
             <div class="ac-field"><span class="lab">Show on</span>
-                <div style="display:flex;gap:18px;flex-wrap:wrap">@foreach ($cb::DOCUMENT_LABELS as $k => $l)<label class="ac-check" style="color:{{ in_array($k, $documents, true) ? '#1c1d1f' : '#6b6e73' }};margin:0"><input type="checkbox" name="documents[]" value="{{ $k }}" @checked(in_array($k, $documents, true)) style="width:15px;height:15px;margin:0">{{ $l }}</label>@endforeach</div>
+                <div style="display:flex;gap:18px;flex-wrap:wrap">@foreach ($cb::DOCUMENT_LABELS as $k => $l)<label class="ac-check" style="color:{{ in_array($k, $documents, true) ? '#1c1d1f' : '#6b6e73' }};margin:0"><input class="switch" type="checkbox" name="documents[]" value="{{ $k }}" @checked(in_array($k, $documents, true)) style="width:15px;height:15px;margin:0">{{ $l }}</label>@endforeach</div>
                 <span class="hint">Invoices and credit notes use them today.</span>
             </div>
             <div style="padding:10px 12px;border-radius:7px;background:#f8f8f9;font-size:12.5px;color:#6b6e73;line-height:1.5;text-wrap:pretty">Each box offers only accounts ticked <strong style="font-weight:600;color:#1c1d1f">Deduction and charge</strong> in the <a href="{{ route('ledger.accounts.index') }}">chart of accounts</a>. Charges credit the account; deductions debit it.</div>

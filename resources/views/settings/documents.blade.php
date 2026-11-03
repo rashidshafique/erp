@@ -11,7 +11,7 @@
     <fieldset style="margin-top:16px"><legend>Categories that keep versions</legend>
         <div class="rule-grid">
             @foreach ($categories as $key => $label)
-                <label><input type="checkbox" name="categories[]" value="{{ $key }}" @checked(in_array($key, old('categories', $selected), true))> {{ $label }}</label>
+                <label><input class="switch" type="checkbox" name="categories[]" value="{{ $key }}" @checked(in_array($key, old('categories', $selected), true))> {{ $label }}</label>
             @endforeach
         </div>
         <p class="muted small">Photos rarely need versions.</p>

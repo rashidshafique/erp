@@ -425,3 +425,6 @@ input.switch:focus-visible { outline: 2px solid var(--accent); outline-offset: 2
 .switch-row input.switch:not(:checked) ~ .off { display: inline; }
 .switch-row input.switch:not(:checked) ~ .on { display: none; }
 @media (prefers-reduced-motion: reduce) { input.switch, input.switch::after { transition: none; } }
+label:has(> input.switch), label:has(> span > input.switch) { display: inline-flex; gap: 8px; align-items: center; font-weight: 400; cursor: pointer; }
+input.switch:disabled { opacity: .45; cursor: not-allowed; }
+td > input.switch { display: block; margin: 0 auto; }

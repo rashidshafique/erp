@@ -18,7 +18,7 @@
     <div data-mode-block="WEEKDAYS" class="field" style="margin-top:14px">
         <label>The furnace is lit on</label>
         <div style="display:flex;gap:14px;flex-wrap:wrap">@foreach (\App\Support\MeltingCalendar::DAYS as $n => $name)
-            <label class="check-field" style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" name="weekdays[]" value="{{ $n }}" @checked(in_array($n, (array) old('weekdays', $s['weekdays']))) style="width:auto;min-height:0"> {{ $name }}</label>
+            <label class="check-field" style="display:inline-flex;gap:6px;align-items:center"><input class="switch" type="checkbox" name="weekdays[]" value="{{ $n }}" @checked(in_array($n, (array) old('weekdays', $s['weekdays']))) style="width:auto;min-height:0"> {{ $name }}</label>
         @endforeach</div>
     </div>
 
@@ -29,7 +29,7 @@
         </div>
         <div class="field" style="margin-top:10px"><label>Never lit on</label>
             <div style="display:flex;gap:14px;flex-wrap:wrap">@foreach (\App\Support\MeltingCalendar::DAYS as $n => $name)
-                <label class="check-field" style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" name="skip[]" value="{{ $n }}" @checked(in_array($n, (array) old('skip', $s['skip']))) style="width:auto;min-height:0"> {{ $name }}</label>
+                <label class="check-field" style="display:inline-flex;gap:6px;align-items:center"><input class="switch" type="checkbox" name="skip[]" value="{{ $n }}" @checked(in_array($n, (array) old('skip', $s['skip']))) style="width:auto;min-height:0"> {{ $name }}</label>
             @endforeach</div>
             <div class="help">Skipped; the count carries on.</div></div>
     </div>

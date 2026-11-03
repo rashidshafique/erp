@@ -23,7 +23,7 @@
             <div class="form-grid">
                 <div class="field"><label for="tax_status">Tax status</label><select id="tax_status" name="tax_status"><option value="">Not set</option>@foreach ($statuses as $s => $label)<option value="{{ $s }}" @selected($profile?->tax_status === $s)>{{ $label }}</option>@endforeach</select></div>
                 <div class="field"><label for="tax_region">Region</label><select id="tax_region" name="region"><option value="">—</option>@foreach ($regions as $r => $name)<option value="{{ $r }}" @selected($profile?->region === $r)>{{ $name }}</option>@endforeach</select><div class="help">Where services to them are supplied, unless a document says otherwise.</div></div>
-                <div class="field"><label><input type="hidden" name="is_withholding_agent" value="0"><input type="checkbox" name="is_withholding_agent" value="1" @checked($profile?->is_withholding_agent)> Withholding agent</label><div class="help">They keep back part of the tax and pay it to the authority.</div></div>
+                <div class="field"><label><input type="hidden" name="is_withholding_agent" value="0"><input class="switch" type="checkbox" name="is_withholding_agent" value="1" @checked($profile?->is_withholding_agent)> Withholding agent</label><div class="help">They keep back part of the tax and pay it to the authority.</div></div>
                 @foreach ($pack->registrationFields() as $key => $label)
                     <div class="field"><label for="tax-reg-{{ $key }}">{{ $label }}</label><input id="tax-reg-{{ $key }}" name="registrations[{{ $key }}]" maxlength="60" value="{{ $profile?->registrations[$key] ?? '' }}"></div>
                 @endforeach
