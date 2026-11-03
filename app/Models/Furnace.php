@@ -25,6 +25,8 @@ class Furnace extends Model
         'notes',
         'equipment_id',
         'max_operating_power_kw',
+        'is_default',
+        'default_iron_grade_id',
     ];
 
     protected function casts(): array
@@ -34,7 +36,20 @@ class Furnace extends Model
             'nominal_melting_rate_kg_per_hour' => 'decimal:3',
             'rated_power_kw' => 'decimal:3',
             'max_operating_power_kw' => 'decimal:3',
+            'is_default' => 'boolean',
         ];
+    }
+
+    /** The grade a new heat on this furnace starts with. */
+    public function defaultIronGrade(): BelongsTo
+    {
+        return $this->belongsTo(IronGrade::class, 'default_iron_grade_id');
+    }
+
+    /** The active furnace new heats start on, if one is marked. */
+    public static function preselected(): ?self
+    {
+        return static::where('is_default', true)->where('status', 'ACTIVE')->first();
     }
 
     public function heats(): HasMany

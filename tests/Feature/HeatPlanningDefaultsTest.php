@@ -40,7 +40,7 @@ class HeatPlanningDefaultsTest extends TestCase
         $ranged = $this->grade(['code' => 'FG-260', 'tap_temp_min_c' => 1450, 'tap_temp_max_c' => 1500]);
         $ductile = $this->grade(['code' => 'SG-500', 'family' => 'DUCTILE']);
 
-        $page = $this->get(route('heats.create'))->assertOk()->assertSee('Optional. Set it later on the heat')->assertDontSee('Target metal weight (kg) *', false);
+        $page = $this->get(route('heats.create'))->assertOk()->assertDontSee('Optional. Set it later on the heat')->assertDontSee('Target metal weight (kg) *', false);
         $page->assertSee('"'.$ranged->id.'":{"temp":1475', false)->assertSee('"'.$ductile->id.'":{"temp":1500', false);
     }
 
@@ -54,5 +54,27 @@ class HeatPlanningDefaultsTest extends TestCase
         $this->assertStringContainsString('grey iron', $grey['source']);
         $this->assertSame(1500, $this->grade(['family' => 'DUCTILE'])->suggestedTapTemperature()['temp']);
         $this->assertNull((new IronGrade(['code' => 'X', 'family' => 'UNKNOWN']))->suggestedTapTemperature());
+    }
+
+    public function test_the_default_furnace_and_its_grade_are_preselected_on_a_new_heat(): void
+    {
+        $grade = $this->grade(['code' => 'FG-DEF']);
+        $other = Furnace::create(['code' => 'IF-A', 'name' => 'Induction A', 'furnace_type' => 'INDUCTION', 'status' => 'ACTIVE']);
+        $default = Furnace::create(['code' => 'IF-B', 'name' => 'Induction B', 'furnace_type' => 'INDUCTION', 'status' => 'ACTIVE']);
+
+        $this->put(route('furnaces.defaults', $default), ['is_default' => 1, 'default_iron_grade_id' => $grade->id])->assertRedirect();
+        $this->put(route('furnaces.defaults', $other), ['is_default' => 1])->assertRedirect();
+        $this->assertFalse($default->fresh()->is_default);
+
+        $this->put(route('furnaces.defaults', $default), ['is_default' => 1, 'default_iron_grade_id' => $grade->id]);
+        $this->assertFalse($other->fresh()->is_default);
+
+        $page = $this->get(route('heats.create'))->assertOk()->getContent();
+        $this->assertMatchesRegularExpression('/<option\s+value="'.$default->id.'"[^>]*selected/s', $page);
+        $this->assertDoesNotMatchRegularExpression('/<option\s+value="'.$other->id.'"[^>]*selected/s', $page);
+        $this->assertMatchesRegularExpression('/<option value="'.$grade->id.'" selected/', $page);
+
+        $default->update(['status' => 'MAINTENANCE']);
+        $this->assertDoesNotMatchRegularExpression('/<option\s+value="'.$default->id.'"[^>]*selected/s', $this->get(route('heats.create'))->getContent());
     }
 }

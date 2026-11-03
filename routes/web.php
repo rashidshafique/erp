@@ -208,6 +208,7 @@ Route::prefix('furnaces')
         Route::get('/create', 'create')->name('create');
         Route::post('/', 'store')->name('store');
         Route::get('/{furnace}', 'show')->name('show');
+        Route::put('/{furnace}/defaults', 'defaults')->name('defaults');
     });
 
 Route::post('/heats/{heat}/charge-rounds', [\App\Http\Controllers\HeatChargeRoundController::class, 'store'])->name('heats.charge-rounds.store');

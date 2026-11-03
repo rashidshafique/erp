@@ -31,6 +31,30 @@
 </div>
 
 <div class="panel">
+    <div class="panel-header"><h2>Heat defaults</h2></div>
+    <div class="panel-body">
+        <form method="POST" action="{{ route('furnaces.defaults', $furnace) }}">
+            @csrf @method('PUT')
+            <div class="form-grid">
+                <div class="field">
+                    <label for="is_default">Start new heats on this furnace</label>
+                    <input type="hidden" name="is_default" value="0">
+                    <label><input class="switch" type="checkbox" id="is_default" name="is_default" value="1" @checked($furnace->is_default)> Default furnace</label>
+                </div>
+                <div class="field">
+                    <label for="default_iron_grade_id">Default iron grade</label>
+                    <select id="default_iron_grade_id" name="default_iron_grade_id">
+                        <option value="">No default grade</option>
+                        @foreach ($grades as $grade)<option value="{{ $grade->id }}" @selected($furnace->default_iron_grade_id === $grade->id)>{{ $grade->code }} ({{ $grade->family }})</option>@endforeach
+                    </select>
+                </div>
+            </div>
+            <div class="actions"><button class="btn btn-primary" type="submit">Save defaults</button></div>
+        </form>
+    </div>
+</div>
+
+<div class="panel">
     <div class="panel-header"><h2>Recent heats</h2></div>
     @if ($recentHeats->isEmpty())
         <div class="empty-state">No heats on this furnace yet.</div>

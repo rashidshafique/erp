@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Equipment;
 use App\Models\Furnace;
+use App\Models\IronGrade;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -29,8 +31,27 @@ class FurnaceController extends Controller
 
         return view('furnaces.show', [
             'furnace' => $furnace,
+            'grades' => IronGrade::where('status', 'ACTIVE')->orderBy('code')->get(['id', 'code', 'family']),
             'recentHeats' => $furnace->heats()->latest('created_at')->limit(10)->get(),
         ]);
+    }
+
+    /** Marks the furnace new heats start on, and the grade they start with; only one furnace is the default. */
+    public function defaults(Request $request, Furnace $furnace): RedirectResponse
+    {
+        $data = $request->validate([
+            'is_default' => ['nullable', 'boolean'],
+            'default_iron_grade_id' => ['nullable', 'uuid', Rule::exists('iron_grades', 'id')],
+        ]);
+        DB::transaction(function () use ($data, $furnace) {
+            $default = (bool) ($data['is_default'] ?? false);
+            if ($default) {
+                Furnace::where('id', '!=', $furnace->id)->update(['is_default' => false]);
+            }
+            $furnace->update(['is_default' => $default, 'default_iron_grade_id' => $data['default_iron_grade_id'] ?? null]);
+        });
+
+        return back()->with('success', 'Heat defaults saved.');
     }
 
     public function create(): View

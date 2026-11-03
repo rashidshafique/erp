@@ -310,7 +310,9 @@ class HeatReadingController extends Controller
 
         $gradeTemps = $grades->mapWithKeys(fn (IronGrade $grade) => [$grade->id => $grade->suggestedTapTemperature()])->filter();
 
-        return view('heats.create', compact('furnaces', 'grades', 'chargeBatches', 'recipeData', 'gradeTemps'));
+        $default = Furnace::preselected();
+
+        return view('heats.create', compact('furnaces', 'grades', 'chargeBatches', 'recipeData', 'gradeTemps', 'default'));
     }
 
     public function store(Request $request): RedirectResponse

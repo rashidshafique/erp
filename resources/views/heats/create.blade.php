@@ -15,9 +15,13 @@
 </div>
 
 <style>
-    .heat-new-cols { display: grid; grid-template-columns: minmax(0, 57fr) minmax(0, 43fr); gap: 16px; align-items: start; }
-    .heat-new-cols > div { min-width: 0; }
-    @media (max-width: 1100px) { .heat-new-cols { grid-template-columns: minmax(0, 1fr); } }
+    .hn-card { border: 1px solid #e6e7e9; border-radius: 8px; background: #fff; overflow: hidden; font-size: 13px; }
+    .hn-grid { display: grid; grid-template-columns: minmax(0, 1fr) 420px; }
+    .hn-main { padding: 20px 28px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+    .hn-main .panel { margin: 0; }
+    .hn-side { border-left: 1px solid #e6e7e9; padding: 20px 24px; background: #f8f8f9; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+    .hn-sec { font-size: 12px; font-weight: 600; color: #6b6e73; text-transform: uppercase; letter-spacing: .06em; }
+    @media (max-width: 1000px) { .hn-grid { grid-template-columns: minmax(0, 1fr); } .hn-side { border-left: 0; border-top: 1px solid #e6e7e9; } }
 </style>
 
 @if($furnaces->isEmpty())
@@ -26,8 +30,8 @@
 <form method="POST" action="{{ route('heats.store') }}">
     @csrf
 
-    <div class="heat-new-cols">
-    <div>
+    <div class="hn-card"><div class="hn-grid">
+    <div class="hn-main">
     <div class="panel">
         <div class="panel-header"><h2>Heat details</h2></div>
         <div class="panel-body">
@@ -41,7 +45,8 @@
                                 value="{{ $furnace->id }}"
                                 data-type="{{ $furnace->furnace_type }}"
                                 data-max-power="{{ $furnace->max_operating_power_kw }}"
-                                @selected(old('furnace_id') === $furnace->id)
+                                data-grade="{{ $furnace->default_iron_grade_id }}"
+                                @selected(old('furnace_id', $default?->id) === $furnace->id)
                             >
                                 {{ $furnace->code }} — {{ $furnace->name }} ({{ $furnace->furnace_type }})
                             </option>
@@ -55,7 +60,7 @@
                     <select id="iron_grade_id" name="iron_grade_id">
                         <option value="">No grade (no quality gates)</option>
                         @foreach($grades as $grade)
-                            <option value="{{ $grade->id }}" @selected(old('iron_grade_id') === $grade->id)>{{ $grade->code }} ({{ $grade->family }})</option>
+                            <option value="{{ $grade->id }}" @selected(old('iron_grade_id', old('furnace_id') ? null : $default?->default_iron_grade_id) === $grade->id)>{{ $grade->code }} ({{ $grade->family }})</option>
                         @endforeach
                     </select>
                     @error('iron_grade_id')<div class="error-text">{{ $message }}</div>@enderror
@@ -74,7 +79,6 @@
                             </option>
                         @endforeach
                     </select>
-                    <div class="help">Only active, currently effective recipes matching the furnace are selectable.</div>
                     @error('charge_batch_id')<div class="error-text">{{ $message }}</div>@enderror
                 </div>
 
@@ -87,21 +91,18 @@
                 <div class="field">
                     <label for="target_metal_weight_kg">Target metal weight (kg)</label>
                     <input id="target_metal_weight_kg" name="target_metal_weight_kg" type="number" min="0" step="any" value="{{ old('target_metal_weight_kg') }}">
-                    <div class="help">Optional. Set it later on the heat if it is not known yet.</div>
                     @error('target_metal_weight_kg')<div class="error-text">{{ $message }}</div>@enderror
                 </div>
 
                 <div class="field" id="power-limit-field">
                     <label for="operating_power_limit_kw">Heat operating power limit (kW)</label>
                     <input id="operating_power_limit_kw" name="operating_power_limit_kw" type="number" min="0" step="any" value="{{ old('operating_power_limit_kw') }}">
-                    <div id="power-limit-help" class="help">Applies to induction heats only.</div>
                     @error('operating_power_limit_kw')<div class="error-text">{{ $message }}</div>@enderror
                 </div>
 
                 <div class="field">
                     <label for="target_temperature_c">Target temperature (°C)</label>
                     <input id="target_temperature_c" name="target_temperature_c" type="number" min="0" step="any" value="{{ old('target_temperature_c') }}">
-                    <div class="help" id="temperature-hint">Optional. Choose an iron grade to see a suggested temperature.</div>
                     @error('target_temperature_c')<div class="error-text">{{ $message }}</div>@enderror
                 </div>
 
@@ -128,12 +129,16 @@
                     <span class="muted small" style="display:block">Marked as from the schedule; correct them on the Charge tab. Stock is not deducted.</span></span></label>
         </div>
     </div>
+
+    <div class="actions">
+        <button type="submit" class="btn btn-primary">Create heat</button>
+        <a class="btn" href="{{ route('heats.index') }}">Cancel</a>
+    </div>
     </div>
 
-    <div>
-    <div class="panel">
-        <div class="panel-header"><h2>Planned charge components</h2></div>
-        <div class="panel-body">
+    <aside class="hn-side">
+        <div class="hn-sec">Planned charge components</div>
+        <div>
             <p id="recipe-preview-empty" class="muted">Choose a charge recipe to see its materials and planned quantities here.</p>
             <div id="recipe-preview" hidden>
                 <p id="recipe-preview-basis" class="muted"></p>
@@ -145,17 +150,10 @@
                         <tbody id="recipe-preview-body"></tbody>
                     </table>
                 </div>
-                <p class="muted">These are planned quantities only. Actual charge entries and costs will be recorded separately.</p>
             </div>
         </div>
-    </div>
-    </div>
-    </div>
-
-    <div class="actions">
-        <button type="submit" class="btn btn-primary">Create heat</button>
-        <a class="btn" href="{{ route('heats.index') }}">Cancel</a>
-    </div>
+    </aside>
+    </div></div>
 </form>
 @endif
 
@@ -164,7 +162,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const furnace = document.getElementById('furnace_id');
     const field = document.getElementById('power-limit-field');
     const input = document.getElementById('operating_power_limit_kw');
-    const help = document.getElementById('power-limit-help');
     const recipe = document.getElementById('charge_batch_id');
     const recipePreview = document.getElementById('recipe-preview');
     const recipePreviewBody = document.getElementById('recipe-preview-body');
@@ -276,36 +273,30 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (!isInduction) {
             input.value = '';
-            help.textContent = 'Applies to induction heats only.';
             return;
         }
-
-        const maximum = option.dataset.maxPower;
-        help.textContent = maximum
-            ? 'Furnace maximum configured: ' + maximum + ' kW.'
-            : 'No furnace maximum configured. Enter a limit only if known.';
     }
 
     // The grade (or its iron family) suggests a temperature. It fills the field only while the field is empty or still holds the last suggestion.
     const grade = document.getElementById('iron_grade_id'), temperature = document.getElementById('target_temperature_c');
-    const temperatureHint = document.getElementById('temperature-hint'), gradeTemps = @json($gradeTemps);
+    const gradeTemps = @json($gradeTemps);
     let suggested = null;
     function updateSuggestedTemperature() {
         const s = gradeTemps[grade.value];
         if (!s) {
             if (suggested !== null && temperature.value === String(suggested)) { temperature.value = ''; }
             suggested = null;
-            temperatureHint.textContent = 'Optional. Choose an iron grade to see a suggested temperature.';
             return;
         }
         if (temperature.value === '' || (suggested !== null && temperature.value === String(suggested))) { temperature.value = s.temp; }
         suggested = s.temp;
-        temperatureHint.textContent = 'Suggested ' + s.temp + ' °C, ' + s.source + '. Change it if the melt needs something else.';
     }
     grade.addEventListener('change', updateSuggestedTemperature);
     updateSuggestedTemperature();
 
     furnace.addEventListener('change', function () {
+        const preset = furnace.options[furnace.selectedIndex].dataset.grade;
+        if (preset) { grade.value = preset; updateSuggestedTemperature(); }
         updatePowerLimit();
         updateRecipeOptions();
     });
