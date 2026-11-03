@@ -28,7 +28,7 @@ class BrandingTest extends TestCase
         $this->get(route('dashboard'))->assertSee('--accent: #24945a !important', false);
         $this->save(['accent' => '#1F6FEB'])->assertSessionHasNoErrors();
         $this->get(route('dashboard'))->assertSee('--accent: #1f6feb !important', false)->assertDontSee('#24945a', false);
-        $this->get(route('settings.display'))->assertOk()->assertSee('Colour and logo');
+        $this->get(route('settings.display'))->assertOk()->assertSee('Brand name');
         $this->save(['accent' => '#fef08a'])->assertSessionHasErrors('accent');            // too light for white text
         $this->save(['accent' => 'green'])->assertSessionHasErrors('accent');
         $this->save(['accent' => '#1f6feb', 'reset_accent' => 1]);
@@ -99,5 +99,26 @@ class BrandingTest extends TestCase
                 $this->assertStringNotContainsString($c, $body, "$f still uses $c; use var(--accent)");
             }
         }
+    }
+
+    public function test_the_appearance_page_saves_screen_brand_and_formats_with_one_save(): void
+    {
+        $this->get(route('settings.display'))->assertOk()->assertSee('Appearance')->assertSee('Preview')->assertSee('name="dashboard"', false);
+
+        $this->put(route('settings.display.update'), [
+            'density' => 'COMFORTABLE', 'dashboard' => 'command', 'accent' => '#2f5fd0', 'brand_name' => 'Redfern', 'logo_position' => 'BOTTOM_LEFT', 'logo_height' => 60,
+            'date' => 'dmy/', 'time' => '12', 'number' => 'eu', 'currency' => 'PKR', 'currency_position' => 'before', 'decimals' => 2,
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame(['command', 'COMFORTABLE', '#2f5fd0', 'Redfern', 'dmy/', 'eu'], [
+            AppSetting::getValue('ui.dashboard'), AppSetting::getValue('ui.density'), AppSetting::getValue('ui.accent'), AppSetting::getValue('ui.brand_name'),
+            AppSetting::getValue('format.date'), AppSetting::getValue('format.number'),
+        ]);
+    }
+
+    public function test_a_page_save_with_a_bad_colour_changes_nothing(): void
+    {
+        $this->put(route('settings.display.update'), ['density' => 'COMFORTABLE', 'accent' => '#ffff99', 'brand_name' => 'X', 'logo_position' => 'TOP_LEFT', 'logo_height' => 40])->assertSessionHasErrors('accent');
+        $this->assertNotSame('COMFORTABLE', AppSetting::getValue('ui.density'));
     }
 }

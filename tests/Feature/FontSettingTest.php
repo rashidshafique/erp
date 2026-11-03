@@ -31,7 +31,7 @@ class FontSettingTest extends TestCase
     public function test_the_font_is_editable_and_applies_everywhere(): void
     {
         $this->get(route('dashboard'))->assertSee('--ui-font: -apple-system', false)->assertDontSee('fonts.googleapis.com', false);
-        $this->get(route('settings.display'))->assertOk()->assertSee('Font for the whole interface')->assertSee('Only the administrator sees this setting');
+        $this->get(route('settings.display'))->assertOk()->assertSee('id="ui-font"', false)->assertSee('administrator only');
 
         $this->put(route('settings.display.font'), ['font' => 'inter'])->assertSessionHasNoErrors();
         $this->get(route('dashboard'))->assertSee('--ui-font: "Inter"', false)->assertSee('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&amp;display=swap', false);
@@ -67,11 +67,11 @@ class FontSettingTest extends TestCase
         $admin->roles()->attach(Role::where('code', 'ADMIN')->value('id'));
 
         // someone who may open Settings still does not see or get the font control
-        $this->actingAs($manager)->get(route('settings.display'))->assertOk()->assertDontSee('Font for the whole interface')->assertSee('set by the administrator');
+        $this->actingAs($manager)->get(route('settings.display'))->assertOk()->assertDontSee('id="ui-font"', false)->assertSee('set by the administrator');
         $this->actingAs($manager)->put(route('settings.display.font'), ['font' => 'inter'])->assertForbidden();
         $this->assertSame('system', UiSettings::font()['key']);
 
-        $this->actingAs($admin)->get(route('settings.display'))->assertOk()->assertSee('Font for the whole interface');
+        $this->actingAs($admin)->get(route('settings.display'))->assertOk()->assertSee('id="ui-font"', false);
         $this->actingAs($admin)->put(route('settings.display.font'), ['font' => 'inter'])->assertSessionHasNoErrors();
         $this->assertSame('inter', UiSettings::font()['key']);
     }

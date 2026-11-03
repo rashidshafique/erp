@@ -29,6 +29,14 @@ class BrandingController extends Controller
 
     public function update(Request $request)
     {
+        $this->apply($request);
+
+        return back()->with('success', 'Branding saved.');
+    }
+
+    /** Validates and saves the accent colour, name and logo. Shared by the Appearance page's one Save and the older branding address. */
+    public function apply(Request $request): void
+    {
         $d = $request->validate([
             'accent' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'brand_name' => ['required', 'string', 'max:40'],
@@ -59,8 +67,6 @@ class BrandingController extends Controller
         AppSetting::setValue('ui.logo_position', $d['logo_position'], 'Logo position');
         AppSetting::setValue('ui.logo_height', (string) $d['logo_height'], 'Logo height in px');
         UiSettings::flush();
-
-        return back()->with('success', 'Branding saved.');
     }
 
     private function dropLogo(): void

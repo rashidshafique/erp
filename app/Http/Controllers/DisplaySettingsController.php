@@ -18,6 +18,13 @@ class DisplaySettingsController extends Controller
     /** The font for the whole interface. Administrator only; other roles get a refusal even if they post to it directly. */
     public function updateFont(Request $request)
     {
+        $this->saveFont($request);
+
+        return back()->with('success', 'Font saved.');
+    }
+
+    private function saveFont(Request $request): void
+    {
         abort_unless(UiSettings::canEditFont(), 403, 'Only the administrator can change the font.');
         $d = $request->validate([
             'font' => ['required', 'string', function ($attr, $value, $fail) {
@@ -28,16 +35,21 @@ class DisplaySettingsController extends Controller
             'custom_font' => ['nullable', 'string', 'regex:'.UiSettings::CUSTOM_FONT_PATTERN],
         ], ['custom_font.regex' => 'Use letters, numbers, spaces and hyphens only in the font name.']);
         if ($d['font'] === 'custom' && blank($d['custom_font'] ?? null)) {
-            return back()->withErrors(['custom_font' => 'Type the name of the font.'])->withInput();
+            throw \Illuminate\Validation\ValidationException::withMessages(['custom_font' => 'Type the name of the font.']);
         }
         AppSetting::setValue('ui.font', $d['font'] === 'custom' ? 'custom:'.trim($d['custom_font']) : $d['font'], 'Font used across the interface');
         UiSettings::flush();
-
-        return back()->with('success', 'Font saved.');
     }
 
     /** Date, time, number and currency styles used on every screen. Stored data is never changed. */
     public function updateFormats(Request $request)
+    {
+        $this->saveFormats($request);
+
+        return back()->with('success', 'Formats saved.');
+    }
+
+    private function saveFormats(Request $request): void
     {
         $d = $request->validate([
             'date' => ['required', Rule::in(array_keys(Formats::DATES))],
@@ -54,13 +66,27 @@ class DisplaySettingsController extends Controller
         AppSetting::setValue('format.currency_position', $d['currency_position'], 'Currency before or after the amount');
         AppSetting::setValue('format.decimals', (string) ($d['decimals'] ?? Formats::decimals()), 'The most decimal places a typed number keeps');
         Formats::flush();
-
-        return back()->with('success', 'Formats saved.');
     }
 
-    public function update(Request $request)
+    /** The Appearance page's one Save: screen options always; formats, font (administrator) and brand when their boxes were sent. */
+    public function update(Request $request, BrandingController $branding)
     {
-        $request->validate(['density' => 'required|in:COMPACT,COMFORTABLE']);
+        $request->validate([
+            'density' => 'required|in:COMPACT,COMFORTABLE',
+            'dashboard' => ['nullable', Rule::in(UiSettings::DASHBOARD_LAYOUTS)],
+        ]);
+        if ($request->filled('dashboard')) {
+            AppSetting::setValue('ui.dashboard', $request->input('dashboard'), 'Dashboard layout people start with');
+        }
+        if ($request->has('date')) {
+            $this->saveFormats($request);
+        }
+        if ($request->has('font') && UiSettings::canEditFont()) {
+            $this->saveFont($request);
+        }
+        if ($request->has('brand_name')) {
+            $branding->apply($request);
+        }
         AppSetting::setValue('ui.table_toolbar', $request->boolean('table_toolbar') ? '1' : '0', 'Search and filters sit in the table header');
         AppSetting::setValue('ui.row_click', $request->boolean('row_click') ? '1' : '0', 'Clicking a table row opens its detail page');
         AppSetting::setValue('ui.tidy_forms', $request->boolean('tidy_forms') ? '1' : '0', 'Long forms hide blank optional fields behind Show more');
