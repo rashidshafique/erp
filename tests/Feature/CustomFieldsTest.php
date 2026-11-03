@@ -26,6 +26,21 @@ class CustomFieldsTest extends TestCase
         $this->post(route('custom-fields.store'), $over + ['entity_type' => 'heat', 'data_type' => 'TEXT'])->assertSessionHasNoErrors();
     }
 
+    public function test_the_page_lists_the_fields_of_the_picked_record_and_the_active_switch_keeps_their_details(): void
+    {
+        $this->define(['label' => 'Bath colour', 'data_type' => 'SELECT', 'options_text' => "Bright\nDull", 'is_required' => 1]);
+        $field = CustomFieldDefinition::first();
+
+        $this->get(route('custom-fields.index', ['record' => 'heat']))->assertOk()->assertSee('Bath colour')->assertSee('bath_colour')->assertSee('2 choices');
+        $this->get(route('custom-fields.index', ['record' => 'product']))->assertOk()->assertDontSee('bath_colour');
+
+        $this->put(route('custom-fields.update', $field), ['label' => 'Bath colour', 'options_text' => "Bright\nDull", 'is_required' => 1, 'sort_order' => 100])->assertSessionHasNoErrors();
+        $field->refresh();
+        $this->assertFalse((bool) $field->is_active);
+        $this->assertSame(['Bright', 'Dull'], $field->options);
+        $this->assertTrue((bool) $field->is_required);
+    }
+
     public function test_define_fill_validate_and_query(): void
     {
         $heat = $this->heat();
