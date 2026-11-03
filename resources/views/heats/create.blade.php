@@ -1,6 +1,9 @@
 @extends('layouts.app')
 
 @section('title', 'Create Heat')
+@section('breadcrumb')
+<a href="{{ route('heats.index') }}">Heats</a> / New heat
+@endsection
 
 @section('content')
 <div class="page-heading">
@@ -8,26 +11,30 @@
         <h1>Create melting heat</h1>
         <p>Plan a melt and set its target metal weight and operating parameters.</p>
     </div>
-    <div class="actions">
-        <a class="btn" href="{{ route('heats.index') }}">Back to heats</a>
-    </div>
+    <a class="btn" href="{{ route('heats.index') }}">Back to heats</a>
 </div>
 
+<style>
+    .heat-new-cols { display: grid; grid-template-columns: minmax(0, 57fr) minmax(0, 43fr); gap: 16px; align-items: start; }
+    .heat-new-cols > div { min-width: 0; }
+    @media (max-width: 1100px) { .heat-new-cols { grid-template-columns: minmax(0, 1fr); } }
+</style>
 
-<div class="panel">
-    <div class="panel-header"><h2>Heat details</h2></div>
-    <div class="panel-body">
-        @if($furnaces->isEmpty())
-            <p>No active furnaces are available. Register or activate a furnace first.</p>
-        @else
-        <form method="POST" action="{{ route('heats.store') }}">
-            @csrf
+@if($furnaces->isEmpty())
+    <div class="panel"><div class="panel-body"><p>No active furnaces are available. Register or activate a furnace first.</p></div></div>
+@else
+<form method="POST" action="{{ route('heats.store') }}">
+    @csrf
 
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px">
-                <div>
-                    <label for="furnace_id">Furnace *</label>
-                    <select id="furnace_id" name="furnace_id" required
-                            style="display:block;width:100%;padding:11px;border:1px solid var(--border);border-radius:7px;font:inherit">
+    <div class="heat-new-cols">
+    <div>
+    <div class="panel">
+        <div class="panel-header"><h2>Heat details</h2></div>
+        <div class="panel-body">
+            <div class="form-grid" data-progressive="3">
+                <div class="field">
+                    <label for="furnace_id">Furnace <span class="required">*</span></label>
+                    <select id="furnace_id" name="furnace_id" required>
                         <option value="">Select furnace</option>
                         @foreach($furnaces as $furnace)
                             <option
@@ -40,12 +47,12 @@
                             </option>
                         @endforeach
                     </select>
+                    @error('furnace_id')<div class="error-text">{{ $message }}</div>@enderror
                 </div>
 
-                <div>
+                <div class="field">
                     <label for="iron_grade_id">Iron grade</label>
-                    <select id="iron_grade_id" name="iron_grade_id"
-                            style="display:block;width:100%;padding:11px;border:1px solid var(--border);border-radius:7px;font:inherit">
+                    <select id="iron_grade_id" name="iron_grade_id">
                         <option value="">No grade (no quality gates)</option>
                         @foreach($grades as $grade)
                             <option value="{{ $grade->id }}" @selected(old('iron_grade_id') === $grade->id)>{{ $grade->code }} ({{ $grade->family }})</option>
@@ -54,10 +61,9 @@
                     @error('iron_grade_id')<div class="error-text">{{ $message }}</div>@enderror
                 </div>
 
-                <div>
+                <div class="field">
                     <label for="charge_batch_id">Charge recipe</label>
-                    <select id="charge_batch_id" name="charge_batch_id"
-                            style="display:block;width:100%;padding:11px;border:1px solid var(--border);border-radius:7px;font:inherit">
+                    <select id="charge_batch_id" name="charge_batch_id">
                         <option value="">No recipe selected</option>
                         @foreach($chargeBatches as $batch)
                             <option value="{{ $batch->id }}"
@@ -68,93 +74,90 @@
                             </option>
                         @endforeach
                     </select>
-                    <small class="muted">Only active, currently effective recipes matching the furnace are selectable.</small>
+                    <div class="help">Only active, currently effective recipes matching the furnace are selectable.</div>
+                    @error('charge_batch_id')<div class="error-text">{{ $message }}</div>@enderror
                 </div>
 
-                <div>
+                <div class="field">
                     <label for="planned_start_at">Planned start</label>
-                    <input id="planned_start_at" name="planned_start_at" type="datetime-local"
-                           value="{{ old('planned_start_at') }}"
-                           style="display:block;width:100%;padding:11px;border:1px solid var(--border);border-radius:7px;font:inherit">
+                    <input id="planned_start_at" name="planned_start_at" type="datetime-local" value="{{ old('planned_start_at') }}">
+                    @error('planned_start_at')<div class="error-text">{{ $message }}</div>@enderror
                 </div>
 
-                <div>
+                <div class="field">
                     <label for="target_metal_weight_kg">Target metal weight (kg)</label>
-                    <input id="target_metal_weight_kg" name="target_metal_weight_kg"
-                           type="number" min="0" step="any"
-                           value="{{ old('target_metal_weight_kg') }}"
-                           style="display:block;width:100%;padding:11px;border:1px solid var(--border);border-radius:7px;font:inherit">
-                    <small class="muted">Optional. Set it later on the heat if it is not known yet.</small>
+                    <input id="target_metal_weight_kg" name="target_metal_weight_kg" type="number" min="0" step="any" value="{{ old('target_metal_weight_kg') }}">
+                    <div class="help">Optional. Set it later on the heat if it is not known yet.</div>
+                    @error('target_metal_weight_kg')<div class="error-text">{{ $message }}</div>@enderror
                 </div>
 
-                <div id="power-limit-field">
+                <div class="field" id="power-limit-field">
                     <label for="operating_power_limit_kw">Heat operating power limit (kW)</label>
-                    <input id="operating_power_limit_kw" name="operating_power_limit_kw"
-                           type="number" min="0" step="any"
-                           value="{{ old('operating_power_limit_kw') }}"
-                           style="display:block;width:100%;padding:11px;border:1px solid var(--border);border-radius:7px;font:inherit">
-                    <small id="power-limit-help" class="muted">
-                        Applies to induction heats only.
-                    </small>
+                    <input id="operating_power_limit_kw" name="operating_power_limit_kw" type="number" min="0" step="any" value="{{ old('operating_power_limit_kw') }}">
+                    <div id="power-limit-help" class="help">Applies to induction heats only.</div>
+                    @error('operating_power_limit_kw')<div class="error-text">{{ $message }}</div>@enderror
                 </div>
 
-                <div>
+                <div class="field">
                     <label for="target_temperature_c">Target temperature (°C)</label>
-                    <input id="target_temperature_c" name="target_temperature_c"
-                           type="number" min="0" step="any"
-                           value="{{ old('target_temperature_c') }}"
-                           style="display:block;width:100%;padding:11px;border:1px solid var(--border);border-radius:7px;font:inherit">
-                    <small class="muted" id="temperature-hint">Optional. Choose an iron grade to see a suggested temperature.</small>
+                    <input id="target_temperature_c" name="target_temperature_c" type="number" min="0" step="any" value="{{ old('target_temperature_c') }}">
+                    <div class="help" id="temperature-hint">Optional. Choose an iron grade to see a suggested temperature.</div>
+                    @error('target_temperature_c')<div class="error-text">{{ $message }}</div>@enderror
                 </div>
 
-                <div>
-                    <label for="operator_name">Responsible operator *</label>
-                    <input id="operator_name" name="operator_name" maxlength="255" required
-                           value="{{ old('operator_name') }}"
-                           style="display:block;width:100%;padding:11px;border:1px solid var(--border);border-radius:7px;font:inherit">
+                <div class="field">
+                    <label for="operator_name">Responsible operator <span class="required">*</span></label>
+                    <input id="operator_name" name="operator_name" maxlength="255" required value="{{ old('operator_name') }}">
+                    @error('operator_name')<div class="error-text">{{ $message }}</div>@enderror
+                </div>
+
+                <div class="field field-full">
+                    <label for="notes">Notes</label>
+                    <textarea id="notes" name="notes" rows="3" maxlength="10000">{{ old('notes') }}</textarea>
                 </div>
             </div>
-
-            <div id="started-block" class="panel" style="margin-top:18px" hidden>
-                <div class="panel-body" style="display:grid;gap:8px">
-                    <label style="display:flex;gap:8px;align-items:center;font-weight:600"><input type="checkbox" id="already_started" name="already_started" value="1" style="width:auto" @checked(old('already_started'))>
-                        This heat has already started, at the time given as "Planned start"</label>
-                    <label id="fill-row" style="display:none;gap:8px;align-items:flex-start;margin-left:26px"><input type="checkbox" id="fill_charges" name="fill_charges" value="1" style="width:auto;margin-top:3px" @checked(old('fill_charges', true))>
-                        <span>Fill in the charges since the start from the recipe, each at its scheduled time. <strong id="fill-preview"></strong>
-                            <span class="muted small" style="display:block">Marked as from the schedule; correct them on the Charge tab. Stock is not deducted.</span></span></label>
-                </div>
-            </div>
-
-            <div id="recipe-preview" class="panel" style="margin-top:18px" hidden>
-                <div class="panel-header"><h2>Planned charge components</h2></div>
-                <div class="panel-body">
-                    <p id="recipe-preview-basis" class="muted"></p>
-                    <div class="table-wrap">
-                        <table>
-                            <thead>
-                                <tr><th>Material</th><th>Role</th><th>Calculation</th><th>Planned kg</th><th>% of total</th></tr>
-                            </thead>
-                            <tbody id="recipe-preview-body"></tbody>
-                        </table>
-                    </div>
-                    <p class="muted">These are planned quantities only. Actual charge entries and costs will be recorded separately.</p>
-                </div>
-            </div>
-
-            <div style="margin-top:18px">
-                <label for="notes">Notes</label>
-                <textarea id="notes" name="notes" rows="3" maxlength="10000"
-                          style="display:block;width:100%;padding:11px;border:1px solid var(--border);border-radius:7px;font:inherit">{{ old('notes') }}</textarea>
-            </div>
-
-            <div class="actions" style="margin-top:22px">
-                <button type="submit" class="btn btn-primary">Create heat</button>
-                <a class="btn" href="{{ route('heats.index') }}">Cancel</a>
-            </div>
-        </form>
-        @endif
+        </div>
     </div>
-</div>
+
+    <div id="started-block" class="panel" hidden>
+        <div class="panel-body" style="display:grid;gap:8px">
+            <label style="display:flex;gap:8px;align-items:center;font-weight:600"><input type="checkbox" id="already_started" name="already_started" value="1" style="width:auto" @checked(old('already_started'))>
+                This heat has already started, at the time given as "Planned start"</label>
+            <label id="fill-row" style="display:none;gap:8px;align-items:flex-start;margin-left:26px"><input type="checkbox" id="fill_charges" name="fill_charges" value="1" style="width:auto;margin-top:3px" @checked(old('fill_charges', true))>
+                <span>Fill in the charges since the start from the recipe, each at its scheduled time. <strong id="fill-preview"></strong>
+                    <span class="muted small" style="display:block">Marked as from the schedule; correct them on the Charge tab. Stock is not deducted.</span></span></label>
+        </div>
+    </div>
+    </div>
+
+    <div>
+    <div class="panel">
+        <div class="panel-header"><h2>Planned charge components</h2></div>
+        <div class="panel-body">
+            <p id="recipe-preview-empty" class="muted">Choose a charge recipe to see its materials and planned quantities here.</p>
+            <div id="recipe-preview" hidden>
+                <p id="recipe-preview-basis" class="muted"></p>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr><th>Material</th><th>Role</th><th>Calculation</th><th>Planned kg</th><th>% of total</th></tr>
+                        </thead>
+                        <tbody id="recipe-preview-body"></tbody>
+                    </table>
+                </div>
+                <p class="muted">These are planned quantities only. Actual charge entries and costs will be recorded separately.</p>
+            </div>
+        </div>
+    </div>
+    </div>
+    </div>
+
+    <div class="actions">
+        <button type="submit" class="btn btn-primary">Create heat</button>
+        <a class="btn" href="{{ route('heats.index') }}">Cancel</a>
+    </div>
+</form>
+@endif
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -165,6 +168,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const recipe = document.getElementById('charge_batch_id');
     const recipePreview = document.getElementById('recipe-preview');
     const recipePreviewBody = document.getElementById('recipe-preview-body');
+    const recipePreviewEmpty = document.getElementById('recipe-preview-empty');
     const recipePreviewBasis = document.getElementById('recipe-preview-basis');
 
     const recipeData = @json($recipeData);
@@ -219,6 +223,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const selected = recipeData.find(item => item.id === recipe.value);
         recipePreviewBody.replaceChildren();
 
+        recipePreviewEmpty.hidden = !!selected;
         if (!selected) {
             recipePreview.hidden = true;
             return;
