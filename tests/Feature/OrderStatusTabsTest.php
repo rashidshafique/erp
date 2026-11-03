@@ -36,9 +36,14 @@ class OrderStatusTabsTest extends TestCase
             SalesOrder::create(['order_number' => $number, 'customer_id' => $c->id, 'order_date' => today(), 'status' => $status]);
         }
 
-        $this->get(route('sales-orders.index'))->assertOk()->assertSee('Open <span>(2)</span>', false)->assertSee('Dispatched <span>(1)</span>', false);
+        $this->get(route('sales-orders.index'))->assertOk()->assertSee('Open 2')->assertSee('Dispatched 1');
         $this->get(route('sales-orders.index', ['status' => 'OPEN']))->assertSee('SO-1')->assertSee('SO-2')->assertDontSee('SO-3');
         $this->get(route('sales-orders.index', ['status' => 'DISPATCHED']))->assertSee('SO-3')->assertDontSee('SO-1');
         $this->get(route('sales-orders.index', ['search' => 'valve']))->assertSee('SO-2')->assertDontSee('SO-1');
+        $this->get(route('sales-orders.index', ['customer' => $customer->id]))->assertSee('SO-1')->assertSee('SO-3')->assertDontSee('SO-2');
+        $csv = $this->get(route('sales-orders.export', ['status' => 'OPEN']))->assertOk()->streamedContent();
+        $this->assertStringContainsString('SO-1', $csv);
+        $this->assertStringContainsString('SO-2', $csv);
+        $this->assertStringNotContainsString('SO-3', $csv);
     }
 }

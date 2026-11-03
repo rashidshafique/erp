@@ -21,25 +21,64 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SalesOrderController extends Controller
 {
+    /** The sales orders list: status tabs with counts, search and a customer filter, the open orders by status beside it. */
     public function index(Request $request): View
     {
-        $status = array_key_exists((string) $request->query('status'), SalesOrder::STATUSES) || $request->query('status') === 'OPEN' ? $request->query('status') : null;
-        $search = trim((string) $request->query('search'));
-        $base = SalesOrder::query()->when($search !== '', fn ($q) => $q->where(fn ($q) => $q->where('order_number', 'ilike', "%{$search}%")
-            ->orWhere('customer_reference', 'ilike', "%{$search}%")->orWhereHas('customer', fn ($c) => $c->matching($search))));
-        $orders = (clone $base)->with('customer')->withCount('lines')
-            ->when($status === 'OPEN', fn ($q) => $q->whereIn('status', SalesOrder::OPEN))
-            ->when($status && $status !== 'OPEN', fn ($q) => $q->where('status', $status))
-            ->orderByDesc('created_at')->paginate(20)->withQueryString();
-        $counts = (clone $base)->groupBy('status')->selectRaw('status, count(*) as n')->pluck('n', 'status')->map(fn ($n) => (int) $n);
+        $status = $this->statusFilter($request);
+        $counts = $this->base($request)->groupBy('status')->selectRaw('status, count(*) as n')->pluck('n', 'status')->map(fn ($n) => (int) $n);
+        $open = SalesOrder::whereIn('status', SalesOrder::OPEN);
 
         return view('sales::orders.index', [
-            'orders' => $orders, 'status' => $status, 'search' => $search,
+            'orders' => $this->base($request)->with('customer')->withCount('lines')
+                ->when($status === 'OPEN', fn ($q) => $q->whereIn('status', SalesOrder::OPEN))
+                ->when($status && $status !== 'OPEN', fn ($q) => $q->where('status', $status))
+                ->orderByDesc('created_at')->paginate(20)->withQueryString(),
+            'status' => $status, 'search' => trim((string) $request->query('search')),
             'counts' => $counts->all() + ['OPEN' => $counts->only(SalesOrder::OPEN)->sum(), '' => $counts->sum()],
+            'customers' => Customer::whereIn('id', SalesOrder::select('customer_id'))->orderedByName()->get(),
+            'openByStatus' => (clone $open)->groupBy('status')->selectRaw('status, count(*) as n')->pluck('n', 'status'),
+            'lateCount' => (clone $open)->whereDate('requested_delivery_date', '<', today())->count(),
         ]);
+    }
+
+    public function export(Request $request): StreamedResponse
+    {
+        $status = $this->statusFilter($request);
+        $orders = $this->base($request)->with('customer')->withCount('lines')
+            ->when($status === 'OPEN', fn ($q) => $q->whereIn('status', SalesOrder::OPEN))
+            ->when($status && $status !== 'OPEN', fn ($q) => $q->where('status', $status))
+            ->orderByDesc('created_at')->get();
+
+        return response()->streamDownload(function () use ($orders) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['Order', 'Customer', 'Customer ref', 'Order date', 'Delivery', 'Lines', 'Status']);
+            foreach ($orders as $o) {
+                fputcsv($out, [$o->order_number, $o->customer?->name, $o->customer_reference, $o->order_date?->toDateString(), $o->requested_delivery_date?->toDateString(), $o->lines_count, SalesOrder::STATUSES[$o->status] ?? $o->status]);
+            }
+            fclose($out);
+        }, 'sales-orders-'.today()->toDateString().'.csv', ['Content-Type' => 'text/csv']);
+    }
+
+    private function statusFilter(Request $request): ?string
+    {
+        $status = $request->query('status');
+
+        return array_key_exists((string) $status, SalesOrder::STATUSES) || $status === 'OPEN' ? $status : null;
+    }
+
+    /** Orders matching the search and the customer filter, before any status is applied. */
+    private function base(Request $request)
+    {
+        $search = trim((string) $request->query('search'));
+
+        return SalesOrder::query()
+            ->when($search !== '', fn ($q) => $q->where(fn ($q) => $q->where('order_number', 'ilike', "%{$search}%")
+                ->orWhere('customer_reference', 'ilike', "%{$search}%")->orWhereHas('customer', fn ($c) => $c->matching($search))))
+            ->when($request->query('customer'), fn ($q, $id) => $q->where('customer_id', $id));
     }
 
     public function create(): View

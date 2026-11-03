@@ -20,6 +20,7 @@ Route::middleware('web')->group(function () {
     });
     Route::prefix('sales-orders')->name('sales-orders.')->controller(SalesOrderController::class)->group(function () {
         Route::get('/', 'index')->name('index');
+        Route::get('/export', 'export')->name('export');
         Route::get('/create', 'create')->name('create');
         Route::post('/', 'store')->name('store');
         Route::get('/{salesOrder}', 'show')->name('show');
