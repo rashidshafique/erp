@@ -47,6 +47,41 @@ class ProcessDepth
         'Quality and gauges' => ['lot_grouping', 'qc_after_steps', 'ncr_threshold', 'defect_piece_ids', 'overdue_use'],
     ];
 
+    /**
+     * The rules a preset or How you work can set, numbered in page order, so the same number marks the same rule everywhere.
+     *
+     * @return array<string, int> rule => number
+     */
+    public static function numbers(): array
+    {
+        $rules = array_merge(...array_values(self::GROUPS));
+
+        return array_combine($rules, range(1, count($rules)));
+    }
+
+    public static function number(string $rule): ?int
+    {
+        return self::numbers()[$rule] ?? null;
+    }
+
+    /** @return list<int> the numbers of the rules a preset sets */
+    public static function presetNumbers(string $preset): array
+    {
+        return self::sorted(array_keys(self::VALUES[$preset]));
+    }
+
+    /**
+     * @param  list<string>  $rules
+     * @return list<int>
+     */
+    public static function sorted(array $rules): array
+    {
+        $numbers = array_filter(array_map(fn (string $rule) => self::number($rule), $rules));
+        sort($numbers);
+
+        return array_values(array_unique($numbers));
+    }
+
     public static function apply(string $preset): void
     {
         foreach (self::VALUES[$preset] as $rule => $value) {   // rules a preset leaves out keep their value

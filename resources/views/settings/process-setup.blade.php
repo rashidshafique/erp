@@ -15,7 +15,7 @@
         <div class="rule-grid">
             @foreach ($questions as $key => [$question, $options])
                 <fieldset>
-                    <legend>{{ $question }}</legend>
+                    <legend>{{ $question }} <span class="muted small">Sets rules @foreach (\App\Support\ProcessSetup::numbersFor($key) as $n)<span class="rule-no">{{ $n }}</span>@endforeach</span></legend>
                     @foreach ($options as $value => [$label])
                         <label><input type="radio" name="{{ $key }}" value="{{ $value }}" @checked(old($key, $answers[$key] ?? null) === $value) required> {{ $label }}</label>
                     @endforeach
@@ -29,8 +29,8 @@
             <div class="panel-header"><h2>What your answers set</h2><span class="muted small">{{ collect($changes)->where('changes', true)->count() }} of {{ count($changes) }} rules change</span></div>
             <div class="table-wrap"><table>
                 <thead><tr><th>Rule</th><th>Now</th><th>After</th></tr></thead>
-                <tbody>@foreach ($changes as $change)
-                    <tr @if ($change['changes']) style="font-weight:600" @endif><td>{{ $change['label'] }}</td><td>{{ $change['now'] }}</td><td>{{ $change['then'] }}</td></tr>
+                <tbody>@foreach ($changes as $rule => $change)
+                    <tr @if ($change['changes']) style="font-weight:600" @endif><td><span class="rule-no">{{ \App\Support\ProcessDepth::number($rule) }}</span>{{ $change['label'] }}</td><td>{{ $change['now'] }}</td><td>{{ $change['then'] }}</td></tr>
                 @endforeach</tbody>
             </table></div>
             <div class="panel-body muted small">Change any later on Process rules.</div>

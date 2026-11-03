@@ -18,6 +18,7 @@
                 <input type="hidden" name="preset" value="{{ $key }}">
                 <h2 style="margin-top:0">{{ $label }} @if ($current === $key)<span class="status">In use</span>@endif</h2>
                 <p>{{ $description }}</p>
+                <p class="muted small">Sets rules @foreach (\App\Support\ProcessDepth::presetNumbers($key) as $n)<span class="rule-no">{{ $n }}</span>@endforeach</p>
                 <button class="btn {{ $current === $key ? '' : 'btn-primary' }}" type="submit">{{ $current === $key ? 'Re-apply' : 'Use '.$label }}</button>
             </form>
         @endforeach
@@ -35,7 +36,7 @@
             <div class="panel-body"><div class="rule-grid">
                 @foreach ($rules as $key => $rule)
                     <fieldset>
-                        <legend>{{ $rule['label'] }}</legend>
+                        <legend>@if ($n = \App\Support\ProcessDepth::number($key))<span class="rule-no" title="Also set by How you work and the presets">{{ $n }}</span>@endif{{ $rule['label'] }}</legend>
                         @if ($rule['options'] === null)
                             <input type="number" name="{{ $key }}" value="{{ old($key, $rule['value']) }}" min="0" step="any" style="max-width:140px" aria-label="{{ $rule['label'] }}">
                         @elseif (count($rule['options']) === 2)

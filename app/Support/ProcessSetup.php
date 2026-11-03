@@ -73,6 +73,12 @@ class ProcessSetup
         ]],
     ];
 
+    /** @return list<int> the numbers of the rules a question's answers set (see ProcessDepth::numbers) */
+    public static function numbersFor(string $question): array
+    {
+        return ProcessDepth::sorted(array_keys(array_merge(...array_values(array_map(fn (array $answer) => $answer[1], self::QUESTIONS[$question][1])))));
+    }
+
     /** @return array<string, ?string> question => the answer today's rules match, or null when they match none */
     public static function currentAnswers(): array
     {
