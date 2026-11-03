@@ -279,7 +279,7 @@ Route::post(
     [HeatReadingController::class, 'postCharge']
 )->name('heats.charge-postings.store');
 
-Route::redirect('/settings', '/settings/display');
+Route::get('/settings', \App\Http\Controllers\SettingsHomeController::class)->name('settings.home');
 
 // ---- Orders, contract review, planning, thermal analysis, quality gates ----
 Route::prefix('customers')->name('customers.')->controller(CustomerController::class)->group(function () {
