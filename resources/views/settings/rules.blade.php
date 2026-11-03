@@ -10,6 +10,10 @@
 </div>
 @if ($errors->any())<div class="alert alert-error">@foreach ($errors->all() as $e)<div>{{ $e }}</div>@endforeach</div>@endif
 
+<form method="GET" action="{{ route('settings.rules') }}" class="rules-view">
+    <label class="switch-row"><input class="switch" type="checkbox" name="advanced" value="1" onchange="this.form.submit()" @checked($advanced)><span class="on">Advanced rules shown</span><span class="off">Common rules only: {{ $hidden }} more are hidden</span></label>
+</form>
+
 <div class="panel"><div class="panel-body">
     <div class="rule-grid">
         @foreach ($presets as $key => [$label, $description])

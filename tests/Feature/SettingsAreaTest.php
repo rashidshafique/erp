@@ -46,11 +46,11 @@ class SettingsAreaTest extends TestCase
         $this->get(route('flasks.index'))->assertOk()->assertSee(route('settings.rules'), false)->assertDontSee('Save rules');
         $this->get(route('pattern-ownership.index'))->assertOk()->assertSee(route('settings.rules'), false)->assertDontSee('Save rules');
 
-        $this->get(route('settings.rules'))->assertOk()->assertSee('Too few free flasks when assembling moulds');
+        $this->get(route('settings.rules', ['advanced' => 1]))->assertOk()->assertSee('Too few free flasks when assembling moulds');
         $this->put(route('settings.rules.update'), ['shortage' => 'WARN', 'pairing' => 'ANY', 'release' => 'SHAKEOUT', 'run_claims' => 'ASSEMBLED'])->assertSessionHasNoErrors();
         $this->assertSame('WARN', FlaskRules::get('shortage'));
 
-        $this->get(route('settings.rules'))->assertOk()->assertSee('Storage charge per pattern per month');
+        $this->get(route('settings.rules', ['advanced' => 1]))->assertOk()->assertSee('Storage charge per pattern per month');
         $this->assertSame('BLOCK', PatternOwnershipRules::get('other_customer'));
     }
 

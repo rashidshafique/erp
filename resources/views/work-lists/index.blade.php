@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Moulding work lists')
 @section('content')
-<div class="page-heading"><div><h1>Moulding work lists</h1><p>The list given to the moulding teams each shift. <a href="{{ route('settings.rules').'#moulding' }}">Rules</a></p></div></div>
+<div class="page-heading"><div><h1>Moulding work lists</h1><p>The list given to the moulding teams each shift. <a href="{{ route('settings.rules', ['advanced' => 1]).'#moulding' }}">Rules</a></p></div></div>
 @if(session("success"))<div class="alert alert-success">{{ session("success") }}</div>@endif
 @if(session("warning"))<div class="alert alert-warning">{{ session("warning") }}</div>@endif
 <div class="panel"><div class="panel-header"><h2>Prepare from orders</h2><span class="muted small">What open orders need, spread over stations, with unstarted rows carried over. Change it, then issue.</span></div><div class="panel-body">

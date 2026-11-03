@@ -6,8 +6,8 @@ use App\Domains\Purchasing\Http\Controllers\SupplierController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('web')->group(function () {
-    Route::redirect('/incoming/settings', '/settings/rules#purchasing');
-    Route::redirect('/purchase-orders/settings', '/settings/rules#purchasing');
+    Route::redirect('/incoming/settings', '/settings/rules?advanced=1#purchasing');
+    Route::redirect('/purchase-orders/settings', '/settings/rules?advanced=1#purchasing');
     Route::prefix('suppliers')->name('suppliers.')->controller(SupplierController::class)->group(function () {
         Route::get('/', 'index')->name('index');
         Route::get('/create', 'create')->name('create');

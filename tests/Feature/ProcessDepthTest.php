@@ -71,7 +71,7 @@ class ProcessDepthTest extends TestCase
 
     public function test_the_rules_page_shows_every_rule_in_its_section_and_saves_a_floor_rule(): void
     {
-        $this->get(route('settings.rules'))->assertOk()
+        $this->get(route('settings.rules', ['advanced' => 1]))->assertOk()
             ->assertSeeInOrder(['data-tab-start="Development"', 'data-tab-start="Orders"', 'data-tab-start="Moulding"', 'data-tab-start="Flasks"', 'data-tab-start="Melting and pouring"', 'data-tab-start="Quality"', 'data-tab-start="Patterns"', 'data-tab-start="Purchasing"'], false)
             ->assertSee('Moulding work lists');
 
@@ -83,7 +83,7 @@ class ProcessDepthTest extends TestCase
 
     public function test_every_rule_is_on_the_page_once_and_the_old_rule_pages_open_its_tab(): void
     {
-        $shown = collect(ProcessRules::sections())->flatMap(fn (array $rules) => array_keys($rules));
+        $shown = collect(ProcessRules::sections(true))->flatMap(fn (array $rules) => array_keys($rules));
         $this->assertSame($shown->count(), $shown->unique()->count());
         foreach ([OrderRules::class, PouringRules::class, QueueRules::class, WorkListRules::class, FlaskRules::class, PatternOwnershipRules::class, QualityRules::class, ControlPlanRules::class, CalibrationRules::class] as $class) {
             $this->assertSame([], array_values(array_diff(array_keys($class::rules()), $shown->all())), $class);
@@ -91,6 +91,18 @@ class ProcessDepthTest extends TestCase
 
         $this->get('/settings/pouring')->assertRedirect('/settings/rules#melting-and-pouring');
         $this->get('/settings/process-depth')->assertRedirect('/settings/rules');
+    }
+
+    public function test_the_common_view_holds_only_the_numbered_rules_and_advanced_adds_the_rest(): void
+    {
+        $common = collect(ProcessRules::sections())->flatMap(fn (array $rules) => array_keys($rules));
+        $all = collect(ProcessRules::sections(true))->flatMap(fn (array $rules) => array_keys($rules));
+
+        $this->assertSame(array_keys(ProcessDepth::numbers()), array_values(array_intersect(array_keys(ProcessDepth::numbers()), $common->all())));
+        $this->assertGreaterThan($common->count(), $all->count());
+        $this->get(route('settings.rules'))->assertOk()->assertSee('Contract review')->assertDontSee('Too few free flasks')->assertDontSee('data-tab-start="Flasks"', false)->assertSee('more are hidden');
+        $this->get(route('settings.rules', ['advanced' => 1]))->assertOk()->assertSee('Too few free flasks')->assertSee('data-tab-start="Flasks"', false);
+        $this->put(route('settings.rules.update'), ['shortage' => 'WARN'])->assertSessionHasNoErrors();   // a hidden rule still saves
     }
 
     public function test_a_number_rule_is_checked_and_saved_from_its_tab(): void

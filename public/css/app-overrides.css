@@ -432,3 +432,5 @@ td > input.switch { display: block; margin: 0 auto; }
 
 /* Rule numbers: the same number marks the same rule on Process rules, the presets and How you work. */
 .rule-no { display: inline-block; min-width: 18px; margin: 0 4px 0 0; padding: 0 6px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-dark); font-size: 11px; font-weight: 600; line-height: 1.6; text-align: center; }
+
+.rules-view { margin: 0 0 14px; }

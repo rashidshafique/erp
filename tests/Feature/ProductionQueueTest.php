@@ -79,7 +79,7 @@ class ProductionQueueTest extends TestCase
 
     public function test_the_rules_page_lists_a_limit_for_each_step_and_red_must_come_after_amber(): void
     {
-        $this->get(route('settings.rules'))->assertOk()->assertSee('Limit: Waiting for shakeout')->assertSee('Limit: After Shakeout')->assertSee('Limit: Ready to pack');
+        $this->get(route('settings.rules', ['advanced' => 1]))->assertOk()->assertSee('Limit: Waiting for shakeout')->assertSee('Limit: After Shakeout')->assertSee('Limit: Ready to pack');
 
         $this->put(route('settings.rules.update'), ['amber_hours' => 30, 'red_hours' => 20, 'wip_unit' => 'LOTS'])->assertSessionHasErrors('red_hours');
     }

@@ -25,11 +25,12 @@ class ProcessRules
     private const ORDER = ['Development', 'Orders', 'Moulding', 'Cores', 'Flasks', 'Melting and pouring', 'Production queue', 'Quality', 'Calibration', 'Patterns', 'Purchasing'];
 
     /**
-     * Section => rule => its label, choices and saved value.
+     * Section => rule => its label, choices and saved value. The common view holds the rules the presets and How you work set
+     * (ProcessDepth::numbers); the advanced view adds every other rule, and a section left with no rules drops out.
      *
      * @return array<string, array<string, array{class: class-string, label: string, options: array<string, string>|null, value: string}>>
      */
-    public static function sections(): array
+    public static function sections(bool $advanced = false): array
     {
         $sections = self::SECTIONS;
         foreach (app(ModuleRegistry::class)->ruleSections() as $section => $classes) {
@@ -44,6 +45,9 @@ class ProcessRules
             foreach ($classes as $class => $keys) {
                 $definitions = $class::rules();
                 foreach ($keys ?? array_keys($definitions) as $rule) {
+                    if (! $advanced && ProcessDepth::number($rule) === null) {
+                        continue;
+                    }
                     $out[$section][$rule] = [
                         'class' => $class, 'label' => $definitions[$rule][1], 'options' => $definitions[$rule][2],
                         'value' => $class === FloorRules::class ? FloorRules::stored($rule) : $class::get($rule),
@@ -82,7 +86,7 @@ class ProcessRules
     private static function classes(): array
     {
         $classes = [];
-        foreach (self::sections() as $rules) {
+        foreach (self::sections(true) as $rules) {
             foreach ($rules as $rule => $definition) {
                 $classes[$definition['class']][] = $rule;
             }

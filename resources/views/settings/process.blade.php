@@ -6,7 +6,7 @@
 @section('content')
 <div class="page-heading">
     <div><h1>Our process</h1><p>Steps after the pour, in your order. The queue, board and move form follow it.</p></div>
-    <div class="actions"><a class="btn" href="{{ route('settings.rules').'#quality' }}">Control plan rules</a><a class="btn" href="{{ route('lots.queue') }}">Production queue</a></div>
+    <div class="actions"><a class="btn" href="{{ route('settings.rules', ['advanced' => 1]).'#quality' }}">Control plan rules</a><a class="btn" href="{{ route('lots.queue') }}">Production queue</a></div>
 </div>
 
 <livewire:process-route />

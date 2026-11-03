@@ -2,7 +2,7 @@
 @section('title', 'Purchase orders')
 @section('content')
 @php $m = fn ($v) => \App\Support\Formats::number($v, 2); @endphp
-<div class="page-heading"><div><h1>Purchase orders</h1><p>What is ordered and what has arrived. Received lots wait for incoming checks.</p></div><div class="actions"><a class="btn" href="{{ route('settings.rules').'#purchasing' }}">Rules</a> <a class="btn btn-primary" href="{{ route('purchase-orders.create') }}">+ New purchase order</a></div></div>
+<div class="page-heading"><div><h1>Purchase orders</h1><p>What is ordered and what has arrived. Received lots wait for incoming checks.</p></div><div class="actions"><a class="btn" href="{{ route('settings.rules', ['advanced' => 1]).'#purchasing' }}">Rules</a> <a class="btn btn-primary" href="{{ route('purchase-orders.create') }}">+ New purchase order</a></div></div>
 @php $statusTabs = ['OPEN' => 'Open'] + \App\Domains\Purchasing\Models\PurchaseOrder::STATUSES + ['' => 'All']; @endphp
 <div class="list-toolbar">
     <x-status-tabs :options="$statusTabs" :counts="$counts" :current="$status ?? ''" />

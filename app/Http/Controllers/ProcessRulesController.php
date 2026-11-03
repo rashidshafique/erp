@@ -13,10 +13,13 @@ use Illuminate\View\View;
 /** Settings > Process rules: the Basic and Full presets, then every rule on its own. */
 class ProcessRulesController extends Controller
 {
-    public function edit(): View
+    public function edit(Request $request): View
     {
+        $advanced = $request->boolean('advanced');
+
         return view('settings.rules', [
-            'presets' => ProcessDepth::PRESETS, 'current' => ProcessDepth::current(), 'sections' => ProcessRules::sections(),
+            'presets' => ProcessDepth::PRESETS, 'current' => ProcessDepth::current(), 'sections' => ProcessRules::sections($advanced), 'advanced' => $advanced,
+            'hidden' => $advanced ? 0 : collect(ProcessRules::sections(true))->flatten(1)->count() - collect(ProcessRules::sections())->flatten(1)->count(),
             'waiting' => collect(FloorRules::RULES)->keys()->filter(fn (string $rule) => FloorRules::waitsForQuickFlow($rule))->values()->all(),
         ]);
     }

@@ -361,7 +361,7 @@ Route::prefix('flasks')->name('flasks.')->controller(FlaskController::class)->gr
 });
 Route::get('/settings/rules', [\App\Http\Controllers\ProcessRulesController::class, 'edit'])->name('settings.rules');
 Route::put('/settings/rules', [\App\Http\Controllers\ProcessRulesController::class, 'update'])->name('settings.rules.update');
-foreach (['process-depth' => '', 'orders' => '#orders', 'work-lists' => '#moulding', 'flasks' => '#flasks', 'pouring' => '#melting-and-pouring', 'queue' => '#production-queue', 'control-plans' => '#quality', 'pattern-ownership' => '#patterns'] as $old => $section) {
+foreach (['process-depth' => '', 'orders' => '#orders', 'work-lists' => '?advanced=1#moulding', 'flasks' => '?advanced=1#flasks', 'pouring' => '#melting-and-pouring', 'queue' => '?advanced=1#production-queue', 'control-plans' => '?advanced=1#quality', 'pattern-ownership' => '?advanced=1#patterns'] as $old => $section) {
     Route::redirect('/settings/'.$old, '/settings/rules'.$section);   // the pages these rules had before Process rules
 }
 Route::get('/settings/how-you-work', [\App\Http\Controllers\ProcessSetupController::class, 'edit'])->name('settings.process-setup.edit');

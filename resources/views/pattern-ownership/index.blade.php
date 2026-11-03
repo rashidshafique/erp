@@ -10,7 +10,7 @@
 @endphp
 <div class="page-heading">
     <div><h1>Pattern ownership</h1><p>Customer patterns held, away, being paid off or unused.</p></div>
-    <div class="actions">@if (\App\Support\SettingsNav::canOpen())<a class="btn" href="{{ route('settings.rules').'#patterns' }}">Ownership rules</a>@endif<a class="btn" href="{{ route('patterns.index') }}">Pattern master</a></div>
+    <div class="actions">@if (\App\Support\SettingsNav::canOpen())<a class="btn" href="{{ route('settings.rules', ['advanced' => 1]).'#patterns' }}">Ownership rules</a>@endif<a class="btn" href="{{ route('patterns.index') }}">Pattern master</a></div>
 </div>
 
 <div class="tab-marker" data-tab-start="By owner"></div>

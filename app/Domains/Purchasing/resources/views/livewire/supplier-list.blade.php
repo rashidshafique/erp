@@ -203,7 +203,7 @@ new class extends Component
 <div class="panel">
     <div class="panel-header">
         <h2>Suppliers</h2>
-        <span class="muted small">{{ $suppliers->total() }} records · <a href="{{ route('settings.rules').'#purchasing' }}">Incoming rules</a></span>
+        <span class="muted small">{{ $suppliers->total() }} records · <a href="{{ route('settings.rules', ['advanced' => 1]).'#purchasing' }}">Incoming rules</a></span>
     </div>
 
     @if ($suppliers->isEmpty())

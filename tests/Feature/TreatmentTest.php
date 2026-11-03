@@ -55,7 +55,7 @@ class TreatmentTest extends TestCase
         $heat->treatments()->create(['treatment_type' => 'INOCULATION_STREAM', 'treated_at' => now()->subMinutes(2)]);
         $this->assertTrue($this->check($heat, 'Inoculation')['ok']);
         $this->assertSame(15, \App\Support\PouringRules::minutes('max_fade_minutes'));
-        $this->get(route('settings.rules'))->assertOk()->assertSee('Treatment before pouring');
+        $this->get(route('settings.rules', ['advanced' => 1]))->assertOk()->assertSee('Treatment before pouring');
     }
 
     public function test_pattern_cooling_time_is_saved(): void
