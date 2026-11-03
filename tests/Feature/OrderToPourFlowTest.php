@@ -156,7 +156,7 @@ class OrderToPourFlowTest extends TestCase
     {
         $w = $this->world();
         $this->get(route('iron-grades.index'))->assertOk()->assertSee('EN-GJL-250');
-        $this->get(route('iron-grades.show', $w['grade']))->assertOk()->assertSee('Furnace capability')->assertSee('ASTM A536');
+        $this->get(route('iron-grades.show', $w['grade']))->assertOk()->assertSee('Furnace capability')->assertSee('ASTM A536')->assertSee('Used by')->assertSee('Heats in the last 30 days');
         $this->put(route('iron-grades.window', $w['grade']), ['te_min_floor_c' => 1135, 'recal_max_c' => 9])->assertSessionHasNoErrors();
         $this->assertEquals(1135, ThermalWindow::where('iron_grade_id', $w['grade']->id)->value('te_min_floor_c'));
         $this->put(route('iron-grades.window', $w['grade']), ['tl_min_c' => 1200, 'tl_max_c' => 1100])->assertSessionHasErrors('tl_max_c');

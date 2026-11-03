@@ -106,6 +106,12 @@
         <tbody>@foreach ($grade->aliases->sortBy('standard') as $a)<tr><td>{{ $a->standard }}</td><td>{{ $a->designation }}</td><td>{{ $a->is_exact ? 'Same grade' : 'Nearest equivalent — confirm with the customer' }}</td></tr>@endforeach</tbody>
     </table></div>
 </div>
+<div class="panel">
+    <div class="panel-header"><h2>Used by</h2></div>
+    <div class="panel-body">
+        <p>Heats in the last 30 days: <strong>{{ $heatsRecent }}</strong> · running now: <strong>{{ $heatsRunning }}</strong></p>
+    </div>
+</div>
 @include('limits._panel', ['type' => 'IRON_GRADE', 'id' => $grade->id])
 <div class="tab-marker" data-tab-start="Files & history"></div>
 @include('attachments._panel', ['type' => 'iron_grade', 'id' => $grade->id])

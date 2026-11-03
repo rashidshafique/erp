@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Furnace;
 use App\Models\FurnaceGradeCapability;
+use App\Models\Heat;
 use App\Models\IronGrade;
 use App\Models\ThermalWindow;
 use App\Services\FurnaceEligibility;
@@ -30,6 +31,8 @@ class IronGradeController extends Controller
             'grade' => $ironGrade,
             'window' => ThermalWindow::firstOrNew(['iron_grade_id' => $ironGrade->id, 'cup_type' => 'STABLE']),
             'whiteWindow' => ThermalWindow::firstOrNew(['iron_grade_id' => $ironGrade->id, 'cup_type' => 'TELLURIUM']),
+            'heatsRecent' => Heat::where('iron_grade_id', $ironGrade->id)->where('created_at', '>=', now()->subDays(30))->count(),
+            'heatsRunning' => Heat::where('iron_grade_id', $ironGrade->id)->whereIn('status', Heat::RUNNING_STATUSES)->count(),
             'furnaces' => $furnaces,
             'can' => $furnaces->mapWithKeys(fn ($f) => [$f->id => $eligibility->canMelt($f, $ironGrade)]),
             'overrides' => FurnaceGradeCapability::where('iron_grade_id', $ironGrade->id)->pluck('allowed', 'furnace_id'),
