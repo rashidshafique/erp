@@ -409,10 +409,12 @@
                         <a href="{{ route('settings.home') }}" class="settings-nav-back"><span>← All settings</span></a>
                         @php($settingsCurrent = \App\Support\SettingsNav::current())
                         @foreach (\App\Support\SettingsNav::sections() as $section => $links)
-                            <div class="settings-nav-section">{{ $section }}</div>
-                            @foreach ($links as $label => [$routeName])
-                                <a href="{{ route($routeName) }}" @class(['active' => $settingsCurrent === $label]) @if ($settingsCurrent === $label) aria-current="page" @endif><span>{{ $label }}</span>@if ($settingsCurrent === $label)<span aria-hidden="true">›</span>@endif</a>
-                            @endforeach
+                            <div class="settings-nav-group">
+                                <div class="settings-nav-section">{{ $section }}</div>
+                                @foreach ($links as $label => [$routeName])
+                                    <a href="{{ route($routeName) }}" @class(['active' => $settingsCurrent === $label]) @if ($settingsCurrent === $label) aria-current="page" @endif><span>{{ $label }}</span>@if ($settingsCurrent === $label)<span aria-hidden="true">›</span>@endif</a>
+                                @endforeach
+                            </div>
                         @endforeach
                     </nav>
                     <div class="settings-main">
