@@ -406,7 +406,7 @@
             @if (\App\Support\SettingsNav::isSettingsPage())
                 <div class="settings-shell">
                     <nav class="settings-nav" aria-label="Settings">
-                        <div class="settings-nav-title">{!! \App\Support\NavIcons::get('settings', 15) !!}<span>Settings</span></div>
+                        <a href="{{ route('settings.home') }}" class="settings-nav-back"><span>← All settings</span></a>
                         @php($settingsCurrent = \App\Support\SettingsNav::current())
                         @foreach (\App\Support\SettingsNav::sections() as $section => $links)
                             <div class="settings-nav-section">{{ $section }}</div>
@@ -415,7 +415,10 @@
                             @endforeach
                         @endforeach
                     </nav>
-                    <div class="settings-main">@yield('content')</div>
+                    <div class="settings-main">
+                        @if ($settingsNeeds = \App\Support\SettingsNav::permission())<p class="muted small" style="margin:0 0 8px">Needs <code>{{ $settingsNeeds }}</code></p>@endif
+                        @yield('content')
+                    </div>
                 </div>
             @else
                 @if (request()->routeIs('dashboard') && ! \App\Support\ProcessSetup::answered() && (! auth()->user() || auth()->user()->hasPermission('settings.manage')))

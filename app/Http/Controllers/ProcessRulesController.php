@@ -24,6 +24,28 @@ class ProcessRulesController extends Controller
         ]);
     }
 
+    /** One of the pages the rules are split into: its sections, the common rules first, a switch for the rest. */
+    public function page(Request $request, string $page): View
+    {
+        $info = ProcessRules::PAGES[$page] ?? abort(404);
+        $advanced = $request->boolean('advanced');
+        $pick = fn (array $sections) => array_intersect_key($sections, array_flip($info['sections']));
+
+        return view('settings.rule-page', [
+            'page' => $page, 'info' => $info, 'advanced' => $advanced,
+            'sections' => $pick(ProcessRules::sections($advanced)),
+            'total' => collect($pick(ProcessRules::sections(true)))->flatten(1)->count(),
+            'waiting' => collect(FloorRules::RULES)->keys()->filter(fn (string $rule) => FloorRules::waitsForQuickFlow($rule))->values()->all(),
+        ]);
+    }
+
+    public function reset(Request $request): RedirectResponse
+    {
+        ProcessRules::reset($request->validate(['rule' => ['required', 'string']])['rule']);
+
+        return back()->with('success', 'Rule put back to its default.');
+    }
+
     public function update(Request $request): RedirectResponse
     {
         if (! $request->filled('preset')) {

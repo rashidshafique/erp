@@ -21,6 +21,17 @@ class ProcessRules
         'Patterns' => [PatternOwnershipRules::class => null],
     ];
 
+    /** @var array<string, array{title: string, purpose: string, sections: list<string>}> the settings pages the rules are split into, by address */
+    public const PAGES = [
+        'orders' => ['title' => 'Order & pricing rules', 'purpose' => 'How orders are checked and released.', 'sections' => ['Orders']],
+        'moulding' => ['title' => 'Moulding & flasks', 'purpose' => 'Moulding lists, mould assembly, cores and flasks.', 'sections' => ['Moulding', 'Cores', 'Flasks']],
+        'melting' => ['title' => 'Melting & pouring', 'purpose' => 'How heats are planned and charged, and what has to pass before iron is poured.', 'sections' => ['Melting and pouring']],
+        'queue' => ['title' => 'Production queue', 'purpose' => 'When work in the queue turns amber and red.', 'sections' => ['Production queue']],
+        'patterns' => ['title' => 'Patterns & development', 'purpose' => 'Who owns patterns, and how pattern development runs.', 'sections' => ['Patterns', 'Development']],
+        'quality' => ['title' => 'Quality rules', 'purpose' => 'Inspection, non-conformance and control plan checks.', 'sections' => ['Quality']],
+        'calibration' => ['title' => 'Calibration & incoming', 'purpose' => 'Gauge calibration and material coming in.', 'sections' => ['Calibration', 'Purchasing']],
+    ];
+
     /** Section order on the page, so module sections sit where their work happens; any other section goes last. */
     private const ORDER = ['Development', 'Orders', 'Moulding', 'Cores', 'Flasks', 'Melting and pouring', 'Production queue', 'Quality', 'Calibration', 'Patterns', 'Purchasing'];
 
@@ -28,7 +39,7 @@ class ProcessRules
      * Section => rule => its label, choices and saved value. The common view holds the rules the presets and How you work set
      * (ProcessDepth::numbers); the advanced view adds every other rule, and a section left with no rules drops out.
      *
-     * @return array<string, array<string, array{class: class-string, label: string, options: array<string, string>|null, value: string}>>
+     * @return array<string, array<string, array{class: class-string, label: string, options: array<string, string>|null, key: string, default: string, value: string}>>
      */
     public static function sections(bool $advanced = false): array
     {
@@ -50,6 +61,7 @@ class ProcessRules
                     }
                     $out[$section][$rule] = [
                         'class' => $class, 'label' => $definitions[$rule][1], 'options' => $definitions[$rule][2],
+                        'key' => $definitions[$rule][0], 'default' => $class::defaultOf($rule),
                         'value' => $class === FloorRules::class ? FloorRules::stored($rule) : $class::get($rule),
                     ];
                 }
@@ -57,6 +69,16 @@ class ProcessRules
         }
 
         return $out;
+    }
+
+    /** Puts one rule back to its default. */
+    public static function reset(string $rule): void
+    {
+        foreach (self::classes() as $class => $keys) {
+            if (in_array($rule, $keys, true)) {
+                $class::set($rule, $class::defaultOf($rule));
+            }
+        }
     }
 
     /** @return array<string, list<mixed>> rule => validation, for the rules on the page */

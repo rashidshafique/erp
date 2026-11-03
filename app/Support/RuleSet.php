@@ -60,6 +60,12 @@ trait RuleSet
         return static::RULES[$rule];
     }
 
+    /** The value the rule has until someone changes it. */
+    public static function defaultOf(string $rule): string
+    {
+        return static::defaultFor($rule, static::definition($rule)[3]);
+    }
+
     protected static function defaultFor(string $rule, string $default): string
     {
         return $default;

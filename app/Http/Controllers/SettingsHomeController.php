@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Support\Formats;
 use App\Support\ProcessDepth;
+use App\Support\ProcessRules;
 use App\Support\SettingsNav;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Route;
@@ -12,18 +13,6 @@ use Illuminate\View\View;
 
 class SettingsHomeController extends Controller
 {
-    /** @var array<string, array{perm: string, pages: list<string>}> area => the settings pages it holds, by menu label */
-    public const AREAS = [
-        'Company' => ['perm' => 'settings.manage', 'pages' => ['General', 'Codes & marking', 'Documents']],
-        'People & approvals' => ['perm' => 'users.manage', 'pages' => ['Users', 'Roles & permissions', 'Approvals']],
-        'Sales' => ['perm' => 'settings.manage', 'pages' => ['Quotation rates', 'Price lists', 'Requirement profiles']],
-        'Production' => ['perm' => 'settings.manage', 'pages' => ['Foundry size', 'How you work', 'Melting days', 'Process rules', 'Our process']],
-        'Quality' => ['perm' => 'settings.manage', 'pages' => ['Quality rules', 'Calibration & incoming']],
-        'Accounts' => ['perm' => 'finance / ledger / tax.manage', 'pages' => ['Invoicing', 'Tax & year end', 'Ledger accounts', 'Posting rules', 'Sales documents']],
-        'HR' => ['perm' => 'hr.manage · hr.payroll', 'pages' => ['Payroll rules']],
-        'System' => ['perm' => 'settings.manage', 'pages' => ['Custom fields', 'Modules', 'Audit trail', 'Import data']],
-    ];
-
     public function __invoke(): View
     {
         $known = [];
@@ -33,8 +22,6 @@ class SettingsHomeController extends Controller
             }
         }
         $known['Price lists'] = Route::has('price-lists.index') ? route('price-lists.index') : null;
-        $known['Quality rules'] = route('settings.rules', ['advanced' => 1]).'#quality';
-        $known['Calibration & incoming'] = route('settings.rules', ['advanced' => 1]).'#calibration';
         $known['Payroll rules'] = Route::has('hr.payroll.setup') ? route('hr.payroll.setup') : null;
 
         $values = [
@@ -43,9 +30,16 @@ class SettingsHomeController extends Controller
             'Users' => User::count().' '.(User::count() === 1 ? 'person' : 'people'),
         ];
 
+        $all = ProcessRules::sections(true);
+        foreach (ProcessRules::PAGES as $info) {
+            $rules = collect(array_intersect_key($all, array_flip($info['sections'])))->flatten(1);
+            $changed = $rules->filter(fn (array $r) => (string) $r['value'] !== (string) $r['default'])->count();
+            $values[$info['title']] = $rules->count().' rules'.($changed ? ' · '.$changed.' changed' : '');
+        }
+
         $placed = [];
         $areas = [];
-        foreach (self::AREAS as $name => $area) {
+        foreach (SettingsNav::AREAS as $name => $area) {
             $pages = [];
             foreach ($area['pages'] as $label) {
                 if (! empty($known[$label])) {

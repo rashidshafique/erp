@@ -362,6 +362,10 @@ Route::prefix('flasks')->name('flasks.')->controller(FlaskController::class)->gr
 });
 Route::get('/settings/rules', [\App\Http\Controllers\ProcessRulesController::class, 'edit'])->name('settings.rules');
 Route::put('/settings/rules', [\App\Http\Controllers\ProcessRulesController::class, 'update'])->name('settings.rules.update');
+Route::post('/settings/rules/reset', [\App\Http\Controllers\ProcessRulesController::class, 'reset'])->name('settings.rules.reset');
+foreach (array_keys(\App\Support\ProcessRules::PAGES) as $page) {
+    Route::get('/settings/rules/'.$page, [\App\Http\Controllers\ProcessRulesController::class, 'page'])->defaults('page', $page)->name('settings.pages.'.$page);
+}
 foreach (['process-depth' => '', 'orders' => '#orders', 'work-lists' => '?advanced=1#moulding', 'flasks' => '?advanced=1#flasks', 'pouring' => '#melting-and-pouring', 'queue' => '?advanced=1#production-queue', 'control-plans' => '?advanced=1#quality', 'pattern-ownership' => '?advanced=1#patterns'] as $old => $section) {
     Route::redirect('/settings/'.$old, '/settings/rules'.$section);   // the pages these rules had before Process rules
 }
