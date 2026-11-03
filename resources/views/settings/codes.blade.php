@@ -20,7 +20,7 @@
 <div class="field"><label>Characters</label><select name="mark_style">@foreach($styles as $k => $l)<option value="{{ $k }}" @selected(\App\Services\Codes\CodeGenerator::markStyle() === $k)>{{ $l }}</option>@endforeach</select>
 <div class="help">Numbers only suits a number die set.</div></div>
 <div class="field"><label>Length</label><input type="number" name="mark_length" min="3" max="10" value="{{ \App\Services\Codes\CodeGenerator::markLength() }}"><div class="help">Grows by one if every combination is used.</div></div>
-<div class="field field-full"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="mark_avoid_lookalikes" value="1" @checked(\App\Services\Codes\CodeGenerator::setting('mark_avoid_lookalikes', '1') === '1')> Skip look-alikes (0/O, 1/I, Q)</label><div class="help">Not used with numbers only.</div></div>
+<div class="field field-full"><label style="display:flex;gap:8px;align-items:center"><input class="switch" type="checkbox" name="mark_avoid_lookalikes" value="1" @checked(\App\Services\Codes\CodeGenerator::setting('mark_avoid_lookalikes', '1') === '1')> Skip look-alikes (0/O, 1/I, Q)</label><div class="help">Not used with numbers only.</div></div>
 </div>
 <p>Next mark: <code style="font-size:16px">{{ $nextMark }}</code> <span class="muted small">Issued in order, never reused.</span></p>
 </div></div>

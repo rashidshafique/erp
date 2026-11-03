@@ -38,6 +38,9 @@
                         <legend>{{ $rule['label'] }}</legend>
                         @if ($rule['options'] === null)
                             <input type="number" name="{{ $key }}" value="{{ old($key, $rule['value']) }}" min="0" step="any" style="max-width:140px" aria-label="{{ $rule['label'] }}">
+                        @elseif (count($rule['options']) === 2)
+                            @php([$on, $off] = array_keys($rule['options']))
+                            <label class="switch-row"><input type="hidden" name="{{ $key }}" value="{{ $off }}"><input class="switch" type="checkbox" name="{{ $key }}" value="{{ $on }}" @checked((string) old($key, $rule['value']) === (string) $on)><span class="on">{{ $rule['options'][$on] }}</span><span class="off">{{ $rule['options'][$off] }}</span></label>
                         @else
                             @foreach ($rule['options'] as $value => $text)<label><input type="radio" name="{{ $key }}" value="{{ $value }}" @checked((string) old($key, $rule['value']) === (string) $value)> {{ $text }}</label>@endforeach
                         @endif

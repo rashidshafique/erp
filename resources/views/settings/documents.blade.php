@@ -4,9 +4,9 @@
 <div class="page-heading"><div><h1>Documents</h1><p>How files attached to records are kept.</p></div></div>
 <form method="POST" action="{{ route('settings.documents.update') }}">@csrf @method('PUT')
 <div class="panel"><div class="panel-body">
-    <label style="display:flex;gap:8px;align-items:flex-start;margin-bottom:16px"><input type="checkbox" name="related" value="1" style="width:auto;min-height:0;margin-top:3px" @checked(old('related', $related))>
+    <label style="display:flex;gap:8px;align-items:flex-start;margin-bottom:16px"><input class="switch" type="checkbox" name="related" value="1" @checked(old('related', $related))>
         <span><strong>Show files of related records</strong><br><span class="muted small">E.g. an order shows its products' drawings. Permissions still apply.</span></span></label>
-    <label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" name="versioning" value="1" style="width:auto;min-height:0;margin-top:3px" @checked(old('versioning', $enabled))>
+    <label style="display:flex;gap:8px;align-items:flex-start"><input class="switch" type="checkbox" name="versioning" value="1" @checked(old('versioning', $enabled))>
         <span><strong>Keep versions of files</strong><br><span class="muted small">A new version replaces the old, which stays in history.</span></span></label>
     <fieldset style="margin-top:16px"><legend>Categories that keep versions</legend>
         <div class="rule-grid">
