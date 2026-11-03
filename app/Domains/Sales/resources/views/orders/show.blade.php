@@ -4,8 +4,8 @@
 @section('breadcrumb', 'Sales orders / '.$order->order_number)
 
 @section('content')
-<div class="page-heading">
-    @php
+@php
+    use App\Domains\Sales\Models\SalesOrder;
     $reviewLight = null;
     if ($review) {
         $reviewBlocks = $review->items->where('severity', 'BLOCK')->count();
@@ -18,43 +18,53 @@
                     ? ['#1e8e3e', '30,142,62', \App\Support\OrderRules::reviewsAutomatically() ? 'Contract review approved' : 'Contract review approved by sales and quality']
                     : ['#1e8e3e', '30,142,62', 'Contract review is clear, waiting for sign-off by '.collect(['sales' => $review->sales_signed_at, 'quality' => $review->quality_signed_at])->filter(fn ($signed) => ! $signed)->keys()->implode(' and '), true]));
     }
+    $tones = ['DRAFT' => 'el-grey', 'UNDER_REVIEW' => 'el-warn', 'CONFIRMED' => 'el-blue', 'IN_PRODUCTION' => 'el-blue', 'ON_HOLD' => 'el-bad', 'DISPATCHED' => 'el-ok', 'CANCELLED' => 'el-grey'];
+    $orderValue = $order->lines->sum(fn ($l) => $l->netValue((float) $l->ordered_qty));
 @endphp
-<div><h1>{{ $order->order_number }}@if ($reviewLight)<span class="heat-light" title="{{ $reviewLight[2] }}" aria-label="{{ $reviewLight[2] }}" style="--hl:{{ $reviewLight[0] }};--hl-rgb:{{ $reviewLight[1] }};margin-left:8px;{{ ($reviewLight[3] ?? false) ? 'opacity:.4;box-shadow:none' : '' }}"></span>@endif</h1><p>{{ $order->customer?->code }} — {{ $order->customer?->name }}</p></div>
-    <div class="actions">
-        @if (in_array($order->status, \App\Domains\Sales\Models\SalesOrder::OPEN, true))<a class="btn" href="{{ route('sales-orders.edit', $order) }}">Edit</a>@endif
-        <a class="btn" href="{{ route('sales-orders.trace', $order) }}">Trace to dispatch</a>
-        @if (Route::has('invoices.create'))<a class="btn" href="{{ route('invoices.create', ['order' => $order->id]) }}">Raise invoice</a>@endif
-        @php $changes = app(\App\Domains\Sales\Services\SalesOrderStatus::class)->allowedFrom($order); @endphp
-        @if ($changes)
-            <details style="display:inline-block"><summary class="btn">Change status</summary>
-                <form method="POST" action="{{ route('sales-orders.status', $order) }}" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px">@csrf
-                    <select name="status" id="status-change" aria-label="New status">@foreach ($changes as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select>
-                    <label id="release-all" hidden><input type="hidden" name="release_all" value="0"><input type="checkbox" name="release_all" value="1" checked> Create and release all production orders</label>
-                    <input name="reason" id="cancel-reason" maxlength="300" placeholder="Reason for cancelling" aria-label="Reason for cancelling" hidden>
-                    <button class="btn btn-primary" type="submit">Apply</button>
-                </form></details>
-            <script>
-                (function () {
-                    var select = document.getElementById('status-change');
-                    function sync() {
-                        document.getElementById('release-all').hidden = select.value !== 'IN_PRODUCTION';
-                        document.getElementById('cancel-reason').hidden = select.value !== 'CANCELLED';
-                    }
-                    select.addEventListener('change', sync); sync();
-                })();
-            </script>
-        @endif
-        <form method="POST" action="{{ route('sales-orders.review', $order) }}" style="display:inline">@csrf
-            <button class="btn btn-primary" type="submit">{{ $review ? 'Re-run contract review' : 'Run contract review' }}</button></form>
+@include('sales::orders._record-styles')
+<div class="el-card" style="margin-bottom:16px">
+    <div class="el-bar">
+        <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);flex-wrap:wrap">
+            <a href="{{ route('sales-orders.index') }}" style="color:inherit">Sales orders</a><span>/</span><code style="color:var(--text)">{{ $order->order_number }}</code>
+            <span class="el-pill {{ $tones[$order->status] ?? '' }}" style="margin-left:6px">{{ SalesOrder::STATUSES[$order->status] ?? str_replace('_', ' ', $order->status) }}</span>
+            @if ($reviewLight)<span class="heat-light" title="{{ $reviewLight[2] }}" aria-label="{{ $reviewLight[2] }}" style="--hl:{{ $reviewLight[0] }};--hl-rgb:{{ $reviewLight[1] }};margin-left:4px;{{ ($reviewLight[3] ?? false) ? 'opacity:.4;box-shadow:none' : '' }}"></span>@endif
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            @if (in_array($order->status, SalesOrder::OPEN, true))<a class="el-btn" href="{{ route('sales-orders.edit', $order) }}">Edit</a>@endif
+            <a class="el-btn" href="{{ route('sales-orders.trace', $order) }}">Trace to dispatch</a>
+            @if (Route::has('invoices.create'))<a class="el-btn" href="{{ route('invoices.create', ['order' => $order->id]) }}">Raise invoice</a>@endif
+            @php $changes = app(\App\Domains\Sales\Services\SalesOrderStatus::class)->allowedFrom($order); @endphp
+            @if ($changes)
+                <details style="display:inline-block"><summary class="el-btn">Change status</summary>
+                    <form method="POST" action="{{ route('sales-orders.status', $order) }}" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px">@csrf
+                        <select name="status" id="status-change" aria-label="New status">@foreach ($changes as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select>
+                        <label id="release-all" hidden><input type="hidden" name="release_all" value="0"><input type="checkbox" name="release_all" value="1" checked> Create and release all production orders</label>
+                        <input name="reason" id="cancel-reason" maxlength="300" placeholder="Reason for cancelling" aria-label="Reason for cancelling" hidden>
+                        <button class="el-btn primary" type="submit">Apply</button>
+                    </form></details>
+                <script>
+                    (function () {
+                        var select = document.getElementById('status-change');
+                        function sync() {
+                            document.getElementById('release-all').hidden = select.value !== 'IN_PRODUCTION';
+                            document.getElementById('cancel-reason').hidden = select.value !== 'CANCELLED';
+                        }
+                        select.addEventListener('change', sync); sync();
+                    })();
+                </script>
+            @endif
+            <form method="POST" action="{{ route('sales-orders.review', $order) }}" style="display:inline">@csrf
+                <button class="el-btn primary" type="submit">{{ $review ? 'Re-run contract review' : 'Run contract review' }}</button></form>
+        </div>
     </div>
-</div>
-
-
-<div class="metrics">
-    <div class="metric"><div class="metric-label">Status</div><div class="metric-value" style="font-size:21px">{{ str_replace('_', ' ', $order->status) }}</div></div>
-    <div class="metric"><div class="metric-label">Order date</div><div class="metric-value" style="font-size:21px">{{ $order->order_date?->displayDate() }}</div></div>
-    <div class="metric"><div class="metric-label">Requested delivery</div><div class="metric-value" style="font-size:21px">{{ $order->requested_delivery_date?->displayDate() ?? '—' }}</div></div>
-    <div class="metric"><div class="metric-label">Customer reference</div><div class="metric-value" style="font-size:21px">{{ $order->customer_reference ?: '—' }}</div></div>
+    <div class="el-facts">
+        <div><div class="el-sub">Customer</div><div style="font-weight:500">{{ $order->customer?->name }}</div></div>
+        <div><div class="el-sub">Customer PO</div>@if ($order->customer_reference)<code>{{ $order->customer_reference }}</code>@else<div>—</div>@endif</div>
+        <div><div class="el-sub">Order date</div><div>{{ $order->order_date?->displayDate() }}</div></div>
+        <div><div class="el-sub">Requested delivery</div><div>{{ $order->requested_delivery_date?->displayDate() ?? '—' }}</div></div>
+        <div><div class="el-sub">Order value</div><div>{{ \App\Support\Formats::withCurrency(\App\Support\Formats::money($orderValue)) }}</div></div>
+        <div><div class="el-sub">Lines</div><div>{{ $order->lines->count() }}</div></div>
+    </div>
 </div>
 
 @if ($review && $order->changedSince($review))
@@ -64,9 +74,9 @@
 
 @php $reviewBlocksProduction = \App\Support\OrderRules::reviewRequired() && ! $order->hasApprovedReview(); @endphp
 <div class="tab-marker" data-tab-start="Lines"></div>
-<div class="panel">
-    <div class="panel-header"><h2>Lines and delivery schedule</h2></div>
-    <div class="table-wrap"><table>
+<div class="el-card">
+    <div class="el-bar"><span style="font-weight:600;font-size:13px">Lines and delivery schedule</span></div>
+    <div class="el-table" style="margin:0;padding:8px 16px"><table>
         <thead><tr><th>#</th><th>Product</th><th>Rev</th><th>Ordered</th><th>Scheduled</th><th>Shipped</th><th>Production orders</th><th style="text-align:right"><button type="button" id="lines-toggle-all" data-state="open" title="Collapse all" aria-label="Collapse or expand all lines" style="border:0;background:none;padding:0 4px;cursor:pointer;color:inherit;font-size:20px;line-height:1">&#9662;</button></th></tr></thead>
         <tbody>
         @php \App\Models\Attachment::primeCovers('product', $order->lines->pluck('product_id')->all()); @endphp
@@ -182,71 +192,90 @@
         });
     })();
     </script>
-    @if ($reviewBlocksProduction)<div class="panel-body muted small">Production orders can be created once the contract review is approved{{ \App\Support\OrderRules::reviewsAutomatically() ? '' : ' by both sales and quality' }}.</div>@endif
+    @if ($reviewBlocksProduction)<div class="el-note" style="padding:0 28px 16px">Production orders can be created once the contract review is approved{{ \App\Support\OrderRules::reviewsAutomatically() ? '' : ' by both sales and quality' }}.</div>@endif
 </div>
 
 <div class="tab-marker" data-tab-start="Contract review" data-tab-warn="{{ $review ? $review->items->where('severity', 'WARN')->whereNull('acknowledgement')->count() : 0 }}" data-tab-block="{{ $review ? $review->items->where('severity', 'BLOCK')->count() : 0 }}"></div>
-<div class="panel">
-    <div class="panel-header">
-        <h2>Contract review{{ $review ? ' '.$review->review_number : '' }}</h2>
-        @if ($review)@php $openWarns = $review->items->where('severity', 'WARN')->whereNull('acknowledgement')->count(); @endphp<span>@if (($n = $review->items->where('severity', 'BLOCK')->count()) > 0)<span class="nav-count" style="float:none" title="Blocks">{{ $n }} blocked</span> @endif @if ($openWarns > 0)<span class="nav-count" style="float:none" title="Warnings not yet acknowledged">{{ $openWarns }} {{ $openWarns === 1 ? 'warning' : 'warnings' }}</span> @endif<span class="status {{ $review->status === 'APPROVED' ? 'status-completed' : ($review->verdict === 'BLOCK' ? 'status-cancelled' : 'status-on-hold') }}">{{ $review->status }} · {{ $review->verdict }}</span></span>@endif
+<div class="el-card" style="margin-top:16px">
+    <div class="el-bar">
+        <span style="font-weight:600;font-size:13px">Contract review{{ $review ? ' '.$review->review_number : '' }}</span>
+        @if ($review)@php $openWarns = $review->items->where('severity', 'WARN')->whereNull('acknowledgement')->count(); $nBlocks = $review->items->where('severity', 'BLOCK')->count(); @endphp
+            <span style="display:flex;gap:6px;align-items:center">@if ($nBlocks > 0)<span class="el-pill el-bad">{{ $nBlocks }} to fix</span>@endif @if ($openWarns > 0)<span class="el-pill el-warn">{{ $openWarns }} {{ $openWarns === 1 ? 'note' : 'notes' }} needed</span>@endif<span class="el-pill {{ $review->status === 'APPROVED' ? 'el-ok' : ($review->verdict === 'BLOCK' ? 'el-bad' : 'el-warn') }}">{{ $review->status }} · {{ $review->verdict }}</span></span>
+        @endif
     </div>
     @if (! $review)
         <div class="empty-state">No review yet. Run it to check specs, requirements, grade, furnaces, thermal window, pattern and control plan.</div>
     @else
-        <div class="panel-body">
-            <div class="form-grid">
+        @php
+            $needs = $review->items->where('severity', '!=', 'PASS')->sortBy(fn ($i) => [['BLOCK' => 0, 'WARN' => 1][$i->severity], $i->line?->line_number ?? 0]);
+            $passed = $review->items->where('severity', 'PASS')->count();
+        @endphp
+        <div class="el-grid" style="grid-template-columns:minmax(0,1fr) 340px">
+            <div class="el-main">
+                <div class="el-h">Only what needs you</div>
+                @forelse ($needs as $i)
+                    <div class="el-todo {{ $i->severity === 'BLOCK' ? 'bad' : '' }}">
+                        <div>
+                            <div class="el-todo-t">{{ $i->line ? 'Line '.$i->line->line_number.' · ' : '' }}{{ ucfirst(strtolower(str_replace('_', ' ', $i->check_code))) }}</div>
+                            <div class="el-todo-m">{{ $i->message }}</div>
+                            @foreach ($i->fixLinks() as $fix)<div><a href="{{ $fix['url'] }}">{{ $fix['label'] }} →</a></div>@endforeach
+                        </div>
+                        <div>
+                            @if ($i->severity === 'WARN')
+                                @if ($i->acknowledgement)<span class="el-note">Accepted: {{ $i->acknowledgement }}</span>
+                                @elseif ($review->status === 'IN_REVIEW')
+                                    <form method="POST" action="{{ route('sales-orders.review.acknowledge', $order) }}" style="display:flex;gap:6px">@csrf
+                                        <input type="hidden" name="item_id" value="{{ $i->id }}">
+                                        <input name="reason" placeholder="Why this is acceptable" required minlength="5" maxlength="500" style="width:240px">
+                                        <button class="el-btn" type="submit">Acknowledge</button></form>
+                                @endif
+                            @endif
+                        </div>
+                    </div>
+                @empty
+                    <div class="el-note">Nothing needs you.</div>
+                @endforelse
+                <details>
+                    <summary class="el-note" style="cursor:pointer">All {{ $review->items->count() }} checks ({{ $passed }} passed)</summary>
+                    <div class="el-table"><table>
+                        <thead><tr><th>Line</th><th>Check</th><th>Result</th><th>Finding</th></tr></thead>
+                        <tbody>
+                        @foreach ($review->items->sortBy(fn ($i) => [$i->line?->line_number ?? 0, ['BLOCK' => 0, 'WARN' => 1, 'PASS' => 2][$i->severity]]) as $i)
+                            <tr style="cursor:default">
+                                <td>@if($i->line)<x-product-cell :product="$i->line->product" /><div class="el-sub">Line {{ $i->line->line_number }}</div>@else—@endif</td>
+                                <td>{{ str_replace('_', ' ', $i->check_code) }}</td>
+                                <td><span class="el-pill {{ $i->severity === 'PASS' ? 'el-ok' : ($i->severity === 'WARN' ? 'el-warn' : 'el-bad') }}">{{ $i->severity }}</span></td>
+                                <td style="white-space:normal;min-width:260px">{{ $i->message }}</td>
+                            </tr>
+                        @endforeach
+                        </tbody>
+                    </table></div>
+                </details>
+            </div>
+            <aside class="el-side">
+                <div class="el-h">Sign-off</div>
                 @foreach (\App\Support\OrderRules::reviewsAutomatically() && ! $review->quality_signed_at ? ['sales' => 'Approval'] : ['sales' => 'Sales', 'quality' => 'Quality'] as $role => $label)
-                    <div class="field">
-                        <strong>{{ $label === 'Approval' ? 'Approval' : $label.' sign-off' }}</strong>
+                    <div class="el-row" style="align-items:center">
+                        <span>{{ $label }}</span>
+                        <span>
                         @if ($review->{$role.'_signed_at'})
-                            <div>{{ $review->{$role.'_signed_by'} }} · {{ $review->{$role.'_signed_at'}->displayDateTime() }}</div>
+                            <span style="color:#1d7048">✓ {{ $review->{$role.'_signed_by'} }}</span><br><span class="el-note">{{ $review->{$role.'_signed_at'}->displayDateTime() }}</span>
                         @elseif ($review->status === 'IN_REVIEW' && auth()->user() && (int) $review->{($role === 'sales' ? 'quality' : 'sales').'_signed_by_user_id'} === (int) auth()->id())
-                            <div class="muted small">Needs someone other than {{ auth()->user()->name }}, who signed as {{ $role === 'sales' ? 'quality' : 'sales' }}. Working alone? Under <a href="{{ route('settings.rules').'#orders' }}">Settings &gt; Process rules</a>, set contract review to "Only when something is off" and one sign-off approves it.</div>
+                            <span class="el-note">Needs someone other than {{ auth()->user()->name }}, who signed as {{ $role === 'sales' ? 'quality' : 'sales' }}. Working alone? Under <a href="{{ route('settings.rules').'#orders' }}">Settings &gt; Process rules</a>, set contract review to "Only when something is off".</span>
                         @elseif ($review->status === 'IN_REVIEW')
                             <form method="POST" action="{{ route('sales-orders.review.sign', $order) }}">@csrf
                                 <input type="hidden" name="role" value="{{ $role }}">
-                                @if (auth()->user())
-                                    <input type="hidden" name="name" value="{{ auth()->user()->name }}">
-                                @else
-                                    <input name="name" placeholder="Your name" required maxlength="100">
-                                @endif
-                                <button class="btn btn-primary" type="submit">{{ $label === 'Approval' ? 'Approve' : 'Sign as '.strtolower($label) }}{{ auth()->user() ? ' ('.auth()->user()->name.')' : '' }}</button></form>
+                                @if (auth()->user())<input type="hidden" name="name" value="{{ auth()->user()->name }}">@else<input name="name" placeholder="Your name" required maxlength="100">@endif
+                                <button class="el-btn primary" type="submit">{{ $label === 'Approval' ? 'Approve' : 'Sign as '.strtolower($label) }}{{ auth()->user() ? ' ('.auth()->user()->name.')' : '' }}</button></form>
                         @else
-                            <div class="muted small">Not signed.</div>
+                            <span class="el-note">Not signed</span>
                         @endif
+                        </span>
                     </div>
                 @endforeach
-            </div>
+                <div style="padding-top:14px;border-top:1px solid var(--border)"><div class="el-h">After approval</div><div style="line-height:1.6;margin-top:8px">1. The order can go live<br>2. Each line gets a production order<br>3. They reach the planner</div></div>
+            </aside>
         </div>
-        @php $blocks = $review->items->where('severity', 'BLOCK'); @endphp
-        @if ($blocks->isNotEmpty())
-            <div class="alert alert-error" style="margin:12px"><strong>Blocked. Fix these, then re-run the review:</strong><ul>@foreach ($blocks as $b)<li>{{ $b->message }}@foreach ($b->fixLinks() as $fix) <a href="{{ $fix['url'] }}" class="btn btn-small">{{ $fix['label'] }} →</a>@endforeach</li>@endforeach</ul></div>
-        @endif
-        <div class="table-wrap"><table>
-            <thead><tr><th>Line</th><th>Check</th><th>Result</th><th>Finding</th><th>Acknowledgement</th></tr></thead>
-            <tbody>
-            @foreach ($review->items->sortBy(fn ($i) => [$i->line?->line_number ?? 0, ['BLOCK' => 0, 'WARN' => 1, 'PASS' => 2][$i->severity]]) as $i)
-                <tr>
-                    <td>@if($i->line)<x-product-cell :product="$i->line->product" /><div class="muted small">Line {{ $i->line->line_number }}</div>@else—@endif</td>
-                    <td>{{ str_replace('_', ' ', $i->check_code) }}</td>
-                    <td><span class="status {{ $i->severity === 'PASS' ? 'status-completed' : ($i->severity === 'WARN' ? 'status-on-hold' : 'status-cancelled') }}">{{ $i->severity }}</span></td>
-                    <td style="white-space:normal;min-width:260px">{{ $i->message }}@foreach ($i->fixLinks() as $fix)<div><a href="{{ $fix['url'] }}">{{ $fix['label'] }} →</a></div>@endforeach</td>
-                    <td style="white-space:normal;min-width:220px">
-                        @if ($i->severity === 'WARN')
-                            @if ($i->acknowledgement) {{ $i->acknowledgement }}
-                            @elseif ($review->status === 'IN_REVIEW')
-                                <form method="POST" action="{{ route('sales-orders.review.acknowledge', $order) }}">@csrf
-                                    <input type="hidden" name="item_id" value="{{ $i->id }}">
-                                    <input name="reason" placeholder="Why this is acceptable" required minlength="5" maxlength="500">
-                                    <button class="btn" type="submit">Acknowledge</button></form>
-                            @endif
-                        @endif
-                    </td>
-                </tr>
-            @endforeach
-            </tbody>
-        </table></div>
     @endif
 </div>
 <div class="tab-marker" data-tab-start="Files & history"></div>
