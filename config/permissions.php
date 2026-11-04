@@ -95,6 +95,7 @@ return [
         ['permission' => 'mobile.tests', 'route' => 'm.home'],
         ['permission' => 'mobile.defects', 'route' => 'm.home'],
         ['permission' => 'quality.inspect', 'route' => 'quality.home'],
+        ['permission' => 'hr.manage', 'route' => 'hr.dashboard'],
         ['permission' => 'shopfloor.record', 'route' => 'quick.today', 'module' => 'quickflow', 'rule' => 'quick_screens'],
         ['permission' => 'melting.operate', 'route' => 'heats.index'],
         ['permission' => 'moulding.operate', 'route' => 'quick.floor.index', 'module' => 'quickflow'],

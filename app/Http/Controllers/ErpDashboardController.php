@@ -10,6 +10,10 @@ class ErpDashboardController extends Controller
 {
     public function __invoke(Request $request, DashboardData $data)
     {
+        if (config('foundry.require_login') && $request->user() && ! $request->user()->isAdmin()) {
+            return redirect()->route(\App\Support\StartPage::routeFor($request->user()));   // each role has a home of its own
+        }
+
         $layout = match ($request->query('layout')) {   // the owner's home (4a) is the default; the pipeline view (1a) and the wall screen have their own links
             'telemetry' => 'telemetry',
             'classic' => 'classic',

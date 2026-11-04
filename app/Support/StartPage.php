@@ -14,7 +14,7 @@ class StartPage
 {
     public static function routeFor(?User $user): string
     {
-        if ($user === null || $user->isAdmin()) {
+        if ($user === null || $user->isAdmin() || ! config('foundry.require_login')) {
             return 'dashboard';
         }
         $modules = app(ModuleRegistry::class);
@@ -32,6 +32,6 @@ class StartPage
             return $entry['route'];
         }
 
-        return 'dashboard';
+        return 'home';   // a role with no page of its own gets a home built from its permissions; the plant-wide dashboard is for administrators
     }
 }

@@ -33,7 +33,8 @@
     <aside class="sidebar" id="main-sidebar">
         <button type="button" class="nav-link menu-toggle menu-expand" id="menu-expand" aria-controls="main-sidebar" aria-pressed="true" title="Show the full menu" aria-label="Show the full menu">{!! \App\Support\NavIcons::get('panel-left') !!}</button>
         @php($brand = \App\Support\UiSettings::brand())
-        <a href="{{ route('dashboard') }}" class="brand" style="text-decoration:none">
+        @php($homeRoute = \App\Support\StartPage::routeFor(auth()->user()))
+        <a href="{{ route($homeRoute) }}" class="brand" style="text-decoration:none">
             @if ($brand['logo'] && $brand['position'] === 'TOP_LEFT')
                 <img src="{{ $brand['logo'] }}" alt="{{ $brand['name'] }}" style="display:block;max-width:100%;height:{{ $brand['height'] }}px;object-fit:contain;object-position:left;margin-bottom:6px">
             @endif
@@ -45,7 +46,7 @@
         @php($menuCounts = app(\App\Support\MenuCounts::class)->forMenu($menu))
         <nav class="sidebar-nav" aria-label="Main navigation">
             @php(ob_start())
-            <a href="{{ route('dashboard') }}" class="nav-link nav-top {{ request()->routeIs('dashboard') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('dashboard') !!}<span>Dashboard</span></a>
+            <a href="{{ route($homeRoute) }}" class="nav-link nav-top {{ request()->routeIs($homeRoute) ? 'active' : '' }}">{!! \App\Support\NavIcons::get('dashboard') !!}<span>{{ $homeRoute === 'dashboard' ? 'Dashboard' : 'Home' }}</span></a>
             @if ($menu->shows('calendar.index')) <a href="{{ route('calendar.index') }}" class="nav-link nav-top {{ request()->routeIs('calendar.*') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('calendar') !!}<span>Calendar</span></a> @endif
 
             @include('layouts._module-nav-groups', ['position' => 'top'])

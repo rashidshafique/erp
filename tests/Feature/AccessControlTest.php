@@ -36,7 +36,7 @@ class AccessControlTest extends TestCase
         config(['foundry.require_login' => true]);
         $u = $this->user('VIEWER', ['email' => 'a@x.test', 'password' => 'Longpass123']);
         $this->post(route('login.attempt'), ['email' => 'a@x.test', 'password' => 'nope'])->assertSessionHasErrors('email');
-        $this->post(route('login.attempt'), ['email' => 'a@x.test', 'password' => 'Longpass123'])->assertRedirect(route('dashboard'));
+        $this->post(route('login.attempt'), ['email' => 'a@x.test', 'password' => 'Longpass123'])->assertRedirect(route('home'));
         $this->assertAuthenticatedAs($u);
         $this->assertNotNull($u->fresh()->last_login_at);
     }
@@ -142,5 +142,16 @@ class AccessControlTest extends TestCase
         $looker = User::factory()->create(['is_active' => true, 'must_change_password' => false]);
         $looker->roles()->attach($role->id);
         $this->actingAs($looker)->get(route('customers.index'))->assertOk();
+    }
+
+    public function test_each_role_has_its_own_home_and_only_admins_see_the_plant_dashboard(): void
+    {
+        config(['foundry.require_login' => true]);
+        $this->actingAs($this->user('ACCOUNTS'))->get(route('dashboard'))->assertRedirect(route('home'));
+        $this->get(route('home'))->assertOk()->assertSee('Overdue invoices')->assertDontSee('Heats running');
+        $this->actingAs($this->user('BUYER'))->get(route('home'))->assertOk()->assertSee('Orders waiting for goods')->assertDontSee('Overdue invoices');
+        $this->actingAs($this->user('VIEWER'))->get(route('home'))->assertOk()->assertSee('The plant today');
+        $this->actingAs($this->user('HR_MANAGER'))->get(route('dashboard'))->assertRedirect(route('hr.dashboard'));
+        $this->actingAs($this->user('ADMIN'))->get(route('dashboard'))->assertOk();
     }
 }

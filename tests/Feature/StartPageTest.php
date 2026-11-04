@@ -40,7 +40,7 @@ class StartPageTest extends TestCase
         $this->signIn('ADMIN')->assertRedirect(route('dashboard'));
         $this->post(route('logout'));
         User::query()->delete();
-        $this->signIn('VIEWER')->assertRedirect(route('dashboard'));
+        $this->signIn('VIEWER')->assertRedirect(route('home'));
     }
 
     public function test_melting_comes_before_moulding_for_someone_with_both(): void

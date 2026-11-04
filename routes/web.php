@@ -71,6 +71,7 @@ Route::get('/stock-reconciliation', [StockReconciliationController::class, 'inde
     ->name('stock-reconciliation.index');
 
 Route::get('/', ErpDashboardController::class)->name('dashboard');
+Route::get('/home', \App\Http\Controllers\RoleHomeController::class)->name('home');
 Route::get('/quality-home', \App\Http\Controllers\QualityHomeController::class)->name('quality.home');
 Route::prefix('moulding-runs')
     ->name('moulding-runs.')

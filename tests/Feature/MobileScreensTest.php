@@ -171,6 +171,7 @@ class MobileScreensTest extends TestCase
 
     public function test_people_land_on_their_own_home_after_signing_in(): void
     {
+        config(['foundry.require_login' => true]);
         $this->assertSame('m.home', \App\Support\StartPage::routeFor($this->tech('QA_TEST_TECH')));
         $this->assertSame('m.home', \App\Support\StartPage::routeFor($this->tech('QA_DEFECT_TECH')));
         $this->assertSame('quality.home', \App\Support\StartPage::routeFor($this->tech('QUALITY_INSPECTOR')));
