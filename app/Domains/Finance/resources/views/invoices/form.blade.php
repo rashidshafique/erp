@@ -33,11 +33,16 @@
     .iv-t { border: 1px solid var(--border); border-radius: 8px; overflow-x: auto; } .iv-t table { table-layout: fixed; width: 100%; margin: 0; }
     .iv-t th { padding: 9px 12px; border-right: 1px solid #eff0f2; background: #fafafb; text-align: left; } .iv-t th:last-child { border-right: 0; }
     .iv-t th.el-r, .iv-t td.el-r { text-align: right; }
-    .iv-t td { padding: 0; border-right: 1px solid #eff0f2; vertical-align: middle; height: 44px; } .iv-t td:last-child { border-right: 0; }
+    .iv-t td { padding: 0; border-right: 1px solid #eff0f2; vertical-align: middle; height: 44px; position: relative; } .iv-t td:last-child { border-right: 0; }
     .iv-t td.iv-ro { padding: 0 12px; background: #fafafb; color: var(--muted); }
-    .iv-t input.iv-cell, .iv-t select.iv-cell { display: block; width: 100%; height: 44px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 0; background: transparent; box-shadow: none; outline: none; font-size: 13.5px; }
+    .iv-t td.iv-ro:has(select) { padding: 0; }
+    .iv-t input.iv-cell, .iv-t select.iv-cell { display: block; width: 100%; height: 44px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: 0; background: transparent; box-shadow: none; outline: none; font-size: 13.5px; -moz-appearance: textfield; appearance: none; }
+    .iv-t select.iv-cell { appearance: auto; text-overflow: ellipsis; }
     .iv-t input.iv-cell.el-r { text-align: right; }
-    .iv-t input.iv-cell:hover { background: #f5f8fe; } .iv-t input.iv-cell:focus, .iv-t select.iv-cell:focus { background: #fff; box-shadow: inset 0 0 0 2px var(--accent); }
+    /* The cell under the cursor is tinted; the cell being typed in gets a blue square inside its edge, as in the design. */
+    .iv-t td:not(.iv-ro):hover { background: #f5f8fe; }
+    .iv-t td:focus-within { background: #fff; outline: 2px solid var(--accent); outline-offset: -2px; z-index: 1; }
+    .iv-t input.iv-cell:focus, .iv-t select.iv-cell:focus { outline: 0; box-shadow: none; background: transparent; }
     .iv-chk { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 10px; align-items: start; }
     .iv-chk > span { width: 20px; height: 20px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 11.5px; font-weight: 600; }
     .iv-sw { width: 30px; height: 18px; border-radius: 999px; position: relative; background: #d9dbde; flex: none; } .iv-sw i { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.2); transition: left .15s; }
@@ -89,7 +94,7 @@
     <div style="display:flex;justify-content:space-between;align-items:baseline"><div class="el-h">Lines</div><span class="el-sub" x-text="(orders ? 'Prices from ' + orders + ' · ' : '') + 'click any cell to type'"></span></div>
     <div class="iv-t"><table><thead><tr><th style="width:{{ $taxPack ? '16%' : '17%' }}">Product</th><th style="width:{{ $taxPack ? '16%' : '19%' }}">Description</th><th x-show="trace" style="width:11%">Trace</th><th style="width:{{ $taxPack ? '16%' : '10%' }}">{{ $taxPack ? 'Tax' : 'GST' }}</th><th class="el-r" style="width:8%">Qty</th><th style="width:6%">UoM</th><th class="el-r" style="width:9%" title="Price for one unit of the UoM">Unit price</th><th class="el-r" style="width:6%">Disc %</th><th class="el-r" style="width:8%" title="A fixed amount off; worked out from Disc % when that is not 0">Disc amt</th><th class="el-r" style="width:10%">Amount</th></tr></thead><tbody>
     <template x-for="(l, i) in lines" :key="l.key"><tr>
-        <td style="height:auto">
+        <td>
             <template x-if="! l.dispatch_item_id && ! l.extra"><select :name="`lines[${i}][product_id]`" x-model="l.product_id" @change="pick(l, $event.target.value)" data-search-select class="iv-cell" aria-label="Product"><option value="">Free text</option>@foreach ($products as $id => $p)<option value="{{ $id }}">{{ $p['code'] }} · {{ $p['name'] }}</option>@endforeach</select></template>
             <template x-if="l.dispatch_item_id || l.extra"><div style="padding:0 12px"><input type="hidden" :name="`lines[${i}][product_id]`" :value="l.product_id ?? ''"><code style="font-weight:600" x-text="products[l.product_id]?.code || l.label || ''"></code></div></template>
             <input type="hidden" :name="`lines[${i}][sales_order_line_id]`" :value="l.sales_order_line_id ?? ''"><input type="hidden" :name="`lines[${i}][dispatch_item_id]`" :value="l.dispatch_item_id ?? ''">
@@ -99,11 +104,11 @@
         <td class="iv-ro" x-show="trace" style="font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" x-text="trace_(l)"></td>
         @if ($taxPack)<td style="height:auto"><select class="iv-cell" :name="`lines[${i}][supply_type]`" x-model="l.supply_type"><option value="GOODS">Goods</option><option value="SERVICE">Service</option></select><input class="iv-cell" :name="`lines[${i}][tariff_code]`" x-model="l.tariff_code" maxlength="20" placeholder="{{ $taxPack->tariffLabel() }}"><select class="iv-cell" :name="`lines[${i}][tax_rate_id]`" x-model="l.tax_rate_id" title="Tax if no rule applies"><option value="">No tax</option>@foreach ($taxRates as $t)<option value="{{ $t->id }}">{{ $t->name }}</option>@endforeach</select></td>
         @else<td><select class="iv-cell" :name="`lines[${i}][tax_rate_id]`" x-model="l.tax_rate_id"><option value="">No tax</option>@foreach ($taxRates as $t)<option value="{{ $t->id }}">{{ $t->name }} ({{ \App\Support\Formats::number($t->rate_percent, 2) }}%)</option>@endforeach</select></td>@endif
-        <td><input class="iv-cell el-r" type="number" step="any" min="0" :name="`lines[${i}][quantity]`" x-model.number="l.quantity" @focus="$event.target.select()" @keydown.enter.prevent="next($event)" data-col="q"></td>
-        <td><select class="iv-cell" :name="`lines[${i}][uom]`" x-model="l.uom" @change="reprice(l)" aria-label="Unit of measure"><template x-for="u in uoms(l)" :key="u"><option :value="u" :selected="u === l.uom" x-text="u"></option></template></select></td>
-        <td><input class="iv-cell el-r" type="number" step="any" min="0" :name="`lines[${i}][unit_price]`" x-model.number="l.unit_price" @focus="$event.target.select()" @keydown.enter.prevent="next($event)" data-col="p"></td>
-        <td><input class="iv-cell el-r" type="number" step="any" min="0" max="100" :name="`lines[${i}][discount_percent]`" x-model.number="l.discount_percent" @focus="$event.target.select()" @keydown.enter.prevent="next($event)" data-col="d"></td>
-        <template x-if="! (Number(l.discount_percent) > 0)"><td><input class="iv-cell el-r" type="number" step="any" min="0" :name="`lines[${i}][discount_amount]`" x-model.number="l.discount_amount" @focus="$event.target.select()" @keydown.enter.prevent="next($event)" data-col="a"></td></template>
+        <td><input class="iv-cell el-r" type="text" inputmode="decimal" :name="`lines[${i}][quantity]`" x-model.number="l.quantity" @focus="$event.target.select()" @keydown.enter.prevent="next($event)" data-col="q"></td>
+        <td class="iv-ro"><select class="iv-cell" :name="`lines[${i}][uom]`" x-model="l.uom" @change="reprice(l)" aria-label="Unit of measure"><template x-for="u in uoms(l)" :key="u"><option :value="u" :selected="u === l.uom" x-text="u"></option></template></select></td>
+        <td><input class="iv-cell el-r" type="text" inputmode="decimal" :name="`lines[${i}][unit_price]`" x-model.number="l.unit_price" @focus="$event.target.select()" @keydown.enter.prevent="next($event)" data-col="p"></td>
+        <td><input class="iv-cell el-r" type="text" inputmode="decimal" :name="`lines[${i}][discount_percent]`" x-model.number="l.discount_percent" @focus="$event.target.select()" @keydown.enter.prevent="next($event)" data-col="d"></td>
+        <template x-if="! (Number(l.discount_percent) > 0)"><td><input class="iv-cell el-r" type="text" inputmode="decimal" :name="`lines[${i}][discount_amount]`" x-model.number="l.discount_amount" @focus="$event.target.select()" @keydown.enter.prevent="next($event)" data-col="a"></td></template>
         <template x-if="Number(l.discount_percent) > 0"><td class="iv-ro el-r" title="Worked out from Disc %"><input type="hidden" :name="`lines[${i}][discount_amount]`" value="0"><span x-text="money(discAmt(l))"></span></td></template>
         <td class="iv-ro el-r" style="color:inherit;font-weight:500"><button type="button" @click="removeLine(i)" aria-label="Remove line" style="border:0;background:none;color:var(--muted);cursor:pointer;float:left">✕</button><span x-text="money(net(l))"></span></td>
     </tr></template></tbody></table>

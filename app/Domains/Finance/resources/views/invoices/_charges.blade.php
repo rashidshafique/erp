@@ -28,7 +28,7 @@
 @endphp
 @if (\App\Domains\Finance\Services\ChargeBoxes::showsOn($document))
 <div class="panel" x-data="{
-        boxes: @js($boxes), names: @js($names), roles: @js($roles), credit: @js($credit),
+        show: false, boxes: @js($boxes), names: @js($names), roles: @js($roles), credit: @js($credit),
         amt(b) { return Math.round((Number(b.amount) || 0) * 100) / 100; },
         get adj() { return this.boxes.reduce((n, b) => n + (b.account_id ? (b.kind === 'deduction' ? -this.amt(b) : this.amt(b)) : 0), 0); },
         get gross() { return Math.round((subtotal + tax) * 100) / 100; },
@@ -44,7 +44,7 @@
             this.boxes.filter(b => b.kind === 'charge' && b.account_id).forEach(b => row(this.names[b.account_id], cr, this.amt(b)));
             return rows;
         },
-    }" style="display:grid;grid-template-columns:minmax(0,1fr) 380px;font-size:13px;padding:0;overflow:hidden;{{ ($flat ?? false) ? 'border:0;border-top:1px solid #e6e7e9;border-radius:0;box-shadow:none' : '' }}">
+    }" :style="{ gridTemplateColumns: show ? 'minmax(0,1fr) 380px' : 'minmax(0,1fr)' }" style="display:grid;font-size:13px;padding:0;overflow:hidden;{{ ($flat ?? false) ? 'border:0;border-top:1px solid #e6e7e9;border-radius:0;box-shadow:none' : '' }}">
     <div style="padding:20px 28px;display:flex;flex-direction:column;gap:16px;min-width:0">
         <div style="display:flex;flex-direction:column;align-self:flex-end;width:620px;max-width:100%">
             <div style="display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:12px;padding:6px 0"><span style="text-align:right;color:#6b6e73">Sub total</span><span style="text-align:right" x-text="money(subtotal)"></span></div>
@@ -62,9 +62,10 @@
             </div>
             <div style="display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:12px;font-weight:600;font-size:15px;border-top:2px solid #1c1d1f;padding-top:10px;margin-top:4px"><span style="text-align:right">Net</span><span style="text-align:right" x-text="'{{ trim(\App\Support\Formats::withCurrency('')) }} ' + money(net)"></span></div>
         </div>
+        <button type="button" @click="show = ! show" :aria-pressed="show" style="display:flex;align-items:center;gap:8px;border:0;background:transparent;font-size:13px;padding:0;cursor:pointer;color:inherit"><span style="width:30px;height:18px;border-radius:999px;position:relative;flex:none;transition:background .15s" :style="{ background: show ? 'var(--accent)' : '#d9dbde' }"><span style="position:absolute;top:2px;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:left .15s" :style="{ left: show ? '14px' : '2px' }"></span></span>Show posting preview</button>
         <div style="font-size:12px;color:#6b6e73;text-wrap:pretty">Boxes appear because the settings ask for {{ \App\Domains\Finance\Services\ChargeBoxes::charges() }} {{ \Illuminate\Support\Str::plural('charge', \App\Domains\Finance\Services\ChargeBoxes::charges()) }} and {{ \App\Domains\Finance\Services\ChargeBoxes::deductions() }} {{ \Illuminate\Support\Str::plural('deduction', \App\Domains\Finance\Services\ChargeBoxes::deductions()) }}@if (Route::has('ledger.settings.sales-documents')) (<a href="{{ route('ledger.settings.sales-documents') }}">settings</a>)@endif. The pickers list only Deduction and charge accounts. Empty boxes are left off the printed {{ $credit ? 'credit note' : 'invoice' }}.</div>
     </div>
-    <div style="border-left:1px solid #e6e7e9;padding:20px 24px;background:#f8f8f9;display:flex;flex-direction:column;gap:12px">
+    <div x-show="show" x-cloak style="border-left:1px solid #e6e7e9;padding:20px 24px;background:#f8f8f9;display:flex;flex-direction:column;gap:12px">
         <div style="font-size:12px;font-weight:600;color:#6b6e73;text-transform:uppercase;letter-spacing:.06em">Posting preview</div>
         <div style="display:grid;grid-template-columns:80px minmax(0,1fr) 90px 90px;gap:8px;font-size:11.5px;color:#6b6e73;padding-bottom:4px;border-bottom:1px solid #e6e7e9"><span>Code</span><span>Account</span><span style="text-align:right">Debit</span><span style="text-align:right">Credit</span></div>
         <template x-for="(r, i) in preview" :key="i"><div style="display:grid;grid-template-columns:80px minmax(0,1fr) 90px 90px;gap:8px;padding:6px 0;border-bottom:1px solid #e6e7e9;font-size:12.5px"><code style="color:#6b6e73" x-text="r.code"></code><span x-text="r.name"></span><span style="text-align:right" x-text="r.debit ? money(r.debit) : ''"></span><span style="text-align:right" x-text="r.credit ? money(r.credit) : ''"></span></div></template>
