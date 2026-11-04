@@ -87,16 +87,15 @@
 
 <div style="display:flex;flex-direction:column;gap:10px">
     <div style="display:flex;justify-content:space-between;align-items:baseline"><div class="el-h">Lines</div><span class="el-sub" x-text="(orders ? 'Prices from ' + orders + ' · ' : '') + 'click any cell to type'"></span></div>
-    <div class="iv-t"><table><thead><tr><th style="width:{{ $taxPack ? '24%' : '30%' }}">Product</th><th x-show="trace" style="width:14%">Trace</th><th style="width:{{ $taxPack ? '18%' : '12%' }}">{{ $taxPack ? 'Tax' : 'GST' }}</th><th class="el-r" style="width:9%">Qty</th><th style="width:7%">UoM</th><th class="el-r" style="width:11%" title="Price for one unit of the UoM">Unit price</th><th class="el-r" style="width:8%">Disc %</th><th class="el-r" style="width:12%">Amount</th></tr></thead><tbody>
+    <div class="iv-t"><table><thead><tr><th style="width:{{ $taxPack ? '16%' : '17%' }}">Product</th><th style="width:{{ $taxPack ? '16%' : '19%' }}">Description</th><th x-show="trace" style="width:11%">Trace</th><th style="width:{{ $taxPack ? '16%' : '10%' }}">{{ $taxPack ? 'Tax' : 'GST' }}</th><th class="el-r" style="width:8%">Qty</th><th style="width:6%">UoM</th><th class="el-r" style="width:9%" title="Price for one unit of the UoM">Unit price</th><th class="el-r" style="width:6%">Disc %</th><th class="el-r" style="width:8%" title="A fixed amount off; worked out from Disc % when that is not 0">Disc amt</th><th class="el-r" style="width:10%">Amount</th></tr></thead><tbody>
     <template x-for="(l, i) in lines" :key="l.key"><tr>
-        <td style="height:auto"><div style="display:flex;align-items:center">
-            <template x-if="! l.dispatch_item_id && ! l.extra"><select :name="`lines[${i}][product_id]`" x-model="l.product_id" @change="pick(l, $event.target.value)" data-search-select class="iv-cell" style="flex:1;min-width:0" aria-label="Product"><option value="">Free text</option>@foreach ($products as $id => $p)<option value="{{ $id }}">{{ $p['code'] }} · {{ $p['name'] }}</option>@endforeach</select></template>
-            <template x-if="l.dispatch_item_id || l.extra"><input type="hidden" :name="`lines[${i}][product_id]`" :value="l.product_id ?? ''"></template>
-            <template x-if="l.dispatch_item_id || l.extra || ! l.product_id"><div style="display:flex;align-items:center;gap:8px;padding-left:12px;flex:1;min-width:0"><code x-show="l.dispatch_item_id || l.extra" x-text="products[l.product_id]?.code || l.label || ''" style="font-weight:600;flex:none"></code><input class="iv-cell" :name="`lines[${i}][description]`" x-model="l.description" maxlength="300" :placeholder="l.product_id ? '' : 'Type what is sold'" style="padding-left:0;flex:1;min-width:0"></div></template>
-            <template x-if="! (l.dispatch_item_id || l.extra || ! l.product_id)"><input type="hidden" :name="`lines[${i}][description]`" :value="l.description"></template></div>
+        <td style="height:auto">
+            <template x-if="! l.dispatch_item_id && ! l.extra"><select :name="`lines[${i}][product_id]`" x-model="l.product_id" @change="pick(l, $event.target.value)" data-search-select class="iv-cell" aria-label="Product"><option value="">Free text</option>@foreach ($products as $id => $p)<option value="{{ $id }}">{{ $p['code'] }} · {{ $p['name'] }}</option>@endforeach</select></template>
+            <template x-if="l.dispatch_item_id || l.extra"><div style="padding:0 12px"><input type="hidden" :name="`lines[${i}][product_id]`" :value="l.product_id ?? ''"><code style="font-weight:600" x-text="products[l.product_id]?.code || l.label || ''"></code></div></template>
             <input type="hidden" :name="`lines[${i}][sales_order_line_id]`" :value="l.sales_order_line_id ?? ''"><input type="hidden" :name="`lines[${i}][dispatch_item_id]`" :value="l.dispatch_item_id ?? ''">
-            <input type="hidden" :name="`lines[${i}][inventory_class]`" :value="l.inventory_class ?? ''">@unless ($taxPack)<input type="hidden" :name="`lines[${i}][supply_type]`" :value="l.supply_type"><input type="hidden" :name="`lines[${i}][tariff_code]`" :value="l.tariff_code">@endunless 
+            <input type="hidden" :name="`lines[${i}][inventory_class]`" :value="l.inventory_class ?? ''">@unless ($taxPack)<input type="hidden" :name="`lines[${i}][supply_type]`" :value="l.supply_type"><input type="hidden" :name="`lines[${i}][tariff_code]`" :value="l.tariff_code">@endunless
         </td>
+        <td><input class="iv-cell" :name="`lines[${i}][description]`" x-model="l.description" maxlength="300" :placeholder="l.product_id ? '' : 'Type what is sold'" aria-label="Description"></td>
         <td class="iv-ro" x-show="trace" style="font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" x-text="trace_(l)"></td>
         @if ($taxPack)<td style="height:auto"><select class="iv-cell" :name="`lines[${i}][supply_type]`" x-model="l.supply_type"><option value="GOODS">Goods</option><option value="SERVICE">Service</option></select><input class="iv-cell" :name="`lines[${i}][tariff_code]`" x-model="l.tariff_code" maxlength="20" placeholder="{{ $taxPack->tariffLabel() }}"><select class="iv-cell" :name="`lines[${i}][tax_rate_id]`" x-model="l.tax_rate_id" title="Tax if no rule applies"><option value="">No tax</option>@foreach ($taxRates as $t)<option value="{{ $t->id }}">{{ $t->name }}</option>@endforeach</select></td>
         @else<td><select class="iv-cell" :name="`lines[${i}][tax_rate_id]`" x-model="l.tax_rate_id"><option value="">No tax</option>@foreach ($taxRates as $t)<option value="{{ $t->id }}">{{ $t->name }} ({{ \App\Support\Formats::number($t->rate_percent, 2) }}%)</option>@endforeach</select></td>@endif
@@ -104,6 +103,8 @@
         <td><select class="iv-cell" :name="`lines[${i}][uom]`" x-model="l.uom" @change="reprice(l)" aria-label="Unit of measure"><template x-for="u in uoms(l)" :key="u"><option :value="u" :selected="u === l.uom" x-text="u"></option></template></select></td>
         <td><input class="iv-cell el-r" type="number" step="any" min="0" :name="`lines[${i}][unit_price]`" x-model.number="l.unit_price" @focus="$event.target.select()" @keydown.enter.prevent="next($event)" data-col="p"></td>
         <td><input class="iv-cell el-r" type="number" step="any" min="0" max="100" :name="`lines[${i}][discount_percent]`" x-model.number="l.discount_percent" @focus="$event.target.select()" @keydown.enter.prevent="next($event)" data-col="d"></td>
+        <template x-if="! (Number(l.discount_percent) > 0)"><td><input class="iv-cell el-r" type="number" step="any" min="0" :name="`lines[${i}][discount_amount]`" x-model.number="l.discount_amount" @focus="$event.target.select()" @keydown.enter.prevent="next($event)" data-col="a"></td></template>
+        <template x-if="Number(l.discount_percent) > 0"><td class="iv-ro el-r" title="Worked out from Disc %"><input type="hidden" :name="`lines[${i}][discount_amount]`" value="0"><span x-text="money(discAmt(l))"></span></td></template>
         <td class="iv-ro el-r" style="color:inherit;font-weight:500"><button type="button" @click="removeLine(i)" aria-label="Remove line" style="border:0;background:none;color:var(--muted);cursor:pointer;float:left">✕</button><span x-text="money(net(l))"></span></td>
     </tr></template></tbody></table>
     <div x-show="! lines.length" style="padding:28px;text-align:center;color:var(--muted)">Tick a dispatch note to add its lines.</div></div>
@@ -135,7 +136,7 @@
 <script>
 function invoiceLines(start, rates, products, lookup, dispatches, cfg) {
     let seq = 0;
-    const blank = l => ({ ...l, key: ++seq, uom: l.uom || 'pcs', product_id: l.product_id ?? '', tax_rate_id: l.tax_rate_id ?? '', supply_type: l.supply_type ?? 'GOODS', tariff_code: l.tariff_code ?? '', inventory_class: l.inventory_class ?? '', dn: l.dn ?? null, extra: l.extra ?? null, label: l.label ?? '' });
+    const blank = l => ({ ...l, key: ++seq, uom: l.uom || 'pcs', discount_amount: l.discount_amount ?? 0, product_id: l.product_id ?? '', tax_rate_id: l.tax_rate_id ?? '', supply_type: l.supply_type ?? 'GOODS', tariff_code: l.tariff_code ?? '', inventory_class: l.inventory_class ?? '', dn: l.dn ?? null, extra: l.extra ?? null, label: l.label ?? '' });
     return {
         products, cfg, dispatches, trace: false, dnOpen: true,
         lines: start.map(blank),
@@ -143,9 +144,12 @@ function invoiceLines(start, rates, products, lookup, dispatches, cfg) {
         terms: @js(old('payment_terms', $invoice?->payment_terms)),
         po: @js(old('customer_reference', $head['customer_reference'] ?? '')),
         due: @js(old('due_date', $invoice?->due_date?->toDateString())),
-        net(l) { return Math.round((Number(l.quantity) || 0) * (Number(l.unit_price) || 0) * (1 - Math.min(100, Math.max(0, Number(l.discount_percent) || 0)) / 100) * 100) / 100; },
+        gross(l) { return (Number(l.quantity) || 0) * (Number(l.unit_price) || 0); },
+        // A fixed amount off counts only while Disc % is 0; otherwise the amount is worked out from the percent.
+        discAmt(l) { const p = Math.min(100, Math.max(0, Number(l.discount_percent) || 0)), g = this.gross(l); return p > 0 ? g * p / 100 : Math.min(g, Math.max(0, Number(l.discount_amount) || 0)); },
+        net(l) { return Math.round((this.gross(l) - this.discAmt(l)) * 100) / 100; },
         lineTax(l) { return Math.round(this.net(l) * (rates[l.tax_rate_id] || 0)) / 100; },
-        get discount() { return this.lines.reduce((n, l) => n + (Number(l.quantity) || 0) * (Number(l.unit_price) || 0) * Math.min(100, Math.max(0, Number(l.discount_percent) || 0)) / 100, 0); },
+        get discount() { return this.lines.reduce((n, l) => n + this.discAmt(l), 0); },
         // Enter in a cell moves to the same column on the next row (Tab moves across as usual).
         next(e) { const td = e.target.closest('td'), i = [...td.parentElement.children].indexOf(td); let r = td.parentElement.nextElementSibling; while (r && ! r.children[i]?.querySelector('input')) { r = r.nextElementSibling; } r?.children[i].querySelector('input')?.focus(); },
         get subtotal() { return this.lines.reduce((n, l) => n + this.net(l), 0); },

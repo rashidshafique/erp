@@ -106,7 +106,7 @@ class InvoiceController extends Controller
         if ($invoice->status !== 'DRAFT') {
             return redirect()->route('invoices.show', $invoice)->withErrors(['invoice' => 'Only a draft can be changed.']);
         }
-        $lines = $invoice->lines->map(fn ($l) => $l->only(['product_id', 'description', 'quantity', 'uom', 'unit_price', 'discount_percent', 'tax_rate_id', 'sales_order_line_id', 'dispatch_item_id', 'supply_type', 'tariff_code', 'inventory_class']))->all();
+        $lines = $invoice->lines->map(fn ($l) => $l->only(['product_id', 'description', 'quantity', 'uom', 'unit_price', 'discount_percent', 'discount_amount', 'tax_rate_id', 'sales_order_line_id', 'dispatch_item_id', 'supply_type', 'tariff_code', 'inventory_class']))->all();
         $byItem = DB::table('dispatch_items')->whereIn('id', array_filter(array_column($lines, 'dispatch_item_id')))->pluck('dispatch_id', 'id');
         $lines = array_map(fn ($l) => $l + ['dn' => $byItem[$l['dispatch_item_id']] ?? null], $lines);
 
@@ -290,7 +290,7 @@ class InvoiceController extends Controller
     {
         return array_values($request->validate([
             'lines' => ['required', 'array', 'min:1'], 'lines.*.product_id' => ['nullable', 'uuid', 'exists:products,id'], 'lines.*.description' => ['nullable', 'string', 'max:300'],
-            'lines.*.quantity' => ['nullable', 'numeric', 'gt:0'], 'lines.*.uom' => ['nullable', 'string', 'max:20'], 'lines.*.unit_price' => ['nullable', 'numeric', 'min:0'], 'lines.*.discount_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'lines.*.quantity' => ['nullable', 'numeric', 'gt:0'], 'lines.*.uom' => ['nullable', 'string', 'max:20'], 'lines.*.unit_price' => ['nullable', 'numeric', 'min:0'], 'lines.*.discount_amount' => ['nullable', 'numeric', 'min:0'], 'lines.*.discount_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'lines.*.tax_rate_id' => ['nullable', 'uuid', 'exists:tax_rates,id'], 'lines.*.sales_order_line_id' => ['nullable', 'uuid'], 'lines.*.dispatch_item_id' => ['nullable', 'uuid'],
             'lines.*.supply_type' => ['nullable', 'in:GOODS,SERVICE'], 'lines.*.tariff_code' => ['nullable', 'string', 'max:20'], 'lines.*.inventory_class' => ['nullable', 'string', 'max:20'],
         ])['lines']);

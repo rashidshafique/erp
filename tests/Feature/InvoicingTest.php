@@ -181,6 +181,22 @@ class InvoicingTest extends TestCase
         $this->get(route('dispatches.show', $dispatchId))->assertOk()->assertSee('Raise invoice');
     }
 
+    public function test_a_fixed_discount_counts_only_while_the_percent_is_zero(): void
+    {
+        $customer = $this->customer();
+        $tax = $this->tax(10);
+
+        $this->post(route('invoices.store'), $this->form($customer, [
+            ['description' => 'Fixed', 'quantity' => 10, 'unit_price' => 100, 'discount_amount' => 50, 'tax_rate_id' => $tax->id],
+            ['description' => 'Percent wins', 'quantity' => 10, 'unit_price' => 100, 'discount_percent' => 10, 'discount_amount' => 50, 'tax_rate_id' => $tax->id],
+        ]))->assertSessionHasNoErrors();
+
+        $invoice = Invoice::firstOrFail();
+        $this->assertSame([950.0, 900.0], $invoice->lines->pluck('line_net')->all());
+        $this->assertSame([50.0, 0.0], $invoice->lines->pluck('discount_amount')->all());
+        $this->assertSame(1850.0, (float) $invoice->subtotal);
+    }
+
     public function test_the_new_invoice_screen_shows_the_billing_columns_and_extras(): void
     {
         $customer = $this->customer();

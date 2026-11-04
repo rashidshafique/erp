@@ -56,7 +56,7 @@ class InvoiceService
 
             $rates = TaxRate::whereIn('id', array_filter(array_column($lines, 'tax_rate_id')))->get()->keyBy('id');
             $taxLines = array_map(fn ($l) => new TaxLine(
-                round(round((float) $l['quantity'], 3) * round((float) $l['unit_price'], 4) * (1 - self::discount($l) / 100), 2),
+                self::lineNet($l),
                 (float) ($rates[$l['tax_rate_id'] ?? null]->rate_percent ?? 0),
                 ($l['supply_type'] ?? null) === TaxLine::SERVICE ? TaxLine::SERVICE : TaxLine::GOODS,
                 ($l['inventory_class'] ?? null) ?: null,
@@ -68,7 +68,7 @@ class InvoiceService
                 $taxLine = $taxLines[$i];
                 InvoiceLine::create([
                     'invoice_id' => $invoice->id, 'line_number' => $i + 1, 'product_id' => ($l['product_id'] ?? null) ?: null, 'description' => trim($l['description']), 'quantity' => round((float) $l['quantity'], 3), 'uom' => $l['uom'] ?? null,
-                    'unit_price' => round((float) $l['unit_price'], 4), 'discount_percent' => self::discount($l), 'tax_rate_id' => $l['tax_rate_id'] ?? null, 'tax_percent' => $taxes->chargedRate($i),
+                    'unit_price' => round((float) $l['unit_price'], 4), 'discount_percent' => self::discount($l), 'discount_amount' => self::discountAmount($l), 'tax_rate_id' => $l['tax_rate_id'] ?? null, 'tax_percent' => $taxes->chargedRate($i),
                     'line_net' => $taxLine->net, 'line_tax' => $taxes->charged($i), 'line_withheld' => $taxes->withheld($i),
                     'supply_type' => $taxLine->supplyType, 'tariff_code' => $taxLine->tariffCode, 'inventory_class' => $taxLine->inventoryClass,
                     'taxes' => array_map(fn (TaxAmount $t) => (array) $t, $taxes->forLine($i)),
@@ -93,6 +93,25 @@ class InvoiceService
     public static function discount(array $line): float
     {
         return round(min(100.0, max(0.0, (float) ($line['discount_percent'] ?? 0))), 2);
+    }
+
+    /** A fixed amount off a line: only counts while the percent is 0, and never more than the line's value. @param  array<string, mixed>  $line */
+    public static function discountAmount(array $line): float
+    {
+        if (self::discount($line) > 0) {
+            return 0.0;
+        }
+        $gross = round((float) ($line['quantity'] ?? 0), 3) * round((float) ($line['unit_price'] ?? 0), 4);
+
+        return round(min(max(0.0, (float) ($line['discount_amount'] ?? 0)), $gross), 2);
+    }
+
+    /** A line's value before tax: quantity times price, less the percent or the fixed amount. @param  array<string, mixed>  $line */
+    public static function lineNet(array $line): float
+    {
+        $gross = round((float) ($line['quantity'] ?? 0), 3) * round((float) ($line['unit_price'] ?? 0), 4);
+
+        return round($gross * (1 - self::discount($line) / 100) - self::discountAmount($line), 2);
     }
 
     /** Gives a draft its number and makes it count. */
