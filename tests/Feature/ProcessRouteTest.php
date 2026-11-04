@@ -92,7 +92,7 @@ class ProcessRouteTest extends TestCase
             ->assertSee('Gate stubs ground flush');
 
         $this->assertNull($fettling->fresh()->description);   // blank text is not kept
-        $this->get(route('lots.show', $this->castingLot()))->assertOk()->assertSee('data-check="Gate stubs ground flush"', false);
+        $this->get(route('lots.show', $this->castingLot()))->assertOk()->assertSee('data-check="Gate stubs ground flush"', false)->assertSee('Casting lots');
     }
 
     public function test_the_traveller_lists_the_route_and_fills_in_what_is_recorded(): void

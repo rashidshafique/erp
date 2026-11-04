@@ -1,9 +1,13 @@
 @extends('layouts.app')
 @section('title', $lot->label)
 @section('content')
-<div class="page-heading"><div><h1>{{ $lot->label }}</h1><p>{{ $lot->product?->code }} — {{ $lot->product?->name }} · <span class="status">{{ $lot->status }}</span></p></div>
+<div class="page-heading"><div><h1><a href="{{ url('/lots/queue') }}">Casting lots</a> / {{ $lot->label }}</h1><p>{{ $lot->product?->code }} — {{ $lot->product?->name }} · <span class="status">{{ $lot->status }}</span></p></div>
 <div class="actions"><a class="btn" href="{{ route('lots.traveller', $lot) }}">Traveller</a><a class="btn" href="{{ route('lots.certificate', $lot) }}">Certificate</a>
 <a class="btn btn-primary" href="{{ route('lots.inspections.create', $lot) }}">+ Inspection</a></div></div>
+<div class="panel"><div class="panel-body" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+@php $doneIds = $lot->stageEvents->pluck('stage_definition_id')->all(); @endphp
+<span class="status">Poured</span>@foreach ($stages as $st)<span class="muted">›</span><span class="status {{ in_array($st->id, $doneIds, true) ? 'status-completed' : '' }}" title="{{ in_array($st->id, $doneIds, true) ? 'Recorded' : 'Not yet' }}">{{ $st->name }}</span>@endforeach
+</div></div>
 <div class="tab-marker" data-tab-start="Summary"></div>
 <div class="panel"><div class="panel-header"><h2>Summary</h2></div><div class="panel-body" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:16px">
 <div><div class="muted small">Heat</div>@if($heat)<a href="{{ route('heats.show', $heat) }}">{{ $heat->heat_number }}</a> ({{ $heat->ironGrade?->code ?? 'no grade' }})@else — @endif</div>
