@@ -5,8 +5,14 @@
     $taxJson = $taxRates->mapWithKeys(fn ($t) => [$t->id => (float) $t->rate_percent])->all();
     $start = old('lines', $invoice->lines->map(fn ($l) => ['product_id' => $l->product_id, 'description' => $l->description, 'quantity' => (float) $l->quantity, 'uom' => $l->uom, 'unit_price' => (float) $l->unit_price, 'discount_percent' => (float) $l->discount_percent, 'tax_rate_id' => $l->tax_rate_id, 'sales_order_line_id' => $l->sales_order_line_id, 'dispatch_item_id' => null, 'supply_type' => $l->supply_type, 'tariff_code' => $l->tariff_code, 'inventory_class' => $l->inventory_class, 'max' => (float) $l->quantity])->all());
 @endphp
-<div class="page-heading"><div><h1>Credit note against {{ $invoice->invoice_number }}</h1><p>{{ $invoice->customer?->name }} · invoice total {{ \App\Support\Formats::number($invoice->total, 2) }} · already credited {{ \App\Support\Formats::number($invoice->credited(), 2) }}. Lower the quantity or price, or remove lines, to credit part of it.</p></div></div>
+<div class="page-heading"><div><h1><a href="{{ route('invoices.index') }}">Credit notes</a> / New against {{ $invoice->invoice_number }}</h1><p>Lower the quantity or price, or remove lines, to credit part of it.</p></div></div>
 <form method="POST" action="{{ route('invoices.credit.store', $invoice) }}" x-data="invoiceLines(@js($start), @js($taxJson))">@csrf
+<div class="panel"><div class="panel-body" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px">
+    <div><div class="muted small">Customer</div><strong>{{ $invoice->customer?->name }}</strong></div>
+    <div><div class="muted small">Against invoice</div><a href="{{ route('invoices.show', $invoice) }}">{{ $invoice->invoice_number }}</a> · {{ \App\Support\Formats::number($invoice->total, 2) }}</div>
+    <div><div class="muted small">Already credited</div>{{ \App\Support\Formats::number($invoice->credited(), 2) }}</div>
+    <div><div class="muted small">Left to credit</div>{{ \App\Support\Formats::number($invoice->total - $invoice->credited(), 2) }}</div>
+</div></div>
 <div class="panel"><div class="table-wrap"><table><thead><tr><th style="width:40%">Description</th><th>Qty</th><th>Price</th><th>Tax</th><th class="num">Credit</th><th></th></tr></thead><tbody>
 <template x-for="(l, i) in lines" :key="i"><tr>
     <td><input :name="`lines[${i}][description]`" x-model="l.description" maxlength="300" style="width:100%"><input type="hidden" :name="`lines[${i}][uom]`" :value="l.uom ?? ''"><input type="hidden" :name="`lines[${i}][sales_order_line_id]`" :value="l.sales_order_line_id ?? ''"><input type="hidden" :name="`lines[${i}][product_id]`" :value="l.product_id ?? ''"><input type="hidden" :name="`lines[${i}][supply_type]`" :value="l.supply_type ?? 'GOODS'"><input type="hidden" :name="`lines[${i}][tariff_code]`" :value="l.tariff_code ?? ''"><input type="hidden" :name="`lines[${i}][inventory_class]`" :value="l.inventory_class ?? ''"></td>
@@ -18,8 +24,17 @@
 </tr></template>
 </tbody><tfoot><tr><th colspan="4" class="num">Credit total</th><th class="num" x-text="money(subtotal + tax)"></th><td></td></tr></tfoot></table></div></div>
 @include('finance::invoices._charges', ['document' => 'credit_note', 'adjustments' => old('adjustments', [])])
-<div class="panel"><div class="panel-body"><label>Reason<input name="reason" value="{{ old('reason') }}" maxlength="500" required placeholder="Rejected castings, price correction, returned goods…"></label></div>
-<div class="panel-body"><button class="btn btn-primary" onclick="return confirm('Issue this credit note? It is final.')">Issue credit note</button> <a class="btn" href="{{ route('invoices.show', $invoice) }}">Cancel</a></div></div>
+<div class="panel"><div class="panel-body">
+    <div class="muted small">Reason</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 10px">
+        @foreach (['Quality reject', 'Price correction', 'Short shipment', 'Return for credit'] as $r)
+            <label style="display:flex;gap:6px;align-items:center;padding:5px 12px;border:1px solid #d9dbde;border-radius:6px"><input type="radio" name="reason_type" value="{{ $r }}" @checked(old('reason_type', 'Quality reject') === $r) required> {{ $r }}</label>
+        @endforeach
+    </div>
+    <label>Details<input name="reason" value="{{ old('reason') }}" maxlength="400" required placeholder="Rejected castings, price correction, returned goods…"></label>
+</div>
+<div class="panel-body"><div class="muted small" style="margin-bottom:8px">Posts to: receivables −<span x-text="money(subtotal + tax)"></span> against {{ $invoice->customer?->name }}'s balance.</div>
+<button class="btn btn-primary" onclick="return confirm('Issue this credit note? It is final.')">Issue credit note</button> <a class="btn" href="{{ route('invoices.show', $invoice) }}">Cancel</a></div></div>
 </form>
 <script>
 function invoiceLines(start, rates) {

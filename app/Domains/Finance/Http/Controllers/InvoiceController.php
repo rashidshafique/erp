@@ -261,9 +261,9 @@ class InvoiceController extends Controller
 
     public function storeCredit(Request $request, Invoice $invoice, InvoiceService $service): RedirectResponse
     {
-        $d = $request->validate(['reason' => ['required', 'string', 'min:3', 'max:500']]);
+        $d = $request->validate(['reason' => ['required', 'string', 'min:3', 'max:400'], 'reason_type' => ['required', Rule::in(['Quality reject', 'Price correction', 'Short shipment', 'Return for credit'])]]);
         try {
-            $note = $service->creditNote($invoice, $this->lines($request), $d['reason'], $this->adjustments($request));
+            $note = $service->creditNote($invoice, $this->lines($request), $d['reason_type'].': '.$d['reason'], $this->adjustments($request));
         } catch (InvalidArgumentException $e) {
             return back()->withErrors(['invoice' => $e->getMessage()])->withInput();
         }

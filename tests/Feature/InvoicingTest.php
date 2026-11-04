@@ -141,13 +141,14 @@ class InvoicingTest extends TestCase
         $line = ['description' => 'Pump body (2 rejected)', 'quantity' => 1, 'unit_price' => 100, 'tax_rate_id' => $tax->id];
 
         $this->get(route('invoices.credit', $invoice))->assertOk();
-        $this->post(route('invoices.credit.store', $invoice), ['reason' => 'Rejected on arrival', 'lines' => [$line]])->assertSessionHasNoErrors();
+        $this->post(route('invoices.credit.store', $invoice), ['reason_type' => 'Quality reject', 'reason' => 'Rejected on arrival', 'lines' => [$line]])->assertSessionHasNoErrors();
+        $this->assertSame('Quality reject: Rejected on arrival', Invoice::where('kind', 'CREDIT_NOTE')->value('notes'));
         $note = Invoice::where('kind', 'CREDIT_NOTE')->firstOrFail();
         $this->assertMatchesRegularExpression('/^CN-\d{4}-0001$/', $note->invoice_number);
         $this->assertSame([110.0, 110.0], [$note->total, $invoice->fresh()->balance()]);
 
         $big = ['description' => 'Too much', 'quantity' => 2, 'unit_price' => 100, 'tax_rate_id' => $tax->id];
-        $this->post(route('invoices.credit.store', $invoice), ['reason' => 'Again', 'lines' => [$big]])->assertSessionHasErrors('invoice');
+        $this->post(route('invoices.credit.store', $invoice), ['reason_type' => 'Price correction', 'reason' => 'Again', 'lines' => [$big]])->assertSessionHasErrors('invoice');
         $this->assertSame(1, Invoice::where('kind', 'CREDIT_NOTE')->count(), 'the refused credit note is not left behind');
         $this->post(route('invoices.void', $invoice), ['reason' => 'a mistake'])->assertSessionHasErrors('invoice');
         $this->get(route('invoices.show', $invoice))->assertOk()->assertSee($note->invoice_number);
