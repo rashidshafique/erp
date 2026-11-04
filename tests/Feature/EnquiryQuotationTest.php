@@ -276,7 +276,7 @@ class EnquiryQuotationTest extends TestCase
         $resp = $this->post(route('enquiries.quotations.store', $e));
         $q = Quotation::firstOrFail();
         $resp->assertRedirect(route('quotations.show', $q));
-        $this->get(route('quotations.show', $q))->assertOk()->assertSee('Where the cost comes from')->assertSee('Molten metal');
+        $this->get(route('quotations.show', $q))->assertOk()->assertSee('Where the cost comes from')->assertSee('Molten metal')->assertSee('Quoted price')->assertSee('data-mode="simple"', false)->assertSee('R0');
         $this->get(route('quotations.print', $q))->assertNotFound();   // not issued yet
         $this->put(route('quotations.update', $q), ['tooling_mode' => 'NONE', 'delivery_weeks' => 8, 'lines' => [$q->lines()->first()->id => ['margin_pct' => 22]]])->assertSessionHasNoErrors();
         $this->post(route('quotations.issue', $q))->assertSessionHas('success');
