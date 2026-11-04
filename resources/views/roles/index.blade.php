@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Roles and permissions')
 @section('content')
-<div class="page-heading"><div><h1>Roles and permissions</h1><p>Administrators have everything. Anyone signed in can read, except where a role is needed to view. Tick what a role may do in each area.</p></div></div>
+<div class="page-heading"><div><h1>Roles and permissions</h1><p>Administrators have everything. Anyone signed in can read an area unless "Limit viewing" is ticked for it (this applies to every role). Tick what a role may do in each area.</p></div></div>
 
 <div class="panel"><div class="panel-body" style="display:flex;gap:12px;flex-wrap:wrap;align-items:end">
     <form method="GET" action="{{ route('roles.index') }}" style="display:flex;gap:8px;align-items:end">
@@ -19,20 +19,21 @@
     <div class="panel"><div class="panel-body">Administrators can do everything; this cannot be changed.</div></div>
 @elseif($role)
 <form method="POST" action="{{ route('roles.update') }}">@csrf @method('PUT')
-<input type="hidden" name="roles[]" value="{{ $role->id }}">
+<input type="hidden" name="roles[]" value="{{ $role->id }}"><input type="hidden" name="limits_shown" value="1">
 @if($copying)<div class="panel"><div class="panel-body">Showing what <strong>{{ $copying->name }}</strong> may do. Nothing changes for {{ $role->name }} until you save.</div></div>@endif
 
 @foreach($tree as $permission => $group)
 <details class="panel" @if(collect($group['areas'])->contains(fn ($a, $n) => collect($a['actions'])->contains(fn ($x) => $has($permission, $n, $x)))) open @endif>
     <summary class="panel-body" style="cursor:pointer"><strong>{{ $group['label'] }}</strong> <span class="muted small">{{ $permission }}</span></summary>
     <div class="table-wrap"><table data-grid>
-        <thead><tr><th>Area</th>@foreach($actions as $k => $label)<th style="text-align:center">{{ $label }}</th>@endforeach<th style="text-align:center">All</th></tr></thead>
+        <thead><tr><th>Area</th>@foreach($actions as $k => $label)<th style="text-align:center">{{ $label }}</th>@endforeach<th style="text-align:center">All</th><th style="text-align:center" title="Applies to every role">Limit viewing</th></tr></thead>
         <tbody>@foreach($group['areas'] as $area => $def)
             <tr><td>{{ $def['label'] }}<div class="muted small">{{ $area }}</div></td>
             @foreach($actions as $k => $label)<td style="text-align:center">@if(in_array($k, $def['actions'], true))<input type="checkbox" name="perm[{{ $role->id }}][{{ $area }}:{{ $k }}]" value="1" @checked($has($permission, $area, $k))>@else<span class="muted">·</span>@endif</td>@endforeach
-            <td style="text-align:center"><input type="checkbox" data-row title="Every action of {{ $def['label'] }}"></td></tr>
+            <td style="text-align:center"><input type="checkbox" data-row title="Every action of {{ $def['label'] }}"></td>
+            <td style="text-align:center">@if(collect(config('permissions.routes'))->contains(fn ($r) => \App\Support\AccessMap::areaOf($r) === $area && ! empty($r['reads'])))<span class="muted" title="Always limited">always</span>@else<input type="checkbox" name="limit[{{ $area }}]" value="1" @checked(in_array($area, $limited, true)) title="Only roles with View may open its pages. Applies to every role.">@endif</td></tr>
         @endforeach</tbody>
-        <tfoot><tr><td><em>Everything in this group</em></td><td colspan="{{ count($actions) }}"></td><td style="text-align:center"><input type="checkbox" data-all></td></tr></tfoot>
+        <tfoot><tr><td><em>Everything in this group</em></td><td colspan="{{ count($actions) }}"></td><td style="text-align:center"><input type="checkbox" data-all></td><td></td></tr></tfoot>
     </table></div>
 </details>
 @endforeach
@@ -47,7 +48,7 @@
 </form>
 <script>
 document.querySelectorAll('table[data-grid]').forEach(function (t) {
-    var cells = function (scope) { return scope.querySelectorAll('input[type=checkbox][name]'); };
+    var cells = function (scope) { return scope.querySelectorAll('input[type=checkbox][name^="perm["]'); };
     t.querySelectorAll('[data-row]').forEach(function (b) {
         var tr = b.closest('tr'); b.checked = cells(tr).length > 0 && Array.from(cells(tr)).every(function (c) { return c.checked; });
         b.addEventListener('change', function () { cells(tr).forEach(function (c) { c.checked = b.checked; }); });

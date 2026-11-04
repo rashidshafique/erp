@@ -25,7 +25,7 @@ class RoleController extends Controller
         $plain = collect(config('permissions.catalog'))->reject(fn ($label, $key) => isset($tree[$key]));
 
         return view('roles.index', ['roles' => $roles, 'role' => $role, 'copying' => $from && $from->id !== $role?->id ? $from : null, 'tree' => $tree,
-            'plain' => $plain, 'held' => $held, 'has' => $has, 'actions' => AccessMap::ACTIONS]);
+            'plain' => $plain, 'limited' => AccessMap::viewLimited(), 'held' => $held, 'has' => $has, 'actions' => AccessMap::ACTIONS]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -46,6 +46,9 @@ class RoleController extends Controller
     public function update(Request $request): RedirectResponse
     {
         $input = $request->input('perm', []);
+        if ($request->boolean('limits_shown')) {
+            AccessMap::limitViewing(array_keys((array) $request->input('limit', [])));
+        }
         $ids = array_unique([...array_keys($input), ...array_map('intval', (array) $request->input('roles', []))]);
         $audit = app(\App\Services\Audit\Audit::class);
 

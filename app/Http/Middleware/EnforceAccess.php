@@ -89,7 +89,7 @@ class EnforceAccess
     {
         foreach (config('permissions.routes', []) as $rule) {
             if (Str::is($rule['pattern'], $routeName)) {
-                return ['permission' => $rule['permission'], 'reads' => (bool) ($rule['reads'] ?? false), 'also' => $rule['also'] ?? [], 'area' => AccessMap::areaOf($rule), 'rule' => $rule];
+                return ['permission' => $rule['permission'], 'reads' => (bool) ($rule['reads'] ?? false) || in_array(AccessMap::areaOf($rule), AccessMap::viewLimited(), true), 'also' => $rule['also'] ?? [], 'area' => AccessMap::areaOf($rule), 'rule' => $rule];
             }
         }
         return null;

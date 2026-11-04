@@ -126,4 +126,21 @@ class AccessControlTest extends TestCase
         $new = Role::where('name', 'Fettling lead')->firstOrFail();
         $this->assertEqualsCanonicalizing($sales->permissions(), $new->permissions());
     }
+
+    public function test_viewing_an_area_can_be_limited_to_roles_with_view(): void
+    {
+        config(['foundry.require_login' => true]);
+        $viewer = $this->user('VIEWER');
+        $this->actingAs($viewer)->get(route('customers.index'))->assertOk();
+
+        $this->actingAs($this->user('ADMIN'))->put(route('roles.update'), ['limits_shown' => 1, 'limit' => ['customers' => 1]])->assertSessionHasNoErrors();
+        $this->actingAs($viewer)->get(route('customers.index'))->assertForbidden();
+        $this->actingAs($this->user('SALES'))->get(route('customers.index'))->assertOk();   // whole permission covers view
+
+        $role = Role::create(['code' => 'LOOKER', 'name' => 'Looker', 'is_system' => false]);
+        \DB::table('role_permissions')->insert(['role_id' => $role->id, 'permission' => 'customers:view']);
+        $looker = User::factory()->create(['is_active' => true, 'must_change_password' => false]);
+        $looker->roles()->attach($role->id);
+        $this->actingAs($looker)->get(route('customers.index'))->assertOk();
+    }
 }

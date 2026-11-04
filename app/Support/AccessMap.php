@@ -148,6 +148,23 @@ class AccessMap
         return self::$tree = $tree;
     }
 
+    /**
+     * Areas whose pages need a View grant even though the permission map leaves them open to every signed-in user.
+     *
+     * @return list<string>
+     */
+    public static function viewLimited(): array
+    {
+        return (array) json_decode((string) \App\Models\AppSetting::getValue('access.view_limited', '[]'), true);
+    }
+
+    /** @param  list<string>  $areas */
+    public static function limitViewing(array $areas): void
+    {
+        $valid = collect(self::tree())->flatMap(fn ($g) => array_keys($g['areas']))->all();
+        \App\Models\AppSetting::setValue('access.view_limited', json_encode(array_values(array_intersect($areas, $valid))), 'Areas whose pages need a View grant');
+    }
+
     public static function flush(): void
     {
         self::$tree = null;
