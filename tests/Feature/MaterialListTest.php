@@ -34,7 +34,7 @@ class MaterialListTest extends TestCase
         $this->get(route('materials.index'))->assertOk()->assertSee('FESI-75')->assertSee('COKE')->assertSee('+ New material');
 
         Livewire::test('material-list')
-            ->assertSee('40.000')->assertSee('900.000')->assertViewHas('lowCount', 1)
+            ->assertSee('40.000')->assertSee('900.000')->assertSee('Cost per unit')->assertViewHas('lowCount', 1)
             ->set('stock', 'low')->assertSee('FESI-75')->assertDontSee('COKE');
     }
 

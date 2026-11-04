@@ -229,7 +229,7 @@ new class extends Component
             <table>
                 <thead>
                     <tr>
-                        <th>Material</th><th>Type</th><th>Unit</th><th>On hand</th><th>Minimum</th><th>Lots</th><th>Recipes</th><th>Status</th><th></th>
+                        <th>Material</th><th>Type</th><th>Unit</th><th>On hand</th><th>Minimum</th><th>Cost per unit</th><th>Lots</th><th>Recipes</th><th>Status</th><th></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -251,6 +251,7 @@ new class extends Component
                                 @endif
                             </td>
                             <td>{{ $material->minimum_stock_qty !== null ? \App\Support\Formats::number((float) $material->minimum_stock_qty, 3) : '—' }}</td>
+                            <td>{{ $material->standard_cost_per_uom !== null ? \App\Support\Formats::money((float) $material->standard_cost_per_uom).' / '.$material->base_uom : '—' }}</td>
                             <td>{{ $material->lots_count }}</td>
                             <td>{{ $material->charge_batch_items_count }}</td>
                             <td><span class="status {{ $material->status === 'ACTIVE' ? 'status-completed' : 'status-cancelled' }}">{{ $material->status }}</span></td>
