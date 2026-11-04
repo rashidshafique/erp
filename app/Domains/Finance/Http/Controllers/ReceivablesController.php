@@ -14,7 +14,7 @@ class ReceivablesController extends Controller
         $rows = $receivables->ageing();
 
         return view('finance::receivables.index', [
-            'rows' => $rows, 'buckets' => Receivables::BUCKETS,
+            'summary' => $receivables->summary(), 'rows' => $rows, 'buckets' => Receivables::BUCKETS,
             'totals' => collect(array_keys(Receivables::BUCKETS))->mapWithKeys(fn ($k) => [$k => round(array_sum(array_column(array_column($rows, 'buckets'), $k)), 2)])->all(),
             'grand' => round(array_sum(array_column($rows, 'total')), 2),
         ]);

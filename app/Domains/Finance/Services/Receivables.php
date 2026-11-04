@@ -52,6 +52,24 @@ class Receivables
         return $rows;
     }
 
+    /**
+     * The strip above the receivables pages.
+     *
+     * @return array{unapplied: float, unapplied_count: int, overdue: float, overdue_count: int, collected: float}
+     */
+    public function summary(): array
+    {
+        $open = $this->open();
+        $late = $open->filter(fn (Invoice $i) => $this->bucket($i) !== 'current');
+        $receipts = Receipt::with('allocations')->get()->filter(fn (Receipt $r) => $r->unallocated() > 0);
+
+        return [
+            'unapplied' => round($receipts->sum(fn (Receipt $r) => $r->unallocated()), 2), 'unapplied_count' => $receipts->count(),
+            'overdue' => round($late->sum(fn (Invoice $i) => $i->balance()), 2), 'overdue_count' => $late->count(),
+            'collected' => round((float) Receipt::whereBetween('received_on', [now()->startOfMonth(), now()->endOfMonth()])->sum('amount'), 2),
+        ];
+    }
+
     /** Money received from a customer and not yet put against an invoice. */
     public function onAccount(string $customerId): float
     {

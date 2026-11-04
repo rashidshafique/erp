@@ -17,9 +17,9 @@ use InvalidArgumentException;
 
 class ReceiptController extends Controller
 {
-    public function index(): View
+    public function index(Receivables $receivables): View
     {
-        return view('finance::receipts.index', ['receipts' => Receipt::with(['customer', 'allocations'])->orderByDesc('received_on')->orderByDesc('created_at')->paginate(25)]);
+        return view('finance::receipts.index', ['summary' => $receivables->summary(), 'receipts' => Receipt::with(['customer', 'allocations'])->orderByDesc('received_on')->orderByDesc('created_at')->paginate(25)]);
     }
 
     /** The receipt form; picking a customer (?customer=) lists the invoices it can pay, oldest due first. */
