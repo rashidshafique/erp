@@ -25,7 +25,7 @@ class StartPageTest extends TestCase
     public function test_each_shop_role_lands_on_its_own_page_and_can_open_it(): void
     {
         foreach ([
-            'MELT_SUPERVISOR' => 'heats.index', 'MOULDING_SUPERVISOR' => 'quick.floor.index', 'QUALITY_INSPECTOR' => 'lots.queue',
+            'MELT_SUPERVISOR' => 'heats.index', 'MOULDING_SUPERVISOR' => 'quick.floor.index', 'QUALITY_INSPECTOR' => 'quality.home',
             'SALES' => 'sales-orders.index', 'STORES_DISPATCH' => 'stock-movements.index',
         ] as $role => $route) {
             $this->post(route('logout'));
