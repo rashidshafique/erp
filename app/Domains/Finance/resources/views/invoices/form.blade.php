@@ -87,20 +87,20 @@
 
 <div style="display:flex;flex-direction:column;gap:10px">
     <div style="display:flex;justify-content:space-between;align-items:baseline"><div class="el-h">Lines</div><span class="el-sub" x-text="(orders ? 'Prices from ' + orders + ' · ' : '') + 'click any cell to type'"></span></div>
-    <div class="iv-t"><table><thead><tr><th style="width:{{ $taxPack ? '26%' : ($multiTax ? '30%' : '34%') }}">Product</th><th x-show="trace" style="width:16%">Trace</th>@if ($taxPack || $multiTax)<th style="width:{{ $taxPack ? '20%' : '12%' }}">Tax</th>@endif<th class="el-r" style="width:10%">Qty</th><th style="width:6%">UoM</th><th class="el-r" style="width:11%">Unit price</th><th class="el-r" style="width:8%">Disc %</th><th class="el-r" style="width:12%">Amount</th></tr></thead><tbody>
+    <div class="iv-t"><table><thead><tr><th style="width:{{ $taxPack ? '24%' : '30%' }}">Product</th><th x-show="trace" style="width:14%">Trace</th><th style="width:{{ $taxPack ? '18%' : '12%' }}">{{ $taxPack ? 'Tax' : 'GST' }}</th><th class="el-r" style="width:9%">Qty</th><th style="width:7%">UoM</th><th class="el-r" style="width:11%" title="Price for one unit of the UoM">Unit price</th><th class="el-r" style="width:8%">Disc %</th><th class="el-r" style="width:12%">Amount</th></tr></thead><tbody>
     <template x-for="(l, i) in lines" :key="l.key"><tr>
         <td style="height:auto">
             <template x-if="! l.dispatch_item_id && ! l.extra"><select :name="`lines[${i}][product_id]`" x-model="l.product_id" @change="pick(l, $event.target.value)" data-search-select class="iv-cell" aria-label="Product"><option value="">Free text</option>@foreach ($products as $id => $p)<option value="{{ $id }}" data-sub="{{ $p['code'] }}">{{ $p['name'] }}</option>@endforeach</select></template>
             <template x-if="l.dispatch_item_id || l.extra"><input type="hidden" :name="`lines[${i}][product_id]`" :value="l.product_id ?? ''"></template>
             <div style="display:flex;align-items:center;gap:8px;padding-left:12px"><code x-show="l.dispatch_item_id || l.extra" x-text="products[l.product_id]?.code || l.label || ''" style="font-weight:600;flex:none"></code><input class="iv-cell" :name="`lines[${i}][description]`" x-model="l.description" maxlength="300" :placeholder="l.product_id ? '' : 'Type what is sold'" style="padding-left:0;flex:1;min-width:0"></div>
-            <input type="hidden" :name="`lines[${i}][sales_order_line_id]`" :value="l.sales_order_line_id ?? ''"><input type="hidden" :name="`lines[${i}][dispatch_item_id]`" :value="l.dispatch_item_id ?? ''"><input type="hidden" :name="`lines[${i}][uom]`" :value="l.uom ?? ''">
-            <input type="hidden" :name="`lines[${i}][inventory_class]`" :value="l.inventory_class ?? ''">@unless ($taxPack)<input type="hidden" :name="`lines[${i}][supply_type]`" :value="l.supply_type"><input type="hidden" :name="`lines[${i}][tariff_code]`" :value="l.tariff_code">@endunless @unless ($multiTax)<input type="hidden" :name="`lines[${i}][tax_rate_id]`" :value="l.tax_rate_id">@endunless
+            <input type="hidden" :name="`lines[${i}][sales_order_line_id]`" :value="l.sales_order_line_id ?? ''"><input type="hidden" :name="`lines[${i}][dispatch_item_id]`" :value="l.dispatch_item_id ?? ''">
+            <input type="hidden" :name="`lines[${i}][inventory_class]`" :value="l.inventory_class ?? ''">@unless ($taxPack)<input type="hidden" :name="`lines[${i}][supply_type]`" :value="l.supply_type"><input type="hidden" :name="`lines[${i}][tariff_code]`" :value="l.tariff_code">@endunless 
         </td>
         <td class="iv-ro" x-show="trace" style="font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" x-text="trace_(l)"></td>
         @if ($taxPack)<td style="height:auto"><select class="iv-cell" :name="`lines[${i}][supply_type]`" x-model="l.supply_type"><option value="GOODS">Goods</option><option value="SERVICE">Service</option></select><input class="iv-cell" :name="`lines[${i}][tariff_code]`" x-model="l.tariff_code" maxlength="20" placeholder="{{ $taxPack->tariffLabel() }}"><select class="iv-cell" :name="`lines[${i}][tax_rate_id]`" x-model="l.tax_rate_id" title="Tax if no rule applies"><option value="">No tax</option>@foreach ($taxRates as $t)<option value="{{ $t->id }}">{{ $t->name }}</option>@endforeach</select></td>
-        @elseif ($multiTax)<td><select class="iv-cell" :name="`lines[${i}][tax_rate_id]`" x-model="l.tax_rate_id"><option value="">No tax</option>@foreach ($taxRates as $t)<option value="{{ $t->id }}">{{ $t->name }} ({{ \App\Support\Formats::number($t->rate_percent, 2) }}%)</option>@endforeach</select></td>@endif
+        @else<td><select class="iv-cell" :name="`lines[${i}][tax_rate_id]`" x-model="l.tax_rate_id"><option value="">No tax</option>@foreach ($taxRates as $t)<option value="{{ $t->id }}">{{ $t->name }} ({{ \App\Support\Formats::number($t->rate_percent, 2) }}%)</option>@endforeach</select></td>@endif
         <td><input class="iv-cell el-r" type="number" step="any" min="0" :name="`lines[${i}][quantity]`" x-model.number="l.quantity" @focus="$event.target.select()" @keydown.enter.prevent="next($event)" data-col="q"></td>
-        <td class="iv-ro" x-text="l.uom || ''"></td>
+        <td><select class="iv-cell" :name="`lines[${i}][uom]`" x-model="l.uom" @change="reprice(l)" aria-label="Unit of measure"><template x-for="u in uoms(l)" :key="u"><option :value="u" :selected="u === l.uom" x-text="u"></option></template></select></td>
         <td><input class="iv-cell el-r" type="number" step="any" min="0" :name="`lines[${i}][unit_price]`" x-model.number="l.unit_price" @focus="$event.target.select()" @keydown.enter.prevent="next($event)" data-col="p"></td>
         <td><input class="iv-cell el-r" type="number" step="any" min="0" max="100" :name="`lines[${i}][discount_percent]`" x-model.number="l.discount_percent" @focus="$event.target.select()" @keydown.enter.prevent="next($event)" data-col="d"></td>
         <td class="iv-ro el-r" style="color:inherit;font-weight:500"><button type="button" @click="removeLine(i)" aria-label="Remove line" style="border:0;background:none;color:var(--muted);cursor:pointer;float:left">✕</button><span x-text="money(net(l))"></span></td>
@@ -136,7 +136,7 @@ function invoiceLines(start, rates, products, lookup, dispatches, cfg) {
     let seq = 0;
     const blank = l => ({ ...l, key: ++seq, product_id: l.product_id ?? '', tax_rate_id: l.tax_rate_id ?? '', supply_type: l.supply_type ?? 'GOODS', tariff_code: l.tariff_code ?? '', inventory_class: l.inventory_class ?? '', dn: l.dn ?? null, extra: l.extra ?? null, label: l.label ?? '' });
     return {
-        products, cfg, dispatches, trace: true, dnOpen: true,
+        products, cfg, dispatches, trace: false, dnOpen: true,
         lines: start.map(blank),
         date: @js(old('invoice_date', $invoice?->invoice_date?->toDateString() ?? today()->toDateString())),
         terms: @js(old('payment_terms', $invoice?->payment_terms)),
@@ -206,7 +206,13 @@ function invoiceLines(start, rates, products, lookup, dispatches, cfg) {
             if (! p) { return; }
             Object.assign(l, { description: (p.code ? p.code + ' ' : '') + p.name, uom: p.uom, supply_type: p.supply_type || 'GOODS', tariff_code: p.tariff_code ?? '', inventory_class: p.inventory_class ?? '' });
             if (p.price !== null) { l.unit_price = p.price; }
-            if (! lookup) { return; }
+            this.reprice(l);
+        },
+        // The unit price is the price for one unit of the line's UoM: changing the UoM asks the price list again.
+        uoms(l) { return [...new Set(['pcs', 'kg', l.uom].filter(Boolean))]; },
+        reprice(l) {
+            const id = l.product_id;
+            if (! lookup || ! id) { return; }
             const form = this.$refs.form;
             const q = new URLSearchParams({ product: 'product:' + id, customer: form.customer_id.value, date: form.invoice_date.value, qty: Number(l.quantity) || 1, uom: l.uom === 'kg' ? 'kg' : 'piece' });
             fetch(lookup + '?' + q, { headers: { Accept: 'application/json' } }).then(r => r.ok ? r.json() : { price: null }).then(j => {
