@@ -45,10 +45,24 @@ class MobileController extends Controller
         return view('m.home', [
             'tests' => $tests, 'defects' => $defects, 'types' => self::TESTS,
             'user' => $request->user(),
+            'due' => $tests ? app(\App\Services\Quality\TestsDue::class)->list()->map(fn ($r) => $r + ['url' => $this->testTarget($r['type'], $r['type'] === 'inspection' ? 'lot' : 'heat', $r['key'])]) : collect(),
             'recentHeats' => $tests ? $this->heats(5, 'all') : collect(),
             'todayDefects' => $defects ? \App\Models\QualityDefectMark::whereDate('created_at', today())->count() : 0,
             'todayTests' => $tests ? \App\Models\ThermalAnalysisTest::whereDate('created_at', today())->count() : 0,
         ]);
+    }
+
+    /** Scan or type a label code; opens the heat, lot or sample it names. */
+    public function scan(Request $request): View|\Illuminate\Http\RedirectResponse
+    {
+        abort_unless($this->may('mobile.tests') || $this->may('mobile.defects'), 403);
+        $code = trim((string) $request->query('code', ''));
+        if ($code === '') {
+            return view('m.scan', ['code' => '', 'missing' => false]);
+        }
+        $hit = \App\Support\CodedRecords::find($code);
+
+        return $hit ? redirect(\App\Support\CodedRecords::url($hit[0], $hit[1])) : view('m.scan', ['code' => $code, 'missing' => true]);
     }
 
     public function pickTest(Request $request, string $type): View
@@ -83,10 +97,12 @@ class MobileController extends Controller
 
     private function testTarget(string $type, string $kind, $row): string
     {
+        $id = is_object($row) ? $row->getRouteKey() : $row;
+
         return match ($type) {
-            'thermal' => route('thermal.create', ['heat_id' => $row->id]),
-            'spectro' => route('heats.show', $row),
-            default => route('lots.inspections.create', $row),
+            'thermal' => route('thermal.create', ['heat_id' => $id]),
+            'spectro' => route('heats.show', $id),
+            default => route('lots.inspections.create', $id),
         };
     }
 

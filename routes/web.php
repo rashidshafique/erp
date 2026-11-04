@@ -71,6 +71,7 @@ Route::get('/stock-reconciliation', [StockReconciliationController::class, 'inde
     ->name('stock-reconciliation.index');
 
 Route::get('/', ErpDashboardController::class)->name('dashboard');
+Route::get('/quality-home', \App\Http\Controllers\QualityHomeController::class)->name('quality.home');
 Route::prefix('moulding-runs')
     ->name('moulding-runs.')
     ->controller(MouldingRunController::class)
@@ -515,6 +516,7 @@ Route::prefix('m')->name('m.')->controller(\App\Http\Controllers\MobileControlle
     Route::get('/token', 'token')->name('token');
     Route::get('/tests/{type}', 'pickTest')->where('type', '[a-z]+')->name('tests.pick');
     Route::get('/defects', 'pickDefect')->name('defects.pick');
+    Route::get('/scan', 'scan')->name('scan');
 });
 Route::get('/account/password', [AuthController::class, 'showPassword'])->name('account.password');
 Route::put('/account/profile', [AuthController::class, 'updateProfile'])->name('account.profile.update');

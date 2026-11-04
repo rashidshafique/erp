@@ -14,6 +14,13 @@
 </div>
 
 @if($tests)
+    @if($due->isNotEmpty())
+    <div style="padding:8px 20px 0"><div class="cap" style="padding-bottom:2px">Tests due</div>
+        @foreach($due as $r)
+            <a class="row" href="{{ $r['url'] }}"><span><b>{{ $r['kind'] }} · <code>{{ $r['what'] }}</code></b><br><span class="muted" style="font-size:13px">{{ $r['sub'] }}</span></span><span class="muted" style="font-size:12.5px;text-align:right">waiting<br>{{ $r['since']->diffForHumans(null, true) }}</span></a>
+        @endforeach
+    </div>
+    @endif
     <div style="padding:8px 20px 0"><div class="cap" style="padding-bottom:6px">Record a test · {{ $todayTests }} thermal today</div>
         <div style="display:flex;flex-direction:column;gap:10px">
             @foreach($types as $key => $t)
@@ -29,6 +36,8 @@
         @endforelse
     </div>
 @endif
+
+<div style="padding:12px 20px 0"><a class="tile" href="{{ route('m.scan') }}"><b>Scan label</b><span>Lot, heat or sample code</span></a></div>
 
 @if($defects)
     <div style="padding:16px 20px 0"><div class="cap" style="padding-bottom:6px">Defects · {{ $todayDefects }} logged today</div>

@@ -92,6 +92,9 @@ return [
     // Where someone lands after signing in, by permission. First entry they qualify for wins; everyone else gets the
     // dashboard. An entry with a module is skipped while that module is switched off or unlicensed.
     'home' => [
+        ['permission' => 'mobile.tests', 'route' => 'm.home'],
+        ['permission' => 'mobile.defects', 'route' => 'm.home'],
+        ['permission' => 'quality.inspect', 'route' => 'quality.home'],
         ['permission' => 'shopfloor.record', 'route' => 'quick.today', 'module' => 'quickflow', 'rule' => 'quick_screens'],
         ['permission' => 'melting.operate', 'route' => 'heats.index'],
         ['permission' => 'moulding.operate', 'route' => 'quick.floor.index', 'module' => 'quickflow'],

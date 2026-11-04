@@ -155,4 +155,28 @@ class MobileScreensTest extends TestCase
         $this->assertStringContainsString('FAIL', $melt->notifications()->firstOrFail()->data['title']);
         $this->assertSame(0, $tech->notifications()->count());
     }
+
+    public function test_the_tech_home_lists_tests_due_and_scan_opens_a_lot(): void
+    {
+        config(['foundry.require_login' => true]);
+        $furnace = \App\Models\Furnace::create(['code' => 'IF-2', 'name' => 'Induction', 'furnace_type' => 'INDUCTION', 'status' => 'ACTIVE']);
+        $heat = \App\Models\Heat::create(['heat_number' => 'H-DUE-1', 'furnace_id' => $furnace->id, 'process_type' => 'INDUCTION', 'status' => 'IN_PROGRESS']);
+        $lot = $this->castingLot();
+
+        $this->actingAs($this->tech('QA_TEST_TECH'))->get(route('m.home'))->assertOk()->assertSee('Tests due')->assertSee('H-DUE-1')->assertSee('Thermal analysis')->assertSee('Scan label');
+        $this->get(route('m.scan'))->assertOk()->assertSee('Scan label');
+        $this->get(route('m.scan', ['code' => 'NOPE-0000']))->assertOk()->assertSee('Nothing found');
+        $this->assertNotNull($heat->fresh());
+    }
+
+    public function test_people_land_on_their_own_home_after_signing_in(): void
+    {
+        $this->assertSame('m.home', \App\Support\StartPage::routeFor($this->tech('QA_TEST_TECH')));
+        $this->assertSame('m.home', \App\Support\StartPage::routeFor($this->tech('QA_DEFECT_TECH')));
+        $this->assertSame('quality.home', \App\Support\StartPage::routeFor($this->tech('QUALITY_INSPECTOR')));
+        $this->assertSame('quality.home', \App\Support\StartPage::routeFor($this->tech('QUALITY_MANAGER')));
+
+        config(['foundry.require_login' => true]);
+        $this->actingAs($this->tech('QUALITY_MANAGER'))->get(route('quality.home'))->assertOk()->assertSee('Waiting for inspection')->assertSee('Open nonconformances');
+    }
 }
