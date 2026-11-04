@@ -23,6 +23,8 @@
         }
     </style>
     <script>try{if(matchMedia('(min-width:769px) and (max-width:1024px)').matches||(matchMedia('(min-width:1025px)').matches&&localStorage.getItem('erp.menuSlim')==='1'))document.documentElement.classList.add('menu-slim');}catch(e){}</script>
+    <script>try{['Parent','Sub'].forEach(function(k){var v=parseInt(localStorage.getItem('erp.menuFont'+k+'.{{ auth()->id() ?? 0 }}'),10);if(v>=9&&v<=18)document.documentElement.style.setProperty('--menu-'+k.toLowerCase()+'-fs',v+'px');});}catch(e){}</script>
+    <script>try{if(localStorage.getItem('erp.menuIcons.{{ auth()->id() ?? 0 }}')==='0')document.documentElement.classList.add('menu-no-icons');}catch(e){}</script>
     <script>try{var w=parseInt(localStorage.getItem('erp.menuWidth'),10);if(w>=200&&w<=420)document.documentElement.style.setProperty('--side-w',w+'px');}catch(e){}</script>
     @stack('styles')
 </head>
@@ -194,13 +196,13 @@
             @if (\App\Support\SettingsNav::canOpen())
                 <a href="{{ route('settings.home') }}" class="nav-link {{ \App\Support\SettingsNav::isSettingsPage() || request()->routeIs('settings.home') ? 'active' : '' }}">{!! \App\Support\NavIcons::get('settings') !!}<span>Settings</span></a>
             @endif
-            <button type="button" class="nav-link nav-hidden-open" id="hidden-items-open" aria-haspopup="dialog">{!! \App\Support\NavIcons::get('eye-off') !!}<span>Hidden items</span><span class="nav-count" id="hidden-items-count" hidden></span></button>
+            <button type="button" class="nav-link nav-hidden-open" id="hidden-items-open" aria-haspopup="dialog">{!! \App\Support\NavIcons::get('eye-off') !!}<span>Menu settings</span><span class="nav-count" id="hidden-items-count" hidden></span></button>
         </div>
 
         <dialog id="hidden-items" class="qd menu-edit" aria-labelledby="hidden-items-title">
-            <div class="qd-head"><h2 id="hidden-items-title">Menu</h2><button type="button" class="qd-x" data-menu-close aria-label="Close">×</button></div>
-            <div class="qd-body"><p class="muted small" style="margin:0 0 10px">Choose which entries show in your menu.</p><div id="hidden-items-list"></div></div>
-            <div class="qd-foot"><button type="button" class="btn" id="hidden-items-reset">Show All</button><button type="button" class="btn btn-primary" data-menu-close>Done</button></div>
+            <div class="qd-head"><h2 id="hidden-items-title">Menu settings</h2><button type="button" class="qd-x" data-menu-close aria-label="Close">×</button></div>
+            <div class="qd-body"><p class="muted small" style="margin:0 0 10px">Your layout is remembered for your sign-in on this browser.</p><label class="menu-edit-row" style="margin-bottom:8px"><span><strong>Show icons</strong></span><input type="checkbox" class="simple-check" id="menu-icons-switch" role="switch"></label><label class="menu-edit-row" style="margin-bottom:8px"><span>Section headings</span><select id="menu-font-parent" style="width:auto"><option value="9">9 px</option><option value="10">10 px</option><option value="11">11 px</option><option value="12">12 px</option><option value="13">13 px</option><option value="14">14 px</option><option value="15">15 px</option><option value="16">16 px</option></select></label><label class="menu-edit-row" style="margin-bottom:8px"><span>Menu entries</span><select id="menu-font-sub" style="width:auto"><option value="11">11 px</option><option value="12">12 px</option><option value="13">13 px</option><option value="14">14 px</option><option value="15">15 px</option><option value="16">16 px</option><option value="17">17 px</option></select></label><p class="muted small" style="margin:10px 0 6px">Entries shown</p><div id="hidden-items-list"></div></div>
+            <div class="qd-foot"><button type="button" class="btn" id="hidden-items-reset">Reset layout</button><button type="button" class="btn btn-primary" data-menu-close>Done</button></div>
         </dialog>
 
         @if ($brand['logo'] && $brand['position'] === 'BOTTOM_LEFT')
@@ -552,10 +554,17 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     }
-    open.addEventListener('click', () => { build(); dialog.showModal(); });
+    const IK = 'erp.menuIcons.{{ auth()->id() ?? 0 }}', SK = 'erp.menuSections.{{ auth()->id() ?? 0 }}', iconBox = document.getElementById('menu-icons-switch');
+    const setIcons = on => { document.documentElement.classList.toggle('menu-no-icons', ! on); try { localStorage.setItem(IK, on ? '1' : '0'); } catch (e) {} };
+    const fonts = { parent: [document.getElementById('menu-font-parent'), 11], sub: [document.getElementById('menu-font-sub'), 13] };
+    const fontKey = k => 'erp.menuFont' + (k === 'parent' ? 'Parent' : 'Sub') + '.{{ auth()->id() ?? 0 }}';
+    const setFont = (k, v) => { if (v) { document.documentElement.style.setProperty('--menu-' + k + '-fs', v + 'px'); try { localStorage.setItem(fontKey(k), v); } catch (e) {} } else { document.documentElement.style.removeProperty('--menu-' + k + '-fs'); try { localStorage.removeItem(fontKey(k)); } catch (e) {} } };
+    Object.keys(fonts).forEach(k => fonts[k][0].addEventListener('change', () => setFont(k, parseInt(fonts[k][0].value, 10))));
+    iconBox.addEventListener('change', () => setIcons(iconBox.checked));
+    open.addEventListener('click', () => { iconBox.checked = ! document.documentElement.classList.contains('menu-no-icons'); Object.keys(fonts).forEach(k => { fonts[k][0].value = parseInt(localStorage.getItem(fontKey(k)), 10) || fonts[k][1]; }); build(); dialog.showModal(); });
     dialog.querySelectorAll('[data-menu-close]').forEach(b => b.addEventListener('click', () => dialog.close()));
     dialog.addEventListener('click', e => { if (e.target === dialog) dialog.close(); });
-    document.getElementById('hidden-items-reset').addEventListener('click', () => { menu.write([]); menu.apply(); build(); });
+    document.getElementById('hidden-items-reset').addEventListener('click', () => { menu.write([]); menu.apply(); setIcons(true); iconBox.checked = true; Object.keys(fonts).forEach(k => { setFont(k, 0); fonts[k][0].value = fonts[k][1]; }); try { localStorage.removeItem(SK); } catch (e) {} build(); });
 });
 
 /* Foundry ERP sidebar submenu behavior: each section heading opens and closes its links, and the choice is kept in this browser.
@@ -579,14 +588,36 @@ document.addEventListener('DOMContentLoaded', () => {
         return (clone.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
     };
 
-    function setOpen(group, open) {
+    const MS = 400;
+
+    function setOpen(group, open, animate) {
         const button = group.querySelector('.nav-group-toggle');
         const submenu = group.querySelector('.nav-submenu');
         if (!button || !submenu) return;
 
         group.classList.toggle('is-open', open);
         button.setAttribute('aria-expanded', String(open));
-        submenu.hidden = !open;
+        clearTimeout(submenu._t);
+        if (! animate) {
+            submenu.hidden = ! open;
+            submenu.style.height = submenu.style.overflow = submenu.style.transition = '';
+            return;
+        }
+        submenu.style.overflow = 'hidden';
+        submenu.style.transition = 'none';
+        if (open) {
+            submenu.hidden = false;
+            submenu.style.height = '0px';
+        } else {
+            submenu.style.height = submenu.offsetHeight + 'px';
+        }
+        void submenu.offsetHeight;   // commit the start height before animating
+        submenu.style.transition = 'height ' + MS + 'ms ease';
+        submenu.style.height = open ? submenu.scrollHeight + 'px' : '0px';
+        submenu._t = setTimeout(() => {
+            submenu.hidden = ! open;
+            submenu.style.height = submenu.style.overflow = submenu.style.transition = '';
+        }, MS + 30);
     }
 
     const remembered = read();
@@ -598,10 +629,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!submenu.id) submenu.id = 'nav-section-' + (i + 1);
         button.setAttribute('aria-controls', submenu.id);
 
-        // Sections no longer open and close: every heading is a plain label with its links always shown.
-        setOpen(group, true);
-        button.tabIndex = -1;
-        button.removeAttribute('aria-expanded');
+        // Sections start closed and keep what was last chosen. The section holding the current page is not forced open.
+        const name = nameOf(group);
+        setOpen(group, remembered[name] === true);
+        button.addEventListener('click', () => {
+            const open = ! group.classList.contains('is-open');
+            setOpen(group, open, true);
+            save(name, open);
+        });
     });
 })();
 </script>

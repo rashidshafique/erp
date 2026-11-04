@@ -322,7 +322,7 @@ th { border-bottom-color: var(--border); }
 
 /* Menu as in the design: one level. Section labels are 11px uppercase headings that open and close their entries;
    the chevron on the right shows which. Icons stay off the links while the menu is wide. */
-.sidebar-nav { gap: 18px; }
+.sidebar-nav { gap: 6px; }
 .menu-labels .nav-group { border-radius: 0; }
 .menu-labels .nav-group .nav-group-toggle {
     display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 8px;
@@ -339,14 +339,10 @@ th { border-bottom-color: var(--border); }
 .menu-labels .nav-group.is-open > .nav-group-toggle .nav-chevron { transform: rotate(90deg); }
 .menu-labels .nav-submenu { display: flex !important; flex-direction: column; gap: 2px; }
 .menu-labels .nav-submenu[hidden] { display: none !important; }
+.menu-labels .nav-submenu[hidden] { display: none !important; }
 .menu-labels .nav-submenu .nav-link { display: flex; align-items: center; justify-content: space-between; margin: 0; }
-/* Sections do not expand or collapse: headings are plain labels, no chevron, no hover, links always shown. */
-.menu-labels .nav-group .nav-group-toggle { cursor: default; pointer-events: none; }
-.menu-labels .nav-group .nav-group-toggle:hover,
-.menu-labels .nav-group .nav-group-toggle:focus-visible { color: var(--text-faint) !important; background: transparent !important; }
-.menu-labels .nav-group-toggle .nav-chevron, .nav-chevron { display: none !important; }
-.menu-labels .nav-submenu[hidden] { display: flex !important; }
-.menu-labels .nav-submenu .nav-link .nav-ico { display: none; }
+.menu-labels .nav-submenu .nav-link { gap: 9px; justify-content: flex-start; }
+.menu-labels .nav-submenu .nav-link .nav-ico { display: inline-block; flex: none; opacity: .75; }
 .menu-labels .nav-submenu .nav-link .nav-count { float: none; margin-left: auto; }
 .menu-labels .sidebar-bottom .nav-link .nav-ico { display: none; }
 /* The icon rail always shows every entry, so opening or closing a section only applies to the full-width menu. */
@@ -437,3 +433,16 @@ td > input.switch { display: block; margin: 0 auto; }
 
 .rules-view { margin: 0 0 14px; }
 .settings-nav-back { margin: 2px 0 10px; color: var(--muted); font-size: 12.5px; }
+
+/* Tighter menu: smaller gaps and rows. */
+.menu-labels .nav-group .nav-group-toggle { padding: 6px 8px !important; }
+.menu-labels .nav-submenu { gap: 1px; }
+.nav-submenu .nav-link { padding: 6px 10px !important; }
+.nav-link.nav-top { padding-top: 5px !important; padding-bottom: 5px !important; }
+
+/* Menu settings: icons off (the icon-only menu always keeps them). */
+html.menu-no-icons:not(.menu-slim):not(.menu-hover) .sidebar .nav-ico { display: none !important; }
+
+/* Menu settings: font sizes for section headings and entries. */
+html .menu-labels .nav-group .nav-group-toggle { font-size: var(--menu-parent-fs, 11px) !important; }
+html .sidebar-nav .nav-submenu .nav-link, html .sidebar-nav .nav-link.nav-top { font-size: var(--menu-sub-fs, 13px) !important; }
