@@ -44,7 +44,7 @@
             this.boxes.filter(b => b.kind === 'charge' && b.account_id).forEach(b => row(this.names[b.account_id], cr, this.amt(b)));
             return rows;
         },
-    }" style="display:grid;grid-template-columns:minmax(0,1fr) 380px;font-size:13px;padding:0;overflow:hidden">
+    }" style="display:grid;grid-template-columns:minmax(0,1fr) 380px;font-size:13px;padding:0;overflow:hidden;{{ ($flat ?? false) ? 'border:0;border-top:1px solid #e6e7e9;border-radius:0;box-shadow:none' : '' }}">
     <div style="padding:20px 28px;display:flex;flex-direction:column;gap:16px;min-width:0">
         <div style="display:flex;flex-direction:column;align-self:flex-end;width:620px;max-width:100%">
             <div style="display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:12px;padding:6px 0"><span style="text-align:right;color:#6b6e73">Sub total</span><span style="text-align:right" x-text="money(subtotal)"></span></div>

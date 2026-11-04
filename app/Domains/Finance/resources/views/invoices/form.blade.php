@@ -13,8 +13,10 @@
 @endphp
 @php
     $customerTerms = $customer?->payment_terms;
-    $extras = [['key' => 'tool', 'label' => 'Tooling', 'text' => 'Pattern amortisation', 'note' => 'Adds a line; enter the amount per casting'], ['key' => 'sur', 'label' => 'Metal surcharge', 'text' => 'Metal surcharge', 'note' => 'Adds a line; enter the index amount'], ['key' => 'frt', 'label' => 'Freight', 'text' => 'Freight', 'note' => 'Adds a line; enter the amount per dispatch note']];
+    $extras = [['key' => 'tool', 'label' => 'Pattern amortisation', 'text' => 'Pattern amortisation', 'note' => 'Per casting on the ticked notes; enter the rate'], ['key' => 'sur', 'label' => 'Metal surcharge', 'text' => 'Metal surcharge', 'note' => 'Index amount for the period'], ['key' => 'frt', 'label' => 'Freight', 'text' => 'Freight', 'note' => 'Per dispatch note; enter the rate']];
     $multiTax = ! $taxPack && $taxRates->count() > 1;
+    // With charge boxes on, their block carries the sub total, tax, total and net, so this page keeps one totals block only.
+    $boxes = \App\Domains\Finance\Services\ChargeBoxes::showsOn('invoice');
 @endphp
 <style>
     .iv-f { display: flex; flex-direction: column; gap: 6px; } .iv-f > span:first-child { font-size: 12px; color: var(--muted); }
@@ -65,7 +67,7 @@
     @endforeach
 </div>
 <div class="el-main">
-    <div style="display:flex;justify-content:space-between;align-items:baseline"><div class="el-h">Lines</div><span class="el-sub">Edit any price or quantity</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline"><div class="el-h">Lines</div><span class="el-sub" x-text="(orders ? 'Prices from ' + orders + ' · ' : '') + 'edit any price or quantity'"></span></div>
     <div class="el-table" style="margin:0 -12px"><table><thead><tr><th>Line</th><th>Description</th><th>Trace</th>@if ($taxPack)<th>Tax</th>@elseif ($multiTax)<th>Tax</th>@endif<th class="el-r">Qty</th><th class="el-r">Unit price</th>@if ($discounts)<th class="el-r">Disc %</th>@endif<th class="el-r">Amount</th><th></th></tr></thead><tbody>
     <template x-for="(l, i) in lines" :key="l.key"><tr style="cursor:default">
         <td><code x-text="products[l.product_id]?.code || l.label || ''"></code></td>
@@ -85,13 +87,13 @@
     </tr></template></tbody></table></div>
     <div x-show="! lines.length" style="padding:28px;text-align:center;border:1px dashed #d9dbde;border-radius:8px;color:var(--muted)">Tick a dispatch note to add its lines.</div>
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:24px"><button type="button" class="el-btn" @click="addLine()">Add line</button>
-        <div style="width:320px;display:flex;flex-direction:column;gap:6px;font-size:13px">
+        @unless ($boxes)<div style="width:320px;display:flex;flex-direction:column;gap:6px;font-size:13px">
             <div style="display:flex;justify-content:space-between"><span class="el-sub" style="font-size:13px">Subtotal</span><span x-text="money(subtotal)"></span></div>
             @if ($taxPack)<div style="display:flex;justify-content:space-between"><span class="el-sub" style="font-size:13px">Sales tax</span><span class="el-sub" style="font-size:13px">worked out when saved</span></div>
-            <div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:8px;font-weight:600;font-size:15px"><span>Subtotal</span><span x-text="money(subtotal)"></span></div>
             @else<div style="display:flex;justify-content:space-between"><span class="el-sub" style="font-size:13px">Sales tax</span><span x-text="tax ? money(tax) : '0.00 · exempt'"></span></div>
             <div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:8px;font-weight:600;font-size:15px"><span>Total due</span><span x-text="money(subtotal + tax)"></span></div>@endif
-        </div></div>
+        </div>@endunless
+        </div>
     <label class="iv-f"><span>Note on invoice</span><textarea name="notes" rows="2" maxlength="2000" placeholder="Optional. Printed above the terms.">{{ old('notes', $invoice?->notes) }}</textarea></label>
 </div>
 <div class="el-side" style="gap:14px">
@@ -105,8 +107,9 @@
     <div style="display:flex;justify-content:space-between;gap:12px"><span class="el-sub" style="font-size:13px">Send to</span><span>{{ $customer?->email ?: '—' }}</span></div>
     <div style="color:#55585d;line-height:1.5;text-wrap:pretty">Ticked dispatch notes are locked to this invoice so they can't be billed twice. Unticked ones stay in the list for the next invoice.</div>
 </div>
-</div></div>
-@include('finance::invoices._charges', ['document' => 'invoice', 'adjustments' => old('adjustments', $invoice?->adjustments ?? [])])
+</div>
+@include('finance::invoices._charges', ['document' => 'invoice', 'flat' => true, 'adjustments' => old('adjustments', $invoice?->adjustments ?? [])])
+</div>
 </form>
 <script>
 function invoiceLines(start, rates, products, lookup, dispatches, cfg) {
@@ -123,23 +126,40 @@ function invoiceLines(start, rates, products, lookup, dispatches, cfg) {
         lineTax(l) { return Math.round(this.net(l) * (rates[l.tax_rate_id] || 0)) / 100; },
         get subtotal() { return this.lines.reduce((n, l) => n + this.net(l), 0); },
         get tax() { return this.lines.reduce((n, l) => n + this.lineTax(l), 0); },
+        get ticked() { return this.dispatches.filter(d => this.on(d.id)); },
+        get orders() { return [...new Set(this.ticked.flatMap(d => (d.so || '').split(', ')).filter(Boolean))].join(', '); },
+        // Tooling follows the castings ticked and freight the dispatch notes ticked, as the lines are built.
+        syncExtras() {
+            const pcs = this.ticked.reduce((n, d) => n + (Number(d.pcs) || 0), 0), dns = this.ticked.length;
+            this.lines.forEach(l => {
+                if (l.extra === 'tool' && pcs) { l.quantity = pcs; }
+                if (l.extra === 'frt' && dns) { l.quantity = dns; }
+            });
+        },
         on(id) { return this.lines.some(l => l.dn === id); },
         extra(k) { return this.lines.some(l => l.extra === k); },
         toggleDn(id) {
-            if (this.on(id)) { this.lines = this.lines.filter(l => l.dn !== id); return; }
+            if (this.on(id)) { this.lines = this.lines.filter(l => l.dn !== id); this.syncExtras(); return; }
             const d = this.dispatches.find(x => x.id === id);
             const at = this.lines.findIndex(l => l.extra);
             const add = d.lines.map(blank);
             this.lines.splice(at < 0 ? this.lines.length : at, 0, ...add);
+            this.syncExtras();
         },
         toggleExtra(k, label, text) {
             if (this.extra(k)) { this.lines = this.lines.filter(l => l.extra !== k); return; }
             const tax = this.lines.find(l => l.tax_rate_id)?.tax_rate_id ?? '';
             this.lines.push(blank({ extra: k, label, description: text, quantity: 1, uom: '', unit_price: 0, discount_percent: 0, tax_rate_id: tax }));
+            this.syncExtras();
         },
         addLine() { this.lines.push(blank({ description: '', quantity: 1, uom: '', unit_price: 0, discount_percent: 0, tax_rate_id: this.lines.find(l => l.tax_rate_id)?.tax_rate_id ?? '' })); },
         removeLine(i) { this.lines.splice(i, 1); },
-        trace(l) { const d = this.dispatches.find(x => x.id === l.dn); return d ? d.code : ''; },
+        trace(l) {
+            if (l.extra === 'tool') { return 'Per casting'; }
+            if (l.extra === 'sur') { return 'Index amount'; }
+            if (l.extra === 'frt') { return this.ticked.map(d => d.code).join(', '); }
+            const d = this.dispatches.find(x => x.id === l.dn); return d ? d.code : '';
+        },
         get dueText() {
             let d = this.due ? new Date(this.due) : new Date(this.date);
             if (isNaN(d)) { return '—'; }

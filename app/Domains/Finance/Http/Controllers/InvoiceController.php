@@ -213,7 +213,7 @@ class InvoiceController extends Controller
     /**
      * The dispatch notes of a customer not yet billed (plus those already on the draft being edited), with the lines each would add.
      *
-     * @return list<array{id: string, code: string, date: string, desc: string, so: string, lines: list<array<string, mixed>>}>
+     * @return list<array{id: string, code: string, date: string, desc: string, so: string, pcs: float, lines: list<array<string, mixed>>}>
      */
     private function billableDispatches(?string $customerId, ?Invoice $invoice, InvoiceService $service): array
     {
@@ -234,7 +234,7 @@ class InvoiceController extends Controller
                 return [
                     'id' => $d->id, 'code' => $d->dispatch_number, 'date' => 'Shipped '.($d->dispatched_at ?? $d->created_at)->format('j M'),
                     'desc' => count($lines) === 1 ? trim((string) preg_replace('/ .*/', '', $lines[0]['description'])).' · '.number_format($pcs).' pcs' : count($lines).' lines · '.number_format($pcs).' pcs',
-                    'so' => $orders, 'lines' => array_map(fn ($l) => $l + ['dn' => $d->id], $lines),
+                    'so' => $orders, 'pcs' => (float) $pcs, 'lines' => array_map(fn ($l) => $l + ['dn' => $d->id], $lines),
                 ];
             })->filter()->values()->all();
     }
