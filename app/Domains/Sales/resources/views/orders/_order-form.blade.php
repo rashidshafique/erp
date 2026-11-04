@@ -45,11 +45,27 @@
     .so-start { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; font-size: 13.5px; }
     .so-chip { padding: 6px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); text-decoration: none; font-size: 13.5px; }
     .so-chip.is-on { background: var(--accent); border-color: var(--accent); color: #fff; }
-    .so-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 20px; align-items: start; }
-    .so-rail { position: sticky; top: 16px; padding: 18px 18px 14px; }
+    .so-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+    .so-bar-id, .so-bar-go { display: flex; align-items: center; gap: 8px; }
+    .so-pill { font-size: 12px; color: var(--muted); background: #f3f4f6; padding: 2px 6px; border-radius: 4px; }
+    .so-title { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 18px; }
+    .so-title h1 { margin: 0; font-size: 22px; font-weight: 600; }
+    .so-start { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; font-size: 12.5px; font-weight: 500; }
+    .so-seg { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+    .so-seg .so-chip { border: 0; border-radius: 0; border-right: 1px solid var(--border); padding: 7px 14px; font-size: 13px; }
+    .so-seg .so-chip:last-child { border-right: 0; }
+    .so-terms { padding: 9px 12px; border: 1px solid var(--border); border-radius: 6px; background: #fafafa; font-size: 14px; min-height: 18px; }
+    .so-ref { display: block; margin-top: 3px; font-size: 12px; color: var(--muted); } .so-ref.is-low { color: #94610a; }
+    .so-segu { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+    .so-segu button { border: 0; padding: 6px 10px; font-size: 12.5px; background: #fff; color: var(--text); cursor: pointer; }
+    .so-segu button.is-on { background: #1c1d1f; color: #fff; }
+    .so-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; align-items: start; }
+    .so-rail { position: sticky; top: 16px; padding: 20px; background: #fafafa; }
     .so-rail h2 { display: flex; justify-content: space-between; align-items: baseline; margin: 0 0 12px; font-size: 15px; }
     .so-rail h2 small { font-size: 12.5px; font-weight: 400; color: var(--muted); }
-    .ck { padding: 10px 0; border-top: 1px solid var(--border); }
+    [data-ck-rows] { background: #fff; border: 1px solid var(--border); border-radius: 8px; }
+    [data-ck-rows]:empty { display: none; }
+    .ck { padding: 12px 14px; border-bottom: 1px solid #eff0f2; } .ck:last-child { border-bottom: 0; }
     .ck-top { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 13.5px; }
     .ck-dot { width: 8px; height: 8px; border-radius: 50%; background: #1d7048; flex: none; }
     .ck-pill { margin-left: auto; padding: 1px 8px; border-radius: 10px; font-size: 11.5px; font-weight: 600; background: #e7f3ec; color: #1d7048; }
@@ -62,7 +78,7 @@
     .so-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
     .so-body { padding: 22px 24px; }
     .so-card h2 { font-size: 17px; margin: 0 0 14px; }
-    .so-top { display: grid; grid-template-columns: minmax(220px, 2fr) repeat(2, minmax(150px, 1fr)) minmax(180px, 1.3fr); gap: 14px; max-width: 1100px; }
+    .so-top { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
     .so-top .field { margin: 0; }
     .so-thumb { width: 34px; height: 34px; border-radius: 6px; object-fit: cover; background: color-mix(in srgb, var(--border) 70%, transparent); display: inline-flex; align-items: center; justify-content: center; color: var(--muted); }
     .so-lines { margin-top: 14px; }
@@ -109,9 +125,9 @@
     .so-empty { padding: 26px 0; text-align: center; color: var(--muted); border-bottom: 1px solid var(--border); }
     .so-bottom { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 380px); gap: 24px; margin-top: 22px; align-items: start; }
     .so-bottom textarea { width: 100%; max-width: 480px; }
-    .so-summary { border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; background: color-mix(in srgb, var(--border) 25%, transparent); }
+    .so-summary { padding: 4px 0; }
     .so-summary div { display: flex; justify-content: space-between; padding: 4px 0; font-variant-numeric: tabular-nums; }
-    .so-summary .so-grand { font-size: 20px; font-weight: 700; padding-top: 10px; }
+    .so-summary .so-grand { font-size: 14px; font-weight: 600; } .so-summary div > :first-child { color: var(--muted); } .so-summary .so-grand > :first-child { color: var(--text); } .so-summary small { display: block; margin-top: 4px; text-align: right; }
     .so-foot { display: flex; gap: 10px; padding: 16px 24px; border-top: 1px solid var(--border); }
     @media (max-width: 900px) {
         .so-top { grid-template-columns: 1fr; }
@@ -132,36 +148,39 @@
     }
 </style>
 
-<div class="so-head"><a class="so-back" href="{{ $cancel }}" aria-label="Back">&larr;</a><div><h1>{{ $title }}</h1>@if ($order)<p class="muted small" style="margin:2px 0 0">Every change is written to the order's history with who made it{{ $needsReason ? ' and your reason' : '' }}.</p>@endif</div></div>
+<div class="so-bar"><div class="so-bar-id"><a class="so-back" href="{{ $cancel }}" aria-label="Back">&larr;</a><code class="so-pill">{{ $order ? $order->order_number.' '.strtolower(str_replace('_', ' ', $order->status)) : 'draft' }}</code></div>
+    <div class="so-bar-go">@unless ($order)<button class="btn" type="submit" form="so-form" name="draft" value="1" formnovalidate>Save draft</button>@endunless<button class="btn btn-primary" type="submit" form="so-form" data-primary data-default="{{ $submit }}">{{ $submit }}</button></div></div>
 
 @if ($errors->any())<div class="alert alert-error">@foreach ($errors->all() as $e)<div>{{ $e }}</div>@endforeach</div>@endif
 
 @if ($catalogue->isEmpty())
     <div class="alert alert-error">There are no products to order yet. Add a product first.</div>
 @else
-@unless ($order)
-<div class="so-start"><span>Start from</span>
+<form method="POST" action="{{ $action }}" id="so-form" @if ($copyFrom) data-copy @endif @class(['so-noprice' => ! $prices, 'so-disc' => $discounts]) data-today="{{ today()->toDateString() }}" data-ahead="{{ \App\Support\OrderRules::repeatAheadDays() }}">
+@csrf @if ($order) @method('PUT')<input type="hidden" name="order_id" value="{{ $order->id }}"> @endif
+<div class="so-wrap">
+<div class="so-card"><div class="so-body">
+    <div class="so-title"><h1>{{ $title }}</h1>@unless ($order)
+<div class="so-start"><span>Start from</span><div class="so-seg">
     <a href="{{ route('sales-orders.create') }}" @class(['so-chip', 'is-on' => ! $copyFrom])>New order</a>
     <select class="so-chip {{ $copyFrom ? 'is-on' : '' }}" aria-label="Copy an earlier order" onchange="if (this.value) location.href = this.value">
         <option value="">Copy an order</option>
         @foreach ($recentOrders as $r)<option value="{{ route('sales-orders.create', ['copy' => $r->id]) }}" @selected($copyFrom?->id === $r->id)>{{ $r->order_number }} · {{ $r->customer?->name }} · {{ $r->order_date?->format('j M Y') }}</option>@endforeach
     </select>
-    @if ($copyFrom)<span class="muted small">Lines of {{ $copyFrom->order_number }}; prices come from the price list again.</span>@endif
+    </div>@if ($copyFrom)<span class="muted small">Lines of {{ $copyFrom->order_number }}; prices come from the price list again.</span>@endif
 </div>
-@endunless
-<form method="POST" action="{{ $action }}" id="so-form" @if ($copyFrom) data-copy @endif @class(['so-noprice' => ! $prices, 'so-disc' => $discounts]) data-today="{{ today()->toDateString() }}" data-ahead="{{ \App\Support\OrderRules::repeatAheadDays() }}">
-@csrf @if ($order) @method('PUT')<input type="hidden" name="order_id" value="{{ $order->id }}"> @endif
-<div class="so-wrap">
-<div class="so-card"><div class="so-body">
-    <h2>Order detail</h2>
+@endunless</div>
+    @if ($order)<p class="muted small" style="margin:-6px 0 14px">Every change is written to the order's history with who made it{{ $needsReason ? ' and your reason' : '' }}.</p>@endif
     <div class="so-top">
         <div class="field"><label for="customer_id">Customer <a href="{{ route('customers.create') }}" class="qd-add" data-quick="qd-customer" data-quick-target="customer_id">+ Add</a></label>
             <select id="customer_id" name="customer_id" required data-search-select><option value="">Select customer</option>
-                @foreach ($customers as $c)<option value="{{ $c->id }}" data-sub="{{ $c->code }}" @selected(old('customer_id', $order?->customer_id ?? $copyFrom?->customer_id) === $c->id)>{{ $c->name }}</option>@endforeach
+                @foreach ($customers as $c)<option value="{{ $c->id }}" data-sub="{{ $c->code }}" data-terms="{{ $c->payment_terms }}" @selected(old('customer_id', $order?->customer_id ?? $copyFrom?->customer_id) === $c->id)>{{ $c->name }}</option>@endforeach
             </select>@if ($started)<div class="muted small">Production orders exist, so the customer cannot change.</div>@endif</div>
-        <div class="field"><label for="order_date">Order date</label><input id="order_date" name="order_date" type="date" required value="{{ old('order_date', $order?->order_date?->toDateString() ?? today()->toDateString()) }}"></div>
-        <div class="field"><label for="requested_delivery_date">Requested delivery</label><input id="requested_delivery_date" name="requested_delivery_date" type="date" value="{{ old('requested_delivery_date', $order?->requested_delivery_date?->toDateString()) }}"></div>
-        <div class="field"><label for="customer_reference">Customer PO / reference</label><input id="customer_reference" name="customer_reference" maxlength="100" value="{{ old('customer_reference', $order?->customer_reference) }}"></div>
+        <div class="field"><label for="customer_reference">Customer PO no.</label><input id="customer_reference" name="customer_reference" maxlength="100" value="{{ old('customer_reference', $order?->customer_reference) }}"></div>
+        <div class="field"><label for="requested_delivery_date">Required by</label><input id="requested_delivery_date" name="requested_delivery_date" type="date" value="{{ old('requested_delivery_date', $order?->requested_delivery_date?->toDateString()) }}"></div>
+        <div class="field"><label>Payment terms</label><div class="so-terms" data-terms>{{ ($order?->customer ?? $copyFrom?->customer)?->payment_terms ?: '—' }}</div></div>
+        @if ($order)<div class="field"><label for="order_date">Order date</label><input id="order_date" name="order_date" type="date" required value="{{ old('order_date', $order->order_date?->toDateString()) }}"></div>
+        @else<input id="order_date" name="order_date" type="hidden" value="{{ old('order_date', today()->toDateString()) }}">@endif
     </div>
 
     <div class="so-lines">
@@ -183,19 +202,25 @@
         <div class="field"><label for="notes">Notes</label><textarea id="notes" name="notes" rows="3" maxlength="3000" placeholder="Type here">{{ old('notes', $order?->notes) }}</textarea>
             @if ($needsReason)<div class="field" style="margin-top:14px"><label for="reason">Reason for the change</label><input id="reason" name="reason" required minlength="5" maxlength="300" value="{{ old('reason') }}" placeholder="Why is the order being changed?"></div>@endif</div>
         <div class="so-summary" aria-live="polite">
+            @if ($prices)
+            <div><span>Gross</span><span data-gross>—</span></div>
+            <div><span>Discount</span><span data-disc-total>0</span></div>
+            <div class="so-grand"><span>Order value</span><span data-grand>—</span></div>
+            <small class="muted">GST and withholding are added on the invoice.</small>
+            @else
             <div><span>Lines</span><span data-count>0</span></div>
             <div><span>Pieces</span><span data-pieces-total>0</span></div>
             <div data-kg-row hidden><span>Kg</span><span data-kg-total>0</span></div>
-            @if ($prices)<div class="so-grand"><span>Total</span><span data-grand>—</span></div>@endif
+            @endif
         </div>
     </div>
 </div>
-<div class="so-foot">@error('confirm_jump')<label style="margin:0 8px 0 0;align-self:center"><input type="checkbox" name="confirm_jump" value="1"> Yes, these quantities are right</label>@enderror<button class="btn btn-primary" type="submit" data-primary data-default="{{ $submit }}">{{ $submit }}</button>@unless ($order)<button class="btn" type="submit" name="draft" value="1" formnovalidate>Save draft</button>@endunless<a class="btn" href="{{ $cancel }}">Cancel</a></div>
+<div class="so-foot">@error('confirm_jump')<label style="margin:0 8px 0 0;align-self:center"><input type="checkbox" name="confirm_jump" value="1"> Yes, these quantities are right</label>@enderror<a class="btn" href="{{ $cancel }}">Cancel</a></div>
 </div>
 <aside class="so-card so-rail" aria-live="polite">
     <h2>Checks <small data-ck-summary>Pick a customer and a product</small></h2>
     <div data-ck-rows></div>
-    <p class="so-note">Warnings let you save and send for approval. Blocking checks must be fixed first.@if ($prices) GST and withholding are added on the invoice.@endif</p>
+    <p class="so-note">Warnings let you save and send for approval. Blocking checks must be fixed first.</p>
 </aside>
 </div>
 </form>
@@ -211,19 +236,18 @@
         return money.currency ? (money.before ? money.currency + ' ' + s : s + ' ' + money.currency) : s;
     }
     function recalc() {
-        var total = 0, pieces = 0, kgs = 0, rows = [].filter.call(linesBox.querySelectorAll('[data-line]'), chosen);
+        var total = 0, gross = 0, pieces = 0, kgs = 0, rows = [].filter.call(linesBox.querySelectorAll('[data-line]'), chosen);
         rows.forEach(function (row) {
             var q = row.dataset.pieces ? parseFloat(row.dataset.pieces) : (parseFloat(row.querySelector('[data-qty]').value) || 0), priceBox = row.querySelector('[data-price]'), p = priceBox ? parseFloat(priceBox.value) : NaN, discBox = row.querySelector('[data-disc]'), d = discBox ? Math.min(100, Math.max(0, parseFloat(discBox.value) || 0)) : 0;
             if (!isNaN(p)) p = p * (1 - d / 100);
             if (byKg(row)) kgs += q; else pieces += q;
             if (priceBox) row.querySelector('[data-total]').textContent = isNaN(p) ? '—' : fmt(q * p);
-            if (!isNaN(p)) total += q * p;
+            if (!isNaN(p)) { total += q * p; gross += q * parseFloat(priceBox.value); }
         });
-        form.querySelector('[data-count]').textContent = rows.length;
-        form.querySelector('[data-pieces-total]').textContent = pieces.toLocaleString();
-        form.querySelector('[data-kg-total]').textContent = num(kgs);
-        form.querySelector('[data-kg-row]').hidden = !kgs;
-        if (form.querySelector('[data-grand]')) form.querySelector('[data-grand]').textContent = rows.length ? fmt(total) : '—';
+        var set = function (sel, v) { var el = form.querySelector(sel); if (el) el.textContent = v; };
+        set('[data-count]', rows.length); set('[data-pieces-total]', pieces.toLocaleString()); set('[data-kg-total]', num(kgs));
+        if (form.querySelector('[data-kg-row]')) form.querySelector('[data-kg-row]').hidden = !kgs;
+        set('[data-gross]', rows.length ? fmt(gross) : '—'); set('[data-disc-total]', gross - total > 0.004 ? '− ' + fmt(gross - total) : '0'); set('[data-grand]', rows.length ? fmt(total) : '—');
         form.querySelector('[data-no-lines]').hidden = linesBox.querySelector('[data-line]') !== null;
     }
     // The repeat preview: works out the same deliveries the server will schedule, so the line's new total is seen before saving.
@@ -296,6 +320,18 @@
         out.classList.toggle('is-over', left < 0);
     }
     // A line sold by kg shows the whole pieces its quantity needs, from the casting's weight.
+    // The pcs/kg toggle: switching converts the quantity by the casting's weight; the price is asked from the price list again.
+    linesBox.addEventListener('click', function (e) {
+        var b = e.target.closest('[data-unit-pick]'); if (!b) return;
+        var row = b.closest('[data-line]'), u = row.querySelector('[data-unit]'), qty = row.querySelector('[data-qty]'), each = parseFloat(row.dataset.eachKg) || 0, v = b.dataset.unitPick;
+        if (u.value === v) return;
+        var q = parseFloat(qty.value);
+        if (each && q) qty.value = v === 'kg' ? Math.round(q * each * 1000) / 1000 : Math.ceil(Math.round(q / each * 1e6) / 1e6);
+        u.value = v;
+        row.querySelectorAll('[data-unit-pick]').forEach(function (x) { x.classList.toggle('is-on', x === b); });
+        var price = row.querySelector('[data-price]'); if (price && price.value === (price.dataset.filled || '')) { price.value = ''; price.dataset.filled = ''; }
+        u.dispatchEvent(new Event('change', { bubbles: true }));
+    });
     function byKg(row) { var u = row.querySelector('[data-unit]'); return !!(u && u.value === 'kg'); }
     function piecesHint(row) {
         var out = row.querySelector('[data-pcs-hint]'), each = parseFloat(row.dataset.eachKg) || 0, q = parseFloat(row.querySelector('[data-qty]').value) || 0;
@@ -328,6 +364,13 @@
         if (select.value) row.querySelector('[data-qty]').focus();
     }
     // The price list's price for the line, filled in unless someone has typed their own price over what was filled in before.
+    function refLine(row) {
+        var out = row.querySelector('[data-ref]'), priceBox = row.querySelector('[data-price]'), list = parseFloat(row.dataset.listPrice);
+        if (!out || !priceBox) return;
+        if (!list) { out.hidden = true; return; }
+        var p = parseFloat(priceBox.value), d = row.querySelector('[data-disc]'), net = p * (1 - (d ? parseFloat(d.value) || 0 : 0) / 100);
+        out.hidden = false; out.textContent = 'List ' + list.toLocaleString(undefined, { maximumFractionDigits: 2 }); out.classList.toggle('is-low', !isNaN(net) && net < list - 0.005);
+    }
     function listPrice(row) {
         var priceBox = row.querySelector('[data-price]'), product = row.querySelector('[name$="[product_revision_id]"]'), unit = row.querySelector('[data-unit]');
         if (!priceBox || !product || !product.value || (priceBox.value !== '' && priceBox.value !== priceBox.dataset.filled)) return;
@@ -335,12 +378,13 @@
             uom: unit ? unit.value : 'piece', date: form.querySelector('#order_date').value });
         fetch(@js(route('price-lists.lookup')) + '?' + q, { headers: { Accept: 'application/json' } }).then(function (r) { return r.ok ? r.json() : { price: null }; }).then(function (j) {
             if (j.price === null || (priceBox.value !== '' && priceBox.value !== priceBox.dataset.filled)) return;
-            priceBox.value = String(j.price); priceBox.dataset.filled = priceBox.value; priceBox.title = 'Price list ' + j.list; recalc();
+            priceBox.value = String(j.price); priceBox.dataset.filled = priceBox.value; priceBox.title = 'Price list ' + j.list; row.dataset.listPrice = j.price; refLine(row); recalc();
         }).catch(function () {});
     }
+    form.querySelector('#customer_id').addEventListener('change', function (e) { var o = e.target.options[e.target.selectedIndex]; form.querySelector('[data-terms]').textContent = (o && o.dataset.terms) || '—'; });
     form.querySelector('#customer_id').addEventListener('change', function () { linesBox.querySelectorAll('[data-line]').forEach(listPrice); });
     form.querySelector('[data-add-line]').addEventListener('click', addLine);
-    linesBox.addEventListener('input', function (e) { var row = e.target.closest('[data-line]'); if (row) { preview(row); unscheduled(row); piecesHint(row); } recalc(); });
+    linesBox.addEventListener('input', function (e) { var row = e.target.closest('[data-line]'); if (row) { preview(row); unscheduled(row); piecesHint(row); refLine(row); } recalc(); });
     linesBox.addEventListener('change', function (e) {
         var row = e.target.closest('[data-line]'); if (!row) return;
         if (e.target.matches('[data-product]')) pickProduct(row, e.target);
@@ -370,7 +414,7 @@
     });
     previewAll();
     // The checks panel: asks the server what the contract review would say about the order as typed, after a short pause in typing.
-    var ckTimer = null, ckAbort = null, primary = form.querySelector('[data-primary]'), ckRows = form.parentNode.querySelector('[data-ck-rows]'), ckSummary = form.parentNode.querySelector('[data-ck-summary]');
+    var ckTimer = null, ckAbort = null, primary = document.querySelector('[data-primary]'), ckRows = form.parentNode.querySelector('[data-ck-rows]'), ckSummary = form.parentNode.querySelector('[data-ck-summary]');
     function esc(t) { var d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
     function checks() {
         clearTimeout(ckTimer);

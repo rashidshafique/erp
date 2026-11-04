@@ -54,7 +54,7 @@ class SalesOrderCreateScreenTest extends TestCase
 
         $this->get(route('sales-orders.create'))->assertOk()->assertSee('Copy an order')->assertSee($order->order_number);
         $this->get(route('sales-orders.create', ['copy' => $order->id]))->assertOk()
-            ->assertSee('value="'.$customer->id.'" data-sub="ACME" selected', false)
+            ->assertSee('value="'.$customer->id.'" data-sub="ACME" data-terms="" selected', false)
             ->assertSee('name="lines[0][ordered_qty]" step="any" min="0" required value="40"', false)
             ->assertDontSee('PO-1');
     }
