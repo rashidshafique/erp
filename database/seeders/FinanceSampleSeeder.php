@@ -22,13 +22,24 @@ class FinanceSampleSeeder extends Seeder
 {
     private const MARK = 'Sample data';
 
+    private const BULK = 'Sample data (bulk)';
+
     public function run(InvoiceService $invoices, BillService $bills): void
     {
-        if (DB::table('dispatches')->where('notes', self::MARK)->exists()) {
-            $this->command?->warn('Sample finance data is already there.');
-
-            return;
+        if (! DB::table('dispatches')->where('notes', self::MARK)->exists()) {
+            $this->base($invoices, $bills);
+        } else {
+            $this->command?->warn('The first sample set is already there.');
         }
+        if (! DB::table('dispatches')->where('notes', self::BULK)->exists()) {
+            $this->bulk($invoices, $bills);
+        } else {
+            $this->command?->warn('The bulk sample set is already there.');
+        }
+    }
+
+    private function base(InvoiceService $invoices, BillService $bills): void
+    {
         $tax = TaxRate::where('is_active', true)->orderByDesc('is_default')->first();
         $taxId = $tax?->id;
         $packItem = DB::table('packing_record_items')->value('id');
@@ -100,6 +111,58 @@ class FinanceSampleSeeder extends Seeder
             }
         }
         $this->command?->info('Added '.Dispatch::where('notes', self::MARK)->count().' dispatches, '.Invoice::count().' invoices in all and '.SupplierBill::count().' supplier bills.');
+    }
+
+    /** Enough extra rows for every list to run past a page of 25: dispatches, issued and draft invoices, and bills. */
+    private function bulk(InvoiceService $invoices, BillService $bills): void
+    {
+        mt_srand(42);
+        $taxId = TaxRate::where('is_active', true)->orderByDesc('is_default')->value('id');
+        $rate = (float) (TaxRate::whereKey($taxId)->value('rate_percent') ?? 0);
+        $packItem = DB::table('packing_record_items')->value('id');
+        $orderLines = SalesOrderLine::with('salesOrder', 'product')->get();
+        $customers = \App\Models\Customer::orderedByName()->where('is_prospect', false)->get();
+        $products = \App\Models\Product::where('active', true)->inRandomOrder()->limit(60)->get();
+        $pick = fn ($c) => $c[mt_rand(0, count($c) - 1)];
+
+        for ($n = 0; $n < 22; $n++) {
+            $ol = $pick($orderLines);
+            $at = now()->subDays(mt_rand(1, 110));
+            $id = (string) Str::uuid();
+            $number = 'DSP-'.$at->format('Ymd').'-'.str_pad((string) (DB::table('dispatches')->where('dispatch_number', 'like', 'DSP-'.$at->format('Ymd').'-%')->count() + 201), 3, '0', STR_PAD_LEFT);
+            DB::table('dispatches')->insert(['id' => $id, 'dispatch_number' => $number, 'customer_id' => $ol->salesOrder->customer_id, 'status' => 'DISPATCHED', 'dispatched_at' => $at, 'total_net_weight_kg' => 0, 'total_packages' => 1, 'notes' => self::BULK, 'created_at' => $at, 'updated_at' => $at]);
+            DB::table('dispatch_items')->insert(['id' => (string) Str::uuid(), 'dispatch_id' => $id, 'packing_record_item_id' => $packItem, 'sales_order_line_id' => $ol->id, 'quantity_dispatched' => mt_rand(2, 40) * 10, 'net_weight_kg' => 0, 'uom' => 'PCS', 'created_at' => $at, 'updated_at' => $at]);
+        }
+
+        for ($n = 0; $n < 24; $n++) {
+            $product = $pick($products);
+            $date = now()->subDays(mt_rand(2, 120));
+            $draft = $n % 8 === 7;
+            $inv = $invoices->saveDraft([
+                'customer_id' => $pick($customers)->id, 'invoice_date' => $date->toDateString(), 'customer_reference' => $n % 3 === 0 ? 'PO-'.mt_rand(1000, 9999) : null,
+            ], [[
+                'description' => $product->code.' '.$product->name, 'product_id' => $product->id, 'quantity' => mt_rand(5, 120) * 10, 'uom' => 'pcs',
+                'unit_price' => mt_rand(80, 900) + 0.5, 'discount_percent' => $n % 5 === 0 ? 5 : 0, 'tax_rate_id' => $taxId,
+            ]]);
+            if (! $draft) {
+                $invoices->issue($inv);
+            }
+        }
+
+        $suppliers = Supplier::where('approval_status', 'APPROVED')->get();
+        $items = [['Hard coke', 'kg', 62.5], ['Ferrosilicon', 'kg', 310], ['Bentonite', 'bag', 1450], ['Sand', 'ton', 5200], ['Resin binder', 'kg', 480], ['Pig iron', 'kg', 135], ['Coating', 'drum', 8200]];
+        for ($n = 0; $n < 24; $n++) {
+            [$what, $uom, $price] = $pick($items);
+            $date = now()->subDays(mt_rand(2, 120));
+            $draft = $n % 8 === 7;
+            $bill = $bills->saveDraft([
+                'supplier_id' => $pick($suppliers)->id, 'bill_date' => $date->toDateString(), 'supplier_bill_number' => $draft ? null : 'SB-'.(5000 + $n), 'payment_terms' => 'Net 30',
+            ], [['description' => $what, 'quantity' => mt_rand(5, 80) * 10, 'uom' => $uom, 'unit_price' => $price, 'tax_percent' => $rate]]);
+            if (! $draft) {
+                $bills->post($bill);
+            }
+        }
+        $this->command?->info('Bulk: dispatches '.DB::table('dispatches')->count().', invoices '.Invoice::count().', supplier bills '.SupplierBill::count().' in all.');
     }
 
     /**
