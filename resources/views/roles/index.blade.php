@@ -1,10 +1,61 @@
 @extends('layouts.app')
 @section('title', 'Roles and permissions')
 @section('content')
-<div class="page-heading"><div><h1>Roles and permissions</h1><p>Administrators have everything. Anyone signed in can read; permissions control changes.</p></div></div>
+<div class="page-heading"><div><h1>Roles and permissions</h1><p>Administrators have everything. Anyone signed in can read, except where a role is needed to view. Tick what a role may do in each area.</p></div></div>
+
+<div class="panel"><div class="panel-body" style="display:flex;gap:12px;flex-wrap:wrap;align-items:end">
+    <form method="GET" action="{{ route('roles.index') }}" style="display:flex;gap:8px;align-items:end">
+        <label>Role<select name="role" onchange="this.form.submit()">@foreach($roles as $r)<option value="{{ $r->id }}" @selected($r->id === $role?->id)>{{ $r->name }}</option>@endforeach</select></label>
+        <label>Start from<select name="copy" onchange="this.form.submit()"><option value="">this role's own</option>@foreach($roles->where('id', '!=', $role?->id) as $r)<option value="{{ $r->id }}" @selected($copying?->id === $r->id)>{{ $r->name }}</option>@endforeach</select></label>
+    </form>
+    <form method="POST" action="{{ route('roles.store') }}" style="display:flex;gap:8px;align-items:end;margin-left:auto">@csrf
+        <label>New role<input name="name" maxlength="100" placeholder="e.g. Fettling lead" required></label>
+        <label>Copy from<select name="copy"><option value="">nothing</option>@foreach($roles as $r)<option value="{{ $r->id }}">{{ $r->name }}</option>@endforeach</select></label>
+        <button class="btn">Add role</button>
+    </form>
+</div></div>
+
+@if($role && $role->code === 'ADMIN')
+    <div class="panel"><div class="panel-body">Administrators can do everything; this cannot be changed.</div></div>
+@elseif($role)
 <form method="POST" action="{{ route('roles.update') }}">@csrf @method('PUT')
-<div class="panel"><div class="table-wrap"><table><thead><tr><th>Permission</th>@foreach($roles as $r)<th>{{ $r->name }}</th>@endforeach</tr></thead><tbody>
-@foreach($catalog as $key => $label)<tr><td>{{ $label }}<div class="muted small">{{ $key }}</div></td>
-@foreach($roles as $r)<td style="text-align:center">@if($r->code === 'ADMIN')✔@else<input type="checkbox" name="perm[{{ $r->id }}][{{ $key }}]" value="1" @checked(in_array($key, $granted[$r->id] ?? []))>@endif</td>@endforeach</tr>@endforeach
-</tbody></table></div><div class="panel-body"><button class="btn btn-primary">Save permissions</button></div></div></form>
+<input type="hidden" name="roles[]" value="{{ $role->id }}">
+@if($copying)<div class="panel"><div class="panel-body">Showing what <strong>{{ $copying->name }}</strong> may do. Nothing changes for {{ $role->name }} until you save.</div></div>@endif
+
+@foreach($tree as $permission => $group)
+<details class="panel" @if(collect($group['areas'])->contains(fn ($a, $n) => collect($a['actions'])->contains(fn ($x) => $has($permission, $n, $x)))) open @endif>
+    <summary class="panel-body" style="cursor:pointer"><strong>{{ $group['label'] }}</strong> <span class="muted small">{{ $permission }}</span></summary>
+    <div class="table-wrap"><table data-grid>
+        <thead><tr><th>Area</th>@foreach($actions as $k => $label)<th style="text-align:center">{{ $label }}</th>@endforeach<th style="text-align:center">All</th></tr></thead>
+        <tbody>@foreach($group['areas'] as $area => $def)
+            <tr><td>{{ $def['label'] }}<div class="muted small">{{ $area }}</div></td>
+            @foreach($actions as $k => $label)<td style="text-align:center">@if(in_array($k, $def['actions'], true))<input type="checkbox" name="perm[{{ $role->id }}][{{ $area }}:{{ $k }}]" value="1" @checked($has($permission, $area, $k))>@else<span class="muted">·</span>@endif</td>@endforeach
+            <td style="text-align:center"><input type="checkbox" data-row title="Every action of {{ $def['label'] }}"></td></tr>
+        @endforeach</tbody>
+        <tfoot><tr><td><em>Everything in this group</em></td><td colspan="{{ count($actions) }}"></td><td style="text-align:center"><input type="checkbox" data-all></td></tr></tfoot>
+    </table></div>
+</details>
+@endforeach
+
+@if($plain->isNotEmpty())
+<div class="panel"><div class="panel-body"><strong>Other permissions</strong></div><div class="table-wrap"><table><tbody>
+@foreach($plain as $key => $label)<tr><td>{{ $label }}<div class="muted small">{{ $key }}</div></td><td style="text-align:center;width:80px"><input type="checkbox" name="perm[{{ $role->id }}][{{ $key }}]" value="1" @checked(in_array($key, $held, true))></td></tr>@endforeach
+</tbody></table></div></div>
+@endif
+
+<div class="panel"><div class="panel-body"><button class="btn btn-primary">Save {{ $role->name }}</button></div></div>
+</form>
+<script>
+document.querySelectorAll('table[data-grid]').forEach(function (t) {
+    var cells = function (scope) { return scope.querySelectorAll('input[type=checkbox][name]'); };
+    t.querySelectorAll('[data-row]').forEach(function (b) {
+        var tr = b.closest('tr'); b.checked = cells(tr).length > 0 && Array.from(cells(tr)).every(function (c) { return c.checked; });
+        b.addEventListener('change', function () { cells(tr).forEach(function (c) { c.checked = b.checked; }); });
+    });
+    var all = t.querySelector('[data-all]');
+    all.checked = Array.from(cells(t)).every(function (c) { return c.checked; });
+    all.addEventListener('change', function () { cells(t).forEach(function (c) { c.checked = all.checked; }); t.querySelectorAll('[data-row]').forEach(function (b) { b.checked = all.checked; }); });
+});
+</script>
+@endif
 @endsection

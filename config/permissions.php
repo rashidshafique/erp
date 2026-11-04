@@ -34,8 +34,8 @@ return [
 
     // First match wins. Patterns use * as a wildcard.
     'routes' => [
-        ['pattern' => 'm.tests.*', 'permission' => 'mobile.tests', 'reads' => true],
-        ['pattern' => 'm.defects.*', 'permission' => 'mobile.defects', 'reads' => true],
+        ['pattern' => 'm.tests.*', 'permission' => 'mobile.tests', 'reads' => true, 'area' => false],
+        ['pattern' => 'm.defects.*', 'permission' => 'mobile.defects', 'reads' => true, 'area' => false],
         // Saving a test from the phone: the desktop permission or the phone one ("also") will do.
         ['pattern' => 'thermal.store', 'permission' => 'melting.operate', 'also' => ['mobile.tests']],
         ['pattern' => 'lots.inspections.store', 'permission' => 'shopfloor.record', 'also' => ['mobile.tests']],
@@ -49,11 +49,11 @@ return [
         ['pattern' => 'custom-fields.index', 'permission' => 'settings.manage', 'reads' => true],
         ['pattern' => 'custom-fields.store', 'permission' => 'settings.manage'],
         ['pattern' => 'custom-fields.update', 'permission' => 'settings.manage'],
-        ['pattern' => 'custom-fields.values', 'permission' => 'attachments.manage'],
+        ['pattern' => 'custom-fields.values', 'permission' => 'attachments.manage', 'area' => 'custom-field-values', 'label' => 'Custom field values'],
         ['pattern' => 'process-controls.*', 'permission' => 'settings.manage'],
         ['pattern' => 'approval-policies.*', 'permission' => 'approvals.configure', 'reads' => true],
-        ['pattern' => 'approvals.decide', 'permission' => 'approvals.decide'],
-        ['pattern' => 'approvals.*', 'permission' => 'attachments.manage'],
+        ['pattern' => 'approvals.decide', 'permission' => 'approvals.decide', 'area' => 'approval-decisions', 'label' => 'Approval decisions'],
+        ['pattern' => 'approvals.*', 'permission' => 'attachments.manage', 'area' => 'approval-requests', 'label' => 'Approval requests'],
         ['pattern' => 'attachments.*', 'permission' => 'attachments.manage'],
         ['pattern' => 'imports.*', 'permission' => 'master.manage', 'reads' => true],
         ['pattern' => 'customers.*', 'permission' => 'sales.manage'],

@@ -4,7 +4,9 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use App\Support\AccessMap;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -69,25 +71,25 @@ class EnforceAccess
         if ($isRead && ! $required['reads']) {
             return $next($request);
         }
-        if (! $this->holds($user, $required)) {
+        if (! self::holds($user, $required, AccessMap::actionOf($request->method(), $name, $required['rule']))) {
             return $this->deny($request, 'Your role does not include "'.(config('permissions.catalog')[$required['permission']] ?? $required['permission']).'".');
         }
 
         return $next($request);
     }
 
-    /** @param  array{permission:string,also:list<string>}  $required */
-    private static function holds(\App\Models\User $user, array $required): bool
+    /** @param  array{permission:string,also:list<string>,area:?string}  $required */
+    private static function holds(\App\Models\User $user, array $required, string $action): bool
     {
-        return collect([$required['permission'], ...$required['also']])->contains(fn (string $p) => $user->hasPermission($p));
+        return $user->is_active && ($user->isAdmin() || AccessMap::covers($user->permissions(), $required, $action));
     }
 
-    /** @return array{permission:string,reads:bool,also:list<string>}|null */
+    /** @return array{permission:string,reads:bool,also:list<string>,area:?string,rule:array<string,mixed>}|null */
     public static function requiredPermission(string $routeName): ?array
     {
         foreach (config('permissions.routes', []) as $rule) {
             if (Str::is($rule['pattern'], $routeName)) {
-                return ['permission' => $rule['permission'], 'reads' => (bool) ($rule['reads'] ?? false), 'also' => $rule['also'] ?? []];
+                return ['permission' => $rule['permission'], 'reads' => (bool) ($rule['reads'] ?? false), 'also' => $rule['also'] ?? [], 'area' => AccessMap::areaOf($rule), 'rule' => $rule];
             }
         }
         return null;
@@ -107,7 +109,9 @@ class EnforceAccess
         }
         $required = self::requiredPermission($routeName);
 
-        return $required !== null && self::holds($user, $required);
+        $method = Route::getRoutes()->getByName($routeName)?->methods()[0] ?? 'GET';
+
+        return $required !== null && self::holds($user, $required, AccessMap::actionOf($method, $routeName, $required['rule']));
     }
 
     private function deny(Request $request, string $why): Response

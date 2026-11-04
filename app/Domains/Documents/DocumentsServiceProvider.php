@@ -47,7 +47,7 @@ class DocumentsServiceProvider extends ModuleServiceProvider
     protected function permissionRoutes(): array
     {
         return [
-            ['pattern' => 'documents.revisions.decide', 'permission' => 'documents.approve'],
+            ['pattern' => 'documents.revisions.decide', 'permission' => 'documents.approve', 'area' => 'document-approval', 'label' => 'Document approval'],
             ['pattern' => 'documents.*', 'permission' => 'documents.manage'],
         ];
     }

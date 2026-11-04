@@ -55,7 +55,8 @@ class User extends Authenticatable
 
     public function hasPermission(string $permission): bool
     {
-        return $this->is_active && ($this->isAdmin() || in_array($permission, $this->permissions(), true));
+        return $this->is_active && ($this->isAdmin() || in_array($permission, $this->permissions(), true)
+            || \App\Support\AccessMap::partlyHolds($permission, $this->permissions()));
     }
 
     /**

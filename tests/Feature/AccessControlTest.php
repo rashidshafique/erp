@@ -93,4 +93,37 @@ class AccessControlTest extends TestCase
         $this->actingAs($admin)->put(route('roles.update'), ['perm' => [$sales->id => ['stores.manage' => 1]]])->assertSessionHasNoErrors();
         $this->assertSame(['stores.manage'], \DB::table('role_permissions')->where('role_id', $sales->id)->pluck('permission')->all());
     }
+
+    public function test_a_role_can_be_given_single_actions_of_an_area(): void
+    {
+        config(['foundry.require_login' => true]);
+        $admin = $this->user('ADMIN');
+        $role = Role::create(['code' => 'CUSTOM', 'name' => 'Custom', 'is_system' => false]);
+        $this->actingAs($admin)->put(route('roles.update'), ['roles' => [$role->id], 'perm' => [$role->id => ['customers:create' => 1]]])->assertSessionHasNoErrors();
+        $this->assertSame(['customers:create'], \DB::table('role_permissions')->where('role_id', $role->id)->pluck('permission')->all());
+
+        $u = User::factory()->create(['is_active' => true, 'must_change_password' => false]);
+        $u->roles()->attach($role->id);
+        $this->actingAs($u)->post(route('customers.store'), [])->assertSessionHasErrors();   // may create: reaches validation
+        $this->actingAs($u)->get(route('customers.index'))->assertOk();
+        $this->actingAs($u)->post(route('sales-orders.store'), [])->assertForbidden();   // same permission as customers, a different area
+    }
+
+    public function test_every_action_of_every_area_ticked_is_stored_as_the_whole_permission(): void
+    {
+        $role = Role::create(['code' => 'CUSTOM', 'name' => 'Custom', 'is_system' => false]);
+        $cells = collect(\App\Support\AccessMap::tree()['stores.manage']['areas'])->flatMap(fn ($a, $n) => array_map(fn ($x) => $n.':'.$x, $a['actions']))->flip()->map(fn () => 1)->all();
+        $this->actingAs($this->user('ADMIN'))->put(route('roles.update'), ['roles' => [$role->id], 'perm' => [$role->id => $cells]]);
+        $this->assertSame(['stores.manage'], \DB::table('role_permissions')->where('role_id', $role->id)->pluck('permission')->all());
+    }
+
+    public function test_the_roles_page_shows_the_grid_and_adds_a_role(): void
+    {
+        $admin = $this->user('ADMIN');
+        $sales = Role::where('code', 'SALES')->first();
+        $this->actingAs($admin)->get(route('roles.index', ['role' => $sales->id]))->assertOk()->assertSee('Sales orders')->assertSee('Approve');
+        $this->post(route('roles.store'), ['name' => 'Fettling lead', 'copy' => $sales->id])->assertRedirect();
+        $new = Role::where('name', 'Fettling lead')->firstOrFail();
+        $this->assertEqualsCanonicalizing($sales->permissions(), $new->permissions());
+    }
 }

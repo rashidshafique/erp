@@ -527,6 +527,7 @@ Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.e
 Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
 Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
 Route::put('/roles', [RoleController::class, 'update'])->name('roles.update');
+Route::post('/roles', [RoleController::class, 'store'])->name('roles.store');
 
 // ---- Approvals ----
 Route::get('/approvals', [ApprovalController::class, 'index'])->name('approvals.index');

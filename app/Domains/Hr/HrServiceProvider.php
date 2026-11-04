@@ -186,7 +186,7 @@ class HrServiceProvider extends ModuleServiceProvider
     protected function permissionRoutes(): array
     {
         return [
-            ['pattern' => 'hr.payroll.*', 'permission' => 'hr.payroll', 'reads' => true],
+            ['pattern' => 'hr.payroll.*', 'permission' => 'hr.payroll', 'reads' => true, 'area' => 'payroll', 'label' => 'Payroll'],
             ['pattern' => 'hr.*', 'permission' => 'hr.manage', 'reads' => true],
         ];
     }

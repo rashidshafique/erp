@@ -61,9 +61,9 @@ class QuickFlowServiceProvider extends ModuleServiceProvider
     protected function permissionRoutes(): array
     {
         return [
-            ['pattern' => 'quick.orders.*', 'permission' => 'sales.manage'],
-            ['pattern' => 'quick.heat.*', 'permission' => 'planning.manage'],
-            ['pattern' => 'quick.floor.*', 'permission' => 'shopfloor.record'],
+            ['pattern' => 'quick.orders.*', 'permission' => 'sales.manage', 'area' => 'quick-orders', 'label' => 'Quick orders'],
+            ['pattern' => 'quick.heat.*', 'permission' => 'planning.manage', 'area' => 'quick-heat', 'label' => 'Quick heat'],
+            ['pattern' => 'quick.floor.*', 'permission' => 'shopfloor.record', 'area' => 'quick-floor', 'label' => 'Quick floor'],
         ];
     }
 }
