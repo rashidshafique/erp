@@ -13,6 +13,13 @@
     <div class="actions"><a class="btn" href="{{ route('capa.index') }}">All actions</a></div>
 </div>
 
+@php $steps = $capa->eightD(); $current = collect($steps)->search(fn ($step) => ! $step['done']); @endphp
+<div class="panel"><div class="panel-body" style="display:flex;gap:6px;flex-wrap:wrap">
+    @foreach ($steps as $key => $step)
+        <span class="status {{ $step['done'] ? 'status-completed' : ($key === $current ? 'status-on-hold' : '') }}">{{ $step['done'] ? '✓ ' : '' }}{{ $key }} {{ $step['label'] }}</span>
+    @endforeach
+</div></div>
+
 @if ($capa->verification_log)<div class="alert alert-warning"><strong>Earlier effectiveness checks</strong><div style="white-space:pre-line">{{ $capa->verification_log }}</div></div>@endif
 @if ($capa->status === 'CLOSED')<div class="alert alert-success">Closed {{ $capa->closed_at?->displayDate() }}. Checked {{ $capa->verified_on?->displayDate() }} by {{ $capa->verified_by }}: effective. {{ $capa->verification_notes }}</div>
 @elseif ($capa->status === 'CANCELLED')<div class="alert alert-warning">Cancelled: {{ $capa->cancel_reason }}</div>@endif

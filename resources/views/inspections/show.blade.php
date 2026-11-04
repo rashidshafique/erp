@@ -3,6 +3,21 @@
 @section('content')
 @php $open = $inspection->status === 'IN_PROGRESS'; @endphp
 <div class="page-heading"><div><h1>{{ $inspection->inspection_number }}</h1><p>{{ $inspection->inspection_type }} · lot <a href="{{ route('lots.show', $inspection->lot) }}">{{ $inspection->lot->label }}</a> · {{ $inspection->quantity_inspected }} piece(s) · <span class="status">{{ $inspection->status }}</span></p></div></div>
+@php
+    $failed = $inspection->results->filter(fn ($r) => $r->passed === false);
+    $tally = $failed->filter(fn ($r) => $r->defect)->groupBy(fn ($r) => $r->defect->category.' · '.$r->defect->name)->map->count()->sortDesc();
+@endphp
+<div class="metrics">
+    <div class="metric"><div class="metric-label">Product</div><div class="metric-value" style="font-size:20px">{{ $inspection->lot->product?->code ?? '—' }}</div></div>
+    <div class="metric"><div class="metric-label">Inspected</div><div class="metric-value">{{ $inspection->quantity_inspected }}</div></div>
+    <div class="metric"><div class="metric-label">Characteristics</div><div class="metric-value">{{ $inspection->results->count() }}</div><div class="metric-note">{{ $inspection->results->where('passed', true)->count() }} pass · {{ $failed->count() }} fail</div></div>
+    <div class="metric"><div class="metric-label">Disposition</div><div class="metric-value" style="font-size:20px">{{ $inspection->overall_disposition ?? 'Open' }}</div></div>
+</div>
+@if ($tally->isNotEmpty())
+<div class="panel"><div class="panel-header"><h2>Defects found</h2></div><div class="panel-body">
+    @foreach ($tally as $name => $count)<div style="display:flex;gap:10px;align-items:center;margin:3px 0"><span style="width:240px">{{ $name }}</span><span style="background:#2f5fd0;height:10px;width:{{ 40 * $count }}px;border-radius:2px"></span><strong>{{ $count }}</strong></div>@endforeach
+</div></div>
+@endif
 <div class="tab-marker" data-tab-start="Results"></div>
 <div class="panel"><div class="panel-header"><h2>Characteristics</h2></div>
 @if($open)@include('partials.quick-dialog', ['id' => 'qd-defect', 'title' => 'Add a defect', 'action' => route('defects.store'), 'submit' => 'Add defect', 'fields' => 'defects._quick-fields'])@endif

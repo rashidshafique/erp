@@ -23,7 +23,13 @@ class SandTestController extends Controller
         $picked = $request->query('system', $run ? 'run' : 'all');
         $system = $picked === 'all' ? null : ($systems->firstWhere('id', $picked) ?? ($run ? $systems->firstWhere('name', $run->sand_system) : null));
 
+        $latestSets = MeasurementSet::with('measurements')->where('kind', 'SAND')->when($system, fn ($q) => $q->where('sand_system_id', $system->id))->orderByDesc('taken_at')->limit(24)->get();
+        $latest = $latestSets->first();
+        $trendKey = (string) $request->query('trend', $latest?->measurements->first()?->characteristic_key);
+        $trend = $latestSets->reverse()->map(fn ($set) => $set->measurements->firstWhere('characteristic_key', $trendKey))->filter()->values();
+
         return view('sand-tests.index', [
+            'latest' => $latest, 'trendKey' => $trendKey, 'trend' => $trend,
             'run' => $run, 'systems' => $systems, 'system' => $system, 'stations' => MouldingStation::where('status', 'ACTIVE')->orderBy('code')->get(),
             'rows' => $svc->formRows('SAND', 'SAND_SYSTEM', $system?->id), 'systemNames' => $systems->pluck('name', 'id'),
             'sets' => MeasurementSet::with('measurements', 'mouldingRun', 'pattern')->where('kind', 'SAND')->when($system, fn ($q) => $q->where('sand_system_id', $system->id))->orderByDesc('taken_at')->limit(30)->get(),

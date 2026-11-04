@@ -38,6 +38,27 @@ class CapaAction extends Model
         ];
     }
 
+    /**
+     * The eight disciplines of an 8D report and whether the record already holds each one.
+     *
+     * @return array<string, array{label: string, done: bool}>
+     */
+    public function eightD(): array
+    {
+        $filled = fn (?string $value): bool => trim((string) $value) !== '';
+
+        return [
+            'D1' => ['label' => 'Team', 'done' => $filled($this->owner)],
+            'D2' => ['label' => 'Problem', 'done' => $filled($this->title) && $filled($this->description)],
+            'D3' => ['label' => 'Containment', 'done' => $filled($this->containment_action)],
+            'D4' => ['label' => 'Root cause', 'done' => $filled($this->root_cause)],
+            'D5' => ['label' => 'Corrective action', 'done' => $filled($this->corrective_action)],
+            'D6' => ['label' => 'Implement', 'done' => $this->completed_on !== null],
+            'D7' => ['label' => 'Prevent', 'done' => $filled($this->preventive_action)],
+            'D8' => ['label' => 'Close', 'done' => $this->status === 'CLOSED'],
+        ];
+    }
+
     public function isOpen(): bool
     {
         return ! in_array($this->status, ['CLOSED', 'CANCELLED'], true);

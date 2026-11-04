@@ -18,6 +18,35 @@
 @foreach($rows as $r)<label>{{ $r['name'] }}@if($r['unit']) ({{ $r['unit'] }})@endif<input type="number" step="any" name="values[{{ $r['key'] }}]">@if($r['min'] !== null || $r['max'] !== null)<span class="muted small">limit {{ $r['min'] ?? '' }}–{{ $r['max'] ?? '' }}</span>@endif</label>@endforeach
 <div><button class="btn btn-primary">Save test</button></div></form></div></details></div></div>
 
+@if($latest)
+<div class="panel"><div class="panel-header"><h2>Latest test</h2><span class="muted small">{{ $latest->taken_at->displayShortDateTime() }}@if($latest->shift) · {{ $latest->shift }}@endif · {{ $systemNames[$latest->sand_system_id] ?? '' }}</span></div>
+<div class="metrics">
+@foreach($latest->measurements as $m)
+    @php $low = $m->min_value !== null && (float) $m->value < (float) $m->min_value; $high = $m->max_value !== null && (float) $m->value > (float) $m->max_value; @endphp
+    <a class="metric" href="{{ request()->fullUrlWithQuery(['trend' => $m->characteristic_key]) }}" style="text-decoration:none;color:inherit;{{ $m->characteristic_key === $trendKey ? 'outline:2px solid #2f5fd0' : '' }}">
+        <div class="metric-label">{{ $m->name }}</div>
+        <div class="metric-value" style="font-size:20px">{{ \App\Support\Formats::number((float) $m->value, 2) }} {{ $m->unit }}</div>
+        <div class="metric-note">@if($m->min_value !== null || $m->max_value !== null){{ $m->min_value ?? '' }}–{{ $m->max_value ?? '' }}@endif @if($low || $high)<strong style="color:var(--danger)">{{ $low ? 'low' : 'high' }}</strong>@endif</div>
+    </a>
+@endforeach
+</div>
+@if($trend->count() > 1)
+    @php
+        $top = max($trend->max(fn ($m) => (float) $m->value), (float) ($trend->first()->max_value ?? 0)) ?: 1;
+        $first = $trend->first(); $name = $first->name;
+    @endphp
+    <div class="panel-body"><strong>{{ $name }}, last {{ $trend->count() }} tests</strong> <span class="muted small">one bar per test, red when outside the limits</span>
+        <div style="display:flex;align-items:flex-end;gap:3px;height:90px;margin-top:8px">
+        @foreach($trend as $m)
+            @php $out = ($m->min_value !== null && (float) $m->value < (float) $m->min_value) || ($m->max_value !== null && (float) $m->value > (float) $m->max_value); @endphp
+            <span title="{{ $m->value }}" style="flex:1;max-width:28px;height:{{ max(4, round(90 * (float) $m->value / $top)) }}px;background:{{ $out ? 'var(--danger)' : '#2f5fd0' }};border-radius:2px 2px 0 0"></span>
+        @endforeach
+        </div>
+    </div>
+@endif
+</div>
+@endif
+
 @php
     $fmt = fn ($v, $d = 4) => \App\Support\Formats::number((float) $v, 2);
     $recent = $sets->concat($mouldSets)->sortByDesc('taken_at')->take(30);

@@ -33,6 +33,21 @@ class CapaRegisterTest extends TestCase
         return $extra + ['title' => 'Blowholes on delivery 41', 'severity' => 'MAJOR', 'root_cause' => 'Wet sand from the second mixer', 'corrective_action' => 'Moisture check every hour', 'owner' => 'Imran', 'due_on' => today()->addDays(14)->toDateString()];
     }
 
+    public function test_the_action_page_shows_which_of_the_eight_disciplines_are_filled_in(): void
+    {
+        $capa = $this->capa();
+
+        $this->get(route('capa.show', $capa))->assertOk()->assertSee('D2 Problem')->assertSee('D8 Close');
+        $this->assertFalse($capa->eightD()['D4']['done']);
+
+        $capa->update(['root_cause' => 'Water dosing ran in manual', 'owner' => 'N. Fischer']);
+
+        $steps = $capa->fresh()->eightD();
+        $this->assertTrue($steps['D1']['done']);
+        $this->assertTrue($steps['D4']['done']);
+        $this->assertFalse($steps['D8']['done']);
+    }
+
     public function test_an_action_raised_by_hand_gets_a_code_and_starts_open(): void
     {
         $this->post(route('capa.store'), ['source_type' => 'AUDIT', 'source_label' => 'Finding 3', 'title' => 'Gauge not calibrated', 'severity' => 'MINOR'])->assertSessionHasNoErrors();

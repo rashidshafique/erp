@@ -136,7 +136,7 @@ class ShopFloorFlowTest extends TestCase
         // Final inspection: one piece rejected -> NCR, lot stays in production
         $this->post(route('lots.inspections.store', $lot), ['inspection_type' => 'FINAL', 'sample_size' => 2, 'inspector_name' => 'Qasim'])->assertSessionHasNoErrors();
         $insp = QualityInspection::firstOrFail();
-        $this->get(route('inspections.show', $insp))->assertOk();
+        $this->get(route('inspections.show', $insp))->assertOk()->assertSee('Characteristics')->assertSee('Disposition');
         $this->post(route('inspections.results.add', $insp), ['test_name' => 'Visual', 'result_type' => 'PASS_FAIL'])->assertSessionHasNoErrors();
         $r = $insp->results()->firstOrFail();
         $this->post(route('inspections.results.save', $insp), ['results' => [$r->id => ['passed' => '0', 'quality_defect_id' => QualityDefect::where('code', 'SAND-INCL')->value('id')]]])->assertSessionHasNoErrors();

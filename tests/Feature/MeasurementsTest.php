@@ -99,6 +99,7 @@ class MeasurementsTest extends TestCase
         $this->post(route('sand-tests.store'), ['sand_system_id' => $sand->id, 'values' => ['moisture_pct' => '4.1']])->assertSessionHasNoErrors();
         $this->assertSame('OK', app(Measurements::class)->sandStatus('Sheera', now()->addMinute())['state']);
         $this->assertSame('NONE', app(Measurements::class)->sandStatus('Sheera', now()->addDays(2))['state']);   // older than 24 hours
+        $this->get(route('sand-tests.index', ['system' => $sand->id]))->assertOk()->assertSee('Latest test')->assertSee('last 2 tests');
         $this->post(route('sand-tests.store'), ['sand_system_id' => $sand->id, 'values' => ['moisture_pct' => '']])->assertSessionHasErrors('sand');
     }
 
