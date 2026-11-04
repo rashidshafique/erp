@@ -15,7 +15,8 @@ class ApprovalController extends Controller
         $q = ApprovalRequest::with('decisions')->latest();
         $status === 'OPEN' ? $q->whereIn('status', ['PENDING', 'APPROVED']) : ($status === 'ALL' ? null : $q->where('status', $status));
 
-        return view('approvals.index', ['requests' => $q->paginate(30)->withQueryString(), 'status' => $status]);
+        return view('approvals.index', ['requests' => $q->paginate(30)->withQueryString(), 'status' => $status,
+            'counts' => ['OPEN' => ApprovalRequest::whereIn('status', ['PENDING', 'APPROVED'])->count(), 'PENDING' => ApprovalRequest::where('status', 'PENDING')->count(), 'APPROVED' => ApprovalRequest::where('status', 'APPROVED')->count()]]);
     }
 
     public function decide(Request $request, ApprovalRequest $approval, ApprovalGate $gate)
