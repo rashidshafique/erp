@@ -66,4 +66,33 @@ class MobileScreensTest extends TestCase
         $this->get(route('m.tests.pick', 'inspection'))->assertOk()->assertSee('Heats')->assertSee('Lots');
         $this->get(route('m.tests.pick', 'nope'))->assertNotFound();
     }
+
+    public function test_a_record_sent_twice_from_the_phone_is_saved_once(): void
+    {
+        $lot = $this->castingLot();
+        $url = route('lots.inspections.store', $lot);
+        $data = ['inspection_type' => 'FINAL', 'sample_size' => 1];
+
+        $this->withHeaders(['X-Queue-Id' => 'abc-1', 'Accept' => 'application/json'])->post($url, $data)->assertRedirect();
+        $this->withHeaders(['X-Queue-Id' => 'abc-1', 'Accept' => 'application/json'])->post($url, $data)->assertOk()->assertJson(['duplicate' => true]);
+
+        $this->assertSame(1, $lot->inspections()->count());
+    }
+
+    public function test_a_refused_record_can_be_sent_again_once_fixed(): void
+    {
+        $lot = $this->castingLot();
+        $url = route('lots.inspections.store', $lot);
+
+        $this->withHeaders(['X-Queue-Id' => 'abc-2', 'Accept' => 'application/json'])->post($url, [])->assertStatus(422);
+        $this->withHeaders(['X-Queue-Id' => 'abc-2', 'Accept' => 'application/json'])->post($url, ['inspection_type' => 'FINAL', 'sample_size' => 1])->assertRedirect();
+        $this->assertSame(1, $lot->inspections()->count());
+    }
+
+    public function test_a_signed_out_phone_gets_401_not_a_redirect_and_a_token_when_signed_in(): void
+    {
+        config(['foundry.require_login' => true]);
+        $this->getJson(route('m.token'))->assertUnauthorized();
+        $this->actingAs($this->tech('QA_TEST_TECH'))->getJson(route('m.token'))->assertOk()->assertJsonStructure(['token']);
+    }
 }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnforceAccess;
+use App\Http\Middleware\PhoneReplay;
 use App\Support\Uploads;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -15,7 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->web(append: [EnforceAccess::class]);
+        $middleware->web(append: [EnforceAccess::class, PhoneReplay::class]);
 
         // A tunnel (ngrok) in front of a local copy forwards the public address and https; trust it there only.
         if (env('APP_ENV') === 'local') {

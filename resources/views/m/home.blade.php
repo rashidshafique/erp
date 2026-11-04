@@ -35,4 +35,29 @@
         <a class="tile" href="{{ route('m.defects.pick') }}"><b>Log defect</b><span>Pick the lot, then photos + type</span></a>
     </div>
 @endif
+
+<div id="queue" hidden style="margin:auto 20px 0;padding:12px 14px;border-radius:14px;background:#f8f8f9;border:1px solid #d9dbde">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><b id="queue-count" style="font-size:14px"></b><button id="queue-send" class="chip" style="font:inherit;font-size:13px;cursor:pointer;color:#2f5fd0;font-weight:600">Send now</button></div>
+    <div id="queue-list" style="margin-top:6px"></div>
+</div>
+<script>
+(function () {
+    var box = document.getElementById('queue'), list = document.getElementById('queue-list'), esc = function (t) { var d = document.createElement('div'); d.textContent = t; return d.innerHTML; };
+    function draw(rows) {
+        box.hidden = rows.length === 0;
+        var waiting = rows.filter(function (r) { return r.state !== 'refused'; }).length;
+        document.getElementById('queue-count').textContent = rows.length + (rows.length === 1 ? ' record' : ' records') + ' saved on phone' + (waiting < rows.length ? ' · ' + (rows.length - waiting) + ' need attention' : '');
+        list.innerHTML = rows.map(function (r) {
+            var bad = r.state === 'refused';
+            return '<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid #eff0f2;font-size:13px"><span>' + esc(r.label) + '<br><span style="color:' + (bad ? '#b00020' : '#55585d') + '">' + esc(bad ? r.note : 'Waiting for signal · ' + new Date(r.saved).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })) + '</span></span><span style="white-space:nowrap">' + (bad ? '<a href="#" data-retry="' + r.id + '" class="blue">Retry</a> · ' : '') + '<a href="#" data-drop="' + r.id + '" style="color:#55585d">Discard</a></span></div>';
+        }).join('') + (window.phoneQueueNeedsSignIn ? '<div style="padding-top:6px;font-size:13px"><a class="blue" href="{{ route('m.login') }}">Sign in again to send</a></div>' : '');
+    }
+    list.addEventListener('click', function (e) {
+        var a = e.target.closest('a[data-drop],a[data-retry]'); if (!a) { return; } e.preventDefault();
+        if (a.dataset.drop) { if (confirm('Discard this record? It will not be saved.')) { phoneQueue.discard(a.dataset.drop); } } else { phoneQueue.retry(a.dataset.retry); }
+    });
+    document.getElementById('queue-send').addEventListener('click', function () { phoneQueue.flush(); });
+    window.addEventListener('load', function () { phoneQueue.onChange(draw); });
+})();
+</script>
 @endsection

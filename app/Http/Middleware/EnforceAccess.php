@@ -30,6 +30,10 @@ class EnforceAccess
 
         $user = Auth::user();
         if (! $user) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Sign in again.'], 401);
+            }
+
             return redirect()->guest(route('login'));
         }
         if (! $user->is_active) {

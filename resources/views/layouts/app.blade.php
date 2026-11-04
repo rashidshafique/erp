@@ -813,5 +813,6 @@ document.addEventListener('change', function (e) {
     alert('Too large: ' + big.join(', ') + '.\nEach file can be at most ' + (max / 1048576).toFixed(max % 1048576 ? 1 : 0) + ' MB.');
 }, true);
 </script>
+<script src="{{ asset('js/phone-queue.js') }}" defer></script>
 </body>
 </html>

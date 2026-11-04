@@ -7,7 +7,7 @@
 @if($products->isEmpty())
 <div class="panel"><div class="panel-body muted">No castings are waiting to be checked.</div></div>
 @else
-<form method="POST" action="{{ route('quick-qc.store') }}">@csrf
+<form method="POST" action="{{ route('quick-qc.store') }}" data-offline data-offline-label="Defect tally" data-offline-done="{{ route('m.home') }}">@csrf
 <div class="panel"><div class="table-wrap"><table class="valign-top"><thead><tr><th>Product</th><th>Lots</th><th>To check</th><th>Accepted</th><th>Rework</th><th>Rejected</th><th>Defects found (by cavity)</th></tr></thead><tbody>
 @foreach($products as $revisionId => $row)
 <tr>

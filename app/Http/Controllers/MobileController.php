@@ -30,6 +30,12 @@ class MobileController extends Controller
         return view('m.login');
     }
 
+    /** A fresh form token, so records saved hours ago can still be sent. */
+    public function token(): \Illuminate\Http\JsonResponse
+    {
+        return response()->json(['token' => csrf_token()]);
+    }
+
     public function home(Request $request): View
     {
         $tests = $this->may('mobile.tests');

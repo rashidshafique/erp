@@ -1,6 +1,7 @@
 @php $b = \App\Support\UiSettings::brand(); @endphp
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#ffffff">
 <title>@yield('title', $b['name'])</title>
+<script>try{localStorage.setItem('erp.phone','1')}catch(e){}</script>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,sans-serif;color:#1c1d1f;background:#fff;-webkit-text-size-adjust:100%}
 .wrap{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
@@ -14,4 +15,4 @@
 .chip.on{background:#1c1d1f;border-color:#1c1d1f;color:#fff}
 input[type=email],input[type=password]{width:100%;height:52px;padding:0 14px;border:1px solid #d9dbde;border-radius:12px;font-size:16px}
 .err{color:#b00020;font-size:13px}
-</style></head><body><div class="wrap">@yield('body')</div></body></html>
+</style></head><body><div class="wrap">@yield('body')</div><script src="{{ asset('js/phone-queue.js') }}" defer></script></body></html>

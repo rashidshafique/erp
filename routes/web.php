@@ -512,6 +512,7 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::prefix('m')->name('m.')->controller(\App\Http\Controllers\MobileController::class)->group(function () {
     Route::get('/login', 'login')->name('login');
     Route::get('/', 'home')->name('home');
+    Route::get('/token', 'token')->name('token');
     Route::get('/tests/{type}', 'pickTest')->where('type', '[a-z]+')->name('tests.pick');
     Route::get('/defects', 'pickDefect')->name('defects.pick');
 });
