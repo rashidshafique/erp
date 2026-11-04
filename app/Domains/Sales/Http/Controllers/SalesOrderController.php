@@ -12,6 +12,7 @@ use App\Domains\Sales\Models\SalesOrder;
 use App\Domains\Sales\Models\SalesOrderLine;
 use App\Domains\Sales\Models\SalesOrderLineDelivery;
 use App\Domains\Sales\Services\ContractReviewer;
+use App\Domains\Sales\Services\OrderChecks;
 use App\Domains\Sales\Services\RepeatingLines;
 use App\Domains\Sales\Services\SalesOrderEditor;
 use App\Services\Orders\ProductionOrderFactory;
@@ -94,6 +95,14 @@ class SalesOrderController extends Controller
         ]);
     }
 
+    /** The checks panel of the order form: the contract review's checks on the order as typed, nothing saved. */
+    public function checks(Request $request, OrderChecks $checks): \Illuminate\Http\JsonResponse
+    {
+        $request->validate(['customer_id' => ['nullable', 'uuid'], 'order_date' => ['nullable', 'date'], 'requested_delivery_date' => ['nullable', 'date'], 'lines' => ['nullable', 'array', 'max:50']]);
+
+        return response()->json($checks->run($request->only(['customer_id', 'order_date', 'requested_delivery_date', 'lines'])));
+    }
+
     /** @return array<string, array<int, mixed>> */
     private static function scheduleRules(): array
     {
@@ -154,7 +163,8 @@ class SalesOrderController extends Controller
             return $order;
         });
 
-        $done = $status->afterEntry($order);
+        // Save draft keeps the order as typed: no automatic review and nothing released.
+        $done = $request->boolean('draft') ? 'saved as a draft' : $status->afterEntry($order);
 
         return redirect()->route('sales-orders.show', $order)->with('success', "Order {$order->order_number} {$done}.")
             ->with('warning', ProductionOrderFactory::awaitingApprovalNote($order));

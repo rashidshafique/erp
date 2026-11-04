@@ -23,6 +23,7 @@ Route::middleware('web')->group(function () {
         Route::get('/export', 'export')->name('export');
         Route::get('/create', 'create')->name('create');
         Route::post('/', 'store')->name('store');
+        Route::post('/checks', 'checks')->name('checks');
         Route::get('/{salesOrder}', 'show')->name('show');
         Route::get('/{salesOrder}/edit', 'edit')->name('edit');
         Route::put('/{salesOrder}', 'update')->name('update');

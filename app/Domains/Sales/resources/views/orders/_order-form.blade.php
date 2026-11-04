@@ -39,6 +39,20 @@
     .so-head h1 { margin: 0; font-size: 24px; }
     .so-back { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); text-decoration: none; font-size: 18px; }
     .so-back:hover { border-color: var(--accent); color: var(--accent); }
+    .so-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 20px; align-items: start; }
+    .so-rail { position: sticky; top: 16px; padding: 18px 18px 14px; }
+    .so-rail h2 { display: flex; justify-content: space-between; align-items: baseline; margin: 0 0 12px; font-size: 15px; }
+    .so-rail h2 small { font-size: 12.5px; font-weight: 400; color: var(--muted); }
+    .ck { padding: 10px 0; border-top: 1px solid var(--border); }
+    .ck-top { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 13.5px; }
+    .ck-dot { width: 8px; height: 8px; border-radius: 50%; background: #1d7048; flex: none; }
+    .ck-pill { margin-left: auto; padding: 1px 8px; border-radius: 10px; font-size: 11.5px; font-weight: 600; background: #e7f3ec; color: #1d7048; }
+    .ck.is-warn .ck-dot { background: #94610a; } .ck.is-warn .ck-pill { background: #fbf1de; color: #94610a; }
+    .ck.is-block .ck-dot { background: #b3352c; } .ck.is-block .ck-pill { background: #fbe9e7; color: #b3352c; }
+    .ck p { margin: 4px 0 0 16px; font-size: 12.5px; line-height: 1.45; color: var(--muted); }
+    .so-rail .so-note { margin: 10px 0 0; padding-top: 10px; border-top: 1px solid var(--border); font-size: 12.5px; color: var(--muted); }
+    .so-foot .btn[disabled] { background: #9da1a7; border-color: #9da1a7; cursor: not-allowed; }
+    @media (max-width: 1100px) { .so-wrap { grid-template-columns: 1fr; } .so-rail { position: static; } }
     .so-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
     .so-body { padding: 22px 24px; }
     .so-card h2 { font-size: 17px; margin: 0 0 14px; }
@@ -121,6 +135,7 @@
 @else
 <form method="POST" action="{{ $action }}" id="so-form" @class(['so-noprice' => ! $prices, 'so-disc' => $discounts]) data-today="{{ today()->toDateString() }}" data-ahead="{{ \App\Support\OrderRules::repeatAheadDays() }}">
 @csrf @if ($order) @method('PUT') @endif
+<div class="so-wrap">
 <div class="so-card"><div class="so-body">
     <h2>Order detail</h2>
     <div class="so-top">
@@ -159,7 +174,13 @@
         </div>
     </div>
 </div>
-<div class="so-foot">@error('confirm_jump')<label style="margin:0 8px 0 0;align-self:center"><input type="checkbox" name="confirm_jump" value="1"> Yes, these quantities are right</label>@enderror<button class="btn btn-primary" type="submit">{{ $submit }}</button><a class="btn" href="{{ $cancel }}">Cancel</a></div>
+<div class="so-foot">@error('confirm_jump')<label style="margin:0 8px 0 0;align-self:center"><input type="checkbox" name="confirm_jump" value="1"> Yes, these quantities are right</label>@enderror<button class="btn btn-primary" type="submit" data-primary data-default="{{ $submit }}">{{ $submit }}</button>@unless ($order)<button class="btn" type="submit" name="draft" value="1" formnovalidate>Save draft</button>@endunless<a class="btn" href="{{ $cancel }}">Cancel</a></div>
+</div>
+<aside class="so-card so-rail" aria-live="polite">
+    <h2>Checks <small data-ck-summary>Pick a customer and a product</small></h2>
+    <div data-ck-rows></div>
+    <p class="so-note">Warnings let you save and send for approval. Blocking checks must be fixed first.@if ($prices) GST and withholding are added on the invoice.@endif</p>
+</aside>
 </div>
 </form>
 
@@ -332,6 +353,27 @@
         if (![].some.call(linesBox.querySelectorAll('[data-line]'), chosen)) { e.preventDefault(); alert('Pick a product on at least one line.'); }
     });
     previewAll();
+    // The checks panel: asks the server what the contract review would say about the order as typed, after a short pause in typing.
+    var ckTimer = null, ckAbort = null, primary = form.querySelector('[data-primary]'), ckRows = form.parentNode.querySelector('[data-ck-rows]'), ckSummary = form.parentNode.querySelector('[data-ck-summary]');
+    function esc(t) { var d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+    function checks() {
+        clearTimeout(ckTimer);
+        ckTimer = setTimeout(function () {
+            if (ckAbort) ckAbort.abort();
+            ckAbort = new AbortController();
+            var data = new FormData(form); data.delete('_method');
+            fetch(@js(route('sales-orders.checks')), { method: 'POST', body: data, signal: ckAbort.signal, headers: { Accept: 'application/json' } })
+                .then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+                    if (!j) return;
+                    ckSummary.textContent = j.summary;
+                    ckRows.innerHTML = j.rows.map(function (r) { return '<div class="ck is-' + r.status + '"><div class="ck-top"><span class="ck-dot"></span>' + esc(r.name) + '<span class="ck-pill">' + esc(r.short) + '</span></div><p>' + esc(r.text) + '</p></div>'; }).join('');
+                    if (primary && primary.dataset.default === 'Create order') { primary.textContent = j.ready ? j.primary : primary.dataset.default; primary.disabled = j.ready && j.blocks > 0; }
+                }).catch(function () {});
+        }, 400);
+    }
+    form.addEventListener('input', checks); form.addEventListener('change', checks);
+    new MutationObserver(checks).observe(linesBox, { childList: true });
+    checks();
     linesBox.querySelectorAll('[data-line]').forEach(function (row) { unscheduled(row); piecesHint(row); });
     recalc();
 })();
