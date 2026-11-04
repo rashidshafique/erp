@@ -1,26 +1,28 @@
 # Handoff
 
-Updated 2026-11-03. Overwritten each session, not appended.
+Updated 2026-11-04. Overwritten each session, not appended.
 
 ## Working on
-Bringing the Sales module and Settings pages to the design. Newest design is `Foundry ERP workflow design.zip` (Nov 3, split by area: Sales, Settings, ...). The unzipped copy used so far is in the session scratchpad only; the folders under docs/design/ are the older single-file export.
+Taking every design screen that fits existing models and controllers (no new models, columns only) and building it exactly as designed, one screen per commit. Design files are in `Foundry ERP workflow design/` (repo root, newest). Screen inventory with titles: session scratchpad `inventory.txt` (regenerate by listing `dv-opt` ids per area file).
 
 ## Done this session
-- Sales order page to designs 1e/6a (header bar, facts row, lines card, "only what needs you" review cards, sign-off side panel); list and record share `orders/_record-styles.blade.php` — b78400ac
-- Approve & release (6a): `SalesOrderStatus::approveAndRelease`, route `sales-orders.approve-release`; signs the user's side, releases when approved, keeps a first sign-off when a second person must sign — 5ec3fd17
-- Appearance page to 22c (Screen, Brand, Formats cards, live Preview, one Save); old font/formats/branding addresses still work — af406841
+- Invoices list to 24a: `resources/views/components/invoice-list.blade.php` (Livewire), tabs, search, customer and FY chips, side panel — 8e299617
+- Invoice page to 24b (draft: printed page + Checks + posting preview) and 24c (posted record) — 9edd93e2
+- Receive payment to 24d where data allows — 8706ec89
+- STATUS.md entry listing what was left out (no mail: Sent/To send, reminder, Post and send; FBR/QR; lot/heat trace; Into bank, withheld rows, remittance advice on receipts; list Export)
+- Tests: InvoiceListTest, InvoiceRecordTest (new); InvoicingTest, AdvancesTest, VoucherEntryTest still pass. No browser check done.
 
 ## Next
-1. Go through the rest of `Foundry ERP Sales.dc.html` in the zip (16e, 16f, 18i-18l, 13x, 14x) and compare with the app.
-2. Order form (create/edit), trace page and price lists have no design yet; do not invent.
-3. Check 9c order acknowledgement print against the app.
-4. Look at the pages in a browser; none of this session's pages were checked by eye.
+1. Speed: user wants localhost responses under 100 ms. Not measured yet (the curl check was declined). Start with `curl -w %{time_total} http://erp/login`, then check opcache, APP_DEBUG, Telescope (dev-only, adds overhead), and N+1 on the new invoice list (`waitingDispatches` loads every dispatched note; the list loads all invoices for the FY then pages in memory).
+2. Next screens that look like they fit (fit-check each first): 8b credit note, 8c cash application and statement, 7b purchase order, 7d supplier bills, 8e approved suppliers, 19c-19e ledger, 19i-19m, 14a-14c enquiries, 16a/16b lots, 7g, 7h, 10c/10d, 16g/16h, 3d, 3h, 3i, 3j, 1i, 1l, 7e.
+3. Look at the new invoice pages in a browser.
 
 ## Open questions
-- `DisplayFormatsTest::test_typed_numbers_keep_the_sitewide_decimal_places_and_decimal_boxes_take_any_value` fails: `step="0.x"` in pours/create, invoices/_charges, banks/reconcile, banks/show, journals/create (not touched this session; not checked whether it failed before).
-- `app/Domains/Enquiry/resources/views/rates.blade.php` was modified before this session and is uncommitted; leave it unless asked.
+- `app/Models/Equipment.php` is modified and uncommitted from before this session; leave it.
+- `RECOVERY-CODES-Rashid Shafique.txt` sits untracked in the repo root; never stage it. Stage by explicit path only.
+- Design folders are untracked; not committed.
 
 ## Files in play
-- app/Domains/Sales/ (Services/SalesOrderStatus.php, Http/Controllers/SalesOrderController.php, resources/views/orders/)
-- resources/views/settings/display.blade.php, app/Http/Controllers/DisplaySettingsController.php, BrandingController.php
-- docs/STATUS.md
+- resources/views/components/invoice-list.blade.php
+- app/Domains/Finance/ (Http/Controllers/InvoiceController.php, resources/views/invoices/show.blade.php and index.blade.php, resources/views/receipts/create.blade.php)
+- tests/Feature/InvoiceListTest.php, InvoiceRecordTest.php
