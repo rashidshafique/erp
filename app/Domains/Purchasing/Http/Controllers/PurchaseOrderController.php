@@ -61,7 +61,9 @@ class PurchaseOrderController extends Controller
     {
         $purchaseOrder->load(['supplier', 'lines.material', 'lines.lots']);
 
-        return view('purchasing::orders.show', ['order' => $purchaseOrder]);
+        $open = PurchaseOrder::where('supplier_id', $purchaseOrder->supplier_id)->whereIn('status', PurchaseOrder::OPEN)->where('status', '!=', 'DRAFT')->get();
+
+        return view('purchasing::orders.show', ['order' => $purchaseOrder, 'supplierOpen' => ['count' => $open->count(), 'value' => round((float) $open->sum('total'), 2)]]);
     }
 
     public function print(PurchaseOrder $purchaseOrder): View

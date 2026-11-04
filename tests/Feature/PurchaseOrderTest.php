@@ -128,7 +128,7 @@ class PurchaseOrderTest extends TestCase
 
         $this->get(route('purchase-orders.index'))->assertOk()->assertSee($order->po_number);
         $this->get(route('purchase-orders.create'))->assertOk();
-        $this->get(route('purchase-orders.show', $order))->assertOk()->assertSee('Receive goods');
+        $this->get(route('purchase-orders.show', $order))->assertOk()->assertSee('Receive goods')->assertSee('Open orders with');
         $this->get(route('purchase-orders.print', $order))->assertOk();
         $this->get(route('settings.rules'))->assertOk();
     }

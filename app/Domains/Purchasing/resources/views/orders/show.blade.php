@@ -2,7 +2,7 @@
 @section('title', $order->po_number ?? 'Draft purchase order')
 @section('content')
 @php $m = fn ($v) => \App\Support\Formats::number($v, 2); $q = fn ($v) => \App\Support\Formats::number($v, 3); @endphp
-<div class="page-heading"><div><h1>Purchase order {{ $order->po_number ?? '(draft)' }}</h1><p>{{ $order->supplier?->name }} · {{ $order->order_date->displayDate() }}@if ($order->expected_date) · expected {{ $order->expected_date->displayDate() }}@endif</p></div>
+<div class="page-heading"><div><h1><a href="{{ route('purchase-orders.index') }}">Purchase orders</a> / {{ $order->po_number ?? '(draft)' }}</h1><p>{{ $order->supplier?->name }} · {{ $order->order_date->displayDate() }}@if ($order->expected_date) · expected {{ $order->expected_date->displayDate() }}@endif</p></div>
 <div class="actions">
 @if ($order->status === 'DRAFT')
     <a class="btn" href="{{ route('purchase-orders.edit', $order) }}">Edit</a>
@@ -17,6 +17,7 @@
     <div><div class="muted small">Status</div><span class="status {{ in_array($order->status, ['RECEIVED', 'CLOSED']) ? 'status-completed' : ($order->status === 'CANCELLED' ? 'status-cancelled' : 'status-on-hold') }}">{{ \App\Domains\Purchasing\Models\PurchaseOrder::STATUSES[$order->status] }}</span></div>
     <div><div class="muted small">Total</div><strong>{{ $m($order->total) }} {{ $order->currency }}</strong></div>
     @if ($order->payment_terms)<div><div class="muted small">Terms</div>{{ $order->payment_terms }}</div>@endif
+    <div><div class="muted small">Open orders with {{ $order->supplier?->name }}</div>{{ $supplierOpen['count'] }} · {{ $m($supplierOpen['value']) }}</div>
     @if ($order->supplier_reference)<div><div class="muted small">Supplier reference</div>{{ $order->supplier_reference }}</div>@endif
 </div>
 @if ($order->close_reason)<div class="panel-body muted">Closed {{ $order->closed_at?->displayShortDateTime() }}: {{ $order->close_reason }}</div>@endif</div>
