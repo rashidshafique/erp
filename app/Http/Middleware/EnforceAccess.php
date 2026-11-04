@@ -24,7 +24,7 @@ class EnforceAccess
         }
 
         $name = (string) $request->route()?->getName();
-        if (in_array($name, ['login', 'login.attempt', 'branding.logo'], true)) {
+        if (in_array($name, ['login', 'login.attempt', 'm.login', 'branding.logo'], true)) {
             return $next($request);
         }
 

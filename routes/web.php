@@ -508,6 +508,13 @@ Route::post('/attachments/{attachment}/remove', [AttachmentController::class, 'r
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.attempt');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+// Phone screens for quality techs: tests and defects are separate permissions.
+Route::prefix('m')->name('m.')->controller(\App\Http\Controllers\MobileController::class)->group(function () {
+    Route::get('/login', 'login')->name('login');
+    Route::get('/', 'home')->name('home');
+    Route::get('/tests/{type}', 'pickTest')->where('type', '[a-z]+')->name('tests.pick');
+    Route::get('/defects', 'pickDefect')->name('defects.pick');
+});
 Route::get('/account/password', [AuthController::class, 'showPassword'])->name('account.password');
 Route::put('/account/profile', [AuthController::class, 'updateProfile'])->name('account.profile.update');
 Route::get('/account/avatar/{user}', [AuthController::class, 'avatar'])->name('account.avatar');

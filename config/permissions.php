@@ -15,6 +15,8 @@ return [
         'shopfloor.record' => 'Record stage output and hold/release on lots',
         'quality.inspect' => 'Inspections and test results',
         'quality.manage' => 'NCRs, test limits, defect list, iron grades',
+        'mobile.tests' => 'Phone app: record tests',
+        'mobile.defects' => 'Phone app: log defects',
         'stores.manage' => 'Materials and stock',
         'master.manage' => 'Products and patterns',
         'tooling.manage' => 'Tooling maintenance and life',
@@ -32,6 +34,8 @@ return [
 
     // First match wins. Patterns use * as a wildcard.
     'routes' => [
+        ['pattern' => 'm.tests.*', 'permission' => 'mobile.tests', 'reads' => true],
+        ['pattern' => 'm.defects.*', 'permission' => 'mobile.defects', 'reads' => true],
         ['pattern' => 'users.*', 'permission' => 'users.manage', 'reads' => true],
         ['pattern' => 'roles.*', 'permission' => 'users.manage', 'reads' => true],
         ['pattern' => 'audit.*', 'permission' => 'audit.view', 'reads' => true],
@@ -101,6 +105,8 @@ return [
         'MOULDING_SUPERVISOR' => ['name' => 'Moulding supervisor', 'permissions' => ['moulding.operate', 'shopfloor.record', 'attachments.manage']],
         'QUALITY_INSPECTOR' => ['name' => 'Quality inspector', 'permissions' => ['quality.inspect', 'shopfloor.record', 'attachments.manage']],
         'QUALITY_MANAGER' => ['name' => 'Quality manager', 'permissions' => ['quality.inspect', 'quality.manage', 'shopfloor.record', 'attachments.manage', 'approvals.decide', 'approvals.configure', 'audit.view']],
+        'QA_TEST_TECH' => ['name' => 'QA tech, tests', 'permissions' => ['mobile.tests', 'attachments.manage']],
+        'QA_DEFECT_TECH' => ['name' => 'QA tech, defects', 'permissions' => ['mobile.defects', 'attachments.manage']],
         'STORES_DISPATCH' => ['name' => 'Stores and dispatch', 'permissions' => ['stores.manage', 'packing.operate', 'dispatch.operate', 'attachments.manage']],
         'VIEWER' => ['name' => 'View only', 'permissions' => []],
     ],

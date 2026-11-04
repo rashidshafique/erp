@@ -38,6 +38,10 @@ class AuthController extends Controller
         $request->session()->regenerate();
         User::whereKey(Auth::id())->update(['last_login_at' => now()]);
 
+        if ($request->boolean('mobile')) {
+            return redirect()->intended(route('m.home'));
+        }
+
         return redirect()->intended(route(StartPage::routeFor($request->user())));
     }
 
@@ -46,7 +50,8 @@ class AuthController extends Controller
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-        return redirect()->route('login');
+
+        return redirect()->route($request->boolean('mobile') ? 'm.login' : 'login');
     }
 
     public function showPassword()
