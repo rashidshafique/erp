@@ -5,6 +5,8 @@ namespace App\Domains\Maintenance;
 use App\Domains\Core\ModuleServiceProvider;
 use App\Domains\Maintenance\Models\Gauge;
 use App\Domains\Maintenance\Models\GaugeCalibration;
+use App\Domains\Maintenance\Models\MaintenancePlan;
+use App\Domains\Maintenance\Models\MaintenanceWorkOrder;
 use App\Domains\Maintenance\Services\CalibrationStatus;
 use App\Domains\Maintenance\Services\GaugeUsage;
 use App\Domains\Maintenance\Support\CalibrationRules;
@@ -46,6 +48,9 @@ class MaintenanceServiceProvider extends ModuleServiceProvider
     protected function navItems(): array
     {
         return [
+            ['group' => 'equipment', 'label' => 'Maintenance', 'route' => 'equipment-maintenance.index', 'icon' => 'wrench', 'active' => ['equipment-maintenance.*'],
+                'count' => fn (): int => MaintenancePlan::query()->active()->whereNotNull('next_due_at')->whereDate('next_due_at', '<=', today())->count()
+                    + MaintenanceWorkOrder::query()->open()->count()],
             ['group' => 'equipment', 'label' => 'Gauges & calibration', 'route' => 'gauges.index', 'icon' => 'gauge', 'active' => ['gauges.*'],
                 'count' => fn (): int => Gauge::calibrationDue()->count()],
         ];
@@ -66,6 +71,7 @@ class MaintenanceServiceProvider extends ModuleServiceProvider
     protected function permissionRoutes(): array
     {
         return [
+            ['pattern' => 'equipment-maintenance.*', 'permission' => 'tooling.manage'],
             ['pattern' => 'gauges.*', 'permission' => 'quality.manage'],
         ];
     }
@@ -74,6 +80,7 @@ class MaintenanceServiceProvider extends ModuleServiceProvider
     {
         return [
             'gauge' => ['gauges', 'GAU', 3, 'Gauge'],
+            'maintenance_plan' => ['maintenance_plans', 'MNT', 7, 'Maintenance plan'],
         ];
     }
 }
