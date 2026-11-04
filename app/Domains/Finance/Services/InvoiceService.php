@@ -165,14 +165,15 @@ class InvoiceService
     }
 
     /**
-     * The lines a dispatch would be invoiced with: what was sent at the order line's price, leaving out items already on a live invoice.
+     * The lines a dispatch would be invoiced with: what was sent at the order line's price, leaving out items already on a live
+     * invoice (other than the draft being edited, when its id is given).
      *
      * @return list<array<string, mixed>>
      */
-    public function linesFromDispatch(Dispatch $dispatch): array
+    public function linesFromDispatch(Dispatch $dispatch, ?string $exceptInvoiceId = null): array
     {
         $done = InvoiceLine::whereIn('dispatch_item_id', $dispatch->items->pluck('id'))
-            ->whereHas('invoice', fn ($q) => $q->where('kind', 'INVOICE')->where('status', '!=', 'VOID'))->pluck('dispatch_item_id')->all();
+            ->whereHas('invoice', fn ($q) => $q->where('kind', 'INVOICE')->where('status', '!=', 'VOID')->when($exceptInvoiceId, fn ($q) => $q->where('id', '!=', $exceptInvoiceId)))->pluck('dispatch_item_id')->all();
         $default = $this->defaultTaxRateId();
 
         return $dispatch->items->reject(fn ($i) => in_array($i->id, $done, true))->map(function ($i) use ($default) {

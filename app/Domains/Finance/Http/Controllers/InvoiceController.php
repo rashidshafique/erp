@@ -52,6 +52,7 @@ class InvoiceController extends Controller
             $lines = $service->linesFromDispatch($dispatch);
             $head = ['customer_id' => $dispatch->customer_id, 'source_type' => 'dispatch', 'source_id' => $dispatch->id, 'customer_reference' => $dispatch->delivery_challan_number ? 'Challan '.$dispatch->delivery_challan_number : null];
             $notice = $lines === [] ? "Everything on dispatch {$dispatch->dispatch_number} is already invoiced." : "Lines from dispatch {$dispatch->dispatch_number}.";
+            $lines = array_map(fn ($l) => $l + ['dn' => $dispatch->id], $lines);
         } elseif ($request->filled('order') && Str::isUuid($request->query('order'))) {
             $order = SalesOrder::with(['lines.product'])->findOrFail($request->query('order'));
             $lines = $service->linesFromOrder($order);
@@ -106,6 +107,8 @@ class InvoiceController extends Controller
             return redirect()->route('invoices.show', $invoice)->withErrors(['invoice' => 'Only a draft can be changed.']);
         }
         $lines = $invoice->lines->map(fn ($l) => $l->only(['product_id', 'description', 'quantity', 'uom', 'unit_price', 'discount_percent', 'tax_rate_id', 'sales_order_line_id', 'dispatch_item_id', 'supply_type', 'tariff_code', 'inventory_class']))->all();
+        $byItem = DB::table('dispatch_items')->whereIn('id', array_filter(array_column($lines, 'dispatch_item_id')))->pluck('dispatch_id', 'id');
+        $lines = array_map(fn ($l) => $l + ['dn' => $byItem[$l['dispatch_item_id']] ?? null], $lines);
 
         return view('finance::invoices.form', $this->formData($invoice, $invoice->only(['customer_id', 'source_type', 'source_id', 'customer_reference', 'place_of_supply']), $lines) + ['notice' => null]);
     }
@@ -194,11 +197,46 @@ class InvoiceController extends Controller
     {
         $service = app(InvoiceService::class);
 
+        $dispatches = $this->billableDispatches($head['customer_id'] ?? null, $invoice, $service);
+        $onLines = array_merge(array_column($lines, 'product_id'), collect($dispatches)->pluck('lines')->flatten(1)->pluck('product_id')->all());
+        $customer = ($head['customer_id'] ?? null) ? Customer::find($head['customer_id']) : null;
+
         return [
-            'invoice' => $invoice, 'head' => $head, 'lines' => $lines ?: [['product_id' => null, 'description' => '', 'quantity' => 1, 'uom' => '', 'unit_price' => 0, 'discount_percent' => 0, 'tax_rate_id' => $service->defaultTaxRateId(), 'sales_order_line_id' => null, 'dispatch_item_id' => null]],
+            'dispatches' => $dispatches, 'customer' => $customer, 'nextNumber' => $invoice?->invoice_number ?: $service->nextNumber('INVOICE'),
+            'template' => app(InvoiceTemplates::class)->options()[app(InvoiceTemplates::class)->default()] ?? 'Standard invoice',
+            'invoice' => $invoice, 'head' => $head, 'lines' => $lines,
             'customers' => Customer::orderedByName()->get(), 'taxRates' => TaxRate::where('is_active', true)->orderBy('name')->get(),
-            'currency' => $invoice?->currency ?? FinanceRules::currency(), 'products' => $this->products(array_column($lines, 'product_id')),
+            'currency' => $invoice?->currency ?? FinanceRules::currency(), 'products' => $this->products($onLines),
         ];
+    }
+
+    /**
+     * The dispatch notes of a customer not yet billed (plus those already on the draft being edited), with the lines each would add.
+     *
+     * @return list<array{id: string, code: string, date: string, desc: string, so: string, lines: list<array<string, mixed>>}>
+     */
+    private function billableDispatches(?string $customerId, ?Invoice $invoice, InvoiceService $service): array
+    {
+        if (! $customerId || ! class_exists(Dispatch::class)) {
+            return [];
+        }
+
+        return Dispatch::with(['items.salesOrderLine.salesOrder', 'items.salesOrderLine.product', 'items.packingItem.lot.product'])
+            ->where('customer_id', $customerId)->where('status', 'DISPATCHED')->orderBy('dispatched_at')->get()
+            ->map(function (Dispatch $d) use ($service, $invoice) {
+                $lines = $service->linesFromDispatch($d, $invoice?->id);
+                if ($lines === []) {
+                    return null;
+                }
+                $orders = $d->items->map(fn ($i) => $i->salesOrderLine?->salesOrder?->order_number)->filter()->unique()->implode(', ');
+                $pcs = $d->items->sum('quantity_dispatched');
+
+                return [
+                    'id' => $d->id, 'code' => $d->dispatch_number, 'date' => 'Shipped '.($d->dispatched_at ?? $d->created_at)->format('j M'),
+                    'desc' => count($lines) === 1 ? trim((string) preg_replace('/ .*/', '', $lines[0]['description'])).' · '.number_format($pcs).' pcs' : count($lines).' lines · '.number_format($pcs).' pcs',
+                    'so' => $orders, 'lines' => array_map(fn ($l) => $l + ['dn' => $d->id], $lines),
+                ];
+            })->filter()->values()->all();
     }
 
     /**

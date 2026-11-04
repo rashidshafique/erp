@@ -181,6 +181,15 @@ class InvoicingTest extends TestCase
         $this->get(route('dispatches.show', $dispatchId))->assertOk()->assertSee('Raise invoice');
     }
 
+    public function test_the_new_invoice_screen_shows_the_billing_columns_and_extras(): void
+    {
+        $customer = $this->customer();
+
+        $this->get(route('invoices.create'))->assertOk()->assertSee('Pick a customer to see the dispatch notes waiting to be billed.')->assertSee('Tick a dispatch note to add its lines.');
+        $this->get(route('invoices.create', ['customer' => $customer->id]))->assertOk()->assertSee('Nothing waiting to be billed for this customer.')
+            ->assertSee('Add to invoice')->assertSee('Freight')->assertSee('Will be');
+    }
+
     public function test_settings_save_and_only_one_tax_rate_is_the_default(): void
     {
         $this->put(route('finance.settings.update'), ['due_days' => 14, 'currency' => 'USD'])->assertSessionHasNoErrors();
