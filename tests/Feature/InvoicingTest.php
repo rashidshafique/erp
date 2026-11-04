@@ -197,6 +197,16 @@ class InvoicingTest extends TestCase
         $this->assertSame(1850.0, (float) $invoice->subtotal);
     }
 
+    public function test_empty_rows_on_the_new_invoice_page_are_left_off_when_saved(): void
+    {
+        $customer = $this->customer();
+        $blank = ['product_id' => '', 'description' => '', 'quantity' => 1, 'uom' => 'pcs', 'unit_price' => 0, 'discount_percent' => 0, 'discount_amount' => 0, 'tax_rate_id' => ''];
+
+        $this->post(route('invoices.store'), $this->form($customer, [['description' => 'Pump body', 'quantity' => 2, 'unit_price' => 100] + $blank, $blank]))->assertSessionHasNoErrors();
+
+        $this->assertCount(1, Invoice::firstOrFail()->lines);
+    }
+
     public function test_the_new_invoice_screen_shows_the_billing_columns_and_extras(): void
     {
         $customer = $this->customer();

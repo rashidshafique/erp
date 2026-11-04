@@ -44,13 +44,13 @@
     .iv-sw.iv-on { background: var(--accent); } .iv-sw.iv-on i { left: 14px; }
     @media (max-width: 1100px) { .iv-head, .iv-foot, .iv-dns { grid-template-columns: 1fr; } }
 </style>
-<form method="POST" action="{{ $invoice ? route('invoices.update', $invoice) : route('invoices.store') }}" x-data="invoiceLines(@js($startLines), @js($taxJson), @js((object) $products), @js(Route::has('price-lists.lookup') ? route('price-lists.lookup') : null), @js($dispatches), @js(['terms' => $customerTerms, 'dueDays' => \App\Domains\Finance\Services\FinanceRules::dueDays(), 'create' => ! $invoice, 'url' => route('invoices.create')]))" x-ref="form">@csrf @if ($invoice) @method('PUT') @endif
+<form method="POST" action="{{ $invoice ? route('invoices.update', $invoice) : route('invoices.store') }}" x-data="invoiceLines(@js($startLines), @js($taxJson), @js((object) $products), @js(Route::has('price-lists.lookup') ? route('price-lists.lookup') : null), @js($dispatches), @js(['terms' => $customerTerms, 'dueDays' => \App\Domains\Finance\Services\FinanceRules::dueDays(), 'create' => ! $invoice, 'url' => route('invoices.create'), 'tax' => app(\App\Domains\Finance\Services\InvoiceService::class)->defaultTaxRateId()]))" x-ref="form">@csrf @if ($invoice) @method('PUT') @endif
 <input type="hidden" name="source_type" value="{{ old('source_type', $head['source_type'] ?? 'manual') }}"><input type="hidden" name="source_id" value="{{ old('source_id', $head['source_id'] ?? '') }}">
 @if ($notice)<p class="el-note" style="margin:0 0 8px">{{ $notice }}</p>@endif
 @if ($errors->any())<div class="flash flash-error">{{ $errors->first() }}</div>@endif
 <div class="el-card" style="overflow:hidden">
 <div class="el-bar"><div style="display:flex;align-items:center;gap:16px;font-size:13px"><a href="{{ route('invoices.index') }}" style="font-weight:600;color:inherit;text-decoration:none">Invoices</a><span class="el-sub">/</span><span>{{ $invoice ? 'Edit draft' : 'New invoice' }}</span></div>
-<div style="display:flex;gap:8px"><a class="el-btn" href="{{ $invoice ? route('invoices.show', $invoice) : route('invoices.index') }}">Cancel</a><button class="el-btn" type="submit">Save draft</button><button class="el-btn primary" type="submit" :disabled="! lines.length" :style="lines.length ? '' : 'opacity:.6'">Create invoice</button></div></div>
+<div style="display:flex;gap:8px"><a class="el-btn" href="{{ $invoice ? route('invoices.show', $invoice) : route('invoices.index') }}">Cancel</a><button class="el-btn" type="submit">Save draft</button><button class="el-btn primary" type="submit" :disabled="! filled.length" :style="filled.length ? '' : 'opacity:.6'">Create invoice</button></div></div>
 <div style="padding:20px 28px;display:flex;flex-direction:column;gap:20px;font-size:13px">
 <div class="iv-head">
     <div style="display:flex;flex-direction:column;gap:6px">
@@ -107,7 +107,7 @@
         <template x-if="Number(l.discount_percent) > 0"><td class="iv-ro el-r" title="Worked out from Disc %"><input type="hidden" :name="`lines[${i}][discount_amount]`" value="0"><span x-text="money(discAmt(l))"></span></td></template>
         <td class="iv-ro el-r" style="color:inherit;font-weight:500"><button type="button" @click="removeLine(i)" aria-label="Remove line" style="border:0;background:none;color:var(--muted);cursor:pointer;float:left">✕</button><span x-text="money(net(l))"></span></td>
     </tr></template></tbody></table>
-    <div x-show="! lines.length" style="padding:28px;text-align:center;color:var(--muted)">Tick a dispatch note to add its lines.</div></div>
+    <div x-show="! filled.length" style="padding:28px;text-align:center;color:var(--muted)">Tick a dispatch note to add its lines.</div></div>
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:24px"><div style="display:flex;gap:20px;align-items:center"><button type="button" class="el-btn" @click="addLine()">Add line</button><button type="button" class="iv-x" @click="trace = ! trace"><span class="iv-sw" :class="trace && 'iv-on'"><i></i></span>Show lot trace</button></div>
         @unless ($boxes)<div style="width:320px;display:flex;flex-direction:column;gap:6px;font-size:13px">
             <div style="display:flex;justify-content:space-between"><span class="el-sub" style="font-size:13px">Discount</span><span x-text="discount ? '− ' + money(discount) : '0.00'"></span></div>
@@ -139,7 +139,12 @@ function invoiceLines(start, rates, products, lookup, dispatches, cfg) {
     const blank = l => ({ ...l, key: ++seq, uom: l.uom || 'pcs', discount_amount: l.discount_amount ?? 0, product_id: l.product_id ?? '', tax_rate_id: l.tax_rate_id ?? '', supply_type: l.supply_type ?? 'GOODS', tariff_code: l.tariff_code ?? '', inventory_class: l.inventory_class ?? '', dn: l.dn ?? null, extra: l.extra ?? null, label: l.label ?? '' });
     return {
         products, cfg, dispatches, trace: false, dnOpen: true,
-        lines: start.map(blank),
+        lines: [],
+        init() { this.lines = start.map(blank); this.fill(); },
+        // A new invoice always shows at least two rows ready to type in; ticking a note or an extra takes the empty ones over.
+        isBlank(l) { return ! l.dispatch_item_id && ! l.extra && ! l.dn && ! l.product_id && ! String(l.description || '').trim() && ! (Number(l.unit_price) > 0); },
+        get filled() { return this.lines.filter(l => ! this.isBlank(l)); },
+        fill() { while (cfg.create && this.lines.length < 2) { this.addLine(); } },
         date: @js(old('invoice_date', $invoice?->invoice_date?->toDateString() ?? today()->toDateString())),
         terms: @js(old('payment_terms', $invoice?->payment_terms)),
         po: @js(old('customer_reference', $head['customer_reference'] ?? '')),
@@ -167,7 +172,8 @@ function invoiceLines(start, rates, products, lookup, dispatches, cfg) {
         on(id) { return this.lines.some(l => l.dn === id); },
         extra(k) { return this.lines.some(l => l.extra === k); },
         toggleDn(id) {
-            if (this.on(id)) { this.lines = this.lines.filter(l => l.dn !== id); this.syncExtras(); return; }
+            if (this.on(id)) { this.lines = this.lines.filter(l => l.dn !== id); this.syncExtras(); this.fill(); return; }
+            this.lines = this.lines.filter(l => ! this.isBlank(l));
             const d = this.dispatches.find(x => x.id === id);
             const at = this.lines.findIndex(l => l.extra);
             const add = d.lines.map(blank);
@@ -175,13 +181,14 @@ function invoiceLines(start, rates, products, lookup, dispatches, cfg) {
             this.syncExtras();
         },
         toggleExtra(k, label, text) {
-            if (this.extra(k)) { this.lines = this.lines.filter(l => l.extra !== k); return; }
+            if (this.extra(k)) { this.lines = this.lines.filter(l => l.extra !== k); this.fill(); return; }
+            this.lines = this.lines.filter(l => ! this.isBlank(l));
             const tax = this.lines.find(l => l.tax_rate_id)?.tax_rate_id ?? '';
             this.lines.push(blank({ extra: k, label, description: text, quantity: 1, uom: '', unit_price: 0, discount_percent: 0, tax_rate_id: tax }));
             this.syncExtras();
         },
-        addLine() { this.lines.push(blank({ description: '', quantity: 1, uom: '', unit_price: 0, discount_percent: 0, tax_rate_id: this.lines.find(l => l.tax_rate_id)?.tax_rate_id ?? '' })); },
-        removeLine(i) { this.lines.splice(i, 1); },
+        addLine() { this.lines.push(blank({ description: '', quantity: 1, uom: '', unit_price: 0, discount_percent: 0, tax_rate_id: this.lines.find(l => l.tax_rate_id)?.tax_rate_id ?? cfg.tax ?? '' })); },
+        removeLine(i) { this.lines.splice(i, 1); this.fill(); },
         trace_(l) {
             if (l.extra === 'tool') { return 'Per casting'; }
             if (l.extra === 'sur') { return 'Index amount'; }
@@ -195,9 +202,9 @@ function invoiceLines(start, rates, products, lookup, dispatches, cfg) {
             return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
         },
         get checks() {
-            if (! this.lines.length) { return [{ ok: false, t: 'Nothing to bill', d: 'Tick at least one dispatch note, or add a line.' }]; }
+            if (! this.filled.length) { return [{ ok: false, t: 'Nothing to bill', d: 'Tick at least one dispatch note, or add a line.' }]; }
             const n = new Set(this.lines.map(l => l.dn).filter(Boolean)).size;
-            const zero = this.lines.filter(l => ! (Number(l.unit_price) > 0)).length;
+            const zero = this.filled.filter(l => ! (Number(l.unit_price) > 0)).length;
             return [
                 { ok: true, t: 'Quantities', d: n ? 'Taken from ' + n + ' dispatch ' + (n > 1 ? 'notes' : 'note') + '.' : 'Typed in by hand.' },
                 { ok: zero === 0, t: 'Prices', d: zero ? zero + (zero > 1 ? ' lines have' : ' line has') + ' no price yet.' : 'Every line is priced.' },
