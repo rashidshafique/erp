@@ -44,4 +44,14 @@ class InvoiceRecordTest extends TestCase
             ->assertSee($invoice->invoice_number)->assertSee('Part paid')->assertSee('Receive payment')->assertSee('Pump body')
             ->assertSee('REC-9')->assertSee('PO-55')->assertSee('Credit notes')->assertSee('History');
     }
+
+    public function test_the_receipt_form_asks_for_a_customer_then_lists_what_they_owe_to_settle(): void
+    {
+        $invoice = $this->draft();
+        $this->post(route('invoices.issue', $invoice))->assertSessionHasNoErrors();
+
+        $this->get(route('receipts.create'))->assertOk()->assertSee('Pick a customer')->assertDontSee('Save receipt');
+        $this->get(route('receipts.create', ['customer' => $invoice->customer_id, 'invoice' => $invoice->id]))->assertOk()
+            ->assertSee('Save receipt')->assertSee('Settle invoices')->assertSee('1 open invoice')->assertSee($invoice->fresh()->invoice_number)->assertSee('Unallocated');
+    }
 }
