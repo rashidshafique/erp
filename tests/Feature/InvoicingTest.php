@@ -185,8 +185,8 @@ class InvoicingTest extends TestCase
     {
         $customer = $this->customer();
 
-        $this->get(route('invoices.create'))->assertOk()->assertSee('Pick a customer to see the dispatch notes waiting to be billed.')->assertSee('Tick a dispatch note to add its lines.');
-        $this->get(route('invoices.create', ['customer' => $customer->id]))->assertOk()->assertSee('Nothing waiting to be billed for this customer.')
+        $this->get(route('invoices.create'))->assertOk()->assertSee('Select a customer to see their dispatch notes')->assertSee('Tick a dispatch note to add its lines.');
+        $this->get(route('invoices.create', ['customer' => $customer->id]))->assertOk()->assertSee('No dispatch notes waiting for '.$customer->name)
             ->assertSee('Add to invoice')->assertSee('Freight')->assertSee('Will be');
     }
 
