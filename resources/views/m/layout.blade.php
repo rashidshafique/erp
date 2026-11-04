@@ -15,5 +15,13 @@
 .chip.on{background:#1c1d1f;border-color:#1c1d1f;color:#fff}
 input[type=email],input[type=password]{width:100%;height:52px;padding:0 14px;border:1px solid #d9dbde;border-radius:12px;font-size:16px}
 .err{color:#b00020;font-size:13px}
+.field{display:block}.field>span{display:block;font-size:13px;color:#55585d;margin:0 0 6px}
+.field input[type=number],.field input[type=text],.field select,.field textarea{width:100%;height:52px;padding:0 14px;border:1px solid #d9dbde;border-radius:12px;font:inherit;font-size:18px;background:#fff}
+.field textarea{height:80px;padding:12px 14px;font-size:16px}
+.seg{display:flex;gap:8px;flex-wrap:wrap}.seg label{cursor:pointer}.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg span{display:block;padding:12px 14px;border-radius:12px;border:1px solid #d9dbde;font-size:15px;background:#fff}
+.seg input:checked+span{background:#1c1d1f;border-color:#1c1d1f;color:#fff}.seg small{display:block;font-size:12px;opacity:.7}
+.stick{position:sticky;bottom:0;padding:12px 20px;background:#fff;border-top:1px solid #eff0f2}
+.pass{color:#1d7048}.fail{color:#b00020}
 </style></head><body><div class="wrap">@yield('body')</div><script src="{{ asset('js/phone-queue.js') }}" defer></script>
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(function(){});}</script></body></html>

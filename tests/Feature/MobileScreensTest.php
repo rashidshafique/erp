@@ -180,4 +180,44 @@ class MobileScreensTest extends TestCase
         config(['foundry.require_login' => true]);
         $this->actingAs($this->tech('QUALITY_MANAGER'))->get(route('quality.home'))->assertOk()->assertSee('Waiting for inspection')->assertSee('Open nonconformances');
     }
+
+    public function test_phone_entry_screens_are_their_own_and_save_without_the_desktop_pages(): void
+    {
+        config(['foundry.require_login' => true]);
+        $furnace = \App\Models\Furnace::create(['code' => 'IF-'.uniqid(), 'name' => 'Induction', 'furnace_type' => 'INDUCTION', 'status' => 'ACTIVE']);
+        $heat = \App\Models\Heat::create(['heat_number' => 'H-'.uniqid(), 'furnace_id' => $furnace->id, 'process_type' => 'INDUCTION', 'status' => 'PLANNED',
+            'iron_grade_id' => \App\Models\IronGrade::where('code', 'EN-GJS-500-7')->value('id')]);
+        \App\Models\ThermalWindow::create(['iron_grade_id' => $heat->iron_grade_id, 'cup_type' => 'STABLE', 'te_min_floor_c' => 1140, 'recal_max_c' => 6]);
+        $lot = $this->castingLot();
+        $manager = $this->tech('QUALITY_MANAGER');
+
+        $this->actingAs($this->tech('QA_TEST_TECH'));
+        $this->get(route('m.tests.thermal', $heat))->assertOk()->assertSee('Thermal analysis')->assertSee('Save test');
+        $this->get(route('m.tests.spectro', $heat))->assertOk()->assertSee('Save analysis');
+        $this->get(route('m.tests.hardness', $lot))->assertOk()->assertSee('Reading 1');
+        $this->post(route('m.tests.thermal.store', $heat), ['stage' => 'POST_TREATMENT', 'cup_type' => 'STABLE', 'tl_c' => 1190, 'te_min_c' => 1132, 'te_max_c' => 1150])->assertSessionHasNoErrors()->assertRedirect();
+        $this->assertSame('FAIL', \App\Models\ThermalAnalysisTest::firstOrFail()->result);
+        $this->assertStringContainsString('FAIL', $manager->notifications()->firstOrFail()->data['title']);
+        $this->post(route('m.tests.thermal.store', $heat), ['stage' => 'BASE', 'cup_type' => 'STABLE'])->assertSessionHasErrors('tl_c');
+        $this->post(route('m.tests.hardness.store', $lot), ['readings' => [1 => '200', 2 => '210']])->assertSessionHasNoErrors();
+        $this->assertSame('HARDNESS', \App\Models\QualityInspection::firstOrFail()->inspection_type);
+        $this->post(route('m.tests.spectro.store', $heat), ['sample_stage' => 'AFTER_TREATMENT', 'carbon_percent' => '3.6', 'silicon_percent' => '2.4'])->assertSessionHasNoErrors();
+        $this->assertSame(1, $heat->chemistryReadings()->count());
+    }
+
+    public function test_a_defect_tech_logs_a_defect_on_a_lot_with_its_own_screens(): void
+    {
+        config(['foundry.require_login' => true]);
+        $lot = $this->castingLot();
+        $defect = \App\Models\QualityDefect::create(['code' => 'SHR', 'name' => 'Shrinkage', 'category' => 'CASTING', 'is_active' => true]);
+        $tech = $this->tech('QA_DEFECT_TECH');
+        $good = $lot->quantity_good;
+
+        $this->actingAs($tech)->get(route('m.defects.log', $lot))->assertOk()->assertSee('Shrinkage')->assertSee('Log defect');
+        $this->post(route('m.defects.store', $lot), ['quality_defect_id' => $defect->id, 'quantity' => 2, 'disposition' => 'REJECT', 'location' => 'discharge flange'])->assertSessionHasNoErrors()->assertRedirect(route('m.defects.lot', $lot));
+        $this->assertSame($good - 2, $lot->fresh()->quantity_good);
+        $this->get(route('m.defects.lot', $lot))->assertOk()->assertSee('Shrinkage')->assertSee('discharge flange');
+        $this->post(route('m.defects.store', $lot), ['quality_defect_id' => $defect->id, 'quantity' => 9999, 'disposition' => 'REJECT'])->assertSessionHasErrors('quantity');
+        $this->actingAs($this->tech('QA_TEST_TECH'))->get(route('m.defects.log', $lot))->assertForbidden();
+    }
 }

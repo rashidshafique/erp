@@ -518,6 +518,16 @@ Route::prefix('m')->name('m.')->controller(\App\Http\Controllers\MobileControlle
     Route::get('/tests/{type}', 'pickTest')->where('type', '[a-z]+')->name('tests.pick');
     Route::get('/defects', 'pickDefect')->name('defects.pick');
     Route::get('/scan', 'scan')->name('scan');
+    Route::get('/tests/thermal/{heat}', [\App\Http\Controllers\MobileThermalController::class, 'create'])->name('tests.thermal');
+    Route::post('/tests/thermal/{heat}', [\App\Http\Controllers\MobileThermalController::class, 'store'])->name('tests.thermal.store');
+    Route::get('/tests/thermal/result/{test}', [\App\Http\Controllers\MobileThermalController::class, 'done'])->name('tests.thermal.done');
+    Route::get('/tests/spectro/{heat}', [\App\Http\Controllers\MobileSpectroController::class, 'create'])->name('tests.spectro');
+    Route::post('/tests/spectro/{heat}', [\App\Http\Controllers\MobileSpectroController::class, 'store'])->name('tests.spectro.store');
+    Route::get('/tests/hardness/{lot}', [\App\Http\Controllers\MobileHardnessController::class, 'create'])->name('tests.hardness');
+    Route::post('/tests/hardness/{lot}', [\App\Http\Controllers\MobileHardnessController::class, 'store'])->name('tests.hardness.store');
+    Route::get('/defects/lot/{lot}/log', [\App\Http\Controllers\MobileDefectController::class, 'create'])->name('defects.log');
+    Route::post('/defects/lot/{lot}/log', [\App\Http\Controllers\MobileDefectController::class, 'store'])->name('defects.store');
+    Route::get('/defects/lot/{lot}', [\App\Http\Controllers\MobileDefectController::class, 'lot'])->name('defects.lot');
 });
 Route::get('/account/password', [AuthController::class, 'showPassword'])->name('account.password');
 Route::put('/account/profile', [AuthController::class, 'updateProfile'])->name('account.profile.update');

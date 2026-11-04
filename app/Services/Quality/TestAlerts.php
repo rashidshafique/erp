@@ -35,6 +35,19 @@ class TestAlerts
         return $this->send($failed ? ['quality.manage', 'melting.operate'] : ['melting.operate'], $notice, $by);
     }
 
+    /** A chemistry analysis of a heat; nothing is sent when it could not be judged. @param  array{ok: ?bool, findings: array<int, string>}  $verdict */
+    public function chemistry(\App\Models\Heat $heat, array $verdict, ?User $by): int
+    {
+        if ($verdict['ok'] === null) {
+            return 0;
+        }
+        $bad = ! $verdict['ok'];
+        $notice = new AppNotice('test-result', "Chemistry {$heat->heat_number}: ".($bad ? 'OUT OF LIMITS' : 'PASS'),
+            $bad ? implode(' ', array_slice($verdict['findings'], 0, 2)) : 'Within the grade limits.', $bad ? 'danger' : 'success', route('heats.show', $heat));
+
+        return $this->send($bad ? ['quality.manage', 'melting.operate'] : ['melting.operate'], $notice, $by);
+    }
+
     /** A completed inspection of a lot. */
     public function inspection(QualityInspection $inspection, ?User $by): int
     {

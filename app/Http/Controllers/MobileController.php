@@ -77,7 +77,7 @@ class MobileController extends Controller
 
     public function pickDefect(Request $request): View
     {
-        return $this->pick($request, 'm.defects.pick', [], 'Log a defect', 'lot', false, fn ($kind, $row) => route('lots.show', $row));
+        return $this->pick($request, 'm.defects.pick', [], 'Log a defect', 'lot', false, fn ($kind, $row) => route('m.defects.log', $row));
     }
 
     private function pick(Request $request, string $route, array $params, string $title, string $on, bool $either, \Closure $target): View
@@ -100,9 +100,9 @@ class MobileController extends Controller
         $id = is_object($row) ? $row->getRouteKey() : $row;
 
         return match ($type) {
-            'thermal' => route('thermal.create', ['heat_id' => $id]),
-            'spectro' => route('heats.show', $id),
-            default => route('lots.inspections.create', $id),
+            'thermal' => route('m.tests.thermal', $id),
+            'spectro' => route('m.tests.spectro', $id),
+            default => route('m.tests.hardness', $id),
         };
     }
 

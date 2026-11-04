@@ -25,6 +25,11 @@ class QualityDefectMark extends Model
         return $this->belongsTo(PatternRevision::class);
     }
 
+    public function inspection(): BelongsTo
+    {
+        return $this->belongsTo(QualityInspection::class, 'quality_inspection_id');
+    }
+
     public function lot(): BelongsTo
     {
         return $this->belongsTo(CastingLot::class, 'casting_lot_id');
