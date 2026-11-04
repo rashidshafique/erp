@@ -170,4 +170,27 @@ class AccessControlTest extends TestCase
         \DB::table('role_permissions')->insert(['role_id' => $role, 'permission' => 'fields.costs']);
         $this->actingAs($this->user('VIEWER'))->get(route('stock-movements.index'))->assertOk()->assertSee('Total cost');
     }
+
+    public function test_records_name_their_creator_and_a_role_can_be_limited_to_its_own(): void
+    {
+        config(['foundry.require_login' => true]);
+        $role = Role::create(['code' => 'OWNONLY', 'name' => 'Own only', 'is_system' => false]);
+        $this->actingAs($this->user('ADMIN'))->put(route('roles.update'), ['roles' => [$role->id], 'perm' => [$role->id => ['enquiries:view' => 1, 'enquiries:create' => 1, 'enquiries:own' => 1]]])->assertSessionHasNoErrors();
+        $this->assertContains('enquiries:own', \DB::table('role_permissions')->where('role_id', $role->id)->pluck('permission')->all());
+
+        $me = User::factory()->create(['is_active' => true, 'must_change_password' => false]);
+        $me->roles()->attach($role->id);
+        $other = $this->user('ADMIN');
+        $customer = \App\Models\Customer::create(['code' => 'ACME', 'name' => 'Acme Pumps']);
+        $mine = \App\Domains\Enquiry\Models\Enquiry::forceCreate(['customer_id' => $customer->id, 'code' => 'ENQ-MINE', 'title' => 'Mine', 'status' => 'NEW', 'source_type' => 'DRAWING', 'received_on' => today(), 'created_by_id' => $me->id]);
+        $theirs = \App\Domains\Enquiry\Models\Enquiry::forceCreate(['customer_id' => $customer->id, 'code' => 'ENQ-THEIRS', 'title' => 'Theirs', 'status' => 'NEW', 'source_type' => 'DRAWING', 'received_on' => today(), 'created_by_id' => $other->id]);
+
+        $this->actingAs($me);
+        $this->assertSame(['ENQ-MINE'], \App\Domains\Enquiry\Models\Enquiry::pluck('code')->all());
+        $this->actingAs($other);
+        $this->assertCount(2, \App\Domains\Enquiry\Models\Enquiry::all());
+
+        $lot = \App\Models\Furnace::create(['code' => 'F-'.uniqid(), 'name' => 'F', 'furnace_type' => 'INDUCTION', 'status' => 'ACTIVE']);
+        $this->assertSame($other->id, (int) $lot->fresh()->created_by_id);
+    }
 }

@@ -53,6 +53,12 @@ class AccessMap
         return 'edit';
     }
 
+    /** Whether the signed-in user is limited to their own records in an area. Administrators never are. */
+    public static function ownOnly(?\App\Models\User $user, string $area): bool
+    {
+        return config('foundry.require_login') && $user !== null && ! $user->isAdmin() && in_array(self::key($area, 'own'), $user->permissions(), true);
+    }
+
     public static function key(string $area, string $action): string
     {
         return $area.':'.$action;

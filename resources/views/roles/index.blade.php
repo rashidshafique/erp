@@ -32,14 +32,15 @@
 <details class="panel" @if(collect($group['areas'])->contains(fn ($a, $n) => collect($a['actions'])->contains(fn ($x) => $has($permission, $n, $x)))) open @endif>
     <summary class="panel-body" style="cursor:pointer"><strong>{{ $group['label'] }}</strong> <span class="muted small">{{ $permission }}</span></summary>
     <div class="table-wrap"><table data-grid>
-        <thead><tr><th>Area</th>@foreach($actions as $k => $label)<th style="text-align:center">{{ $label }}</th>@endforeach<th style="text-align:center">All</th><th style="text-align:center" title="Applies to every role">Limit viewing</th></tr></thead>
+        <thead><tr><th>Area</th>@foreach($actions as $k => $label)<th style="text-align:center">{{ $label }}</th>@endforeach<th style="text-align:center">All</th><th style="text-align:center" title="Applies to every role">Limit viewing</th><th style="text-align:center" title="This role sees and changes only the records its people created">Own only</th></tr></thead>
         <tbody>@foreach($group['areas'] as $area => $def)
             <tr><td>{{ $def['label'] }}<div class="muted small">{{ $area }}</div></td>
             @foreach($actions as $k => $label)<td style="text-align:center">@if(in_array($k, $def['actions'], true))<input type="checkbox" name="perm[{{ $role->id }}][{{ $area }}:{{ $k }}]" value="1" @checked($has($permission, $area, $k))>@else<span class="muted">·</span>@endif</td>@endforeach
             <td style="text-align:center"><input type="checkbox" data-row title="Every action of {{ $def['label'] }}"></td>
-            <td style="text-align:center">@if(collect(config('permissions.routes'))->contains(fn ($r) => \App\Support\AccessMap::areaOf($r) === $area && ! empty($r['reads'])))<span class="muted" title="Always limited">always</span>@else<input type="checkbox" name="limit[{{ $area }}]" value="1" @checked(in_array($area, $limited, true)) title="Only roles with View may open its pages. Applies to every role.">@endif</td></tr>
+            <td style="text-align:center">@if(collect(config('permissions.routes'))->contains(fn ($r) => \App\Support\AccessMap::areaOf($r) === $area && ! empty($r['reads'])))<span class="muted" title="Always limited">always</span>@else<input type="checkbox" name="limit[{{ $area }}]" value="1" @checked(in_array($area, $limited, true)) title="Only roles with View may open its pages. Applies to every role.">@endif</td>
+            <td style="text-align:center">@if(isset(config('permissions.own')[$area]))<input type="checkbox" name="perm[{{ $role->id }}][{{ $area }}:own]" value="1" @checked(in_array($area.':own', $held, true)) title="Only the records its people created">@endif</td></tr>
         @endforeach</tbody>
-        <tfoot><tr><td><em>Everything in this group</em></td><td colspan="{{ count($actions) }}"></td><td style="text-align:center"><input type="checkbox" data-all></td><td></td></tr></tfoot>
+        <tfoot><tr><td><em>Everything in this group</em></td><td colspan="{{ count($actions) }}"></td><td style="text-align:center"><input type="checkbox" data-all></td><td></td><td></td></tr></tfoot>
     </table></div>
 </details>
 @endforeach

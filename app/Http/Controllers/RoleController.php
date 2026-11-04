@@ -101,6 +101,12 @@ class RoleController extends Controller
                 array_push($out, ...$ticked);
             }
         }
+        // "Own records only" limits an area on top of whatever else the role holds.
+        foreach (array_keys(config('permissions.own', [])) as $area) {
+            if (in_array(AccessMap::key($area, 'own'), $keys, true)) {
+                $out[] = AccessMap::key($area, 'own');
+            }
+        }
         $out = array_values(array_unique($out));
         sort($out);
 

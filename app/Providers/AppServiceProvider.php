@@ -65,6 +65,7 @@ class AppServiceProvider extends ServiceProvider
         \Illuminate\Support\Facades\Blade::if('fieldcan', fn (string $kind): bool => \App\Support\Fields::can($kind));
         DevCommands::artisan('schedule:work', 'scheduler');   // automatic heat charges and the other scheduled jobs, under composer run dev
         Formats::registerCarbonMacros();
+        $this->recordOwners();
         View::composer('layouts.app', function ($view): void {
             try {
                 $heats = Heat::withLight();
@@ -80,6 +81,34 @@ class AppServiceProvider extends ServiceProvider
                 $model = $payload[0] ?? null;
                 if ($model instanceof Model) {
                     app(Audit::class)->onModelEvent($action, $model);
+                }
+            });
+        }
+    }
+
+    /**
+     * Every record made by a signed-in person names them (`created_by_id`), and a role limited to its own records in an area sees
+     * only those. The limit is a scope on the model, so lists, searches and the record's own page all follow it.
+     */
+    private function recordOwners(): void
+    {
+        $has = [];
+        \Illuminate\Support\Facades\Event::listen('eloquent.creating: *', function (string $event, array $data) use (&$has): void {
+            $model = $data[0] ?? null;
+            if (! $model instanceof \Illuminate\Database\Eloquent\Model || ! \Illuminate\Support\Facades\Auth::id()) {
+                return;
+            }
+            $table = $model->getTable();
+            $has[$table] ??= \Illuminate\Support\Facades\Schema::hasColumn($table, 'created_by_id');
+            if ($has[$table] && $model->getAttribute('created_by_id') === null) {
+                $model->setAttribute('created_by_id', \Illuminate\Support\Facades\Auth::id());
+            }
+        });
+        foreach (config('permissions.own', []) as $area => [$class, $columns]) {
+            $class::addGlobalScope('own-records', function (\Illuminate\Database\Eloquent\Builder $query) use ($area, $columns): void {
+                $user = \Illuminate\Support\Facades\Auth::user();
+                if (\App\Support\AccessMap::ownOnly($user, $area)) {
+                    $query->where(fn ($q) => collect($columns)->each(fn ($c) => $q->orWhere($query->getModel()->getTable().'.'.$c, $user->id)));
                 }
             });
         }

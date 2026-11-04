@@ -31,6 +31,15 @@ return [
         'audit.view' => 'View the audit trail',
     ],
 
+    // Areas a role can be limited to the records it made ("Own records only" on the Roles screen): area => [model, columns that name the owner].
+    'own' => [
+        'sales-orders' => [\App\Domains\Sales\Models\SalesOrder::class, ['created_by_id']],
+        'quotations' => [\App\Domains\Enquiry\Models\Quotation::class, ['created_by_id']],
+        'enquiries' => [\App\Domains\Enquiry\Models\Enquiry::class, ['created_by_id', 'owner_id']],
+        'inspections' => [\App\Models\QualityInspection::class, ['created_by_id']],
+        'ncrs' => [\App\Models\NonconformanceReport::class, ['created_by_id']],
+    ],
+
     // Open to every signed-in user; the screens check who may do what (own leave, a team's leave).
     'open_routes' => ['help.*'],
 
