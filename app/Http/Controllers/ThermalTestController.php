@@ -106,6 +106,7 @@ class ThermalTestController extends Controller
         }
 
         $n = count($blocks);
+        app(\App\Services\Quality\TestAlerts::class)->thermal($first->load('heat'), $request->user());
         $containment = app(Containment::class);
         $held = $containment->message($containment->apply($heat));
 

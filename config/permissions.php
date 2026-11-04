@@ -36,6 +36,12 @@ return [
     'routes' => [
         ['pattern' => 'm.tests.*', 'permission' => 'mobile.tests', 'reads' => true],
         ['pattern' => 'm.defects.*', 'permission' => 'mobile.defects', 'reads' => true],
+        // Saving a test from the phone: the desktop permission or the phone one ("also") will do.
+        ['pattern' => 'thermal.store', 'permission' => 'melting.operate', 'also' => ['mobile.tests']],
+        ['pattern' => 'lots.inspections.store', 'permission' => 'shopfloor.record', 'also' => ['mobile.tests']],
+        ['pattern' => 'inspections.results.*', 'permission' => 'quality.inspect', 'also' => ['mobile.tests']],
+        ['pattern' => 'inspections.complete', 'permission' => 'quality.inspect', 'also' => ['mobile.tests']],
+        ['pattern' => 'quick-qc.store', 'permission' => 'quality.inspect', 'also' => ['mobile.defects']],
         ['pattern' => 'users.*', 'permission' => 'users.manage', 'reads' => true],
         ['pattern' => 'roles.*', 'permission' => 'users.manage', 'reads' => true],
         ['pattern' => 'audit.*', 'permission' => 'audit.view', 'reads' => true],

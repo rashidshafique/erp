@@ -97,4 +97,62 @@ class MobileScreensTest extends TestCase
         $this->getJson(route('m.token'))->assertUnauthorized();
         $this->actingAs($this->tech('QA_TEST_TECH'))->getJson(route('m.token'))->assertOk()->assertJsonStructure(['token']);
     }
+
+    public function test_a_test_tech_can_save_an_inspection_and_the_right_people_hear_the_result(): void
+    {
+        config(['foundry.require_login' => true]);
+        $tech = $this->tech('QA_TEST_TECH');
+        $manager = $this->tech('QUALITY_MANAGER');
+        $planner = $this->tech('PRODUCTION_MANAGER');
+        $lot = $this->castingLot();
+
+        $this->actingAs($tech)->post(route('lots.inspections.store', $lot), ['inspection_type' => 'FINAL', 'sample_size' => '5'])->assertSessionHasNoErrors();
+        $inspection = \App\Models\QualityInspection::firstOrFail();
+        $this->post(route('inspections.complete', $inspection), ['quantity_accepted' => '3', 'quantity_rejected' => '2', 'quantity_rework' => '0', 'quantity_pending' => '0', 'overall_disposition' => 'PARTIAL'])->assertSessionHasNoErrors();
+
+        $this->assertStringContainsString('FAIL', $manager->notifications()->firstOrFail()->data['title']);
+        $this->assertSame('danger', $planner->notifications()->firstOrFail()->data['tone']);
+        $this->assertSame(0, $tech->notifications()->count());
+    }
+
+    public function test_a_passed_inspection_tells_planners_only(): void
+    {
+        config(['foundry.require_login' => true]);
+        $tech = $this->tech('QA_TEST_TECH');
+        $manager = $this->tech('QUALITY_MANAGER');
+        $planner = $this->tech('PRODUCTION_MANAGER');
+        $lot = $this->castingLot();
+
+        $this->actingAs($tech)->post(route('lots.inspections.store', $lot), ['inspection_type' => 'FINAL', 'sample_size' => '5']);
+        $this->post(route('inspections.complete', \App\Models\QualityInspection::firstOrFail()), ['quantity_accepted' => '5', 'quantity_rejected' => '0', 'quantity_rework' => '0', 'quantity_pending' => '0', 'overall_disposition' => 'ACCEPT']);
+
+        $this->assertStringContainsString('PASS', $planner->notifications()->firstOrFail()->data['title']);
+        $this->assertSame(0, $manager->notifications()->count());
+    }
+
+    public function test_a_defect_tech_cannot_save_test_results(): void
+    {
+        config(['foundry.require_login' => true]);
+        $lot = $this->castingLot();
+        $this->actingAs($this->tech('QA_DEFECT_TECH'))->post(route('lots.inspections.store', $lot), ['inspection_type' => 'FINAL', 'sample_size' => '5'])->assertForbidden();
+    }
+
+    public function test_a_failed_thermal_test_from_a_tech_tells_quality_and_the_melt_shop(): void
+    {
+        config(['foundry.require_login' => true]);
+        $furnace = \App\Models\Furnace::create(['code' => 'IF-'.uniqid(), 'name' => 'Induction', 'furnace_type' => 'INDUCTION', 'status' => 'ACTIVE']);
+        $heat = \App\Models\Heat::create(['heat_number' => 'H-'.uniqid(), 'furnace_id' => $furnace->id, 'process_type' => 'INDUCTION', 'status' => 'PLANNED',
+            'iron_grade_id' => \App\Models\IronGrade::where('code', 'EN-GJS-500-7')->value('id')]);
+        \App\Models\ThermalWindow::create(['iron_grade_id' => $heat->iron_grade_id, 'cup_type' => 'STABLE', 'te_min_floor_c' => 1140, 'recal_max_c' => 6]);
+        $tech = $this->tech('QA_TEST_TECH');
+        $manager = $this->tech('QUALITY_MANAGER');
+        $melt = $this->tech('MELT_SUPERVISOR');
+
+        $this->actingAs($tech)->post(route('thermal.store'), ['heat_id' => $heat->id, 'stage' => 'POST_TREATMENT', 'cup_type' => 'STABLE', 'tl_c' => 1190, 'te_min_c' => 1132, 'te_max_c' => 1150])
+            ->assertSessionHasNoErrors();
+
+        $this->assertStringContainsString('FAIL', $manager->notifications()->firstOrFail()->data['title']);
+        $this->assertStringContainsString('FAIL', $melt->notifications()->firstOrFail()->data['title']);
+        $this->assertSame(0, $tech->notifications()->count());
+    }
 }

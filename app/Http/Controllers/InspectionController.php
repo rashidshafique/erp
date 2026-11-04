@@ -223,6 +223,8 @@ class InspectionController extends Controller
             }
         });
 
+        app(\App\Services\Quality\TestAlerts::class)->inspection($inspection->fresh(), $request->user());
+
         return redirect()->route('inspections.show', $inspection)->with('success', 'Inspection completed.'.($ncr ? " Nonconformance {$ncr->ncr_number} was raised." : ''));
     }
 
