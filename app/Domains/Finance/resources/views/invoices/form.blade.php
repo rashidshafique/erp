@@ -134,7 +134,7 @@
 <script>
 function invoiceLines(start, rates, products, lookup, dispatches, cfg) {
     let seq = 0;
-    const blank = l => ({ ...l, key: ++seq, product_id: l.product_id ?? '', tax_rate_id: l.tax_rate_id ?? '', supply_type: l.supply_type ?? 'GOODS', tariff_code: l.tariff_code ?? '', inventory_class: l.inventory_class ?? '', dn: l.dn ?? null, extra: l.extra ?? null, label: l.label ?? '' });
+    const blank = l => ({ ...l, key: ++seq, uom: l.uom || 'pcs', product_id: l.product_id ?? '', tax_rate_id: l.tax_rate_id ?? '', supply_type: l.supply_type ?? 'GOODS', tariff_code: l.tariff_code ?? '', inventory_class: l.inventory_class ?? '', dn: l.dn ?? null, extra: l.extra ?? null, label: l.label ?? '' });
     return {
         products, cfg, dispatches, trace: false, dnOpen: true,
         lines: start.map(blank),
