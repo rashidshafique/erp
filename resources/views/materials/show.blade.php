@@ -56,6 +56,22 @@
 </div>
 
 <div class="panel">
+<div class="panel-header"><h2>Usage and where it is used</h2></div>
+<div class="panel-body">
+    <p>Issued in the last 30 days: <strong>{{ \App\Support\Formats::number($issued30, 3) }} {{ $material->base_uom }}</strong>
+        @if ($coverDays !== null) · Cover at that rate: <strong>{{ $coverDays }} days</strong>@if ($material->minimum_stock_qty !== null && $onHand < (float) $material->minimum_stock_qty) · <strong>Below minimum</strong>@endif @endif</p>
+    @if ($bomUses->isEmpty() && $recipes->isEmpty())
+        <p class="muted">Not used in any product bill of materials or charge recipe yet.</p>
+    @else
+        <ul>
+            @foreach ($bomUses as $line)<li>{{ $line->productRevision?->product?->code ?? 'Product' }} rev {{ $line->productRevision?->revision ?? '' }} · {{ \App\Support\Formats::number((float) $line->quantity, 4) }} {{ \App\Domains\Engineering\Models\BomLine::BASES[$line->basis] ?? $line->basis }}</li>@endforeach
+            @foreach ($recipes as $name)<li>Charge recipe {{ $name }}</li>@endforeach
+        </ul>
+    @endif
+</div>
+</div>
+
+<div class="panel">
 <div class="panel-header"><h2>Material lots</h2></div>
 <div class="table-wrap">
     <table>

@@ -48,6 +48,21 @@ class MaterialsTest extends TestCase
         $this->put(route('materials.update', $material), $this->form())->assertSessionHasNoErrors();      // keeping its own code is fine
     }
 
+    public function test_the_material_page_shows_issues_of_the_last_30_days_and_the_cover_they_give(): void
+    {
+        $material = $this->material(['minimum_stock_qty' => 500]);
+        $lot = $this->lot($material, ['received_qty' => 400, 'accepted_qty' => 400]);
+        $ledger = app(\App\Services\Stock\StockLedger::class);
+        $ledger->receive($lot, 400, 90, 'kg');
+
+        $this->get(route('materials.show', $material))->assertOk()->assertSee('Not used in any product bill of materials');
+
+        StockMovement::where('material_id', $material->id)->update(['occurred_at' => now()->subDays(60)]);
+        StockMovement::create(['movement_number' => 'SM-T1', 'movement_type' => 'ISSUE', 'material_id' => $material->id, 'material_lot_id' => $lot->id, 'quantity' => -300, 'uom' => 'kg', 'occurred_at' => now()->subDays(5)]);
+
+        $this->get(route('materials.show', $material))->assertOk()->assertSee('300.000')->assertSee('Cover at that rate');
+    }
+
     public function test_a_materials_tax_details_are_saved_with_the_pct_code_in_its_format_and_a_bad_code_refused(): void
     {
         $this->get(route('materials.create'))->assertOk()->assertSee('PCT code')->assertSee('Stock-in-trade');

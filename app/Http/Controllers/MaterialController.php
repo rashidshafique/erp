@@ -53,10 +53,21 @@ class MaterialController extends Controller
             ->get()
             ->keyBy('receipt_lot_id');
 
+        $onHand = app(\App\Services\Stock\StockLevels::class)->onHand([$material->id])[$material->id] ?? 0.0;
+        $issued = abs((float) \App\Models\StockMovement::query()
+            ->where('material_id', $material->id)
+            ->where('movement_type', 'ISSUE')
+            ->where('occurred_at', '>=', now()->subDays(30))
+            ->sum('quantity'));
+
         return view('materials.show', [
             'material' => $material,
+            'issued30' => $issued,
+            'coverDays' => $issued > 0 ? (int) floor($onHand / ($issued / 30)) : null,
+            'recipes' => $material->chargeBatchItems()->with('chargeBatch')->get()->pluck('chargeBatch.name')->filter()->unique()->values(),
+            'bomUses' => \App\Domains\Engineering\Models\BomLine::query()->where('material_id', $material->id)->with('productRevision.product')->get(),
             'receiptMovements' => $receiptMovements,
-            'onHand' => app(\App\Services\Stock\StockLevels::class)->onHand([$material->id])[$material->id] ?? 0.0,
+            'onHand' => $onHand,
             'stockLocations' => app(\App\Domains\Core\ModuleRegistry::class)->isEnabled('inventory')
                 ? \App\Models\StockLocation::where('is_active', true)->orderBy('code')->get()
                 : collect(),
