@@ -182,7 +182,7 @@ class SupplierBillTest extends TestCase
         $this->post(route('supplier-payments.store'), ['supplier_id' => $supplier->id, 'paid_on' => '2026-10-10', 'amount' => 10, 'alloc' => [$bill->id => 5]]);
         $payment = SupplierPayment::firstOrFail();
 
-        $this->get(route('bills.index'))->assertOk()->assertSee($bill->bill_number);
+        $this->get(route('bills.index'))->assertOk()->assertSee($bill->bill_number)->assertSee('Owed to suppliers');
         $this->get(route('bills.create'))->assertOk();
         $this->get(route('bills.show', $bill))->assertOk();
         $this->get(route('bills.credit', $bill))->assertOk();

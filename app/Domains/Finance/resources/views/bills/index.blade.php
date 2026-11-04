@@ -3,6 +3,12 @@
 @section('content')
 @php $m = fn ($v) => \App\Support\Formats::money($v); @endphp
 <div class="page-heading"><div><h1>Supplier bills</h1><p>Supplier bills and credit notes. Enter one from a purchase order or on its own.</p></div><div class="actions"><a class="btn btn-primary" href="{{ route('bills.create') }}">+ New bill</a></div></div>
+<div class="panel"><div class="panel-body" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px">
+    <div><div class="muted small">Owed to suppliers</div><strong style="font-size:22px">{{ $m($summary['owed']) }}</strong><div class="muted small">{{ $summary['owed_count'] }} open {{ \Illuminate\Support\Str::plural('bill', $summary['owed_count']) }}</div></div>
+    <div><div class="muted small">Due in 7 days</div><strong style="font-size:22px">{{ $m($summary['soon']) }}</strong><div class="muted small">{{ $summary['soon_count'] }} {{ \Illuminate\Support\Str::plural('bill', $summary['soon_count']) }}</div></div>
+    <div><div class="muted small">Overdue</div><strong style="font-size:22px;color:var(--danger)">{{ $m($summary['overdue']) }}</strong><div class="muted small">{{ $summary['overdue_count'] }} {{ \Illuminate\Support\Str::plural('bill', $summary['overdue_count']) }}</div></div>
+    <div><div class="muted small">Drafts</div><strong style="font-size:22px">{{ $summary['drafts'] }}</strong><div class="muted small"><a href="{{ route('bills.index', ['status' => 'DRAFT']) }}">not yet posted</a></div></div>
+</div></div>
 <div class="panel"><div class="panel-body">
     <form method="GET" class="filters">
         <div class="field"><label for="supplier">Supplier</label><select id="supplier" name="supplier" onchange="this.form.submit()"><option value="">All suppliers</option>@foreach ($suppliers as $s)<option value="{{ $s->id }}" @selected($supplierId === $s->id)>{{ $s->name }} ({{ $s->code }})</option>@endforeach</select></div>

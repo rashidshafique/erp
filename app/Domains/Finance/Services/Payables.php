@@ -18,6 +18,25 @@ class Payables
             ->orderBy('due_date')->orderBy('bill_date')->get()->filter(fn (SupplierBill $b) => $b->balance() > 0)->values();
     }
 
+    /**
+     * The strip above the bills list.
+     *
+     * @return array{owed: float, owed_count: int, soon: float, soon_count: int, overdue: float, overdue_count: int, drafts: int}
+     */
+    public function summary(): array
+    {
+        $open = $this->open();
+        $soon = $open->filter(fn (SupplierBill $b) => $b->due_date !== null && ! $b->isOverdue() && $b->due_date->lte(today()->addDays(7)));
+        $late = $open->filter(fn (SupplierBill $b) => $b->isOverdue());
+
+        return [
+            'owed' => round($open->sum(fn (SupplierBill $b) => $b->balance()), 2), 'owed_count' => $open->count(),
+            'soon' => round($soon->sum(fn (SupplierBill $b) => $b->balance()), 2), 'soon_count' => $soon->count(),
+            'overdue' => round($late->sum(fn (SupplierBill $b) => $b->balance()), 2), 'overdue_count' => $late->count(),
+            'drafts' => SupplierBill::where('status', 'DRAFT')->count(),
+        ];
+    }
+
     public function bucket(SupplierBill $bill): string
     {
         $late = $bill->due_date ? (int) $bill->due_date->diffInDays(today(), false) : 0;

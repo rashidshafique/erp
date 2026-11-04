@@ -5,6 +5,7 @@ namespace App\Domains\Finance\Http\Controllers;
 use App\Domains\Finance\Models\SupplierBill;
 use App\Domains\Finance\Services\Advances;
 use App\Domains\Finance\Services\BillService;
+use App\Domains\Finance\Services\Payables;
 use App\Domains\Finance\Services\FinanceRules;
 use App\Domains\Finance\Models\TaxRate;
 use App\Domains\Purchasing\Models\PurchaseOrder;
@@ -31,7 +32,7 @@ class BillController extends Controller
             : $query->paginate(25)->withQueryString();
 
         return view('finance::bills.index', [
-            'bills' => $rows, 'supplierId' => $supplierId, 'status' => $status,
+            'summary' => app(Payables::class)->summary(), 'bills' => $rows, 'supplierId' => $supplierId, 'status' => $status,
             'suppliers' => Supplier::whereIn('id', SupplierBill::select('supplier_id'))->orderedByName()->get(),
         ]);
     }
