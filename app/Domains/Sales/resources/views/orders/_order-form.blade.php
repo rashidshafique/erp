@@ -150,7 +150,7 @@
 </div>
 @endunless
 <form method="POST" action="{{ $action }}" id="so-form" @if ($copyFrom) data-copy @endif @class(['so-noprice' => ! $prices, 'so-disc' => $discounts]) data-today="{{ today()->toDateString() }}" data-ahead="{{ \App\Support\OrderRules::repeatAheadDays() }}">
-@csrf @if ($order) @method('PUT') @endif
+@csrf @if ($order) @method('PUT')<input type="hidden" name="order_id" value="{{ $order->id }}"> @endif
 <div class="so-wrap">
 <div class="so-card"><div class="so-body">
     <h2>Order detail</h2>

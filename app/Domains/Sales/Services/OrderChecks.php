@@ -5,6 +5,7 @@ namespace App\Domains\Sales\Services;
 use App\Domains\Sales\Models\SalesOrder;
 use App\Domains\Sales\Models\SalesOrderLine;
 use App\Models\Customer;
+use App\Models\Product;
 use App\Models\ProductRevision;
 use App\Support\OrderRules;
 
@@ -29,7 +30,7 @@ class OrderChecks
     }
 
     /**
-     * @param  array{customer_id?: ?string, order_date?: ?string, requested_delivery_date?: ?string, lines?: array<int, array<string, mixed>>}  $input
+     * @param  array{order_id?: ?string, customer_id?: ?string, order_date?: ?string, requested_delivery_date?: ?string, lines?: array<int, array<string, mixed>>}  $input
      * @return array{ready: bool, rows: list<array{name: string, status: 'ok'|'warn'|'block', short: string, text: string}>, blocks: int, warns: int, summary: string, primary: string}
      */
     public function run(array $input): array
@@ -37,12 +38,16 @@ class OrderChecks
         $order = new SalesOrder(['order_date' => $input['order_date'] ?? today(), 'requested_delivery_date' => $input['requested_delivery_date'] ?? null]);
         $customer = filled($input['customer_id'] ?? null) ? Customer::find($input['customer_id']) : null;
         $order->customer_id = $customer?->id;
+        // The order being edited is already among the customer's open orders; naming it keeps its value from being counted twice.
+        if (filled($input['order_id'] ?? null)) {
+            $order->id = $input['order_id'];
+        }
         $order->setRelation('customer', $customer);
 
         $lines = collect($input['lines'] ?? [])->filter(fn ($l) => filled($l['product_revision_id'] ?? null))->map(function ($l) use ($order) {
-            $rev = ProductRevision::fromChoice($l['product_revision_id']);
+            $rev = $this->revision($l['product_revision_id']);
             $line = new SalesOrderLine([
-                'product_id' => $rev->product_id, 'product_revision_id' => $rev->id, 'ordered_qty' => (float) ($l['ordered_qty'] ?? 0),
+                'product_id' => $rev->product_id, 'product_revision_id' => $rev->exists ? $rev->id : null, 'ordered_qty' => (float) ($l['ordered_qty'] ?? 0),
                 'unit_price' => filled($l['unit_price'] ?? null) ? $l['unit_price'] : null, 'discount_percent' => (float) ($l['discount_percent'] ?? 0),
                 'uom' => $l['uom'] ?? 'piece', 'requested_delivery_date' => $l['requested_delivery_date'] ?? null,
                 'repeat_every' => $l['repeat_every'] ?? null,
@@ -77,6 +82,19 @@ class OrderChecks
 
         return ['ready' => true, 'rows' => $rows, 'blocks' => $blocks, 'warns' => $warns,
             'summary' => ($blocks ? $blocks.' blocking · ' : '').($warns ? $warns.' to check' : 'All clear'), 'primary' => $this->label($blocks)];
+    }
+
+    /** The revision a form choice names. A product with no revision yet gets an unsaved stand-in: checking must never write. */
+    private function revision(string $choice): ProductRevision
+    {
+        if (! ProductRevision::isProductChoice($choice)) {
+            return ProductRevision::with('product')->findOrFail($choice);
+        }
+        $product = Product::findOrFail(substr($choice, strlen(ProductRevision::PRODUCT_CHOICE)));
+        $rev = $product->revisions()->where('status', '!=', 'OBSOLETE')->orderByDesc('created_at')->get()->sortBy(fn ($r) => $r->status === 'APPROVED' ? 0 : 1)->first()
+            ?? new ProductRevision(['product_id' => $product->id, 'status' => 'DRAFT', 'revision' => '?']);
+
+        return $rev->setRelation('product', $product);
     }
 
     /** @return array{status: string, short: string, text: string} */

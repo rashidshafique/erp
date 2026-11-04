@@ -103,9 +103,9 @@ class SalesOrderController extends Controller
     /** The checks panel of the order form: the contract review's checks on the order as typed, nothing saved. */
     public function checks(Request $request, OrderChecks $checks): \Illuminate\Http\JsonResponse
     {
-        $request->validate(['customer_id' => ['nullable', 'uuid'], 'order_date' => ['nullable', 'date'], 'requested_delivery_date' => ['nullable', 'date'], 'lines' => ['nullable', 'array', 'max:50']]);
+        $request->validate(['order_id' => ['nullable', 'uuid'], 'customer_id' => ['nullable', 'uuid'], 'order_date' => ['nullable', 'date'], 'requested_delivery_date' => ['nullable', 'date'], 'lines' => ['nullable', 'array', 'max:50']]);
 
-        return response()->json($checks->run($request->only(['customer_id', 'order_date', 'requested_delivery_date', 'lines'])));
+        return response()->json($checks->run($request->only(['order_id', 'customer_id', 'order_date', 'requested_delivery_date', 'lines'])));
     }
 
     /** @return array<string, array<int, mixed>> */

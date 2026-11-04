@@ -70,4 +70,26 @@ class SalesOrderChecksTest extends TestCase
         $this->assertSame('DRAFT', SalesOrder::first()->status);
         $this->assertDatabaseCount('contract_reviews', 0);
     }
+
+    public function test_a_product_without_a_revision_is_checked_without_creating_one(): void
+    {
+        $customer = Customer::create(['code' => 'ACME', 'name' => 'Acme Pumps']);
+        $product = Product::create(['code' => 'BRK-1', 'name' => 'Bracket']);
+        OrderRules::set('contract_review', 'MANUAL');
+
+        $this->postJson(route('sales-orders.checks'), ['customer_id' => $customer->id, 'lines' => [['product_revision_id' => 'product:'.$product->id, 'ordered_qty' => 5]]])
+            ->assertOk()->assertJson(['ready' => true]);
+
+        $this->assertSame(0, ProductRevision::count());
+    }
+
+    public function test_the_edit_screen_sends_the_order_id_so_it_is_not_counted_twice(): void
+    {
+        [$customer, $rev] = $this->setUpOrder();
+        $this->post(route('sales-orders.store'), ['customer_id' => $customer->id, 'order_date' => today()->toDateString(), 'lines' => [['product_revision_id' => $rev->id, 'ordered_qty' => 3]]]);
+        $order = SalesOrder::first();
+
+        $this->get(route('sales-orders.edit', $order))->assertOk()->assertSee('name="order_id" value="'.$order->id.'"', false);
+        $this->postJson(route('sales-orders.checks'), ['order_id' => $order->id, 'customer_id' => $customer->id, 'lines' => [['product_revision_id' => $rev->id, 'ordered_qty' => 3]]])->assertOk();
+    }
 }
