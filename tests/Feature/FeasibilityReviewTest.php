@@ -61,4 +61,12 @@ class FeasibilityReviewTest extends TestCase
         $this->post(route('feasibility.sign', [$item, 'METHODS']), ['verdict' => 'OK'])->assertNotFound();
         $this->post(route('feasibility.sign', [$item, 'NOPE']), ['verdict' => 'OK'])->assertNotFound();
     }
+
+    public function test_the_review_screen_lists_the_conditions_for_the_customer(): void
+    {
+        $item = $this->item();
+        $this->post(route('feasibility.sign', [$item, 'METHODS']), ['verdict' => 'CONDITIONAL', 'notes' => 'Wall at rib R4 to 4.0 mm']);
+
+        $this->get(route('feasibility.show', $item))->assertOk()->assertSee('Conditions for customer')->assertSee('Wall at rib R4 to 4.0 mm')->assertSee('1 of '.count(config('feasibility.departments')).' departments signed');
+    }
 }
