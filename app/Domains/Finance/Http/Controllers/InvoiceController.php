@@ -5,7 +5,13 @@ namespace App\Domains\Finance\Http\Controllers;
 use App\Domains\Dispatch\Models\Dispatch;
 use App\Domains\Finance\Models\Invoice;
 use App\Domains\Finance\Models\TaxRate;
+use App\Domains\Core\ModuleRegistry;
 use App\Domains\Finance\Services\Advances;
+use App\Domains\Finance\Services\CreditLimits;
+use App\Domains\Ledger\Models\Journal;
+use App\Domains\Ledger\Models\LedgerAccount;
+use App\Domains\Ledger\Services\PostingRules;
+use App\Domains\Sales\Models\SalesOrderLine;
 use App\Domains\Finance\Services\FinanceRules;
 use App\Domains\Finance\Services\InvoiceService;
 use App\Domains\Finance\Services\InvoiceTemplates;
@@ -67,9 +73,94 @@ class InvoiceController extends Controller
     public function show(Invoice $invoice): View
     {
         $invoice->load(['customer', 'lines', 'creditNotes', 'original', 'allocations.receipt']);
-        $checks = $invoice->status === 'DRAFT' && ! $invoice->isCreditNote() ? app(InvoiceService::class)->taxChecks($invoice) : ['blocks' => [], 'warnings' => []];
+        $draft = $invoice->status === 'DRAFT' && ! $invoice->isCreditNote();
+        $checks = $draft ? app(InvoiceService::class)->taxChecks($invoice) : ['blocks' => [], 'warnings' => []];
+        $ledger = class_exists(PostingRules::class) && app(ModuleRegistry::class)->isEnabled('ledger');
 
-        return view('finance::invoices.show', ['invoice' => $invoice, 'taxChecks' => $checks]);
+        return view('finance::invoices.show', [
+            'invoice' => $invoice, 'taxChecks' => $checks, 'checkRows' => $draft ? $this->checkRows($invoice, $checks) : [],
+            'posting' => $draft && $ledger ? $this->postingRows($invoice) : [],
+            'journal' => $ledger && $invoice->status === 'ISSUED' ? Journal::where('source_type', 'invoice')->where('source_id', $invoice->id)->first() : null,
+            'trace' => $this->traceByLine($invoice), 'linked' => $this->linkedDocuments($invoice),
+            'certificates' => $invoice->certificateAllocations()->with('certificate')->get()->filter(fn ($a) => $a->certificate?->status === 'ACTIVE')->values(),
+        ]);
+    }
+
+    /**
+     * The checks beside a draft: tax, the price against the sales order, and the customer's credit.
+     *
+     * @param  array{blocks: list<string>, warnings: list<string>}  $tax
+     * @return list<array{ok: bool, t: string, d: string}>
+     */
+    private function checkRows(Invoice $invoice, array $tax): array
+    {
+        $rows = [];
+        foreach ($tax['blocks'] as $text) {
+            $rows[] = ['ok' => false, 't' => 'Tax', 'd' => $text];
+        }
+        foreach ($tax['warnings'] as $text) {
+            $rows[] = ['ok' => false, 't' => 'Tax', 'd' => $text];
+        }
+        if ($tax['blocks'] === [] && $tax['warnings'] === []) {
+            $rows[] = ['ok' => true, 't' => 'Tax checks pass', 'd' => 'Rates, supply types and registrations are in order'];
+        }
+
+        $orderLines = SalesOrderLine::with('salesOrder')->whereIn('id', $invoice->lines->pluck('sales_order_line_id')->filter())->get()->keyBy('id');
+        if ($orderLines->isNotEmpty()) {
+            $off = $invoice->lines->filter(fn ($l) => $orderLines->has($l->sales_order_line_id) && abs((float) $orderLines[$l->sales_order_line_id]->unit_price - (float) $l->unit_price) > 0.0001);
+            $orders = $orderLines->map(fn ($l) => $l->salesOrder?->order_number)->filter()->unique()->implode(', ');
+            $rows[] = $off->isEmpty()
+                ? ['ok' => true, 't' => 'Prices match '.$orders, 'd' => 'No line price differs from the order']
+                : ['ok' => false, 't' => 'Price differs from '.$orders, 'd' => $off->count().' '.Str::plural('line', $off->count()).' priced otherwise than on the order'];
+        }
+
+        if ($invoice->customer_id) {
+            $credit = app(CreditLimits::class)->check($invoice->customer_id, (float) $invoice->total);
+            $rows[] = $credit['severity'] === 'PASS'
+                ? ['ok' => true, 't' => 'Credit is in order', 'd' => 'Posting keeps '.$invoice->customer?->name.' inside its limit']
+                : ['ok' => false, 't' => 'Credit', 'd' => implode(' ', $credit['messages'])];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * The journal this draft will post, with each account's code and name (design 24b).
+     *
+     * @return list<array{code: string, name: string, debit: float, credit: float}>
+     */
+    private function postingRows(Invoice $invoice): array
+    {
+        try {
+            $lines = app(PostingRules::class)->preview($invoice);
+        } catch (\Throwable) {
+            return [];
+        }
+        $accounts = LedgerAccount::whereIn('id', array_column($lines, 'account_id'))->get()->keyBy('id');
+
+        return array_map(fn ($l) => ['code' => (string) $accounts[$l['account_id']]->code, 'name' => (string) $accounts[$l['account_id']]->name, 'debit' => $l['debit'], 'credit' => $l['credit']], $lines);
+    }
+
+    /** The dispatch note each line was billed from, keyed by line id. */
+    private function traceByLine(Invoice $invoice): array
+    {
+        return DB::table('invoice_lines')->join('dispatch_items', 'dispatch_items.id', '=', 'invoice_lines.dispatch_item_id')
+            ->join('dispatches', 'dispatches.id', '=', 'dispatch_items.dispatch_id')->where('invoice_lines.invoice_id', $invoice->id)
+            ->pluck('dispatches.dispatch_number', 'invoice_lines.id')->all();
+    }
+
+    /**
+     * The sales orders and dispatch notes the invoice was raised from.
+     *
+     * @return array{orders: list<string>, notes: list<string>}
+     */
+    private function linkedDocuments(Invoice $invoice): array
+    {
+        return [
+            'orders' => DB::table('invoice_lines')->join('sales_order_lines', 'sales_order_lines.id', '=', 'invoice_lines.sales_order_line_id')
+                ->join('sales_orders', 'sales_orders.id', '=', 'sales_order_lines.sales_order_id')->where('invoice_lines.invoice_id', $invoice->id)->distinct()->pluck('sales_orders.order_number')->all(),
+            'notes' => array_values(array_unique($this->traceByLine($invoice))),
+        ];
     }
 
     /** Puts the customer's money on account on this invoice. */
