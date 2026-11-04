@@ -23,7 +23,9 @@ class MobileScreensTest extends TestCase
     public function test_the_phone_login_is_open_and_sends_a_signed_in_tech_to_the_phone_home(): void
     {
         config(['foundry.require_login' => true]);
-        $this->get(route('m.login'))->assertOk()->assertSee('Sign in');
+        $this->get(route('m.login'))->assertOk()->assertSee('Sign in')->assertSee('/manifest.webmanifest', false);
+        $this->assertFileExists(public_path('sw.js'));
+        $this->assertFileExists(public_path('icons/icon-512.png'));
         $u = $this->tech('QA_TEST_TECH');
         $this->post(route('login.attempt'), ['email' => $u->email, 'password' => 'Longpass123', 'mobile' => 1])->assertRedirect(route('m.home'));
     }

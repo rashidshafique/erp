@@ -10,7 +10,7 @@
         <div class="muted" style="font-size:12.5px">{{ $roles ?: 'Shop floor' }}{{ $user ? ' · '.$user->name : '' }}</div>
         <div style="font-size:22px;font-weight:600">Today</div>
     </div>
-    @if($user)<form method="POST" action="{{ route('logout') }}">@csrf<input type="hidden" name="mobile" value="1"><button class="chip" style="font:inherit;font-size:13px;cursor:pointer">Sign out</button></form>@endif
+    @if($user)<form method="POST" action="{{ route('logout') }}" onsubmit="if(navigator.serviceWorker&&navigator.serviceWorker.controller){navigator.serviceWorker.controller.postMessage('signed-out')}">@csrf<input type="hidden" name="mobile" value="1"><button class="chip" style="font:inherit;font-size:13px;cursor:pointer">Sign out</button></form>@endif
 </div>
 
 @if($tests)
