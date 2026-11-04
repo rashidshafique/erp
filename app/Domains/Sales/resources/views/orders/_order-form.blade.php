@@ -21,7 +21,10 @@
     $fromLine = fn ($l) => ['name' => $l->product?->name, 'sub' => $l->product?->code.' · rev '.$l->productRevision?->revision, 'img' => $photos[$l->product_id] ?? null, 'price' => null, 'uom' => $l->product?->base_uom ?: 'pcs', 'kg' => $l->pieceWeightKg() ?: null];
     $blankLine = ['name' => '', 'sub' => '', 'img' => null, 'price' => null, 'uom' => 'pcs', 'kg' => null];
     $trim = fn ($v) => $v === null ? null : rtrim(rtrim((string) $v, '0'), '.');
-    $formLines = old('lines') !== null
+    $copyFrom ??= null;
+    $copyLines = ($copyFrom?->lines ?? collect())->filter(fn ($l) => isset($catalogue[$l->product_revision_id]))->map(fn ($l) => ['value' => $l->product_revision_id, 'p' => $catalogue[$l->product_revision_id], 'record' => null,
+        'line' => ['uom' => $l->isSoldByKg() ? 'kg' : 'piece', 'ordered_qty' => $trim($l->repeats() ? $l->repeat_qty : $l->ordered_qty), 'discount_percent' => $trim($l->discount_percent)]])->values();
+    $formLines = old('lines') === null && $copyLines->isNotEmpty() ? $copyLines : (old('lines') !== null
         ? collect(old('lines'))->map(function ($l) use ($existing, $catalogue, $fromLine) {
             $line = $existing[$l['id'] ?? ''] ?? null;
             $value = $l['product_revision_id'] ?? $line?->product_revision_id;
@@ -32,13 +35,16 @@
             'line' => ['uom' => $line->isSoldByKg() ? 'kg' : 'piece', 'ordered_qty' => $trim($line->repeats() ? $line->repeat_qty : $line->ordered_qty), 'unit_price' => $trim($line->unit_price), 'discount_percent' => $trim($line->discount_percent), 'requested_delivery_date' => $line->requested_delivery_date?->toDateString(),
                 'repeat_every' => $line->repeat_every, 'repeat_from' => $line->repeat_from?->toDateString(), 'repeat_until' => $line->repeat_until?->toDateString(),
                 'staggered' => ! $line->repeats() && $line->deliveries->isNotEmpty(),
-                'deliveries' => $line->repeats() ? [] : $line->deliveries->map(fn ($d) => ['id' => $d->id, 'due_date' => $d->due_date->toDateString(), 'quantity' => $trim($d->quantity), 'notes' => $d->notes])->all()]])->values();
+                'deliveries' => $line->repeats() ? [] : $line->deliveries->map(fn ($d) => ['id' => $d->id, 'due_date' => $d->due_date->toDateString(), 'quantity' => $trim($d->quantity), 'notes' => $d->notes])->all()]])->values());
 @endphp
 <style>
     .so-head { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
     .so-head h1 { margin: 0; font-size: 24px; }
     .so-back { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); text-decoration: none; font-size: 18px; }
     .so-back:hover { border-color: var(--accent); color: var(--accent); }
+    .so-start { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; font-size: 13.5px; }
+    .so-chip { padding: 6px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); text-decoration: none; font-size: 13.5px; }
+    .so-chip.is-on { background: var(--accent); border-color: var(--accent); color: #fff; }
     .so-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 20px; align-items: start; }
     .so-rail { position: sticky; top: 16px; padding: 18px 18px 14px; }
     .so-rail h2 { display: flex; justify-content: space-between; align-items: baseline; margin: 0 0 12px; font-size: 15px; }
@@ -133,7 +139,17 @@
 @if ($catalogue->isEmpty())
     <div class="alert alert-error">There are no products to order yet. Add a product first.</div>
 @else
-<form method="POST" action="{{ $action }}" id="so-form" @class(['so-noprice' => ! $prices, 'so-disc' => $discounts]) data-today="{{ today()->toDateString() }}" data-ahead="{{ \App\Support\OrderRules::repeatAheadDays() }}">
+@unless ($order)
+<div class="so-start"><span>Start from</span>
+    <a href="{{ route('sales-orders.create') }}" @class(['so-chip', 'is-on' => ! $copyFrom])>New order</a>
+    <select class="so-chip {{ $copyFrom ? 'is-on' : '' }}" aria-label="Copy an earlier order" onchange="if (this.value) location.href = this.value">
+        <option value="">Copy an order</option>
+        @foreach ($recentOrders as $r)<option value="{{ route('sales-orders.create', ['copy' => $r->id]) }}" @selected($copyFrom?->id === $r->id)>{{ $r->order_number }} · {{ $r->customer?->name }} · {{ $r->order_date?->format('j M Y') }}</option>@endforeach
+    </select>
+    @if ($copyFrom)<span class="muted small">Lines of {{ $copyFrom->order_number }}; prices come from the price list again.</span>@endif
+</div>
+@endunless
+<form method="POST" action="{{ $action }}" id="so-form" @if ($copyFrom) data-copy @endif @class(['so-noprice' => ! $prices, 'so-disc' => $discounts]) data-today="{{ today()->toDateString() }}" data-ahead="{{ \App\Support\OrderRules::repeatAheadDays() }}">
 @csrf @if ($order) @method('PUT') @endif
 <div class="so-wrap">
 <div class="so-card"><div class="so-body">
@@ -141,7 +157,7 @@
     <div class="so-top">
         <div class="field"><label for="customer_id">Customer <a href="{{ route('customers.create') }}" class="qd-add" data-quick="qd-customer" data-quick-target="customer_id">+ Add</a></label>
             <select id="customer_id" name="customer_id" required data-search-select><option value="">Select customer</option>
-                @foreach ($customers as $c)<option value="{{ $c->id }}" data-sub="{{ $c->code }}" @selected(old('customer_id', $order?->customer_id) === $c->id)>{{ $c->name }}</option>@endforeach
+                @foreach ($customers as $c)<option value="{{ $c->id }}" data-sub="{{ $c->code }}" @selected(old('customer_id', $order?->customer_id ?? $copyFrom?->customer_id) === $c->id)>{{ $c->name }}</option>@endforeach
             </select>@if ($started)<div class="muted small">Production orders exist, so the customer cannot change.</div>@endif</div>
         <div class="field"><label for="order_date">Order date</label><input id="order_date" name="order_date" type="date" required value="{{ old('order_date', $order?->order_date?->toDateString() ?? today()->toDateString()) }}"></div>
         <div class="field"><label for="requested_delivery_date">Requested delivery</label><input id="requested_delivery_date" name="requested_delivery_date" type="date" value="{{ old('requested_delivery_date', $order?->requested_delivery_date?->toDateString()) }}"></div>
@@ -375,6 +391,8 @@
     new MutationObserver(checks).observe(linesBox, { childList: true });
     checks();
     linesBox.querySelectorAll('[data-line]').forEach(function (row) { unscheduled(row); piecesHint(row); });
+    // A copied order starts at the last price sold; the price list is asked again for each line.
+    if (form.hasAttribute('data-copy')) linesBox.querySelectorAll('[data-line]').forEach(function (row) { var b = row.querySelector('[data-price]'); if (b) { b.dataset.filled = b.value; listPrice(row); } });
     recalc();
 })();
 </script>

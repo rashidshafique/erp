@@ -84,7 +84,12 @@ class SalesOrderController extends Controller
 
     public function create(): View
     {
+        // "Copy an order": the earlier order's customer and lines start the form; prices are asked from the lists again.
+        $copy = request()->filled('copy') ? SalesOrder::with(['customer', 'lines.product', 'lines.productRevision'])->find(request('copy')) : null;
+
         return view('sales::orders.create', [
+            'copyFrom' => $copy,
+            'recentOrders' => SalesOrder::with('customer')->latest('order_date')->latest('created_at')->limit(30)->get(['id', 'order_number', 'customer_id', 'order_date']),
             'customers' => Customer::active()->orderBy('code')->get(),
             'revisions' => ProductRevision::with('product')->whereIn('status', ['APPROVED', 'ACTIVE'])->get()
                 ->sortBy(fn ($r) => $r->product?->code.' '.$r->revision)->values(),

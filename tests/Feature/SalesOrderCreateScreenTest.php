@@ -42,4 +42,20 @@ class SalesOrderCreateScreenTest extends TestCase
         $this->followingRedirects()->get(route('sales-orders.create'))->assertSee('name="lines[0][ordered_qty]" step="any" min="0" required value="7"', false)
             ->assertSee('value="'.today()->addWeek()->toDateString().'"', false);
     }
+
+    public function test_an_earlier_order_can_be_copied_into_the_form(): void
+    {
+        $customer = Customer::create(['code' => 'ACME', 'name' => 'Acme Pumps']);
+        $rev = ProductRevision::create(['product_id' => Product::create(['code' => 'FLG-1', 'name' => 'Flange'])->id, 'revision' => 'A', 'status' => 'APPROVED']);
+        $this->post(route('sales-orders.store'), ['customer_id' => $customer->id, 'order_date' => today()->toDateString(), 'customer_reference' => 'PO-1', 'lines' => [
+            ['product_revision_id' => $rev->id, 'ordered_qty' => 40, 'unit_price' => 120],
+        ]])->assertSessionHasNoErrors();
+        $order = \App\Domains\Sales\Models\SalesOrder::first();
+
+        $this->get(route('sales-orders.create'))->assertOk()->assertSee('Copy an order')->assertSee($order->order_number);
+        $this->get(route('sales-orders.create', ['copy' => $order->id]))->assertOk()
+            ->assertSee('value="'.$customer->id.'" data-sub="ACME" selected', false)
+            ->assertSee('name="lines[0][ordered_qty]" step="any" min="0" required value="40"', false)
+            ->assertDontSee('PO-1');
+    }
 }
