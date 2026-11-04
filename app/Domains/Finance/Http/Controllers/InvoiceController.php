@@ -23,22 +23,10 @@ use InvalidArgumentException;
 
 class InvoiceController extends Controller
 {
-    public function index(Request $request): View
+    /** The list is a Livewire component (design 24a); `?status=` and `?customer=` in the address still set its tab and customer. */
+    public function index(): View
     {
-        $customerId = $request->filled('customer') && Str::isUuid($request->query('customer')) ? $request->query('customer') : null;
-        $status = in_array($request->query('status'), ['DRAFT', 'ISSUED', 'VOID', 'OPEN', 'OVERDUE'], true) ? $request->query('status') : null;
-        $query = Invoice::with('customer')->when($customerId, fn ($q) => $q->where('customer_id', $customerId))
-            ->when(in_array($status, ['DRAFT', 'ISSUED', 'VOID'], true), fn ($q) => $q->where('status', $status))
-            ->when(in_array($status, ['OPEN', 'OVERDUE'], true), fn ($q) => $q->where('status', 'ISSUED')->where('kind', 'INVOICE'))
-            ->orderByDesc('invoice_date')->orderByDesc('created_at');
-        $rows = $status === 'OPEN' || $status === 'OVERDUE'
-            ? $query->get()->filter(fn (Invoice $i) => $status === 'OPEN' ? $i->balance() > 0 : $i->isOverdue())->values()
-            : $query->paginate(25)->withQueryString();
-
-        return view('finance::invoices.index', [
-            'invoices' => $rows, 'customerId' => $customerId, 'status' => $status,
-            'customers' => Customer::whereIn('id', Invoice::select('customer_id'))->orderedByName()->get(),
-        ]);
+        return view('finance::invoices.index');
     }
 
     /** A blank form, or one filled from a dispatch (?dispatch=), a sales order (?order=) or a customer (?customer=). */
