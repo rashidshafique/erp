@@ -91,8 +91,8 @@
                     <th>Lot</th>
                     <th>From → to</th>
                     <th>Qty (kg)</th>
-                    <th>Unit cost (PKR/kg)</th>
-                    <th>Total cost{{ \App\Support\Formats::currencySuffix() }}</th>
+                    @fieldcan('costs')<th>Unit cost (PKR/kg)</th>
+                    <th>Total cost{{ \App\Support\Formats::currencySuffix() }}</th>@endfieldcan
                     <th>Source</th>
                     <th>Recorded by</th>
                     <th>Reason</th>
@@ -108,8 +108,8 @@
                         <td>{{ $movement->materialLot?->lot_number ?? '—' }}</td>
                         <td>{{ $movement->fromLocation || $movement->toLocation ? ($movement->fromLocation?->code ?? '—').' → '.($movement->toLocation?->code ?? '—') : '—' }}</td>
                         <td>{{ \App\Support\Formats::number((float) $movement->quantity, 3) }}</td>
-                        <td>{{ $movement->unit_cost === null ? '—' : \App\Support\Formats::number((float) $movement->unit_cost, 4) }}</td>
-                        <td>{{ $movement->total_cost === null ? '—' : \App\Support\Formats::number((float) $movement->total_cost, 2) }}</td>
+                        @fieldcan('costs')<td>{{ $movement->unit_cost === null ? '—' : \App\Support\Formats::number((float) $movement->unit_cost, 4) }}</td>
+                        <td>{{ $movement->total_cost === null ? '—' : \App\Support\Formats::number((float) $movement->total_cost, 2) }}</td>@endfieldcan
                         <td>
                             {{ $movement->source_type ?? '—' }}
                             @if($movement->source_id)

@@ -62,6 +62,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Paginator::defaultView('vendor.pagination.minimal');
+        \Illuminate\Support\Facades\Blade::if('fieldcan', fn (string $kind): bool => \App\Support\Fields::can($kind));
         DevCommands::artisan('schedule:work', 'scheduler');   // automatic heat charges and the other scheduled jobs, under composer run dev
         Formats::registerCarbonMacros();
         View::composer('layouts.app', function ($view): void {

@@ -22,6 +22,12 @@
 <input type="hidden" name="roles[]" value="{{ $role->id }}"><input type="hidden" name="limits_shown" value="1">
 @if($copying)<div class="panel"><div class="panel-body">Showing what <strong>{{ $copying->name }}</strong> may do. Nothing changes for {{ $role->name }} until you save.</div></div>@endif
 
+<div class="panel"><div class="panel-body"><strong>What {{ $role->name }} can do</strong>
+    <div style="margin-top:6px;display:flex;flex-direction:column;gap:2px">
+    @forelse($summary as $g)<div>{{ $g['label'] }}: <strong>{{ $g['done'] === $g['of'] ? 'everything' : $g['done'].' of '.$g['of'].' actions' }}</strong></div>@empty<div class="muted">Nothing beyond reading pages.</div>@endforelse
+    <div class="muted small" style="margin-top:4px">Sees prices: {{ $fields['prices'] ? 'yes' : 'no' }} · sees costs: {{ $fields['costs'] ? 'yes' : 'no' }}</div>
+    </div></div></div>
+
 @foreach($tree as $permission => $group)
 <details class="panel" @if(collect($group['areas'])->contains(fn ($a, $n) => collect($a['actions'])->contains(fn ($x) => $has($permission, $n, $x)))) open @endif>
     <summary class="panel-body" style="cursor:pointer"><strong>{{ $group['label'] }}</strong> <span class="muted small">{{ $permission }}</span></summary>

@@ -445,7 +445,7 @@
                                 <option value="{{ $lot->id }}"
                                         data-material-id="{{ $lot->material_id }}"
                                         @selected(old('material_lot_id') === $lot->id)>
-                                    {{ $lot->lot_number }} — {{ $lot->material?->name }} (PKR {{ \App\Support\Formats::number((float) $lot->unit_cost, 4) }}/kg)
+                                    {{ $lot->lot_number }} — {{ $lot->material?->name }}@fieldcan('costs') (PKR {{ \App\Support\Formats::number((float) $lot->unit_cost, 4) }}/kg)@endfieldcan
                                 </option>
                             @endforeach
                         </select>

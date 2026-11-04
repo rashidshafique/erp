@@ -154,4 +154,20 @@ class AccessControlTest extends TestCase
         $this->actingAs($this->user('HR_MANAGER'))->get(route('dashboard'))->assertRedirect(route('hr.dashboard'));
         $this->actingAs($this->user('ADMIN'))->get(route('dashboard'))->assertOk();
     }
+
+    public function test_costs_and_prices_show_only_to_roles_that_hold_them(): void
+    {
+        config(['foundry.require_login' => true]);
+        $viewer = $this->user('VIEWER');
+        $role = Role::where('code', 'VIEWER')->value('id');
+        $this->actingAs($viewer)->get(route('stock-report.index'))->assertOk();   // existing roles keep seeing money until an administrator takes it away
+
+        \DB::table('role_permissions')->where('role_id', $role)->whereIn('permission', ['fields.prices', 'fields.costs'])->delete();
+        $this->actingAs($this->user('VIEWER'))->get(route('stock-report.index'))->assertForbidden();   // stock valuation is all cost
+        $this->get(route('stock-movements.index'))->assertOk()->assertDontSee('Total cost');
+        $this->actingAs($this->user('ADMIN'))->get(route('stock-report.index'))->assertOk();
+
+        \DB::table('role_permissions')->insert(['role_id' => $role, 'permission' => 'fields.costs']);
+        $this->actingAs($this->user('VIEWER'))->get(route('stock-movements.index'))->assertOk()->assertSee('Total cost');
+    }
 }

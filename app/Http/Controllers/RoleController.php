@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Role;
 use App\Support\AccessMap;
+use App\Support\Fields;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -24,7 +25,14 @@ class RoleController extends Controller
         $has = fn (string $permission, string $area, string $action): bool => in_array($permission, $held, true) || in_array(AccessMap::key($area, $action), $held, true);
         $plain = collect(config('permissions.catalog'))->reject(fn ($label, $key) => isset($tree[$key]));
 
-        return view('roles.index', ['roles' => $roles, 'role' => $role, 'copying' => $from && $from->id !== $role?->id ? $from : null, 'tree' => $tree,
+        // One line per group for "what can this role do": every cell, some of them, or none.
+        $summary = collect($tree)->map(function ($group, $permission) use ($has) {
+            $cells = collect($group['areas'])->flatMap(fn ($area, $name) => collect($area['actions'])->map(fn ($a) => $has($permission, $name, $a)));
+
+            return ['label' => $group['label'], 'done' => $cells->filter()->count(), 'of' => $cells->count()];
+        })->filter(fn ($g) => $g['done'] > 0)->values();
+
+        return view('roles.index', ['summary' => $summary, 'fields' => collect(Fields::KINDS)->map(fn ($p) => in_array($p, $held, true)),'roles' => $roles, 'role' => $role, 'copying' => $from && $from->id !== $role?->id ? $from : null, 'tree' => $tree,
             'plain' => $plain, 'limited' => AccessMap::viewLimited(), 'held' => $held, 'has' => $has, 'actions' => AccessMap::ACTIONS]);
     }
 

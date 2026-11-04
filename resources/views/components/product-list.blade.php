@@ -406,7 +406,9 @@ new class extends Component
             <div class="row"><span>Customer</span><span>{{ $focus->customer_name ?? '—' }}</span></div>
             <div class="row"><span>Drawing</span><span>{{ $summary['drawing'] ? $summary['drawing']->drawing_number.($summary['drawing']->drawing_revision ? ' rev '.$summary['drawing']->drawing_revision : '') : '—' }}</span></div>
             <div class="row"><span>Pattern</span><span>@if ($summary['pattern'])<code>{{ $summary['pattern']->pattern->code }}</code>@if ($summary['cavity']) cavity {{ $summary['cavity'] }}@endif @else — @endif</span></div>
+            @fieldcan('prices')
             <div class="row"><span>Price</span><span>{{ $focus->last_price !== null ? Formats::money($focus->last_price) : '—' }}{{ $summary['order'] ? ' · '.$summary['order'] : '' }}</span></div>
+            @endfieldcan
             <div class="label">Last 12 months</div>
             <div class="stats">
                 <div><div class="k">Shipped</div><div>{{ $summary['shipped'] !== null ? Formats::number($summary['shipped'], 0).' pcs' : '—' }}</div></div>

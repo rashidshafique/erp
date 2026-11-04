@@ -17,6 +17,8 @@ return [
         'quality.manage' => 'NCRs, test limits, defect list, iron grades',
         'mobile.tests' => 'Phone app: record tests',
         'mobile.defects' => 'Phone app: log defects',
+        'fields.prices' => 'See prices and order values',
+        'fields.costs' => 'See costs, margins and stock value',
         'stores.manage' => 'Materials and stock',
         'master.manage' => 'Products and patterns',
         'tooling.manage' => 'Tooling maintenance and life',
@@ -79,6 +81,7 @@ return [
         ['pattern' => 'defects.*', 'permission' => 'quality.manage'],
         ['pattern' => 'iron-grades.*', 'permission' => 'quality.manage'],
         ['pattern' => 'materials.*', 'permission' => 'stores.manage'],
+        ['pattern' => 'stock-report.*', 'permission' => 'fields.costs', 'reads' => true, 'area' => false],   // stock valuation is all cost
         ['pattern' => 'stock-*', 'permission' => 'stores.manage'],
         ['pattern' => 'casting-analyses.*', 'permission' => 'master.manage'],
         ['pattern' => 'products.*', 'permission' => 'master.manage'],

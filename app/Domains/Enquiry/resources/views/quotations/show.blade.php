@@ -59,14 +59,16 @@
             <div class="qd-facts"><div><div class="k">Part</div><strong>{{ $l->line_no }}. {{ $l->item->description }}</strong></div><div><div class="k">Casting / poured</div>{{ $n($l->weight_kg, 2) }} kg / {{ $n($l->poured_kg, 2) }} kg</div><div><div class="k">Annual qty</div>{{ $l->item->annual_qty ? number_format($l->item->annual_qty) : '—' }}</div><div><div class="k">Quantity quoted</div>{{ number_format($l->qty) }}</div></div>
             @if ($l->basis)<div class="muted small" style="margin-bottom:6px">{{ $l->basis }}</div>@endif
             @if ($toolingNotes[$l->id]['note'] ?? null)<div class="small {{ $toolingNotes[$l->id]['warning'] ? 'text-danger' : 'muted' }}" style="margin-bottom:6px">{{ $toolingNotes[$l->id]['note'] }}</div>@endif
+            @fieldcan('costs')
             <div data-detailed><div class="muted small" style="margin-bottom:4px">Where the cost comes from</div>
             <div class="table-wrap"><table><thead><tr><th>Cost head</th><th class="num">{{ $q->currency }} / pc</th></tr></thead><tbody>
                 @foreach ($parts as $k => $lab)@if (($b[$k] ?? 0) != 0)<tr><td>{{ $lab }}</td><td class="num">{{ $n($b[$k]) }}</td></tr>@endif @endforeach
                 <tr><td style="font-weight:600">Total cost</td><td class="num" style="font-weight:600">{{ $n($l->unit_cost) }}</td></tr>
                 <tr><td>Price from margin</td><td class="num">{{ $n($b['calculated_price'] ?? 0) }}</td></tr>
             </tbody></table></div></div>
+            @endfieldcan
             <div data-simple hidden><div class="table-wrap"><table><thead><tr><th>Item</th><th class="num">{{ $q->currency }} / pc</th></tr></thead><tbody>
-                <tr><td>Cost</td><td class="num">{{ $n($l->unit_cost) }}</td></tr><tr><td>Margin</td><td class="num">{{ $n($l->effective_margin_pct, 1) }}%</td></tr><tr><td style="font-weight:600">Price</td><td class="num" style="font-weight:600">{{ $n($l->unit_price) }}</td></tr>
+                @fieldcan('costs')<tr><td>Cost</td><td class="num">{{ $n($l->unit_cost) }}</td></tr><tr><td>Margin</td><td class="num">{{ $n($l->effective_margin_pct, 1) }}%</td></tr>@endfieldcan<tr><td style="font-weight:600">Price</td><td class="num" style="font-weight:600">{{ $n($l->unit_price) }}</td></tr>
             </tbody></table></div>
             <div class="qd-note" style="margin-top:8px">Simple hides the cost build-up. Switch to Detailed for the full sheet.</div></div>
             @if ($draft)
@@ -102,7 +104,7 @@
     <div class="qd-rail">
         <div><div class="k">Quoted price {{ $one ? 'per piece' : 'for the quantities quoted' }}</div>
             <div style="font-size:32px;font-weight:600;letter-spacing:-.02em;margin-top:2px">{{ $n($one ? $one->unit_price : $total) }}</div>
-            <div class="k">{{ $q->currency }} · margin {{ $n($margin, 1) }}%@if ($one && $one->poured_kg > 0) · {{ $n($one->unit_price / max((float) $one->weight_kg, 0.0001)) }}/kg @endif</div></div>
+            <div class="k">{{ $q->currency }}@fieldcan('costs') · margin {{ $n($margin, 1) }}%@endfieldcan @if ($one && $one->poured_kg > 0) · {{ $n($one->unit_price / max((float) $one->weight_kg, 0.0001)) }}/kg @endif</div></div>
         <div style="display:flex;flex-direction:column;gap:8px" class="sec">
             @if ($target)<div class="row"><span class="k">Customer target</span><span>{{ $n($target) }}</span></div>@endif
             @if ($annual > 0)<div class="row"><span class="k">Annual value</span><span>{{ $n($annual, 0) }}</span></div>@endif

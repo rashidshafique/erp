@@ -22,7 +22,9 @@
     <div class="metric"><div class="metric-label">On hand</div><div class="metric-value" style="font-size:20px">{{ $material->is_stock_tracked ? \App\Support\Formats::number($onHand, 3).' '.$material->base_uom : 'Not tracked' }}</div>@if ($material->minimum_stock_qty !== null)<div class="metric-note">minimum {{ \App\Support\Formats::number((float) $material->minimum_stock_qty, 3) }}</div>@endif</div>
     <div class="metric"><div class="metric-label">Lot records</div><div class="metric-value">{{ $material->lots->count() }}</div></div>
     <div class="metric"><div class="metric-label">Recipe components</div><div class="metric-value">{{ $material->charge_batch_items_count }}</div></div>
+    @fieldcan('costs')
     <div class="metric"><div class="metric-label">Standard cost</div><div class="metric-value" style="font-size:20px">{{ $material->standard_cost_per_uom !== null ? \App\Support\Formats::number((float)$material->standard_cost_per_uom, \App\Support\Formats::decimals()).' PKR/'.$material->base_uom : 'Not set' }}</div></div>
+    @endfieldcan
 </div>
 
 @if ($material->description || $material->notes)
@@ -81,7 +83,7 @@
                 <th>Supplier</th>
                 <th>Received</th>
                 <th>Accepted</th>
-                <th>Unit cost</th>
+                @fieldcan('costs')<th>Unit cost</th>@endfieldcan
                 <th>Status</th>
                 <th>Receipt posting</th>
             </tr>
@@ -102,11 +104,13 @@
                 <td>{{ $lot->supplier_name_snapshot ?: '—' }}</td>
                 <td>{{ \App\Support\Formats::number((float) $lot->received_qty, 3) }}</td>
                 <td>{{ \App\Support\Formats::number((float) $lot->accepted_qty, 3) }}</td>
+                @fieldcan('costs')
                 <td>
                     {{ $lot->unit_cost !== null
                         ? \App\Support\Formats::number((float) $lot->unit_cost, 4).' '.$lot->currency_code
                         : '—' }}
                 </td>
+                @endfieldcan
                 <td>{{ $lot->status }}</td>
 
                 <td>
@@ -117,8 +121,10 @@
                         </div>
                         <small>
                             {{ \App\Support\Formats::number((float) $receipt->quantity, 3) }} kg
+                            @fieldcan('costs')
                             · PKR
                             {{ \App\Support\Formats::number((float) $receipt->total_cost, 2) }}
+                            @endfieldcan
                         </small>
                     @elseif($canPostReceipt)
                         <details>

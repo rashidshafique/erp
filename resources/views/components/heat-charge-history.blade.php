@@ -103,7 +103,7 @@ new class extends Component
             <thead>
                 <tr>
                     <th>#</th><th>Material type</th><th>Material</th><th>Lot / reference</th>
-                    <th>Round</th><th class="num">Quantity kg</th><th>Cost PKR/kg</th><th>Total cost PKR</th>
+                    <th>Round</th><th class="num">Quantity kg</th>@fieldcan('costs')<th>Cost PKR/kg</th><th>Total cost PKR</th>@endfieldcan
                     <th>Recorded at</th><th>Operator</th>@if ($canChange)<th></th>@endif
                 </tr>
             </thead>
@@ -137,8 +137,10 @@ new class extends Component
                                 {{ \App\Support\Formats::number((float) $entry->actual_qty_kg, 3) }}
                             @endif
                         </td>
+                        @fieldcan('costs')
                         <td>{{ $unitCost !== null ? \App\Support\Formats::number($unitCost, 4) : '—' }}</td>
                         <td>{{ \App\Support\Formats::number((float) $entry->actual_total_cost, 2) }}</td>
+                        @endfieldcan
                         <td>{{ $entry->consumed_at?->displayAt() ?? '—' }}</td>
                         <td>{{ $entry->recorded_by }}</td>
                         @if ($canChange)
