@@ -77,4 +77,22 @@ class HeatPlanningDefaultsTest extends TestCase
         $default->update(['status' => 'MAINTENANCE']);
         $this->assertDoesNotMatchRegularExpression('/<option\s+value="'.$default->id.'"[^>]*selected/s', $this->get(route('heats.create'))->getContent());
     }
+
+    public function test_a_furnace_default_recipe_is_preselected_on_a_new_heat_and_only_for_its_own_process(): void
+    {
+        $furnace = Furnace::create(['code' => 'IF-R', 'name' => 'Induction R', 'furnace_type' => 'INDUCTION', 'status' => 'ACTIVE']);
+        $recipe = \App\Models\ChargeBatch::create(['code' => 'CR-IND', 'name' => 'Induction mix', 'process_type' => 'INDUCTION', 'status' => 'ACTIVE']);
+        $cupola = \App\Models\ChargeBatch::create(['code' => 'CR-CUP', 'name' => 'Cupola mix', 'process_type' => 'CUPOLA', 'status' => 'ACTIVE']);
+
+        $this->put(route('furnaces.defaults', $furnace), ['is_default' => 1, 'default_charge_batch_id' => $cupola->id])->assertSessionHasErrors('default_charge_batch_id');
+        $this->put(route('furnaces.defaults', $furnace), ['is_default' => 1, 'default_charge_batch_id' => $recipe->id])->assertSessionHasNoErrors();
+        $this->assertSame($recipe->id, $furnace->fresh()->default_charge_batch_id);
+
+        $page = $this->get(route('heats.create'))->assertOk()->getContent();
+        $this->assertMatchesRegularExpression('/<option value="'.$recipe->id.'"[^>]*selected/s', $page);
+        $this->assertStringContainsString('data-recipe="'.$recipe->id.'"', $page);
+
+        $this->put(route('furnaces.defaults', $furnace), ['is_default' => 1])->assertRedirect();
+        $this->assertNull($furnace->fresh()->default_charge_batch_id);
+    }
 }

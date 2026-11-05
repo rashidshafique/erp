@@ -48,6 +48,14 @@
                         @foreach ($grades as $grade)<option value="{{ $grade->id }}" @selected($furnace->default_iron_grade_id === $grade->id)>{{ $grade->code }} ({{ $grade->family }})</option>@endforeach
                     </select>
                 </div>
+                <div class="field">
+                    <label for="default_charge_batch_id">Default charge recipe</label>
+                    <select id="default_charge_batch_id" name="default_charge_batch_id">
+                        <option value="">No default recipe</option>
+                        @foreach ($recipes as $r)<option value="{{ $r->id }}" @selected($furnace->default_charge_batch_id === $r->id)>{{ $r->code }} — {{ $r->name }} (Rev {{ $r->revision }})</option>@endforeach
+                    </select>
+                    @error('default_charge_batch_id')<div class="error-text">{{ $message }}</div>@enderror
+                </div>
             </div>
             <div class="actions"><button class="btn btn-primary" type="submit">Save defaults</button></div>
         </form>

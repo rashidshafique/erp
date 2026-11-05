@@ -319,7 +319,7 @@
                 <form method="POST" action="{{ route('heats.recipe.attach', $heat) }}" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">@csrf
                     <select name="charge_batch_id" required aria-label="Charge recipe">
                         <option value="">Choose a recipe</option>
-                        @foreach ($attachableRecipes as $r)<option value="{{ $r->id }}" @selected(old('charge_batch_id') === $r->id)>{{ $r->code }} — {{ $r->name }} (Rev {{ $r->revision }})</option>@endforeach
+                        @foreach ($attachableRecipes as $r)<option value="{{ $r->id }}" @selected(old('charge_batch_id', $heat->furnace?->default_charge_batch_id) === $r->id)>{{ $r->code }} — {{ $r->name }} (Rev {{ $r->revision }})</option>@endforeach
                     </select>
                     @if ($heat->actual_start_at)<label class="small"><input type="checkbox" name="fill_charges" value="1" checked> Add back the charges due since the start ({{ $heat->actual_start_at->displayAt() }})</label>@endif
                     <button class="btn btn-primary" type="submit">Attach recipe</button>

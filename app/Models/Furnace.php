@@ -27,6 +27,7 @@ class Furnace extends Model
         'max_operating_power_kw',
         'is_default',
         'default_iron_grade_id',
+        'default_charge_batch_id',
     ];
 
     protected function casts(): array
@@ -44,6 +45,12 @@ class Furnace extends Model
     public function defaultIronGrade(): BelongsTo
     {
         return $this->belongsTo(IronGrade::class, 'default_iron_grade_id');
+    }
+
+    /** The charge recipe a new heat on this furnace starts with. */
+    public function defaultChargeBatch(): BelongsTo
+    {
+        return $this->belongsTo(ChargeBatch::class, 'default_charge_batch_id');
     }
 
     /** The active furnace new heats start on, if one is marked. */

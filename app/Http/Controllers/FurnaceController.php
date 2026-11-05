@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ChargeBatch;
 use App\Models\Equipment;
 use App\Models\Furnace;
 use App\Models\IronGrade;
@@ -32,23 +33,25 @@ class FurnaceController extends Controller
         return view('furnaces.show', [
             'furnace' => $furnace,
             'grades' => IronGrade::where('status', 'ACTIVE')->orderBy('code')->get(['id', 'code', 'family']),
+            'recipes' => ChargeBatch::where('status', 'ACTIVE')->where('process_type', $furnace->furnace_type)->orderBy('code')->get(['id', 'code', 'name', 'revision']),
             'recentHeats' => $furnace->heats()->latest('created_at')->limit(10)->get(),
         ]);
     }
 
-    /** Marks the furnace new heats start on, and the grade they start with; only one furnace is the default. */
+    /** Marks the furnace new heats start on, and the grade and charge recipe they start with; only one furnace is the default. */
     public function defaults(Request $request, Furnace $furnace): RedirectResponse
     {
         $data = $request->validate([
             'is_default' => ['nullable', 'boolean'],
             'default_iron_grade_id' => ['nullable', 'uuid', Rule::exists('iron_grades', 'id')],
-        ]);
+            'default_charge_batch_id' => ['nullable', 'uuid', Rule::exists('charge_batches', 'id')->where('status', 'ACTIVE')->where('process_type', $furnace->furnace_type)],
+        ], ['default_charge_batch_id.exists' => 'Choose an active recipe for '.$furnace->furnace_type.' melting.']);
         DB::transaction(function () use ($data, $furnace) {
             $default = (bool) ($data['is_default'] ?? false);
             if ($default) {
                 Furnace::where('id', '!=', $furnace->id)->update(['is_default' => false]);
             }
-            $furnace->update(['is_default' => $default, 'default_iron_grade_id' => $data['default_iron_grade_id'] ?? null]);
+            $furnace->update(['is_default' => $default, 'default_iron_grade_id' => $data['default_iron_grade_id'] ?? null, 'default_charge_batch_id' => $data['default_charge_batch_id'] ?? null]);
         });
 
         return back()->with('success', 'Heat defaults saved.');

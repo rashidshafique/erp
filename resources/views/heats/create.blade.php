@@ -46,6 +46,7 @@
                                 data-type="{{ $furnace->furnace_type }}"
                                 data-max-power="{{ $furnace->max_operating_power_kw }}"
                                 data-grade="{{ $furnace->default_iron_grade_id }}"
+                                data-recipe="{{ $furnace->default_charge_batch_id }}"
                                 @selected(old('furnace_id', $default?->id) === $furnace->id)
                             >
                                 {{ $furnace->code }} — {{ $furnace->name }} ({{ $furnace->furnace_type }})
@@ -74,7 +75,7 @@
                             <option value="{{ $batch->id }}"
                                     data-process="{{ $batch->process_type }}"
                                     data-charge-weight="{{ $batch->target_total_charge_weight_kg }}"
-                                    @selected(old('charge_batch_id') === $batch->id)>
+                                    @selected(old('charge_batch_id', old('furnace_id') ? null : $default?->default_charge_batch_id) === $batch->id)>
                                 {{ $batch->code }} — {{ $batch->name }} ({{ $batch->process_type }}, Rev {{ $batch->revision }})
                             </option>
                         @endforeach
@@ -299,6 +300,8 @@ document.addEventListener('DOMContentLoaded', function () {
         if (preset) { grade.value = preset; updateSuggestedTemperature(); }
         updatePowerLimit();
         updateRecipeOptions();
+        const preRecipe = furnace.options[furnace.selectedIndex].dataset.recipe;
+        if (preRecipe) { recipe.value = preRecipe; updateRecipePreview(); refreshStarted(); }
     });
     recipe.addEventListener('change', updateRecipePreview);
     updatePowerLimit();

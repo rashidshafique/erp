@@ -38,7 +38,7 @@ Updated 2026-11-05.
 - Not built: 26j live curve from the analyser, late-entry path B (27), tensile (26d), the History tab, sand tests, floor phone screens (15i, 7m). A numeric-keypad problem on some phone was reported and could not be reproduced.
 
 **Heat recipes (2026-11-05)**
-- A heat started without a charge recipe can have one attached from its page (active recipes for its process only), with a box to add back the charges due since the start from the recipe at their scheduled times (`HeatReadingController::attachRecipe`). Not built: a default recipe per furnace.
+- A heat started without a charge recipe can have one attached from its page (active recipes for its process only), with a box to add back the charges due since the start from the recipe at their scheduled times (`HeatReadingController::attachRecipe`). A furnace has a default charge recipe (furnace page, Heat defaults; same process only) that the new-heat form preselects and the attach picker offers first.
 
 **Products, customers and enquiry (design pass, 2026-10)**
 - Products list: status tabs (all, active, in development, obsolete), customer and process filters, a Customer column, a summary side panel, and search that also finds a drawing number. Metal replaces the Category and Stock filters.
