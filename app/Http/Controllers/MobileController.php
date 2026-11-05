@@ -46,10 +46,30 @@ class MobileController extends Controller
             'tests' => $tests, 'defects' => $defects, 'types' => self::TESTS,
             'user' => $request->user(),
             'due' => $tests ? app(\App\Services\Quality\TestsDue::class)->list()->map(fn ($r) => $r + ['url' => $this->testTarget($r['type'], $r['type'] === 'inspection' ? 'lot' : 'heat', $r['key'])]) : collect(),
-            'recentHeats' => $tests ? $this->heats(5, 'all') : collect(),
-            'todayDefects' => $defects ? \App\Models\QualityDefectMark::whereDate('created_at', today())->count() : 0,
-            'todayTests' => $tests ? \App\Models\ThermalAnalysisTest::whereDate('created_at', today())->count() : 0,
+            'active' => $tests ? $this->activeHeat() : null,
         ]);
+    }
+
+    /**
+     * The heat being melted now and when its next thermal reading is due: a passing test is only good for
+     * foundry.thermal.max_test_age_minutes, so the next one falls due that long after the last.
+     *
+     * @return array{heat: Heat, started: \Illuminate\Support\Carbon|null, last: \App\Models\ThermalAnalysisTest|null, number: int, due_at: \Illuminate\Support\Carbon|null, window: int}|null
+     */
+    private function activeHeat(): ?array
+    {
+        $heat = Heat::with(['furnace', 'ironGrade', 'thermalTests'])->where('status', 'IN_PROGRESS')
+            ->orderByRaw('coalesce(actual_start_at, planned_start_at, created_at) desc')->first();
+        if (! $heat) {
+            return null;
+        }
+        $window = (int) config('foundry.thermal.max_test_age_minutes');
+        $last = $heat->thermalTests->first();
+
+        return [
+            'heat' => $heat, 'started' => $heat->actual_start_at, 'last' => $last, 'number' => $heat->thermalTests->count() + 1,
+            'due_at' => $last?->taken_at?->copy()->addMinutes($window), 'window' => $window,
+        ];
     }
 
     /** Scan or type a label code; opens the heat, lot or sample it names. */

@@ -11,9 +11,12 @@ use Illuminate\Support\Collection;
  */
 class TestsDue
 {
+    /** Minutes a test may wait before it counts as overdue. */
+    public const GRACE_MINUTES = 15;
+
     public function __construct(private PendingInspections $pending) {}
 
-    /** @return Collection<int, array{kind:string, what:string, sub:string, since:\Illuminate\Support\Carbon, type:string, key:string}> */
+    /** @return Collection<int, array{kind:string, what:string, sub:string, since:\Illuminate\Support\Carbon, type:string, key:string, late:int}> */
     public function list(int $limit = 8): Collection
     {
         $heats = Heat::with(['furnace', 'ironGrade'])->withCount(['thermalTests', 'chemistryReadings'])
@@ -34,6 +37,7 @@ class TestsDue
             $rows->push(['kind' => 'Hardness and inspection', 'what' => $lot->lot_number, 'sub' => trim(($lot->product?->code ?? '').' · '.$lot->quantity_good.' pcs', ' ·'), 'since' => $lot->created_at, 'type' => 'inspection', 'key' => $lot->id]);
         }
 
-        return $rows->sortBy('since')->take($limit)->values();
+        return $rows->sortBy('since')->take($limit)->values()
+            ->map(fn (array $r) => $r + ['late' => max(0, (int) $r['since']->diffInMinutes(now()) - self::GRACE_MINUTES)]);
     }
 }

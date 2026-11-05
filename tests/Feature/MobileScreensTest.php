@@ -2,7 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\Furnace;
+use App\Models\Heat;
 use App\Models\Role;
+use App\Models\ThermalAnalysisTest;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\BuildsCastingLots;
@@ -34,14 +37,41 @@ class MobileScreensTest extends TestCase
     {
         config(['foundry.require_login' => true]);
         $tests = $this->tech('QA_TEST_TECH');
-        $this->actingAs($tests)->get(route('m.home'))->assertOk()->assertSee('Thermal analysis')->assertDontSee('Log defect');
+        $this->actingAs($tests)->get(route('m.home'))->assertOk()->assertSee('Tests due')->assertDontSee('Log defect');
         $this->get(route('m.tests.pick', 'thermal'))->assertOk();
         $this->get(route('m.defects.pick'))->assertForbidden();
 
         $defects = $this->tech('QA_DEFECT_TECH');
-        $this->actingAs($defects)->get(route('m.home'))->assertOk()->assertSee('Log defect')->assertDontSee('Thermal analysis');
+        $this->actingAs($defects)->get(route('m.home'))->assertOk()->assertSee('Log defect')->assertDontSee('Tests due');
         $this->get(route('m.tests.pick', 'thermal'))->assertForbidden();
         $this->get(route('m.defects.pick'))->assertOk();
+    }
+
+    private function meltingHeat(string $started = '-3 hours'): Heat
+    {
+        $furnace = Furnace::create(['code' => 'IF-'.uniqid(), 'name' => 'Induction', 'furnace_type' => 'INDUCTION', 'status' => 'ACTIVE', 'rated_capacity_kg' => 5000, 'nominal_melting_rate_kg_per_hour' => 3000]);
+
+        return Heat::create(['heat_number' => 'HT-'.uniqid(), 'furnace_id' => $furnace->id, 'process_type' => 'INDUCTION', 'status' => 'IN_PROGRESS', 'actual_start_at' => now()->modify($started)]);
+    }
+
+    public function test_the_home_shows_the_active_heat_and_when_its_next_reading_is_due(): void
+    {
+        $heat = $this->meltingHeat();
+        $this->get(route('m.home'))->assertOk()->assertSee('Active heat')->assertSee($heat->heat_number)->assertSee('No thermal test yet')->assertSee('Start test');
+
+        ThermalAnalysisTest::create(['heat_id' => $heat->id, 'sample_reference' => 'T-'.uniqid(), 'stage' => 'PRE_TREATMENT', 'cup_type' => 'TE', 'taken_at' => now()->subMinutes(53), 'curve' => [], 'result' => 'PASS']);
+        $this->get(route('m.home'))->assertOk()->assertSee('>Reading overdue<', false)->assertSee('>+8:', false)->assertSee('re-test 2, TE cup');
+
+        ThermalAnalysisTest::create(['heat_id' => $heat->id, 'sample_reference' => 'T-'.uniqid(), 'stage' => 'PRE_TREATMENT', 'cup_type' => 'TE', 'taken_at' => now()->subMinutes(5), 'curve' => [], 'result' => 'PASS']);
+        $this->get(route('m.home'))->assertOk()->assertSee('>Next reading in<', false)->assertDontSee('>Reading overdue<', false);
+    }
+
+    public function test_tests_due_lists_what_is_waiting_and_marks_the_late_ones(): void
+    {
+        $this->get(route('m.home'))->assertOk()->assertSee('Nothing is waiting for a test.');
+
+        $heat = $this->meltingHeat('-2 hours');
+        $this->get(route('m.home'))->assertOk()->assertSee('Thermal analysis · '.$heat->heat_number, false)->assertSee('Spectro · '.$heat->heat_number, false)->assertSee('Overdue 105 min')->assertSee('Late');
     }
 
     public function test_a_role_with_no_phone_permission_has_no_home(): void
