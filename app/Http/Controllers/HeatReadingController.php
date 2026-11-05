@@ -59,6 +59,42 @@ class HeatReadingController extends Controller
             .($heat->isCupola() && $after !== $before ? " Planned charges changed from {$before} to {$after}." : ''));
     }
 
+    /**
+     * Attaches a charge recipe to a heat that was started without one. With "fill_charges" the charges that have come due since
+     * the heat started are added back from the recipe at their scheduled times, as the create form does for a heat entered late.
+     */
+    public function attachRecipe(Request $request, Heat $heat, ChargeSchedule $schedule): RedirectResponse
+    {
+        if (in_array($heat->status, ['CLOSED', 'CANCELLED'], true)) {
+            throw ValidationException::withMessages(['charge_batch_id' => 'A recipe cannot be attached to a closed or cancelled heat.']);
+        }
+        if ($heat->charge_batch_id) {
+            throw ValidationException::withMessages(['charge_batch_id' => 'This heat already has a charge recipe.']);
+        }
+        $data = $request->validate(['charge_batch_id' => ['required', 'uuid', 'exists:charge_batches,id']]);
+        $recipe = ChargeBatch::where('status', 'ACTIVE')->findOrFail($data['charge_batch_id']);
+        $heat->loadMissing('furnace');
+        if ($recipe->process_type !== $heat->process_type) {
+            throw ValidationException::withMessages(['charge_batch_id' => "That recipe is for {$recipe->process_type}, and this heat is on {$heat->process_type}."]);
+        }
+
+        $filled = 0;
+        DB::transaction(function () use ($heat, $recipe, $request, $schedule, &$filled) {
+            $heat->update(['charge_batch_id' => $recipe->id]);
+            $heat->unsetRelation('chargeBatch');
+            $heat->load('chargeBatch.items', 'materialConsumptions');
+            if ($heat->isCupola()) {
+                $heat->update(['charge_rounds' => $heat->defaultChargeRounds()]);
+            }
+            if ($request->boolean('fill_charges') && $heat->actual_start_at) {
+                $filled = $schedule->backfill($heat, $request->user()?->name ?? $heat->operator_name ?? 'Operator', app(\App\Services\Production\ChargeRecorder::class));
+            }
+        });
+
+        return back()->with('success', "Recipe {$recipe->code} attached to heat {$heat->heat_number}."
+            .($filled ? " {$filled} ".($filled === 1 ? 'charge' : 'charges').' added back from the recipe at their scheduled times. Inventory has not been deducted.' : ''));
+    }
+
     /** How many charges would already be due for a heat started at a past time: the question the create form asks. */
     public function chargePreview(Request $request, ChargeSchedule $schedule): JsonResponse
     {
@@ -158,6 +194,8 @@ class HeatReadingController extends Controller
         $dueLines = $schedule['next'] ? $chargeSchedule->lines($heat, $schedule['next']['round'])->map(fn ($l) => ($activeMaterials->firstWhere('id', $l['material_id'])?->name ?? 'Material').' '.\App\Support\Formats::number($l['actual_qty_kg'], 1).' kg')->implode(', ') : '';
         $finish = $finish ? $this->etaPayload($finish) : null;
 
+        $attachableRecipes = $heat->charge_batch_id ? collect() : ChargeBatch::where('status', 'ACTIVE')->where('process_type', $heat->process_type)->orderBy('code')->get();
+
         return view('heats.show', compact(
             'heat',
             'finish',
@@ -171,6 +209,7 @@ class HeatReadingController extends Controller
             'actualChargeCost',
             'actualChargeCostPerKg',
             'chargeIsPosted',
+            'attachableRecipes',
             'chargeRounds',
             'roundsDone',
             'nextRound',

@@ -521,4 +521,41 @@ class ChargeScheduleTest extends TestCase
         $this->assertSame(150.0, app(\App\Services\Production\HeatBalance::class)->for($heat->fresh())['charged_kg']);
         $this->assertSame(150.0, $heat->fresh()->chargedMetalKg());
     }
+
+    public function test_a_recipe_can_be_attached_to_a_running_heat_and_its_back_charges_added(): void
+    {
+        [$heat] = $this->cupola();
+        $recipe = $heat->chargeBatch;
+        $heat->update(['charge_batch_id' => null]);
+
+        $this->actingAs(User::factory()->create())->get(route('heats.show', $heat))->assertOk()->assertSee('Attach recipe');
+
+        $this->post(route('heats.recipe.attach', $heat), ['charge_batch_id' => $recipe->id, 'fill_charges' => 1])->assertRedirect();
+
+        $heat->refresh();
+        $this->assertSame($recipe->id, $heat->charge_batch_id);
+        $this->assertGreaterThan(0, $heat->materialConsumptions()->whereNotNull('charge_round')->count());
+    }
+
+    public function test_attaching_without_the_back_charge_box_only_sets_the_recipe(): void
+    {
+        [$heat] = $this->cupola();
+        $recipe = $heat->chargeBatch;
+        $heat->update(['charge_batch_id' => null]);
+
+        $this->actingAs(User::factory()->create())->post(route('heats.recipe.attach', $heat), ['charge_batch_id' => $recipe->id])->assertRedirect();
+
+        $this->assertSame($recipe->id, $heat->fresh()->charge_batch_id);
+        $this->assertSame(0, $heat->materialConsumptions()->count());
+    }
+
+    public function test_a_recipe_for_another_process_is_refused(): void
+    {
+        [$heat] = $this->cupola();
+        $heat->update(['charge_batch_id' => null]);
+        $other = ChargeBatch::create(['code' => 'CR-IND', 'name' => 'Induction', 'process_type' => 'INDUCTION', 'status' => 'ACTIVE']);
+
+        $this->actingAs(User::factory()->create())->post(route('heats.recipe.attach', $heat), ['charge_batch_id' => $other->id])->assertSessionHasErrors('charge_batch_id');
+        $this->assertNull($heat->fresh()->charge_batch_id);
+    }
 }

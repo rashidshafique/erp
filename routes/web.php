@@ -235,6 +235,7 @@ Route::prefix('heats')
         Route::get('/{heat}', 'show')->name('show');
         Route::get('/{heat}/eta', 'eta')->name('eta');
         Route::put('/{heat}/target', 'updateTarget')->name('target.update');
+        Route::post('/{heat}/recipe', 'attachRecipe')->name('recipe.attach');
         Route::post('/{heat}/hold', 'hold')->name('hold');
         Route::post('/{heat}/resume', 'resume')->name('resume');
 

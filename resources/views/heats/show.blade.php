@@ -315,6 +315,18 @@
             </div>
         @else
             <p class="muted">No charge recipe is assigned to this heat.</p>
+            @if (! in_array($heat->status, ['CLOSED', 'CANCELLED'], true))
+                <form method="POST" action="{{ route('heats.recipe.attach', $heat) }}" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">@csrf
+                    <select name="charge_batch_id" required aria-label="Charge recipe">
+                        <option value="">Choose a recipe</option>
+                        @foreach ($attachableRecipes as $r)<option value="{{ $r->id }}" @selected(old('charge_batch_id') === $r->id)>{{ $r->code }} — {{ $r->name }} (Rev {{ $r->revision }})</option>@endforeach
+                    </select>
+                    @if ($heat->actual_start_at)<label class="small"><input type="checkbox" name="fill_charges" value="1" checked> Add back the charges due since the start ({{ $heat->actual_start_at->displayAt() }})</label>@endif
+                    <button class="btn btn-primary" type="submit">Attach recipe</button>
+                </form>
+                @error('charge_batch_id')<div class="alert alert-error">{{ $message }}</div>@enderror
+                @if ($attachableRecipes->isEmpty())<p class="muted small">No active {{ $heat->process_type }} recipe exists. Create one under Charge recipes.</p>@endif
+            @endif
         @endif
     </div>
 </div>
