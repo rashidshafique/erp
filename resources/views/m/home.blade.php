@@ -71,6 +71,12 @@
     @empty
         <div class="muted" style="font-size:14px;padding:13px 0">Nothing is waiting for a test.</div>
     @endforelse
+    <div class="cap" style="padding:16px 0 6px">Record a test</div>
+    <div style="display:flex;flex-direction:column;gap:10px;padding-bottom:12px">
+        @foreach($types as $key => $t)
+            <a class="tile" href="{{ route('m.tests.pick', $key) }}"><b>{{ $t['name'] }}</b><span>{{ $t['sub'] }}</span></a>
+        @endforeach
+    </div>
 </div>
 @else
 <div style="flex:1"></div>

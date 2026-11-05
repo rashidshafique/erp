@@ -37,7 +37,7 @@ class MobileScreensTest extends TestCase
     {
         config(['foundry.require_login' => true]);
         $tests = $this->tech('QA_TEST_TECH');
-        $this->actingAs($tests)->get(route('m.home'))->assertOk()->assertSee('Tests due')->assertDontSee('Log defect');
+        $this->actingAs($tests)->get(route('m.home'))->assertOk()->assertSee('Tests due')->assertSee('Record a test')->assertSee(route('m.tests.pick', 'spectro'))->assertDontSee('Log defect');
         $this->get(route('m.tests.pick', 'thermal'))->assertOk();
         $this->get(route('m.defects.pick'))->assertForbidden();
 
