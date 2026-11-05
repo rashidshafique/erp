@@ -106,6 +106,67 @@ class MobileScreensTest extends TestCase
         $this->assertSame(1, ThermalAnalysisTest::count());
     }
 
+    private function savedCup(Heat $heat): ThermalAnalysisTest
+    {
+        $this->post(route('m.tests.thermal.store', $heat), ['stage' => 'PRE_POUR', 'cup_type' => 'TELLURIUM', 'tl_c' => 1190, 'solidus_c' => 1130])->assertSessionHasNoErrors();
+
+        return ThermalAnalysisTest::firstOrFail();
+    }
+
+    public function test_a_saved_thermal_test_can_be_marked_invalid_and_retaken(): void
+    {
+        $heat = $this->meltingHeat();
+        $test = $this->savedCup($heat);
+        $this->get(route('m.tests.thermal.done', $test))->assertOk()->assertSee('Something wrong with this test?')->assertSee('The analyser stopped responding');
+
+        $url = route('m.tests.thermal.invalid', $test);
+        $this->post($url, [])->assertSessionHasErrors('reason');
+        $this->post($url, ['reason' => 'OTHER'])->assertSessionHasErrors('note');
+        $this->assertFalse($test->fresh()->isVoided());
+
+        $this->post($url, ['reason' => 'STOPPED'])->assertRedirect(route('m.tests.thermal', ['heat' => $heat->id, 'stage' => 'PRE_POUR', 'cup' => 'TELLURIUM']));
+        $test = $test->fresh();
+        $this->assertTrue($test->isVoided());
+        $this->assertSame('The analyser stopped responding', $test->void_reason);
+        $this->assertSame(0, $heat->thermalTests()->count());
+        $this->post($url, ['reason' => 'STOPPED'])->assertStatus(422);
+
+        $this->get(route('m.tests.thermal.done', $test))->assertOk()->assertSee('INVALID')->assertSee('Take it again')->assertDontSee('Something wrong with this test?');
+        $this->get(route('m.tests.thermal', ['heat' => $heat->id, 'stage' => 'BASE', 'cup' => 'STABLE']))->assertOk()->assertSee('name="stage" value="BASE" checked', false)->assertSee('name="cup_type" value="STABLE" checked', false);
+    }
+
+    public function test_a_test_that_did_not_finish_is_logged_as_invalid_without_readings(): void
+    {
+        $heat = $this->meltingHeat();
+        $url = route('m.tests.thermal.unfinished', $heat);
+        $data = ['stage' => 'PRE_POUR', 'cup_type' => 'TELLURIUM', 'cup_batch' => 'CB-7'];
+
+        $this->post($url, $data)->assertSessionHasErrors('reason');
+        $this->post($url, $data + ['reason' => 'WRONG_ENTRY'])->assertSessionHasErrors('reason');
+        $this->assertSame(0, ThermalAnalysisTest::withoutGlobalScopes()->count());
+
+        $this->post($url, $data + ['reason' => 'OTHER', 'note' => 'Cup cracked on the stand'])->assertRedirect()->assertSessionHas('notice');
+        $attempt = ThermalAnalysisTest::withoutGlobalScopes()->firstOrFail();
+        $this->assertTrue($attempt->isVoided());
+        $this->assertSame('Something else: Cup cracked on the stand', $attempt->void_reason);
+        $this->assertSame('CB-7', $attempt->cup_batch);
+        $this->assertSame('NOT_JUDGED', $attempt->result);
+        $this->assertSame(0, $heat->thermalTests()->count());
+        $this->get(route('m.home'))->assertOk()->assertSee('No thermal test yet');
+    }
+
+    public function test_only_a_test_tech_can_mark_a_thermal_test_invalid(): void
+    {
+        config(['foundry.require_login' => true]);
+        $heat = $this->meltingHeat();
+        $this->actingAs($this->tech('QA_TEST_TECH'));
+        $test = $this->savedCup($heat);
+
+        $this->actingAs($this->tech('QA_DEFECT_TECH'));
+        $this->post(route('m.tests.thermal.invalid', $test), ['reason' => 'STOPPED'])->assertForbidden();
+        $this->post(route('m.tests.thermal.unfinished', $heat), ['stage' => 'BASE', 'cup_type' => 'STABLE', 'reason' => 'STOPPED'])->assertForbidden();
+    }
+
     public function test_the_active_heat_shows_when_it_started_with_the_date_and_how_long_ago(): void
     {
         $this->meltingHeat('-12 hours');

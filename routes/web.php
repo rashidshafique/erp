@@ -521,6 +521,8 @@ Route::prefix('m')->name('m.')->controller(\App\Http\Controllers\MobileControlle
     Route::get('/tests/thermal/{heat}', [\App\Http\Controllers\MobileThermalController::class, 'create'])->name('tests.thermal');
     Route::post('/tests/thermal/{heat}', [\App\Http\Controllers\MobileThermalController::class, 'store'])->name('tests.thermal.store');
     Route::get('/tests/thermal/result/{test}', [\App\Http\Controllers\MobileThermalController::class, 'done'])->name('tests.thermal.done');
+    Route::post('/tests/thermal/result/{test}/invalid', [\App\Http\Controllers\MobileThermalController::class, 'invalid'])->name('tests.thermal.invalid');
+    Route::post('/tests/thermal/{heat}/unfinished', [\App\Http\Controllers\MobileThermalController::class, 'unfinished'])->name('tests.thermal.unfinished');
     Route::get('/tests/spectro/{heat}', [\App\Http\Controllers\MobileSpectroController::class, 'create'])->name('tests.spectro');
     Route::post('/tests/spectro/{heat}', [\App\Http\Controllers\MobileSpectroController::class, 'store'])->name('tests.spectro.store');
     Route::get('/tests/hardness/{lot}', [\App\Http\Controllers\MobileHardnessController::class, 'create'])->name('tests.hardness');
