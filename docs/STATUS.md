@@ -1,6 +1,6 @@
 # Project status
 
-Updated 2026-10-29.
+Updated 2026-11-05.
 
 ## Done
 
@@ -29,6 +29,16 @@ Updated 2026-10-29.
 - Move a batch (Production queue, `AfterPour`): per step and product, with cooling time at knock-out, pieces or moulds, or all, shared over open lots oldest first with rejects (`lots.batch-stage`; `recordStage` takes `batch`). A lot with pieces still before a step shows "n pcs still before …" on the queue. Quality rule `qc_after_steps`: QC straight after the pour (default) or only after these steps.
 - Quick QC defect lines (`quality_defect_marks`): defect, pieces, reject or rework, pattern cavity, where on the casting, and piece IDs under the `defect_piece_ids` rule (off, optional, required); a 30-day table of defects by cavity.
 - Today board follows the day: orders, list, count, heat, moulds to pour, production queue, QC, ready to go out. `StepCountTest` pins this day at 14 steps from order to dispatch (Basic stays at 7).
+
+**Phone screens for quality technicians (`/m`, design 26a and 26i, 2026-11-05)**
+- Home follows 26a: an active heat card (furnace name, heat, grade, last test and CE, the date and length of the run, a countdown to the next thermal reading that goes red when overdue, "Start test"), then Scan label, Log defect, Tests due (`TestsDue`, grace 15 min) and Record a test. Grey and ductile heats count from the start of the melt, so they show red before the first test. Running means in progress, melting or tapping.
+- Thermal test form follows 26i: stage and cup (white default, before pouring default), readings as tiles per cup, cup batch, "Save to heat". Peak temperature is required on both cups; carbon, silicon and CE on the white cup; checked before anything is saved.
+- Invalid tests: "Something wrong with this test?" marks a saved test invalid with a reason (analyser stopped, bad sample, wrong reading, wrong heat, other) so it stops counting for the pour gate and certificates, and sets the same cup up again; "The test did not finish" logs an invalid attempt with no readings. Invalid attempts stay on the heat and do not reset the clock.
+- Every phone screen keeps a bottom gap (`--nav`, at least 28px) so Android buttons do not collide with the tab bar or sticky buttons.
+- Not built: 26j live curve from the analyser, late-entry path B (27), tensile (26d), the History tab, sand tests, floor phone screens (15i, 7m). A numeric-keypad problem on some phone was reported and could not be reproduced.
+
+**Heat recipes (2026-11-05)**
+- A heat started without a charge recipe can have one attached from its page (active recipes for its process only), with a box to add back the charges due since the start from the recipe at their scheduled times (`HeatReadingController::attachRecipe`). Not built: a default recipe per furnace.
 
 **Products, customers and enquiry (design pass, 2026-10)**
 - Products list: status tabs (all, active, in development, obsolete), customer and process filters, a Customer column, a summary side panel, and search that also finds a drawing number. Metal replaces the Category and Stock filters.
