@@ -3,8 +3,8 @@
 <title>@yield('title', $b['name'])</title>
 <script>try{localStorage.setItem('erp.phone','1')}catch(e){}</script>
 <style>
-*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,sans-serif;color:#1c1d1f;background:#fff;-webkit-text-size-adjust:100%}
-.wrap{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+*{box-sizing:border-box}:root{--nav:max(env(safe-area-inset-bottom),28px)}body{margin:0;font-family:system-ui,-apple-system,sans-serif;color:#1c1d1f;background:#fff;-webkit-text-size-adjust:100%}
+.wrap{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;padding:env(safe-area-inset-top) 0 var(--nav)}
 .cap{font-size:12px;font-weight:600;color:#55585d;text-transform:uppercase;letter-spacing:.06em}
 .muted{color:#55585d}.blue{color:#2f5fd0}code{font-family:ui-monospace,Menlo,monospace;font-size:.92em}
 .tile{display:flex;flex-direction:column;justify-content:center;gap:2px;min-height:60px;padding:8px 16px;border-radius:14px;background:#fff;border:1px solid #d9dbde;color:inherit;text-decoration:none}
@@ -21,7 +21,7 @@ input[type=email],input[type=password]{width:100%;height:52px;padding:0 14px;bor
 .seg{display:flex;gap:8px;flex-wrap:wrap}.seg label{cursor:pointer}.seg input{position:absolute;opacity:0;pointer-events:none}
 .seg span{display:block;padding:12px 14px;border-radius:12px;border:1px solid #d9dbde;font-size:15px;background:#fff}
 .seg input:checked+span{background:#1c1d1f;border-color:#1c1d1f;color:#fff}.seg small{display:block;font-size:12px;opacity:.7}
-.stick{position:sticky;bottom:0;padding:12px 20px;background:#fff;border-top:1px solid #eff0f2}
+.stick{position:sticky;bottom:0;margin-bottom:calc(-1 * var(--nav));padding:12px 20px calc(12px + var(--nav));background:#fff;border-top:1px solid #eff0f2}
 .pass{color:#1d7048}.fail{color:#b00020}
 </style></head><body><div class="wrap">@yield('body')</div><script src="{{ asset('js/phone-queue.js') }}" defer></script>
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(function(){});}</script></body></html>

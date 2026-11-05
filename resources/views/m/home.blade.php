@@ -121,7 +121,7 @@
     tick(); setInterval(tick, 1000);
 })();
 </script>
-<div style="display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid #e6e7e9;padding:10px 0 14px;font-size:12.5px;text-align:center">
+<div style="display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid #e6e7e9;padding:10px 0;font-size:12.5px;text-align:center">
     <a href="{{ route('m.home') }}" style="color:#2f5fd0;font-weight:600;text-decoration:none">Today</a>
     @if($tests)<a href="{{ route('m.tests.pick', 'thermal') }}" style="color:#55585d;text-decoration:none">Tests</a>@else<span></span>@endif
     @if($defects)<a href="{{ route('m.defects.pick') }}" style="color:#55585d;text-decoration:none">Defects</a>@else<span></span>@endif
