@@ -170,4 +170,21 @@ class HeatPlannerTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         app(HeatPlanner::class)->release($planned->fresh());
     }
+
+    public function test_a_released_heat_starts_with_the_furnace_default_recipe_only_if_it_is_active_and_for_the_process(): void
+    {
+        $furnace = $this->furnace('INDUCTION', 1000, 'IF1');
+        $recipe = \App\Models\ChargeBatch::create(['code' => 'CR-IND', 'name' => 'Induction mix', 'process_type' => 'INDUCTION', 'status' => 'ACTIVE']);
+        $furnace->update(['default_charge_batch_id' => $recipe->id]);
+        $this->orderFor('EN-GJL-250', 1, 300);
+        $planner = app(HeatPlanner::class);
+
+        $planner->rebuild(today());
+        $heat = $planner->release(PlannedHeat::first(), 'Imran');
+        $this->assertSame($recipe->id, $heat->charge_batch_id);
+
+        $recipe->update(['status' => 'INACTIVE']);
+        $grade = \App\Models\IronGrade::findOrFail($heat->iron_grade_id);
+        $this->assertNull($planner->startHeat($furnace->fresh(), $grade, 300, today())->charge_batch_id);
+    }
 }

@@ -185,17 +185,27 @@ class HeatPlanner
     /** Creates a melting heat for a grade on a furnace, numbered for the day it is planned. */
     public function startHeat(Furnace $furnace, IronGrade $grade, float $kg, CarbonInterface $day, ?string $operator = null, ?string $note = null): Heat
     {
-        return Heat::create([
+        // The furnace's default charge recipe, when it is still active and for the furnace's own process.
+        $recipe = $furnace->defaultChargeBatch;
+        $recipe = $recipe && $recipe->status === 'ACTIVE' && $recipe->process_type === $furnace->furnace_type ? $recipe : null;
+
+        $heat = Heat::create([
             'heat_number' => app(\App\Services\Production\HeatNumber::class)->next($day),
             'furnace_id' => $furnace->id,
             'process_type' => $furnace->furnace_type,
             'status' => 'PLANNED',
             'iron_grade_id' => $grade->id,
+            'charge_batch_id' => $recipe?->id,
             'planned_start_at' => $day->copy()->setTime(6, 0),
             'target_metal_weight_kg' => $kg,
             'operator_name' => $operator ?: 'Unassigned',
             'notes' => $note,
         ]);
+        if ($recipe && $heat->load('furnace', 'chargeBatch.items')->isCupola()) {
+            $heat->update(['charge_rounds' => $heat->defaultChargeRounds()]);
+        }
+
+        return $heat;
     }
 
     private function clearOpenPlan(): void
