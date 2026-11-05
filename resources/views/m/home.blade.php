@@ -27,9 +27,9 @@
         $pct = $left === null ? 100 : max(0, min(100, 100 - ($left / max(1, $active['window'] * 60)) * 100));
     @endphp
     <div id="active" data-due="{{ $dueAt?->getTimestamp() }}" data-window="{{ $active['window'] * 60 }}" style="margin:2px 20px 8px;border-radius:14px;border:2px solid {{ $edge }};background:{{ $bg }};padding:12px 14px;display:flex;flex-direction:column;gap:8px">
-        <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px 10px">
             <span class="cap">Active heat</span>
-            @if($active['started'])<span style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:#1d7048;font-weight:500"><span style="width:8px;height:8px;border-radius:50%;background:#1d7048"></span>Melting since {{ $active['started']->format('H:i') }}</span>@endif
+            @if($active['started'])@php $mins = (int) $active['started']->diffInMinutes(now()); $ran = $mins < 60 ? $mins.' min' : intdiv($mins, 60).(intdiv($mins, 60) === 1 ? ' hr' : ' hrs').($mins % 60 ? ' '.($mins % 60).' min' : ''); @endphp<span style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:#1d7048;font-weight:500"><span style="width:8px;height:8px;border-radius:50%;background:#1d7048"></span>Started: {{ $active['started']->format('j M, g:ia') }} ({{ $ran }})</span>@endif
         </div>
         <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:10px">
             <div style="min-width:0">

@@ -72,6 +72,36 @@ class MobileScreensTest extends TestCase
         $this->get(route('m.home'))->assertOk()->assertSee('Active heat')->assertSee($heat->heat_number);
     }
 
+    public function test_the_thermal_form_defaults_to_the_white_cup_before_pouring(): void
+    {
+        $heat = $this->meltingHeat();
+        $html = $this->get(route('m.tests.thermal', $heat))->assertOk()->getContent();
+
+        $this->assertMatchesRegularExpression('/name="stage" value="PRE_POUR" checked/', $html);
+        $this->assertMatchesRegularExpression('/name="cup_type" value="TELLURIUM" checked/', $html);
+    }
+
+    public function test_a_thermal_test_is_not_saved_with_a_missing_reading(): void
+    {
+        $heat = $this->meltingHeat();
+        $url = route('m.tests.thermal.store', $heat);
+
+        $this->post($url, ['stage' => 'PRE_POUR', 'cup_type' => 'TELLURIUM', 'tl_c' => 1190])->assertSessionHasErrors('solidus_c');
+        $this->post($url, ['stage' => 'PRE_POUR', 'cup_type' => 'TELLURIUM', 'solidus_c' => 1130])->assertSessionHasErrors('tl_c');
+        $this->post($url, ['stage' => 'PRE_POUR', 'cup_type' => 'STABLE', 'tl_c' => 1190, 'te_min_c' => 1140])->assertSessionHasErrors('te_max_c');
+        $this->assertSame(0, ThermalAnalysisTest::count());
+
+        $this->post($url, ['stage' => 'PRE_POUR', 'cup_type' => 'TELLURIUM', 'tl_c' => 1190, 'solidus_c' => 1130])->assertSessionHasNoErrors();
+        $this->assertSame(1, ThermalAnalysisTest::count());
+    }
+
+    public function test_the_active_heat_shows_when_it_started_with_the_date_and_how_long_ago(): void
+    {
+        $this->meltingHeat('-12 hours');
+        $started = now()->subHours(12);
+        $this->get(route('m.home'))->assertOk()->assertSee('Started: '.$started->format('j M, g:ia').' (12 hrs)');
+    }
+
     public function test_tests_due_lists_what_is_waiting_and_marks_the_late_ones(): void
     {
         $this->get(route('m.home'))->assertOk()->assertSee('Nothing is waiting for a test.');
