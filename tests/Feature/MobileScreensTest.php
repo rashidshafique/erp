@@ -47,11 +47,11 @@ class MobileScreensTest extends TestCase
         $this->get(route('m.defects.pick'))->assertOk();
     }
 
-    private function meltingHeat(string $started = '-3 hours'): Heat
+    private function meltingHeat(string $started = '-3 hours', string $status = 'IN_PROGRESS'): Heat
     {
         $furnace = Furnace::create(['code' => 'IF-'.uniqid(), 'name' => 'Induction', 'furnace_type' => 'INDUCTION', 'status' => 'ACTIVE', 'rated_capacity_kg' => 5000, 'nominal_melting_rate_kg_per_hour' => 3000]);
 
-        return Heat::create(['heat_number' => 'HT-'.uniqid(), 'furnace_id' => $furnace->id, 'process_type' => 'INDUCTION', 'status' => 'IN_PROGRESS', 'actual_start_at' => now()->modify($started)]);
+        return Heat::create(['heat_number' => 'HT-'.uniqid(), 'furnace_id' => $furnace->id, 'process_type' => 'INDUCTION', 'status' => $status, 'actual_start_at' => now()->modify($started)]);
     }
 
     public function test_the_home_shows_the_active_heat_and_when_its_next_reading_is_due(): void
@@ -64,6 +64,12 @@ class MobileScreensTest extends TestCase
 
         ThermalAnalysisTest::create(['heat_id' => $heat->id, 'sample_reference' => 'T-'.uniqid(), 'stage' => 'PRE_TREATMENT', 'cup_type' => 'TE', 'taken_at' => now()->subMinutes(5), 'curve' => [], 'result' => 'PASS']);
         $this->get(route('m.home'))->assertOk()->assertSee('>Next reading in<', false)->assertDontSee('>Reading overdue<', false);
+    }
+
+    public function test_a_cupola_heat_that_is_melting_or_tapping_is_the_active_heat_too(): void
+    {
+        $heat = $this->meltingHeat('-1 hour', 'TAPPING');
+        $this->get(route('m.home'))->assertOk()->assertSee('Active heat')->assertSee($heat->heat_number);
     }
 
     public function test_tests_due_lists_what_is_waiting_and_marks_the_late_ones(): void

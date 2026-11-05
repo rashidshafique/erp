@@ -58,7 +58,7 @@ class MobileController extends Controller
      */
     private function activeHeat(): ?array
     {
-        $heat = Heat::with(['furnace', 'ironGrade', 'thermalTests'])->where('status', 'IN_PROGRESS')
+        $heat = Heat::with(['furnace', 'ironGrade', 'thermalTests'])->whereIn('status', Heat::RUNNING_STATUSES)
             ->orderByRaw('coalesce(actual_start_at, planned_start_at, created_at) desc')->first();
         if (! $heat) {
             return null;

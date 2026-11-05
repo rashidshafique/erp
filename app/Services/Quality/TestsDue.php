@@ -6,7 +6,7 @@ use App\Models\Heat;
 use Illuminate\Support\Collection;
 
 /**
- * What a tech has still to test, worked out from the floor rather than a test plan (the app holds none): a heat on the go with no
+ * What a tech has still to test, worked out from the floor rather than a test plan (the app holds none): a running heat (melting, tapping or in progress) with no
  * thermal test or no chemistry yet, and a lot that has come through its last stage with no final inspection. Oldest first.
  */
 class TestsDue
@@ -20,7 +20,7 @@ class TestsDue
     public function list(int $limit = 8): Collection
     {
         $heats = Heat::with(['furnace', 'ironGrade'])->withCount(['thermalTests', 'chemistryReadings'])
-            ->where(fn ($q) => $q->where('status', 'IN_PROGRESS')->orWhere(fn ($p) => $p->where('status', 'PLANNED')->whereDate('planned_start_at', today())))
+            ->where(fn ($q) => $q->whereIn('status', Heat::RUNNING_STATUSES)->orWhere(fn ($p) => $p->where('status', 'PLANNED')->whereDate('planned_start_at', today())))
             ->get();
         $rows = collect();
         foreach ($heats as $h) {
@@ -29,7 +29,7 @@ class TestsDue
             if ($h->thermal_tests_count === 0) {
                 $rows->push(['kind' => 'Thermal analysis', 'what' => $h->heat_number, 'sub' => $sub, 'since' => $since, 'type' => 'thermal', 'key' => $h->id]);
             }
-            if ($h->chemistry_readings_count === 0 && $h->status === 'IN_PROGRESS') {
+            if ($h->chemistry_readings_count === 0 && in_array($h->status, Heat::RUNNING_STATUSES, true)) {
                 $rows->push(['kind' => 'Spectro', 'what' => $h->heat_number, 'sub' => $sub, 'since' => $since, 'type' => 'spectro', 'key' => $h->id]);
             }
         }
