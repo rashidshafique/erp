@@ -45,7 +45,7 @@
     @if($errors->any() && ! $errors->has('reason') && ! $errors->has('note'))<div class="err" style="margin-top:10px">{{ $errors->first() }}</div>@endif
 </div>
 <div style="flex:1"></div>
-<div class="stick" style="border-top:0;margin-bottom:0"><button class="btn" style="height:52px;border-radius:12px">Save test</button></div>
+<div class="stick" style="border-top:0;margin-bottom:0"><button class="btn" style="height:52px;border-radius:12px">Save to heat</button></div>
 </form>
 <form id="unfinished" method="POST" action="{{ route('m.tests.thermal.unfinished', $heat) }}" data-offline data-offline-label="Invalid thermal · {{ $heat->heat_number }}" data-offline-done="{{ route('m.tests.thermal', $heat) }}" style="padding:0 20px 16px">@csrf
     <input type="hidden" name="stage"><input type="hidden" name="cup_type"><input type="hidden" name="cup_batch">

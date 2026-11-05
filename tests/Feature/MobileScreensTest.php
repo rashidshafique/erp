@@ -345,7 +345,7 @@ class MobileScreensTest extends TestCase
         $manager = $this->tech('QUALITY_MANAGER');
 
         $this->actingAs($this->tech('QA_TEST_TECH'));
-        $this->get(route('m.tests.thermal', $heat))->assertOk()->assertSee('Thermal analysis')->assertSee('Save test');
+        $this->get(route('m.tests.thermal', $heat))->assertOk()->assertSee('Thermal analysis')->assertSee('Save to heat');
         $this->get(route('m.tests.spectro', $heat))->assertOk()->assertSee('Save analysis');
         $this->get(route('m.tests.hardness', $lot))->assertOk()->assertSee('Reading 1');
         $this->post(route('m.tests.thermal.store', $heat), ['stage' => 'POST_TREATMENT', 'cup_type' => 'STABLE', 'tl_c' => 1190, 'te_min_c' => 1132, 'te_max_c' => 1150, 'peak_temp_c' => 1450])->assertSessionHasNoErrors()->assertRedirect();
