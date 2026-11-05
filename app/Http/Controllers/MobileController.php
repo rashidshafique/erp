@@ -68,8 +68,16 @@ class MobileController extends Controller
 
         return [
             'heat' => $heat, 'started' => $heat->actual_start_at, 'last' => $last, 'number' => $heat->thermalTests->count() + 1,
-            'due_at' => $last?->taken_at?->copy()->addMinutes($window), 'window' => $window,
+            'due_at' => $last ? $last->taken_at?->copy()->addMinutes($window) : $this->firstTestDue($heat, $window), 'window' => $window,
         ];
+    }
+
+    /** Grey and ductile heats owe a thermal test from the start of the melt, so their clock runs before the first test. */
+    private function firstTestDue(Heat $heat, int $window): ?\Illuminate\Support\Carbon
+    {
+        $since = $heat->actual_start_at ?? $heat->planned_start_at ?? $heat->created_at;
+
+        return in_array($heat->ironGrade?->family, ['GREY', 'DUCTILE'], true) ? $since?->copy()->addMinutes($window) : null;
     }
 
     /** Scan or type a label code; opens the heat, lot or sample it names. */

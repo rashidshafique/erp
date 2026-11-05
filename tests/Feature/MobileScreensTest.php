@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Furnace;
 use App\Models\Heat;
+use App\Models\IronGrade;
 use App\Models\Role;
 use App\Models\ThermalAnalysisTest;
 use App\Models\User;
@@ -70,6 +71,16 @@ class MobileScreensTest extends TestCase
     {
         $heat = $this->meltingHeat('-1 hour', 'TAPPING');
         $this->get(route('m.home'))->assertOk()->assertSee('Active heat')->assertSee($heat->heat_number);
+    }
+
+    public function test_a_grey_or_ductile_heat_is_overdue_from_the_start_even_with_no_test(): void
+    {
+        foreach (['EN-GJL-250', 'EN-GJS-500-7'] as $code) {
+            $heat = $this->meltingHeat('-3 hours');
+            $heat->update(['iron_grade_id' => IronGrade::where('code', $code)->value('id')]);
+            $this->get(route('m.home'))->assertOk()->assertSee('>Reading overdue<', false)->assertSee('>+2:15:', false)->assertSee('border:2px solid #d9544a', false)->assertDontSee('No thermal test yet');
+            $heat->update(['status' => 'CLOSED']);
+        }
     }
 
     public function test_the_thermal_form_defaults_to_the_white_cup_before_pouring(): void

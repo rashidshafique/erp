@@ -22,7 +22,7 @@
         $colour = ['idle' => '#55585d', 'ok' => '#1d7048', 'amber' => '#94610a', 'red' => '#b3352c'][$tone];
         $bg = ['idle' => '#fff', 'ok' => '#fff', 'amber' => '#fdf6e8', 'red' => '#fdf1f0'][$tone];
         $edge = ['idle' => '#d9dbde', 'ok' => '#d9dbde', 'amber' => '#e2b25a', 'red' => '#d9544a'][$tone];
-        $clock = $left === null ? '' : ($left <= 0 ? '+' : '').sprintf('%d:%02d', intdiv(abs($left), 60), abs($left) % 60);
+        $a = $left === null ? 0 : abs($left); $clock = $left === null ? '' : ($left <= 0 ? '+' : '').($a >= 3600 ? sprintf('%d:%02d:%02d', intdiv($a, 3600), intdiv($a % 3600, 60), $a % 60) : sprintf('%d:%02d', intdiv($a, 60), $a % 60));
         $label = $left === null ? 'No thermal test yet' : ($left <= 0 ? 'Reading overdue' : 'Next reading in');
         $pct = $left === null ? 100 : max(0, min(100, 100 - ($left / max(1, $active['window'] * 60)) * 100));
     @endphp
@@ -113,7 +113,8 @@
     function tick() {
         var ms = due - Date.now(), s = Math.floor(Math.abs(ms) / 1000), tone = ms <= 0 ? 'red' : (ms < 120000 ? 'amber' : 'ok');
         var c = { ok: '#1d7048', amber: '#94610a', red: '#b3352c' }[tone], bg = { ok: '#fff', amber: '#fdf6e8', red: '#fdf1f0' }[tone], edge = { ok: '#d9dbde', amber: '#e2b25a', red: '#d9544a' }[tone];
-        clk.textContent = (ms <= 0 ? '+' : '') + Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2);
+        var p2 = function (n) { return ('0' + n).slice(-2); };
+        clk.textContent = (ms <= 0 ? '+' : '') + (s >= 3600 ? Math.floor(s / 3600) + ':' + p2(Math.floor(s % 3600 / 60)) : Math.floor(s / 60)) + ':' + p2(s % 60);
         lab.textContent = ms <= 0 ? 'Reading overdue' : 'Next reading in';
         lab.style.color = clk.style.color = bar.style.background = c; box.style.background = bg; box.style.borderColor = edge;
         bar.style.width = Math.max(0, Math.min(100, 100 - (ms / win) * 100)) + '%';
