@@ -21,7 +21,7 @@ class MobileThermalController extends Controller
 {
     public const STAGES = ['BASE' => 'Base iron', 'POST_TREATMENT' => 'After treatment', 'PRE_POUR' => 'Before pouring'];
 
-    public const CUPS = ['STABLE' => ['Grey cup', 'Plain cup: TL, eutectic and recalescence'], 'TELLURIUM' => ['White cup', 'Tellurium cup: TL and solidus']];
+    public const CUPS = ['TELLURIUM' => ['Te cup (white)', 'C, Si, CEL from TL and TEW'], 'STABLE' => ['Plain cup (grey)', 'Undercooling, recalescence, nodularity, shrink']];
 
     /** Why a test is thrown out. Stopped, bad sample and something else can also be logged before any reading exists, when the test never finished. */
     public const INVALID = [
@@ -36,7 +36,7 @@ class MobileThermalController extends Controller
 
     public function create(Request $request, Heat $heat): View
     {
-        $heat->load(['ironGrade', 'furnace']);
+        $heat->load(['ironGrade', 'furnace'])->loadCount('thermalTests');
 
         return view('m.thermal', [
             'heat' => $heat, 'stages' => self::STAGES, 'cups' => self::CUPS, 'stage' => $this->pick($request->query('stage'), self::STAGES, 'PRE_POUR'), 'cup' => $this->pick($request->query('cup'), self::CUPS, 'TELLURIUM'),
