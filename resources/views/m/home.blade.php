@@ -33,7 +33,7 @@
         </div>
         <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:10px">
             <div style="min-width:0">
-                <div style="font-size:19px;font-weight:600">{{ $h->furnace?->code ?? $h->furnace?->name }} · <code>{{ $h->heat_number }}</code></div>
+                <div style="font-size:19px;font-weight:600">{{ $h->furnace?->name ?? $h->furnace?->code }} · <code>{{ $h->heat_number }}</code></div>
                 <div style="font-size:13px;color:#55585d">{{ collect([$h->ironGrade?->code, $last ? 'last test '.$last->taken_at->format('H:i').($last->ce_from_tl ? ' CEL '.number_format($last->ce_from_tl, 2) : '') : null])->filter()->implode(' · ') }}</div>
             </div>
             @if($left !== null)

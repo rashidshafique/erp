@@ -25,7 +25,7 @@ class TestsDue
         $rows = collect();
         foreach ($heats as $h) {
             $since = $h->actual_start_at ?? $h->planned_start_at ?? $h->created_at;
-            $sub = trim(($h->furnace?->code ?? '').' · '.($h->ironGrade?->code ?? ''), ' ·');
+            $sub = trim(($h->furnace?->name ?? $h->furnace?->code ?? '').' · '.($h->ironGrade?->code ?? ''), ' ·');
             if ($h->thermal_tests_count === 0) {
                 $rows->push(['kind' => 'Thermal analysis', 'what' => $h->heat_number, 'sub' => $sub, 'since' => $since, 'type' => 'thermal', 'key' => $h->id]);
             }

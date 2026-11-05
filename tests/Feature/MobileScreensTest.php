@@ -59,6 +59,7 @@ class MobileScreensTest extends TestCase
     {
         $heat = $this->meltingHeat();
         $this->get(route('m.home'))->assertOk()->assertSee('Active heat')->assertSee($heat->heat_number)->assertSee('No thermal test yet')->assertSee('Start test');
+        $this->get(route('m.home'))->assertSee('Induction · <code>'.$heat->heat_number, false)->assertDontSee($heat->furnace->code);
 
         ThermalAnalysisTest::create(['heat_id' => $heat->id, 'sample_reference' => 'T-'.uniqid(), 'stage' => 'PRE_TREATMENT', 'cup_type' => 'TE', 'taken_at' => now()->subMinutes(53), 'curve' => [], 'result' => 'PASS']);
         $this->get(route('m.home'))->assertOk()->assertSee('>Reading overdue<', false)->assertSee('>+8:', false)->assertSee('re-test 2, TE cup');
