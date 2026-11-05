@@ -15,7 +15,7 @@ use InvalidArgumentException;
 
 /**
  * Phone thermal test (designs 26h to 26i): set up the cup and enter the readings from the analyser for one heat.
- * Defaults to the white cup before pouring. A white cup needs TL and solidus, a grey cup TL and both eutectic temperatures; nothing is saved without them.
+ * Defaults to the white cup before pouring. Both cups need TL and the peak temperature; a white cup also needs solidus, carbon, silicon and CE, a grey cup both eutectic temperatures. Nothing is saved without them.
  */
 class MobileThermalController extends Controller
 {
@@ -53,7 +53,10 @@ class MobileThermalController extends Controller
             'cup_type' => ['required', 'in:'.implode(',', array_keys(self::CUPS))],
             'tl_c' => $needs(true), 'te_min_c' => $needs(! $white), 'te_max_c' => $needs(! $white), 'solidus_c' => $needs($white),
             'recalescence_c' => ['nullable', 'numeric', 'between:0,40'],
-            'silicon' => ['nullable', 'numeric', 'between:0,6'],
+            'peak_temp_c' => ['required', 'numeric', 'between:900,1700'],
+            'carbon' => [$white ? 'required' : 'nullable', 'numeric', 'decimal:0,4', 'between:0,5'],
+            'silicon' => [$white ? 'required' : 'nullable', 'numeric', 'decimal:0,4', 'between:0,6'],
+            'ce' => [$white ? 'required' : 'nullable', 'numeric', 'decimal:0,4', 'between:2,6'],
             'cup_batch' => ['nullable', 'string', 'max:60'],
             'sample_reference' => ['nullable', 'string', 'max:60'],
             'notes' => ['nullable', 'string', 'max:2000'],

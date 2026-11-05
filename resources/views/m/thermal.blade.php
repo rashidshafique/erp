@@ -32,9 +32,13 @@
 </div>
 <div style="padding:14px 20px 0;display:grid;grid-template-columns:1fr 1fr;gap:8px">
     <label class="rd" data-cups="STABLE TELLURIUM"><div><b>TL</b><span>°C</span></div><input type="number" step="0.1" inputmode="decimal" name="tl_c" value="{{ old('tl_c') }}" placeholder="Liquidus" required></label>
-    <label class="rd" data-cups="TELLURIUM"><div><b>Solidus</b><span>°C</span></div><input type="number" step="0.1" inputmode="decimal" name="solidus_c" value="{{ old('solidus_c') }}" placeholder="TS"></label>
-    <label class="rd" data-cups="STABLE"><div><b>TE min</b><span>°C</span></div><input type="number" step="0.1" inputmode="decimal" name="te_min_c" value="{{ old('te_min_c') }}" placeholder="Eutectic low"></label>
-    <label class="rd" data-cups="STABLE"><div><b>TE max</b><span>°C</span></div><input type="number" step="0.1" inputmode="decimal" name="te_max_c" value="{{ old('te_max_c') }}" placeholder="Eutectic high"></label>
+    <label class="rd" data-cups="STABLE TELLURIUM"><div><b>Peak temp</b><span>°C</span></div><input type="number" step="0.1" inputmode="decimal" name="peak_temp_c" value="{{ old('peak_temp_c') }}" placeholder="Highest" required></label>
+    <label class="rd" data-cups="TELLURIUM"><div><b>Solidus</b><span>°C</span></div><input type="number" step="0.1" inputmode="decimal" name="solidus_c" value="{{ old('solidus_c') }}" placeholder="TS" required></label>
+    <label class="rd" data-cups="STABLE"><div><b>TE min</b><span>°C</span></div><input type="number" step="0.1" inputmode="decimal" name="te_min_c" value="{{ old('te_min_c') }}" placeholder="Eutectic low" required></label>
+    <label class="rd" data-cups="STABLE"><div><b>TE max</b><span>°C</span></div><input type="number" step="0.1" inputmode="decimal" name="te_max_c" value="{{ old('te_max_c') }}" placeholder="Eutectic high" required></label>
+    <label class="rd" data-cups="TELLURIUM"><div><b>Carbon</b><span>%</span></div><input type="number" step="0.0001" inputmode="decimal" name="carbon" value="{{ old('carbon') }}" placeholder="C" required></label>
+    <label class="rd" data-cups="TELLURIUM"><div><b>Silicon</b><span>%</span></div><input type="number" step="0.0001" inputmode="decimal" name="silicon" value="{{ old('silicon') }}" placeholder="Si" required></label>
+    <label class="rd" data-cups="TELLURIUM"><div><b>CE</b><span></span></div><input type="number" step="0.0001" inputmode="decimal" name="ce" value="{{ old('ce') }}" placeholder="Carbon equivalent" required></label>
 </div>
 <div style="padding:14px 20px 0;display:flex;flex-direction:column">
     <label style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-top:1px solid #eff0f2;border-bottom:1px solid #eff0f2;font-size:15px"><span style="color:#55585d">Cup batch</span><input type="text" name="cup_batch" value="{{ old('cup_batch') }}" autocomplete="off" placeholder="e.g. QC-4471" style="flex:1;min-width:0;border:0;outline:0;text-align:right;font:inherit;background:transparent"></label>

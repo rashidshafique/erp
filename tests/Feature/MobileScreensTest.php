@@ -84,6 +84,14 @@ class MobileScreensTest extends TestCase
         }
     }
 
+    public function test_the_thermal_form_asks_for_carbon_silicon_ce_and_the_peak_temperature(): void
+    {
+        $html = $this->get(route('m.tests.thermal', $this->meltingHeat()))->assertOk()->getContent();
+        foreach (['tl_c', 'peak_temp_c', 'solidus_c', 'te_min_c', 'te_max_c', 'carbon', 'silicon', 'ce'] as $field) {
+            $this->assertMatchesRegularExpression('/name="'.$field.'"[^>]*required/', $html, $field);
+        }
+    }
+
     public function test_the_thermal_form_defaults_to_the_white_cup_before_pouring(): void
     {
         $heat = $this->meltingHeat();
@@ -98,18 +106,24 @@ class MobileScreensTest extends TestCase
         $heat = $this->meltingHeat();
         $url = route('m.tests.thermal.store', $heat);
 
-        $this->post($url, ['stage' => 'PRE_POUR', 'cup_type' => 'TELLURIUM', 'tl_c' => 1190])->assertSessionHasErrors('solidus_c');
-        $this->post($url, ['stage' => 'PRE_POUR', 'cup_type' => 'TELLURIUM', 'solidus_c' => 1130])->assertSessionHasErrors('tl_c');
-        $this->post($url, ['stage' => 'PRE_POUR', 'cup_type' => 'STABLE', 'tl_c' => 1190, 'te_min_c' => 1140])->assertSessionHasErrors('te_max_c');
+        $white = ['stage' => 'PRE_POUR', 'cup_type' => 'TELLURIUM', 'tl_c' => 1190, 'solidus_c' => 1130, 'peak_temp_c' => 1450, 'carbon' => 3.4, 'silicon' => 2.1, 'ce' => 4.1];
+        foreach (['tl_c', 'solidus_c', 'peak_temp_c', 'carbon', 'silicon', 'ce'] as $field) {
+            $this->post($url, array_diff_key($white, [$field => 1]))->assertSessionHasErrors($field);
+        }
+        $grey = ['stage' => 'PRE_POUR', 'cup_type' => 'STABLE', 'tl_c' => 1190, 'te_min_c' => 1140, 'te_max_c' => 1150, 'peak_temp_c' => 1450];
+        foreach (['tl_c', 'te_min_c', 'te_max_c', 'peak_temp_c'] as $field) {
+            $this->post($url, array_diff_key($grey, [$field => 1]))->assertSessionHasErrors($field);
+        }
+        $this->post($url, array_merge($white, ['peak_temp_c' => 1100]))->assertSessionHasErrors('tl_c');
         $this->assertSame(0, ThermalAnalysisTest::count());
 
-        $this->post($url, ['stage' => 'PRE_POUR', 'cup_type' => 'TELLURIUM', 'tl_c' => 1190, 'solidus_c' => 1130])->assertSessionHasNoErrors();
+        $this->post($url, $white)->assertSessionHasNoErrors();
         $this->assertSame(1, ThermalAnalysisTest::count());
     }
 
     private function savedCup(Heat $heat): ThermalAnalysisTest
     {
-        $this->post(route('m.tests.thermal.store', $heat), ['stage' => 'PRE_POUR', 'cup_type' => 'TELLURIUM', 'tl_c' => 1190, 'solidus_c' => 1130])->assertSessionHasNoErrors();
+        $this->post(route('m.tests.thermal.store', $heat), ['stage' => 'PRE_POUR', 'cup_type' => 'TELLURIUM', 'tl_c' => 1190, 'solidus_c' => 1130, 'peak_temp_c' => 1450, 'carbon' => 3.4, 'silicon' => 2.1, 'ce' => 4.1])->assertSessionHasNoErrors();
 
         return ThermalAnalysisTest::firstOrFail();
     }
@@ -334,7 +348,7 @@ class MobileScreensTest extends TestCase
         $this->get(route('m.tests.thermal', $heat))->assertOk()->assertSee('Thermal analysis')->assertSee('Save test');
         $this->get(route('m.tests.spectro', $heat))->assertOk()->assertSee('Save analysis');
         $this->get(route('m.tests.hardness', $lot))->assertOk()->assertSee('Reading 1');
-        $this->post(route('m.tests.thermal.store', $heat), ['stage' => 'POST_TREATMENT', 'cup_type' => 'STABLE', 'tl_c' => 1190, 'te_min_c' => 1132, 'te_max_c' => 1150])->assertSessionHasNoErrors()->assertRedirect();
+        $this->post(route('m.tests.thermal.store', $heat), ['stage' => 'POST_TREATMENT', 'cup_type' => 'STABLE', 'tl_c' => 1190, 'te_min_c' => 1132, 'te_max_c' => 1150, 'peak_temp_c' => 1450])->assertSessionHasNoErrors()->assertRedirect();
         $this->assertSame('FAIL', \App\Models\ThermalAnalysisTest::firstOrFail()->result);
         $this->assertStringContainsString('FAIL', $manager->notifications()->firstOrFail()->data['title']);
         $this->post(route('m.tests.thermal.store', $heat), ['stage' => 'BASE', 'cup_type' => 'STABLE'])->assertSessionHasErrors('tl_c');
