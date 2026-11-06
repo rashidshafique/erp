@@ -47,7 +47,7 @@ class RoleHome
         if ($can('planning.manage')) {
             $add('Planning', [
                 $this->tile('Open production orders', ProductionOrder::open()->count(), 'plain', 'production-orders.index'),
-                $this->tile('Late (past due date)', ProductionOrder::open()->whereDate('due_date', '<', today())->count(), 'bad', 'planner.index'),
+                $this->tile('Late (past due date)', ProductionOrder::open()->whereDate('required_date', '<', today())->count(), 'bad', 'planner.index'),
             ]);
         }
         if ($can('melting.operate')) {

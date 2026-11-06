@@ -43,6 +43,16 @@ class StartPageTest extends TestCase
         $this->signIn('VIEWER')->assertRedirect(route('home'));
     }
 
+    public function test_home_opens_for_every_role(): void
+    {
+        foreach (Role::pluck('code') as $code) {
+            $this->post(route('logout'));
+            User::query()->delete();
+            $this->signIn($code);
+            $this->get(route('home'))->assertSuccessful();
+        }
+    }
+
     public function test_melting_comes_before_moulding_for_someone_with_both(): void
     {
         $this->signIn('MOULDING_SUPERVISOR', ['MELT_SUPERVISOR'])->assertRedirect(route('heats.index'));
