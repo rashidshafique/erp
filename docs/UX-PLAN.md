@@ -169,3 +169,6 @@ Setup wizard "How you work" questions → picks Basic / full preset → rules pa
 - **U1** sketches show Basic and Full side by side for every screen.
 - **U3** adds notifications, approvals inbox and desktop table patterns.
 - Second wave after the first four personas: pattern shop, maintenance, HR self-service, admin, subcontractor.
+
+### Correction after the audit (U0a, see UX-AUDIT.md)
+Gap 2 in section 5 ("no role-based home") is partly wrong: `/home` already builds permission-based tiles (`RoleHome`). The real gap is that it only shows counts, and the Today board is a separate Basic-only start page. Also, 14 roles are seeded but there is no Planner or Owner role.
