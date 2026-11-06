@@ -148,7 +148,13 @@
     @if(! old('sand_system')) line(); @else (function () { var o = st.selectedOptions[0]; document.getElementById('aw-linenote').textContent = o ? (o.dataset.team ? 'Team: ' + o.dataset.team + '. ' : '') + (o.dataset.note || '') : ''; })(); @endif
 })();
 </script>
-@if($list->status === 'DRAFT')<div class="panel"><div class="panel-header"><h2>Issue</h2></div><div class="panel-body"><form method="POST" action="{{ route('work-lists.issue', $list) }}" style="display:flex;gap:10px">@csrf<input name="issued_by" placeholder="Issued by" required><button class="btn btn-primary">Issue to teams</button></form></div></div>@endif
+@if($list->status === 'DRAFT')<div class="panel"><div class="panel-header"><h2>Issue</h2></div><div class="panel-body"><form method="POST" action="{{ route('work-lists.issue', $list) }}" style="display:flex;gap:10px">@csrf
+@auth
+<span style="align-self:center">Issued by <strong>{{ auth()->user()->name }}</strong></span>
+@else
+<input name="issued_by" placeholder="Issued by" required>
+@endauth
+<button class="btn btn-primary">Issue to teams</button></form></div></div>@endif
 @unless($list->items->contains(fn($i) => $i->moulding_run_id))<form method="POST" action="{{ route('work-lists.cancel', $list) }}">@csrf<button class="btn btn-danger">Cancel list</button></form>@endunless
 @endif
 @include('audit._history', ['type' => 'MouldingWorkList', 'id' => $list->id])

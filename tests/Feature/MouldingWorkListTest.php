@@ -31,6 +31,19 @@ class MouldingWorkListTest extends TestCase
         $this->get(route('moulding-teams.index'))->assertOk()->assertSee('Imtiaz')->assertSee('Floor 1');
     }
 
+    public function test_a_signed_in_user_issues_a_list_as_themselves(): void
+    {
+        $w = $this->world();
+        $this->post(route('work-lists.store'), ['list_date' => today()->toDateString(), 'shift' => 'Morning']);
+        $list = MouldingWorkList::firstOrFail();
+        $this->post(route('work-lists.items.add', $list), $this->item($w))->assertSessionHasNoErrors();
+
+        $user = \App\Models\User::factory()->create(['name' => 'Naveed Planner']);
+        $this->actingAs($user)->post(route('work-lists.issue', $list), ['issued_by' => 'Someone else'])->assertSessionHasNoErrors();
+
+        $this->assertSame('Naveed Planner', $list->fresh()->issued_by);
+    }
+
     public function test_a_run_can_be_held_resumed_and_cancelled(): void
     {
         $w = $this->world();

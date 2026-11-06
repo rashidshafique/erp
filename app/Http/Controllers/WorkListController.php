@@ -175,7 +175,7 @@ class WorkListController extends Controller
 
     public function issue(Request $request, MouldingWorkList $list, WorkListService $svc): RedirectResponse
     {
-        $by = $request->validate(['issued_by' => ['required', 'string', 'max:100']])['issued_by'];
+        $by = $request->user()?->name ?? $request->validate(['issued_by' => ['required', 'string', 'max:100']])['issued_by'];
         try {
             $svc->issue($list, $by);
         } catch (InvalidArgumentException $e) {
