@@ -41,6 +41,10 @@ class MouldCountController extends Controller
             return back()->withErrors(['reason' => $e->getMessage()])->withInput();
         }
 
+        $alerts = app(\App\Services\Production\FloorAlerts::class);
+        $alerts->mouldsCounted($res['counted'], Auth::user());
+        $alerts->mouldsShort($res['written_off'], Auth::user());
+
         return back()->with('success', "{$res['counted']} moulds counted".($res['written_off'] ? ", {$res['written_off']} written off. They go back on what the orders still need." : '; all match the records.'));
     }
 }

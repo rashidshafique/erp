@@ -48,6 +48,21 @@ class Heat extends Model
         'drop_actual_minutes',
     ];
 
+    protected static function booted(): void
+    {
+        $running = ['IN_PROGRESS', 'MELTING'];
+        static::created(function (Heat $heat) use ($running) {
+            if (in_array($heat->status, $running, true)) {
+                app(\App\Services\Production\FloorAlerts::class)->heatStarted($heat, \Illuminate\Support\Facades\Auth::user());
+            }
+        });
+        static::updated(function (Heat $heat) use ($running) {
+            if ($heat->wasChanged('status') && in_array($heat->status, $running, true) && ! in_array($heat->getOriginal('status'), $running, true)) {
+                app(\App\Services\Production\FloorAlerts::class)->heatStarted($heat, \Illuminate\Support\Facades\Auth::user());
+            }
+        });
+    }
+
     protected function casts(): array
     {
         return [

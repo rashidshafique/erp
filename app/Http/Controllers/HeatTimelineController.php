@@ -96,6 +96,8 @@ class HeatTimelineController extends Controller
         $leftover = ['leftover_metal_kg' => $d['leftover_metal_kg'] ?? null, 'leftover_use' => filled($d['leftover_metal_kg'] ?? null) ? $d['leftover_use'] : null, 'close_note' => $d['close_note'] ?? null];
         $heat->update($heat->isCupola() ? $leftover : $leftover + ['status' => 'CLOSED', 'closed_at' => isset($d['closed_at']) ? Carbon::parse($d['closed_at']) : now(), 'hold_reason' => null]);
 
+        app(\App\Services\Production\FloorAlerts::class)->heatClosed($heat, app(\App\Services\Production\HeatBalance::class)->for($heat->fresh())['unaccounted_kg'], $request->user());
+
         return back()->with('success', "Heat {$heat->heat_number} closed".($leftover['leftover_metal_kg'] ? ': '.\App\Support\Formats::number($leftover['leftover_metal_kg'], 0).' kg '.strtolower(Heat::LEFTOVER_USES[$leftover['leftover_use']]).'.' : '.'));
     }
 }

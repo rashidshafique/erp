@@ -10,6 +10,7 @@ use App\Support\OrderRules;
 use App\Support\PouringRules;
 use App\Support\QualityRules;
 use App\Support\RelatedFiles;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 /** Creates the casting lots of a completed pour: one per product revision in each mould assembly, or one per product for the whole pour when lots are grouped. */
@@ -111,6 +112,8 @@ class LotFactory
                 }
             }
         });
+
+        app(FloorAlerts::class)->lotsMade($pour, $made, Auth::user());
 
         return ['lots' => $made, 'warnings' => $warnings];
     }

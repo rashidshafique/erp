@@ -2,17 +2,24 @@
 
 namespace App\Services\Production;
 
+use App\Models\Heat;
 use App\Models\MouldingWorkList;
+use App\Models\Pour;
 use App\Models\User;
 use App\Notifications\AppNotice;
 use App\Services\Notifications\Notify;
 
 /**
  * Tells the next person on the floor that work has reached them, for the hand-offs between hats. Each notice goes to everyone
- * holding the permission for the next step, and never to the person who just did the step.
+ * holding the permission for the next step, and never to the person who just did the step, so a one-person foundry hears nothing.
  */
 class FloorAlerts
 {
+    /** Unaccounted metal worth telling someone about: this share of what was tapped, and never less than the floor in kg. */
+    public const UNACCOUNTED_PERCENT = 2.0;
+
+    public const UNACCOUNTED_MIN_KG = 5.0;
+
     public function __construct(private Notify $notify) {}
 
     /** A moulding list was issued: the people who mould are told how much is waiting. */
@@ -27,6 +34,107 @@ class FloorAlerts
             $list->list_date->format('D j M').' · '.$list->shift.' shift · '.$items->sum('planned_moulds').' moulds on '.$stations.' '.($stations === 1 ? 'station' : 'stations').'.',
             'info',
             route('work-lists.show', $list),
+        ), $by);
+    }
+
+    /** A list is still a draft when the shift is near: the planner is reminded to issue it. */
+    public function listNotIssued(MouldingWorkList $list): int
+    {
+        return $this->notify->toPermissions(['planning.manage'], new AppNotice(
+            'list-not-issued',
+            "Moulding list {$list->list_number} is not issued",
+            $list->list_date->format('D j M').' · '.$list->shift.' shift · the moulders cannot see it until it is issued.',
+            'warning',
+            route('work-lists.show', $list),
+        ));
+    }
+
+    /** Moulds were counted before pouring: the melt shop learns how many are ready. */
+    public function mouldsCounted(int $moulds, ?User $by): int
+    {
+        if ($moulds < 1) {
+            return 0;
+        }
+
+        return $this->notify->toPermissions(['melting.operate'], new AppNotice(
+            'moulds-counted',
+            "{$moulds} moulds counted ready",
+            'Counted before pouring, so the melt for them can go ahead.',
+            'success',
+            route('mould-readiness.index'),
+        ), $by);
+    }
+
+    /** Moulds were written off at the count: the planner sees the orders need them again. */
+    public function mouldsShort(int $writtenOff, ?User $by): int
+    {
+        if ($writtenOff < 1) {
+            return 0;
+        }
+
+        return $this->notify->toPermissions(['planning.manage'], new AppNotice(
+            'moulds-short',
+            "{$writtenOff} moulds written off at the count",
+            'The orders need these moulds again. They are on the planner for the next list.',
+            'warning',
+            route('planner.index'),
+        ), $by);
+    }
+
+    /** A heat started: the moulders are asked to count what is ready for it. */
+    public function heatStarted(Heat $heat, ?User $by): int
+    {
+        return $this->notify->toPermissions(['moulding.operate'], new AppNotice(
+            'heat-started',
+            "Heat {$heat->heat_number} started",
+            'Count the moulds that are ready to pour.',
+            'info',
+            route('mould-count.index'),
+        ), $by);
+    }
+
+    /** A charge is late on a running heat. */
+    public function chargeOverdue(Heat $heat, int $round, int $minutesLate): int
+    {
+        return $this->notify->toPermissions(['melting.operate', 'planning.manage'], new AppNotice(
+            'charge-overdue',
+            "Heat {$heat->heat_number}: charge {$round} is {$minutesLate} min overdue",
+            'The next charge on the recipe is past its time.',
+            'danger',
+            route('heats.show', $heat),
+        ));
+    }
+
+    /** A pour was completed and made lots: quality has castings to check. */
+    public function lotsMade(Pour $pour, int $lots, ?User $by): int
+    {
+        if ($lots < 1) {
+            return 0;
+        }
+
+        return $this->notify->toPermissions(['quality.inspect'], new AppNotice(
+            'lots-made',
+            "Pour {$pour->pour_number}: {$lots} ".($lots === 1 ? 'lot' : 'lots').' to check',
+            'Castings from this pour are waiting for their first check.',
+            'info',
+            route('lots.queue'),
+        ), $by);
+    }
+
+    /** A heat closed with metal that no pour, leftover or drop explains. */
+    public function heatClosed(Heat $heat, ?float $unaccountedKg, ?User $by): int
+    {
+        $limit = max(self::UNACCOUNTED_MIN_KG, (float) $heat->actual_tapped_weight_kg * self::UNACCOUNTED_PERCENT / 100);
+        if ($unaccountedKg === null || abs($unaccountedKg) < $limit) {
+            return 0;
+        }
+
+        return $this->notify->toPermissions(['planning.manage'], new AppNotice(
+            'heat-unaccounted',
+            "Heat {$heat->heat_number} closed with ".round(abs($unaccountedKg)).' kg unaccounted',
+            'Tapped metal is not matched by pours and leftover. Look at the metal balance.',
+            'warning',
+            route('heats.show', $heat),
         ), $by);
     }
 }
