@@ -32,6 +32,20 @@ class Notify
         return $this->send($this->usersWithPermission($permission), $notice);
     }
 
+    /**
+     * Everyone holding any of the permissions, counted once, except the person who did the thing. A one-person foundry never
+     * gets a notice about its own step.
+     *
+     * @param  list<string>  $permissions
+     */
+    public function toPermissions(array $permissions, AppNotice $notice, ?User $by = null): int
+    {
+        $users = collect($permissions)->flatMap(fn (string $permission) => $this->usersWithPermission($permission))->unique('id')
+            ->reject(fn (User $user) => $by !== null && $user->id === $by->id)->values();
+
+        return $this->send($users, $notice);
+    }
+
     /** @param  list<string>  $roleCodes */
     public function toRoles(array $roleCodes, AppNotice $notice): int
     {

@@ -12,6 +12,7 @@ use App\Models\PatternRevision;
 use App\Models\ProductionOrder;
 use App\Models\SandSystem;
 use App\Services\Production\DailyMouldingList;
+use App\Services\Production\FloorAlerts;
 use App\Services\Production\WorkListService;
 use App\Services\Quality\Measurements;
 use Illuminate\Http\RedirectResponse;
@@ -181,6 +182,7 @@ class WorkListController extends Controller
         } catch (InvalidArgumentException $e) {
             return back()->withErrors(['item' => $e->getMessage()]);
         }
+        app(FloorAlerts::class)->listIssued($list, $request->user());
 
         return back()->with('success', 'List issued to the teams.');
     }
