@@ -127,7 +127,7 @@ new class extends Component
 <div class="hs-tile {{ $finish && $finish['finish_at']->isPast() ? 'is-bad' : ($finish ? 'is-warn' : '') }}" title="Estimated finish, from the target metal and the melting rate{{ $finish ? ' ('.$finish['label'].')' : '' }}"
     @if ($finish) x-data="{ at: {{ $finish['finish_at']->getTimestampMs() }}, now: Date.now(),
         get left() { return Math.floor((this.at - this.now) / 1000); },
-        get text() { const p = (n) => String(n).padStart(2, '0'), s = Math.abs(this.left); return (this.left < 0 ? '-' : '') + Math.floor(s / 3600) + ':' + p(Math.floor(s / 60) % 60) + ':' + p(s % 60); } }"
+        get text() { const p = (n) => String(n).padStart(2, '0'), s = Math.abs(this.left); return Math.floor(s / 3600) + ':' + p(Math.floor(s / 60) % 60) + ':' + p(s % 60); } }"
     x-init="setInterval(() => now = Date.now(), 1000)" :class="left < 0 ? 'is-bad' : 'is-warn'" @endif>
     @if ($finish)
         <div class="hs-label" x-text="left < 0 ? 'Overdue by' : 'Time remaining'">{{ $finish['finish_at']->isPast() ? 'Overdue by' : 'Time remaining' }}</div>
