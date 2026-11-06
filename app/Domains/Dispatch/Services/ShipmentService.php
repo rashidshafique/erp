@@ -74,7 +74,10 @@ class ShipmentService
                 if ($qty > $room) {
                     throw new InvalidArgumentException("Lot {$lot->lot_number}: only {$room} good piece(s) are left to pack.");
                 }
-                $each = $lot->quantity_poured > 0 ? (float) $lot->net_casting_weight_kg / $lot->quantity_poured : 0;
+                // A lot's weight comes from its cavity map; when that has none, the product's own casting weight is used.
+                $each = $lot->quantity_poured > 0 && (float) $lot->net_casting_weight_kg > 0
+                    ? (float) $lot->net_casting_weight_kg / $lot->quantity_poured
+                    : (float) ($lot->productRevision?->net_weight_kg ?? $lot->product?->nominal_weight_kg ?? 0);
                 $w = (float) ($weighedByLot[$lotId] ?? 0) > 0 ? round((float) $weighedByLot[$lotId], 3) : round($each * $qty, 3);
                 $net += $w;
                 PackingRecordItem::create(['packing_record_id' => $pack->id, 'casting_lot_id' => $lot->id, 'quantity_packed' => $qty, 'net_weight_kg' => $w, 'uom' => 'PCS']);

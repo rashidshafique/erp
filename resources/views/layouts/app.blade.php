@@ -244,7 +244,7 @@
             @php($crumb = \App\Support\Breadcrumb::build($__env->hasSection('breadcrumb') ? $__env->yieldContent('breadcrumb') : ''))
             <div class="breadcrumb">
                 @if ($crumb['parent'])<a class="crumb-back" id="crumb-back" href="{{ $crumb['parent'] }}" title="Back" aria-label="Back">←</a>@endif
-                <strong>@if ($crumb['html'] !== ''){!! $crumb['html'] !!}@else{{ \App\Support\SettingsNav::isSettingsPage() ? 'Settings / '.\App\Support\SettingsNav::current() : 'Dashboard' }}@endif</strong>
+                <strong>@if ($crumb['html'] !== ''){!! $crumb['html'] !!}@else{{ \App\Support\SettingsNav::isSettingsPage() ? 'Settings / '.\App\Support\SettingsNav::current() : ($__env->hasSection('title') ? trim($__env->yieldContent('title')) : 'Dashboard') }}@endif</strong>
             </div>
             <script>
             (function () {
