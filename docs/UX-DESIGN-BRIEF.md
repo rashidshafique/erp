@@ -1,6 +1,6 @@
 # Claude Design brief: rough flow sketches (round 1)
 
-Paste everything below the line into Claude Design. Attach screenshots of the current screens listed in "Current screens" (one per route). Plan and audit: `docs/UX-PLAN.md`, `docs/UX-AUDIT.md`.
+Paste everything below the line into Claude Design. Attach `foundry-screens.zip` (28 screenshots in folders planner, moulding, furnace, owner; planner and owner at 1440px, moulding and furnace at 1024x768 tablet). The table at the bottom lists which route each shot is. Plan and audit: `docs/UX-PLAN.md`, `docs/UX-AUDIT.md`.
 
 ---
 
@@ -12,12 +12,12 @@ FIXED DECISIONS (do not change)
 - Pakistan first: PKR, FBR / SRB / PRA sales tax, withholding.
 - Record codes are short: a prefix and a running number (SO-1042, PO-88, HT-312, LOT-5531). No dates, long IDs or random parts.
 - Roles stay as they are. The person who plans is the Production manager. The owner logs in as Administrator. What each person sees comes from their role's permissions, so the same screen shows less for a role with fewer permissions.
-- "Simple mode" lives in Settings only. No mode toggle on working screens.
+- "Simple mode" stays as it is today: a switch in Settings and one in the sidebar footer. Do not redesign it.
 - Process depth: each optional step is a rule. The Basic rule set hides it, the Full set shows it.
 
 PRINCIPLES
 - Few screens. Basic order to dispatch is 7 screens; the real floor day is 14.
-- Each person opens on ONE "due now" home: the work waiting for them, most urgent first. Today there are two (a home of count tiles, and a Today board for the Basic flow). Merge them into one, filtered by role permissions.
+- Each person opens on ONE "due now" home: the work waiting for them, most urgent first. Today there are three: the Administrator's dashboard (`/`), a role Home of count tiles (`/home`, one tile per permission, every number a count with no next action) and a Today board for the Basic flow (`/quick/today`). Merge them into one, filtered by role permissions. The Administrator dashboard's "Waiting for your decision" and "Where it's slipping" panels are the good model to extend.
 - Office: desktop. Floor: tablet, large tap targets, numeric keypads, one task per screen, bottom gap of at least 28px so Android buttons never cover the tab bar or sticky buttons.
 - Every number or warning links to the screen that fixes it.
 - Mistakes are fixed in place with a reason, never a dead end.
@@ -25,9 +25,10 @@ PRINCIPLES
 PERSONAS, in design priority order
 1. PRODUCTION MANAGER as planner (desktop). Turns open orders into tomorrow's moulding list and the melting plan. Needs: orders by due date, moulds already made, shortages (flasks, metal), work spread over moulding stations, edit rows, issue the list.
 2. MOULDING SUPERVISOR (tablet at the station). Needs: today's list, enter moulds made per pattern, count moulds before pouring (a shortfall needs a reason and is written off, and those orders need the moulds again), flask shortages.
-3. OWNER (Administrator; phone and laptop). One glance: will today's orders ship, what is stuck and why, what is overdue, money in and out (PKR).
+3. OWNER (Administrator; phone and laptop). One glance: will today's orders ship, what is stuck and why, what is overdue, money in and out (PKR). A dashboard already exists (attached): reshape it for a phone and for the questions above; do not start blank.
 4. FURNACE OPERATOR (Melt shop supervisor; tablet near the furnace, gloves). Needs: next heat, start heat with the furnace's default charge recipe, charges due at set times, tap, pour gate, pour, close heat (furnace off time, metal left and where it went, unaccounted metal shown).
 Already designed, do not redo: the quality technician phone screens.
+Already built, do not redesign, only use: the header search or scan box (Ctrl or Cmd K), the notification bell with an unread count, and the running-heat chip with its timer. Show what the bell lists for each hand-off below, and flag it "NO TRIGGER" if it would not appear there today.
 
 DELIVER, as separate frames with arrows between them
 A. The merged "due now" home for each of the 4 personas (4 frames).
@@ -56,8 +57,8 @@ OUTPUT
 
 | Persona | Routes |
 |---|---|
-| Production manager (planner) | `/home`, `/quick/today`, `/planner`, `/work-lists`, one `/work-lists/{id}`, `/heat-plan`, `/production-orders` |
+| Production manager (planner) | `/home` (planner/home.png), `/quick/today`, `/planner`, `/work-lists`, one `/work-lists/{id}`, `/heat-plan`, `/production-orders` |
 | Moulding supervisor | `/quick/floor`, `/moulding-runs`, one `/moulding-runs/{id}`, `/mould-count`, `/mould-readiness` |
-| Owner | `/home` as Administrator, `/dashboard`, `/reports/yield`, `/approvals` |
+| Owner | `/` (the Administrator dashboard, owner/dashboard.png), `/home` as Administrator, `/reports/yield`, `/approvals` |
 | Furnace operator | `/quick/next-heat`, `/heats`, one running `/heats/{id}` (Charge tab), `/heats/create`, `/pours/create`, close heat on a heat page |
 | Basic flow | `/quick/orders/new`, `/quick-qc`, `/packing`, `/dispatches` |
