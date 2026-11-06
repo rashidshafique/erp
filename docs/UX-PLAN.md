@@ -172,3 +172,14 @@ Setup wizard "How you work" questions → picks Basic / full preset → rules pa
 
 ### Correction after the audit (U0a, see UX-AUDIT.md)
 Gap 2 in section 5 ("no role-based home") is partly wrong: `/home` already builds permission-based tiles (`RoleHome`). The real gap is that it only shows counts, and the Today board is a separate Basic-only start page. Also, 14 roles are seeded but there is no Planner or Owner role.
+
+## 10. Decisions (2026-11-06)
+
+| Topic | Decision |
+|---|---|
+| Planner role | None for now. Production manager plans. Roles and permissions decide what each person sees. |
+| Owner role | No new role; Admin for now, kept in check by roles and permissions. |
+| Record codes | Simpler: short prefix and running number (for example SO-1042, HT-312). No dates, UUIDs or random parts in codes people read. Today's mix (`SO-2026-…`, `MR-ymd-…`, `RCV-<uuid>`, `TM-…-random`) is a later build item. |
+| Currency and tax | Pakistan first (PKR, FBR, SRB, PRA, withholding). |
+| Font | Instrument Sans, as in the app. |
+| Simple mode | Unchanged. Stays in Settings as today; per-rule process depth remains. No toggle on working screens. |
