@@ -6,7 +6,8 @@ use Illuminate\Notifications\Notification;
 
 /**
  * A notice for the bell and the pop-up toasts: a short title and line, how urgent it is, and where to go. Any part of the app
- * raises one through {@see \App\Services\Notifications\Notify}. `kind` groups notices of one sort, such as `reorder`.
+ * raises one through {@see \App\Services\Notifications\Notify}. `kind` groups notices of one sort, such as `reorder`;
+ * `ref` names the thing it is about (such as `heat:<id>:<round>`), so the notice can be settled once that thing is dealt with.
  */
 class AppNotice extends Notification
 {
@@ -18,6 +19,7 @@ class AppNotice extends Notification
         public string $body = '',
         public string $tone = 'info',
         public ?string $url = null,
+        public ?string $ref = null,
     ) {}
 
     /** @return list<string> */
@@ -29,6 +31,7 @@ class AppNotice extends Notification
     /** @return array<string, string|null> */
     public function toArray(object $notifiable): array
     {
-        return ['kind' => $this->kind, 'title' => $this->title, 'body' => $this->body, 'tone' => in_array($this->tone, self::TONES, true) ? $this->tone : 'info', 'url' => $this->url];
+        return ['kind' => $this->kind, 'title' => $this->title, 'body' => $this->body, 'tone' => in_array($this->tone, self::TONES, true) ? $this->tone : 'info', 'url' => $this->url]
+            + ($this->ref !== null ? ['ref' => $this->ref] : []);
     }
 }

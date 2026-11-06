@@ -6,6 +6,7 @@ use App\Models\Heat;
 use App\Models\HeatMaterialConsumption;
 use App\Services\Production\ChargeEntryEditor;
 use App\Services\Production\ChargeRecorder;
+use App\Services\Production\FloorAlerts;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -49,6 +50,7 @@ class HeatMaterialConsumptionController extends Controller
         ]);
 
         app(ChargeRecorder::class)->record($heat, $validated + ['charge_round' => $validated['charge_round'] ?? null]);
+        app(FloorAlerts::class)->settleCharges($heat);
 
         return redirect()
             ->route('heats.show', $heat)

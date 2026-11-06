@@ -12,10 +12,11 @@ class WarnOverdueCharges extends Command
 {
     protected $signature = 'heats:warn-overdue-charges {--grace=10 : Minutes past the due time before anyone is told}';
 
-    protected $description = 'Tell the melt shop and planner when a charge on a running heat is late, once for each charge';
+    protected $description = 'Tell the melt shop and planner when a charge on a running heat is late, once for each charge, and settle the notices whose charge is now in';
 
     public function handle(ChargeSchedule $schedule, FloorAlerts $alerts): int
     {
+        $settled = $alerts->settleCharges();
         $told = 0;
         Heat::query()->whereIn('status', Heat::RUNNING_STATUSES)->whereNotNull('actual_start_at')->whereNotNull('charge_batch_id')
             ->whereNull('dropped_at')->whereNull('hold_reason')->get()
@@ -26,7 +27,7 @@ class WarnOverdueCharges extends Command
                     $told += $alerts->chargeOverdue($heat, $late['round'], (int) $late['due_at']->diffInMinutes(now()));
                 }
             });
-        $this->info("{$told} notice(s) sent.");
+        $this->info("{$told} notice(s) sent, {$settled} settled.");
 
         return self::SUCCESS;
     }

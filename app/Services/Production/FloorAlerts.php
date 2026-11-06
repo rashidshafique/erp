@@ -8,6 +8,7 @@ use App\Models\Pour;
 use App\Models\User;
 use App\Notifications\AppNotice;
 use App\Services\Notifications\Notify;
+use Illuminate\Notifications\DatabaseNotification;
 
 /**
  * Tells the next person on the floor that work has reached them, for the hand-offs between hats. Each notice goes to everyone
@@ -102,7 +103,36 @@ class FloorAlerts
             'The next charge on the recipe is past its time.',
             'danger',
             route('heats.show', $heat),
+            "heat:{$heat->id}:{$round}",
         ));
+    }
+
+    /**
+     * Marks unread late-charge notices read once their charge is in, skipped, or the heat is no longer running, so an urgent
+     * notice does not wait in the bell after the work is done. Limited to one heat when given.
+     */
+    public function settleCharges(?Heat $heat = null): int
+    {
+        $settled = 0;
+        DatabaseNotification::query()->whereNull('read_at')->where('data', 'like', '%"kind":"charge-overdue"%')
+            ->when($heat, fn ($q) => $q->where('data', 'like', '%"ref":"heat:'.$heat->id.':%'))
+            ->get()->groupBy(fn (DatabaseNotification $n) => $n->data['ref'] ?? '')
+            ->each(function ($notices, string $ref) use (&$settled) {
+                if (! preg_match('/^heat:([^:]+):(\d+)$/', $ref, $m)) {
+                    return;
+                }
+                $heat = Heat::find($m[1]);
+                $round = (int) $m[2];
+                $done = ! $heat || ! in_array($heat->status, Heat::RUNNING_STATUSES, true) || $heat->dropped_at !== null
+                    || in_array($round, $heat->skippedChargeRounds(), true)
+                    || $heat->materialConsumptions()->where('charge_round', $round)->exists();
+                if ($done) {
+                    $notices->each->markAsRead();
+                    $settled += $notices->count();
+                }
+            });
+
+        return $settled;
     }
 
     /** A pour was completed and made lots: quality has castings to check. */

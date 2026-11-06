@@ -105,6 +105,7 @@ class ChargeRecorder
                 ], 'lines');
             }
         });
+        app(FloorAlerts::class)->settleCharges($heat);
     }
 
     /** The oldest accepted, costed PKR lot of a material: what a tech would normally take from. Null when it has none. */

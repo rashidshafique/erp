@@ -132,8 +132,8 @@ class ReorderAlertsTest extends TestCase
 
         $this->actingAs($user);
         $bell = Livewire::test('notification-center');
-        $bell->assertSeeHtml('<span class="notice-badge">2</span>')->call('toggle');
-        $bell->assertSee('Alloy low')->assertDontSee('Not yours')->assertSeeHtml('<span class="notice-badge">2</span>');
+        $bell->assertSeeHtml('<span class="notice-badge is-urgent" title="1 urgent">2 !</span>')->call('toggle');
+        $bell->assertSee('Alloy low')->assertDontSee('Not yours')->assertSeeHtml('<span class="notice-badge is-urgent" title="1 urgent">2 !</span>');
 
         $first = $user->notifications->first(fn ($n) => $n->data['title'] === 'Alloy low');
         $bell->call('openNotice', $first->id)->assertRedirect('/stock-report');
@@ -141,7 +141,7 @@ class ReorderAlertsTest extends TestCase
         $this->assertSame(1, $user->unreadNotifications()->count());
 
         $bell->call('markAllRead');
-        $this->assertSame(0, $user->unreadNotifications()->count());
+        $this->assertSame(['Sand low'], $user->unreadNotifications()->pluck('data')->pluck('title')->all(), 'urgent notices stay until opened');
         $this->assertNull($other->notifications()->first()->read_at);
     }
 
