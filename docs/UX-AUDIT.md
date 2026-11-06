@@ -72,3 +72,14 @@ These need a one-line decision each before the next Claude Design pass.
 ## 6. Next step
 
 U0b: role × action permissions grid and owner questions, starting from the 14 existing roles.
+
+## 7. Corrections after taking screenshots (2026-11-06)
+
+Found by opening the screens as the Production manager, Moulding supervisor, Melt supervisor and an Administrator.
+
+1. **Notifications and global search exist.** The header has a search or scan box (`scan.*`, Ctrl/⌘ K) and a bell with an unread count (`notification-center` Livewire component). Section 1 point 5 and the "never built" rows above were wrong on these two. Open question for design: what the bell lists and whether it covers the hand-offs in the plan.
+2. **The Administrator already has an owner-style dashboard** at `/` (route name `dashboard`): good castings, sales invoiced, internal rejection, cash to collect, open NCRs, "Waiting for your decision", "Where it's slipping", tonnage by week, top customers. The owner persona is a reshape of this, not new. (`/dashboard` is a 404.)
+3. **A header heat chip** shows the running heat and a timer (for example `05/11 #001 +0:05`) on every screen.
+4. **A Simple mode switch is in the sidebar footer** (a Basic/Full toggle) as well as in Settings. The brief said "no toggle on working screens"; decide whether the sidebar switch stays.
+5. **BUG: `/home` returns 500 for roles without a page of their own, including the Production manager and Administrator-as-non-dashboard users.** `app/Services/Dashboard/RoleHome.php:50` filters production orders on `due_date`, but the column is `required_date`. Not fixed. The planner's role home could not be shown.
+6. **Moulding supervisor home is nearly empty:** one tile ("Moulding runs today 0") plus "Lots in production" and "Lots on hold". Nothing says what to do next. Confirms the "due now" gap.
