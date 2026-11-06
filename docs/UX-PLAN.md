@@ -125,3 +125,47 @@ Setup wizard "How you work" questions → picks Basic / full preset → rules pa
 3. Should P12 (customer view) be in scope this year?
 4. Offline tolerance: is plant wifi reliable at the furnace and moulding line?
 5. Which floor phone screen comes first: moulding (15i) or furnace (7m)?
+
+## 9. Review of this plan (2026-11-06): gaps and fixes
+
+### Personas missing
+- **Pattern shop / tooling lead** (Tooling, Development modules): pattern issue, life counts, new-part development and PPAP/APQP samples.
+- **Sand and moulding materials tech** (sand tests are listed as not built).
+- **Maintenance technician** (Maintenance module): furnace and equipment breakdown, calibration due.
+- **HR officer and employee** (Hr is the largest module): attendance, leave, payroll, plus self-service on a phone.
+- **System admin** (rules, roles, licences, imports): setup, Process depth rules, user roles.
+- **Subcontractor / outside processor** (machining, heat treatment): parts out and back.
+- **Shift handover** is a role-to-role moment, not a persona: day shift to night shift, open heats, uncounted moulds.
+
+### Flows missing
+- **New part development to first sample to PPAP** (pattern, trial pour, inspection report, customer approval).
+- **Customer rejection / return / complaint** back to NCR, CAPA and credit note.
+- **Rework and scrap loop** after QC, including remelt back into the next charge.
+- **Purchase to pay**: PO, receive, supplier bill, payment.
+- **Month-end**: invoices, stock valuation, tax (Pakistan first), period close.
+- **Maintenance breakdown** during a heat: furnace down, heat held, what happens to the metal.
+- **Approvals inbox**: release approval, contract review sign-offs, who sees what and where.
+- **Late entry** (path B, design 27): entering readings or output after the fact.
+- **Shift handover** and **attendance** (HR).
+- **Data import** (the imports screens exist) and **first login / roles**.
+
+### Plan-level gaps
+1. **No current-state audit.** Before redesign, map each flow above to the screens already built (`Design Audit.md`, STATUS.md) and mark each: keep, reshape, or new. Otherwise sketches duplicate built work.
+2. **Rule variants not designed for.** Every screen exists in Basic and Full forms (and Micro to Full by foundry size). Each sketch needs both states shown, or the design will only suit one size.
+3. **No permissions model in the flows.** Who may release, approve, write off moulds or override the pour gate? Add a role × action grid.
+4. **Notification and approval design is one line.** Needs its own sketch: what alerts whom, on which device, when it escalates (overdue test, shortage, unaccounted metal).
+5. **Desktop density not specified.** Planner and accountant screens are tables; the plan only covers touch. Define table, filter, bulk-action and keyboard patterns.
+6. **No design system step.** List existing reusable components before new design so Claude Design reuses them.
+7. **Research is thin.** U0 says 2 to 3 users; name them, say what is observed (floor walk, a full order to dispatch), and set a baseline (current time per step) so U5 has something to beat.
+8. **Success measures lack a baseline and owner.** Add current values and who measures.
+9. **No risks section.** Main risks: sketches built for one foundry size; floor wifi; users sharing logins breaks trace and sign-offs; Urdu/RTL late retrofit.
+10. **Priority has no effort or value score.** Planner and moulding first is agreed; give each later item a value (steps saved, errors avoided) and effort so the order can be justified.
+11. **Reporting and dashboards absent.** Owner persona needs defined questions (on-time delivery, yield, scrap by cavity, cost per heat) before a home screen is sketched.
+12. **Empty and first-run states for new foundries** (no products, no patterns yet) belong to the setup wizard flow.
+
+### Proposed additions to the phases
+- **U0a**: current-state audit and screen map (keep / reshape / new).
+- **U0b**: role × action permissions grid and the list of owner questions.
+- **U1** sketches show Basic and Full side by side for every screen.
+- **U3** adds notifications, approvals inbox and desktop table patterns.
+- Second wave after the first four personas: pattern shop, maintenance, HR self-service, admin, subcontractor.
