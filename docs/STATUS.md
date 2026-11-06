@@ -1,6 +1,6 @@
 # Project status
 
-Updated 2026-11-05.
+Updated 2026-11-06.
 
 ## Done
 
@@ -29,6 +29,14 @@ Updated 2026-11-05.
 - Move a batch (Production queue, `AfterPour`): per step and product, with cooling time at knock-out, pieces or moulds, or all, shared over open lots oldest first with rejects (`lots.batch-stage`; `recordStage` takes `batch`). A lot with pieces still before a step shows "n pcs still before …" on the queue. Quality rule `qc_after_steps`: QC straight after the pour (default) or only after these steps.
 - Quick QC defect lines (`quality_defect_marks`): defect, pieces, reject or rework, pattern cavity, where on the casting, and piece IDs under the `defect_piece_ids` rule (off, optional, required); a 30-day table of defects by cavity.
 - Today board follows the day: orders, list, count, heat, moulds to pour, production queue, QC, ready to go out. `StepCountTest` pins this day at 14 steps from order to dispatch (Basic stays at 7).
+
+**UX plan and floor hand-off notices (2026-11-06; plan in UX-PLAN.md, audit in UX-AUDIT.md, brief in UX-DESIGN-BRIEF.md)**
+- Plan: personas, flows, phases and decisions (no Planner or Owner role for now, Pakistan first, simple codes, Simple mode unchanged, Full built first, Basic is one person with many hats). Claude Design flow sketches for the planner, moulding supervisor, owner and furnace operator are in the repo root (`Foundry ERP — flow sketches*.html`); not built as screens yet, and they still need a true Basic variant (no work lists or melting plan).
+- Fixed: `/home` crashed for roles that plan (`RoleHome` read `due_date`; the column is `required_date`); `StartPageTest` now opens Home for every role.
+- A moulding list is issued under the signed-in user's name (the free-text box stays only when nobody is signed in).
+- Bell notices for the floor hand-offs (`FloorAlerts`, `Notify::toPermissions`, which skips the person who acted so a one-person foundry hears nothing): list issued (`moulding.operate`), moulds counted ready (`melting.operate`), moulds written off at the count (`planning.manage`), heat started (`moulding.operate`, from `Heat` model events), list still a draft (`planning.manage`, `moulding:remind-unissued` at 07:00 and 20:00, once a day per list), charge overdue (`melting.operate` and `planning.manage`, `heats:warn-overdue-charges` every five minutes, grace 10 min, once per charge), lots made by a pour (`quality.inspect`, from `LotFactory`), heat closed with unaccounted metal over 2% of tapped and at least 5 kg (`planning.manage`).
+- Not done from the sketches: recount after a pour, flask shortage on a row, owner "Pass it on" (needs assignment and reply on orders), the merged due-now home, tablet screens for moulding and furnace, Resolve panels, a reason for edits after issue, and the Basic variants.
+- Known failing tests, unrelated and failing before this work: `ChargeScheduleTest` (heat page 12-hour times; status board), `OrderToPourFlowTest::test_full_path_from_customer_order_to_a_gated_pour`.
 
 **Phone screens for quality technicians (`/m`, design 26a and 26i, 2026-11-05)**
 - Home follows 26a: an active heat card (furnace name, heat, grade, last test and CE, the date and length of the run, a countdown to the next thermal reading that goes red when overdue, "Start test"), then Scan label, Log defect, Tests due (`TestsDue`, grace 15 min) and Record a test. Grey and ductile heats count from the start of the melt, so they show red before the first test. Running means in progress, melting or tapping.
