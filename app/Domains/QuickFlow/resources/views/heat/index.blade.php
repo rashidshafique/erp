@@ -23,7 +23,7 @@
 @forelse ($heats as $i => $heat)
     <div class="panel">
         <div class="panel-header"><h2>{{ $i === 0 ? 'Next heat' : 'Heat '.($i + 1) }} · {{ $heat['grade']->code }} on {{ $heat['furnace']->code }}</h2>
-            <span class="muted small">{{ \App\Support\Formats::number($heat['kg'], 0) }} kg of {{ \App\Support\Formats::number($heat['capacity_kg'], 0) }} kg working capacity @if($heat['hours']) · about {{ $heat['hours'] }} h to melt@endif</span></div>
+            <span class="muted small">{{ \App\Support\Formats::number($heat['kg'], 0) }} kg of {{ \App\Support\Formats::number($heat['capacity_kg'], 0) }} kg working capacity @if ($heat['hours'])<span> · about {{ $heat['hours'] }} h to melt</span>@endif</span></div>
         <div class="table-wrap"><table>
             <thead><tr><th>Order</th><th>Customer</th><th>Due</th><th></th><th>Pieces</th><th>Metal (kg)</th></tr></thead>
             <tbody>@foreach ($heat['lines'] as $line)
