@@ -2,13 +2,19 @@
 
 namespace Tests\Feature;
 
+use App\Models\ChargeBatch;
 use App\Models\Furnace;
 use App\Models\Heat;
+use App\Models\Material;
 use App\Models\MouldingWorkList;
 use App\Models\Pour;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\Production\FloorAlerts;
+use App\Support\PouringRules;
+use App\Support\WorkListRules;
+use Illuminate\Console\Scheduling\Event;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\BuildsWorkLists;
 use Tests\TestCase;
@@ -173,5 +179,58 @@ class FloorAlertsTest extends TestCase
         $this->artisan('heats:warn-overdue-charges')->assertSuccessful();
 
         $this->assertCount(0, $melter->notifications);
+    }
+
+    public function test_the_unaccounted_metal_limit_comes_from_the_pouring_rules(): void
+    {
+        $planner = $this->user('PRODUCTION_MANAGER');
+        $melter = $this->user('MELT_SUPERVISOR');
+        PouringRules::set('unaccounted_percent', '25');
+        $heat = $this->heat(['actual_tapped_weight_kg' => 500]);
+        Pour::create(['pour_number' => 'P-1', 'heat_id' => $heat->id, 'status' => 'COMPLETED', 'total_poured_weight_kg' => 380, 'started_at' => now()]);
+
+        $this->actingAs($melter)->post(route('heats.close', $heat), ['leftover_metal_kg' => 20, 'leftover_use' => 'PIGGED'])->assertSessionHasNoErrors();
+        $this->assertCount(0, $planner->notifications->where('data.kind', 'heat-unaccounted'), '100 kg is 20% of tapped, under the 25% set');
+
+        PouringRules::set('unaccounted_percent', '0');
+        PouringRules::set('unaccounted_min_kg', '50');
+        $this->assertTrue(PouringRules::unaccountedMatters(60, 500));
+        $this->assertFalse(PouringRules::unaccountedMatters(-40, 500), 'metal over or under counts the same, below the kg floor is quiet');
+    }
+
+    public function test_a_late_charge_is_told_only_after_the_minutes_set_in_the_rules(): void
+    {
+        $this->travelTo(now()->setTime(10, 0));
+        $melter = $this->user('MELT_SUPERVISOR');
+        PouringRules::set('auto_charge', 'MANUAL');
+        $iron = Material::create(['code' => 'PIG', 'name' => 'Pig iron', 'material_type' => 'PIG_IRON', 'base_uom' => 'kg', 'status' => 'ACTIVE']);
+        $recipe = ChargeBatch::create(['code' => 'CR-CUP', 'name' => 'Cupola', 'process_type' => 'CUPOLA', 'status' => 'ACTIVE', 'target_metal_weight_kg' => 180, 'target_total_charge_weight_kg' => 180]);
+        $recipe->items()->create(['material_id' => $iron->id, 'sequence' => 1, 'component_role' => 'CHARGE', 'charge_stage' => 'ROUND', 'target_qty_kg' => 180, 'is_required' => true]);
+        $furnace = Furnace::create(['code' => 'CU-1', 'name' => 'Cupola', 'furnace_type' => 'CUPOLA', 'status' => 'ACTIVE', 'nominal_melting_rate_kg_per_hour' => 360]);
+        Heat::create(['heat_number' => 'HT-7', 'furnace_id' => $furnace->id, 'process_type' => 'CUPOLA', 'status' => 'MELTING', 'charge_batch_id' => $recipe->id,
+            'target_metal_weight_kg' => 900, 'actual_start_at' => now()->subMinutes(60), 'blast_on_at' => now()->subMinutes(40)]);   // charge 1 due at blast on, 40 min ago
+
+        PouringRules::set('charge_late_minutes', '45');
+        $this->artisan('heats:warn-overdue-charges')->assertSuccessful();
+        $this->assertCount(0, $melter->fresh()->notifications, '40 min late is inside the 45 set');
+
+        PouringRules::set('charge_late_minutes', '30');
+        $this->artisan('heats:warn-overdue-charges')->assertSuccessful();
+        $this->assertSame(['charge-overdue'], $melter->fresh()->notifications->pluck('data.kind')->all());
+    }
+
+    public function test_the_draft_list_reminder_runs_at_the_hours_set_in_the_rules(): void
+    {
+        $event = collect(app(Schedule::class)->events())->first(fn (Event $e) => str_contains($e->command ?? '', 'moulding:remind-unissued'));
+        $runsAt = function (int $hour) use ($event): bool {
+            $this->travelTo(today()->setTime($hour, 0));
+
+            return $event->filtersPass($this->app);
+        };
+
+        $this->assertSame([true, true, false], [$runsAt(7), $runsAt(20), $runsAt(18)], 'defaults 07:00 and 20:00');
+
+        WorkListRules::set('remind_evening_hour', '18');
+        $this->assertSame([true, false], [$runsAt(18), $runsAt(20)]);
     }
 }

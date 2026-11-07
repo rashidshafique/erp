@@ -35,6 +35,9 @@ class PouringRules
         'lightup_to_first_charge_minutes' => ['charging.lightup_to_first_charge_minutes', 'Cupola: minutes from light-up to first charge', null, '60'],
         'drop_finished_percent' => ['pouring.drop_finished_percent', 'Cupola: % of expected run that counts as finished at drop', null, '90'],
         'test_interval_minutes' => ['pouring.test_interval_minutes', 'Cupola: minutes between samples (reminder)', null, '30'],
+        'charge_late_minutes' => ['charging.late_minutes', 'Minutes a charge can be late before melt shop and planner are told', null, '10'],
+        'unaccounted_percent' => ['pouring.unaccounted_percent', 'Closing a heat: unaccounted metal that tells the planner, as % of tapped', null, '2'],
+        'unaccounted_min_kg' => ['pouring.unaccounted_min_kg', 'Closing a heat: never tell the planner about less unaccounted metal than (kg)', null, '5'],
         'auto_charge' => ['charging.auto', 'Charges that come due on a running heat', [
             'AUTO' => 'Automatic: recorded from the recipe when due',
             'MANUAL' => 'Manual: someone confirms each charge',
@@ -57,7 +60,12 @@ class PouringRules
     /** @return list<string> */
     protected static function numberRule(string $rule): array
     {
-        return $rule === 'max_fade_minutes' ? ['integer', 'min:1', 'max:120'] : ['integer', 'min:0', 'max:1440'];
+        return match ($rule) {
+            'max_fade_minutes' => ['integer', 'min:1', 'max:120'],
+            'unaccounted_percent' => ['integer', 'min:0', 'max:100'],
+            'unaccounted_min_kg' => ['integer', 'min:0', 'max:100000'],
+            default => ['integer', 'min:0', 'max:1440'],
+        };
     }
 
     /** Whether a pour is refused until magnesium treatment and inoculation are recorded within the fade time. */
@@ -81,6 +89,14 @@ class PouringRules
     public static function minutes(string $rule): int
     {
         return (int) self::get($rule);
+    }
+
+    /** Whether metal missing at the close of a heat is enough to tell the planner: over the % of tapped, and never under the kg floor. */
+    public static function unaccountedMatters(float $unaccountedKg, float $tappedKg): bool
+    {
+        $limit = max((float) self::get('unaccounted_min_kg'), $tappedKg * (float) self::get('unaccounted_percent') / 100);
+
+        return abs($unaccountedKg) >= $limit;
     }
 
     /** OFF, ADVISORY or ENFORCED for a furnace type. The old switch FOUNDRY_ENFORCE_THERMAL_GATE=false still turns every check off. */

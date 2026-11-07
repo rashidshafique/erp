@@ -8,6 +8,7 @@ use App\Models\Pour;
 use App\Models\User;
 use App\Notifications\AppNotice;
 use App\Services\Notifications\Notify;
+use App\Support\PouringRules;
 use Illuminate\Notifications\DatabaseNotification;
 
 /**
@@ -16,11 +17,6 @@ use Illuminate\Notifications\DatabaseNotification;
  */
 class FloorAlerts
 {
-    /** Unaccounted metal worth telling someone about: this share of what was tapped, and never less than the floor in kg. */
-    public const UNACCOUNTED_PERCENT = 2.0;
-
-    public const UNACCOUNTED_MIN_KG = 5.0;
-
     public function __construct(private Notify $notify) {}
 
     /** A moulding list was issued: the people who mould are told how much is waiting. */
@@ -158,11 +154,10 @@ class FloorAlerts
         ), $by);
     }
 
-    /** A heat closed with metal that no pour, leftover or drop explains. */
+    /** A heat closed with metal that no pour, leftover or drop explains, over the limits in the pouring rules. */
     public function heatClosed(Heat $heat, ?float $unaccountedKg, ?User $by): int
     {
-        $limit = max(self::UNACCOUNTED_MIN_KG, (float) $heat->actual_tapped_weight_kg * self::UNACCOUNTED_PERCENT / 100);
-        if ($unaccountedKg === null || abs($unaccountedKg) < $limit) {
+        if ($unaccountedKg === null || ! PouringRules::unaccountedMatters($unaccountedKg, (float) $heat->actual_tapped_weight_kg)) {
             return 0;
         }
 
