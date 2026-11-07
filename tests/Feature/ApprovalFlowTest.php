@@ -131,9 +131,10 @@ class ApprovalFlowTest extends TestCase
         $this->actingAs($maker)->get(route('dashboard'))->assertOk();
 
         $req = ApprovalRequest::firstOrFail();
-        $this->actingAs($this->user('QUALITY_MANAGER'))->get(route('dashboard'))->assertSee('waiting for a decision');
+        $this->actingAs($maker)->get(route('home'))->assertDontSee('Approved: repeat the action');
+        $this->actingAs($this->user('QUALITY_MANAGER'))->get(route('dashboard'))->assertSee($req->actionLabel())->assertDontSee('Nothing is waiting for a decision');
         $this->actingAs($this->user('QUALITY_MANAGER'))->post(route('approvals.decide', $req), ['decision' => 'APPROVE']);
-        $this->actingAs($maker)->get(route('dashboard'))->assertSee('approved');
+        $this->actingAs($maker)->get(route('home'))->assertSee('Your requests')->assertSee('Approved: repeat the action');
 
         $this->actingAs($maker)->put(route('limits.update', $limit), ['min_value' => 150, 'max_value' => 300])->assertSessionHasNoErrors();
         $this->assertEquals(150, $limit->fresh()->min_value);

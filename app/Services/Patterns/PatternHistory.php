@@ -19,7 +19,7 @@ class PatternHistory
 {
     /** Fields that only link records together; they say nothing to a reader. */
     private const HIDDEN = ['id', 'pattern_id', 'pattern_revision_id', 'attachable_id', 'attachable_type', 'disk', 'path', 'sha256', 'custom_fields',
-        'copied_from_revision_id', 'uploaded_by_id', 'sequence', 'needs_review'];
+        'copied_from_revision_id', 'uploaded_by_id', 'created_by_id', 'sequence', 'needs_review'];
 
     /**
      * @return Collection<int, array{at: Carbon, who: ?string, what: string, action: string, changes: array<string, array{old?: mixed, new?: mixed}>, reason: ?string}>

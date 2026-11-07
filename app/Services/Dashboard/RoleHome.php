@@ -37,6 +37,10 @@ class RoleHome
         if ($can('approvals.decide')) {
             $add('Waiting for your decision', [$this->tile('Approval requests', ApprovalRequest::where('status', 'PENDING')->where('requested_by_id', '!=', $user->id)->count(), 'warn', 'approvals.index')]);
         }
+        $approved = ApprovalRequest::where('status', 'APPROVED')->where('requested_by_id', $user->id)->count();
+        if ($approved > 0) {
+            $add('Your requests', [$this->tile('Approved: repeat the action', $approved, 'warn', 'approvals.index')]);   // only shown while there is one
+        }
         if ($can('sales.manage')) {
             $add('Sales', [
                 $this->tile('Open orders', SalesOrder::whereIn('status', SalesOrder::OPEN)->count(), 'plain', 'sales-orders.index'),
