@@ -263,8 +263,9 @@ class MobileScreensTest extends TestCase
         $inspection = \App\Models\QualityInspection::firstOrFail();
         $this->post(route('inspections.complete', $inspection), ['quantity_accepted' => '3', 'quantity_rejected' => '2', 'quantity_rework' => '0', 'quantity_pending' => '0', 'overall_disposition' => 'PARTIAL'])->assertSessionHasNoErrors();
 
-        $this->assertStringContainsString('FAIL', $manager->notifications()->firstOrFail()->data['title']);
-        $this->assertSame('danger', $planner->notifications()->firstOrFail()->data['tone']);
+        $result = fn ($user) => $user->notifications()->get()->firstWhere('data.kind', 'test-result');   // building the lot also starts a heat, which has its own notice
+        $this->assertStringContainsString('FAIL', $result($manager)->data['title']);
+        $this->assertSame('danger', $result($planner)->data['tone']);
         $this->assertSame(0, $tech->notifications()->count());
     }
 
@@ -279,8 +280,8 @@ class MobileScreensTest extends TestCase
         $this->actingAs($tech)->post(route('lots.inspections.store', $lot), ['inspection_type' => 'FINAL', 'sample_size' => '5']);
         $this->post(route('inspections.complete', \App\Models\QualityInspection::firstOrFail()), ['quantity_accepted' => '5', 'quantity_rejected' => '0', 'quantity_rework' => '0', 'quantity_pending' => '0', 'overall_disposition' => 'ACCEPT']);
 
-        $this->assertStringContainsString('PASS', $planner->notifications()->firstOrFail()->data['title']);
-        $this->assertSame(0, $manager->notifications()->count());
+        $this->assertStringContainsString('PASS', $planner->notifications()->get()->firstWhere('data.kind', 'test-result')->data['title']);
+        $this->assertSame(0, $manager->notifications()->get()->where('data.kind', 'test-result')->count());
     }
 
     public function test_a_defect_tech_cannot_save_test_results(): void

@@ -17,7 +17,7 @@ class FoundrySizeTest extends TestCase
     public function test_full_is_the_default_and_shows_the_whole_menu(): void
     {
         $this->assertSame('FULL', app(FoundrySize::class)->current());
-        $this->get(route('dashboard'))->assertOk()->assertSee('Sand systems')->assertSee('Casting analysis')->assertSee('Controlled documents');
+        $this->get(route('dashboard'))->assertOk()->assertSee('Sand systems')->assertSee('Casting analysis')->assertSee('Audits &amp; documents', false);
     }
 
     public function test_micro_shortens_the_menu_and_keeps_quick_flow(): void
@@ -25,13 +25,13 @@ class FoundrySizeTest extends TestCase
         $this->put(route('settings.size'), ['size' => 'MICRO'])->assertRedirect();
         $this->get(route('dashboard'))->assertOk()
             ->assertSee('Moulds made / poured')->assertSee('Quick QC')->assertSee('Sales orders')->assertSee(route('packing.index'), false)
-            ->assertDontSee('Sand systems')->assertDontSee('Casting analysis')->assertDontSee('Controlled documents')->assertDontSee('Iron grades');
+            ->assertDontSee('Sand systems')->assertDontSee('Casting analysis')->assertDontSee('Audits &amp; documents', false)->assertDontSee('Iron grades');
     }
 
     public function test_small_hides_only_the_heavy_extras(): void
     {
         $this->put(route('settings.size'), ['size' => 'SMALL']);
-        $this->get(route('dashboard'))->assertOk()->assertSee('Sand systems')->assertSee('Controlled documents')->assertDontSee('Casting analysis');
+        $this->get(route('dashboard'))->assertOk()->assertSee('Sand systems')->assertSee('Audits &amp; documents', false)->assertDontSee('Casting analysis');
     }
 
     public function test_a_hidden_screen_still_opens(): void

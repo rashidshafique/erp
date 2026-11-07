@@ -228,7 +228,7 @@ class DocumentControlTest extends TestCase
 
     public function test_the_module_adds_its_menu_entry_search_type_and_permissions(): void
     {
-        $this->get(route('dashboard'))->assertOk()->assertSee('Controlled documents');
+        $this->get(route('dashboard'))->assertOk()->assertSee('Audits &amp; documents', false);
         $this->assertArrayHasKey('document', GlobalSearch::types());
         $this->assertArrayHasKey('documents.approve', config('permissions.catalog'));
         $this->assertContains('documents.manage', Role::where('code', 'QUALITY_MANAGER')->firstOrFail()->permissions());

@@ -61,6 +61,7 @@ class AttachmentsTest extends TestCase
 
     public function test_unsafe_oversized_and_disguised_files_are_refused(): void
     {
+        config(['foundry.attachments.max_kb' => 8192]);   // the default; a local .env may raise it
         Storage::fake('local');
         $heat = $this->heat();
         $url = route('attachments.store', ['heat', $heat->id]);
