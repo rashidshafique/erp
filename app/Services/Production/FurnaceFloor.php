@@ -90,12 +90,28 @@ class FurnaceFloor
         return $heat !== null && ($this->chargeLateMinutes($heat) ?? 0) > 0;
     }
 
+    /**
+     * The tablet's tab bar: Home (black "!" while a charge is overdue), Heat (always this label), Heats.
+     *
+     * @return list<array{label: string, href: string, active?: bool, count?: int, tone?: ?string}>
+     */
+    public function tabs(string $active): array
+    {
+        $late = $this->homeHasOverdueCharge();
+
+        return [
+            ['label' => 'Home', 'href' => route('home'), 'count' => $late ? 1 : 0, 'tone' => $late ? 'bad' : null],
+            ['label' => 'Heat', 'href' => $this->heatTabHref(), 'active' => $active === 'heat'],
+            ['label' => 'Heats', 'href' => route('heats.index'), 'active' => $active === 'heats'],
+        ];
+    }
+
     /** The address the Heat tab opens: the running heat, else the next heat. */
     public function heatTabHref(): string
     {
         $heat = $this->runningHeat();
 
-        return $heat ? route('furnace.heat.show', $heat) : route('furnace.next-heat');
+        return $heat ? route('floor.furnace.heat.show', $heat) : route('floor.furnace.next-heat');
     }
 
     /**

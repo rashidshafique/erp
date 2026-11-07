@@ -26,12 +26,12 @@ class FurnaceStartHeatController extends Controller
         $index = max(0, (int) $request->query('heat', 0));
         $next = $heats[$index] ?? null;
         if (! $next) {
-            return redirect()->route('furnace.next-heat')->with('error', 'There is nothing to melt.');
+            return redirect()->route('floor.furnace.next-heat')->with('error', 'There is nothing to melt.');
         }
 
         $other = $floor->openHeats($next['furnace']->id);
         if ($other->isNotEmpty() && ! $request->boolean('anyway')) {
-            return view('furnace.previous-open', ['next' => $next, 'other' => $other->first(), 'index' => $index]);
+            return view('floor.furnace.previous-open', ['next' => $next, 'other' => $other->first(), 'index' => $index]);
         }
 
         $recipes = ChargeBatch::with('items.material')
@@ -46,7 +46,7 @@ class FurnaceStartHeatController extends Controller
         $perCharge = $recipe ? $recipe->metalPerChargeKg() : 0.0;
         $rate = (float) $next['furnace']->nominal_melting_rate_kg_per_hour;
 
-        return view('furnace.start-heat', [
+        return view('floor.furnace.start-heat', [
             'next' => $next,
             'index' => $index,
             'recipes' => $recipes,
@@ -68,7 +68,7 @@ class FurnaceStartHeatController extends Controller
             'recipe_id' => ['nullable', 'uuid', 'exists:charge_batches,id'],
             'charge_kg' => ['nullable', 'array', 'max:100'],
             'charge_kg.*' => ['nullable', 'numeric', 'gte:0', 'max:999999'],
-            'light_up' => ['nullable', 'boolean'],
+            'light_only' => ['nullable', 'boolean'],
         ]);
 
         $furnace = Furnace::findOrFail($data['furnace_id']);
@@ -77,13 +77,12 @@ class FurnaceStartHeatController extends Controller
             return back()->withErrors(['furnace_id' => $eligibility->reason($furnace, $grade)])->withInput();
         }
 
-        $recipe = null;
-        if (filled($data['recipe_id'] ?? null)) {
-            $recipe = ChargeBatch::with('items')->where('status', 'ACTIVE')->find($data['recipe_id']);
-            if (! $recipe || $recipe->process_type !== $furnace->furnace_type) {
-                return back()->withErrors(['recipe_id' => 'That recipe is not for this furnace type.'])->withInput();
-            }
+        // The recipe picked, else the furnace's own default; either must be active and for this furnace type.
+        $recipe = ChargeBatch::with('items')->where('status', 'ACTIVE')->find($data['recipe_id'] ?? $furnace->default_charge_batch_id);
+        if (filled($data['recipe_id'] ?? null) && (! $recipe || $recipe->process_type !== $furnace->furnace_type)) {
+            return back()->withErrors(['recipe_id' => 'That recipe is not for this furnace type.'])->withInput();
         }
+        $recipe = $recipe && $recipe->process_type === $furnace->furnace_type ? $recipe : null;
 
         // Only the kilograms that differ from the recipe are kept, on this heat, keyed by the recipe item they change.
         $overrides = [];
@@ -97,10 +96,10 @@ class FurnaceStartHeatController extends Controller
         $heat = $planner->startHeat(
             $furnace, $grade, (float) $data['kg'], today(), $data['operator_name'] ?? null,
             'Started from the furnace tablet.',
-            ['recipe' => $recipe, 'overrides' => $overrides, 'start' => true, 'start_at' => now(), 'blast_on' => (bool) ($data['light_up'] ?? false)],
+            ['recipe' => $recipe, 'overrides' => $overrides, 'start' => true, 'start_at' => now(), 'blast_on' => ! ($data['light_only'] ?? false)],
         );
 
-        return redirect()->route('furnace.heat.show', $heat)
-            ->with('success', "Heat {$heat->heat_number} started. Count the moulds ready.");
+        return redirect()->route('floor.furnace.heat.show', $heat)
+            ->with('success', "Heat {$heat->heat_number} started. The moulders are asked to count what is ready.");
     }
 }

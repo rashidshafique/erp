@@ -21,8 +21,8 @@ class FurnaceHeatController extends Controller
         $heat = $floor->runningHeat();
 
         return $heat
-            ? redirect()->route('furnace.heat.show', $heat)
-            : redirect()->route('furnace.next-heat');
+            ? redirect()->route('floor.furnace.heat.show', $heat)
+            : redirect()->route('floor.furnace.next-heat');
     }
 
     public function show(Heat $heat, FurnaceFloor $floor, ChargeSchedule $schedule, HeatEta $eta, HeatSamples $samples): View
@@ -31,7 +31,7 @@ class FurnaceHeatController extends Controller
         $plan = $schedule->for($heat);
         $run = $heat->furnaceRunMinutes();
 
-        return view('furnace.heat', [
+        return view('floor.furnace.heat', [
             'heat' => $heat,
             'plan' => $plan,
             'big' => $floor->bigStep($heat),

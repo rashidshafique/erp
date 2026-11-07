@@ -19,7 +19,7 @@ class FurnaceNextHeatController extends Controller
         $heats = $built['heats'];
         $next = $heats[0] ?? null;
 
-        return view('furnace.next-heat', [
+        return view('floor.furnace.next-heat', [
             'next' => $next,
             'others' => array_slice($heats, 1, 2),
             'openHeats' => $floor->openHeats(),

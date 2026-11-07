@@ -214,7 +214,7 @@ Route::prefix('furnaces')
     });
 
 // ---- Furnace tablet (design R4 Furnace, F4·1 to F4·6, F4·E, F4·W, F4·W2) ----
-Route::prefix('furnace')->name('furnace.')->group(function () {
+Route::prefix('floor/furnace')->name('floor.furnace.')->group(function () {
     Route::get('/next-heat', [\App\Http\Controllers\FurnaceNextHeatController::class, 'index'])->name('next-heat');
     Route::get('/heat', [\App\Http\Controllers\FurnaceHeatController::class, 'current'])->name('heat');
     Route::get('/heat/start', [\App\Http\Controllers\FurnaceStartHeatController::class, 'create'])->name('heat.start.create');

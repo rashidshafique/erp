@@ -16,27 +16,33 @@ use Illuminate\View\View;
 /** F4·3's secondary path: one charge of the recipe entered at different kilograms, and a wrong entry corrected with a reason. */
 class FurnaceChargeController extends Controller
 {
-    public function edit(Heat $heat, int $round, ChargeSchedule $schedule): View|RedirectResponse
+    public function edit(Heat $heat, int $round): View|RedirectResponse
     {
         $heat->loadMissing('chargeBatch.items.material', 'materialConsumptions');
         if (in_array($heat->status, ['CLOSED', 'CANCELLED'], true)) {
-            return redirect()->route('furnace.heat.show', $heat)->with('error', 'Charges cannot be added to a closed heat.');
+            return redirect()->route('floor.furnace.heat.show', $heat)->with('error', 'Charges cannot be added to a closed heat.');
         }
-        if ($heat->materialConsumptions->where('charge_round', $round)->isNotEmpty()) {
-            return redirect()->route('furnace.heat.show', $heat)->with('error', 'That charge is already recorded.');
+        $recorded = $heat->materialConsumptions->where('charge_round', $round);
+        if ($recorded->isNotEmpty()) {
+            $recorded->load('material');
+
+            return view('floor.furnace.charge-edit', ['heat' => $heat, 'round' => $round, 'items' => collect(), 'entries' => $recorded->sortBy('sequence')->values()]);
         }
         $items = $this->items($heat, $round);
         if ($items->isEmpty()) {
-            return redirect()->route('furnace.heat.show', $heat)->with('error', 'The recipe sets no quantities for that charge.');
+            return redirect()->route('floor.furnace.heat.show', $heat)->with('error', 'The recipe sets no quantities for that charge.');
         }
 
-        return view('furnace.charge-edit', ['heat' => $heat, 'round' => $round, 'items' => $items, 'schedule' => $schedule->for($heat)]);
+        return view('floor.furnace.charge-edit', ['heat' => $heat, 'round' => $round, 'items' => $items, 'entries' => null]);
     }
 
-    public function store(Request $request, Heat $heat, int $round, ChargeRecorder $recorder): RedirectResponse
+    public function store(Request $request, Heat $heat, int $round, ChargeRecorder $recorder, ChargeSchedule $schedule): RedirectResponse
     {
         if (in_array($heat->status, ['CLOSED', 'CANCELLED'], true)) {
             throw ValidationException::withMessages(['lines' => 'Charges cannot be added to a closed heat.']);
+        }
+        if (($schedule->for($heat)['next']['round'] ?? null) !== $round) {
+            throw ValidationException::withMessages(['lines' => 'Only the next charge can be entered.']);
         }
         $data = $request->validate([
             'lines' => ['required', 'array', 'min:1', 'max:100'],
@@ -51,7 +57,7 @@ class FurnaceChargeController extends Controller
         $recorder->recordRound($heat, $round, $lines, $request->user()?->name ?? $heat->operator_name ?? 'Operator', now(),
             'Entered at different kilograms on the furnace tablet.');
 
-        return redirect()->route('furnace.heat.show', $heat)
+        return redirect()->route('floor.furnace.heat.show', $heat)
             ->with('success', ($round === 0 ? 'Start-up charge' : 'Charge #'.$round).' recorded. Inventory has not been deducted.');
     }
 
