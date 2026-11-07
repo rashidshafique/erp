@@ -380,6 +380,17 @@ Route::get('/settings/melting-days', [\App\Http\Controllers\MeltingDaysControlle
 Route::put('/settings/melting-days', [\App\Http\Controllers\MeltingDaysController::class, 'update'])->name('settings.melting-days');
 Route::view('/settings/process', 'settings.process')->name('settings.process');
 Route::view('/settings/floor-kit', 'settings.floor-kit')->name('settings.floor-kit');   // round 4 components with every state, to check before screens use them
+
+// ---- Moulding supervisor's tablet (design F3) ----
+Route::prefix('floor/moulding')->name('floor.moulding.')->controller(\App\Http\Controllers\MouldingTabletController::class)->group(function () {
+    Route::get('/', 'list')->name('list');
+    Route::get('/rows/{item}', 'item')->name('item');
+    Route::post('/rows/{item}', 'save')->name('save');
+    Route::get('/count', 'count')->name('count');
+    Route::post('/count', 'review')->name('count.review');
+    Route::post('/count/save', 'store')->name('count.store');
+    Route::get('/count/ready', 'ready')->name('count.ready');
+});
 Route::put('/settings/process/control-plan', [\App\Http\Controllers\ControlPlanController::class, 'saveDefault'])->name('settings.process.control-plan');
 Route::prefix('flask-sizes')->name('flask-sizes.')->controller(FlaskSizeController::class)->group(function () {
     Route::post('/', 'store')->name('store');

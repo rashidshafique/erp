@@ -461,6 +461,32 @@ class WorkListService
         });
     }
 
+    /**
+     * Adds what was made since the last entry to the run's totals, for screens that ask only "moulds made now". The totals are
+     * read under a lock and saved through recordOutput, so its checks and the automatic assembly still apply.
+     */
+    public function addOutput(MouldingRun $run, int $made, int $damaged, int $downtime, ?string $reason, bool $complete): MouldingRun
+    {
+        if ($made < 0 || $damaged < 0 || $downtime < 0) {
+            throw new InvalidArgumentException('Counts cannot be negative.');
+        }
+        if ($damaged > $made) {
+            throw new InvalidArgumentException("Damaged moulds ({$damaged}) cannot be more than the moulds made now ({$made}).");
+        }
+
+        return DB::transaction(function () use ($run, $made, $damaged, $downtime, $reason, $complete) {
+            $run = MouldingRun::whereKey($run->id)->lockForUpdate()->firstOrFail();
+
+            return $this->recordOutput($run, [
+                'moulds_made_qty' => (int) $run->moulds_made_qty + $made,
+                'accepted_mould_qty' => (int) $run->accepted_mould_qty + $made - $damaged,
+                'damaged_mould_qty' => (int) $run->damaged_mould_qty + $damaged,
+                'downtime_minutes' => (int) $run->downtime_minutes + $downtime,
+                'downtime_reason' => $reason !== null && $reason !== '' ? $reason : $run->downtime_reason,
+            ], $complete);
+        });
+    }
+
     /** Undo a run marked completed by mistake: back in progress, with its work list item and list reopened. */
     public function reopenRun(MouldingRun $run): MouldingRun
     {

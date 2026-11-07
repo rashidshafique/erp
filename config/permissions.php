@@ -79,6 +79,8 @@ return [
         ['pattern' => 'pours.*', 'permission' => 'pouring.operate'],
         ['pattern' => 'moulding-runs.*', 'permission' => 'moulding.operate'],
         ['pattern' => 'mould-count.*', 'permission' => 'shopfloor.record'],
+        ['pattern' => 'floor.moulding.count*', 'permission' => 'shopfloor.record', 'reads' => true],   // the tablet count, same as mould-count
+        ['pattern' => 'floor.moulding.*', 'permission' => 'moulding.operate', 'reads' => true],
         ['pattern' => 'work-lists.*', 'permission' => 'moulding.operate'],
         ['pattern' => 'moulding-teams.*', 'permission' => 'moulding.operate'],
         ['pattern' => 'sand-systems.*', 'permission' => 'settings.manage', 'reads' => true],
