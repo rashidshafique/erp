@@ -41,6 +41,7 @@ class Heat extends Model
         'hold_note',
         'held_at',
         'charge_rounds',
+        'charge_kg_overrides',
         'skipped_charge_rounds',
         'drop_outcome',
         'drop_reason',
@@ -67,6 +68,7 @@ class Heat extends Model
     {
         return [
             'skipped_charge_rounds' => 'array',
+            'charge_kg_overrides' => 'array',
             'planned_start_at' => 'datetime',
             'actual_start_at' => 'datetime',
             'melt_completed_at' => 'datetime',
@@ -112,10 +114,54 @@ class Heat extends Model
     /** The charges the target needs, or null when the heat is not a cupola or has no target or recipe weight to work it from. */
     public function targetChargeRounds(): ?int
     {
-        $perRound = (float) $this->chargeBatch?->metalPerChargeKg();
+        $perRound = $this->metalPerChargeKg();
         $target = (float) $this->target_metal_weight_kg;
 
         return $this->isCupola() && $perRound > 0 && $target > 0 ? (int) ceil($target / $perRound) : null;
+    }
+
+    /**
+     * Kilograms changed for this heat only, keyed by charge recipe item id.
+     *
+     * @return array<string, float>
+     */
+    public function chargeKgOverrides(): array
+    {
+        $out = [];
+        foreach ((array) $this->charge_kg_overrides as $itemId => $kg) {
+            if (is_string($itemId) && is_numeric($kg) && (float) $kg > 0) {
+                $out[$itemId] = (float) $kg;
+            }
+        }
+
+        return $out;
+    }
+
+    /** What one charge puts in for a recipe item on this heat: the changed kilograms, else the recipe's own. */
+    public function chargeKgFor(ChargeBatchItem $item): float
+    {
+        return $this->chargeKgOverrides()[$item->id] ?? (float) $item->perChargeKg();
+    }
+
+    /**
+     * Metal one charge of this heat puts in. With a kilogram changed on a metal material it is the sum of this heat's
+     * round lines, so the schedule and the planned charges follow the change; otherwise it is the recipe's own figure.
+     */
+    public function metalPerChargeKg(): float
+    {
+        $this->loadMissing('chargeBatch.items');
+        $batch = $this->chargeBatch;
+        if (! $batch) {
+            return 0.0;
+        }
+        $metal = $batch->items->where('charge_stage', 'ROUND')
+            ->reject(fn (ChargeBatchItem $item) => ChargeBatch::isAddition($item->component_role));
+        $overrides = $this->chargeKgOverrides();
+        if ($metal->isEmpty() || $metal->every(fn (ChargeBatchItem $item) => ! array_key_exists($item->id, $overrides))) {
+            return (float) $batch->metalPerChargeKg();
+        }
+
+        return (float) $metal->sum(fn (ChargeBatchItem $item) => $this->chargeKgFor($item));
     }
 
     /** The charges a new heat plans for: what the target needs, else one. */

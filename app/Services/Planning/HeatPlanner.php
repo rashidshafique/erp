@@ -182,11 +182,19 @@ class HeatPlanner
         });
     }
 
-    /** Creates a melting heat for a grade on a furnace, numbered for the day it is planned. */
-    public function startHeat(Furnace $furnace, IronGrade $grade, float $kg, CarbonInterface $day, ?string $operator = null, ?string $note = null): Heat
+    /**
+     * Creates a melting heat for a grade on a furnace, numbered for the day it is planned.
+     *
+     * Options, all optional: `recipe` picks another active recipe; `overrides` changes a recipe item's kilograms for this
+     * heat only (keyed by item id); `start` marks the furnace lit now; `blast_on` records blast on at the same time;
+     * `start_at` is the time the furnace lit instead of now.
+     *
+     * @param  array{recipe?: ?\App\Models\ChargeBatch, overrides?: array<string, float>, start?: bool, blast_on?: bool, start_at?: ?CarbonInterface}  $options
+     */
+    public function startHeat(Furnace $furnace, IronGrade $grade, float $kg, CarbonInterface $day, ?string $operator = null, ?string $note = null, array $options = []): Heat
     {
         // The furnace's default charge recipe, when it is still active and for the furnace's own process.
-        $recipe = $furnace->defaultChargeBatch;
+        $recipe = $options['recipe'] ?? $furnace->defaultChargeBatch;
         $recipe = $recipe && $recipe->status === 'ACTIVE' && $recipe->process_type === $furnace->furnace_type ? $recipe : null;
 
         $heat = Heat::create([
@@ -201,11 +209,32 @@ class HeatPlanner
             'operator_name' => $operator ?: 'Unassigned',
             'notes' => $note,
         ]);
-        if ($recipe && $heat->load('furnace', 'chargeBatch.items')->isCupola()) {
+
+        $overrides = array_filter((array) ($options['overrides'] ?? []), fn ($v) => is_numeric($v) && (float) $v > 0);
+        if ($overrides !== []) {
+            $heat->update(['charge_kg_overrides' => array_map(fn ($v) => round((float) $v, 3), $overrides)]);
+        }
+
+        $heat->refresh()->load('furnace', 'chargeBatch.items');
+        if ($heat->chargeBatch && $heat->isCupola()) {
             $heat->update(['charge_rounds' => $heat->defaultChargeRounds()]);
         }
 
-        return $heat;
+        // Starting from the tablet lights the furnace now: a cupola is melting after blast on, an induction heat is in progress.
+        if (! empty($options['start'])) {
+            $at = $options['start_at'] ?? now();
+            $times = ['actual_start_at' => $at, 'status' => $heat->isCupola() ? 'MELTING' : 'IN_PROGRESS'];
+            if ($heat->isCupola() && ! empty($options['blast_on'])) {
+                $times['blast_on_at'] = $at;
+            }
+            if ($heat->isCupola()) {
+                app(\App\Services\Production\CupolaTimeline::class)->save($heat, $times);
+            } else {
+                $heat->update($times);
+            }
+        }
+
+        return $heat->refresh();
     }
 
     private function clearOpenPlan(): void

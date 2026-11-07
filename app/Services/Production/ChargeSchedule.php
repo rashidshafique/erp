@@ -38,7 +38,7 @@ class ChargeSchedule
             return ['reason' => 'No charge recipe is selected on this heat.'] + $none;
         }
 
-        $perRound = $batch->metalPerChargeKg();
+        $perRound = $heat->metalPerChargeKg();
         $measured = $this->eta->rate($heat);
         $hasBed = $batch->items->where('charge_stage', 'BED')->isNotEmpty();
         $total = $heat->chargeRounds();
@@ -154,7 +154,7 @@ class ChargeSchedule
     {
         $heat->loadMissing('chargeBatch.items.chargeBatch');
 
-        return $heat->chargeBatch?->items->where('charge_stage', $round === 0 ? 'BED' : 'ROUND')->map(fn ($item) => ['material_id' => $item->material_id, 'actual_qty_kg' => (float) $item->perChargeKg()])
+        return $heat->chargeBatch?->items->where('charge_stage', $round === 0 ? 'BED' : 'ROUND')->map(fn ($item) => ['material_id' => $item->material_id, 'actual_qty_kg' => $heat->chargeKgFor($item)])
             ->filter(fn ($l) => $l['actual_qty_kg'] > 0)->values() ?? collect();
     }
 }
