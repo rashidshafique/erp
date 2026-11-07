@@ -58,6 +58,10 @@ class EnforceAccess
                 return $next($request);
             }
         }
+        if (Str::endsWith($name, 'livewire.update')) {
+            return self::livewireAllows($user, (array) $request->input('components', []))
+                ? $next($request) : $this->deny($request, 'This action is not open to your role.');
+        }
 
         $isRead = $request->isMethodSafe();
         $required = self::requiredPermission($name);
@@ -76,6 +80,41 @@ class EnforceAccess
         }
 
         return $next($request);
+    }
+
+    /** Livewire's own calls that never change data: paging and refreshing. */
+    private const LIVEWIRE_READS = ['$refresh', 'gotoPage', 'nextPage', 'previousPage', 'setPage', 'resetPage'];
+
+    /**
+     * Whether a Livewire request may run, by the permissions.livewire map: every component must be listed, and a component
+     * whose calls or changed properties go beyond its read-only ones needs its route's permission to change data.
+     *
+     * @param  list<array{snapshot?: string, updates?: array<string, mixed>, calls?: list<array{method?: string}>}>  $components
+     */
+    public static function livewireAllows(\App\Models\User $user, array $components): bool
+    {
+        $map = config('permissions.livewire', []);
+        foreach ($components as $component) {
+            $name = json_decode((string) ($component['snapshot'] ?? ''), true)['memo']['name'] ?? null;
+            if (! is_string($name) || ! array_key_exists($name, $map)) {
+                return false;
+            }
+            [$route, $reads, $filters] = $map[$name] + [null, [], []];
+            if ($route === null) {
+                continue;
+            }
+            $calls = collect($component['calls'] ?? [])->pluck('method')->reject(fn ($m) => in_array($m, [...self::LIVEWIRE_READS, ...$reads], true));
+            $changes = collect(array_keys((array) ($component['updates'] ?? [])))->map(fn (string $key) => Str::before($key, '.'))->reject(fn ($p) => in_array($p, $filters, true));
+            if ($calls->isEmpty() && $changes->isEmpty()) {
+                continue;
+            }
+            $required = self::requiredPermission($route);
+            if ($required === null || ! self::holds($user, $required, 'edit')) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /** @param  array{permission:string,also:list<string>,area:?string}  $required */

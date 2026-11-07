@@ -43,6 +43,36 @@ return [
     // Open to every signed-in user; the screens check who may do what (own leave, a team's leave).
     'open_routes' => ['help.*'],
 
+    /*
+     * Livewire requests, per component: [the route whose permission its changes need (null = any signed-in user),
+     * methods that only read, properties that only filter]. A request that calls only those methods and changes only those
+     * properties needs nothing more than the page; anything else needs the route's permission. A component not listed here
+     * is for administrators only. Paging and refresh are always reads.
+     */
+    'livewire' => [
+        'notification-center' => [null],   // a person's own notices
+        'heat-status-board' => [null],
+        'invoice-list' => [null],
+        'enquiry::record' => [null],       // checks enquiries.store and enquiries.log itself
+        'inventory::stock-by-location' => [null],
+        'inventory::reorder-alerts' => [null],
+        'heat-skipped-charges' => ['heats.charge-rounds.restore', ['refresh']],
+        'heat-charge-history' => ['heats.charge-entries.store'],
+        'customer-list' => ['customers.store', ['showSlice', 'select', 'resetFilters', 'paginationView', 'create', 'edit', 'closeForm', 'export'], ['search', 'status', 'overdueOnly', 'selectedId']],
+        'product-list' => ['products.update', ['resetFilters', 'paginationView', 'showStatus', 'focus', 'export'], ['search', 'metal', 'active', 'customer', 'process', 'focused', 'archived', 'selected']],
+        'material-list' => ['materials.store', ['resetFilters', 'paginationView', 'create', 'edit', 'closeForm'], ['search', 'type', 'status', 'stock']],
+        'purchasing::supplier-list' => ['suppliers.store', ['showSlice', 'resetFilters', 'paginationView', 'create', 'edit', 'closeForm'], ['search', 'status', 'state']],
+        'inventory::location-list' => ['stock-locations.index', ['create', 'edit', 'cancel'], ['search', 'showInactive']],
+        'inventory::record-movement' => ['stock-movements.record'],
+        'process-route' => ['settings.process.control-plan', ['create', 'edit', 'closeForm']],
+        'product-route' => ['products.update'],
+        'ledger::chart' => ['ledger.accounts.index', ['toggleCategory', 'toggleSection', 'expandAll', 'collapseAll', 'tick'], ['q', 'showInactive', 'closed', 'opened', 'ticked']],
+        'ledger::voucher-form' => ['ledger.vouchers.edit'],
+        'ledger::opening-balances' => ['ledger.opening-balances'],
+        'ledger::sections' => ['ledger.sections.index'],
+        'ledger::posting-rules' => ['ledger.settings.posting-rules'],
+    ],
+
     // First match wins. Patterns use * as a wildcard.
     'routes' => [
         ['pattern' => 'm.tests.*', 'permission' => 'mobile.tests', 'reads' => true, 'area' => false],
