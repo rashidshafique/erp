@@ -10,6 +10,12 @@ use Illuminate\Support\Facades\Notification;
 /** Sends a notice to the people who should see it: everyone holding a permission, or everyone in named roles. */
 class Notify
 {
+    /** The hat a permission stands for, as shown on a notice someone gets for more than one. */
+    public const HATS = [
+        'planning.manage' => 'Planning', 'melting.operate' => 'Melt shop', 'moulding.operate' => 'Moulding',
+        'quality.inspect' => 'Quality', 'stores.manage' => 'Stores', 'purchasing.manage' => 'Purchasing', 'sales.manage' => 'Sales',
+    ];
+
     /** Active users who hold the permission, administrators included. @return Collection<int, User> */
     public function usersWithPermission(string $permission): Collection
     {
@@ -40,10 +46,23 @@ class Notify
      */
     public function toPermissions(array $permissions, AppNotice $notice, ?User $by = null): int
     {
-        $users = collect($permissions)->flatMap(fn (string $permission) => $this->usersWithPermission($permission))->unique('id')
-            ->reject(fn (User $user) => $by !== null && $user->id === $by->id)->values();
+        $hats = [];
+        foreach ($permissions as $permission) {
+            foreach ($this->usersWithPermission($permission) as $user) {
+                if ($by !== null && $user->id === $by->id) {
+                    continue;
+                }
+                $hats[$user->id] ??= ['user' => $user, 'for' => []];
+                $hats[$user->id]['for'][] = self::HATS[$permission] ?? $permission;
+            }
+        }
 
-        return $this->send($users, $notice);
+        // People holding the same hats get one send; someone with two hats sees both on the notice.
+        foreach (collect($hats)->groupBy(fn (array $h) => implode('|', $h['for'])) as $group) {
+            $this->send($group->pluck('user'), $notice->forHats($group->first()['for']));
+        }
+
+        return count($hats);
     }
 
     /** @param  list<string>  $roleCodes */

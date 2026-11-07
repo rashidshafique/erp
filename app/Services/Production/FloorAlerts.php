@@ -35,6 +35,7 @@ class FloorAlerts
             $list->list_date->format('D j M').' · '.$list->shift.' shift · '.$items->sum('planned_moulds').' moulds on '.$stations.' '.($stations === 1 ? 'station' : 'stations').'.',
             'info',
             route('work-lists.show', $list),
+            link: $list->list_number,
         ), $by);
     }
 
@@ -47,6 +48,7 @@ class FloorAlerts
             $list->list_date->format('D j M').' · '.$list->shift.' shift · the moulders cannot see it until it is issued.',
             'warning',
             route('work-lists.show', $list),
+            link: $list->list_number,
         ));
     }
 
@@ -63,6 +65,7 @@ class FloorAlerts
             'Counted before pouring, so the melt for them can go ahead.',
             'success',
             route('mould-readiness.index'),
+            link: 'Moulds ready',
         ), $by);
     }
 
@@ -79,18 +82,20 @@ class FloorAlerts
             'The orders need these moulds again. They are on the planner for the next list.',
             'warning',
             route('planner.index'),
+            link: 'Remake needed',
         ), $by);
     }
 
-    /** A heat started: the moulders are asked to count what is ready for it. */
+    /** A heat started: the moulders are asked to count what is ready for it, a step to do. */
     public function heatStarted(Heat $heat, ?User $by): int
     {
         return $this->notify->toPermissions(['moulding.operate'], new AppNotice(
             'heat-started',
             "Heat {$heat->heat_number} started",
             'Count the moulds that are ready to pour.',
-            'info',
+            'warning',
             route('mould-count.index'),
+            link: 'Count',
         ), $by);
     }
 
@@ -104,6 +109,7 @@ class FloorAlerts
             'danger',
             route('heats.show', $heat),
             "heat:{$heat->id}:{$round}",
+            'Charge tab',
         ));
     }
 
@@ -148,6 +154,7 @@ class FloorAlerts
             'Castings from this pour are waiting for their first check.',
             'info',
             route('lots.queue'),
+            link: 'Lots queue',
         ), $by);
     }
 
@@ -165,6 +172,7 @@ class FloorAlerts
             'Tapped metal is not matched by pours and leftover. Look at the metal balance.',
             'warning',
             route('heats.show', $heat),
+            link: "{$heat->heat_number} metal balance",
         ), $by);
     }
 }

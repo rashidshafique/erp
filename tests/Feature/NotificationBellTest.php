@@ -58,6 +58,29 @@ class NotificationBellTest extends TestCase
         Livewire::test('notification-center')->call('markAllRead');
 
         $this->assertSame(['Charge 3 is late'], $user->fresh()->unreadNotifications->pluck('data.title')->all());
+
+        Livewire::test('notification-center')->call('toggle')->assertSee('Others read')->assertSee('Stays until opened or the charge goes in')->assertDontSee('Mark all read');
+    }
+
+    public function test_a_notice_shows_the_screen_it_opens_and_the_hats_it_was_sent_for(): void
+    {
+        $both = $this->user('PRODUCTION_MANAGER');
+        $both->roles()->attach(Role::where('code', 'MELT_SUPERVISOR')->value('id'));
+        $melter = $this->user('MELT_SUPERVISOR');
+
+        app(FloorAlerts::class)->chargeOverdue($this->heat('HT-9'), 7, 4);
+
+        $this->assertSame(['Melt shop', 'Planning'], $both->notifications->firstWhere('data.kind', 'charge-overdue')->data['for']);
+        $this->assertArrayNotHasKey('for', $melter->notifications->firstWhere('data.kind', 'charge-overdue')->data, 'one hat needs no label');
+        $this->actingAs($both);
+        Livewire::test('notification-center')->call('toggle')->assertSee('→ Charge tab')->assertSee('For you as: Melt shop · Planning');
+    }
+
+    public function test_an_older_notice_without_a_link_name_takes_one_from_its_kind(): void
+    {
+        $this->assertSame('Reorder list', AppNotice::linkLabel(['kind' => 'reorder', 'url' => '/x']));
+        $this->assertSame('Open', AppNotice::linkLabel(['kind' => 'other', 'url' => '/x']));
+        $this->assertNull(AppNotice::linkLabel(['kind' => 'reorder', 'url' => null]));
     }
 
     public function test_with_nothing_unread_the_panel_says_so_and_keeps_the_last_read_notices(): void
@@ -67,7 +90,7 @@ class NotificationBellTest extends TestCase
         $user->unreadNotifications->markAsRead();
         $this->actingAs($user);
 
-        Livewire::test('notification-center')->call('toggle')->assertSeeInOrder(["You're up to date", 'Earlier', 'Coke is low']);
+        Livewire::test('notification-center')->call('toggle')->assertSeeInOrder(["You're up to date", 'Read', 'Coke is low']);
     }
 
     public function test_a_late_charge_notice_settles_once_the_charge_is_skipped_or_the_heat_stops(): void
