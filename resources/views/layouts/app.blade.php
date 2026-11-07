@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="{{ $css('app-base') }}">
     @if (\App\Support\UiSettings::all()['compact'])<link rel="stylesheet" href="{{ $css('app-compact') }}">@endif
     <link rel="stylesheet" href="{{ $css('app-overrides') }}">
+    <link rel="stylesheet" href="{{ $css('app-floor') }}">
     {{-- Values the administrator sets under Settings → General; everything else lives in public/css/app-*.css --}}
     <style>
         :root {

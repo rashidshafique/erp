@@ -1,0 +1,134 @@
+/*
+ * Round 4 floor components (design: R4 Components, C0-C9). One set of parts for the due-now homes and the tablet screens.
+ * The page picks a density with a wrapper class, never a media query, because the furnace is always "gloves" whatever the device:
+ *   .fl-desktop  52 px rows, 32 px buttons      .fl-tablet  64 px rows, 48 px buttons
+ *   .fl-gloves   72 px rows, 56 px buttons      .fl-phone   50 px rows, 44 px buttons
+ * Primary colour follows the foundry's accent; colour never carries meaning alone, warning and danger always add "!" and words.
+ */
+:root {
+    --fl-ink: #1c1d1f; --fl-ink-2: #3d4045; --fl-meta: #55585d; --fl-faint: #6b6e73;
+    --fl-rule: #e6e7e9; --fl-control: #c9cbcf; --fl-panel: #f8f8f9;
+    --fl-ok: #1d7048; --fl-ok-tint: #e7f4ec;
+    --fl-warn: #94610a; --fl-warn-bar: #c58a1a; --fl-warn-tint: #fbf0dc;
+    --fl-bad: #b3352c; --fl-bad-tint: #fbe7e5; --fl-bad-wash: #fdf3f2;
+    --fl-tint: color-mix(in srgb, var(--accent) 7%, #fff);
+    --fl-row: 52px; --fl-btn: 32px; --fl-title: 13.5px; --fl-small: 12.5px; --fl-chip: 22px; --fl-gap: 12px;
+}
+.fl-desktop { --fl-row: 52px; --fl-btn: 32px; --fl-title: 13.5px; --fl-small: 12.5px; --fl-chip: 22px; --fl-gap: 12px; }
+.fl-tablet { --fl-row: 64px; --fl-btn: 48px; --fl-title: 15.5px; --fl-small: 13.5px; --fl-chip: 28px; --fl-gap: 14px; }
+.fl-gloves { --fl-row: 72px; --fl-btn: 56px; --fl-title: 16px; --fl-small: 14px; --fl-chip: 30px; --fl-gap: 16px; }
+.fl-phone { --fl-row: 50px; --fl-btn: 44px; --fl-title: 14.5px; --fl-small: 12.5px; --fl-chip: 24px; --fl-gap: 10px; }
+.fl-desktop, .fl-tablet, .fl-gloves, .fl-phone { color: var(--fl-ink); font-variant-numeric: tabular-nums; }
+.fl-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .94em; }
+.fl-block-head { font-size: 12.5px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--fl-meta); margin: 18px 0 6px; }
+
+/* Buttons the components share: secondary is white with a control border, primary is the accent. */
+.fl-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: var(--fl-btn); padding: 0 16px; border: 1px solid var(--fl-control); border-radius: 8px; background: #fff; color: var(--fl-ink); font: inherit; font-size: calc(var(--fl-title) - .5px); font-weight: 600; text-decoration: none; cursor: pointer; white-space: nowrap; }
+.fl-btn:hover { background: var(--fl-panel); }
+.fl-btn:active { background: #eceef0; }
+.fl-btn.is-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.fl-btn.is-primary:hover, .fl-btn.is-primary:active { background: var(--accent-hover); border-color: var(--accent-hover); }
+.fl-btn.is-warn { background: var(--fl-warn); border-color: var(--fl-warn); color: #fff; }
+.fl-btn.is-bad { background: var(--fl-bad); border-color: var(--fl-bad); color: #fff; }
+.fl-btn.is-primary[disabled], .fl-btn.is-primary.is-disabled { background: color-mix(in srgb, var(--accent) 40%, #fff); border-color: transparent; color: #fff; cursor: not-allowed; }
+.fl-btn[disabled]:not(.is-primary), .fl-btn.is-disabled:not(.is-primary) { background: #fff; border-style: dashed; color: var(--fl-faint); cursor: not-allowed; }
+.fl-btn.is-bad-outline { background: #fff; border-color: #f2cfcb; color: var(--fl-bad); }
+.fl-btn.is-link { border-color: transparent; background: none; color: var(--accent); padding: 0 8px; }
+
+/* C1 tablet tab bar: 64 px, tabs split evenly, then a 28 px band kept clear for Android buttons. */
+.fl-has-tabs { padding-bottom: calc(64px + 28px + 16px); }
+.fl-tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; background: #fff; border-top: 1px solid var(--fl-rule); padding-bottom: 28px; }
+.fl-tabs nav { display: flex; height: 64px; }
+.fl-tab { position: relative; flex: 1 1 0; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--fl-meta); font-size: 16px; font-weight: 500; text-decoration: none; border-top: 3px solid transparent; }
+.fl-tab:active { background: #eceef0; }
+.fl-tab.is-active { color: var(--accent); background: var(--fl-tint); border-top-color: var(--accent); font-weight: 600; }
+.fl-tab.is-disabled { color: #a3a6ab; pointer-events: none; }
+.fl-tab svg { width: 20px; height: 20px; }
+.fl-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; border: 1.5px solid var(--fl-ink); background: #fff; color: var(--fl-ink); font-size: 12px; font-weight: 600; line-height: 1; }
+.fl-badge.is-warn { border-color: var(--fl-warn-bar); background: var(--fl-warn-tint); color: var(--fl-warn); }
+.fl-badge.is-bad { border-color: #111; background: #111; color: #fff; }
+
+/* C2 count field and numeric keypad. The field carries the state; the keys never change meaning. */
+.fl-count { display: block; margin-bottom: 14px; }
+.fl-count-label { display: block; font-size: 12.5px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--fl-meta); margin-bottom: 6px; }
+.fl-count input { box-sizing: border-box; width: 100%; height: 72px; padding: 0 18px; border: 1px solid var(--fl-control); border-radius: 10px; background: #fff; color: var(--fl-ink); font: inherit; font-size: 36px; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; caret-color: var(--accent); }
+.fl-count input::placeholder { color: var(--fl-faint); font-size: 18px; font-weight: 400; }
+.fl-count input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent); }
+.fl-count input:active { background: var(--fl-panel); }
+.fl-count-hint { display: block; min-height: 18px; margin-top: 6px; font-size: 13.5px; color: var(--fl-meta); }
+.fl-count[data-tone="warn"] input { border-color: var(--fl-warn-bar); border-left-width: 5px; }
+.fl-count[data-tone="warn"] .fl-count-hint { color: var(--fl-warn); font-weight: 500; }
+.fl-count[data-tone="bad"] input { border-color: var(--fl-bad); border-left-width: 5px; background: var(--fl-bad-wash); }
+.fl-count[data-tone="bad"] .fl-count-hint { color: var(--fl-bad); font-weight: 500; }
+.fl-count.is-locked input { background: var(--fl-panel); color: var(--fl-meta); border-style: dashed; }
+.fl-keypad { display: grid; grid-template-columns: repeat(3, 104px); grid-auto-rows: 64px; gap: 8px; width: max-content; }
+.fl-key { border: 1px solid var(--fl-control); border-radius: 10px; background: #fff; color: var(--fl-ink); font: inherit; font-size: 26px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 0 var(--fl-control); touch-action: manipulation; user-select: none; }
+.fl-key:active { background: #e9ebee; box-shadow: none; transform: translateY(2px); }
+.fl-key.is-next { font-size: 17px; background: var(--fl-panel); }
+.fl-key[disabled] { color: #b4b7bb; background: var(--fl-panel); box-shadow: none; cursor: not-allowed; transform: none; }
+.fl-keypad-wrap { display: flex; flex-direction: column; gap: 12px; width: max-content; }
+.fl-save { width: 100%; min-height: 56px; font-size: 17px; font-weight: 600; }
+.fl-count-pad { display: grid; grid-template-columns: minmax(0, 1fr) max-content; gap: 32px; align-items: start; }
+
+/* C3 home row: text, age, one button. The whole row is the target; there is never a second button. */
+.fl-rows { border-top: 1px solid var(--fl-rule); }
+.fl-row { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 92px auto; align-items: center; gap: var(--fl-gap); min-height: var(--fl-row); padding: 6px 12px 6px 14px; border-bottom: 1px solid var(--fl-rule); color: inherit; text-decoration: none; }
+a.fl-row:active, .fl-row.is-tap:active { background: #eceef0; }
+.fl-row-title { display: block; font-size: var(--fl-title); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fl-row-meta { display: block; font-size: var(--fl-small); color: var(--fl-meta); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fl-row-age { font-size: var(--fl-small); color: var(--fl-faint); text-align: right; white-space: nowrap; }
+.fl-row .fl-btn { justify-self: end; }
+.fl-row.is-warn { box-shadow: inset 4px 0 var(--fl-warn-bar); }
+.fl-row.is-warn .fl-row-age { color: var(--fl-warn); font-weight: 600; }
+.fl-row.is-bad { box-shadow: inset 4px 0 var(--fl-bad); background: var(--fl-bad-wash); }
+.fl-row.is-bad .fl-row-age { color: var(--fl-bad); font-weight: 600; }
+.fl-row.is-disabled .fl-row-title { color: var(--fl-meta); }
+.fl-not-ready { justify-self: end; font-size: var(--fl-small); color: var(--fl-meta); white-space: nowrap; }
+.fl-row-empty { padding: 12px 14px; font-size: var(--fl-small); color: var(--fl-meta); border-bottom: 1px solid var(--fl-rule); }
+.fl-phone .fl-row { grid-template-columns: minmax(0, 1fr) auto auto; }
+
+/* C4 blocker line: shape alone tells them apart (filled red square, green circle, amber outlined square). */
+.fl-blockers { border: 1px solid var(--fl-rule); border-radius: 10px; overflow: hidden; background: #fff; }
+.fl-blocker { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: var(--fl-gap); min-height: var(--fl-row); padding: 8px 14px; border-bottom: 1px solid var(--fl-rule); }
+.fl-blocker:last-child { border-bottom: 0; }
+.fl-blocker-mark { display: grid; place-items: center; width: 24px; height: 24px; font-size: 14px; font-weight: 700; line-height: 1; }
+.fl-blocker.is-fail { background: var(--fl-bad-wash); }
+.fl-blocker.is-fail .fl-blocker-mark { background: var(--fl-bad); color: #fff; border-radius: 4px; }
+.fl-blocker.is-pass .fl-blocker-mark { background: var(--fl-ok); color: #fff; border-radius: 50%; }
+.fl-blocker.is-warn .fl-blocker-mark { border: 2px solid var(--fl-warn-bar); color: var(--fl-warn); border-radius: 4px; }
+.fl-blocker.is-loading .fl-blocker-mark { border: 2px solid var(--fl-control); border-top-color: var(--accent); border-radius: 50%; width: 18px; height: 18px; animation: fl-spin .8s linear infinite; }
+.fl-blocker-title { display: block; font-size: var(--fl-title); font-weight: 500; }
+.fl-blocker-detail { display: block; font-size: var(--fl-small); color: var(--fl-meta); }
+.fl-blocker.is-loading .fl-blocker-title { color: var(--fl-meta); font-weight: 400; }
+.fl-blocker-who { font-size: var(--fl-small); color: var(--fl-meta); white-space: nowrap; }
+.fl-blocker.is-clear { grid-template-columns: minmax(0, 1fr) auto; background: var(--fl-ok-tint); }
+@keyframes fl-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .fl-blocker.is-loading .fl-blocker-mark { animation: none; } }
+
+/* C6 status chips: uppercase, each with its symbol so they read without colour. Labels, not buttons. */
+.fl-chip { display: inline-flex; align-items: center; gap: 5px; height: var(--fl-chip); padding: 0 10px; border-radius: 999px; font-size: calc(var(--fl-small) - 1.5px); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; background: #f0f1f3; color: var(--fl-ink-2); }
+.fl-chip-sym { font-weight: 700; }
+.fl-chip.is-production { background: color-mix(in srgb, var(--accent) 9%, #fff); color: var(--accent-dark, var(--accent)); }
+.fl-chip.is-hold { background: var(--fl-bad-tint); color: var(--fl-bad); }
+.fl-chip.is-clear, .fl-chip.is-ready { background: var(--fl-ok-tint); color: var(--fl-ok); }
+.fl-chip.is-packed { background: #eef0f3; color: var(--fl-ink-2); }
+.fl-chip.is-dispatched { background: #eef0f3; color: var(--fl-meta); }
+.fl-chip.is-open { background: var(--fl-warn-tint); color: var(--fl-warn); }
+.fl-chip.is-closed { background: #f0f1f3; color: var(--fl-meta); }
+
+/* C8 big next-step button: the largest thing on a furnace screen, exactly one per screen. */
+.fl-big { box-sizing: border-box; display: flex; align-items: center; gap: 18px; width: 100%; min-width: 300px; min-height: 104px; padding: 16px 22px; border: 0; border-radius: 14px; background: var(--accent); color: #fff; font: inherit; text-align: left; text-decoration: none; cursor: pointer; box-shadow: 0 3px 0 color-mix(in srgb, var(--accent) 60%, #000); }
+.fl-big:active { transform: translateY(3px); box-shadow: none; background: var(--accent-hover); }
+.fl-big-text { flex: 1; min-width: 0; }
+.fl-big-label { display: block; font-size: 28px; font-weight: 700; line-height: 1.15; }
+.fl-big-sub { display: block; margin-top: 4px; font-size: 15px; opacity: .92; }
+.fl-big-go { font-size: 34px; font-weight: 300; opacity: .9; }
+.fl-big-mark { display: grid; place-items: center; flex: none; width: 44px; height: 44px; border: 2.5px solid currentColor; border-radius: 8px; font-size: 26px; font-weight: 800; }
+.fl-big.is-warn { background: var(--fl-warn); box-shadow: 0 3px 0 #5f3e06; }
+.fl-big.is-bad { background: var(--fl-bad); box-shadow: 0 3px 0 #7a221c; }
+.fl-big[disabled], .fl-big.is-disabled { background: #fff; color: var(--fl-meta); border: 2px dashed var(--fl-control); box-shadow: none; cursor: not-allowed; transform: none; }
+.fl-big.is-empty { background: none; color: var(--fl-meta); border: 2px dashed var(--fl-rule); box-shadow: none; cursor: default; }
+.fl-big.is-empty .fl-big-label { font-size: 20px; font-weight: 600; color: var(--fl-ink-2); }
+
+/* C9 NEW tag: an annotation for the build, never a status. */
+.fl-new { display: inline-block; padding: 1px 6px; border: 1.5px dashed var(--accent); border-radius: 4px; color: var(--accent); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 10.5px; font-weight: 700; letter-spacing: .06em; vertical-align: middle; background: transparent; }

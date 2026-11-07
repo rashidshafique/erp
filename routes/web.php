@@ -379,6 +379,7 @@ Route::get('/help/new-customer', [\App\Http\Controllers\HelpController::class, '
 Route::get('/settings/melting-days', [\App\Http\Controllers\MeltingDaysController::class, 'edit'])->name('settings.melting-days.edit');
 Route::put('/settings/melting-days', [\App\Http\Controllers\MeltingDaysController::class, 'update'])->name('settings.melting-days');
 Route::view('/settings/process', 'settings.process')->name('settings.process');
+Route::view('/settings/floor-kit', 'settings.floor-kit')->name('settings.floor-kit');   // round 4 components with every state, to check before screens use them
 Route::put('/settings/process/control-plan', [\App\Http\Controllers\ControlPlanController::class, 'saveDefault'])->name('settings.process.control-plan');
 Route::prefix('flask-sizes')->name('flask-sizes.')->controller(FlaskSizeController::class)->group(function () {
     Route::post('/', 'store')->name('store');
