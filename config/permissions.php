@@ -103,6 +103,7 @@ return [
         ['pattern' => 'planner.*', 'permission' => 'planning.manage'],
         ['pattern' => 'production-orders.*', 'permission' => 'planning.manage'],
         ['pattern' => 'charge-batches.*', 'permission' => 'planning.manage'],
+        ['pattern' => 'floor.furnace.*', 'permission' => 'melting.operate', 'reads' => true],
         ['pattern' => 'heats.*', 'permission' => 'melting.operate'],
         ['pattern' => 'thermal.*', 'permission' => 'melting.operate'],
         ['pattern' => 'furnaces.*', 'permission' => 'melting.operate'],

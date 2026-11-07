@@ -213,6 +213,23 @@ Route::prefix('furnaces')
         Route::put('/{furnace}/defaults', 'defaults')->name('defaults');
     });
 
+// ---- Furnace tablet (design R4 Furnace, F4·1 to F4·6, F4·E, F4·W, F4·W2) ----
+Route::prefix('floor/furnace')->name('floor.furnace.')->group(function () {
+    Route::get('/next-heat', [\App\Http\Controllers\FurnaceNextHeatController::class, 'index'])->name('next-heat');
+    Route::get('/heat', [\App\Http\Controllers\FurnaceHeatController::class, 'current'])->name('heat');
+    Route::get('/heat/start', [\App\Http\Controllers\FurnaceStartHeatController::class, 'create'])->name('heat.start.create');
+    Route::post('/heat/start', [\App\Http\Controllers\FurnaceStartHeatController::class, 'store'])->name('heat.start');
+    Route::get('/heat/{heat}', [\App\Http\Controllers\FurnaceHeatController::class, 'show'])->name('heat.show');
+    Route::get('/heat/{heat}/charge/{round}', [\App\Http\Controllers\FurnaceChargeController::class, 'edit'])->whereNumber('round')->name('heat.charge.edit');
+    Route::post('/heat/{heat}/charge/{round}', [\App\Http\Controllers\FurnaceChargeController::class, 'store'])->whereNumber('round')->name('heat.charge.store');
+    Route::post('/heat/{heat}/charge/{round}/correct', [\App\Http\Controllers\FurnaceChargeController::class, 'correct'])->whereNumber('round')->name('heat.charge.correct');
+    Route::get('/heat/{heat}/pour', [\App\Http\Controllers\FurnacePourController::class, 'gate'])->name('heat.pour.gate');
+    Route::get('/heat/{heat}/pour/pattern', [\App\Http\Controllers\FurnacePourController::class, 'create'])->name('heat.pour.create');
+    Route::post('/heat/{heat}/pour', [\App\Http\Controllers\FurnacePourController::class, 'store'])->name('heat.pour.store');
+    Route::get('/heat/{heat}/close', [\App\Http\Controllers\FurnaceCloseController::class, 'show'])->name('heat.close');
+    Route::post('/heat/{heat}/close', [\App\Http\Controllers\FurnaceCloseController::class, 'store'])->name('heat.close.store');
+});
+
 Route::post('/heats/{heat}/charge-rounds', [\App\Http\Controllers\HeatChargeRoundController::class, 'store'])->name('heats.charge-rounds.store');
 Route::post('/heats/{heat}/charge-rounds/confirm', [\App\Http\Controllers\HeatChargeRoundController::class, 'confirm'])->name('heats.charge-rounds.confirm');
 Route::post('/heats/{heat}/charge-rounds/backfill', [\App\Http\Controllers\HeatChargeRoundController::class, 'backfill'])->name('heats.charge-rounds.backfill');

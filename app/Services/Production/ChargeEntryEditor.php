@@ -20,8 +20,8 @@ class ChargeEntryEditor
         return $heat->status !== 'CANCELLED' && ! $heat->chargePosting()->exists();
     }
 
-    /** Sets the weight of an entry; its cost follows at the same price per kg. */
-    public function reweigh(Heat $heat, HeatMaterialConsumption $entry, float $quantity, string $by): HeatMaterialConsumption
+    /** Sets the weight of an entry; its cost follows at the same price per kg. A reason is noted on the entry, never hidden. */
+    public function reweigh(Heat $heat, HeatMaterialConsumption $entry, float $quantity, string $by, ?string $reason = null): HeatMaterialConsumption
     {
         $this->assertEditable($heat, $entry);
         if ($quantity <= 0 || $quantity > 999999999) {
@@ -37,7 +37,7 @@ class ChargeEntryEditor
         $entry->update([
             'actual_qty_kg' => $quantity,
             'actual_total_cost' => round($quantity * $unitCost, 4),
-            'notes' => trim(($entry->notes ? $entry->notes.' ' : '').'Weight changed from '.Formats::number($before, 3).' kg to '.Formats::number($quantity, 3).' kg by '.$by.' on '.now()->displayDateTime().'.'),
+            'notes' => trim(($entry->notes ? $entry->notes.' ' : '').'Weight changed from '.Formats::number($before, 3).' kg to '.Formats::number($quantity, 3).' kg by '.$by.' on '.now()->displayDateTime().'.'.($reason ? ' Reason: '.$reason : '')),
         ]);
 
         return $entry;

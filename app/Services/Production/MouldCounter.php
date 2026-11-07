@@ -111,6 +111,40 @@ class MouldCounter
         ]);
     }
 
+    /**
+     * Moulds ready to pour for each pattern revision and order: assembled moulds not yet on a pour, plus accepted moulds of the
+     * order's runs not yet assembled. A pour screen takes its limit from here.
+     *
+     * @return Collection<string, array{revision: PatternRevision, order: ProductionOrder, ready: int}> keyed "revision id|order id"
+     */
+    public function readyByOrder(): Collection
+    {
+        $open = ProductionOrder::whereIn('status', ['RELEASED', 'IN_PROGRESS'])->pluck('id')->flip();
+        $count = [];
+        foreach ($this->preparedMoulds()->get() as $mould) {
+            $run = $mould->mouldingRun;
+            if ($open->has($run->production_order_id)) {
+                $key = $run->pattern_revision_id.'|'.$run->production_order_id;
+                $count[$key] = ($count[$key] ?? 0) + 1;
+            }
+        }
+        foreach ($this->openRuns()->get() as $run) {
+            $left = (int) $run->accepted_mould_qty - (int) $run->mould_assemblies_count;
+            if ($left > 0) {
+                $key = $run->pattern_revision_id.'|'.$run->production_order_id;
+                $count[$key] = ($count[$key] ?? 0) + $left;
+            }
+        }
+        $revisions = PatternRevision::with('pattern')->whereIn('id', collect(array_keys($count))->map(fn ($k) => explode('|', $k)[0])->unique())->get()->keyBy('id');
+        $orders = ProductionOrder::with('product')->whereIn('id', collect(array_keys($count))->map(fn ($k) => explode('|', $k)[1])->unique())->get()->keyBy('id');
+
+        return collect($count)->map(function (int $ready, string $key) use ($revisions, $orders) {
+            [$revisionId, $orderId] = explode('|', $key);
+
+            return ['revision' => $revisions->get($revisionId), 'order' => $orders->get($orderId), 'ready' => $ready];
+        })->filter(fn ($r) => $r['revision'] && $r['order'])->sortBy(fn ($r) => $r['order']->required_date?->timestamp ?? PHP_INT_MAX);
+    }
+
     private function preparedMoulds()
     {
         return MouldAssembly::with('mouldingRun')->where('status', 'PREPARED')->whereNotIn('id', PourMouldAssembly::select('mould_assembly_id'))
