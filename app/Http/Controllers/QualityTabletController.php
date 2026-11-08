@@ -74,7 +74,11 @@ class QualityTabletController extends Controller
 
     public function store(Request $request, CastingLot $lot, QuickInspection $quick): RedirectResponse
     {
-        [$counts, $marks] = $this->counts($request, $lot, $quick);
+        try {
+            [$counts, $marks] = $this->counts($request, $lot, $quick);
+        } catch (ValidationException $e) {
+            return redirect()->route('floor.quality.lot.inspect', $lot)->withErrors($e->errors())->withInput();
+        }
         $rule = app(ShipRule::class);
         $hold = ! ($rule->forLot($lot)['partial'] && $counts['accepted'] > 0) && QualityRules::raisesNcr($counts['rejected'] + $counts['rework'], array_sum($counts));
         try {

@@ -94,4 +94,12 @@ class QualityTabletTest extends TestCase
         $this->actingAs($make('QUALITY_INSPECTOR'))->get(route('floor.quality.lots'))->assertOk();
         $this->actingAs($make('QUALITY_INSPECTOR'))->post(route('floor.quality.lot.inspect.store', $lot), ['accepted' => 5])->assertSessionHasNoErrors();
     }
+
+    public function test_a_save_that_no_longer_fits_goes_back_to_the_counting_screen(): void
+    {
+        $lot = $this->lotFor(true);
+
+        $this->from(route('floor.quality.lot.review', $lot))->post(route('floor.quality.lot.inspect.store', $lot), ['accepted' => 9])
+            ->assertRedirect(route('floor.quality.lot.inspect', $lot))->assertSessionHasErrors('inspection');
+    }
 }
