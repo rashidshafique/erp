@@ -52,6 +52,7 @@
 </style>
 
 @php
+    $canInspect = \App\Http\Middleware\EnforceAccess::allows(auth()->user(), 'lots.bulk-inspect');
     // The stage a whole step would move on to: the next active one after the stage its lots last passed. None for waiting or ready.
     $nextFor = function (array $b) use ($stages): ?array {
         $movable = array_values(array_filter($b['lots'], fn ($r) => $r['lot']->status === 'IN_PRODUCTION'));
@@ -114,6 +115,8 @@
                 <button type="button" class="btn btn-small" x-show="open" @click="window.dispatchEvent(new CustomEvent('queue-moulds', { detail: { step: '{{ $b['key'] }}', open: false } }))">Collapse all</button>
             @endif
             @if ($next)<button type="button" class="btn btn-small" @click="moveStep('{{ $b['key'] }}')">Move all {{ $next['count'] }} → {{ $next['name'] }}</button>@endif
+            @php $inspectable = collect($b['lots'])->where('lot.status', 'IN_PRODUCTION')->count(); @endphp
+            @if (! $next && $canInspect && $inspectable && ! $isReady && $b['key'] !== 'waiting')<button type="button" class="btn btn-small" @click="inspectStep('{{ $b['key'] }}')">Pass inspection: all {{ $inspectable }}</button>@endif
             @if ($isReady)<button type="button" class="btn btn-small" @click="open = !open" x-text="open ? 'Hide lots' : 'Show lots'">Show lots</button>@endif
         </span>
     </div>
@@ -175,7 +178,8 @@
         <input name="rejection_reason" placeholder="Rejection reason" maxlength="100" style="width:170px" value="{{ old('rejection_reason') }}" x-show="Number(rejected) > 0" x-cloak :required="Number(rejected) > 0">
         <input name="cooling_override_reason" placeholder="Still cooling: reason to shake out early" maxlength="300" style="width:250px" value="{{ old('cooling_override_reason') }}" x-show="coolingWarn" x-cloak>
         <input name="operator_name" placeholder="Operator" maxlength="100" style="width:140px" value="{{ old('operator_name') }}" x-ref="operator">
-        <button class="btn btn-primary qbar-move" type="submit" x-ref="move" :disabled="!chosen.length || moving" x-text="moving ? 'Moving ' + ticked.length + ' lots… please wait' : moveLabel">Move ticked lots</button>
+        <button class="btn btn-primary qbar-move" type="submit" x-ref="move" :disabled="!chosen.length || moving" x-text="moving && !inspecting ? 'Moving ' + ticked.length + ' lots… please wait' : moveLabel">Move ticked lots</button>
+        @if ($canInspect)<button class="btn" type="submit" x-ref="inspect" data-inspect formaction="{{ route('lots.bulk-inspect') }}" :disabled="moving" x-text="inspectLabel" title="Final inspection of the ticked lots: every piece left to check passes, less the rejected above (oldest lots first).">Pass inspection</button>@endif
     </div>
 </div>
 @endif
@@ -186,7 +190,7 @@
 <script>
 function moveBar(stages, endSeq, rejected) {
     return {
-        stages, endSeq, rejected, ticked: [], lastBox: null, scan: '', scanMsg: '', moving: false,
+        stages, endSeq, rejected, ticked: [], lastBox: null, scan: '', scanMsg: '', moving: false, inspecting: false,
 
         init() {
             try { if (!this.$refs.operator?.value) { this.$refs.operator && (this.$refs.operator.value = localStorage.getItem('erp.queueOperator') || ''); } } catch (e) {}
@@ -283,7 +287,25 @@ function moveBar(stages, endSeq, rejected) {
             e.preventDefault();
             this.$refs.form.requestSubmit(this.$refs.move);
         },
+        get inspectLabel() {
+            if (this.moving && this.inspecting) { return 'Inspecting ' + this.ticked.length + ' lots… please wait'; }
+            return `Pass inspection: ${this.ticked.length} ${this.ticked.length === 1 ? 'lot' : 'lots'}`;
+        },
+        inspectStep(step) {
+            this.clear();
+            this.boxes().filter(b => b.dataset.step === step).forEach(b => { b.checked = true; });
+            this.refresh();
+            this.$nextTick(() => this.$refs.form.requestSubmit(this.$refs.inspect));
+        },
         submitting(e) {
+            this.inspecting = e.submitter?.hasAttribute('data-inspect') ?? false;
+            if (this.inspecting) {
+                const rej = Number(this.rejected) || 0;
+                if (this.moving || !this.ticked.length || !confirm(this.inspectLabel + (rej ? `, ${rej} rejected` : ', all pieces good') + '?')) { e.preventDefault(); return; }
+                this.moving = true;
+                try { localStorage.setItem('erp.queueOperator', this.$refs.operator.value); } catch (err) {}
+                return;
+            }
             if (this.moving || !this.chosen.length || !confirm(this.moveLabel + '?')) { e.preventDefault(); return; }
             this.moving = true;
             try { localStorage.setItem('erp.queueOperator', this.$refs.operator.value); } catch (err) {}

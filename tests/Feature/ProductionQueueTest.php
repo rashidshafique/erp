@@ -8,6 +8,7 @@ use App\Models\MouldAssembly;
 use App\Models\Pour;
 use App\Models\PourMouldAssembly;
 use App\Models\ProductionStageDefinition;
+use App\Models\QualityInspection;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\BuildsCastingLots;
 use Tests\TestCase;
@@ -171,5 +172,46 @@ class ProductionQueueTest extends TestCase
         $page->assertSee('<th>Actions</th>', false)->assertSee(route('lots.inspections.create', $running), false)->assertSee(route('lots.traveller', $running), false)
             ->assertSee(route('lots.show', $running).'#hold', false)->assertSee('form="release-'.$held->id.'"', false)->assertSee('id="release-'.$held->id.'"', false);
         $this->assertStringNotContainsString(route('lots.inspections.create', $held), $page->getContent());
+    }
+
+    public function test_pass_inspection_inspects_every_ticked_lot_and_makes_it_ready(): void
+    {
+        $first = $this->castingLot();
+        $second = $this->castingLot();
+
+        $this->get(route('lots.queue'))->assertSee('Pass inspection');
+        $this->post(route('lots.bulk-inspect'), ['lots' => [$first->id, $second->id], 'operator_name' => 'Asif'])->assertSessionHasNoErrors()->assertSessionHas('success');
+
+        $this->assertSame(['READY', 'READY'], [$first->fresh()->status, $second->fresh()->status]);
+        $this->assertSame(2, QualityInspection::where('inspection_type', 'FINAL')->where('status', 'COMPLETED')->where('inspector_name', 'Asif')->count());
+        $this->assertSame(10, (int) QualityInspection::sum('quantity_accepted'));
+    }
+
+    public function test_pass_inspection_takes_rejects_from_the_oldest_lots_first_and_needs_a_reason(): void
+    {
+        $first = $this->castingLot();
+        $second = $this->castingLot();
+        $second->update(['created_at' => now()->addMinute()]);
+
+        $this->post(route('lots.bulk-inspect'), ['lots' => [$first->id, $second->id], 'rejected' => 2])->assertSessionHasErrors('rejection_reason');
+        $this->assertSame(0, QualityInspection::count());
+
+        $this->post(route('lots.bulk-inspect'), ['lots' => [$first->id, $second->id], 'rejected' => 2, 'rejection_reason' => 'Sand inclusion'])->assertSessionHasNoErrors();
+
+        $this->assertSame([2, 3], [$first->fresh()->quantity_rejected, $first->fresh()->quantity_good]);
+        $this->assertSame([0, 5], [$second->fresh()->quantity_rejected, $second->fresh()->quantity_good]);
+    }
+
+    public function test_a_lot_with_nothing_left_to_inspect_is_skipped_and_named(): void
+    {
+        $done = $this->castingLot();
+        $open = $this->castingLot();
+        $this->post(route('lots.bulk-inspect'), ['lots' => [$done->id]])->assertSessionHasNoErrors();
+
+        $this->post(route('lots.bulk-inspect'), ['lots' => [$done->id]])->assertSessionHasErrors('lots');
+        $this->post(route('lots.bulk-inspect'), ['lots' => [$done->id, $open->id]])->assertSessionHasNoErrors()->assertSessionHas('warning', fn ($w) => str_contains($w, $done->fresh()->label));
+
+        $this->assertSame(2, QualityInspection::count());
+        $this->assertSame('READY', $open->fresh()->status);
     }
 }

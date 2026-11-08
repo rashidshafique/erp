@@ -83,6 +83,7 @@ return [
         ['pattern' => 'inspections.results.*', 'permission' => 'quality.inspect', 'also' => ['mobile.tests']],
         ['pattern' => 'inspections.complete', 'permission' => 'quality.inspect', 'also' => ['mobile.tests']],
         ['pattern' => 'quick-qc.store', 'permission' => 'quality.inspect', 'also' => ['mobile.defects']],
+        ['pattern' => 'lots.bulk-inspect', 'permission' => 'quality.inspect'],
         ['pattern' => 'users.*', 'permission' => 'users.manage', 'reads' => true],
         ['pattern' => 'roles.*', 'permission' => 'users.manage', 'reads' => true],
         ['pattern' => 'audit.*', 'permission' => 'audit.view', 'reads' => true],

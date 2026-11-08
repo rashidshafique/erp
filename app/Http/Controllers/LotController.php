@@ -4,11 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Models\CastingLot;
 use App\Models\ProductionStageDefinition;
+use App\Models\QualityDefect;
 use App\Services\Production\AfterPour;
 use App\Services\Production\LotCombiner;
 use App\Services\Production\LotService;
 use App\Services\Production\ProcessRoutes;
+use App\Services\Quality\QuickInspection;
 use App\Services\QualityGates;
+use App\Support\Formats;
+use App\Support\QualityRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -201,6 +205,58 @@ class LotController extends Controller
 
         return back()->with('success', "{$done} lot(s) moved through ".$stages->pluck('name')->implode(' and ').'.')
             ->with($skipped ? ['warning' => count($skipped).' problem(s): '.implode(' ', array_slice($skipped, 0, 3)).(count($skipped) > 3 ? ' ...' : '')] : []);
+    }
+
+    /**
+     * Final inspection of the ticked lots from the production queue: every piece left to check passes, less any rejects, which are
+     * taken from the oldest lots first. Each lot gets its own completed inspection through the quick QC tally, so the NCR threshold,
+     * READY status and packing work as usual. A lot with nothing to check yet (pieces still before a step) is skipped and named.
+     */
+    public function bulkInspect(Request $request, QuickInspection $quick): RedirectResponse
+    {
+        $d = $request->validate([
+            'lots' => ['required', 'array'], 'lots.*' => ['uuid', Rule::exists('casting_lots', 'id')],
+            'rejected' => ['nullable', 'integer', 'min:0'],
+            'rejection_reason' => ['nullable', 'string', 'max:100'],
+            'operator_name' => ['nullable', 'string', 'max:100'],
+        ]);
+        $rejectLeft = (int) ($d['rejected'] ?? 0);
+        if ($rejectLeft > 0 && blank($d['rejection_reason'] ?? null)) {
+            return back()->withErrors(['rejection_reason' => 'Give a rejection reason when pieces are rejected.'])->withInput();
+        }
+        $defect = $rejectLeft > 0 && QualityRules::get('defect_piece_ids') !== 'REQUIRED'
+            ? QualityDefect::where('is_active', true)->whereRaw('lower(name) = ?', [mb_strtolower(trim($d['rejection_reason']))])->first() : null;
+        $inspector = ($d['operator_name'] ?? null) ?: $request->user()?->name;
+        $passed = $pieces = $ncrs = 0;
+        $skipped = [];
+
+        foreach (CastingLot::whereIn('id', $d['lots'])->orderBy('created_at')->get() as $lot) {
+            $toCheck = $quick->toCheck($lot);
+            if ($toCheck === 0 || $lot->status !== 'IN_PRODUCTION') {
+                $skipped[] = "{$lot->label}: nothing left to inspect.";
+
+                continue;
+            }
+            $rej = min($rejectLeft, $toCheck);
+            try {
+                $done = $quick->record($lot->product_revision_id, $toCheck - $rej, $rej, 0, $defect && $rej > 0 ? [$defect->id => $rej] : [], $inspector, [], $lot);
+                $rejectLeft -= $rej;
+                $passed++;
+                $pieces += $toCheck;
+                $ncrs += $done['ncrs'];
+            } catch (InvalidArgumentException $e) {
+                $skipped[] = "{$lot->label}: ".$e->getMessage();
+            }
+        }
+        if ($rejectLeft > 0) {
+            $skipped[] = "{$rejectLeft} rejected piece(s) could not be placed.";
+        }
+        if ($passed === 0) {
+            return back()->withErrors(['lots' => 'No lot was inspected. '.implode(' ', array_slice($skipped, 0, 3))])->withInput();
+        }
+
+        return back()->with('success', "{$passed} lot(s) inspected, ".Formats::number($pieces).' piece(s) checked'.($ncrs ? ", {$ncrs} nonconformance(s) raised." : '.'))
+            ->with($skipped ? ['warning' => count($skipped).' skipped: '.implode(' ', array_slice($skipped, 0, 3)).(count($skipped) > 3 ? ' ...' : '')] : []);
     }
 
     /**
