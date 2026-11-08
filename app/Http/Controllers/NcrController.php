@@ -61,6 +61,8 @@ class NcrController extends Controller
         if ($lot && $lot->status === 'IN_PRODUCTION' && ! $lot->ncrs()->where('status', '!=', 'CLOSED')->exists()
             && $lot->inspections()->where('inspection_type', 'FINAL')->where('status', 'COMPLETED')->exists() && $lot->quantity_good > 0) {
             $lot->update(['status' => 'READY']);
+        } elseif ($lot && $lot->status === 'ON_HOLD' && $lot->quality_hold && ! $lot->ncrs()->where('status', '!=', 'CLOSED')->exists() && $lot->quantity_good > 0) {
+            $lot->update(['status' => 'READY', 'quality_hold' => null, 'notes' => trim($lot->notes."\n".now()->displayShortDateTime().' cleared by itself: the NCRs are closed')]);
         }
 
         return back()->with('success', 'NCR closed.');

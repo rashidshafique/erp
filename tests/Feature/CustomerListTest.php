@@ -95,6 +95,17 @@ class CustomerListTest extends TestCase
             ->assertSeeHtml("wire:click=\"select('{$acme->id}')\"");
     }
 
+    public function test_a_customer_can_be_set_to_take_partial_shipments(): void
+    {
+        $customer = $this->customer('ACME', 'Acme Pumps');
+        $this->assertFalse((bool) $customer->fresh()->allows_partial_shipments);
+
+        Livewire::test('customer-list')->call('edit', $customer->id)->assertSet('form.allows_partial_shipments', false)
+            ->set('form.allows_partial_shipments', true)->call('save')->assertHasNoErrors();
+
+        $this->assertTrue($customer->fresh()->allows_partial_shipments);
+    }
+
     public function test_a_customer_is_quick_edited_and_can_be_marked_inactive(): void
     {
         $customer = $this->customer('ACME', 'Acme Pumps', ['phone' => '021-1']);

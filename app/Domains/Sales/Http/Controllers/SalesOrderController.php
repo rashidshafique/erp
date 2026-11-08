@@ -314,6 +314,19 @@ class SalesOrderController extends Controller
         return back()->with('success', $changed ? 'Forecast of line '.$line->line_number.' updated: '.$changed.' '.str('period')->plural($changed).' changed.' : 'Nothing changed on line '.$line->line_number.'.');
     }
 
+    /** What the customer allows on this line when pieces are held: partial shipments (customer's setting, yes or no) and the fewest pieces worth sending. */
+    public function shipping(Request $request, SalesOrder $salesOrder, SalesOrderLine $line): RedirectResponse
+    {
+        abort_unless($line->sales_order_id === $salesOrder->id, 404);
+        $data = $request->validate(['partial_shipments' => ['nullable', 'in:,yes,no'], 'min_ship_qty' => ['nullable', 'integer', 'min:1', 'max:999999999']]);
+        $line->update([
+            'partial_shipments' => match ($data['partial_shipments'] ?? '') { 'yes' => true, 'no' => false, default => null },
+            'min_ship_qty' => $data['min_ship_qty'] ?? null,
+        ]);
+
+        return back()->with('success', 'Shipping rule of line '.$line->line_number.' saved.');
+    }
+
     public function removeDelivery(SalesOrder $salesOrder, SalesOrderLine $line, SalesOrderLineDelivery $delivery): RedirectResponse
     {
         abort_unless($line->sales_order_id === $salesOrder->id && $delivery->sales_order_line_id === $line->id, 404);

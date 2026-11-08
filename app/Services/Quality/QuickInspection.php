@@ -59,9 +59,11 @@ class QuickInspection
      * @param  array<string, int>  $defects  quality defect id => rejected pieces with that defect (optional split of $rejected)
      * @param  list<array{defect_id: string, quantity: int, disposition: string, pattern_revision_id?: ?string, cavity_number?: ?int, location?: ?string, piece_ids?: ?string}>  $marks
      *                                                                                                                                                                         defects marked by cavity and where, rejected or to rework
+     * $only limits the tally to one lot (the tablet inspects a lot at a time).
+     *
      * @return array{inspections: int, ncrs: int}
      */
-    public function record(string $productRevisionId, int $accepted, int $rejected, int $rework, array $defects = [], ?string $inspector = null, array $marks = []): array
+    public function record(string $productRevisionId, int $accepted, int $rejected, int $rework, array $defects = [], ?string $inspector = null, array $marks = [], ?CastingLot $only = null): array
     {
         $total = $accepted + $rejected + $rework;
         if ($total <= 0) {
@@ -75,8 +77,8 @@ class QuickInspection
         $marks = array_values(array_filter($marks, fn ($m) => (int) $m['quantity'] > 0));
         $this->checkMarks($marks, $rejected, $rework);
 
-        return DB::transaction(function () use ($productRevisionId, $accepted, $rejected, $rework, $marks, $inspector, $total) {
-            $lots = CastingLot::where('product_revision_id', $productRevisionId)->whereIn('status', ['IN_PRODUCTION', 'READY'])
+        return DB::transaction(function () use ($productRevisionId, $accepted, $rejected, $rework, $marks, $inspector, $total, $only) {
+            $lots = CastingLot::where('product_revision_id', $productRevisionId)->when($only, fn ($q) => $q->whereKey($only->id))->whereIn('status', ['IN_PRODUCTION', 'READY'])
                 ->orderBy('created_at')->lockForUpdate()->get();
             $available = $lots->sum(fn (CastingLot $lot) => $this->toCheck($lot));
             if ($total > $available) {
@@ -149,7 +151,7 @@ class QuickInspection
 
                 $this->lots->refresh($lot);
                 $fresh = $lot->fresh();
-                if ($fresh->status === 'IN_PRODUCTION' && ! $ncr && $fresh->quantity_good > 0) {
+                if ($fresh->status === 'IN_PRODUCTION' && (! $ncr || app(ShipRule::class)->ncrLeavesAcceptedFree($fresh)) && $fresh->quantity_good > 0) {
                     $fresh->update(['status' => 'READY']);
                 }
                 $made++;

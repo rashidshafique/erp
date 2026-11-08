@@ -130,7 +130,7 @@
                 </td>
                 <td><x-product-cell :product="$l->product" /></td>
                 <td>{{ $l->productionOrder?->production_order_number }}@if($r['urgent'])<div class="muted small" @if ($r['urgent']->lt(today())) style="color:var(--danger)" @endif>required {{ $r['urgent']->displayShortDate() }}</div>@endif</td>
-                <td>{{ $r['pieces'] }}@if ($r['behind'])<div class="muted small">{{ $r['behind'] }}</div>@endif</td>
+                <td>{{ $r['pieces'] }}@if ($r['behind'])<div class="muted small">{{ $r['behind'] }}</div>@endif @if ($r['blocks'])<div class="small" style="color:#b3352c" title="What blocks dispatch">✗ {{ implode(' · ', $r['blocks']) }}</div>@endif</td>
                 <td>{{ $r['poured']?->displayShortDateTime() ?? '—' }}</td>
                 <td>{{ $r['age_h'] !== null ? $r['age_h'].' h' : '—' }}</td>
                 <td>@if($r['cool'])@if($r['cool']['wait'] > 0)<span class="status status-in-progress">wait {{ $r['cool']['wait'] }} min</span>@else <span class="muted small">met</span>@endif @endif</td>

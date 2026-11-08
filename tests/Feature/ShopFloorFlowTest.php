@@ -117,7 +117,7 @@ class ShopFloorFlowTest extends TestCase
         $this->assertSame('IN_PRODUCTION', $lot->status);
         $this->assertSame('IN_PROGRESS', $w['po']->fresh()->status);
         $this->get(route('lots.index'))->assertOk()->assertSee($lot->label);
-        $this->get(route('lots.show', $lot))->assertOk()->assertSee('Dispatch readiness')->assertSee('Final inspection');
+        $this->get(route('lots.show', $lot))->assertOk()->assertSee('What blocks dispatch')->assertSee('Final inspection');
         $this->get(route('lots.queue'))->assertOk()->assertSee('Waiting for shakeout')->assertSee($lot->label);
 
         // Shop-floor stage with a rejection needs a reason, and cannot exceed pieces

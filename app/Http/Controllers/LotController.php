@@ -39,6 +39,7 @@ class LotController extends Controller
             'lot' => $lot,
             'heat' => $heat,
             'readiness' => $gates->lotReadiness($lot),
+            'shipRule' => app(\App\Services\Quality\ShipRule::class)->forLot($lot),
             'stages' => app(ProcessRoutes::class)->stepsFor($lot->product_revision_id),
             'pieces' => $service->pieces($lot),
             'cooling' => $service->cooling($lot),
@@ -266,7 +267,7 @@ class LotController extends Controller
 
             return false;
         }
-        $lot->update(['status' => 'IN_PRODUCTION', 'notes' => trim($lot->notes."\n".now()->displayShortDateTime().' released from hold')]);
+        $lot->update(['status' => 'IN_PRODUCTION', 'quality_hold' => null, 'notes' => trim($lot->notes."\n".now()->displayShortDateTime().' released from hold')]);
 
         return true;
     }

@@ -11,6 +11,7 @@
     'action' => null,        // the button label; none = Not ready
     'disabled' => false,     // only when the meta line says why
     'link' => false,         // phone: the button is a link
+    'plain' => false,        // a read-out row: no button and no Not ready label
 ])
 @php
     $age = $age !== null && $tone ? '! '.$age : $age;
@@ -29,7 +30,7 @@
     <span class="fl-row-age">{{ $age }}</span>
     @if ($action)
         <span class="{{ $buttonClass }}{{ $disabled ? ' is-disabled' : '' }}" @if ($disabled) aria-disabled="true" @endif>{{ $action }}</span>
-    @else
+    @elseif (! $plain)
         <span class="fl-not-ready">○ Not ready</span>
     @endif
 </{{ $href && ! $disabled ? 'a' : 'div' }}>

@@ -56,6 +56,7 @@ class LotQueueController extends Controller
                 ->map(fn ($w) => "{$w[1]} pcs still before {$w[0]}")->implode(', ');
             $steps[$key]['lots'][] = [
                 'lot' => $lot, 'last_seq' => (int) ($last?->sequence ?? 0), 'behind' => $behind, 'pieces' => $svc->pieces($lot), 'poured' => $poured, 'age_h' => $poured ? (int) $poured->diffInHours(now()) : null,
+                'blocks' => $svc->pieces($lot) === 0 || $lot->status === 'READY' ? collect(app(\App\Services\QualityGates::class)->lotReadiness($lot)['checks'])->where('ok', false)->pluck('label')->all() : [],
                 'cool' => $svc->cooling($lot), 'urgent' => $lot->productionOrder?->required_date,
                 'moulds' => $lot->pourMouldAssemblies->map(fn ($row) => ['number' => $row->mouldAssembly?->assembly_number ?? '—', 'pieces' => (int) $row->pivot->quantity])->all(),
             ];
