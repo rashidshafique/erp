@@ -22,7 +22,7 @@ use Illuminate\Support\Facades\Route;
  */
 class RoleHome
 {
-    /** @return list<array{title:string, tiles:list<array{label:string, value:int, tone:string, url:?string}>}> */
+    /** @return list<array{title:string, tiles:list<array{label:string, value:int, tone:string, url:?string}>, rows?:list<array<string,mixed>>, empty?:string}> */
     public function sections(User $user): array
     {
         $can = fn (string $p): bool => $user->hasPermission($p);
@@ -34,6 +34,9 @@ class RoleHome
             }
         };
 
+        if ($can('planning.manage')) {
+            $sections[] = ['title' => 'Waiting for your decision', 'tiles' => [], 'rows' => app(PlannerWaiting::class)->rows($user), 'empty' => 'Nothing is waiting for a decision.'];
+        }
         if ($can('approvals.decide')) {
             $add('Waiting for your decision', [$this->tile('Approval requests', ApprovalRequest::where('status', 'PENDING')->where('requested_by_id', '!=', $user->id)->count(), 'warn', 'approvals.index')]);
         }
