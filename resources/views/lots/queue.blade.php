@@ -175,7 +175,7 @@
         <input name="rejection_reason" placeholder="Rejection reason" maxlength="100" style="width:170px" value="{{ old('rejection_reason') }}" x-show="Number(rejected) > 0" x-cloak :required="Number(rejected) > 0">
         <input name="cooling_override_reason" placeholder="Still cooling: reason to shake out early" maxlength="300" style="width:250px" value="{{ old('cooling_override_reason') }}" x-show="coolingWarn" x-cloak>
         <input name="operator_name" placeholder="Operator" maxlength="100" style="width:140px" value="{{ old('operator_name') }}" x-ref="operator">
-        <button class="btn btn-primary qbar-move" type="submit" x-ref="move" :disabled="!chosen.length" x-text="moveLabel">Move ticked lots</button>
+        <button class="btn btn-primary qbar-move" type="submit" x-ref="move" :disabled="!chosen.length || moving" x-text="moving ? 'Moving ' + ticked.length + ' lots… please wait' : moveLabel">Move ticked lots</button>
     </div>
 </div>
 @endif
@@ -186,7 +186,7 @@
 <script>
 function moveBar(stages, endSeq, rejected) {
     return {
-        stages, endSeq, rejected, ticked: [], lastBox: null, scan: '', scanMsg: '',
+        stages, endSeq, rejected, ticked: [], lastBox: null, scan: '', scanMsg: '', moving: false,
 
         init() {
             try { if (!this.$refs.operator?.value) { this.$refs.operator && (this.$refs.operator.value = localStorage.getItem('erp.queueOperator') || ''); } } catch (e) {}
@@ -284,7 +284,8 @@ function moveBar(stages, endSeq, rejected) {
             this.$refs.form.requestSubmit(this.$refs.move);
         },
         submitting(e) {
-            if (!this.chosen.length || !confirm(this.moveLabel + '?')) { e.preventDefault(); return; }
+            if (this.moving || !this.chosen.length || !confirm(this.moveLabel + '?')) { e.preventDefault(); return; }
+            this.moving = true;
             try { localStorage.setItem('erp.queueOperator', this.$refs.operator.value); } catch (err) {}
         },
     };
