@@ -153,6 +153,20 @@ class EnforceAccess
         return $required !== null && self::holds($user, $required, AccessMap::actionOf($method, $routeName, $required['rule']));
     }
 
+    /**
+     * Whether a menu entry is worth showing: the person holds the permission the route map asks for (any part of it, for a screen
+     * split by area). A route nobody mapped, or a login-free installation, shows everything.
+     */
+    public static function menuShows(?\App\Models\User $user, string $routeName): bool
+    {
+        if (! config('foundry.require_login') || ! $user || $user->isAdmin()) {
+            return true;
+        }
+        $required = self::requiredPermission($routeName);
+
+        return $required === null || self::holds($user, $required, 'view');
+    }
+
     private function deny(Request $request, string $why): Response
     {
         return response()->view('errors.403', ['why' => $why], 403);

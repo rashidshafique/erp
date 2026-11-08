@@ -3,9 +3,10 @@
 namespace App\Support;
 
 use App\Domains\Core\Contracts\MenuFilter;
+use App\Http\Middleware\EnforceAccess;
 
 /**
- * Leaves out of the menu the screens a floor rule has switched off, on top of whatever filter is bound (the foundry size).
+ * Leaves out of the menu the screens a floor rule has switched off and the ones the signed-in role holds no permission for, on top of whatever filter is bound (the foundry size).
  * Like any menu filter it only declutters: the screens still open from links.
  */
 class RuleMenuFilter implements MenuFilter
@@ -18,7 +19,7 @@ class RuleMenuFilter implements MenuFilter
             return false;
         }
 
-        return ! in_array($route, $this->hidden(), true) && $this->inner->shows($route);
+        return ! in_array($route, $this->hidden(), true) && EnforceAccess::menuShows(auth()->user(), $route) && $this->inner->shows($route);
     }
 
     public function showsAny(array $routes): bool
