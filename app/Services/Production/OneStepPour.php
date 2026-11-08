@@ -185,9 +185,6 @@ class OneStepPour
     /** P-YYYYMMDD-NNN, numbered within the day the pour belongs to. */
     public static function nextNumber(CarbonInterface $at): string
     {
-        $prefix = 'P-'.$at->format('ymd').'-';
-        $last = Pour::where('pour_number', 'like', $prefix.'%')->lockForUpdate()->pluck('pour_number')->map(fn ($n) => (int) substr($n, strlen($prefix)))->max() ?? 0;
-
-        return $prefix.str_pad((string) ($last + 1), 2, '0', STR_PAD_LEFT);
+        return \App\Support\DocumentNumbers::next('pour');
     }
 }

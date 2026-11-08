@@ -33,7 +33,22 @@ class DocumentNumbers
         'dispatch' => ['Dispatch', 'dispatches', 'dispatch_number', 'D', 'dispatched_at'],
         'packing' => ['Packing', 'packing_records', 'packing_number', 'K', 'packed_at'],
         'purchase_order' => ['Purchase order', 'purchase_orders', 'po_number', 'P', 'order_date'],
+        'production_order' => ['Production order', 'production_orders', 'production_order_number', 'W', 'created_at'],
+        'moulding_list' => ['Moulding list', 'moulding_work_lists', 'list_number', 'G', 'list_date'],
+        'moulding_run' => ['Moulding run', 'moulding_runs', 'run_number', 'M', 'run_date'],
+        'mould_assembly' => ['Mould assembly', 'mould_assemblies', 'assembly_number', 'A', 'created_at'],
+        'planned_heat' => ['Planned heat', 'planned_heats', 'plan_number', 'F', 'planned_date'],
+        'heat' => ['Heat', 'heats', 'heat_number', 'H', 'created_at'],
+        'pour' => ['Pour', 'pours', 'pour_number', 'U', 'created_at'],
+        'casting_lot' => ['Casting lot', 'casting_lots', 'lot_number', 'L', 'created_at'],
+        'core_lot' => ['Core lot', 'core_lots', 'lot_number', 'O', 'made_on'],
+        'ncr' => ['Nonconformance report', 'nonconformance_reports', 'ncr_number', 'N', 'created_at'],
+        'inspection' => ['Inspection', 'quality_inspections', 'inspection_number', 'X', 'created_at'],
+        'deviation' => ['Deviation', 'product_deviations', 'deviation_number', 'V', 'created_at'],
     ];
+
+    /** Columns elsewhere that hold a copy of a document's number, set to the new one when it is renumbered. */
+    public const COPIES = [['approval_requests', 'subject_label'], ['capa_actions', 'source_label'], ['dispatches', 'invoice_number']];
 
     public static function prefix(string $type): string
     {
@@ -143,6 +158,7 @@ class DocumentNumbers
         foreach ($types as $type) {
             $pairs += self::renumber($type);
         }
+        self::rewriteCopies($pairs);
         self::rewriteNotices($pairs);
 
         return $pairs;
@@ -160,7 +176,23 @@ class DocumentNumbers
             $flip += DB::table('number_history')->where('table_name', $table)->where('column_name', $column)->pluck('old_number', 'new_number')->all();
             self::restore($table, $column);
         }
+        self::rewriteCopies($flip);
         self::rewriteNotices($flip);
+    }
+
+    /** Sets copies of a renumbered number (COPIES) to the new one. @param array<string, string> $pairs */
+    public static function rewriteCopies(array $pairs): void
+    {
+        foreach (self::COPIES as [$table, $column]) {
+            if ($pairs === [] || ! Schema::hasTable($table)) {
+                continue;
+            }
+            foreach (array_chunk(array_keys($pairs), 500) as $olds) {
+                foreach (DB::table($table)->whereIn($column, $olds)->get(['id', $column]) as $row) {
+                    DB::table($table)->where('id', $row->id)->update([$column => $pairs[$row->{$column}]]);
+                }
+            }
+        }
     }
 
     /** Swaps numbers inside stored notices (their ref, link and text). @param array<string, string> $pairs */

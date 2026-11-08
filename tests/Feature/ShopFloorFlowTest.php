@@ -111,7 +111,7 @@ class ShopFloorFlowTest extends TestCase
 
         $this->assertSame(5, CastingLot::count());
         $lot = CastingLot::orderBy('lot_number')->first();
-        $this->assertMatchesRegularExpression('/^\d{6}-\d{2}$/', $lot->code);
+        $this->assertSame($lot->lot_number, $lot->code);
         $this->assertSame(5, CastingLot::distinct('code')->count('code'));
         $this->assertSame(2, $lot->quantity_poured);
         $this->assertSame('IN_PRODUCTION', $lot->status);

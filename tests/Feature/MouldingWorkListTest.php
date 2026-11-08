@@ -88,7 +88,7 @@ class MouldingWorkListTest extends TestCase
         $w = $this->world();
         $this->post(route('work-lists.store'), ['list_date' => today()->toDateString(), 'shift' => 'Morning'])->assertSessionHasNoErrors();
         $list = MouldingWorkList::firstOrFail();
-        $this->assertStringStartsWith('WL-', $list->list_number);
+        $this->assertSame('G-10000', $list->list_number);
 
         $this->post(route('work-lists.issue', $list), ['issued_by' => 'Planner'])->assertSessionHasErrors('item');       // empty list
         $this->post(route('work-lists.items.add', $list), $this->item($w))->assertSessionHasNoErrors();

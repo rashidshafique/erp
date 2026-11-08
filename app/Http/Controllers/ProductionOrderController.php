@@ -173,23 +173,7 @@ class ProductionOrderController extends Controller
         }
 
         $order = DB::transaction(function () use ($validated, $revision) {
-            // Serialize number generation so simultaneous saves cannot share a number.
-            DB::select('SELECT pg_advisory_xact_lock(?)', [2026101101]);
-
-            $prefix = 'PO-' . now()->format('Y') . '-';
-
-            $lastSequence = ProductionOrder::query()
-                ->where('production_order_number', 'like', $prefix . '%')
-                ->pluck('production_order_number')
-                ->map(fn ($existing) => (int) substr($existing, strlen($prefix)))
-                ->max() ?? 0;
-
-            $number = $prefix . str_pad(
-                (string) ($lastSequence + 1),
-                3,
-                '0',
-                STR_PAD_LEFT
-            );
+            $number = \App\Support\DocumentNumbers::next('production_order');
 
             return ProductionOrder::create([
                 'production_order_number' => $number,

@@ -44,12 +44,12 @@ class CoreLotTest extends TestCase
         $lot = $this->make();
 
         $this->assertSame('MADE', $lot->status);
-        $this->assertSame('CL-'.today()->format('ymd').'-01', $lot->lot_number);
+        $this->assertSame('O-10000', $lot->lot_number);
         $this->assertSame(10, $lot->remaining());
         $usage = ToolingUsageRecord::where('core_box_id', $this->box->id)->firstOrFail();
         $this->assertSame(10, (int) $usage->usage_quantity);
         $this->assertSame('CORES', $usage->usage_unit);
-        $this->assertSame('CL-'.today()->format('ymd').'-02', $this->make()->lot_number);
+        $this->assertSame('O-10001', $this->make()->lot_number);
     }
 
     public function test_a_box_can_only_make_cores_it_has_a_cavity_for(): void

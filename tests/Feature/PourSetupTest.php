@@ -71,7 +71,7 @@ class PourSetupTest extends TestCase
         $this->post(route('pours.store'), ['heat_id' => $heat->id])->assertSessionHasNoErrors();
 
         $numbers = Pour::orderBy('pour_number')->pluck('pour_number')->all();
-        $this->assertSame(['P-'.now()->format('ymd').'-01', 'P-'.now()->format('ymd').'-02'], $numbers);
+        $this->assertSame(['U-10000', 'U-10001'], $numbers);
         $this->assertSame('PLANNED', Pour::first()->status);
     }
 

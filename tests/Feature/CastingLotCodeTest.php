@@ -12,10 +12,9 @@ class CastingLotCodeTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_next_code_starts_each_pour_date_at_one(): void
+    public function test_next_code_is_the_next_lot_number(): void
     {
-        $this->assertSame('261021-01', CastingLot::nextCode(new \DateTimeImmutable('2026-10-21')));
-        $this->assertSame('261022-01', CastingLot::nextCode(new \DateTimeImmutable('2026-10-22')));
+        $this->assertSame('L-10000', CastingLot::nextCode(new \DateTimeImmutable('2026-10-21')));
     }
 
     public function test_label_falls_back_to_lot_number_without_a_code(): void
