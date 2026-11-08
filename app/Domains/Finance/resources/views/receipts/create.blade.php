@@ -1,6 +1,6 @@
 @extends('layouts.app')
-@section('title', 'Receive payment')
-@section('breadcrumb', 'New receipt')
+@section('title', $asCheque ? 'Receive a cheque' : 'Receive payment')
+@section('breadcrumb', $asCheque ? 'New cheque' : 'New receipt')
 @section('content')
 @php
     $num = fn ($v, $d = 0) => \App\Support\Formats::number((float) $v, $d);
@@ -26,16 +26,16 @@
 .rc-sum > div { display: flex; flex-direction: column; gap: 2px; } .rc-sum b { font-size: 15px; font-weight: 600; }
 @media (max-width: 1000px) { .rc-head { grid-template-columns: minmax(0, 1fr); } }
 </style>
-<form id="pickCustomer" method="GET" action="{{ route('receipts.create') }}"></form>
+<form id="pickCustomer" method="GET" action="{{ route('receipts.create') }}">@if ($asCheque)<input type="hidden" name="cheque" value="1">@endif</form>
 <form id="receiptForm" method="POST" action="{{ route('receipts.store') }}" x-data="{ amount: {{ (float) old('amount', 0) }}, alloc: {}, get used() { return Object.values(this.alloc).reduce((n, v) => n + (Number(v) || 0), 0); },
     fmt(v) { return (Number(v) || 0).toLocaleString('en-US', { maximumFractionDigits: window.decimalPlaces ?? 0 }); },
     fill() { let left = Number(this.amount) || 0; document.querySelectorAll('[data-owing]').forEach(el => { const take = Math.min(left, Number(el.dataset.owing)); this.alloc[el.dataset.id] = take > 0 ? take.toFixed(2) : ''; left -= take; }); } }">@csrf
 <div class="rc-card">
     <div class="rc-bar">
-        <div class="rc-crumb"><a href="{{ route('receipts.index') }}">Receipts</a><span class="sl">/</span><span>New receipt</span></div>
+        <div class="rc-crumb">@if ($asCheque)<a href="{{ route('cheques.received') }}">Cheques received</a><span class="sl">/</span><span>New cheque</span>@else<a href="{{ route('receipts.index') }}">Receipts</a><span class="sl">/</span><span>New receipt</span>@endif</div>
         <div class="rc-btns">
-            <a class="rc-btn" href="{{ $invoiceId ? route('invoices.show', $invoiceId) : route('receipts.index') }}">Cancel</a>
-            @if ($customerId)<button class="rc-btn primary" type="submit">Save receipt</button>@endif
+            <a class="rc-btn" href="{{ $invoiceId ? route('invoices.show', $invoiceId) : route($asCheque ? 'cheques.received' : 'receipts.index') }}">Cancel</a>
+            @if ($customerId)<button class="rc-btn primary" type="submit">{{ $asCheque ? 'Save cheque' : 'Save receipt' }}</button>@endif
         </div>
     </div>
     <div class="rc-body">
@@ -47,7 +47,7 @@
             @if ($customerId)
             <input type="hidden" name="customer_id" value="{{ $customerId }}">
             <label><span class="rc-lab">Received on</span><input type="date" name="received_on" value="{{ old('received_on', today()->toDateString()) }}" required></label>
-            @include('finance::partials.pay-with', ['into' => 'Into', 'lab' => 'rc-lab', 'drawnOn' => true, 'pdcMode' => \App\Domains\Finance\Services\FinanceRules::pdcMode()])
+            @include('finance::partials.pay-with', ['into' => 'Into', 'lab' => 'rc-lab', 'drawnOn' => true, 'asCheque' => $asCheque, 'pdcMode' => \App\Domains\Finance\Services\FinanceRules::pdcMode()])
             <label><span class="rc-lab">Amount received</span><input type="number" step="any" min="0" name="amount" x-model.number="amount" required style="text-align:right;font-weight:500"></label>
             @endif
         </div>

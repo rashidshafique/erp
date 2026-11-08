@@ -308,4 +308,35 @@ class PostDatedChequeTest extends TestCase
         $rows = app(Receivables::class)->statement($this->customer)['rows'];
         $this->assertSame(['Cheque bounced', '2026-11-22'], [end($rows)['type'], end($rows)['date']->toDateString()]);
     }
+
+    public function test_receive_a_cheque_starts_on_a_cheque_and_keeps_it_in_the_register_even_when_dated_today(): void
+    {
+        $this->get(route('cheques.received'))->assertSee(route('receipts.create', ['cheque' => 1]), false);
+        $this->get(route('receipts.create', ['cheque' => 1, 'customer' => $this->customer->id]))->assertOk()
+            ->assertSee('Cheques received')->assertSee('Save cheque')->assertSee('name="as_cheque"', false)->assertSee("Cheque", false);
+
+        $this->post(route('receipts.store'), ['customer_id' => $this->customer->id, 'received_on' => '2026-11-09', 'amount' => 500, 'as_cheque' => 1,
+            'account_id' => $this->account('22-01-04')->id, 'method' => 'Cheque', 'reference' => 'CHQ 1', 'cheque_date' => '2026-11-09'])
+            ->assertRedirect(route('cheques.show', Cheque::sole()));
+        $this->assertSame([0, 'IN_HAND'], [Receipt::count(), Cheque::sole()->status]);
+
+        $this->post(route('cheques.clear', Cheque::sole()), ['date' => '2026-11-09'])->assertSessionHasNoErrors();
+        $this->assertSame(1, Receipt::count());
+    }
+
+    public function test_a_cheque_from_the_register_needs_its_date(): void
+    {
+        $this->post(route('receipts.store'), ['customer_id' => $this->customer->id, 'received_on' => '2026-11-09', 'amount' => 500, 'as_cheque' => 1, 'method' => 'Cheque'])
+            ->assertSessionHasErrors('cheque_date');
+    }
+
+    public function test_the_register_opens_on_all_cheques_with_open_ones_first(): void
+    {
+        $this->receiveCheque(500, [], '2026-11-25');
+        $this->receiveCheque(300, [], '2026-11-12');
+        $this->post(route('cheques.bounce', Cheque::where('amount', 300)->sole()), ['date' => '2026-11-12', 'reason' => 'Stopped']);
+        $this->receiveCheque(200, [], '2026-11-20');
+
+        $this->get(route('cheques.received'))->assertOk()->assertSee('All 3')->assertSeeInOrder(['20 Nov', '25 Nov', 'Bounced']);
+    }
 }

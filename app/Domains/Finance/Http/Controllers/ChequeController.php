@@ -18,13 +18,14 @@ use InvalidArgumentException;
 class ChequeController extends Controller
 {
     /** Tabs of a register: what each shows. */
-    public const TABS = ['due' => 'Due', 'later' => 'Not due yet', 'deposited' => 'Deposited', 'cleared' => 'Cleared', 'bounced' => 'Bounced'];
+    public const TABS = ['all' => 'All', 'due' => 'Due', 'later' => 'Not due yet', 'deposited' => 'Deposited', 'cleared' => 'Cleared', 'bounced' => 'Bounced'];
 
     public function index(Request $request, string $direction): View
     {
-        $tab = array_key_exists((string) $request->query('tab'), self::TABS) ? (string) $request->query('tab') : 'due';
+        $tab = array_key_exists((string) $request->query('tab'), self::TABS) ? (string) $request->query('tab') : 'all';
         $base = fn () => Cheque::where('direction', $direction);
         $filter = fn ($q, string $t) => match ($t) {
+            'all' => $q,
             'due' => $q->where('status', 'IN_HAND')->where('cheque_date', '<=', today()),
             'later' => $q->where('status', 'IN_HAND')->where('cheque_date', '>', today()),
             'deposited' => $q->where('status', 'DEPOSITED'),
@@ -36,6 +37,7 @@ class ChequeController extends Controller
         $cheques = $filter($base(), $tab)->with(['customer', 'supplier'])
             ->when($search !== '', fn ($q) => $q->where(fn ($w) => $w->where('cheque_number', 'ilike', "%{$search}%")->orWhere('drawn_on', 'ilike', "%{$search}%")
                 ->orWhereHas($direction === 'RECEIVED' ? 'customer' : 'supplier', fn ($p) => $p->where('name', 'ilike', "%{$search}%"))))
+            ->when($tab === 'all', fn ($q) => $q->orderByRaw("CASE WHEN status IN ('IN_HAND', 'DEPOSITED') THEN 0 ELSE 1 END"))
             ->orderBy($tab === 'cleared' || $tab === 'bounced' ? 'updated_at' : 'cheque_date', $tab === 'cleared' || $tab === 'bounced' ? 'desc' : 'asc')
             ->paginate(25)->withQueryString();
         $open = $base()->whereIn('status', ['IN_HAND', 'DEPOSITED']);

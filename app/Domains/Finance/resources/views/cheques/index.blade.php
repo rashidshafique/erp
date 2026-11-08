@@ -35,7 +35,7 @@
                 @endforeach
             </nav>
         </div>
-        <a class="cl-btn primary" href="{{ route($received ? 'receipts.create' : 'supplier-payments.create') }}">{{ $received ? 'Receive a cheque' : 'Give a cheque' }}</a>
+        <a class="cl-btn primary" href="{{ route($received ? 'receipts.create' : 'supplier-payments.create', ['cheque' => 1]) }}">{{ $received ? 'Receive a cheque' : 'Give a cheque' }}</a>
     </div>
     <div class="cl-main">
         @if ($errors->has('cheque'))<div class="alert alert-error">{{ $errors->first('cheque') }}</div>@endif
@@ -69,7 +69,7 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="7" class="cl-lab">No {{ mb_strtolower(\App\Domains\Finance\Http\Controllers\ChequeController::TABS[$tab]) }} cheques. A {{ $received ? 'receipt' : 'payment' }} by cheque dated after the day it is {{ $received ? 'received' : 'given' }} lands here.</td></tr>
+                <tr><td colspan="7" class="cl-lab">No {{ $tab === 'all' ? '' : mb_strtolower(\App\Domains\Finance\Http\Controllers\ChequeController::TABS[$tab]).' ' }}cheques. A {{ $received ? 'receipt' : 'payment' }} by cheque dated after the day it is {{ $received ? 'received' : 'given' }} lands here.</td></tr>
             @endforelse
             </tbody>
         </table></div>

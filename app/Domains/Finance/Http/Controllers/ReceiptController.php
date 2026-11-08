@@ -32,7 +32,7 @@ class ReceiptController extends Controller
         return view('finance::receipts.create', [
             'customers' => Customer::orderedByName()->get(), 'customerId' => $customerId, 'open' => $customerId ? $receivables->open($customerId) : collect(),
             'invoiceId' => $request->query('invoice'),
-            'accounts' => PaymentAccounts::options(), 'account' => PaymentAccounts::preferred('receipts'), 'methods' => PaymentAccounts::methods('receipts'),
+            'accounts' => PaymentAccounts::options(), 'account' => PaymentAccounts::preferred('receipts'), 'asCheque' => $request->boolean('cheque'), 'methods' => PaymentAccounts::methods('receipts'),
             'orders' => $customerId ? SalesOrder::where('customer_id', $customerId)->whereIn('status', SalesOrder::OPEN)->orderByDesc('order_date')->get(['id', 'order_number', 'order_date']) : collect(),
         ]);
     }
@@ -41,12 +41,12 @@ class ReceiptController extends Controller
     {
         $d = $request->validate([
             'customer_id' => ['required', 'uuid', 'exists:customers,id'], 'received_on' => ['required', 'date'], 'amount' => ['required', 'numeric', 'gt:0'],
-            'method' => ['nullable', 'string', 'max:30'], 'reference' => ['nullable', 'string', 'max:100'], 'account_id' => PaymentAccounts::rule(), 'cheque_date' => ['nullable', 'date'], 'drawn_on' => ['nullable', 'string', 'max:100'], 'notes' => ['nullable', 'string', 'max:1000'],
+            'method' => ['nullable', 'string', 'max:30'], 'reference' => ['nullable', 'string', 'max:100'], 'account_id' => PaymentAccounts::rule(), 'as_cheque' => ['nullable', 'boolean'], 'cheque_date' => ['nullable', 'required_if_accepted:as_cheque', 'date'], 'drawn_on' => ['nullable', 'string', 'max:100'], 'notes' => ['nullable', 'string', 'max:1000'],
             'alloc' => ['nullable', 'array'], 'alloc.*' => ['nullable', 'numeric', 'min:0'],
             'sales_order_id' => ['nullable', 'uuid', Rule::exists('sales_orders', 'id')->where('customer_id', $request->input('customer_id'))],
         ]);
         try {
-            if (ChequeService::isPostDated($d)) {
+            if ($request->boolean('as_cheque') || ChequeService::isPostDated($d)) {
                 $cheque = $cheques->receive($d, $d['alloc'] ?? []);
 
                 return redirect()->route('cheques.show', $cheque)->with('success', 'Post-dated cheque '.($cheque->cheque_number ?? '').' recorded.');

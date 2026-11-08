@@ -31,7 +31,7 @@ class SupplierPaymentController extends Controller
 
         return view('finance::supplier-payments.create', [
             'suppliers' => Supplier::orderedByName()->get(), 'supplierId' => $supplierId, 'open' => $supplierId ? $payables->open($supplierId) : collect(), 'billId' => $request->query('bill'),
-            'accounts' => PaymentAccounts::options(), 'account' => PaymentAccounts::preferred('supplier_payments'), 'methods' => PaymentAccounts::methods('supplier_payments'),
+            'accounts' => PaymentAccounts::options(), 'account' => PaymentAccounts::preferred('supplier_payments'), 'asCheque' => $request->boolean('cheque'), 'methods' => PaymentAccounts::methods('supplier_payments'),
             'orders' => $supplierId ? PurchaseOrder::where('supplier_id', $supplierId)->whereIn('status', PurchaseOrder::OPEN)->orderByDesc('order_date')->get(['id', 'po_number', 'order_date']) : collect(),
         ]);
     }
@@ -40,12 +40,12 @@ class SupplierPaymentController extends Controller
     {
         $d = $request->validate([
             'supplier_id' => ['required', 'uuid', 'exists:suppliers,id'], 'paid_on' => ['required', 'date'], 'amount' => ['required', 'numeric', 'gt:0'],
-            'method' => ['nullable', 'string', 'max:30'], 'reference' => ['nullable', 'string', 'max:100'], 'account_id' => PaymentAccounts::rule(), 'cheque_date' => ['nullable', 'date'], 'drawn_on' => ['nullable', 'string', 'max:100'], 'notes' => ['nullable', 'string', 'max:1000'],
+            'method' => ['nullable', 'string', 'max:30'], 'reference' => ['nullable', 'string', 'max:100'], 'account_id' => PaymentAccounts::rule(), 'as_cheque' => ['nullable', 'boolean'], 'cheque_date' => ['nullable', 'required_if_accepted:as_cheque', 'date'], 'drawn_on' => ['nullable', 'string', 'max:100'], 'notes' => ['nullable', 'string', 'max:1000'],
             'alloc' => ['nullable', 'array'], 'alloc.*' => ['nullable', 'numeric', 'min:0'],
             'purchase_order_id' => ['nullable', 'uuid', Rule::exists('purchase_orders', 'id')->where('supplier_id', $request->input('supplier_id'))],
         ]);
         try {
-            if (ChequeService::isPostDated($d)) {
+            if ($request->boolean('as_cheque') || ChequeService::isPostDated($d)) {
                 $cheque = $cheques->issue($d, $d['alloc'] ?? []);
 
                 return redirect()->route('cheques.show', $cheque)->with('success', 'Post-dated cheque '.($cheque->cheque_number ?? '').' recorded.');
