@@ -97,21 +97,27 @@ class GlobalSearch
                 ->select('id', DB::raw("{$type['code']} as code"))
                 ->when($type['name'], fn ($q) => $q->addSelect(DB::raw("{$type['name']} as name")))
                 ->when(Schema::hasColumn($type['table'], 'deleted_at'), fn ($q) => $q->whereNull('deleted_at'))
-                ->where(function ($q) use ($code, $name, $lower) {
+                ->where(function ($q) use ($code, $name, $lower, $type) {
                     $q->whereRaw("$code like ?", ['%'.$lower.'%']);
                     if ($name) {
                         $q->orWhereRaw("$name like ?", ['%'.$lower.'%']);
                     }
+                    // A number the record carried before renumbering (printed papers, stamped parts) still finds it.
+                    $q->orWhereRaw("{$type['table']}.id::text in (select record_id from number_history where table_name = ? and lower(old_number) like ?)", [$type['table'], '%'.$lower.'%']);
                 })
                 ->limit($limit)
                 ->get();
             if (! $type['route'] && ! Route::has('tools.show')) {
                 continue;
             }
+            $formerly = $rows->isEmpty() ? collect() : DB::table('number_history')->where('table_name', $type['table'])
+                ->whereIn('record_id', $rows->pluck('id')->map(fn ($id) => (string) $id))->whereRaw('lower(old_number) like ?', ['%'.$lower.'%'])->pluck('old_number', 'record_id');
             foreach ($rows as $row) {
+                $old = $formerly[(string) $row->id] ?? null;
                 $results[] = [
-                    'type' => $key, 'label' => $type['label'], 'code' => (string) $row->code, 'name' => $row->name ?? null,
-                    'url' => $type['route'] ? route($type['route'], $row->id) : route('tools.show', [$key, $row->id]), 'score' => self::score($lower, (string) $row->code, $row->name ?? null),
+                    'type' => $key, 'label' => $type['label'], 'code' => (string) $row->code, 'name' => $old ? trim(($row->name ?? '').' (was '.$old.')') : ($row->name ?? null),
+                    'url' => $type['route'] ? route($type['route'], $row->id) : route('tools.show', [$key, $row->id]),
+                    'score' => $old ? self::score($lower, $old, null) : self::score($lower, (string) $row->code, $row->name ?? null),
                 ];
             }
         }

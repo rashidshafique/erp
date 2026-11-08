@@ -58,7 +58,7 @@ class SupplierBillTest extends TestCase
         $bill = $this->posted($this->supplier(), 100, 2, 10);
 
         $this->assertSame('POSTED', $bill->status);
-        $this->assertMatchesRegularExpression('/^BILL-\d{4}-0001$/', $bill->bill_number);
+        $this->assertMatchesRegularExpression('/^B-10000$/', $bill->bill_number);
         $this->assertEquals(200.0, $bill->subtotal);
         $this->assertEquals(20.0, $bill->tax_total);
         $this->assertEquals(220.0, $bill->total);
@@ -119,7 +119,7 @@ class SupplierBillTest extends TestCase
         $this->post(route('supplier-payments.store'), ['supplier_id' => $supplier->id, 'paid_on' => '2026-10-10', 'amount' => 250, 'alloc' => [$bill->id => 200]])->assertSessionHasNoErrors();
 
         $payment = SupplierPayment::firstOrFail();
-        $this->assertMatchesRegularExpression('/^SP-\d{4}-0001$/', $payment->payment_number);
+        $this->assertMatchesRegularExpression('/^Y-10000$/', $payment->payment_number);
         $this->assertEquals(50.0, $payment->unallocated());
         $this->assertEquals(0.0, $bill->fresh()->balance());
         $this->assertEquals(50.0, app(Payables::class)->advance($supplier->id));
@@ -142,7 +142,7 @@ class SupplierBillTest extends TestCase
 
         $this->post(route('bills.credit.store', $bill), ['supplier_bill_number' => 'CN-1', 'reason' => 'Rejected load', 'lines' => [['description' => 'Pig iron', 'quantity' => 1, 'unit_price' => 100]]])->assertSessionHasNoErrors();
         $this->assertEquals(100.0, $bill->fresh()->balance());
-        $this->assertSame('SCN', substr(SupplierBill::where('kind', 'CREDIT_NOTE')->value('bill_number'), 0, 3));
+        $this->assertSame('B-', substr(SupplierBill::where('kind', 'CREDIT_NOTE')->value('bill_number'), 0, 2));
 
         $this->post(route('bills.credit.store', $bill), ['supplier_bill_number' => 'CN-2', 'reason' => 'Too much', 'lines' => [['description' => 'Pig iron', 'quantity' => 2, 'unit_price' => 100]]])->assertSessionHasErrors('bill');
         $this->assertEquals(100.0, $bill->fresh()->balance());

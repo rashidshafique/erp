@@ -120,7 +120,7 @@ class InvoiceTemplateController extends Controller
     /** An invoice that is not saved, with a few lines, to see a layout against when no real one is picked. */
     private function sample(): Invoice
     {
-        $invoice = new Invoice(['invoice_number' => 'INV-2026-0001', 'invoice_date' => today(), 'due_date' => today()->addDays(30), 'currency' => 'PKR', 'payment_terms' => 'Net 30',
+        $invoice = new Invoice(['invoice_number' => 'I-10000', 'invoice_date' => today(), 'due_date' => today()->addDays(30), 'currency' => 'PKR', 'payment_terms' => 'Net 30',
             'customer_reference' => 'PO 4411', 'status' => 'ISSUED', 'kind' => 'INVOICE', 'subtotal' => 1900, 'tax_total' => 342, 'total' => 2242, 'tax_withheld' => 0]);
         $customer = new Customer(['name' => 'Sample Pumps Ltd', 'billing_address' => "12 Industrial Estate\nLahore"]);
         $lines = collect([['Pump casing', 10, 'pcs', 150, 0, 1500, '7325.1000'], ['Impeller', 4, 'pcs', 100, 0, 400, '8413.9100']])->map(fn ($l, $i) => new InvoiceLine([

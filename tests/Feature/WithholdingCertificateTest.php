@@ -67,7 +67,7 @@ class WithholdingCertificateTest extends TestCase
         $this->certify($invoice, 'WHT_IT_GOODS', 59)->assertSessionHasNoErrors();
 
         $certificate = WithholdingCertificate::sole();
-        $this->assertSame(['WHC-'.now()->format('Y').'-0001', 'Income tax withheld on supply of goods', 59.0], [$certificate->certificate_number, $certificate->tax_label, $certificate->amount]);
+        $this->assertSame(['T-10000', 'Income tax withheld on supply of goods', 59.0], [$certificate->certificate_number, $certificate->tax_label, $certificate->amount]);
         $this->assertSame([36.0, 36.0, 0.0], [$invoice->balance(), $invoice->withheldOpen('WHT_ST'), $invoice->withheldOpen('WHT_IT_GOODS')]);
         $this->assertSame([59.0, 36.0], [$this->net('22-03-01'), $this->net('22-02-01')]);
         $this->assertSame('2026-10-20', Journal::where('source_type', 'withholding_certificate')->sole()->journal_date->toDateString());

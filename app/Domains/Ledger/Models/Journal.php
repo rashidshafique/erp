@@ -45,7 +45,7 @@ class Journal extends Model
     public function user(): BelongsTo { return $this->belongsTo(User::class); }
     public function counterAccount(): BelongsTo { return $this->belongsTo(LedgerAccount::class, 'counter_account_id'); }
 
-    /** The memo without the "Invoice INV-… · " a document's journal starts with. */
+    /** The memo without the "Invoice I-10000 · " a document's journal starts with. */
     public function narration(): string
     {
         $memo = (string) $this->memo;

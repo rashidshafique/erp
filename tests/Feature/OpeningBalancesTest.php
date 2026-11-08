@@ -47,10 +47,10 @@ class OpeningBalancesTest extends TestCase
             ->set('newAccount', $this->id('31-01-01'))->set('newCredit', '50000')->call('add')
             ->set('newAccount', $this->id('22-02-01'))->set('newDebit', '1')->call('add')->assertSee('comes from its documents and cannot be typed')
             ->assertSee('1 open sales invoices')->assertSee('Difference, posted here until you move it')
-            ->call('lock')->assertSee('Locked. Posted OB-26-0001.');
+            ->call('lock')->assertSee('Locked. Posted OB-10000.');
 
         $ob = Journal::sole();
-        $this->assertSame(['OB-26-0001', '2026-06-30', 70000.0], [$ob->number, $ob->journal_date->toDateString(), $ob->total]);
+        $this->assertSame(['OB-10000', '2026-06-30', 70000.0], [$ob->number, $ob->journal_date->toDateString(), $ob->total]);
         $bal = fn (string $code) => LedgerAccount::where('code', $code)->firstOrFail()->balance();
         $this->assertSame([62000.0, 8000.0, -50000.0, -20000.0], [$bal('22-01-01'), $bal('22-02-01'), $bal('31-01-01'), $bal('31-03-02')]);
         $this->assertSame($kovar->id, $ob->lines()->where('account_id', $this->id('22-02-01'))->value('party_id'));

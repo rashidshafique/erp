@@ -144,7 +144,7 @@ new class extends Component
     {
         $draft = $this->voucherId ? Voucher::find($this->voucherId) : null;
 
-        return $draft && $draft->voucher_type === $this->type && Vouchers::yearCode($draft->voucher_date) === Vouchers::yearCode($this->date ?: today())
+        return $draft && $draft->voucher_type === $this->type
             ? $draft->number : Vouchers::preview($this->type, $this->date ?: today());
     }
 
@@ -177,7 +177,7 @@ new class extends Component
         $this->checkFields();
         $voucher = DB::transaction(function () {
             $v = $this->voucherId ? Voucher::findOrFail($this->voucherId) : new Voucher(['user_id' => auth()->id()]);
-            if (! $v->exists || $v->voucher_type !== $this->type || Vouchers::yearCode($v->voucher_date) !== Vouchers::yearCode($this->date)) {
+            if (! $v->exists || $v->voucher_type !== $this->type) {
                 $v->number = Vouchers::next($this->type, $this->date);
             }
             $v->fill(['voucher_type' => $this->type, 'voucher_date' => $this->date, 'reference' => trim($this->reference) ?: null,
@@ -207,7 +207,7 @@ new class extends Component
         $memo = collect($this->lines)->pluck('narration')->map(fn ($n) => trim($n))->filter()->first() ?: (trim($this->reference) ?: Vouchers::TYPES[$this->type]['name']);
         try {
             $journal = DB::transaction(function () use ($ledger, $draft, $lines, $memo) {
-                $keep = $draft && $draft->voucher_type === $this->type && Vouchers::yearCode($draft->voucher_date) === Vouchers::yearCode($this->date);
+                $keep = $draft && $draft->voucher_type === $this->type;
                 $journal = $ledger->post($this->date, $lines, null, $memo, voucher: [
                     'id' => $draft?->id, 'number' => $keep ? $draft->number : null, 'type' => $this->type,
                     'reference' => trim($this->reference) ?: null, 'counter_account_id' => Vouchers::TYPES[$this->type]['counter'] ? $this->counter : null,

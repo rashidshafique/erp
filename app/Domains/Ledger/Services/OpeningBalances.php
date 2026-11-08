@@ -19,7 +19,7 @@ use InvalidArgumentException;
 /**
  * Opening balances at go-live (design 19f). Receivables and payables come from the invoices and bills dated before go-live that
  * are still open on that day, per customer and supplier; every other account is typed. The difference sits in opening balance
- * equity until it is moved by a JV. Locking posts it all as one opening voucher (OB-26-0001) dated the day before go-live.
+ * equity until it is moved by a JV. Locking posts it all as one opening voucher (OB-10000) dated the day before go-live.
  * Once a go-live date is set, documents dated before it stay out of the ledger: their open part is in the opening voucher.
  */
 class OpeningBalances

@@ -75,6 +75,16 @@ class FinanceServiceProvider extends ModuleServiceProvider
         }
     }
 
+    protected function searchTypes(): array
+    {
+        return [
+            'invoice' => ['label' => 'Invoice', 'table' => 'invoices', 'code' => 'invoice_number', 'name' => null, 'route' => 'invoices.show', 'permission' => null, 'words' => ['inv', 'invoice', 'invoices']],
+            'supplier_bill' => ['label' => 'Supplier bill', 'table' => 'supplier_bills', 'code' => 'bill_number', 'name' => 'supplier_bill_number', 'route' => 'bills.show', 'permission' => null, 'words' => ['bill', 'bills']],
+            'receipt' => ['label' => 'Receipt', 'table' => 'receipts', 'code' => 'receipt_number', 'name' => 'reference', 'route' => 'receipts.show', 'permission' => null, 'words' => ['receipt', 'receipts']],
+            'supplier_payment' => ['label' => 'Supplier payment', 'table' => 'supplier_payments', 'code' => 'payment_number', 'name' => 'reference', 'route' => 'supplier-payments.show', 'permission' => null, 'words' => ['payment', 'payments']],
+        ];
+    }
+
     protected function consoleCommands(): array
     {
         return [\App\Domains\Finance\Console\NoticeDueCheques::class];
