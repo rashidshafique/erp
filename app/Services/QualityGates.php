@@ -113,7 +113,7 @@ class QualityGates
                 $okEvidence = $c['ok'] || str_contains($c['detail'], 'older than');
                 $label = $c['label'].' (heat '.$heat->heat_number.')';
                 if (! ($c['material'] ?? false) || $okEvidence) {
-                    $checks[] = ['label' => $label, 'ok' => $okEvidence, 'detail' => $c['detail']];
+                    $checks[] = ['label' => $label, 'ok' => $okEvidence, 'detail' => ! $c['ok'] && $okEvidence ? 'The latest test passed.' : $c['detail']];
                 } elseif ($mode === 'OFF') {
                     continue;
                 } elseif ($lot->material_waived_at) {

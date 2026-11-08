@@ -34,7 +34,16 @@ class QualityTabletTest extends TestCase
 
         $this->get(route('floor.quality.lots'))->assertOk()->assertSee($lot->label)->assertSee('Final inspection');
         $this->get(route('floor.quality.lot', $lot))->assertOk()->assertSee('What blocks dispatch')->assertSee('partial shipments allowed')->assertSee('Inspect');
-        $this->get(route('floor.quality.lot.inspect', $lot))->assertOk()->assertSee('Accepted');
+        $this->get(route('floor.quality.lot.inspect', $lot))->assertOk()->assertSee('Accepted')->assertSee('data-no-save-bar', false);
+    }
+
+    public function test_read_out_rows_do_not_say_not_ready_and_one_piece_is_not_pieces(): void
+    {
+        $lot = $this->lotFor(false);
+
+        $this->get(route('floor.quality.lots'))->assertOk()->assertDontSee('Not ready');
+        $this->get(route('floor.quality.lot', $lot))->assertOk()->assertDontSee('Not ready');
+        $this->post(route('floor.quality.lot.review', $lot), ['accepted' => 1])->assertOk()->assertDontSee('Not ready')->assertSee('1 piece can ship')->assertDontSee('1 pieces');
     }
 
     public function test_a_customer_taking_partials_has_the_accepted_pieces_released_while_the_ncr_stays_open(): void

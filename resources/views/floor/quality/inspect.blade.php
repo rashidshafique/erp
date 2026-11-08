@@ -11,7 +11,7 @@
     <h1 style="margin:0;font-size:22px">Final inspection · {{ $lot->label }}</h1>
     <p style="color:var(--fl-meta);font-size:13.5px;margin:4px 0 12px">{{ $lot->product?->name }} · {{ $toCheck }} to check · {{ auth()->user()?->name }}</p>
 
-    <form method="POST" action="{{ route('floor.quality.lot.review', $lot) }}">@csrf
+    <form method="POST" action="{{ route('floor.quality.lot.review', $lot) }}" data-no-save-bar>@csrf
         <div class="fl-count-pad">
             <div>
                 <x-floor.count-field name="accepted" id="q-accepted" label="Accepted" :value="old('accepted')" :max="$toCheck" hint="Pieces that passed" placeholder="0" />

@@ -26,7 +26,7 @@
     @endforeach
 
     <div class="fl-rows">
-        <x-floor.row title="Customer rule" :meta="$rule['order'] ? $rule['order'].' · partial shipments '.($rule['partial'] ? 'allowed' : 'not allowed').($rule['min'] ? ' · fewest to ship '.$rule['min'].' pcs' : '') : 'Stock lot · an open NCR holds the whole lot'" />
+        <x-floor.row plain title="Customer rule" :meta="$rule['order'] ? $rule['order'].' · partial shipments '.($rule['partial'] ? 'allowed' : 'not allowed').($rule['min'] ? ' · fewest to ship '.$rule['min'].' pcs' : '') : 'Stock lot · an open NCR holds the whole lot'" />
     </div>
     <p><a class="fl-btn" href="{{ route('lots.show', $lot) }}">Full lot page</a> <a class="fl-btn" href="{{ route('lots.traveller', $lot) }}">Traveller</a></p>
 </div>

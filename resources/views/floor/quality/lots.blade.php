@@ -10,7 +10,7 @@
 
     <h1 style="margin:0;font-size:22px">Lots after the pour</h1>
     <div class="fl-rows">
-        @foreach ($steps as $label => $n)<x-floor.row :title="$label" :age="(string) $n" />@endforeach
+        @foreach ($steps as $label => $n)<x-floor.row :title="$label" :age="(string) $n" plain />@endforeach
     </div>
 
     <div class="fl-block-head">Final inspection · what blocks each lot</div>
