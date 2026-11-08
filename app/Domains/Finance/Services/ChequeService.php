@@ -50,21 +50,23 @@ class ChequeService
     /** Taken to the bank (when deposits are a step of their own). */
     public function deposit(Cheque $cheque, string $date, ?string $accountId): Cheque
     {
-        $this->mustBe($cheque, ['IN_HAND']);
-        $this->notBeforeItsDate($cheque, $date);
-        $cheque->update(['status' => 'DEPOSITED', 'deposited_on' => $date, 'account_id' => $accountId ?: $cheque->account_id]);
+        return DB::transaction(function () use ($cheque, $date, $accountId) {
+            $cheque = $this->locked($cheque);
+            $this->mustBe($cheque, ['IN_HAND']);
+            $this->notBeforeItsDate($cheque, $date);
+            $cheque->update(['status' => 'DEPOSITED', 'deposited_on' => $date, 'account_id' => $accountId ?: $cheque->account_id]);
 
-        return $cheque;
+            return $cheque;
+        });
     }
 
     /** The bank has paid it: HOLD makes the receipt or payment now, SETTLE moves the money from the holding account to the bank. */
     public function clear(Cheque $cheque, string $date, ?string $accountId): Cheque
     {
-        $this->mustBe($cheque, FinanceRules::chequeSteps() === 'DEPOSIT' ? ['DEPOSITED'] : ['IN_HAND', 'DEPOSITED']);
-        $this->notBeforeItsDate($cheque, $date);
-
         return DB::transaction(function () use ($cheque, $date, $accountId) {
-            $cheque = Cheque::whereKey($cheque->id)->lockForUpdate()->firstOrFail();
+            $cheque = $this->locked($cheque);
+            $this->mustBe($cheque, FinanceRules::chequeSteps() === 'DEPOSIT' ? ['DEPOSITED'] : ['IN_HAND', 'DEPOSITED']);
+            $this->notBeforeItsDate($cheque, $date);
             $cheque->update(['status' => 'CLEARED', 'cleared_on' => $date, 'account_id' => $accountId ?: $cheque->account_id]);
             if ($cheque->mode === 'HOLD') {
                 $this->make($cheque, $date, $this->stillOwing($cheque));
@@ -79,20 +81,22 @@ class ChequeService
     /** Returned unpaid: what the cheque made is voided and the invoices or bills are owed again. */
     public function bounce(Cheque $cheque, string $date, ?string $reason): Cheque
     {
-        $this->mustBe($cheque, ['IN_HAND', 'DEPOSITED', 'CLEARED']);
-
         return DB::transaction(function () use ($cheque, $date, $reason) {
-            $cheque = Cheque::whereKey($cheque->id)->lockForUpdate()->firstOrFail();
+            $cheque = $this->locked($cheque);
+            $this->mustBe($cheque, ['IN_HAND', 'DEPOSITED', 'CLEARED']);
+            if (Carbon::parse($date)->lt($cheque->handed_on)) {
+                throw new InvalidArgumentException('A cheque cannot bounce before it was '.($cheque->isReceived() ? 'received' : 'given').'.');
+            }
             if ($cheque->mode === 'SETTLE' && $cheque->status === 'CLEARED') {
-                event(new DocumentVoided($cheque));
+                event(new DocumentVoided($cheque, $date));
             }
             if ($document = $cheque->document()) {
                 foreach ($document->allocations()->get() as $allocation) {
-                    event(new DocumentVoided($allocation));
+                    event(new DocumentVoided($allocation, $date));
                 }
-                event(new DocumentVoided($document));
+                event(new DocumentVoided($document, $date));
                 $document->allocations()->delete();
-                $document->update(['voided_at' => now(), 'void_reason' => 'Cheque bounced'.($reason ? ': '.$reason : '')]);
+                $document->update(['voided_at' => Carbon::parse($date), 'void_reason' => 'Cheque bounced'.($reason ? ': '.$reason : '')]);
             }
             $cheque->update(['status' => 'BOUNCED', 'bounced_on' => $date, 'bounce_reason' => $reason]);
 
@@ -172,6 +176,12 @@ class ChequeService
         }
 
         return $out;
+    }
+
+    /** The cheque read again under a row lock, so two quick taps cannot both act on it. */
+    private function locked(Cheque $cheque): Cheque
+    {
+        return Cheque::whereKey($cheque->id)->lockForUpdate()->firstOrFail();
     }
 
     /** @param list<string> $statuses */

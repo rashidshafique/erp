@@ -39,6 +39,7 @@ class AppNotice extends Notification
         'incoming' => 'Incoming lot', 'enquiry-follow-up' => 'Enquiry', 'charge-overdue' => 'Charge tab',
         'list-issued' => 'Moulding list', 'list-not-issued' => 'Moulding list', 'moulds-counted' => 'Moulds ready',
         'moulds-short' => 'Remake needed', 'heat-started' => 'Count', 'lots-made' => 'Lots queue', 'heat-unaccounted' => 'Metal balance',
+        'cheques-due' => 'Cheques register',
     ];
 
     /** The "→ …" line under a stored notice, or null when it opens nothing. @param array<string, mixed> $data */

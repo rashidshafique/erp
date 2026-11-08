@@ -280,4 +280,32 @@ class PostDatedChequeTest extends TestCase
 
         $this->assertSame(['SETTLE', 'HOLD', 'DEPOSIT'], [FinanceRules::pdcMode(), FinanceRules::pdcMode(true), FinanceRules::chequeSteps()]);
     }
+
+    public function test_clearing_a_held_cheque_twice_makes_one_receipt(): void
+    {
+        $invoice = $this->invoice(500);
+        $this->receiveCheque(500, [$invoice->id => 500]);
+        Carbon::setTestNow('2026-11-20 09:00');
+
+        $this->post(route('cheques.clear', Cheque::sole()), ['date' => '2026-11-20'])->assertSessionHasNoErrors();
+        $this->post(route('cheques.clear', Cheque::sole()), ['date' => '2026-11-20'])->assertSessionHasErrors('cheque');
+
+        $this->assertSame(1, Receipt::count());
+        $this->assertSame(['22-01-04' => 500.0, '41-01-01' => -500.0], $this->balances());
+    }
+
+    public function test_a_bounce_entered_late_reverses_on_the_day_it_bounced(): void
+    {
+        AppSetting::setValue(FinanceRules::PDC_RECEIVED, 'SETTLE');
+        $this->receiveCheque(500, [$this->invoice(500)->id => 500]);
+        Carbon::setTestNow('2026-11-20 09:00');
+        $this->post(route('cheques.clear', Cheque::sole()), ['date' => '2026-11-20']);
+        Carbon::setTestNow('2026-11-25 09:00');
+
+        $this->post(route('cheques.bounce', Cheque::sole()), ['date' => '2026-11-22'])->assertSessionHasNoErrors();
+
+        $this->assertSame(['2026-11-22'], Journal::whereNotNull('reverses_id')->pluck('journal_date')->map->toDateString()->unique()->values()->all());
+        $rows = app(Receivables::class)->statement($this->customer)['rows'];
+        $this->assertSame(['Cheque bounced', '2026-11-22'], [end($rows)['type'], end($rows)['date']->toDateString()]);
+    }
 }
