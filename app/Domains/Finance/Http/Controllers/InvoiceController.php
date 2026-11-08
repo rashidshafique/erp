@@ -8,6 +8,7 @@ use App\Domains\Finance\Models\TaxRate;
 use App\Domains\Core\ModuleRegistry;
 use App\Domains\Finance\Services\Advances;
 use App\Domains\Finance\Services\CreditLimits;
+use App\Domains\Finance\Services\DocumentEmailer;
 use App\Domains\Ledger\Models\Journal;
 use App\Domains\Ledger\Models\LedgerAccount;
 use App\Domains\Ledger\Services\PostingRules;
@@ -210,6 +211,17 @@ class InvoiceController extends Controller
         $invoice->update(['print_template' => $d['print_template'] ?? null]);
 
         return back()->with('success', 'Print layout saved.');
+    }
+
+    public function email(Invoice $invoice, DocumentEmailer $emailer): RedirectResponse
+    {
+        try {
+            $message = $emailer->invoice($invoice);
+
+            return back()->with($emailer->configured() ? 'success' : 'warning', $message);
+        } catch (InvalidArgumentException $e) {
+            return back()->withErrors(['invoice' => $e->getMessage()]);
+        }
     }
 
     public function issue(Request $request, Invoice $invoice, InvoiceService $service): RedirectResponse

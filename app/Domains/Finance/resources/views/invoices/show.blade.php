@@ -80,6 +80,7 @@
                 <form method="POST" action="{{ route('invoices.issue', $invoice) }}">@csrf<button class="iv-btn primary" onclick="return confirm('Issue this {{ strtolower($label) }}? It gets its number and can no longer be edited.')">Post only</button></form>
             @elseif ($invoice->status === 'ISSUED')
                 <a class="iv-btn" href="{{ route('invoices.print', $invoice) }}" target="_blank">Print</a>
+                @if ($invoice->customer?->email)<form method="POST" action="{{ route('invoices.email', $invoice) }}">@csrf<button class="iv-btn" title="Email this {{ strtolower($label) }} to {{ $invoice->customer->email }}">Email</button></form>@else<span class="iv-btn" style="opacity:.55;cursor:default" title="Add an email address on the customer to send this">Email: no address</span>@endif
                 @if (! $credit)
                     @if ($invoice->cashDue() > 0 && ($onAccount = app(\App\Domains\Finance\Services\Advances::class)->forInvoice($invoice)->sum(fn ($r) => $r->unallocated())) > 0)<form method="POST" action="{{ route('invoices.apply-credit', $invoice) }}">@csrf<button class="iv-btn" title="Money this customer paid that is not on an invoice yet">Use money on account ({{ $num($onAccount, 2) }})</button></form>@endif
                     @if ($invoice->withheldOpen() > 0)<a class="iv-btn" href="{{ route('withholding-certificates.create', ['customer' => $invoice->customer_id]) }}">Tax certificate</a>@endif

@@ -28,6 +28,7 @@ Route::middleware('web')->group(function () {
         Route::post('/{invoice}/issue', 'issue')->name('issue');
         Route::put('/{invoice}/template', 'template')->name('template');
         Route::post('/{invoice}/void', 'void')->name('void');
+        Route::post('/{invoice}/email', 'email')->name('email');
         Route::post('/{invoice}/apply-credit', 'applyCredit')->name('apply-credit');
         Route::get('/{invoice}/credit', 'credit')->name('credit');
         Route::post('/{invoice}/credit', 'storeCredit')->name('credit.store');
@@ -81,6 +82,7 @@ Route::middleware('web')->group(function () {
     Route::get('/payables/{supplier}', [PayablesController::class, 'statement'])->name('payables.statement');
     Route::get('/receivables', [ReceivablesController::class, 'index'])->name('receivables.index');
     Route::get('/receivables/{customer}', [ReceivablesController::class, 'statement'])->name('receivables.statement');
+    Route::post('/receivables/{customer}/email', [ReceivablesController::class, 'email'])->name('receivables.email');
     Route::get('/tax-register', [TaxRegisterController::class, 'index'])->name('finance.tax-register');
     Route::get('/tax-return', [TaxReturnController::class, 'index'])->name('finance.tax-return');
     Route::put('/customers/{customer}/credit', [CreditController::class, 'update'])->name('finance.credit.update');

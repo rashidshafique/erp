@@ -9,6 +9,8 @@ use App\Domains\Core\Tax\TaxLine;
 use App\Domains\Dispatch\Models\Dispatch;
 use App\Domains\Finance\Events\DocumentPosted;
 use App\Domains\Finance\Events\DocumentVoided;
+use App\Domains\Finance\Events\InvoiceIssued;
+use App\Domains\Finance\Events\InvoiceVoided;
 use App\Domains\Finance\Models\Invoice;
 use App\Domains\Finance\Models\InvoiceLine;
 use App\Domains\Finance\Models\TaxRate;
@@ -131,6 +133,7 @@ class InvoiceService
             $due = $invoice->due_date ?? ($invoice->isCreditNote() ? null : $invoice->invoice_date->copy()->addDays(FinanceRules::daysFromTerms($invoice->payment_terms)));
             $invoice->update(['invoice_number' => $this->nextNumber($invoice->kind), 'status' => 'ISSUED', 'issued_at' => now(), 'due_date' => $due]);
             event(new DocumentPosted($invoice));
+            event(new InvoiceIssued($invoice));
             if (FinanceRules::advances() === 'AUTO') {
                 app(Advances::class)->applyToInvoice($invoice);
             }
@@ -151,6 +154,7 @@ class InvoiceService
         DB::transaction(function () use ($invoice, $reason) {
             $invoice->update(['status' => 'VOID', 'voided_at' => now(), 'void_reason' => $reason]);
             event(new DocumentVoided($invoice));
+            event(new InvoiceVoided($invoice));
         });
 
         return $invoice->fresh();
