@@ -175,11 +175,19 @@
     <template x-for="s in chosen" :key="s.id"><input type="hidden" name="stages[]" :value="s.id"></template>
     <div class="qbar-fields">
         <input type="number" min="0" name="rejected" placeholder="Rejected" aria-label="Rejected (total)" style="width:100px" x-model="rejected">
-        <input name="rejection_reason" placeholder="Rejection reason" maxlength="100" style="width:170px" value="{{ old('rejection_reason') }}" x-show="Number(rejected) > 0" x-cloak :required="Number(rejected) > 0">
+        <input name="rejection_reason" :placeholder="@js($canInspect) ? 'Reason (rejects, rework, hold)' : 'Rejection reason'" maxlength="100" style="width:200px" value="{{ old('rejection_reason') }}" x-ref="reason" x-show="@js($canInspect) || Number(rejected) > 0" x-cloak :required="Number(rejected) > 0">
         <input name="cooling_override_reason" placeholder="Still cooling: reason to shake out early" maxlength="300" style="width:250px" value="{{ old('cooling_override_reason') }}" x-show="coolingWarn" x-cloak>
         <input name="operator_name" placeholder="Operator" maxlength="100" style="width:140px" value="{{ old('operator_name') }}" x-ref="operator">
         <button class="btn btn-primary qbar-move" type="submit" x-ref="move" :disabled="!chosen.length || moving" x-text="moving && !inspecting ? 'Moving ' + ticked.length + ' lots… please wait' : moveLabel">Move ticked lots</button>
-        @if ($canInspect)<button class="btn" type="submit" x-ref="inspect" data-inspect formaction="{{ route('lots.bulk-inspect') }}" :disabled="moving" x-text="inspectLabel" title="Final inspection of the ticked lots: every piece left to check passes, less the rejected above (oldest lots first).">Pass inspection</button>@endif
+        @if ($canInspect)
+            <span class="qbar-inspect" role="group" aria-label="Final inspection of the ticked lots">
+                <button class="btn" type="submit" name="outcome" value="PASS" x-ref="inspect" data-inspect="Pass" formaction="{{ route('lots.bulk-inspect') }}" :disabled="moving" title="Every piece left to check passes, less the Rejected above (taken from the oldest lots first).">Pass</button>
+                <button class="btn" type="submit" name="outcome" value="REWORK" data-inspect="Send to rework" formaction="{{ route('lots.bulk-inspect') }}" :disabled="moving" title="Every piece left to check goes to rework. Needs a reason.">Rework</button>
+                <button class="btn btn-danger" type="submit" name="outcome" value="REJECT" data-inspect="Reject" formaction="{{ route('lots.bulk-inspect') }}" :disabled="moving" title="Every piece left to check is rejected; a lot with nothing good left is scrapped. Needs a reason.">Reject</button>
+                <button class="btn" type="submit" name="outcome" value="HOLD" data-inspect="Put on hold" formaction="{{ route('lots.bulk-inspect') }}" :disabled="moving" title="Puts the lots on hold for quality to decide on each lot later. Needs a reason.">Hold</button>
+            </span>
+            <span class="muted small" x-show="inspecting" x-cloak x-text="inspectLabel"></span>
+        @endif
     </div>
 </div>
 @endif
@@ -288,8 +296,7 @@ function moveBar(stages, endSeq, rejected) {
             this.$refs.form.requestSubmit(this.$refs.move);
         },
         get inspectLabel() {
-            if (this.moving && this.inspecting) { return 'Inspecting ' + this.ticked.length + ' lots… please wait'; }
-            return `Pass inspection: ${this.ticked.length} ${this.ticked.length === 1 ? 'lot' : 'lots'}`;
+            return this.inspecting ? 'Working on ' + this.ticked.length + ' lots… please wait' : '';
         },
         inspectStep(step) {
             this.clear();
@@ -298,10 +305,16 @@ function moveBar(stages, endSeq, rejected) {
             this.$nextTick(() => this.$refs.form.requestSubmit(this.$refs.inspect));
         },
         submitting(e) {
-            this.inspecting = e.submitter?.hasAttribute('data-inspect') ?? false;
-            if (this.inspecting) {
-                const rej = Number(this.rejected) || 0;
-                if (this.moving || !this.ticked.length || !confirm(this.inspectLabel + (rej ? `, ${rej} rejected` : ', all pieces good') + '?')) { e.preventDefault(); return; }
+            const verb = e.submitter?.dataset.inspect;
+            if (verb) {
+                const outcome = e.submitter.value;
+                const rej = outcome === 'PASS' ? (Number(this.rejected) || 0) : 0;
+                const reason = this.$refs.reason?.value.trim() ?? '';
+                if (!this.moving && (outcome !== 'PASS' || rej > 0) && !reason) { e.preventDefault(); this.$refs.reason.focus(); this.$refs.reason.setCustomValidity('Give a reason'); this.$refs.reason.reportValidity(); this.$refs.reason.addEventListener('input', () => this.$refs.reason.setCustomValidity(''), { once: true }); return; }
+                const lots = `${this.ticked.length} ${this.ticked.length === 1 ? 'lot' : 'lots'}`;
+                const what = outcome === 'PASS' ? (rej ? `, ${rej} rejected` : ', all pieces good') : `: ${reason}`;
+                if (this.moving || !this.ticked.length || !confirm(`${verb} ${lots}${what}?`)) { e.preventDefault(); return; }
+                this.inspecting = true;
                 this.moving = true;
                 try { localStorage.setItem('erp.queueOperator', this.$refs.operator.value); } catch (err) {}
                 return;

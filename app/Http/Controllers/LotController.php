@@ -208,40 +208,59 @@ class LotController extends Controller
     }
 
     /**
-     * Final inspection of the ticked lots from the production queue: every piece left to check passes, less any rejects, which are
-     * taken from the oldest lots first. Each lot gets its own completed inspection through the quick QC tally, so the NCR threshold,
-     * READY status and packing work as usual. A lot with nothing to check yet (pieces still before a step) is skipped and named.
+     * Final inspection of the ticked lots from the production queue, one outcome for them all:
+     * - PASS: every piece left to check passes, less the bar's rejects, which are taken from the oldest lots first;
+     * - REJECT or REWORK: every piece left to check is rejected (a fully rejected lot is scrapped) or sent to rework;
+     * - HOLD: the lots go on hold with the reason, for quality to decide on each lot later.
+     * Each inspected lot gets its own completed inspection through the quick QC tally, so the NCR threshold, READY status and
+     * packing work as usual. A reason matching a defect name marks that defect. A lot with nothing to check yet is skipped and named.
      */
     public function bulkInspect(Request $request, QuickInspection $quick): RedirectResponse
     {
         $d = $request->validate([
+            'outcome' => ['nullable', Rule::in(['PASS', 'REJECT', 'REWORK', 'HOLD'])],
             'lots' => ['required', 'array'], 'lots.*' => ['uuid', Rule::exists('casting_lots', 'id')],
             'rejected' => ['nullable', 'integer', 'min:0'],
             'rejection_reason' => ['nullable', 'string', 'max:100'],
             'operator_name' => ['nullable', 'string', 'max:100'],
         ]);
-        $rejectLeft = (int) ($d['rejected'] ?? 0);
-        if ($rejectLeft > 0 && blank($d['rejection_reason'] ?? null)) {
-            return back()->withErrors(['rejection_reason' => 'Give a rejection reason when pieces are rejected.'])->withInput();
+        $outcome = $d['outcome'] ?? 'PASS';
+        $reason = trim((string) ($d['rejection_reason'] ?? ''));
+        $rejectLeft = $outcome === 'PASS' ? (int) ($d['rejected'] ?? 0) : 0;
+        if ($reason === '' && ($rejectLeft > 0 || $outcome !== 'PASS')) {
+            return back()->withErrors(['rejection_reason' => match ($outcome) {
+                'HOLD' => 'Give a reason for the hold.', 'REWORK' => 'Give a reason for the rework.', default => 'Give a rejection reason when pieces are rejected.',
+            }])->withInput();
         }
-        $defect = $rejectLeft > 0 && QualityRules::get('defect_piece_ids') !== 'REQUIRED'
-            ? QualityDefect::where('is_active', true)->whereRaw('lower(name) = ?', [mb_strtolower(trim($d['rejection_reason']))])->first() : null;
+        $lots = CastingLot::whereIn('id', $d['lots'])->orderBy('created_at')->get();
+        if ($outcome === 'HOLD') {
+            return $this->applyBulk($lots, 'hold', $reason);
+        }
+        $defect = $reason !== '' && QualityRules::get('defect_piece_ids') !== 'REQUIRED'
+            ? QualityDefect::where('is_active', true)->whereRaw('lower(name) = ?', [mb_strtolower($reason)])->first() : null;
         $inspector = ($d['operator_name'] ?? null) ?: $request->user()?->name;
-        $passed = $pieces = $ncrs = 0;
+        $inspected = $pieces = $ncrs = 0;
         $skipped = [];
 
-        foreach (CastingLot::whereIn('id', $d['lots'])->orderBy('created_at')->get() as $lot) {
+        foreach ($lots as $lot) {
             $toCheck = $quick->toCheck($lot);
             if ($toCheck === 0 || $lot->status !== 'IN_PRODUCTION') {
                 $skipped[] = "{$lot->label}: nothing left to inspect.";
 
                 continue;
             }
-            $rej = min($rejectLeft, $toCheck);
+            [$accepted, $rejected, $rework] = match ($outcome) {
+                'REJECT' => [0, $toCheck, 0],
+                'REWORK' => [0, 0, $toCheck],
+                default => [$toCheck - min($rejectLeft, $toCheck), min($rejectLeft, $toCheck), 0],
+            };
+            $marks = $defect && $rejected + $rework > 0 ? [['defect_id' => $defect->id, 'quantity' => $rejected + $rework, 'disposition' => $rework > 0 ? 'REWORK' : 'REJECT']] : [];
             try {
-                $done = $quick->record($lot->product_revision_id, $toCheck - $rej, $rej, 0, $defect && $rej > 0 ? [$defect->id => $rej] : [], $inspector, [], $lot);
-                $rejectLeft -= $rej;
-                $passed++;
+                $done = $quick->record($lot->product_revision_id, $accepted, $rejected, $rework, [], $inspector, $marks, $lot);
+                if ($outcome === 'PASS') {
+                    $rejectLeft -= $rejected;
+                }
+                $inspected++;
                 $pieces += $toCheck;
                 $ncrs += $done['ncrs'];
             } catch (InvalidArgumentException $e) {
@@ -251,11 +270,14 @@ class LotController extends Controller
         if ($rejectLeft > 0) {
             $skipped[] = "{$rejectLeft} rejected piece(s) could not be placed.";
         }
-        if ($passed === 0) {
+        if ($inspected === 0) {
             return back()->withErrors(['lots' => 'No lot was inspected. '.implode(' ', array_slice($skipped, 0, 3))])->withInput();
         }
+        $done = match ($outcome) {
+            'REJECT' => ' piece(s) rejected', 'REWORK' => ' piece(s) sent to rework', default => ' piece(s) checked',
+        };
 
-        return back()->with('success', "{$passed} lot(s) inspected, ".Formats::number($pieces).' piece(s) checked'.($ncrs ? ", {$ncrs} nonconformance(s) raised." : '.'))
+        return back()->with('success', "{$inspected} lot(s) inspected, ".Formats::number($pieces).$done.($ncrs ? ", {$ncrs} nonconformance(s) raised." : '.'))
             ->with($skipped ? ['warning' => count($skipped).' skipped: '.implode(' ', array_slice($skipped, 0, 3)).(count($skipped) > 3 ? ' ...' : '')] : []);
     }
 
