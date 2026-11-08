@@ -24,7 +24,7 @@ class ShipmentService
 
     public function packable(CastingLot $lot): float
     {
-        return max(0, (float) $lot->quantity_good - $this->packedQty($lot));
+        return max(0, (float) app(\App\Services\Quality\ShipRule::class)->shippable($lot) - $this->packedQty($lot));
     }
 
     public function dispatchedQty(PackingRecordItem $item): float
@@ -124,7 +124,7 @@ class ShipmentService
                 if ($line && $line->salesOrder->customer_id !== $head['customer_id']) {
                     throw new InvalidArgumentException("Lot {$lot->lot_number} was made against another customer's order and cannot go on this dispatch.");
                 }
-                if ($lot->ncrs()->where('status', '!=', 'CLOSED')->exists()) {
+                if ($lot->ncrs()->where('status', '!=', 'CLOSED')->exists() && ! app(\App\Services\Quality\ShipRule::class)->ncrLeavesAcceptedFree($lot)) {
                     throw new InvalidArgumentException("Lot {$lot->lot_number} has an open nonconformance report.");
                 }
                 $ready = $this->gates->lotReadiness($lot);

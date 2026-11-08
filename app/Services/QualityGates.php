@@ -146,8 +146,20 @@ class QualityGates
             }
         }
 
-        $openNcr = DB::table('nonconformance_reports')->where('casting_lot_id', $lot->id)->where('status', '!=', 'CLOSED')->count();
-        $checks[] = ['label' => 'Nonconformance reports', 'ok' => $openNcr === 0, 'detail' => $openNcr === 0 ? 'No open NCR against the lot.' : "{$openNcr} NCR(s) still open; close them first."];
+        $rule = app(\App\Services\Quality\ShipRule::class);
+        $openNcr = $rule->openNcrs($lot);
+        if ($openNcr > 0 && $rule->ncrLeavesAcceptedFree($lot)) {
+            $ncrs = $lot->ncrs()->where('status', '!=', 'CLOSED')->get();
+            $checks[] = ['label' => 'Nonconformance reports', 'ok' => true, 'detail' => $ncrs->pluck('ncr_number')->implode(', ').' open: covers '.(int) $ncrs->sum('quantity_affected').' pcs, does not block the '.$rule->accepted($lot).' accepted.'];
+        } else {
+            $checks[] = ['label' => 'Nonconformance reports', 'ok' => $openNcr === 0, 'detail' => $openNcr === 0 ? 'No open NCR against the lot.' : "{$openNcr} NCR(s) still open; close them first."];
+        }
+        if (($min = $rule->minimum($lot)) !== null && $insp->isNotEmpty()) {
+            $have = $rule->shippable($lot);
+            $reach = (int) $lot->quantity_good;
+            $checks[] = ['label' => 'Minimum to ship', 'ok' => $have >= $min,
+                'detail' => $have >= $min ? "{$have} pieces can ship; the order needs at least {$min}." : ($reach < $min ? "Only {$reach} good pieces are left, the order needs at least {$min}. Ask the planner to remake." : "{$have} pieces can ship now; need {$min}. Waiting for the rest.")];
+        }
 
         $reasons = collect($checks)->filter(fn ($c) => $c['ok'] === false)->pluck('detail')->values()->all();
 

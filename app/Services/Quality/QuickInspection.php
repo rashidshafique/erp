@@ -149,7 +149,7 @@ class QuickInspection
 
                 $this->lots->refresh($lot);
                 $fresh = $lot->fresh();
-                if ($fresh->status === 'IN_PRODUCTION' && ! $ncr && $fresh->quantity_good > 0) {
+                if ($fresh->status === 'IN_PRODUCTION' && (! $ncr || app(ShipRule::class)->ncrLeavesAcceptedFree($fresh)) && $fresh->quantity_good > 0) {
                     $fresh->update(['status' => 'READY']);
                 }
                 $made++;

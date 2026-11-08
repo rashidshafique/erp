@@ -30,6 +30,8 @@ class SalesOrderLine extends Model
         'repeat_until',
         'repeated_to',
         'notes',
+        'partial_shipments',
+        'min_ship_qty',
     ];
 
     public const REPEATS = ['WEEK' => 'Every week', 'MONTH' => 'Every month'];
@@ -38,7 +40,7 @@ class SalesOrderLine extends Model
     {
         return [
             'ordered_qty' => 'decimal:3', 'unit_price' => 'decimal:4', 'discount_percent' => 'decimal:2', 'requested_delivery_date' => 'date',
-            'repeat_qty' => 'decimal:3', 'repeat_from' => 'date', 'repeat_until' => 'date', 'repeated_to' => 'date',
+            'partial_shipments' => 'boolean', 'repeat_qty' => 'decimal:3', 'repeat_from' => 'date', 'repeat_until' => 'date', 'repeated_to' => 'date',
         ];
     }
 

@@ -218,7 +218,7 @@ class InspectionController extends Controller
             }
             $service->refresh($inspection->lot);
             $lot = $inspection->lot->fresh();
-            if ($inspection->inspection_type === 'FINAL' && $d['quantity_pending'] === 0 && $lot->status === 'IN_PRODUCTION' && ! $ncr && $lot->quantity_good > 0) {
+            if ($inspection->inspection_type === 'FINAL' && $d['quantity_pending'] === 0 && $lot->status === 'IN_PRODUCTION' && (! $ncr || app(\App\Services\Quality\ShipRule::class)->ncrLeavesAcceptedFree($lot)) && $lot->quantity_good > 0) {
                 $lot->update(['status' => 'READY']);
             }
         });
