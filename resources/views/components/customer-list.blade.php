@@ -55,7 +55,7 @@ new class extends Component
     /** @return array<string, mixed> */
     private function blankForm(): array
     {
-        return ['code' => '', 'name' => '', 'short_name' => '', 'contact_name' => '', 'phone' => '', 'email' => '', 'tax_number' => '', 'payment_terms' => '', 'billing_address' => '', 'shipping_address' => '', 'active' => true, 'is_prospect' => false, 'ppap_requested' => false, 'ppap_level' => ''];
+        return ['code' => '', 'name' => '', 'short_name' => '', 'contact_name' => '', 'phone' => '', 'email' => '', 'tax_number' => '', 'payment_terms' => '', 'billing_address' => '', 'shipping_address' => '', 'active' => true, 'is_prospect' => false, 'ppap_requested' => false, 'ppap_level' => '', 'allows_partial_shipments' => false];
     }
 
     public function updatedSearch(): void
@@ -127,6 +127,7 @@ new class extends Component
         $this->form = array_map(fn ($value) => $value ?? '', $customer->only(array_keys($this->blankForm())));
         $this->form['active'] = (bool) $customer->active;
         $this->form['ppap_requested'] = (bool) $customer->ppap_requested;
+        $this->form['allows_partial_shipments'] = (bool) $customer->allows_partial_shipments;
         $this->saved = null;
         $this->formOpen = true;
     }
@@ -142,7 +143,7 @@ new class extends Component
         $customer = $this->editingId ? Customer::findOrFail($this->editingId) : null;
         $this->form['code'] = strtoupper(trim((string) $this->form['code']));
         $ppap = ['ppap_requested' => ['boolean'], 'ppap_level' => ['required_if:form.ppap_requested,true', 'nullable', 'integer', 'between:1,5']];
-        $rules = collect(Customer::rules($customer) + ['active' => ['boolean'], 'is_prospect' => ['boolean']] + $ppap)->mapWithKeys(fn ($rule, $field) => ["form.{$field}" => $rule])->all();
+        $rules = collect(Customer::rules($customer) + ['active' => ['boolean'], 'is_prospect' => ['boolean'], 'allows_partial_shipments' => ['boolean']] + $ppap)->mapWithKeys(fn ($rule, $field) => ["form.{$field}" => $rule])->all();
         $data = $this->validate($rules, [], ['form.name' => 'name', 'form.code' => 'code', 'form.email' => 'email', 'form.ppap_level' => 'PPAP level'])['form'];
 
         foreach (['code', 'short_name', 'contact_name', 'phone', 'email', 'tax_number', 'payment_terms', 'billing_address', 'shipping_address'] as $optional) {
@@ -154,6 +155,7 @@ new class extends Component
         $data['active'] = (bool) $data['active'];
         $data['is_prospect'] = (bool) $data['is_prospect'];
         $data['ppap_requested'] = (bool) $data['ppap_requested'];
+        $data['allows_partial_shipments'] = (bool) $data['allows_partial_shipments'];
         $data['ppap_level'] = $data['ppap_requested'] && ($data['ppap_level'] ?? '') !== '' ? (int) $data['ppap_level'] : null;
 
         if ($customer) {
@@ -461,6 +463,7 @@ new class extends Component
                 <div class="field field-full"><label for="c-billing">Billing address</label><textarea id="c-billing" rows="2" wire:model="form.billing_address"></textarea></div>
                 <div class="field field-full"><label for="c-shipping">Shipping address</label><textarea id="c-shipping" rows="2" wire:model="form.shipping_address"></textarea></div>
                 <div class="field field-full"><label><input type="checkbox" wire:model="form.is_prospect"> Prospect</label><div class="help">Converts to active when marked, or on first sales order.</div></div>
+                <div class="field field-full"><label><input type="checkbox" wire:model="form.allows_partial_shipments"> Takes partial shipments</label><div class="help">An open nonconformance then holds only its own pieces: the accepted ones can be packed and sent. Off: it holds the whole lot. An order line can override this.</div></div>
                 <div class="field field-full"><label><input type="checkbox" wire:model="form.ppap_requested"> PPAP requested</label><div class="help">The customer asks for a production part approval submission from the start.</div></div>
                 <div class="field" x-show="$wire.form.ppap_requested" x-cloak @if (empty($form['ppap_requested'])) style="display:none" @endif><label for="c-ppap-level">PPAP level <span class="required">*</span></label><select id="c-ppap-level" wire:model="form.ppap_level" @error('form.ppap_level') aria-invalid="true" @enderror><option value="">Choose level</option>@foreach (range(1, 5) as $level)<option value="{{ $level }}">Level {{ $level }}</option>@endforeach</select></div>
                 @if ($editingId)<div class="field field-full"><label><input type="checkbox" wire:model="form.active"> Active</label><div class="help">Inactive customers are left out of the order form's customer list.</div></div>@endif

@@ -114,4 +114,19 @@ class PartialShipmentTest extends TestCase
 
         $this->assertFalse($this->ready($lot)['ok']);
     }
+
+    public function test_the_order_page_saves_a_lines_shipping_rule(): void
+    {
+        [, $line] = $this->heldLot(false);
+        $order = $line->salesOrder;
+
+        $this->get(route('sales-orders.show', $order))->assertOk()->assertSee('Shipping rule');
+        $this->put(route('sales-orders.lines.shipping', [$order, $line]), ['partial_shipments' => 'yes', 'min_ship_qty' => 103])->assertSessionHasNoErrors();
+        $this->assertTrue($line->fresh()->partial_shipments);
+        $this->assertSame(103, $line->fresh()->min_ship_qty);
+
+        $this->put(route('sales-orders.lines.shipping', [$order, $line]), ['partial_shipments' => '', 'min_ship_qty' => ''])->assertSessionHasNoErrors();
+        $this->assertNull($line->fresh()->partial_shipments);
+        $this->assertNull($line->fresh()->min_ship_qty);
+    }
 }

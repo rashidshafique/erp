@@ -106,6 +106,21 @@
                         <form method="POST" action="{{ route('sales-orders.lines.production-order', [$order, $l]) }}">@csrf
                             <button class="btn @if ($reviewBlocksProduction) btn-review-blocked @endif" type="submit" @disabled($reviewBlocksProduction) @if ($reviewBlocksProduction) title="Needs an approved contract review: sales and quality must both sign it off" @endif>+ Production Order</button></form>
                     @endif
+                    <button type="button" class="btn" data-quick="qd-shipping-{{ $l->id }}" title="Partial shipments and the fewest pieces to send">Shipping rule {!! ($l->min_ship_qty || $l->partial_shipments !== null) ? '<span class="muted small">· set</span>' : '' !!}</button>
+                    <dialog id="qd-shipping-{{ $l->id }}" class="qd" aria-labelledby="qd-shipping-{{ $l->id }}-title">
+                        <form method="POST" action="{{ route('sales-orders.lines.shipping', [$order, $l]) }}">@csrf @method('PUT')
+                            <div class="qd-head"><h2 id="qd-shipping-{{ $l->id }}-title">Shipping rule · line {{ $l->line_number }}, {{ $l->product?->name }}</h2><button type="button" class="qd-x" data-close aria-label="Close">&times;</button></div>
+                            <div class="qd-body"><div class="qd-fields">
+                                <div class="field"><label>Partial shipments</label><select name="partial_shipments">
+                                    <option value="" @selected($l->partial_shipments === null)>Customer's setting ({{ $order->customer?->allows_partial_shipments ? 'allowed' : 'not allowed' }})</option>
+                                    <option value="yes" @selected($l->partial_shipments === true)>Allowed on this line</option>
+                                    <option value="no" @selected($l->partial_shipments === false)>Not allowed on this line</option>
+                                </select><div class="help">Allowed: an open NCR holds only its own pieces and the accepted ones can ship. Not allowed: it holds the whole lot.</div></div>
+                                <div class="field"><label>Fewest pieces to ship</label><input name="min_ship_qty" type="number" min="1" step="1" value="{{ $l->min_ship_qty }}" placeholder="none"><div class="help">A lot waits until this many pieces can ship. Never more than what the line still has to receive.</div></div>
+                            </div></div>
+                            <div class="qd-foot"><button type="button" class="btn" data-close>Cancel</button><button class="btn btn-primary" type="submit">Save</button></div>
+                        </form>
+                    </dialog>
                     @if ($isOpen)
                         <button type="button" class="btn" data-quick="qd-delivery-{{ $l->id }}">+ Add delivery</button>
                         <dialog id="qd-delivery-{{ $l->id }}" class="qd" aria-labelledby="qd-delivery-{{ $l->id }}-title" @if (old('_quick') === 'qd-delivery-'.$l->id && $errors->has('quantity')) data-reopen="{{ json_encode($errors->getMessages()) }}" @endif>
