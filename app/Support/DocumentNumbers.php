@@ -27,6 +27,12 @@ class DocumentNumbers
         'tax_certificate' => ['Tax certificate', 'withholding_certificates', 'certificate_number', 'T', 'certificate_date'],
         'supplier_bill' => ['Supplier bill', 'supplier_bills', 'bill_number', 'B', 'bill_date'],
         'supplier_payment' => ['Supplier payment', 'supplier_payments', 'payment_number', 'Y', 'paid_on'],
+        'enquiry' => ['Enquiry', 'enquiries', 'code', 'E', 'received_on'],
+        'quotation' => ['Quotation', 'quotations', 'code', 'Q', 'created_at'],
+        'sales_order' => ['Sales order', 'sales_orders', 'order_number', 'S', 'order_date'],
+        'dispatch' => ['Dispatch', 'dispatches', 'dispatch_number', 'D', 'dispatched_at'],
+        'packing' => ['Packing', 'packing_records', 'packing_number', 'K', 'packed_at'],
+        'purchase_order' => ['Purchase order', 'purchase_orders', 'po_number', 'P', 'order_date'],
     ];
 
     public static function prefix(string $type): string
@@ -123,6 +129,52 @@ class DocumentNumbers
         }
 
         return $pairs;
+    }
+
+    /**
+     * Renumbers several types and swaps their old numbers for new ones in stored notices. For renumbering migrations.
+     *
+     * @param  list<string>  $types
+     * @return array<string, string> old => new
+     */
+    public static function renumberTypes(array $types): array
+    {
+        $pairs = [];
+        foreach ($types as $type) {
+            $pairs += self::renumber($type);
+        }
+        self::rewriteNotices($pairs);
+
+        return $pairs;
+    }
+
+    /** Undoes renumberTypes(). @param list<string> $types */
+    public static function restoreTypes(array $types): void
+    {
+        $flip = [];
+        foreach ($types as $type) {
+            [, $table, $column] = self::TYPES[$type];
+            if (! Schema::hasTable($table)) {
+                continue;
+            }
+            $flip += DB::table('number_history')->where('table_name', $table)->where('column_name', $column)->pluck('old_number', 'new_number')->all();
+            self::restore($table, $column);
+        }
+        self::rewriteNotices($flip);
+    }
+
+    /** Swaps numbers inside stored notices (their ref, link and text). @param array<string, string> $pairs */
+    public static function rewriteNotices(array $pairs): void
+    {
+        if ($pairs === [] || ! Schema::hasTable('notifications')) {
+            return;
+        }
+        foreach (DB::table('notifications')->get(['id', 'data']) as $n) {
+            $data = strtr((string) $n->data, $pairs);
+            if ($data !== $n->data) {
+                DB::table('notifications')->where('id', $n->id)->update(['data' => $data]);
+            }
+        }
     }
 
     /** Puts back the numbers a table's column had before it was renumbered. */

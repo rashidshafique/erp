@@ -10,6 +10,7 @@ use App\Domains\Dispatch\Models\PackingRecordItem;
 use App\Domains\Sales\Services\SalesOrderStatus;
 use App\Services\Patterns\PatternOwnership;
 use App\Services\QualityGates;
+use App\Support\DocumentNumbers;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -49,12 +50,8 @@ class ShipmentService
         }
 
         return DB::transaction(function () use ($qtyByLot, $head, $weighedByLot) {
-            $date = now()->format('ymd');
-            DB::select('SELECT pg_advisory_xact_lock(hashtext(?))', ['packing-number-'.$date]);
-            $prefix = "PK-{$date}-";
-            $n = (PackingRecord::where('packing_number', 'like', $prefix.'%')->pluck('packing_number')->map(fn ($x) => (int) substr($x, strlen($prefix)))->max() ?? 0) + 1;
             $pack = PackingRecord::create([
-                'packing_number' => $prefix.str_pad((string) $n, 2, '0', STR_PAD_LEFT), 'status' => 'PACKED', 'packed_at' => now(),
+                'packing_number' => DocumentNumbers::next('packing'), 'status' => 'PACKED', 'packed_at' => now(),
                 'packed_by' => $head['packed_by'] ?? null, 'checked_by' => $head['checked_by'] ?? null,
                 'package_type' => $head['package_type'] ?? null, 'storage_location' => $head['storage_location'] ?? null, 'package_count' => (int) ($head['package_count'] ?? 1),
                 'packaging_notes' => $head['packaging_notes'] ?? null,
@@ -100,12 +97,8 @@ class ShipmentService
         }
 
         return DB::transaction(function () use ($qtyByItem, $head) {
-            $date = now()->format('ymd');
-            DB::select('SELECT pg_advisory_xact_lock(hashtext(?))', ['dispatch-number-'.$date]);
-            $prefix = "DSP-{$date}-";
-            $n = (Dispatch::where('dispatch_number', 'like', $prefix.'%')->pluck('dispatch_number')->map(fn ($x) => (int) substr($x, strlen($prefix)))->max() ?? 0) + 1;
             $disp = Dispatch::create([
-                'dispatch_number' => $prefix.str_pad((string) $n, 2, '0', STR_PAD_LEFT), 'customer_id' => $head['customer_id'], 'status' => 'DISPATCHED',
+                'dispatch_number' => DocumentNumbers::next('dispatch'), 'customer_id' => $head['customer_id'], 'status' => 'DISPATCHED',
                 'dispatched_at' => now(), 'delivery_challan_number' => $head['delivery_challan_number'] ?? null, 'carrier_name' => $head['carrier_name'] ?? null,
                 'vehicle_number' => $head['vehicle_number'] ?? null, 'driver_name' => $head['driver_name'] ?? null,
                 'delivery_address' => $head['delivery_address'] ?? null, 'dispatched_by' => $head['dispatched_by'] ?? null,

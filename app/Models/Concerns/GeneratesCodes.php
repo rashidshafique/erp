@@ -3,6 +3,7 @@
 namespace App\Models\Concerns;
 
 use App\Services\Codes\CodeGenerator;
+use App\Support\DocumentNumbers;
 
 /**
  * Gives a record its code when none is typed, and tooling its engraving mark. Set $codeKind on the model.
@@ -14,7 +15,8 @@ trait GeneratesCodes
         static::creating(function ($model) {
             $gen = app(CodeGenerator::class);
             if (blank($model->code)) {
-                $model->code = $gen->code($model->codeKind);
+                // Documents (enquiries, quotations…) run in the document number series; records keep their item codes.
+                $model->code = isset(DocumentNumbers::TYPES[$model->codeKind]) ? DocumentNumbers::next($model->codeKind) : $gen->code($model->codeKind);
             }
             if ($model->marksOnCreate() && in_array($model->codeKind, CodeGenerator::TOOL_KINDS, true) && blank($model->mark_code)) {
                 $model->mark_code = $gen->mark();

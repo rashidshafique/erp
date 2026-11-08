@@ -48,7 +48,17 @@ class CodedRecords
             }
         }
         $mark = \DB::table('tool_marks')->whereRaw('upper(mark_code) = ?', [strtoupper($code)])->first();
+        if ($mark) {
+            return [$mark->tool_type, (string) $mark->tool_id];
+        }
+        // A label or stamp printed before renumbering carries the old number.
+        $tables = array_flip(array_map(fn ($t) => $t[0], self::TYPES));
+        foreach (\DB::table('number_history')->whereRaw('upper(old_number) = ?', [strtoupper($code)])->orderByDesc('id')->get(['table_name', 'record_id']) as $old) {
+            if (isset($tables[$old->table_name])) {
+                return [$tables[$old->table_name], (string) $old->record_id];
+            }
+        }
 
-        return $mark ? [$mark->tool_type, (string) $mark->tool_id] : null;
+        return null;
     }
 }

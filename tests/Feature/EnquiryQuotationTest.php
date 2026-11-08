@@ -186,7 +186,7 @@ class EnquiryQuotationTest extends TestCase
 
         $review = app(ContractReviewer::class)->evaluate($order->fresh());
         $this->assertContains('REVISION_STATUS', $review->items->where('severity', 'BLOCK')->pluck('check_code')->all());
-        $this->assertMatchesRegularExpression('/^SO-\d{4}-\d{4}$/', $order->order_number);
+        $this->assertMatchesRegularExpression('/^S-1[0-9]{4}$/', $order->order_number);
 
         $this->expectException(\RuntimeException::class);
         $svc->accept($q->fresh());   // cannot be accepted twice
@@ -262,7 +262,7 @@ class EnquiryQuotationTest extends TestCase
         $c = Customer::create(['code' => 'CX1', 'name' => 'Beta Valves']);
         $this->post(route('enquiries.store'), ['customer_id' => $c->id, 'title' => 'Valve body', 'source_type' => 'CONCEPT', 'action' => 'draft'])->assertSessionHasNoErrors();
         $e = Enquiry::firstOrFail();
-        $this->assertMatchesRegularExpression('/^ENQ-\d{5}$/', $e->code);
+        $this->assertMatchesRegularExpression('/^E-1[0-9]{4}$/', $e->code);
         $this->assertSame('NEW', $e->status);
         $this->post(route('enquiries.items.store', $e), ['description' => 'Valve body', 'weight_kg' => 12, 'first_batch_qty' => 20, 'family' => 'DUCTILE'])->assertSessionHasNoErrors();
         $this->assertSame('FEASIBILITY', $e->fresh()->status);

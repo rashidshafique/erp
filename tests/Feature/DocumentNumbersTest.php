@@ -64,4 +64,15 @@ class DocumentNumbersTest extends TestCase
         DocumentNumbers::restore('invoices', 'invoice_number');
         $this->assertSame(['INV-2026-0002', 'INV-2026-0001'], [$late->fresh()->invoice_number, $early->fresh()->invoice_number]);
     }
+
+    public function test_a_scanned_old_number_opens_the_record(): void
+    {
+        $order = \App\Domains\Sales\Models\SalesOrder::create(['order_number' => 'SO-2026-0007', 'customer_id' => $this->customer->id, 'order_date' => '2026-10-01', 'status' => 'DRAFT']);
+
+        DocumentNumbers::renumberTypes(['sales_order']);
+
+        $this->assertSame('S-10000', $order->fresh()->order_number);
+        $this->assertSame(['sales_order', $order->id], \App\Support\CodedRecords::find('so-2026-0007'));
+        $this->assertSame('S-10001', \App\Support\DocumentNumbers::preview('sales_order'));
+    }
 }

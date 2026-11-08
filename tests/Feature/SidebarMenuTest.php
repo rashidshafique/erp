@@ -96,14 +96,14 @@ class SidebarMenuTest extends TestCase
 
         // Each entry is found after the one before it. A single regex with .* runs out of backtracking on a long menu.
         $at = 0;
-        foreach (['Sales</span>', 'Overview', 'Enquiries', 'Sales orders', 'Engineering</span>', 'Feasibility', 'Patterns &amp; tooling', 'Cores</span>',
+        foreach (['Sales</span>', 'Invoices', 'Enquiries', 'Sales orders', 'Receipts', 'Cheques received', 'Engineering</span>', 'Feasibility', 'Patterns &amp; tooling', 'Cores</span>',
             'Production</span>', 'Planning', 'Orders</span>', 'Melt &amp; heats', 'Quality</span>', 'Inspection', 'NCR &amp; CAPA', 'Audits &amp; documents', 'Logistics</span>', 'Dispatch'] as $entry) {
             $found = strpos($nav, $entry, $at);
             $this->assertNotFalse($found, "{$entry} should follow the entries before it");
             $at = $found + strlen($entry);
         }
         $this->assertStringNotContainsString('>Quotations<', $nav, 'quotations are reached from their enquiry, not the menu');
-        $this->assertStringNotContainsString('nav-top', $nav);
+        $this->assertStringNotContainsString('>Overview<', $nav, 'the home page is the Dashboard link at the top, not part of Sales');
     }
 
     public function test_basic_only_menu_shows_just_invoicing_bills_and_inventory(): void
