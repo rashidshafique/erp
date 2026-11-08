@@ -53,7 +53,7 @@ class CapaRegisterTest extends TestCase
         $this->post(route('capa.store'), ['source_type' => 'AUDIT', 'source_label' => 'Finding 3', 'title' => 'Gauge not calibrated', 'severity' => 'MINOR'])->assertSessionHasNoErrors();
 
         $capa = CapaAction::firstOrFail();
-        $this->assertStringStartsWith('CPA', $capa->code);
+        $this->assertSame('CA-10000', $capa->code);
         $this->assertSame('OPEN', $capa->status);
         $this->get(route('capa.show', $capa))->assertOk()->assertSee('Gauge not calibrated')->assertSee('Finding 3');
     }

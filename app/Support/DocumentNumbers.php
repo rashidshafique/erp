@@ -45,6 +45,14 @@ class DocumentNumbers
         'ncr' => ['Nonconformance report', 'nonconformance_reports', 'ncr_number', 'N', 'created_at'],
         'inspection' => ['Inspection', 'quality_inspections', 'inspection_number', 'X', 'created_at'],
         'deviation' => ['Deviation', 'product_deviations', 'deviation_number', 'V', 'created_at'],
+        'capa' => ['Corrective action', 'capa_actions', 'code', 'CA', 'created_at'],
+        'pattern_development' => ['Pattern development', 'pattern_developments', 'code', 'PD', 'created_at'],
+        'maintenance_work_order' => ['Maintenance work order', 'maintenance_work_orders', 'work_order_number', 'MW', 'created_at'],
+        'breakdown' => ['Breakdown', 'equipment_breakdowns', 'breakdown_number', 'MB', 'created_at'],
+        'tooling_maintenance' => ['Tooling maintenance', 'tooling_maintenance_records', 'record_number', 'TM', 'created_at'],
+        'payroll_period' => ['Payroll period', 'payroll_periods', 'code', 'PP', 'month'],
+        'leave_request' => ['Leave request', 'leave_requests', 'code', 'LR', 'created_at'],
+        'hr_advance' => ['Employee advance', 'employee_advances', 'code', 'EA', 'created_at'],
     ];
 
     /** Columns elsewhere that hold a copy of a document's number, set to the new one when it is renumbered. */

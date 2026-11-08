@@ -193,11 +193,7 @@ class ToolingMaintenanceRecordController extends Controller
         $data = $this->validateRecord($request);
 
         $record = DB::transaction(function () use ($data) {
-            do {
-                $number = 'TM-'.now()->format('ymd').'-'.Str::upper(Str::random(6));
-            } while (ToolingMaintenanceRecord::where('record_number', $number)->exists());
-
-            $data['record_number'] = $number;
+            $data['record_number'] = \App\Support\DocumentNumbers::next('tooling_maintenance');
             $data['reported_at'] = $data['reported_at'] ?? now();
 
             return ToolingMaintenanceRecord::create($data);

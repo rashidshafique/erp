@@ -297,7 +297,7 @@ class HrAttendanceLeaveTest extends TestCase
         // Mon 12 – Mon 19: 12,13,15,16,17 + 19 working = 6 (14 holiday, 18 Sunday)
         $this->leave($e, 'CL', '2026-10-12', '2026-10-19')->assertSessionHas('success');
         $this->assertEqualsWithDelta(6.0, LeaveRequest::first()->days, 0.001);
-        $this->assertMatchesRegularExpression('/^LVR-\d{5}$/', LeaveRequest::first()->code);
+        $this->assertSame('LR-10000', LeaveRequest::first()->code);
     }
 
     public function test_leave_validation(): void
@@ -388,7 +388,7 @@ class HrAttendanceLeaveTest extends TestCase
         $this->post(route('hr.leave.adjust', $e), ['leave_type_id' => $sl->id, 'days' => 0, 'note' => 'x'])->assertSessionHas('error');
         $this->get(route('hr.employees.show', $e))->assertOk()->assertSee('carried from old system');
         $this->get(route('hr.leave'))->assertOk();
-        $this->get(route('hr.leave', ['status' => 'ALL']))->assertOk()->assertSee('LVR-');
+        $this->get(route('hr.leave', ['status' => 'ALL']))->assertOk()->assertSee('LR-10000');
     }
 
     public function test_monthly_accrual_is_a_twelfth_a_month_and_never_doubles(): void
