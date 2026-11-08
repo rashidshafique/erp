@@ -259,14 +259,14 @@ new class extends Component
             @else
             <div class="cl-table">
                 <table class="no-row-click">
-                    <thead><tr><th>Number</th><th>Customer</th><th>Date</th><th>Due</th><th class="r">Total</th><th class="r">Balance</th><th>Status</th></tr></thead>
+                    <thead><tr><th>Date</th><th>Customer</th><th>Number</th><th>Due</th><th class="r">Total</th><th class="r">Balance</th><th>Status</th></tr></thead>
                     <tbody>
                     @foreach ($rows as $r)
                         @php $i = $r['invoice']; [$label, $pill] = $r['stage']; $late = $label === 'Overdue'; @endphp
                         <tr wire:key="invoice-{{ $i->id }}" @class(['sel' => $inv && $inv->id === $i->id]) wire:click="select('{{ $i->id }}')">
-                            <td><code style="font-weight:600">{{ $i->invoice_number ?? 'Draft' }}</code>@if ($i->isCreditNote())<div class="cl-sub">credit note</div>@endif</td>
-                            <td><div style="font-weight:500">{{ $i->customer?->name }}</div><div class="cl-sub">{{ $i->customer_reference }}</div></td>
                             <td style="color:#55585d">{{ $i->invoice_date->format('j M') }}</td>
+                            <td><div style="font-weight:500">{{ $i->customer?->name }}</div><div class="cl-sub">{{ $i->customer_reference }}</div></td>
+                            <td><code style="font-weight:600">{{ $i->invoice_number ?? 'Draft' }}</code>@if ($i->isCreditNote())<div class="cl-sub">credit note</div>@endif</td>
                             <td>@if ($i->due_date && $i->status !== 'DRAFT')<div>{{ $i->due_date->format('j M') }}</div><div class="cl-sub" @if ($late) style="color:#b3352c" @endif>{{ $label === 'Paid' ? 'Paid' : ($i->due_date->isPast() ? (int) $i->due_date->diffInDays(today()).' days overdue' : 'in '.(int) today()->diffInDays($i->due_date).' days') }}</div>@else — @endif</td>
                             <td class="r">{{ $num($i->total) }}</td>
                             <td class="r" style="font-weight:500">{{ $r['balance'] > 0 ? $num($r['balance']) : '—' }}</td>

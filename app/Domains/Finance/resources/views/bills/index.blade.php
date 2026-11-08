@@ -16,9 +16,9 @@
         @if ($supplierId || $status)<a class="btn" href="{{ route('bills.index') }}">Reset</a>@endif
     </form>
 </div></div>
-<div class="panel"><div class="table-wrap"><table><thead><tr><th>Number</th><th>Supplier</th><th>Their number</th><th>Date</th><th>Due</th><th>Total</th><th>Owing</th><th>Status</th></tr></thead><tbody>
+<div class="panel"><div class="table-wrap"><table><thead><tr><th>Date</th><th>Supplier</th><th>Number</th><th>Their number</th><th>Due</th><th>Total</th><th>Owing</th><th>Status</th></tr></thead><tbody>
 @forelse ($bills as $b)
-<tr><td><a href="{{ route('bills.show', $b) }}">{{ $b->bill_number ?? 'Draft' }}</a>@if ($b->isCreditNote())<div class="muted small">credit note</div>@endif</td><td>{{ $b->supplier?->name }}</td><td>{{ $b->supplier_bill_number }}</td><td>{{ $b->bill_date->displayShortDate() }}</td><td>{{ $b->due_date?->displayShortDate() }}</td><td>{{ $m($b->total) }}</td>
+<tr><td>{{ $b->bill_date->displayShortDate() }}</td><td>{{ $b->supplier?->name }}</td><td><a href="{{ route('bills.show', $b) }}">{{ $b->bill_number ?? 'Draft' }}</a>@if ($b->isCreditNote())<div class="muted small">credit note</div>@endif</td><td>{{ $b->supplier_bill_number }}</td><td>{{ $b->due_date?->displayShortDate() }}</td><td>{{ $m($b->total) }}</td>
 <td>@if ($b->balance() > 0)<span @if ($b->isOverdue()) style="color:var(--danger);font-weight:650" @endif>{{ $m($b->balance()) }}</span>@endif</td>
 <td><span class="status {{ $b->status === 'POSTED' ? 'status-completed' : ($b->status === 'VOID' ? 'status-cancelled' : 'status-on-hold') }}">{{ $b->status === 'POSTED' && $b->balance() <= 0 && ! $b->isCreditNote() ? 'PAID' : $b->status }}</span></td></tr>
 @empty<tr><td colspan="8" class="muted">No supplier bill yet.</td></tr>@endforelse</tbody></table></div>
