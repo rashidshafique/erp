@@ -129,4 +129,11 @@ class PartialShipmentTest extends TestCase
         $this->assertNull($line->fresh()->partial_shipments);
         $this->assertNull($line->fresh()->min_ship_qty);
     }
+
+    public function test_the_lot_page_lists_what_blocks_dispatch_and_the_orders_shipping_rule(): void
+    {
+        [$lot] = $this->heldLot(false, null, 4);
+
+        $this->get(route('lots.show', $lot))->assertOk()->assertSee('What blocks dispatch')->assertSee('NOT CLEAR · ')->assertSee('partial shipments not allowed')->assertSee('fewest to ship 4');
+    }
 }

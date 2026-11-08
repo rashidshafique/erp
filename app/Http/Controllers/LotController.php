@@ -39,6 +39,7 @@ class LotController extends Controller
             'lot' => $lot,
             'heat' => $heat,
             'readiness' => $gates->lotReadiness($lot),
+            'shipRule' => app(\App\Services\Quality\ShipRule::class)->forLot($lot),
             'stages' => app(ProcessRoutes::class)->stepsFor($lot->product_revision_id),
             'pieces' => $service->pieces($lot),
             'cooling' => $service->cooling($lot),

@@ -19,8 +19,11 @@
 <div><div class="muted small">Packed</div><strong>{{ $packed }}</strong></div>
 <div><div class="muted small">Gross / net kg</div>{{ $lot->gross_weight_kg }} / {{ $lot->net_casting_weight_kg }}</div></div></div>
 
-<div class="panel"><div class="panel-header"><h2>Dispatch readiness</h2><span class="status {{ $readiness['ok'] ? 'status-completed' : 'status-cancelled' }}">{{ $readiness['ok'] ? 'CLEAR' : 'NOT CLEAR' }}</span></div>
-<div class="panel-body"><ul>@foreach($readiness['checks'] as $c)<li>{{ $c['ok'] === true ? '✔' : ($c['ok'] === false ? '✘' : '•') }} <strong>{{ $c['label'] }}</strong> — {{ $c['detail'] }}</li>@endforeach</ul>
+@php $blockers = collect($readiness['checks'])->where('ok', false); $others = collect($readiness['checks'])->where('ok', '!==', false); @endphp
+<div class="panel"><div class="panel-header"><h2>What blocks dispatch</h2><span class="status {{ $readiness['ok'] ? 'status-completed' : 'status-cancelled' }}">{{ $readiness['ok'] ? 'CLEAR' : 'NOT CLEAR · '.$blockers->count() }}</span></div>
+<div class="panel-body"><ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px">
+@foreach($blockers->concat($others) as $c)<li style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap">{{ $c['ok'] === true ? '✔' : ($c['ok'] === false ? '✘' : '•') }} <strong>{{ $c['label'] }}</strong> <span class="muted">{{ $c['detail'] }}</span>@if ($c['ok'] === false && $c['label'] === 'Final inspection' && Route::has('lots.inspections.create') && ! in_array($lot->status, ['DISPATCHED','CLOSED','SCRAPPED']))<a class="btn btn-small btn-primary" href="{{ route('lots.inspections.create', $lot) }}">Inspect</a>@endif</li>@endforeach</ul>
+@if ($shipRule['order'])<div class="muted small" style="margin-top:10px">Order {{ $shipRule['order'] }} · {{ $shipRule['customer'] }} · partial shipments {{ $shipRule['partial'] ? 'allowed' : 'not allowed' }}{{ $shipRule['override'] ? ' (set on the line)' : '' }}@if ($shipRule['min']) · fewest to ship {{ $shipRule['min'] }} pcs @endif</div>@endif
 @if (($readiness['waivable'] ?? false) && Route::has('packing.waive-material-checks'))
 <form method="POST" action="{{ route('packing.waive-material-checks', $lot) }}" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px">@csrf
 <input name="reason" placeholder="Why the chemistry and thermal analysis checks can be waived for this lot" maxlength="500" required style="min-width:340px;flex:1">
