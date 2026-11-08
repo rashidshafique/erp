@@ -11,11 +11,6 @@
     <label>{{ $label }}<select name="roles[{{ $role }}]" required>{!! $options($chosen[$role]) !!}</select></label>
 @endforeach
 </div></div>
-<div class="panel"><div class="panel-header"><h2>Payment methods</h2></div><div class="panel-body"><p class="muted small">Cash goes to the cash account, anything else to the bank, unless the method is listed here.</p>
-@foreach (array_merge(collect($methods)->map(fn ($id, $name) => ['name' => $name, 'account_id' => $id])->values()->all(), array_fill(0, 3, ['name' => '', 'account_id' => null])) as $i => $row)
-<div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap"><input name="methods[{{ $i }}][name]" value="{{ $row['name'] }}" placeholder="Method, e.g. Cheque" maxlength="30" style="width:200px"><select name="methods[{{ $i }}][account_id]"><option value="">—</option>{!! $options($row['account_id']) !!}</select></div>
-@endforeach
-</div></div>
 @if ($authorities->isNotEmpty())
 <div class="panel"><div class="panel-header"><h2>Tax owed to each authority</h2></div><div class="panel-body form-grid">
 @foreach ($authorities as $authority)

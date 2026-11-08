@@ -31,7 +31,7 @@ class ReceiptService
         return DB::transaction(function () use ($head, $allocations, $amount) {
             $receipt = Receipt::create([
                 'receipt_number' => $this->invoices->nextNumber('RC', 'receipts', 'receipt_number'), 'customer_id' => $head['customer_id'],
-                'received_on' => $head['received_on'], 'amount' => $amount, 'method' => $head['method'] ?? null, 'reference' => $head['reference'] ?? null, 'notes' => $head['notes'] ?? null,
+                'received_on' => $head['received_on'], 'amount' => $amount, 'method' => $head['method'] ?? null, 'reference' => $head['reference'] ?? null, 'notes' => $head['notes'] ?? null, 'account_id' => $head['account_id'] ?? null,
                 'sales_order_id' => $head['sales_order_id'] ?? null,
             ]);
             foreach ($allocations as $invoiceId => $part) {

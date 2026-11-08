@@ -11,8 +11,7 @@
 <div class="panel"><div class="panel-body form-grid">
     <label>Date paid<input type="date" name="paid_on" value="{{ old('paid_on', today()->toDateString()) }}" required></label>
     <label>Amount paid<input type="number" step="any" min="0" name="amount" x-model.number="amount" required></label>
-    <label>Method<input name="method" list="methods" value="{{ old('method') }}" maxlength="30"><datalist id="methods"><option>Bank transfer</option><option>Cheque</option><option>Cash</option></datalist></label>
-    <label>Reference<input name="reference" value="{{ old('reference') }}" maxlength="100" placeholder="Cheque or transfer number"></label>
+    @include('finance::partials.pay-with', ['into' => 'Paid from', 'lab' => ''])
     @if ($orders->isNotEmpty())<label>Advance for purchase order<select name="purchase_order_id"><option value="">— any bill —</option>@foreach ($orders as $o)<option value="{{ $o->id }}" @selected(old('purchase_order_id') === $o->id)>{{ $o->po_number ?? 'Draft order' }} · {{ $o->order_date?->displayShortDate() }}</option>@endforeach</select><span class="muted small">What is left as an advance then only goes on this order's bills.</span></label>@endif
 </div></div>
 <div class="panel"><div class="panel-header"><h2>Bills to pay</h2><button type="button" class="btn btn-small" style="margin-left:auto" @click="fill()">Fill oldest first</button></div>

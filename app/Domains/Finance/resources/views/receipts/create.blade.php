@@ -14,8 +14,8 @@
 .rc-btn { padding: 7px 14px; border-radius: 6px; background: #fff; border: 1px solid #d9dbde; font-size: 13px; color: #1c1d1f; cursor: pointer; text-decoration: none !important; font-family: inherit; }
 .rc-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 500; }
 .rc-body { padding: 20px 28px; display: flex; flex-direction: column; gap: 20px; }
-.rc-head { display: grid; grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr)); gap: 14px; padding-bottom: 20px; border-bottom: 1px solid #e6e7e9; }
-.rc-head > label, .rc-head > div { display: flex; flex-direction: column; gap: 6px; margin: 0; }
+.rc-head { display: grid; grid-template-columns: minmax(0, 1.6fr) repeat({{ $accounts->isNotEmpty() ? 4 : 3 }}, minmax(0, 1fr)); gap: 14px; padding-bottom: 20px; border-bottom: 1px solid #e6e7e9; }
+.rc-head > label, .rc-head > div:not(.pay-with), .rc-head .pay-with > label { display: flex; flex-direction: column; gap: 6px; margin: 0; }
 .rc-lab { font-size: 12px; color: #55585d; font-weight: 400; }
 .rc-head input, .rc-head select { padding: 7px 10px; border: 1px solid #d9dbde; border-radius: 6px; font-size: 13px; background: #fff; width: 100%; }
 .rc-sec { font-size: 12px; font-weight: 600; color: #55585d; text-transform: uppercase; letter-spacing: .06em; }
@@ -47,9 +47,7 @@
             @if ($customerId)
             <input type="hidden" name="customer_id" value="{{ $customerId }}">
             <label><span class="rc-lab">Received on</span><input type="date" name="received_on" value="{{ old('received_on', today()->toDateString()) }}" required></label>
-            <label><span class="rc-lab">Method · reference</span>
-                <div style="display:flex;gap:6px"><input name="method" list="methods" value="{{ old('method') }}" maxlength="30" placeholder="Method" style="flex:0 0 42%"><input name="reference" value="{{ old('reference') }}" maxlength="100" placeholder="Cheque or transfer number"></div>
-                <datalist id="methods"><option>Bank transfer</option><option>Cheque</option><option>Cash</option></datalist></label>
+            @include('finance::partials.pay-with', ['into' => 'Into', 'lab' => 'rc-lab'])
             <label><span class="rc-lab">Amount received</span><input type="number" step="any" min="0" name="amount" x-model.number="amount" required style="text-align:right;font-weight:500"></label>
             @endif
         </div>

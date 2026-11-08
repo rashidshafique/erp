@@ -10,6 +10,7 @@ use App\Domains\Finance\Models\SupplierPayment;
 use App\Domains\Finance\Models\SupplierPaymentAllocation;
 use App\Domains\Finance\Models\WithholdingCertificate;
 use App\Domains\Ledger\Models\Journal;
+use App\Domains\Ledger\Models\LedgerAccount;
 use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
 
@@ -67,12 +68,21 @@ class PostingRules
     /** Posts a document's journal; one dated before go-live is carried in the opening voucher instead and posts nothing. */
     public function post(Model $document): ?Journal
     {
+        if (($document instanceof Receipt || $document instanceof SupplierPayment) && ! $document->account_id) {
+            $document->forceFill(['account_id' => self::moneyAccount($document)->id])->saveQuietly();
+        }
         [$date, $lines, $memo] = $this->build($document);
         if (OpeningBalances::beforeGoLive($date)) {
             return null;
         }
 
         return $this->ledger->post($date, $lines, self::source($document), $memo, voucher: $this->voucher($document));
+    }
+
+    /** The cash or bank account money came into or went out of: the one picked on the receipt or payment, else by its method. */
+    public static function moneyAccount(Receipt|SupplierPayment $document): LedgerAccount
+    {
+        return ($document->account_id ? LedgerAccount::find($document->account_id) : null) ?? LedgerSettings::methodAccount($document->method);
     }
 
     /** @return array{0: string, 1: list<array<string, mixed>>, 2: string} date, lines and memo */
@@ -102,7 +112,7 @@ class PostingRules
             $document instanceof Invoice => ['number' => $document->invoice_number],
             $document instanceof SupplierBill => ['number' => $document->bill_number],
             $document instanceof Receipt, $document instanceof SupplierPayment => (function () use ($document) {
-                $through = LedgerSettings::methodAccount($document->method);
+                $through = self::moneyAccount($document);
                 $in = $document instanceof Receipt;
 
                 return ['type' => (Vouchers::isCash($through) ? 'C' : 'B').($in ? 'RV' : 'PV'), 'reference' => $document->reference, 'counter_account_id' => $through->id];
@@ -180,7 +190,7 @@ class PostingRules
         $rest = $receipt->unallocated();
 
         return [$receipt->received_on->toDateString(), [
-            ['debit' => $receipt->amount, 'account_id' => LedgerSettings::methodAccount($receipt->method)->id],
+            ['debit' => $receipt->amount, 'account_id' => self::moneyAccount($receipt)->id],
             ['credit' => round($receipt->amount - $rest, 2), 'account_id' => LedgerSettings::account('receivables')->id] + $party,
             ['credit' => $rest, 'account_id' => LedgerSettings::account('customer_advances')->id] + $party,
         ], 'Receipt '.$receipt->receipt_number.' · '.$receipt->customer?->name.($receipt->reference ? ' '.$receipt->reference : '')];
@@ -196,7 +206,7 @@ class PostingRules
         return [$payment->paid_on->toDateString(), [
             ['debit' => round($payment->amount - $rest, 2), 'account_id' => LedgerSettings::account('payables')->id] + $party,
             ['debit' => $rest, 'account_id' => LedgerSettings::account('supplier_advances')->id] + $party,
-            ['credit' => $payment->amount, 'account_id' => LedgerSettings::methodAccount($payment->method)->id],
+            ['credit' => $payment->amount, 'account_id' => self::moneyAccount($payment)->id],
         ], 'Payment '.$payment->payment_number.' · '.$payment->supplier?->name.($payment->reference ? ' '.$payment->reference : '')];
     }
 
