@@ -29,6 +29,7 @@ class Journal extends Model
         'supplier_payment' => ['Supplier payment', 'supplier-payments.show'],
         'journal' => ['Journal', 'ledger.journals.show'],
         'withholding_certificate' => ['Tax certificate', null],
+        'cheque' => ['Cheque', 'cheques.show'],
         'receipt_allocation' => ['Receipt', null],
         'supplier_payment_allocation' => ['Supplier payment', null],
     ];

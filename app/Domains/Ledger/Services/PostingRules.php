@@ -2,6 +2,7 @@
 
 namespace App\Domains\Ledger\Services;
 
+use App\Domains\Finance\Models\Cheque;
 use App\Domains\Finance\Models\Invoice;
 use App\Domains\Finance\Models\Receipt;
 use App\Domains\Finance\Models\ReceiptAllocation;
@@ -40,6 +41,7 @@ class PostingRules
             $document instanceof Receipt => 'receipt',
             $document instanceof SupplierPayment => 'supplier_payment',
             $document instanceof WithholdingCertificate => 'withholding_certificate',
+            $document instanceof Cheque => 'cheque',
             $document instanceof ReceiptAllocation => 'receipt_allocation',
             $document instanceof SupplierPaymentAllocation => 'supplier_payment_allocation',
             default => throw new InvalidArgumentException('The ledger does not know how to post a '.class_basename($document).'.'),
@@ -79,10 +81,36 @@ class PostingRules
         return $this->ledger->post($date, $lines, self::source($document), $memo, voucher: $this->voucher($document));
     }
 
-    /** The cash or bank account money came into or went out of: the one picked on the receipt or payment, else by its method. */
+    /**
+     * The account money came into or went out of: the cheques account for one made by a post-dated cheque that settles when it
+     * changes hands, else the one picked on the receipt or payment, else by its method.
+     */
     public static function moneyAccount(Receipt|SupplierPayment $document): LedgerAccount
     {
+        if ($document->cheque_id && Cheque::whereKey($document->cheque_id)->value('mode') === 'SETTLE') {
+            return LedgerSettings::account($document instanceof Receipt ? 'cheques_received' : 'cheques_issued');
+        }
+
         return ($document->account_id ? LedgerAccount::find($document->account_id) : null) ?? LedgerSettings::methodAccount($document->method);
+    }
+
+    /**
+     * A post-dated cheque that settled when it changed hands, cleared: from the cheques account into the bank, or out of the bank
+     * for one we gave, on the day it cleared.
+     *
+     * @return array{0: string, 1: list<array<string, mixed>>, 2: string}
+     */
+    private function cheque(Cheque $cheque): array
+    {
+        $cheque->loadMissing(['customer', 'supplier']);
+        $bank = ($cheque->account_id ? LedgerAccount::find($cheque->account_id) : null) ?? LedgerSettings::methodAccount($cheque->method);
+        $held = LedgerSettings::account($cheque->isReceived() ? 'cheques_received' : 'cheques_issued')->id;
+        [$debit, $credit] = $cheque->isReceived() ? [$bank->id, $held] : [$held, $bank->id];
+
+        return [$cheque->cleared_on->toDateString(), [
+            ['debit' => $cheque->amount, 'account_id' => $debit],
+            ['credit' => $cheque->amount, 'account_id' => $credit],
+        ], 'Cheque '.$cheque->cheque_number.' cleared · '.$cheque->partyName()];
     }
 
     /** @return array{0: string, 1: list<array<string, mixed>>, 2: string} date, lines and memo */
@@ -94,6 +122,7 @@ class PostingRules
             $document instanceof Receipt => $this->receipt($document),
             $document instanceof SupplierPayment => $this->payment($document),
             $document instanceof WithholdingCertificate => $this->certificate($document),
+            $document instanceof Cheque => $this->cheque($document),
             $document instanceof ReceiptAllocation => $this->receiptAllocation($document),
             $document instanceof SupplierPaymentAllocation => $this->paymentAllocation($document),
             default => throw new InvalidArgumentException('The ledger does not know how to post a '.class_basename($document).'.'),
@@ -111,6 +140,11 @@ class PostingRules
         return match (true) {
             $document instanceof Invoice => ['number' => $document->invoice_number],
             $document instanceof SupplierBill => ['number' => $document->bill_number],
+            $document instanceof Cheque => (function () use ($document) {
+                $bank = ($document->account_id ? LedgerAccount::find($document->account_id) : null) ?? LedgerSettings::methodAccount($document->method);
+
+                return ['type' => (Vouchers::isCash($bank) ? 'C' : 'B').($document->isReceived() ? 'RV' : 'PV'), 'reference' => $document->cheque_number, 'counter_account_id' => $bank->id];
+            })(),
             $document instanceof Receipt, $document instanceof SupplierPayment => (function () use ($document) {
                 $through = self::moneyAccount($document);
                 $in = $document instanceof Receipt;
@@ -257,9 +291,10 @@ class PostingRules
         $documents = collect()
             ->concat(Invoice::where('status', 'ISSUED')->whereNotIn('id', $done('invoice'))->get()->map(fn ($d) => [$d->invoice_date, $d]))
             ->concat(SupplierBill::where('status', 'POSTED')->whereNotIn('id', $done('supplier_bill'))->get()->map(fn ($d) => [$d->bill_date, $d]))
-            ->concat(Receipt::whereNotIn('id', $done('receipt'))->get()->map(fn ($d) => [$d->received_on, $d]))
-            ->concat(SupplierPayment::whereNotIn('id', $done('supplier_payment'))->get()->map(fn ($d) => [$d->paid_on, $d]))
+            ->concat(Receipt::active()->whereNotIn('id', $done('receipt'))->get()->map(fn ($d) => [$d->received_on, $d]))
+            ->concat(SupplierPayment::active()->whereNotIn('id', $done('supplier_payment'))->get()->map(fn ($d) => [$d->paid_on, $d]))
             ->concat(WithholdingCertificate::where('status', 'ACTIVE')->whereNotIn('id', $done('withholding_certificate'))->get()->map(fn ($d) => [$d->certificate_date, $d]))
+            ->concat(Cheque::where('mode', 'SETTLE')->where('status', 'CLEARED')->whereNotIn('id', $done('cheque'))->get()->map(fn ($d) => [$d->cleared_on, $d]))
             ->sortBy(fn ($pair) => $pair[0]->toDateString());
         $posted = 0;
         $skipped = [];

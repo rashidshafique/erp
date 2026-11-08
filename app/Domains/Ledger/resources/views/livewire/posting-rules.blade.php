@@ -23,10 +23,10 @@ new class extends Component
     private const DOCS = [
         'invoice' => ['name' => 'Sales invoice', 'when' => 'Issued', 'roles' => ['receivables', 'sales', 'output_tax'], 'model' => Invoice::class, 'debit' => 'receivables (gross)', 'credit' => 'sales · output_tax'],
         'credit_note' => ['name' => 'Credit note', 'when' => 'Issued', 'roles' => ['sales_returns', 'output_tax', 'receivables'], 'model' => Invoice::class, 'debit' => 'sales_returns · output_tax (reverse of the invoice lines)', 'credit' => 'receivables'],
-        'receipt' => ['name' => 'Customer receipt', 'when' => 'Saved', 'roles' => ['bank', 'cash', 'receivables', 'customer_advances'], 'model' => Receipt::class, 'debit' => 'bank or cash by method', 'credit' => 'receivables · customer_advances (not on an invoice)'],
+        'receipt' => ['name' => 'Customer receipt', 'when' => 'Saved', 'roles' => ['bank', 'cash', 'receivables', 'customer_advances', 'cheques_received'], 'model' => Receipt::class, 'debit' => 'bank or cash picked (cheques in hand for a post-dated cheque settled when received)', 'credit' => 'receivables · customer_advances (not on an invoice)'],
         'certificate' => ['name' => 'Tax certificate', 'when' => 'Recorded', 'roles' => ['tax_withheld', 'receivables'], 'model' => WithholdingCertificate::class, 'debit' => 'tax_withheld', 'credit' => 'receivables'],
         'bill' => ['name' => 'Purchase invoice', 'when' => 'Posted', 'roles' => ['purchases', 'expense', 'input_tax', 'payables', 'withheld_from_suppliers'], 'model' => SupplierBill::class, 'debit' => 'line account, else purchases (PO lines) or expense · input_tax', 'credit' => 'payables · withheld_from_suppliers'],
-        'payment' => ['name' => 'Supplier payment', 'when' => 'Saved', 'roles' => ['payables', 'supplier_advances', 'bank', 'cash'], 'model' => SupplierPayment::class, 'debit' => 'payables · supplier_advances (not on a bill)', 'credit' => 'bank or cash by method'],
+        'payment' => ['name' => 'Supplier payment', 'when' => 'Saved', 'roles' => ['payables', 'supplier_advances', 'bank', 'cash', 'cheques_issued'], 'model' => SupplierPayment::class, 'debit' => 'payables · supplier_advances (not on a bill)', 'credit' => 'bank or cash picked (cheques issued for a post-dated cheque settled when given)'],
         'opening' => ['name' => 'Opening balances', 'when' => 'Locked', 'roles' => ['opening_equity'], 'model' => null, 'debit' => 'typed accounts · receivables from open invoices', 'credit' => 'payables from open bills · opening_equity (difference)'],
     ];
 

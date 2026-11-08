@@ -23,7 +23,7 @@ class Advances
     {
         $orders = $this->salesOrders($invoice);
 
-        return Receipt::where('customer_id', $invoice->customer_id)
+        return Receipt::active()->where('customer_id', $invoice->customer_id)
             ->where(fn ($q) => $q->whereNull('sales_order_id')->orWhereIn('sales_order_id', $orders))
             ->orderBy('received_on')->orderBy('created_at')->get()
             ->filter(fn (Receipt $r) => $r->unallocated() > 0)
@@ -33,7 +33,7 @@ class Advances
     /** @return Collection<int, SupplierPayment> the supplier's payments with money left that may go on this bill, its own order's first */
     public function forBill(SupplierBill $bill): Collection
     {
-        return SupplierPayment::where('supplier_id', $bill->supplier_id)
+        return SupplierPayment::active()->where('supplier_id', $bill->supplier_id)
             ->where(fn ($q) => $q->whereNull('purchase_order_id')->when($bill->purchase_order_id, fn ($q) => $q->orWhere('purchase_order_id', $bill->purchase_order_id)))
             ->orderBy('paid_on')->orderBy('created_at')->get()
             ->filter(fn (SupplierPayment $p) => $p->unallocated() > 0)

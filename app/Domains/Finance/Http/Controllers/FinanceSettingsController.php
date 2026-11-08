@@ -17,7 +17,8 @@ class FinanceSettingsController extends Controller
     public function edit(): View
     {
         return view('finance::settings.edit', ['dueDays' => FinanceRules::dueDays(), 'currency' => FinanceRules::currency(), 'billMatch' => FinanceRules::billMatch(), 'billTolerance' => FinanceRules::billTolerance(), 'advances' => FinanceRules::advances(), 'billCost' => FinanceRules::billPriceToCost(),
-            'templates' => app(InvoiceTemplates::class)->options(), 'template' => app(InvoiceTemplates::class)->default(), 'creditCheck' => FinanceRules::creditCheck(), 'creditOrders' => FinanceRules::creditCountsOrders(), 'creditOverdueDays' => FinanceRules::creditOverdueDays()]);
+            'templates' => app(InvoiceTemplates::class)->options(), 'template' => app(InvoiceTemplates::class)->default(), 'creditCheck' => FinanceRules::creditCheck(), 'creditOrders' => FinanceRules::creditCountsOrders(), 'creditOverdueDays' => FinanceRules::creditOverdueDays(),
+            'pdcReceived' => FinanceRules::pdcMode(), 'pdcIssued' => FinanceRules::pdcMode(true), 'chequeSteps' => FinanceRules::chequeSteps()]);
     }
 
     public function update(Request $request): RedirectResponse
@@ -25,7 +26,8 @@ class FinanceSettingsController extends Controller
         $d = $request->validate(['due_days' => ['required', 'integer', 'min:0', 'max:365'], 'currency' => ['nullable', 'string', 'max:10'],
             'bill_match' => ['sometimes', Rule::in(array_keys(FinanceRules::MATCH_OPTIONS))], 'bill_tolerance' => ['sometimes', 'numeric', 'min:0', 'max:100'],
             'advances' => ['sometimes', Rule::in(array_keys(FinanceRules::ADVANCE_OPTIONS))], 'bill_cost' => ['sometimes', Rule::in(array_keys(FinanceRules::BILL_COST_OPTIONS))],
-            'invoice_template' => ['sometimes', Rule::in(array_keys(app(InvoiceTemplates::class)->options()))], 'credit_check' => ['sometimes', Rule::in(array_keys(FinanceRules::CREDIT_OPTIONS))], 'credit_orders' => ['sometimes', 'boolean'], 'credit_overdue_days' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:365']]);
+            'invoice_template' => ['sometimes', Rule::in(array_keys(app(InvoiceTemplates::class)->options()))], 'credit_check' => ['sometimes', Rule::in(array_keys(FinanceRules::CREDIT_OPTIONS))], 'credit_orders' => ['sometimes', 'boolean'], 'credit_overdue_days' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:365'],
+            'pdc_received' => ['sometimes', Rule::in(array_keys(FinanceRules::PDC_OPTIONS))], 'pdc_issued' => ['sometimes', Rule::in(array_keys(FinanceRules::PDC_OPTIONS))], 'cheque_steps' => ['sometimes', Rule::in(array_keys(FinanceRules::CHEQUE_STEP_OPTIONS))]]);
         AppSetting::setValue(FinanceRules::DUE_DAYS, (string) $d['due_days'], 'Days to payment on a new invoice when the customer has no terms');
         AppSetting::setValue(FinanceRules::CURRENCY, (string) ($d['currency'] ?? ''), 'Currency on a new invoice');
 
@@ -38,6 +40,9 @@ class FinanceSettingsController extends Controller
         AppSetting::setValue(FinanceRules::CREDIT_OVERDUE_DAYS, (string) (array_key_exists('credit_overdue_days', $d) ? (int) $d['credit_overdue_days'] : FinanceRules::creditOverdueDays()), 'Invoices overdue by more than this many days hold a customer back');
         AppSetting::setValue(FinanceRules::BILL_COST, $d['bill_cost'] ?? FinanceRules::billPriceToCost(), 'Whether a supplier bill price becomes the cost of the lots received');
         AppSetting::setValue(FinanceRules::ADVANCES, $d['advances'] ?? FinanceRules::advances(), 'What happens to money received or paid before the invoice or bill');
+        AppSetting::setValue(FinanceRules::PDC_RECEIVED, $d['pdc_received'] ?? FinanceRules::pdcMode(), 'What a post-dated cheque from a customer does before it clears');
+        AppSetting::setValue(FinanceRules::PDC_ISSUED, $d['pdc_issued'] ?? FinanceRules::pdcMode(true), 'What a post-dated cheque to a supplier does before it clears');
+        AppSetting::setValue(FinanceRules::CHEQUE_STEPS, $d['cheque_steps'] ?? FinanceRules::chequeSteps(), 'The steps a post-dated cheque goes through');
 
         return back()->with('success', 'Invoicing settings saved.');
     }

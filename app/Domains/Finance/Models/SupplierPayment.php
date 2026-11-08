@@ -4,6 +4,7 @@ namespace App\Domains\Finance\Models;
 
 use App\Domains\Purchasing\Models\PurchaseOrder;
 use App\Domains\Purchasing\Models\Supplier;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -21,15 +22,30 @@ class SupplierPayment extends Model
 
     protected function casts(): array
     {
-        return ['paid_on' => 'date', 'amount' => 'float'];
+        return ['paid_on' => 'date', 'amount' => 'float', 'voided_at' => 'datetime'];
     }
 
     public function supplier(): BelongsTo { return $this->belongsTo(Supplier::class)->withTrashed(); }
     public function allocations(): HasMany { return $this->hasMany(SupplierPaymentAllocation::class); }
     public function purchaseOrder(): BelongsTo { return $this->belongsTo(PurchaseOrder::class); }
 
+    public function cheque(): BelongsTo { return $this->belongsTo(Cheque::class); }
+
+    /** Undone because the cheque that paid it bounced; it stays on file but no longer counts. */
+    public function isVoided(): bool
+    {
+        return $this->voided_at !== null;
+    }
+
+    /** @param  Builder<static>  $query */
+    public function scopeActive(Builder $query): void
+    {
+        $query->whereNull('voided_at');
+    }
+
+    /** What is not on a document yet; nothing once voided. */
     public function unallocated(): float
     {
-        return round($this->amount - (float) $this->allocations()->sum('amount'), 2);
+        return $this->isVoided() ? 0.0 : round($this->amount - (float) $this->allocations()->sum('amount'), 2);
     }
 }

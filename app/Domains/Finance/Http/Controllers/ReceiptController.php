@@ -6,6 +6,7 @@ use App\Domains\Finance\Models\Receipt;
 use App\Domains\Finance\Services\ReceiptService;
 use App\Domains\Finance\Services\Receivables;
 use App\Domains\Sales\Models\SalesOrder;
+use App\Domains\Finance\Services\ChequeService;
 use App\Domains\Finance\Services\PaymentAccounts;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
@@ -36,15 +37,20 @@ class ReceiptController extends Controller
         ]);
     }
 
-    public function store(Request $request, ReceiptService $service): RedirectResponse
+    public function store(Request $request, ReceiptService $service, ChequeService $cheques): RedirectResponse
     {
         $d = $request->validate([
             'customer_id' => ['required', 'uuid', 'exists:customers,id'], 'received_on' => ['required', 'date'], 'amount' => ['required', 'numeric', 'gt:0'],
-            'method' => ['nullable', 'string', 'max:30'], 'reference' => ['nullable', 'string', 'max:100'], 'account_id' => PaymentAccounts::rule(), 'notes' => ['nullable', 'string', 'max:1000'],
+            'method' => ['nullable', 'string', 'max:30'], 'reference' => ['nullable', 'string', 'max:100'], 'account_id' => PaymentAccounts::rule(), 'cheque_date' => ['nullable', 'date'], 'drawn_on' => ['nullable', 'string', 'max:100'], 'notes' => ['nullable', 'string', 'max:1000'],
             'alloc' => ['nullable', 'array'], 'alloc.*' => ['nullable', 'numeric', 'min:0'],
             'sales_order_id' => ['nullable', 'uuid', Rule::exists('sales_orders', 'id')->where('customer_id', $request->input('customer_id'))],
         ]);
         try {
+            if (ChequeService::isPostDated($d)) {
+                $cheque = $cheques->receive($d, $d['alloc'] ?? []);
+
+                return redirect()->route('cheques.show', $cheque)->with('success', 'Post-dated cheque '.($cheque->cheque_number ?? '').' recorded.');
+            }
             $receipt = $service->record($d, $d['alloc'] ?? []);
         } catch (InvalidArgumentException $e) {
             return back()->withErrors(['receipt' => $e->getMessage()])->withInput();

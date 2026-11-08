@@ -66,7 +66,7 @@ class Receivables
         return [
             'unapplied' => round($receipts->sum(fn (Receipt $r) => $r->unallocated()), 2), 'unapplied_count' => $receipts->count(),
             'overdue' => round($late->sum(fn (Invoice $i) => $i->balance()), 2), 'overdue_count' => $late->count(),
-            'collected' => round((float) Receipt::whereBetween('received_on', [now()->startOfMonth(), now()->endOfMonth()])->sum('amount'), 2),
+            'collected' => round((float) Receipt::active()->whereBetween('received_on', [now()->startOfMonth(), now()->endOfMonth()])->sum('amount'), 2),
         ];
     }
 
@@ -90,6 +90,9 @@ class Receivables
         }
         foreach (Receipt::where('customer_id', $customer->id)->get() as $r) {
             $entries[] = ['date' => $r->received_on, 'at' => $r->created_at, 'type' => 'Receipt', 'number' => $r->receipt_number, 'model' => $r, 'debit' => 0.0, 'credit' => $r->amount];
+            if ($r->isVoided()) {
+                $entries[] = ['date' => $r->voided_at->startOfDay(), 'at' => $r->voided_at, 'type' => 'Cheque bounced', 'number' => $r->receipt_number, 'model' => $r, 'debit' => $r->amount, 'credit' => 0.0];
+            }
         }
         foreach (WithholdingCertificate::where('customer_id', $customer->id)->where('status', 'ACTIVE')->get() as $c) {
             $entries[] = ['date' => $c->certificate_date, 'at' => $c->created_at, 'type' => 'Tax certificate', 'number' => $c->certificate_number, 'model' => $c, 'debit' => 0.0, 'credit' => $c->amount];

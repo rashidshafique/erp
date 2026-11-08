@@ -86,6 +86,9 @@ class Payables
         }
         foreach (SupplierPayment::where('supplier_id', $supplier->id)->get() as $p) {
             $entries[] = ['date' => $p->paid_on, 'at' => $p->created_at, 'type' => 'Payment', 'number' => $p->payment_number, 'model' => $p, 'owed' => 0.0, 'paid' => $p->amount];
+            if ($p->isVoided()) {
+                $entries[] = ['date' => $p->voided_at->startOfDay(), 'at' => $p->voided_at, 'type' => 'Cheque bounced', 'number' => $p->payment_number, 'model' => $p, 'owed' => $p->amount, 'paid' => 0.0];
+            }
         }
         usort($entries, fn ($a, $b) => [$a['date']->timestamp, $a['at']] <=> [$b['date']->timestamp, $b['at']]);
         $balance = 0.0;

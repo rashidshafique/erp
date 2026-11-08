@@ -47,7 +47,7 @@
             @if ($customerId)
             <input type="hidden" name="customer_id" value="{{ $customerId }}">
             <label><span class="rc-lab">Received on</span><input type="date" name="received_on" value="{{ old('received_on', today()->toDateString()) }}" required></label>
-            @include('finance::partials.pay-with', ['into' => 'Into', 'lab' => 'rc-lab'])
+            @include('finance::partials.pay-with', ['into' => 'Into', 'lab' => 'rc-lab', 'drawnOn' => true, 'pdcMode' => \App\Domains\Finance\Services\FinanceRules::pdcMode()])
             <label><span class="rc-lab">Amount received</span><input type="number" step="any" min="0" name="amount" x-model.number="amount" required style="text-align:right;font-weight:500"></label>
             @endif
         </div>

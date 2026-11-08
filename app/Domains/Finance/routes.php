@@ -1,6 +1,7 @@
 <?php
 
 use App\Domains\Finance\Http\Controllers\BillController;
+use App\Domains\Finance\Http\Controllers\ChequeController;
 use App\Domains\Finance\Http\Controllers\CreditController;
 use App\Domains\Finance\Http\Controllers\FinanceSettingsController;
 use App\Domains\Finance\Http\Controllers\InvoiceController;
@@ -48,6 +49,14 @@ Route::middleware('web')->group(function () {
         Route::post('/', 'store')->name('store');
         Route::get('/{receipt}', 'show')->name('show');
         Route::post('/{receipt}/allocate', 'allocate')->name('allocate');
+    });
+    Route::prefix('cheques')->name('cheques.')->controller(ChequeController::class)->group(function () {
+        Route::get('/received', 'index')->defaults('direction', 'RECEIVED')->name('received');
+        Route::get('/issued', 'index')->defaults('direction', 'ISSUED')->name('issued');
+        Route::get('/{cheque}', 'show')->name('show');
+        Route::post('/{cheque}/deposit', 'deposit')->name('deposit');
+        Route::post('/{cheque}/clear', 'clear')->name('clear');
+        Route::post('/{cheque}/bounce', 'bounce')->name('bounce');
     });
     Route::prefix('withholding-certificates')->name('withholding-certificates.')->controller(WithholdingCertificateController::class)->group(function () {
         Route::get('/', 'index')->name('index');

@@ -31,7 +31,7 @@ class SupplierPaymentService
         return DB::transaction(function () use ($head, $allocations, $amount) {
             $payment = SupplierPayment::create([
                 'payment_number' => $this->numbers->nextNumber('SP', 'supplier_payments', 'payment_number'), 'supplier_id' => $head['supplier_id'],
-                'paid_on' => $head['paid_on'], 'amount' => $amount, 'method' => $head['method'] ?? null, 'reference' => $head['reference'] ?? null, 'notes' => $head['notes'] ?? null, 'account_id' => $head['account_id'] ?? null,
+                'paid_on' => $head['paid_on'], 'amount' => $amount, 'method' => $head['method'] ?? null, 'reference' => $head['reference'] ?? null, 'notes' => $head['notes'] ?? null, 'account_id' => $head['account_id'] ?? null, 'cheque_id' => $head['cheque_id'] ?? null,
                 'purchase_order_id' => $head['purchase_order_id'] ?? null,
             ]);
             $this->allocate($payment, $allocations);

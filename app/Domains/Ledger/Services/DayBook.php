@@ -2,6 +2,7 @@
 
 namespace App\Domains\Ledger\Services;
 
+use App\Domains\Finance\Models\Cheque;
 use App\Domains\Finance\Models\Invoice;
 use App\Domains\Finance\Models\Receipt;
 use App\Domains\Finance\Models\SupplierBill;
@@ -112,6 +113,7 @@ class DayBook
             'supplier_bill' => SupplierBill::whereIn('id', $ids('supplier_bill'))->pluck('bill_number', 'id')->all(),
             'receipt' => Receipt::whereIn('id', $ids('receipt'))->pluck('receipt_number', 'id')->all(),
             'supplier_payment' => SupplierPayment::whereIn('id', $ids('supplier_payment'))->pluck('payment_number', 'id')->all(),
+            'cheque' => Cheque::whereIn('id', $ids('cheque'))->get(['id', 'cheque_number'])->mapWithKeys(fn ($c) => [$c->id => (string) $c->cheque_number])->all(),
         ];
     }
 
