@@ -267,7 +267,7 @@ class LotController extends Controller
 
             return false;
         }
-        $lot->update(['status' => 'IN_PRODUCTION', 'notes' => trim($lot->notes."\n".now()->displayShortDateTime().' released from hold')]);
+        $lot->update(['status' => 'IN_PRODUCTION', 'quality_hold' => null, 'notes' => trim($lot->notes."\n".now()->displayShortDateTime().' released from hold')]);
 
         return true;
     }

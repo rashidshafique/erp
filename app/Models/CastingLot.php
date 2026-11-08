@@ -15,6 +15,7 @@ class CastingLot extends Model
     protected $fillable = [
         'lot_number',
         'code',
+        'quality_hold',
         'pour_mould_assembly_id',
         'production_order_id',
         'product_id',

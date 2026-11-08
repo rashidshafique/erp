@@ -230,6 +230,15 @@ Route::prefix('floor/furnace')->name('floor.furnace.')->group(function () {
     Route::post('/heat/{heat}/close', [\App\Http\Controllers\FurnaceCloseController::class, 'store'])->name('heat.close.store');
 });
 
+// ---- Quality tablet (design R4 Quality, Q·2 to Q·5) ----
+Route::prefix('floor/quality')->name('floor.quality.')->controller(\App\Http\Controllers\QualityTabletController::class)->group(function () {
+    Route::get('/lots', 'lots')->name('lots');
+    Route::get('/lots/{lot}', 'lot')->name('lot');
+    Route::get('/lots/{lot}/inspect', 'inspect')->name('lot.inspect');
+    Route::post('/lots/{lot}/review', 'review')->name('lot.review');
+    Route::post('/lots/{lot}/inspect', 'store')->name('lot.inspect.store');
+});
+
 Route::post('/heats/{heat}/charge-rounds', [\App\Http\Controllers\HeatChargeRoundController::class, 'store'])->name('heats.charge-rounds.store');
 Route::post('/heats/{heat}/charge-rounds/confirm', [\App\Http\Controllers\HeatChargeRoundController::class, 'confirm'])->name('heats.charge-rounds.confirm');
 Route::post('/heats/{heat}/charge-rounds/backfill', [\App\Http\Controllers\HeatChargeRoundController::class, 'backfill'])->name('heats.charge-rounds.backfill');
