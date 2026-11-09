@@ -430,6 +430,9 @@ new class extends Component
 .cl-table td, .cl-table th { text-align: left; } .cl-table .r { text-align: right; }
 .cl-table tbody tr { cursor: pointer; } .cl-table tbody tr.sel { background: #f5f8fe; }
 .cl-sub { font-size: 12px; color: #6b6e73; }
+.cl-ctx { position: fixed; z-index: 50; min-width: 160px; padding: 4px; background: #fff; border: 1px solid #e6e7e9; border-radius: 8px; box-shadow: 0 12px 32px rgba(0,0,0,.14), 0 2px 6px rgba(0,0,0,.06); font-size: 13px; }
+.cl-ctx a { display: block; padding: 7px 10px; border-radius: 6px; color: #1c1d1f; text-decoration: none !important; outline: 0; }
+.cl-ctx a:hover, .cl-ctx a:focus { background: #f5f6f7; }
 .cl-table .nw { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .cl-table code { font-weight: 400; background: none; padding: 0; color: inherit; }
 .cl-meter { margin-top: 8px; height: 6px; border-radius: 3px; background: #e6e7e9; overflow: hidden; } .cl-meter div { height: 6px; border-radius: 3px; }
@@ -448,7 +451,12 @@ new class extends Component
     $num = fn ($v) => Formats::number((float) $v, 0);
     $p = $panel['row'] ?? null; $inv = $p['invoice'] ?? null;
 @endphp
-<div class="cl-card">
+<div class="cl-card" x-data="{ menu: null, openMenu(e, invoice, customer) { this.menu = { x: Math.min(e.clientX, window.innerWidth - 180), y: Math.min(e.clientY, window.innerHeight - 90), invoice, customer }; this.$nextTick(() => this.$refs.menu?.querySelector('a')?.focus()); } }"
+     @click.window="menu = null" @keydown.escape.window="menu = null" @scroll.window="menu = null" @resize.window="menu = null">
+    <div class="cl-ctx" x-ref="menu" x-show="menu" x-cloak role="menu" :style="menu && `left:${menu.x}px;top:${menu.y}px`" @contextmenu.prevent>
+        <a role="menuitem" :href="menu?.invoice">Open invoice</a>
+        <a role="menuitem" :href="menu?.customer">Open customer</a>
+    </div>
     <div class="cl-bar">
         <div style="display:flex;align-items:center;gap:16px">
             <strong style="font-weight:600">Invoices</strong>
@@ -565,7 +573,8 @@ new class extends Component
                         <tr wire:key="invoice-{{ $i->id }}" @class(['sel' => $inv && $inv->id === $i->id]) wire:click="select('{{ $i->id }}')">
                             <td class="nw">{{ $i->invoice_date->format('j M') }}</td>
                             <td class="nw"><code>{{ $i->invoice_number ?? 'Draft' }}</code>@if ($i->isCreditNote())<div class="cl-sub">credit note</div>@endif</td>
-                            <td><div style="font-weight:500">{{ $i->customer?->name }}</div><div class="cl-sub">{{ $i->customer_reference }}</div></td>
+                            @php $custUrl = $i->customer ? ($i->customer->party_id ? route('parties.show', $i->customer->party_id) : route('customers.index', ['search' => $i->customer->name])) : null; @endphp
+                            <td><div style="font-weight:500" @if ($custUrl) @contextmenu.prevent="openMenu($event, @js(route('invoices.show', $i)), @js($custUrl))" @endif>{{ $i->customer?->name }}</div><div class="cl-sub">{{ $i->customer_reference }}</div></td>
                             <td>
                                 <div style="display:flex;align-items:center;gap:8px;white-space:nowrap"><span class="cl-pill {{ $pill }}">{{ $label }}</span><span class="nw">{{ $i->due_date && $i->status === 'ISSUED' && ! $i->isCreditNote() ? $i->due_date->format('j M') : '—' }}</span></div>
                                 @if ($i->due_date && $i->status === 'ISSUED' && ! $i->isCreditNote())

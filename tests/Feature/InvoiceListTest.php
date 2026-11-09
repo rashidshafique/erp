@@ -121,4 +121,13 @@ class InvoiceListTest extends TestCase
         \App\Models\AppSetting::setValue(\App\Domains\Finance\Services\FinanceRules::CREDIT_CHECK, 'OFF');
         Livewire::test('invoice-list')->assertDontSee('Over credit limit')->assertDontSee('Customer credit');
     }
+
+    public function test_the_customer_name_carries_a_right_click_menu_to_the_invoice_and_the_customer(): void
+    {
+        $customer = Customer::create(['code' => 'ACME', 'name' => 'Acme Pumps', 'active' => true]);
+        $invoice = $this->invoice($customer, 'INV-ONE', 'ISSUED', 100, today()->addDays(9)->toDateString());
+
+        Livewire::test('invoice-list')->assertSee('Open invoice')->assertSee('Open customer')
+            ->assertSeeHtml("openMenu(\$event, '".addcslashes(route('invoices.show', $invoice), '/')."', '".addcslashes(route('parties.show', $customer->fresh()->party_id), '/')."')");
+    }
 }
