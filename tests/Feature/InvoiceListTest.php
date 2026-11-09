@@ -34,7 +34,7 @@ class InvoiceListTest extends TestCase
         ReceiptAllocation::create(['receipt_id' => $receipt->id, 'invoice_id' => $paid->id, 'amount' => 200]);
 
         $list = Livewire::test('invoice-list');
-        $list->assertSee('INV-LATE')->assertSee('Part paid')->assertSee('Overdue')->assertSee('Drafts 1')->assertSee('Unpaid 2')->assertSee('Overdue 1')->assertSee('Paid 1');
+        $list->assertSee('INV-LATE')->assertSee('Part paid')->assertSee('Overdue')->assertSeeText('Drafts 1')->assertSeeText('Unpaid 2')->assertSeeText('Overdue 1')->assertSeeText('Paid 1');
 
         $list->call('showTab', 'OVERDUE')->assertSee('INV-LATE')->assertDontSee('INV-PART');
         $list->call('showTab', 'DRAFT')->assertSee('Review and post');
@@ -60,5 +60,39 @@ class InvoiceListTest extends TestCase
         $this->invoice($customer, 'INV-TWO', 'ISSUED', 100, today()->addDays(9)->toDateString());
 
         Livewire::test('invoice-list')->set('search', 'PO-777')->assertSee('INV-ONE')->assertDontSee('INV-TWO');
+    }
+
+    public function test_the_date_menu_limits_the_list_to_a_preset_a_day_or_a_range(): void
+    {
+        $customer = Customer::create(['code' => 'ACME', 'name' => 'Acme Pumps', 'active' => true]);
+        $due = today()->addDays(30)->toDateString();
+        $this->invoice($customer, 'INV-NOW', 'ISSUED', 100, $due);
+        $this->invoice($customer, 'INV-2MO', 'ISSUED', 100, $due, ['invoice_date' => today()->subMonths(2)]);
+        $this->invoice($customer, 'INV-OLD', 'ISSUED', 100, $due, ['invoice_date' => today()->subYears(2)]);
+
+        $list = Livewire::test('invoice-list')->assertDontSee('INV-OLD');
+        $list->call('setPeriod', '1m')->assertSee('INV-NOW')->assertDontSee('INV-2MO')->assertSee('Last month');
+        $list->call('setPeriod', '3m')->assertSee('INV-2MO')->assertDontSee('INV-OLD');
+        $list->call('setPeriod', 'all')->assertSee('INV-OLD')->assertSee('All dates');
+
+        $day = today()->subMonths(2)->toDateString();
+        $list->call('setRange', $day, $day)->assertSet('period', 'day')->assertSee('INV-2MO')->assertDontSee('INV-NOW');
+        $list->call('setRange', today()->toDateString(), today()->subYears(3)->toDateString())   // picked back to front
+            ->assertSet('period', 'range')->assertSet('from', today()->subYears(3)->toDateString())->assertSee('INV-OLD')->assertSee('INV-NOW');
+        $list->call('setRange', 'not-a-date', $day)->assertSet('period', 'range');
+        $list->call('setPeriod', 'nonsense')->assertSet('period', 'fy');
+    }
+
+    public function test_the_list_sorts_by_a_column_and_a_second_click_turns_it_round(): void
+    {
+        $acme = Customer::create(['code' => 'ACME', 'name' => 'Acme Pumps', 'active' => true]);
+        $zeta = Customer::create(['code' => 'ZETA', 'name' => 'Zeta Castings', 'active' => true]);
+        $this->invoice($zeta, 'INV-SMALL', 'ISSUED', 100, today()->addDays(9)->toDateString());
+        $this->invoice($acme, 'INV-BIG', 'ISSUED', 900, today()->addDays(9)->toDateString());
+
+        $list = Livewire::test('invoice-list')->call('sortBy', 'total')->assertSet('dir', 'desc')->assertSeeInOrder(['INV-BIG', 'INV-SMALL'])->assertSee('Total, largest first');
+        $list->call('sortBy', 'total')->assertSet('dir', 'asc')->assertSeeInOrder(['INV-SMALL', 'INV-BIG']);
+        $list->call('sortBy', 'customer')->assertSet('dir', 'asc')->assertSeeInOrder(['INV-BIG', 'INV-SMALL']);
+        $list->call('sortBy', 'nonsense')->assertSet('sort', 'customer');
     }
 }

@@ -8,6 +8,7 @@ use App\Domains\Finance\Services\InvoiceService;
 use App\Models\Customer;
 use App\Support\Formats;
 use App\Support\FinancialYear;
+use Illuminate\Support\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -16,9 +17,10 @@ use Livewire\Component;
 use Livewire\WithPagination;
 
 /**
- * The invoice list (design 24a): status tabs with counts, search and customer and date chips, an edge-to-edge table, and a side
- * panel for the selected invoice whose buttons change with where it stands. The tab values are the ones the page has always
- * taken in its address (`status`, `customer`), so existing links keep working.
+ * The invoice list (design 24a): status tabs with counts, a filter bar (search, customer, a date menu of presets with a custom
+ * day or range on a two-month calendar, and sort), an edge-to-edge table sorted from its headers, and a side panel for the
+ * selected invoice whose buttons change with where it stands. The tab values are the ones the page has always taken in its
+ * address (`status`, `customer`), so existing links keep working.
  */
 new class extends Component
 {
@@ -35,9 +37,42 @@ new class extends Component
     #[Url(except: '')]
     public string $customer = '';
 
-    /** 'fy' limits the list to the financial year the day falls in; '' shows every date. */
+    /** Months back for the presets, keyed by the `period` value. */
+    private const MONTHS = ['1m' => 1, '3m' => 3, '6m' => 6, '12m' => 12];
+
+    /**
+     * Columns the list sorts by: label, alignment, the first direction a click gives, and the words for each direction.
+     *
+     * @var array<string, array{0: string, 1: string, 2: string, 3: string, 4: string}>
+     */
+    private const SORTS = [
+        'date' => ['Date', 'left', 'desc', 'date, newest first', 'date, oldest first'],
+        'customer' => ['Customer', 'left', 'asc', 'customer, A to Z', 'customer, Z to A'],
+        'number' => ['Number', 'left', 'desc', 'number, newest first', 'number, oldest first'],
+        'due' => ['Due', 'left', 'asc', 'due date, soonest first', 'due date, latest first'],
+        'total' => ['Total', 'right', 'desc', 'total, largest first', 'total, smallest first'],
+        'balance' => ['Balance', 'right', 'desc', 'balance, largest first', 'balance, smallest first'],
+        'status' => ['Status', 'left', 'asc', 'status, overdue first', 'status, overdue last'],
+    ];
+
+    /** Status order for sorting, most pressing first. */
+    private const STAGE_ORDER = ['Overdue' => 0, 'Part paid' => 1, 'Issued' => 2, 'Draft' => 3, 'Paid' => 4, 'Credit note' => 5, 'Voided' => 6];
+
+    /** 'fy' (default) the financial year today falls in; '1m', '3m', '6m', '12m' back from today; 'day' or 'range' from `from` to `to`; 'all' (or '') every date. */
     #[Url(except: 'fy')]
     public string $period = 'fy';
+
+    #[Url(except: '')]
+    public string $from = '';
+
+    #[Url(except: '')]
+    public string $to = '';
+
+    #[Url(except: 'date')]
+    public string $sort = 'date';
+
+    #[Url(except: 'desc')]
+    public string $dir = 'desc';
 
     public ?string $selectedId = null;
 
@@ -51,8 +86,37 @@ new class extends Component
         $this->resetPage();
     }
 
-    public function updatedPeriod(): void
+    /** A preset from the date menu. */
+    public function setPeriod(string $period): void
     {
+        $this->period = array_key_exists($period, self::MONTHS) || in_array($period, ['fy', 'all'], true) ? $period : 'fy';
+        $this->resetPage();
+    }
+
+    /** A custom day (from equals to) or range picked on the calendar; the dates come as Y-m-d and are put in order. */
+    public function setRange(string $from, string $to): void
+    {
+        $valid = fn (string $d) => preg_match('/^\d{4}-\d{2}-\d{2}$/', $d) === 1 && strtotime($d) !== false;
+        if (! $valid($from) || ! $valid($to)) {
+            return;
+        }
+        [$this->from, $this->to] = $from <= $to ? [$from, $to] : [$to, $from];
+        $this->period = $this->from === $this->to ? 'day' : 'range';
+        $this->resetPage();
+    }
+
+    /** A header click: a new column starts in its natural direction, the same column turns round. */
+    public function sortBy(string $key): void
+    {
+        if (! array_key_exists($key, self::SORTS)) {
+            return;
+        }
+        if ($this->sort === $key) {
+            $this->dir = $this->dir === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->sort = $key;
+            $this->dir = self::SORTS[$key][2];
+        }
         $this->resetPage();
     }
 
@@ -69,7 +133,7 @@ new class extends Component
 
     public function resetFilters(): void
     {
-        $this->reset('search', 'status', 'customer');
+        $this->reset('search', 'customer', 'from', 'to');
         $this->period = 'fy';
         $this->resetPage();
     }
@@ -155,16 +219,71 @@ new class extends Component
         return $receipt ? $line.' Receipt '.$receipt->receipt_number.' on '.$receipt->received_on->format('j M').' settled '.Formats::money($paid, 0).'.' : $line;
     }
 
+    /**
+     * The dates the list is limited to, or null for every date.
+     *
+     * @return array{start: Carbon, end: Carbon}|null
+     */
+    private function range(): ?array
+    {
+        $today = today();
+
+        return match (true) {
+            $this->period === 'fy' => FinancialYear::containing(),
+            array_key_exists($this->period, self::MONTHS) => ['start' => $today->copy()->subMonthsNoOverflow(self::MONTHS[$this->period]), 'end' => $today],
+            in_array($this->period, ['day', 'range'], true) && $this->from !== '' => ['start' => Carbon::parse($this->from), 'end' => Carbon::parse($this->to ?: $this->from)],
+            default => null,
+        };
+    }
+
+    /**
+     * The date menu: its presets with the words under each, and the chip's label.
+     *
+     * @return array{label: string, presets: list<array{key: string, label: string, sub: string}>}
+     */
+    private function dateMenu(): array
+    {
+        $since = fn (int $n, bool $year = false) => 'since '.today()->subMonthsNoOverflow($n)->format($year ? 'j M Y' : 'j M');
+        $fy = FinancialYear::containing();
+        $fyWords = $fy['start']->format('M').'–'.$fy['end']->format('M');
+        $day = fn (string $d) => Carbon::parse($d)->format('j M');
+        $custom = match ($this->period) {
+            'day' => $this->from !== '' ? $day($this->from) : '',
+            'range' => $this->from !== '' ? $day($this->from).' – '.$day($this->to ?: $this->from) : '',
+            default => '',
+        };
+        $presets = [
+            ['key' => '1m', 'label' => 'Last month', 'sub' => $since(1)],
+            ['key' => '3m', 'label' => 'Last 3 months', 'sub' => $since(3)],
+            ['key' => '6m', 'label' => 'Last 6 months', 'sub' => $since(6)],
+            ['key' => '12m', 'label' => 'Last 12 months', 'sub' => $since(12, true)],
+            ['key' => 'fy', 'label' => 'This financial year', 'sub' => $fyWords],
+            ['key' => 'all', 'label' => 'All dates', 'sub' => ''],
+            ['key' => 'day', 'label' => 'Custom date', 'sub' => $this->period === 'day' ? $custom : 'pick a day ›'],
+            ['key' => 'range', 'label' => 'Custom range', 'sub' => $this->period === 'range' ? $custom : 'pick dates ›'],
+        ];
+        $label = match (true) {
+            $custom !== '' => $custom,
+            $this->period === 'fy' => 'This FY · '.$fyWords,
+            array_key_exists($this->period, self::MONTHS) => collect($presets)->firstWhere('key', $this->period)['label'],
+            default => 'All dates',
+        };
+
+        return ['label' => $label, 'presets' => $presets];
+    }
+
     public function with(): array
     {
         $search = trim($this->search);
-        $range = $this->period === 'fy' ? FinancialYear::containing() : null;
+        $range = $this->range();
         $base = Invoice::with('customer')
             ->when($this->customer !== '' && \Illuminate\Support\Str::isUuid($this->customer), fn ($q) => $q->where('customer_id', $this->customer))
             ->when($range, fn ($q) => $q->whereBetween('invoice_date', [$range['start']->toDateString(), $range['end']->toDateString()]))
             ->when($search !== '', fn ($q) => $q->where(fn ($w) => $w->where('invoice_number', 'ilike', "%{$search}%")->orWhere('customer_reference', 'ilike', "%{$search}%")
                 ->orWhereHas('customer', fn ($c) => $c->matching($search))))
             ->orderByDesc('invoice_date')->orderByDesc('created_at')->get();
+        $sort = array_key_exists($this->sort, self::SORTS) ? $this->sort : 'date';
+        $desc = $this->dir !== 'asc';
 
         $owing = $this->owing($base);
         $rows = $base->map(function (Invoice $i) use ($owing) {
@@ -179,7 +298,17 @@ new class extends Component
         };
         $counts = collect(self::TABS)->map(fn ($label, $tab) => $rows->filter(fn ($r) => $inTab($r, $tab))->count())->all();
         $tab = array_key_exists($this->status, self::TABS) ? $this->status : '';
-        $shown = $rows->filter(fn ($r) => $inTab($r, $tab))->values();
+        $key = match ($sort) {
+            'date' => fn ($r) => $r['invoice']->invoice_date->toDateString(),
+            'customer' => fn ($r) => mb_strtolower((string) $r['invoice']->customer?->name),
+            'number' => fn ($r) => (string) $r['invoice']->invoice_number,
+            'due' => fn ($r) => $r['invoice']->status === 'DRAFT' || ! $r['invoice']->due_date ? '9999-12-31' : $r['invoice']->due_date->toDateString(),
+            'total' => fn ($r) => (float) $r['invoice']->total,
+            'balance' => fn ($r) => $r['balance'],
+            'status' => fn ($r) => self::STAGE_ORDER[$r['stage'][0]] ?? 9,
+        };
+        $shown = $rows->filter(fn ($r) => $inTab($r, $tab));
+        $shown = ($desc ? $shown->sortByDesc($key) : $shown->sortBy($key))->values();
 
         $page = LengthAwarePaginator::resolveCurrentPage();
         $paged = new LengthAwarePaginator($shown->forPage($page, 25)->values(), $shown->count(), 25, $page, ['path' => LengthAwarePaginator::resolveCurrentPath()]);
@@ -189,6 +318,14 @@ new class extends Component
             'rows' => $paged, 'counts' => $counts, 'tabs' => self::TABS, 'tab' => $tab,
             'owed' => round($shown->sum('balance'), 2),
             'customers' => Customer::whereIn('id', Invoice::select('customer_id'))->orderedByName()->get(),
+            'date' => $this->dateMenu(),
+            'filtersOn' => ($this->customer !== '' ? 1 : 0) + ($range ? 1 : 0) + ($search !== '' ? 1 : 0),
+            'sorts' => collect(self::SORTS)->map(fn ($s, $k) => ['label' => $s[0], 'align' => $s[1], 'on' => $k === $sort, 'words' => ucfirst($s[2] === $this->dir || $k !== $sort ? $s[3] : $s[4])])->all(),
+            'sortWords' => ucfirst(self::SORTS[$sort][$desc === (self::SORTS[$sort][2] === 'desc') ? 3 : 4]),
+            'sortDesc' => $desc,
+            // invoices per day over the last two years, for the dots and the count on the calendar
+            'perDay' => Invoice::query()->where('invoice_date', '>=', today()->subYears(2))->groupBy('invoice_date')->selectRaw('invoice_date, count(*) as n')->toBase()->pluck('n', 'invoice_date')
+                ->mapWithKeys(fn ($n, $d) => [substr((string) $d, 0, 10) => (int) $n])->all(),
             'waiting' => $this->waitingDispatches(),
             'panel' => $selected ? [
                 'row' => $selected, 'linked' => $this->linked($selected['invoice']), 'last' => $this->lastActivity($selected['invoice'], $selected['paid']),
@@ -200,18 +337,58 @@ new class extends Component
 
 <div>
 <style>
+[x-cloak] { display: none !important; }
 .cl-card { border: 1px solid #e6e7e9; border-radius: 8px; background: #fff; overflow: hidden; font-size: 13px; }
 .cl-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 14px 28px; border-bottom: 1px solid #e6e7e9; }
-.cl-tabs { display: flex; gap: 4px; color: #6b6e73; }
-.cl-tabs a { padding: 4px 10px; border-radius: 6px; color: #6b6e73; text-decoration: none !important; }
-.cl-tabs a.on { background: #f0f1f3; color: #1c1d1f; }
+.cl-tabs { display: flex; gap: 18px; align-self: stretch; margin: -14px 0; }
+.cl-tabs a { display: inline-flex; align-items: center; gap: 7px; padding: 0 2px; white-space: nowrap; color: #55585d; font-weight: 500; text-decoration: none !important; }
+.cl-tabs a.on { color: #1c1d1f; font-weight: 600; box-shadow: inset 0 -2px 0 var(--accent); }
+.cl-tabs .dot { width: 7px; height: 7px; border-radius: 50%; }
+.cl-tabs .n { font-size: 12px; font-weight: 500; color: #6b6e73; font-variant-numeric: tabular-nums; }
+.cl-tabs a.on .n { color: var(--accent); } .cl-tabs .n.bad { color: #b3352c; }
 .cl-btn { padding: 7px 14px; border-radius: 6px; background: #fff; border: 1px solid #d9dbde; font-size: 13px; color: #1c1d1f; cursor: pointer; text-decoration: none !important; }
 .cl-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 500; }
 .cl-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; }
 .cl-main { padding: 20px 28px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-.cl-filters { display: flex; gap: 8px; align-items: center; }
-.cl-filters input[type=search] { flex: 1; max-width: 320px; padding: 7px 10px; border: 1px solid #d9dbde; border-radius: 6px; font-size: 13px; }
-.cl-filters select { width: auto; padding: 6px 10px; border: 1px solid #d9dbde; border-radius: 6px; background: #fff; font-size: 13px; }
+.cl-filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.cl-search { flex: 1; min-width: 180px; max-width: 320px; display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px; box-sizing: border-box; border: 1px solid #c9cbcf; border-radius: 6px; background: #fff; }
+.cl-search input { flex: 1; min-width: 0; border: 0 !important; padding: 0 !important; height: 32px; font-size: 13px; background: transparent; box-shadow: none !important; outline: 0; }
+.cl-chip { position: relative; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 10px 0 12px; box-sizing: border-box; border: 1px solid #c9cbcf; border-radius: 6px; background: #fff; box-shadow: 0 1px 0 rgba(0,0,0,.04); cursor: pointer; white-space: nowrap; font-size: 13px; color: #1c1d1f; }
+.cl-chip .k { color: #55585d; } .cl-chip b { font-weight: 500; }
+.cl-chip.open { border-color: var(--accent); background: var(--accent-soft); }
+.cl-chip select { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+.cl-fbtn { font-weight: 500; padding: 0 12px; }
+.cl-badge { min-width: 18px; height: 18px; padding: 0 5px; box-sizing: border-box; border-radius: 9px; background: var(--accent); color: #fff; font-size: 11.5px; font-weight: 600; line-height: 18px; text-align: center; }
+.cl-sep { width: 1px; height: 20px; background: #e6e7e9; margin: 0 2px; }
+.cl-pop { position: absolute; top: 40px; right: 0; z-index: 20; display: flex; align-items: flex-start; background: #fff; border: 1px solid #e6e7e9; border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,.14), 0 2px 6px rgba(0,0,0,.06); font-size: 13px; white-space: nowrap; max-width: calc(100vw - 32px); overflow-x: auto; cursor: default; }
+.cl-pre { width: 230px; padding: 6px; }
+.cl-pre button { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border: 0; border-radius: 6px; background: transparent; color: #1c1d1f; font-size: 13px; text-align: left; cursor: pointer; }
+.cl-pre button:hover { background: #f5f6f7; }
+.cl-pre button.on { background: var(--accent-soft); color: var(--accent-dark); font-weight: 600; }
+.cl-pre button.first-custom { margin-top: 6px; box-shadow: 0 -6px 0 #fff, 0 -7px 0 #eff0f2; }
+.cl-pre .sub { font-size: 12px; color: #6b6e73; font-weight: 400; }
+.cl-cal { padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; border-right: 1px solid #eff0f2; }
+.cl-cal .mon { width: 224px; }
+.cl-cal .mhead { display: flex; align-items: center; justify-content: space-between; font-weight: 600; margin-bottom: 8px; }
+.cl-cal .mhead button { border: 0; background: transparent; padding: 0 6px; font-size: 16px; color: #55585d; cursor: pointer; }
+.cl-cal .wk, .cl-cal .days { display: grid; grid-template-columns: repeat(7, 32px); text-align: center; }
+.cl-cal .wk { font-size: 11.5px; color: #6b6e73; margin-bottom: 4px; } .cl-cal .days { row-gap: 2px; }
+.cl-cal .days button { position: relative; height: 30px; border: 0; padding: 0; background: transparent; border-radius: 6px; font-size: 13px; color: #1c1d1f; cursor: pointer; }
+.cl-cal .days button.future { color: #9a9da2; }
+.cl-cal .days button.today { box-shadow: inset 0 0 0 1px var(--accent); font-weight: 600; }
+.cl-cal .days button.mid { background: var(--accent-soft); border-radius: 0; }
+.cl-cal .days button.end { background: var(--accent); color: #fff; font-weight: 600; box-shadow: none; }
+.cl-cal .days button.has::after { content: ''; position: absolute; bottom: 3px; left: 50%; margin-left: -2px; width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
+.cl-cal .days button.end.has::after { background: #fff; }
+.cl-cal .foot { display: flex; align-items: center; gap: 8px; border-top: 1px solid #eff0f2; padding-top: 12px; }
+.cl-cal .foot button { padding: 6px 12px; border: 0; border-radius: 6px; background: transparent; color: #55585d; font-size: 13px; cursor: pointer; }
+.cl-cal .foot button.apply { padding: 6px 14px; background: var(--accent); color: #fff; font-weight: 500; }
+.cl-cal .foot button.apply:disabled { opacity: .45; cursor: default; }
+.cl-sort { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 4px; border: 0; background: transparent; color: #55585d; cursor: pointer; white-space: nowrap; font-size: 13px; position: relative; }
+.cl-sort b { font-weight: 500; color: #1c1d1f; }
+.cl-table th.s { cursor: pointer; user-select: none; white-space: nowrap; color: #55585d; font-weight: 500; }
+.cl-table th.s.on { color: #1c1d1f; font-weight: 600; }
+.cl-table th.s .ar { display: inline-block; width: 12px; margin-left: 4px; font-size: 11px; color: #c9cbcf; } .cl-table th.s.on .ar { color: var(--accent); }
 .cl-table { margin: 0 -12px; overflow-x: auto; }
 .cl-table td, .cl-table th { text-align: left; } .cl-table .r { text-align: right; }
 .cl-table tbody tr { cursor: pointer; } .cl-table tbody tr.sel { background: #f5f8fe; }
@@ -235,10 +412,10 @@ new class extends Component
     <div class="cl-bar">
         <div style="display:flex;align-items:center;gap:16px">
             <strong style="font-weight:600">Invoices</strong>
-            <nav class="cl-tabs">
+            <nav class="cl-tabs" role="tablist">
                 @foreach ($tabs as $key => $label)
                     @if ($key !== 'VOID' || $counts['VOID'] > 0)
-                        <a href="#" wire:click.prevent="showTab('{{ $key }}')" @class(['on' => $tab === $key])>{{ $label }} {{ $counts[$key] }}</a>
+                        <a href="#" role="tab" aria-selected="{{ $tab === $key ? 'true' : 'false' }}" wire:click.prevent="showTab('{{ $key }}')" @class(['on' => $tab === $key])><span class="dot" style="background:{{ ['' => 'transparent', 'DRAFT' => '#9a9da2', 'OPEN' => '#2f5fd0', 'OVERDUE' => '#b3352c', 'PAID' => '#1d7048', 'VOID' => '#c4c7cc'][$key] }}"></span>{{ $label }} <span @class(['n', 'bad' => $key === 'OVERDUE' && $counts[$key] > 0])>{{ $counts[$key] }}</span></a>
                     @endif
                 @endforeach
             </nav>
@@ -250,16 +427,95 @@ new class extends Component
     <div class="cl-grid">
         <div class="cl-main">
             <div class="cl-filters">
-                <input type="search" wire:model.live.debounce.300ms="search" placeholder="Search number, customer or PO" autocomplete="off" aria-label="Search number, customer or PO">
-                <select wire:model.live="customer" aria-label="Customer"><option value="">Customer: all</option>@foreach ($customers as $c)<option value="{{ $c->id }}">{{ $c->name }}</option>@endforeach</select>
-                <select wire:model.live="period" aria-label="Date"><option value="fy">Date: this FY</option><option value="">Date: any</option></select>
+                <label class="cl-search">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#55585d" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                    <input type="search" wire:model.live.debounce.300ms="search" placeholder="Search number, customer or PO" autocomplete="off" aria-label="Search number, customer or PO">
+                </label>
+                <button type="button" class="cl-chip cl-fbtn" wire:click="resetFilters" title="Reset filters: all customers, this financial year, no search">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1c1d1f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h18l-7 8v6l-4 2v-8L3 5z"/></svg>
+                    Filters @if ($filtersOn)<span class="cl-badge">{{ $filtersOn }}</span>@endif
+                </button>
+                <span class="cl-sep" aria-hidden="true"></span>
+                <label class="cl-chip">
+                    <span class="k">Customer</span><b>{{ $customers->firstWhere('id', $customer)?->name ?? 'All' }}</b>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#55585d" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                    <select wire:model.live="customer" aria-label="Customer"><option value="">All</option>@foreach ($customers as $c)<option value="{{ $c->id }}">{{ $c->name }}</option>@endforeach</select>
+                </label>
+                <span style="position:relative;display:inline-flex" wire:key="date-menu"
+                      x-data="invoiceDates(@js($perDay), @js(today()->toDateString()), @js($from))" @click.outside="close()" @keydown.escape.window="close()">
+                    <button type="button" class="cl-chip" :class="{ open }" @click="open ? close() : (open = true)" aria-haspopup="true" :aria-expanded="open">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#55585d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+                        <span class="k">Date</span><b>{{ $date['label'] }}</b>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#55585d" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div class="cl-pop" x-show="open" x-cloak>
+                        <div class="cl-cal" x-show="cal">
+                            <div style="display:flex;gap:22px">
+                                <template x-for="(m, mi) in months()" :key="m.key">
+                                    <div class="mon">
+                                        <div class="mhead">
+                                            <button type="button" x-show="mi === 0" @click="shift(-1)" aria-label="Earlier months">‹</button><span x-show="mi !== 0"></span>
+                                            <span x-text="m.name"></span>
+                                            <button type="button" x-show="mi === 1" @click="shift(1)" aria-label="Later months">›</button><span x-show="mi !== 1"></span>
+                                        </div>
+                                        <div class="wk"><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span></div>
+                                        <div class="days">
+                                            <template x-for="d in m.days" :key="d.key">
+                                                <span style="display:contents">
+                                                    <template x-if="! d.iso"><span></span></template>
+                                                    <template x-if="d.iso">
+                                                        <button type="button" @click="pick(d.iso)" :class="cls(d.iso)" :aria-label="d.iso" x-text="d.n"></button>
+                                                    </template>
+                                                </span>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                            <div class="foot">
+                                <span style="color:#55585d" x-text="hint()"></span>
+                                <span style="margin-left:auto"></span>
+                                <button type="button" @click="cal = false">Cancel</button>
+                                <button type="button" class="apply" :disabled="! ready()" @click="apply()">Apply</button>
+                            </div>
+                        </div>
+                        <div class="cl-pre">
+                            @foreach ($date['presets'] as $pr)
+                                @php $custom = in_array($pr['key'], ['day', 'range'], true); @endphp
+                                @if ($custom)
+                                    <button type="button" @class(['first-custom' => $pr['key'] === 'day']) :class="{ on: cal ? mode === '{{ $pr['key'] }}' : $wire.period === '{{ $pr['key'] }}' }" @click="custom('{{ $pr['key'] }}')">
+                                        <span><span x-show="cal ? mode === '{{ $pr['key'] }}' : $wire.period === '{{ $pr['key'] }}'">✓&nbsp; </span>{{ $pr['label'] }}</span><span class="sub">{{ $pr['sub'] }}</span>
+                                    </button>
+                                @else
+                                    @php $is = $pr['key'] === 'all' ? "(\$wire.period === 'all' || \$wire.period === '')" : "\$wire.period === '{$pr['key']}'"; @endphp
+                                    <button type="button" :class="{ on: ! cal && {{ $is }} }" wire:click="setPeriod('{{ $pr['key'] }}')" @click="close()">
+                                        <span><span x-show="! cal && {{ $is }}">✓&nbsp; </span>{{ $pr['label'] }}</span><span class="sub">{{ $pr['sub'] }}</span>
+                                    </button>
+                                @endif
+                            @endforeach
+                        </div>
+                    </div>
+                </span>
+                <span style="position:relative;margin-left:auto" x-data="{ open: false }" @click.outside="open = false">
+                    <button type="button" class="cl-sort" @click="open = ! open" aria-haspopup="true" :aria-expanded="open">
+                        Sort <b>{{ $sortWords }}</b>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#55585d" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div class="cl-pop" x-show="open" x-cloak>
+                        <div class="cl-pre">
+                            @foreach ($sorts as $k => $so)
+                                <button type="button" @class(['on' => $so['on']]) wire:click="sortBy('{{ $k }}')" @click="open = false"><span>@if ($so['on'])✓&nbsp; @endif{{ $so['words'] }}</span></button>
+                            @endforeach
+                        </div>
+                    </div>
+                </span>
             </div>
             @if ($rows->isEmpty())
                 <div class="muted">{{ $counts[''] ? 'No invoice matches.' : 'No invoice yet.' }}</div>
             @else
             <div class="cl-table">
                 <table class="no-row-click">
-                    <thead><tr><th>Date</th><th>Customer</th><th>Number</th><th>Due</th><th class="r">Total</th><th class="r">Balance</th><th>Status</th></tr></thead>
+                    <thead><tr>@foreach ($sorts as $k => $so)<th wire:click="sortBy('{{ $k }}')" title="Sort by {{ strtolower($so['label']) }}" aria-sort="{{ $so['on'] ? ($sortDesc ? 'descending' : 'ascending') : 'none' }}" @class(['s', 'on' => $so['on'], 'r' => $so['align'] === 'right'])>{{ $so['label'] }}<span class="ar">{{ $so['on'] ? ($sortDesc ? '↓' : '↑') : '↕' }}</span></th>@endforeach</tr></thead>
                     <tbody>
                     @foreach ($rows as $r)
                         @php $i = $r['invoice']; [$label, $pill] = $r['stage']; $late = $label === 'Overdue'; @endphp
