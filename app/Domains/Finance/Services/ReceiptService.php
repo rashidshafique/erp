@@ -3,6 +3,7 @@
 namespace App\Domains\Finance\Services;
 
 use App\Domains\Finance\Events\DocumentPosted;
+use App\Domains\Finance\Events\ReceiptRecorded;
 use App\Domains\Finance\Models\Invoice;
 use App\Domains\Finance\Models\Receipt;
 use Illuminate\Support\Facades\DB;
@@ -45,6 +46,7 @@ class ReceiptService
                 $receipt->allocations()->create(['invoice_id' => $invoice->id, 'amount' => $part]);
             }
             event(new DocumentPosted($receipt));
+            event(new ReceiptRecorded($receipt));
 
             return $receipt->fresh('allocations');
         });

@@ -8,6 +8,8 @@ use App\Domains\Core\Tax\TaxContext;
 use App\Domains\Core\Tax\TaxLine;
 use App\Domains\Finance\Events\DocumentPosted;
 use App\Domains\Finance\Events\DocumentVoided;
+use App\Domains\Finance\Events\BillPosted;
+use App\Domains\Finance\Events\BillVoided;
 use App\Domains\Finance\Models\SupplierBill;
 use App\Domains\Finance\Models\SupplierBillLine;
 use App\Domains\Purchasing\Models\PurchaseOrder;
@@ -137,6 +139,7 @@ class BillService
             $due = $bill->due_date ?? ($bill->isCreditNote() ? null : $bill->bill_date->copy()->addDays(FinanceRules::daysFromTerms($bill->payment_terms)));
             $bill->update(['bill_number' => $this->numbers->nextNumber('BILL'), 'status' => 'POSTED', 'posted_at' => now(), 'due_date' => $due]);
             event(new DocumentPosted($bill));
+            event(new BillPosted($bill));
             $this->costing->refresh($bill);
             if (FinanceRules::advances() === 'AUTO') {
                 $this->advances->applyToBill($bill);
@@ -158,6 +161,7 @@ class BillService
         DB::transaction(function () use ($bill, $reason) {
             $bill->update(['status' => 'VOID', 'voided_at' => now(), 'void_reason' => $reason]);
             event(new DocumentVoided($bill));
+            event(new BillVoided($bill));
             $this->costing->refresh($bill, 'VOIDED');
         });
 
