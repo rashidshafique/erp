@@ -355,6 +355,7 @@ new class extends Component
             'owed' => round($shown->sum('balance'), 2),
             'customers' => Customer::whereIn('id', Invoice::select('customer_id'))->orderedByName()->get(),
             'date' => $this->dateMenu(),
+            'anyInvoice' => $base->isNotEmpty() || Invoice::query()->exists(),
             'credit' => $this->credit($onPage),
             'filtersOn' => ($this->customer !== '' ? 1 : 0) + ($range ? 1 : 0) + ($search !== '' ? 1 : 0),
             'sorts' => collect(self::SORTS)->map(fn ($s, $k) => ['label' => $s[0], 'align' => $s[1], 'on' => $k === $sort, 'words' => ucfirst($s[2] === $this->dir || $k !== $sort ? $s[3] : $s[4])])->all(),
@@ -375,7 +376,7 @@ new class extends Component
 <div>
 <style>
 [x-cloak] { display: none !important; }
-.cl-card { border: 1px solid #e6e7e9; border-radius: 8px; background: #fff; overflow: hidden; font-size: 13px; }
+.cl-card { border: 1px solid #e6e7e9; border-radius: 8px; background: #fff; font-size: 13px; }
 .cl-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 14px 28px; border-bottom: 1px solid #e6e7e9; }
 .cl-tabs { display: flex; gap: 18px; align-self: stretch; margin: -14px 0; }
 .cl-tabs a { display: inline-flex; align-items: center; gap: 7px; padding: 0 2px; white-space: nowrap; color: #55585d; font-weight: 500; text-decoration: none !important; }
@@ -438,13 +439,13 @@ new class extends Component
 .cl-meter { margin-top: 8px; height: 6px; border-radius: 3px; background: #e6e7e9; overflow: hidden; } .cl-meter div { height: 6px; border-radius: 3px; }
 .cl-pill { font-size: 11.5px; padding: 2px 8px; border-radius: 999px; font-weight: 500; white-space: nowrap; display: inline-block; }
 .cl-ok { background: #e7f4ec; color: #1d7048; } .cl-warn { background: #fbf0dc; color: #94610a; } .cl-bad { background: #fbe7e5; color: #b3352c; } .cl-info { background: #eaf0fd; color: #2f5fd0; } .cl-grey { background: #f0f1f3; color: #55585d; }
-.cl-side { border-left: 1px solid #e6e7e9; padding: 20px 24px; background: #f8f8f9; display: flex; flex-direction: column; gap: 18px; }
+.cl-side { border-left: 1px solid #e6e7e9; border-radius: 0 0 8px 0; padding: 20px 24px; background: #f8f8f9; display: flex; flex-direction: column; gap: 18px; }
 .cl-side .lab { font-size: 12px; color: #6b6e73; }
 .cl-two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .cl-sec { font-size: 12px; font-weight: 600; color: #6b6e73; text-transform: uppercase; letter-spacing: .06em; }
 .cl-row { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid #e6e7e9; }
 .cl-row span + span, .cl-row code { color: #6b6e73; text-align: right; }
-@media (max-width: 1000px) { .cl-grid { grid-template-columns: minmax(0, 1fr); } .cl-side { border-left: 0; border-top: 1px solid #e6e7e9; } }
+@media (max-width: 1000px) { .cl-grid { grid-template-columns: minmax(0, 1fr); } .cl-side { border-left: 0; border-top: 1px solid #e6e7e9; border-radius: 0 0 8px 8px; } }
 </style>
 
 @php
@@ -559,7 +560,7 @@ new class extends Component
                 </span>
             </div>
             @if ($rows->isEmpty())
-                <div class="muted">{{ $counts[''] ? 'No invoice matches.' : 'No invoice yet.' }}</div>
+                <div class="muted">{{ $anyInvoice ? 'No invoice matches these filters.' : 'No invoice yet.' }}</div>
             @else
             <div class="cl-table">
                 <table class="no-row-click">

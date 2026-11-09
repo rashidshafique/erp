@@ -81,6 +81,8 @@ class InvoiceListTest extends TestCase
         $list->call('setRange', today()->toDateString(), today()->subYears(3)->toDateString())   // picked back to front
             ->assertSet('period', 'range')->assertSet('from', today()->subYears(3)->toDateString())->assertSee('INV-OLD')->assertSee('INV-NOW');
         $list->call('setRange', 'not-a-date', $day)->assertSet('period', 'range');
+        $empty = today()->subYears(5)->toDateString();
+        $list->call('setRange', $empty, $empty)->assertSee('No invoice matches these filters.')->assertDontSee('No invoice yet.');
         $list->call('setPeriod', 'nonsense')->assertSet('period', 'fy');
     }
 
