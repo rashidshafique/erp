@@ -88,6 +88,40 @@ class FinanceRules
         return isset(self::ADVANCE_OPTIONS[$v]) ? $v : 'MANUAL';
     }
 
+    public const PDC_RECEIVED = 'finance.pdc_received';
+
+    public const PDC_ISSUED = 'finance.pdc_issued';
+
+    /** What a post-dated cheque does to the invoices or bills it pays before its date. */
+    public const PDC_OPTIONS = [
+        'HOLD' => 'Held until it clears; the invoice or bill stays unpaid',
+        'SETTLE' => 'Settles when it changes hands, held in a cheques account until it clears',
+    ];
+
+    /** @return 'HOLD'|'SETTLE' for cheques from customers, or with $issued for cheques given to suppliers */
+    public static function pdcMode(bool $issued = false): string
+    {
+        $v = (string) AppSetting::getValue($issued ? self::PDC_ISSUED : self::PDC_RECEIVED, 'HOLD');
+
+        return isset(self::PDC_OPTIONS[$v]) ? $v : 'HOLD';
+    }
+
+    public const CHEQUE_STEPS = 'finance.cheque_steps';
+
+    /** The steps a post-dated cheque goes through. */
+    public const CHEQUE_STEP_OPTIONS = [
+        'SHORT' => 'In hand, then cleared or bounced',
+        'DEPOSIT' => 'In hand, deposited, then cleared or bounced',
+    ];
+
+    /** @return 'SHORT'|'DEPOSIT' */
+    public static function chequeSteps(): string
+    {
+        $v = (string) AppSetting::getValue(self::CHEQUE_STEPS, 'SHORT');
+
+        return isset(self::CHEQUE_STEP_OPTIONS[$v]) ? $v : 'SHORT';
+    }
+
     /** @return 'OFF'|'WARN'|'BLOCK' */
     public static function billMatch(): string
     {

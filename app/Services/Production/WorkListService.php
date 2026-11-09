@@ -17,6 +17,7 @@ use App\Services\PatternCavityMap;
 use App\Services\Patterns\PatternOwnership;
 use App\Support\WorkListRules;
 use Illuminate\Support\Collection;
+use App\Support\DocumentNumbers;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
@@ -29,11 +30,7 @@ class WorkListService
     public function create(string $date, string $shift, ?string $notes = null): MouldingWorkList
     {
         return DB::transaction(function () use ($date, $shift, $notes) {
-            DB::select('SELECT pg_advisory_xact_lock(hashtext(?))', ['worklist-number']);
-            $prefix = 'WL-'.str_replace('-', '', $date).'-';
-            $n = (MouldingWorkList::where('list_number', 'like', $prefix.'%')->pluck('list_number')->map(fn ($x) => (int) substr($x, strlen($prefix)))->max() ?? 0) + 1;
-
-            return MouldingWorkList::create(['list_number' => $prefix.str_pad((string) $n, 2, '0', STR_PAD_LEFT), 'list_date' => $date, 'shift' => $shift, 'status' => 'DRAFT', 'notes' => $notes]);
+            return MouldingWorkList::create(['list_number' => DocumentNumbers::next('moulding_list'), 'list_date' => $date, 'shift' => $shift, 'status' => 'DRAFT', 'notes' => $notes]);
         });
     }
 
@@ -410,12 +407,8 @@ class WorkListService
 
                 throw new InvalidArgumentException("{$what} and {$running} is already in progress on {$item->station->code}. Finish a run there first.");
             }
-            $date = now()->format('ymd');
-            DB::select('SELECT pg_advisory_xact_lock(hashtext(?))', ['run-number-'.$date]);
-            $prefix = "MR-{$date}-";
-            $n = (MouldingRun::where('run_number', 'like', $prefix.'%')->pluck('run_number')->map(fn ($x) => (int) substr($x, strlen($prefix)))->max() ?? 0) + 1;
             $run = MouldingRun::create([
-                'run_number' => $prefix.str_pad((string) $n, 2, '0', STR_PAD_LEFT), 'production_order_id' => $item->production_order_id,
+                'run_number' => DocumentNumbers::next('moulding_run'), 'production_order_id' => $item->production_order_id,
                 'pattern_revision_id' => $item->pattern_revision_id, 'run_date' => $item->workList->list_date, 'shift' => $item->workList->shift,
                 'started_at' => now(), 'sand_system' => $item->sand_system, 'operator_name' => $item->team?->lead_name, 'team_name' => $item->team?->name,
                 'moulding_team_id' => $item->moulding_team_id, 'moulding_station_id' => $item->moulding_station_id, 'moulding_work_list_item_id' => $item->id,

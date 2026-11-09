@@ -129,7 +129,7 @@ class FinanceSampleSeeder extends Seeder
             $ol = $pick($orderLines);
             $at = now()->subDays(mt_rand(1, 110));
             $id = (string) Str::uuid();
-            $number = 'DSP-'.$at->format('Ymd').'-'.str_pad((string) (DB::table('dispatches')->where('dispatch_number', 'like', 'DSP-'.$at->format('Ymd').'-%')->count() + 201), 3, '0', STR_PAD_LEFT);
+            $number = \App\Support\DocumentNumbers::next('dispatch');
             DB::table('dispatches')->insert(['id' => $id, 'dispatch_number' => $number, 'customer_id' => $ol->salesOrder->customer_id, 'status' => 'DISPATCHED', 'dispatched_at' => $at, 'total_net_weight_kg' => 0, 'total_packages' => 1, 'notes' => self::BULK, 'created_at' => $at, 'updated_at' => $at]);
             DB::table('dispatch_items')->insert(['id' => (string) Str::uuid(), 'dispatch_id' => $id, 'packing_record_item_id' => $packItem, 'sales_order_line_id' => $ol->id, 'quantity_dispatched' => mt_rand(2, 40) * 10, 'net_weight_kg' => 0, 'uom' => 'PCS', 'created_at' => $at, 'updated_at' => $at]);
         }
@@ -173,7 +173,7 @@ class FinanceSampleSeeder extends Seeder
     {
         $first = $line($items[0][0]);
         $id = (string) Str::uuid();
-        $number = 'DSP-'.$at->format('Ymd').'-'.str_pad((string) (DB::table('dispatches')->where('dispatch_number', 'like', 'DSP-'.$at->format('Ymd').'-%')->count() + 101), 3, '0', STR_PAD_LEFT);
+        $number = \App\Support\DocumentNumbers::next('dispatch');
         DB::table('dispatches')->insert(['id' => $id, 'dispatch_number' => $number, 'customer_id' => $first->salesOrder->customer_id, 'status' => 'DISPATCHED', 'dispatched_at' => $at, 'total_net_weight_kg' => 0, 'total_packages' => count($items), 'notes' => self::MARK, 'created_at' => $at, 'updated_at' => $at]);
         foreach ($items as [$code, $qty]) {
             DB::table('dispatch_items')->insert(['id' => (string) Str::uuid(), 'dispatch_id' => $id, 'packing_record_item_id' => $packItem, 'sales_order_line_id' => $line($code)->id, 'quantity_dispatched' => $qty, 'net_weight_kg' => 0, 'uom' => 'PCS', 'created_at' => $at, 'updated_at' => $at]);

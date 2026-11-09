@@ -234,16 +234,16 @@ class HrServiceProvider extends ModuleServiceProvider
     protected function codeKinds(): array
     {
         return [
-            'employee' => ['employees', 'EMP', 9, 'Employee'],
-            'hr_department' => ['hr_departments', 'DEP', 1, 'Department'],
-            'hr_designation' => ['hr_designations', 'DSG', 2, 'Designation'],
-            'hr_grade' => ['hr_grades', 'GRD', 3, 'Grade'],
-            'hr_location' => ['hr_locations', 'LOC', 4, 'Location'],
+            'employee' => ['employees', 'EM', 9, 'Employee'],
+            'hr_department' => ['hr_departments', 'DE', 1, 'Department'],
+            'hr_designation' => ['hr_designations', 'DS', 2, 'Designation'],
+            'hr_grade' => ['hr_grades', 'GR', 3, 'Grade'],
+            'hr_location' => ['hr_locations', 'LO', 4, 'Location'],
             'hr_cost_centre' => ['hr_cost_centres', 'CC', 5, 'Cost centre'],
-            'hr_shift' => ['hr_shifts', 'SHF', 7, 'Shift'],
-            'leave_request' => ['leave_requests', 'LVR', 8, 'Leave request'],
-            'hr_policy' => ['hr_policies', 'POL', 6, 'HR policy'],
-            'hr_advance' => ['employee_advances', 'ADV', 9, 'Advance or loan'],
+            'hr_shift' => ['hr_shifts', 'SH', 7, 'Shift'],
+            'leave_request' => ['leave_requests', 'LR', 8, 'Leave request'],
+            'hr_policy' => ['hr_policies', 'PO', 6, 'HR policy'],
+            'hr_advance' => ['employee_advances', 'EA', 9, 'Advance or loan'],
         ];
     }
 }

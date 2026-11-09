@@ -75,12 +75,7 @@ class PartyController extends Controller
             return;
         }
         if ($role === 'customer') {
-            $base = strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', Str::ascii($party->name)), 0, 4)) ?: 'CUST';
-            $code = $base;
-            for ($n = 1; Customer::withTrashed()->where('code', $code)->exists(); $n++) {
-                $code = $base.str_pad((string) $n, 2, '0', STR_PAD_LEFT);
-            }
-            Customer::create(['party_id' => $party->id, 'code' => $code]);
+            Customer::create(['party_id' => $party->id]);
         } else {
             Supplier::create(['party_id' => $party->id, 'approval_status' => 'PENDING', 'review_interval_days' => 365]);
         }

@@ -73,7 +73,7 @@ class EquipmentMaintenanceTest extends TestCase
         ])->assertSessionHasNoErrors()->assertSessionHas('success');
 
         $plan = MaintenancePlan::firstOrFail();
-        $this->assertStringStartsWith('MNT', $plan->code);
+        $this->assertStringStartsWith('MP-1', $plan->code);
         $this->assertTrue($plan->active);
         $this->assertSame(today()->addDays(30)->toDateString(), $plan->next_due_at->toDateString());
 
@@ -149,7 +149,7 @@ class EquipmentMaintenanceTest extends TestCase
         ])->assertSessionHasNoErrors();
 
         $workOrder = MaintenanceWorkOrder::firstOrFail();
-        $this->assertStringStartsWith('MWO-', $workOrder->work_order_number);
+        $this->assertSame('MW-10000', $workOrder->work_order_number);
         $this->assertSame($plan->name, $workOrder->problem_description);
 
         $this->post(route('equipment-maintenance.work-orders.start', $workOrder))->assertSessionHasNoErrors();
@@ -185,7 +185,7 @@ class EquipmentMaintenanceTest extends TestCase
         ])->assertSessionHasNoErrors();
 
         $breakdown = EquipmentBreakdown::firstOrFail();
-        $this->assertStringStartsWith('BD-', $breakdown->breakdown_number);
+        $this->assertSame('MB-10000', $breakdown->breakdown_number);
         $this->assertSame('OPEN', $breakdown->status);
         $this->assertSame('BREAKDOWN', $equipment->fresh()->status);
 

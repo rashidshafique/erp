@@ -61,14 +61,14 @@ class InvoicingTest extends TestCase
 
         $this->post(route('invoices.issue', $invoice))->assertSessionHasNoErrors();
         $invoice->refresh();
-        $this->assertMatchesRegularExpression('/^INV-\d{4}-0001$/', $invoice->invoice_number);
+        $this->assertMatchesRegularExpression('/^I-10000$/', $invoice->invoice_number);
         $this->assertSame('2026-11-15', $invoice->due_date->toDateString(), 'Net 45 from 1 October');
         $this->put(route('invoices.update', $invoice), $this->form($customer, [['description' => 'x', 'quantity' => 1, 'unit_price' => 1]]))->assertSessionHasErrors('invoice');
         $this->get(route('invoices.show', $invoice))->assertOk()->assertSee($invoice->invoice_number);
         $this->get(route('invoices.print', $invoice))->assertOk()->assertSee('Pump body');
 
         $second = $this->issued($customer);
-        $this->assertStringEndsWith('0002', $second->invoice_number);
+        $this->assertSame('I-10001', $second->invoice_number);
     }
 
     public function test_an_invoice_can_be_raised_from_a_sales_order_for_what_is_not_yet_invoiced(): void
@@ -144,7 +144,7 @@ class InvoicingTest extends TestCase
         $this->post(route('invoices.credit.store', $invoice), ['reason_type' => 'Quality reject', 'reason' => 'Rejected on arrival', 'lines' => [$line]])->assertSessionHasNoErrors();
         $this->assertSame('Quality reject: Rejected on arrival', Invoice::where('kind', 'CREDIT_NOTE')->value('notes'));
         $note = Invoice::where('kind', 'CREDIT_NOTE')->firstOrFail();
-        $this->assertMatchesRegularExpression('/^CN-\d{4}-0001$/', $note->invoice_number);
+        $this->assertMatchesRegularExpression('/^C-10000$/', $note->invoice_number);
         $this->assertSame([110.0, 110.0], [$note->total, $invoice->fresh()->balance()]);
 
         $big = ['description' => 'Too much', 'quantity' => 2, 'unit_price' => 100, 'tax_rate_id' => $tax->id];

@@ -2,6 +2,7 @@
 
 namespace App\Domains\Ledger\Services;
 
+use App\Domains\Finance\Models\Cheque;
 use App\Domains\Finance\Models\Invoice;
 use App\Domains\Finance\Models\Receipt;
 use App\Domains\Finance\Models\ReceiptAllocation;
@@ -10,6 +11,7 @@ use App\Domains\Finance\Models\SupplierPayment;
 use App\Domains\Finance\Models\SupplierPaymentAllocation;
 use App\Domains\Finance\Models\WithholdingCertificate;
 use App\Domains\Ledger\Models\Journal;
+use App\Domains\Ledger\Models\LedgerAccount;
 use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
 
@@ -39,6 +41,7 @@ class PostingRules
             $document instanceof Receipt => 'receipt',
             $document instanceof SupplierPayment => 'supplier_payment',
             $document instanceof WithholdingCertificate => 'withholding_certificate',
+            $document instanceof Cheque => 'cheque',
             $document instanceof ReceiptAllocation => 'receipt_allocation',
             $document instanceof SupplierPaymentAllocation => 'supplier_payment_allocation',
             default => throw new InvalidArgumentException('The ledger does not know how to post a '.class_basename($document).'.'),
@@ -67,12 +70,47 @@ class PostingRules
     /** Posts a document's journal; one dated before go-live is carried in the opening voucher instead and posts nothing. */
     public function post(Model $document): ?Journal
     {
+        if (($document instanceof Receipt || $document instanceof SupplierPayment) && ! $document->account_id) {
+            $document->forceFill(['account_id' => self::moneyAccount($document)->id])->saveQuietly();
+        }
         [$date, $lines, $memo] = $this->build($document);
         if (OpeningBalances::beforeGoLive($date)) {
             return null;
         }
 
         return $this->ledger->post($date, $lines, self::source($document), $memo, voucher: $this->voucher($document));
+    }
+
+    /**
+     * The account money came into or went out of: the cheques account for one made by a post-dated cheque that settles when it
+     * changes hands, else the one picked on the receipt or payment, else by its method.
+     */
+    public static function moneyAccount(Receipt|SupplierPayment $document): LedgerAccount
+    {
+        if ($document->cheque_id && Cheque::whereKey($document->cheque_id)->value('mode') === 'SETTLE') {
+            return LedgerSettings::account($document instanceof Receipt ? 'cheques_received' : 'cheques_issued');
+        }
+
+        return ($document->account_id ? LedgerAccount::find($document->account_id) : null) ?? LedgerSettings::methodAccount($document->method);
+    }
+
+    /**
+     * A post-dated cheque that settled when it changed hands, cleared: from the cheques account into the bank, or out of the bank
+     * for one we gave, on the day it cleared.
+     *
+     * @return array{0: string, 1: list<array<string, mixed>>, 2: string}
+     */
+    private function cheque(Cheque $cheque): array
+    {
+        $cheque->loadMissing(['customer', 'supplier']);
+        $bank = ($cheque->account_id ? LedgerAccount::find($cheque->account_id) : null) ?? LedgerSettings::methodAccount($cheque->method);
+        $held = LedgerSettings::account($cheque->isReceived() ? 'cheques_received' : 'cheques_issued')->id;
+        [$debit, $credit] = $cheque->isReceived() ? [$bank->id, $held] : [$held, $bank->id];
+
+        return [$cheque->cleared_on->toDateString(), [
+            ['debit' => $cheque->amount, 'account_id' => $debit],
+            ['credit' => $cheque->amount, 'account_id' => $credit],
+        ], 'Cheque '.$cheque->cheque_number.' cleared · '.$cheque->partyName()];
     }
 
     /** @return array{0: string, 1: list<array<string, mixed>>, 2: string} date, lines and memo */
@@ -84,6 +122,7 @@ class PostingRules
             $document instanceof Receipt => $this->receipt($document),
             $document instanceof SupplierPayment => $this->payment($document),
             $document instanceof WithholdingCertificate => $this->certificate($document),
+            $document instanceof Cheque => $this->cheque($document),
             $document instanceof ReceiptAllocation => $this->receiptAllocation($document),
             $document instanceof SupplierPaymentAllocation => $this->paymentAllocation($document),
             default => throw new InvalidArgumentException('The ledger does not know how to post a '.class_basename($document).'.'),
@@ -101,8 +140,13 @@ class PostingRules
         return match (true) {
             $document instanceof Invoice => ['number' => $document->invoice_number],
             $document instanceof SupplierBill => ['number' => $document->bill_number],
+            $document instanceof Cheque => (function () use ($document) {
+                $bank = ($document->account_id ? LedgerAccount::find($document->account_id) : null) ?? LedgerSettings::methodAccount($document->method);
+
+                return ['type' => (Vouchers::isCash($bank) ? 'C' : 'B').($document->isReceived() ? 'RV' : 'PV'), 'reference' => $document->cheque_number, 'counter_account_id' => $bank->id];
+            })(),
             $document instanceof Receipt, $document instanceof SupplierPayment => (function () use ($document) {
-                $through = LedgerSettings::methodAccount($document->method);
+                $through = self::moneyAccount($document);
                 $in = $document instanceof Receipt;
 
                 return ['type' => (Vouchers::isCash($through) ? 'C' : 'B').($in ? 'RV' : 'PV'), 'reference' => $document->reference, 'counter_account_id' => $through->id];
@@ -180,7 +224,7 @@ class PostingRules
         $rest = $receipt->unallocated();
 
         return [$receipt->received_on->toDateString(), [
-            ['debit' => $receipt->amount, 'account_id' => LedgerSettings::methodAccount($receipt->method)->id],
+            ['debit' => $receipt->amount, 'account_id' => self::moneyAccount($receipt)->id],
             ['credit' => round($receipt->amount - $rest, 2), 'account_id' => LedgerSettings::account('receivables')->id] + $party,
             ['credit' => $rest, 'account_id' => LedgerSettings::account('customer_advances')->id] + $party,
         ], 'Receipt '.$receipt->receipt_number.' · '.$receipt->customer?->name.($receipt->reference ? ' '.$receipt->reference : '')];
@@ -196,7 +240,7 @@ class PostingRules
         return [$payment->paid_on->toDateString(), [
             ['debit' => round($payment->amount - $rest, 2), 'account_id' => LedgerSettings::account('payables')->id] + $party,
             ['debit' => $rest, 'account_id' => LedgerSettings::account('supplier_advances')->id] + $party,
-            ['credit' => $payment->amount, 'account_id' => LedgerSettings::methodAccount($payment->method)->id],
+            ['credit' => $payment->amount, 'account_id' => self::moneyAccount($payment)->id],
         ], 'Payment '.$payment->payment_number.' · '.$payment->supplier?->name.($payment->reference ? ' '.$payment->reference : '')];
     }
 
@@ -247,9 +291,10 @@ class PostingRules
         $documents = collect()
             ->concat(Invoice::where('status', 'ISSUED')->whereNotIn('id', $done('invoice'))->get()->map(fn ($d) => [$d->invoice_date, $d]))
             ->concat(SupplierBill::where('status', 'POSTED')->whereNotIn('id', $done('supplier_bill'))->get()->map(fn ($d) => [$d->bill_date, $d]))
-            ->concat(Receipt::whereNotIn('id', $done('receipt'))->get()->map(fn ($d) => [$d->received_on, $d]))
-            ->concat(SupplierPayment::whereNotIn('id', $done('supplier_payment'))->get()->map(fn ($d) => [$d->paid_on, $d]))
+            ->concat(Receipt::active()->whereNotIn('id', $done('receipt'))->get()->map(fn ($d) => [$d->received_on, $d]))
+            ->concat(SupplierPayment::active()->whereNotIn('id', $done('supplier_payment'))->get()->map(fn ($d) => [$d->paid_on, $d]))
             ->concat(WithholdingCertificate::where('status', 'ACTIVE')->whereNotIn('id', $done('withholding_certificate'))->get()->map(fn ($d) => [$d->certificate_date, $d]))
+            ->concat(Cheque::where('mode', 'SETTLE')->where('status', 'CLEARED')->whereNotIn('id', $done('cheque'))->get()->map(fn ($d) => [$d->cleared_on, $d]))
             ->sortBy(fn ($pair) => $pair[0]->toDateString());
         $posted = 0;
         $skipped = [];

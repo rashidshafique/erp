@@ -88,7 +88,7 @@ class PurchasingServiceProvider extends ModuleServiceProvider
     protected function codeKinds(): array
     {
         return [
-            'supplier' => ['suppliers', 'SUP', 3, 'Supplier'],
+            'supplier' => ['suppliers', 'SU', 3, 'Supplier'],
         ];
     }
 }

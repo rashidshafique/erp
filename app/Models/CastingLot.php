@@ -73,10 +73,7 @@ class CastingLot extends Model
     /** Next code for a pour date: YYMMDD plus the day's running number. */
     public static function nextCode(\DateTimeInterface $pouredAt): string
     {
-        $day = $pouredAt->format('ymd');
-        $serial = static::where('code', 'like', $day.'-%')->count() + 1;
-
-        return $day.'-'.str_pad((string) $serial, 2, '0', STR_PAD_LEFT);
+        return \App\Support\DocumentNumbers::next('casting_lot');
     }
 
     public function pourMouldAssembly(): BelongsTo

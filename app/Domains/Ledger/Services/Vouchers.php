@@ -3,6 +3,7 @@
 namespace App\Domains\Ledger\Services;
 
 use App\Domains\Ledger\Models\LedgerAccount;
+use App\Support\DocumentNumbers;
 use App\Support\FinancialYear;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -10,8 +11,8 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Voucher types and numbers (design 19b, 19c). JV, CPV, BPV, CRV and BRV are presets of one entry screen: a cash or bank type
- * names the cash or bank account and adds the balancing line itself. Numbers run per type and financial year, as JV-26-0413
- * for FY 2026-27. Documents post their journals under their own number.
+ * names the cash or bank account and adds the balancing line itself. Numbers run per type from 10000, as JV-10000.
+ * Documents post their journals under their own number.
  */
 class Vouchers
 {
@@ -46,30 +47,23 @@ class Vouchers
         return $d->format('d M Y').' · period '.$d->format('M').', '.self::yearLabel($d);
     }
 
-    /** The next number of a type in the financial year of the date, counting posted journals and drafts. Call inside a transaction. */
-    public static function next(string $type, string|Carbon $date): string
+    /** The next number of a type (JV-10000), counting posted journals and drafts. Call inside a transaction. */
+    public static function next(string $type, string|Carbon|null $date = null): string
     {
-        $prefix = $type.'-'.self::yearCode($date).'-';
-        DB::select('SELECT pg_advisory_xact_lock(hashtext(?))', ['ledger-voucher-'.$prefix]);
+        DB::select('SELECT pg_advisory_xact_lock(hashtext(?))', ['ledger-voucher-'.$type]);
 
-        return $prefix.str_pad((string) (self::last($prefix) + 1), 4, '0', STR_PAD_LEFT);
+        return DocumentNumbers::format($type, self::last($type) + 1);
     }
 
     /** What the next number would be, without holding it. */
-    public static function preview(string $type, string|Carbon $date): string
+    public static function preview(string $type, string|Carbon|null $date = null): string
     {
-        $prefix = $type.'-'.self::yearCode($date).'-';
-
-        return $prefix.str_pad((string) (self::last($prefix) + 1), 4, '0', STR_PAD_LEFT);
+        return DocumentNumbers::format($type, self::last($type) + 1);
     }
 
-    private static function last(string $prefix): int
+    private static function last(string $type): int
     {
-        $len = strlen($prefix);
-        $nums = DB::table('ledger_journals')->where('number', 'like', $prefix.'%')->pluck('number')
-            ->merge(DB::table('ledger_vouchers')->where('number', 'like', $prefix.'%')->pluck('number'));
-
-        return (int) $nums->map(fn ($n) => (int) substr($n, $len))->max();
+        return max(DocumentNumbers::last('ledger_journals', 'number', $type), DocumentNumbers::last('ledger_vouchers', 'number', $type));
     }
 
     /** Whether money through this account is cash (CPV, CRV) rather than bank (BPV, BRV). */

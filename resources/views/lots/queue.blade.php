@@ -52,6 +52,7 @@
 </style>
 
 @php
+    $canInspect = \App\Http\Middleware\EnforceAccess::allows(auth()->user(), 'lots.bulk-inspect');
     // The stage a whole step would move on to: the next active one after the stage its lots last passed. None for waiting or ready.
     $nextFor = function (array $b) use ($stages): ?array {
         $movable = array_values(array_filter($b['lots'], fn ($r) => $r['lot']->status === 'IN_PRODUCTION'));
@@ -114,6 +115,8 @@
                 <button type="button" class="btn btn-small" x-show="open" @click="window.dispatchEvent(new CustomEvent('queue-moulds', { detail: { step: '{{ $b['key'] }}', open: false } }))">Collapse all</button>
             @endif
             @if ($next)<button type="button" class="btn btn-small" @click="moveStep('{{ $b['key'] }}')">Move all {{ $next['count'] }} → {{ $next['name'] }}</button>@endif
+            @php $inspectable = collect($b['lots'])->where('lot.status', 'IN_PRODUCTION')->count(); @endphp
+            @if (! $next && $canInspect && $inspectable && ! $isReady && $b['key'] !== 'waiting')<button type="button" class="btn btn-small" @click="inspectStep('{{ $b['key'] }}')">Pass inspection: all {{ $inspectable }}</button>@endif
             @if ($isReady)<button type="button" class="btn btn-small" @click="open = !open" x-text="open ? 'Hide lots' : 'Show lots'">Show lots</button>@endif
         </span>
     </div>
@@ -172,10 +175,19 @@
     <template x-for="s in chosen" :key="s.id"><input type="hidden" name="stages[]" :value="s.id"></template>
     <div class="qbar-fields">
         <input type="number" min="0" name="rejected" placeholder="Rejected" aria-label="Rejected (total)" style="width:100px" x-model="rejected">
-        <input name="rejection_reason" placeholder="Rejection reason" maxlength="100" style="width:170px" value="{{ old('rejection_reason') }}" x-show="Number(rejected) > 0" x-cloak :required="Number(rejected) > 0">
+        <input name="rejection_reason" :placeholder="@js($canInspect) ? 'Reason (rejects, rework, hold)' : 'Rejection reason'" maxlength="100" style="width:200px" value="{{ old('rejection_reason') }}" x-ref="reason" x-show="@js($canInspect) || Number(rejected) > 0" x-cloak :required="Number(rejected) > 0">
         <input name="cooling_override_reason" placeholder="Still cooling: reason to shake out early" maxlength="300" style="width:250px" value="{{ old('cooling_override_reason') }}" x-show="coolingWarn" x-cloak>
         <input name="operator_name" placeholder="Operator" maxlength="100" style="width:140px" value="{{ old('operator_name') }}" x-ref="operator">
-        <button class="btn btn-primary qbar-move" type="submit" x-ref="move" :disabled="!chosen.length" x-text="moveLabel">Move ticked lots</button>
+        <button class="btn btn-primary qbar-move" type="submit" x-ref="move" :disabled="!chosen.length || moving" x-text="moving && !inspecting ? 'Moving ' + ticked.length + ' lots… please wait' : moveLabel">Move ticked lots</button>
+        @if ($canInspect)
+            <span class="qbar-inspect" role="group" aria-label="Final inspection of the ticked lots">
+                <button class="btn" type="submit" name="outcome" value="PASS" x-ref="inspect" data-inspect="Pass" formaction="{{ route('lots.bulk-inspect') }}" :disabled="moving" title="Every piece left to check passes, less the Rejected above (taken from the oldest lots first).">Pass</button>
+                <button class="btn" type="submit" name="outcome" value="REWORK" data-inspect="Send to rework" formaction="{{ route('lots.bulk-inspect') }}" :disabled="moving" title="Every piece left to check goes to rework. Needs a reason.">Rework</button>
+                <button class="btn btn-danger" type="submit" name="outcome" value="REJECT" data-inspect="Reject" formaction="{{ route('lots.bulk-inspect') }}" :disabled="moving" title="Every piece left to check is rejected; a lot with nothing good left is scrapped. Needs a reason.">Reject</button>
+                <button class="btn" type="submit" name="outcome" value="HOLD" data-inspect="Put on hold" formaction="{{ route('lots.bulk-inspect') }}" :disabled="moving" title="Puts the lots on hold for quality to decide on each lot later. Needs a reason.">Hold</button>
+            </span>
+            <span class="muted small" x-show="inspecting" x-cloak x-text="inspectLabel"></span>
+        @endif
     </div>
 </div>
 @endif
@@ -186,7 +198,7 @@
 <script>
 function moveBar(stages, endSeq, rejected) {
     return {
-        stages, endSeq, rejected, ticked: [], lastBox: null, scan: '', scanMsg: '',
+        stages, endSeq, rejected, ticked: [], lastBox: null, scan: '', scanMsg: '', moving: false, inspecting: false,
 
         init() {
             try { if (!this.$refs.operator?.value) { this.$refs.operator && (this.$refs.operator.value = localStorage.getItem('erp.queueOperator') || ''); } } catch (e) {}
@@ -283,8 +295,32 @@ function moveBar(stages, endSeq, rejected) {
             e.preventDefault();
             this.$refs.form.requestSubmit(this.$refs.move);
         },
+        get inspectLabel() {
+            return this.inspecting ? 'Working on ' + this.ticked.length + ' lots… please wait' : '';
+        },
+        inspectStep(step) {
+            this.clear();
+            this.boxes().filter(b => b.dataset.step === step).forEach(b => { b.checked = true; });
+            this.refresh();
+            this.$nextTick(() => this.$refs.form.requestSubmit(this.$refs.inspect));
+        },
         submitting(e) {
-            if (!this.chosen.length || !confirm(this.moveLabel + '?')) { e.preventDefault(); return; }
+            const verb = e.submitter?.dataset.inspect;
+            if (verb) {
+                const outcome = e.submitter.value;
+                const rej = outcome === 'PASS' ? (Number(this.rejected) || 0) : 0;
+                const reason = this.$refs.reason?.value.trim() ?? '';
+                if (!this.moving && (outcome !== 'PASS' || rej > 0) && !reason) { e.preventDefault(); this.$refs.reason.focus(); this.$refs.reason.setCustomValidity('Give a reason'); this.$refs.reason.reportValidity(); this.$refs.reason.addEventListener('input', () => this.$refs.reason.setCustomValidity(''), { once: true }); return; }
+                const lots = `${this.ticked.length} ${this.ticked.length === 1 ? 'lot' : 'lots'}`;
+                const what = outcome === 'PASS' ? (rej ? `, ${rej} rejected` : ', all pieces good') : `: ${reason}`;
+                if (this.moving || !this.ticked.length || !confirm(`${verb} ${lots}${what}?`)) { e.preventDefault(); return; }
+                this.inspecting = true;
+                this.moving = true;
+                try { localStorage.setItem('erp.queueOperator', this.$refs.operator.value); } catch (err) {}
+                return;
+            }
+            if (this.moving || !this.chosen.length || !confirm(this.moveLabel + '?')) { e.preventDefault(); return; }
+            this.moving = true;
             try { localStorage.setItem('erp.queueOperator', this.$refs.operator.value); } catch (err) {}
         },
     };

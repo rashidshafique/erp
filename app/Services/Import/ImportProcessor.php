@@ -102,12 +102,20 @@ class ImportProcessor
         // What already exists.
         $cols = ['id', 'code', 'name', 'deleted_at'] + ($isTool ? [4 => 'mark_code'] : []);
         $byCode = $byName = $byMark = [];
+        $byId = [];
         foreach (DB::table($table)->get($cols) as $r) {
             $rec = ['id' => $r->id, 'trashed' => $r->deleted_at !== null];
             $byCode[strtoupper($r->code)] = $rec;
+            $byId[(string) $r->id] = $rec;
             $byName[mb_strtolower((string) $r->name)][] = $rec;
             if ($isTool && $r->mark_code) {
                 $byMark[strtoupper($r->mark_code)] = $rec;
+            }
+        }
+        // A file made before codes were renumbered names the old codes.
+        foreach (DB::table('number_history')->where('table_name', $table)->where('column_name', 'code')->get(['record_id', 'old_number']) as $old) {
+            if (isset($byId[$old->record_id])) {
+                $byCode[strtoupper($old->old_number)] ??= $byId[$old->record_id];
             }
         }
         $markOwner = [];

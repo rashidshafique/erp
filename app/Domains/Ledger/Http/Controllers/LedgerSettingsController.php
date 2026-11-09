@@ -30,7 +30,7 @@ class LedgerSettingsController extends Controller
             ? \App\Domains\Tax\Models\TaxAuthority::orderBy('code')->get(['code', 'name']) : collect();
 
         return view('ledger::settings.edit', [
-            'accounts' => LedgerAccount::postable()->orderBy('code')->get(), 'chosen' => $chosen, 'methods' => LedgerSettings::methodMap(),
+            'accounts' => LedgerAccount::postable()->orderBy('code')->get(), 'chosen' => $chosen,
             'authorities' => $authorities, 'taxMap' => LedgerSettings::taxMap(),
             'topExpenses' => LedgerAccount::whereNull('parent_id')->where('type', 'EXPENSE')->orderBy('code')->get(), 'costOfSales' => LedgerSettings::costOfSales()?->id,
         ]);
@@ -40,7 +40,6 @@ class LedgerSettingsController extends Controller
     {
         $d = $request->validate([
             'roles' => ['array'], 'roles.*' => ['nullable', 'uuid', 'exists:ledger_accounts,id'],
-            'methods' => ['array'], 'methods.*.name' => ['nullable', 'string', 'max:30'], 'methods.*.account_id' => ['nullable', 'uuid', 'exists:ledger_accounts,id'],
             'tax' => ['array'], 'tax.*' => ['nullable', 'uuid', 'exists:ledger_accounts,id'],
             'cost_of_sales' => ['nullable', 'string', 'max:36'],
         ]);
@@ -56,9 +55,6 @@ class LedgerSettingsController extends Controller
                 AppSetting::setValue('ledger.account.'.$role, (string) ($d['roles'][$role] ?? ''), 'Ledger account for: '.$label);
             }
         }
-        $methods = collect($d['methods'] ?? [])->filter(fn ($m) => filled($m['name'] ?? null) && filled($m['account_id'] ?? null))
-            ->mapWithKeys(fn ($m) => [mb_strtolower(trim($m['name'])) => $m['account_id']])->all();
-        AppSetting::setValue(LedgerSettings::METHODS, json_encode($methods), 'Ledger account for each payment method');
         AppSetting::setValue(LedgerSettings::TAX_ACCOUNTS, json_encode(array_filter($d['tax'] ?? [])), 'Ledger account for the tax of each authority');
 
         return back()->with('success', 'Ledger settings saved.');

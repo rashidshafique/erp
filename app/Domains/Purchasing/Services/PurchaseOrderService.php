@@ -174,14 +174,10 @@ class PurchaseOrderService
         return $order->fresh();
     }
 
-    /** The next order number, restarting each year: PO-2026-0001. Call inside a transaction. */
+    /** The next order number (P-10000). Call inside a transaction. */
     public function nextNumber(): string
     {
-        $like = 'PO-'.now()->format('Y').'-';
-        DB::select('SELECT pg_advisory_xact_lock(hashtext(?))', ['purchase_orders-number-'.$like]);
-        $n = (DB::table('purchase_orders')->where('po_number', 'like', $like.'%')->pluck('po_number')->map(fn ($x) => (int) substr($x, strlen($like)))->max() ?? 0) + 1;
-
-        return $like.str_pad((string) $n, 4, '0', STR_PAD_LEFT);
+        return \App\Support\DocumentNumbers::next('purchase_order');
     }
 
     private function lotNumber(PurchaseOrder $order, PurchaseOrderLine $line): string

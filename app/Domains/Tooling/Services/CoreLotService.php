@@ -166,9 +166,6 @@ class CoreLotService
 
     private function nextNumber(CarbonInterface $madeOn): string
     {
-        $prefix = 'CL-'.$madeOn->format('ymd').'-';
-        $n = CoreLot::where('lot_number', 'like', $prefix.'%')->count() + 1;
-
-        return $prefix.str_pad((string) $n, 2, '0', STR_PAD_LEFT);
+        return \App\Support\DocumentNumbers::next('core_lot');
     }
 }

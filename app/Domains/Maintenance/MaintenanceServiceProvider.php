@@ -79,8 +79,8 @@ class MaintenanceServiceProvider extends ModuleServiceProvider
     protected function codeKinds(): array
     {
         return [
-            'gauge' => ['gauges', 'GAU', 3, 'Gauge'],
-            'maintenance_plan' => ['maintenance_plans', 'MNT', 7, 'Maintenance plan'],
+            'gauge' => ['gauges', 'GA', 3, 'Gauge'],
+            'maintenance_plan' => ['maintenance_plans', 'MP', 7, 'Maintenance plan'],
         ];
     }
 }

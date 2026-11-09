@@ -41,7 +41,7 @@ class PurchaseOrderTest extends TestCase
         $order = $this->issued($this->supplier(), $this->material(), 100, 50, 10);
 
         $this->assertSame('ISSUED', $order->status);
-        $this->assertMatchesRegularExpression('/^PO-\d{4}-0001$/', $order->po_number);
+        $this->assertMatchesRegularExpression('/^P-10000$/', $order->po_number);
         $this->assertEquals(5000.0, $order->subtotal);
         $this->assertEquals(500.0, $order->tax_total);
         $this->assertEquals(5500.0, $order->total);

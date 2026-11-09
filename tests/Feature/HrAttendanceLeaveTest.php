@@ -262,7 +262,7 @@ class HrAttendanceLeaveTest extends TestCase
     {
         $this->post(route('hr.shifts.store'), ['name' => 'Pour', 'starts_at' => '06:00', 'ends_at' => '14:00', 'break_minutes' => 30, 'grace_minutes' => 5])->assertSessionHasNoErrors();
         $s = HrShift::where('name', 'Pour')->first();
-        $this->assertMatchesRegularExpression('/^SHF-\d{5}$/', $s->code);
+        $this->assertMatchesRegularExpression('/^SH-1\d{4}$/', $s->code);
         $this->post(route('hr.shifts.store'), ['name' => 'Same', 'starts_at' => '06:00', 'ends_at' => '06:00', 'break_minutes' => 0, 'grace_minutes' => 0])->assertSessionHasErrors('ends_at');
         $this->put(route('hr.shifts.update', $s), ['name' => 'Pour 2', 'starts_at' => '06:00', 'ends_at' => '14:30', 'break_minutes' => 30, 'grace_minutes' => 5])->assertSessionHasNoErrors();
         $this->assertFalse($s->fresh()->active);
@@ -297,7 +297,7 @@ class HrAttendanceLeaveTest extends TestCase
         // Mon 12 – Mon 19: 12,13,15,16,17 + 19 working = 6 (14 holiday, 18 Sunday)
         $this->leave($e, 'CL', '2026-10-12', '2026-10-19')->assertSessionHas('success');
         $this->assertEqualsWithDelta(6.0, LeaveRequest::first()->days, 0.001);
-        $this->assertMatchesRegularExpression('/^LVR-\d{5}$/', LeaveRequest::first()->code);
+        $this->assertSame('LR-10000', LeaveRequest::first()->code);
     }
 
     public function test_leave_validation(): void
@@ -388,7 +388,7 @@ class HrAttendanceLeaveTest extends TestCase
         $this->post(route('hr.leave.adjust', $e), ['leave_type_id' => $sl->id, 'days' => 0, 'note' => 'x'])->assertSessionHas('error');
         $this->get(route('hr.employees.show', $e))->assertOk()->assertSee('carried from old system');
         $this->get(route('hr.leave'))->assertOk();
-        $this->get(route('hr.leave', ['status' => 'ALL']))->assertOk()->assertSee('LVR-');
+        $this->get(route('hr.leave', ['status' => 'ALL']))->assertOk()->assertSee('LR-10000');
     }
 
     public function test_monthly_accrual_is_a_twelfth_a_month_and_never_doubles(): void

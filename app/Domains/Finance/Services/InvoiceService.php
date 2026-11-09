@@ -17,14 +17,13 @@ use App\Domains\Finance\Models\TaxRate;
 use App\Models\Customer;
 use App\Domains\Sales\Models\SalesOrder;
 use Illuminate\Support\Carbon;
+use App\Support\DocumentNumbers;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 /** Raising, issuing, voiding and crediting invoices. An invoice names its source (a dispatch, a sales order or nothing) but never depends on one. */
 class InvoiceService
 {
-    public const PREFIXES = ['INVOICE' => 'INV', 'CREDIT_NOTE' => 'CN'];
-
     /**
      * Saves a draft: the head and its lines, with every amount worked out here. Pass an existing draft to replace its lines.
      *
@@ -271,14 +270,19 @@ class InvoiceService
         return TaxRate::where('is_active', true)->where('is_default', true)->value('id');
     }
 
-    /** The next number for a document kind or prefix, restarting each year: INV-2026-0001. Call inside a transaction. */
+    /** Finance document types by the kind or old prefix callers pass. */
+    private const NUMBER_TYPES = ['INVOICE' => 'invoice', 'CREDIT_NOTE' => 'credit_note', 'RC' => 'receipt', 'SP' => 'supplier_payment',
+        'WHC' => 'tax_certificate', 'BILL' => 'supplier_bill', 'SCN' => 'supplier_bill'];
+
+    /** The next number for a finance document kind (I-10000, C-10000, R-10000…), from DocumentNumbers. Call inside a transaction. */
     public function nextNumber(string $kindOrPrefix, string $table = 'invoices', string $column = 'invoice_number'): string
     {
-        $prefix = self::PREFIXES[$kindOrPrefix] ?? $kindOrPrefix;
-        $like = $prefix.'-'.now()->format('Y').'-';
-        DB::select('SELECT pg_advisory_xact_lock(hashtext(?))', [$table.'-number-'.$like]);
-        $n = (DB::table($table)->where($column, 'like', $like.'%')->pluck($column)->map(fn ($x) => (int) substr($x, strlen($like)))->max() ?? 0) + 1;
+        return DocumentNumbers::next(self::NUMBER_TYPES[$kindOrPrefix] ?? throw new \InvalidArgumentException("No number series for {$kindOrPrefix}."));
+    }
 
-        return $like.str_pad((string) $n, 4, '0', STR_PAD_LEFT);
+    /** What the next number of a kind would be, without holding it. */
+    public function previewNumber(string $kind): string
+    {
+        return DocumentNumbers::preview(self::NUMBER_TYPES[$kind]);
     }
 }

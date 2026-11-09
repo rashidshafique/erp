@@ -100,12 +100,7 @@ class QuickOrderController extends Controller
 
     private function newCustomer(string $name): Customer
     {
-        $code = Str::upper(Str::limit(Str::slug($name, ''), 8, ''));
-        if (Customer::withTrashed()->where('code', $code)->exists()) {
-            $code .= Str::upper(Str::random(3));
-        }
-
-        return Customer::create(['code' => $code, 'name' => $name]);
+        return Customer::create(['name' => $name]);
     }
 
     /** The newest approved revision of the product, else the newest one; with $create, revision 0 is made when there is none. */

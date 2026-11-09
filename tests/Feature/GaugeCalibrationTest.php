@@ -50,7 +50,7 @@ class GaugeCalibrationTest extends TestCase
     {
         $this->post(route('gauges.store'), ['name' => 'Vernier', 'instrument_type' => 'CALIPER', 'status' => 'IN_SERVICE', 'requires_calibration' => 1, 'calibration_interval_days' => 180])->assertSessionHasNoErrors();
         $gauge = Gauge::firstOrFail();
-        $this->assertStringStartsWith('GAU', $gauge->code);
+        $this->assertStringStartsWith('GA-1', $gauge->code);
         $this->get(route('gauges.show', $gauge))->assertOk()->assertSee('Never calibrated');
 
         $this->post(route('gauges.store'), ['name' => 'No interval', 'instrument_type' => 'CALIPER', 'status' => 'IN_SERVICE', 'requires_calibration' => 1])->assertSessionHasErrors('calibration_interval_days');

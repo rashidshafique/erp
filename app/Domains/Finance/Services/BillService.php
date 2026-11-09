@@ -22,8 +22,6 @@ use InvalidArgumentException;
 /** Entering, posting, voiding and crediting supplier bills. A bill may name a purchase order and its lines, but never depends on one. */
 class BillService
 {
-    public const PREFIXES = ['BILL' => 'BILL', 'CREDIT_NOTE' => 'SCN'];
-
     public function __construct(private InvoiceService $numbers, private Advances $advances, private LotCosting $costing) {}
 
     /**
@@ -139,7 +137,7 @@ class BillService
                 throw new InvalidArgumentException('The bill does not match the order: '.implode(' ', $issues));
             }
             $due = $bill->due_date ?? ($bill->isCreditNote() ? null : $bill->bill_date->copy()->addDays(FinanceRules::daysFromTerms($bill->payment_terms)));
-            $bill->update(['bill_number' => $this->numbers->nextNumber(self::PREFIXES[$bill->kind], 'supplier_bills', 'bill_number'), 'status' => 'POSTED', 'posted_at' => now(), 'due_date' => $due]);
+            $bill->update(['bill_number' => $this->numbers->nextNumber('BILL'), 'status' => 'POSTED', 'posted_at' => now(), 'due_date' => $due]);
             event(new DocumentPosted($bill));
             event(new BillPosted($bill));
             $this->costing->refresh($bill);

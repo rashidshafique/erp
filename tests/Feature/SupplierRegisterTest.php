@@ -28,7 +28,7 @@ class SupplierRegisterTest extends TestCase
 
         $supplier = Supplier::firstOrFail();
         $this->assertSame('PENDING', $supplier->approval_status);
-        $this->assertStringStartsWith('SUP', $supplier->code);
+        $this->assertStringStartsWith('SU-1', $supplier->code);
     }
 
     public function test_an_evaluation_scores_the_supplier_and_sets_status_and_next_review(): void

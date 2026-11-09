@@ -50,10 +50,10 @@ class VoucherEntryTest extends TestCase
             ->assertSee('Debits and credits differ by')->call('post');
         $this->assertSame(0, Journal::count());
 
-        $c->set('lines.1.credit', '212500')->assertSee('Balanced. Posting assigns JV-26-0001')->call('post')->assertRedirect();
+        $c->set('lines.1.credit', '212500')->assertSee('Balanced. Posting assigns JV-10000')->call('post')->assertRedirect();
 
         $j = Journal::sole();
-        $this->assertSame(['JV-26-0001', 'JV', 'NCR-031', 'Rejected castings HT-4471'], [$j->number, $j->voucher_type, $j->reference, $j->memo]);
+        $this->assertSame(['JV-10000', 'JV', 'NCR-031', 'Rejected castings HT-4471'], [$j->number, $j->voucher_type, $j->reference, $j->memo]);
         $this->assertSame([212500.0, -212500.0], [$this->balance('51-05-01'), $this->balance('22-08-02')]);
     }
 
@@ -69,7 +69,7 @@ class VoucherEntryTest extends TestCase
             ->assertSee('Balancing line, filled in for you')->call('post');
 
         $j = Journal::sole();
-        $this->assertSame(['BPV-26-0001', '00418824', $this->id('22-01-03')], [$j->number, $j->reference, $j->counter_account_id]);
+        $this->assertSame(['BPV-10000', '00418824', $this->id('22-01-03')], [$j->number, $j->reference, $j->counter_account_id]);
         $this->assertSame([-412350.0, 412350.0], [$this->balance('22-01-03'), $this->balance('63-01-01')]);
     }
 
@@ -78,7 +78,7 @@ class VoucherEntryTest extends TestCase
         Livewire::test('ledger::voucher-form', ['type' => 'CRV'])->set('date', '2026-10-31')->assertSet('counter', $this->id('22-01-01'))
             ->set('lines.0.account_id', $this->id('42-01-01'))->set('lines.0.narration', 'Swarf sale, 2.3 t')->set('lines.0.credit', '46000')->call('post');
 
-        $this->assertSame(['CRV-26-0001', 46000.0], [Journal::sole()->number, $this->balance('22-01-01')]);
+        $this->assertSame(['CRV-10000', 46000.0], [Journal::sole()->number, $this->balance('22-01-01')]);
     }
 
     public function test_control_accounts_are_not_offered_on_a_voucher_but_opening_balance_equity_is(): void
@@ -100,13 +100,13 @@ class VoucherEntryTest extends TestCase
             ->call('saveDraft')->assertRedirect();
 
         $draft = Voucher::sole();
-        $this->assertSame(['JV-26-0001', 0.0, 0], [$draft->number, $this->balance('51-06-03'), Journal::count()]);
-        $this->get(route('ledger.journals.index'))->assertOk()->assertSee('JV-26-0001')->assertSee('Draft')->assertSee('1 draft');
+        $this->assertSame(['JV-10000', 0.0, 0], [$draft->number, $this->balance('51-06-03'), Journal::count()]);
+        $this->get(route('ledger.journals.index'))->assertOk()->assertSee('JV-10000')->assertSee('Draft')->assertSee('1 draft');
 
-        Livewire::test('ledger::voucher-form', ['voucher' => $draft])->assertSee('JV-26-0001')->call('post');
+        Livewire::test('ledger::voucher-form', ['voucher' => $draft])->assertSee('JV-10000')->call('post');
 
         $j = Journal::sole();
-        $this->assertSame([$draft->id, 'JV-26-0001', 400000.0, 0], [$j->id, $j->number, $this->balance('51-06-03'), Voucher::count()]);
+        $this->assertSame([$draft->id, 'JV-10000', 400000.0, 0], [$j->id, $j->number, $this->balance('51-06-03'), Voucher::count()]);
     }
 
     public function test_documents_post_under_their_own_number_and_receipts_as_bank_receipt_vouchers(): void
@@ -118,9 +118,9 @@ class VoucherEntryTest extends TestCase
 
         $this->assertSame($invoice->invoice_number, Journal::where('source_type', 'invoice')->value('number'));
         $receipt = Journal::where('source_type', 'receipt')->sole();
-        $this->assertSame(['BRV-26-0001', 'BRV', 'IBFT 9921'], [$receipt->number, $receipt->voucher_type, $receipt->reference]);
+        $this->assertSame(['BRV-10000', 'BRV', 'IBFT 9921'], [$receipt->number, $receipt->voucher_type, $receipt->reference]);
 
-        $this->get(route('ledger.journals.index', ['type' => 'BRV']))->assertOk()->assertSee('BRV-26-0001')->assertDontSee($invoice->invoice_number);
+        $this->get(route('ledger.journals.index', ['type' => 'BRV']))->assertOk()->assertSee('BRV-10000')->assertDontSee($invoice->invoice_number);
         $this->get(route('ledger.journals.index', ['q' => 'pump']))->assertOk()->assertSee($invoice->invoice_number)->assertSee('Kovar Pumps');
         $this->get(route('ledger.journals.export'))->assertOk()->assertDownload();
     }
@@ -133,7 +133,7 @@ class VoucherEntryTest extends TestCase
             ->set('lines.0.account_id', $this->id('51-01-01'))->set('lines.0.narration', 'Against PI-26-0388')->set('lines.0.debit', '1171800')->call('post');
 
         $this->get(route('ledger.journals.print', Journal::sole()))->assertOk()
-            ->assertSee('Bank payment voucher')->assertSee('BPV-26-0001')->assertSee('Rupees eleven lakh seventy-one thousand eight hundred only')->assertSee('A. Rauf');
+            ->assertSee('Bank payment voucher')->assertSee('BPV-10000')->assertSee('Rupees eleven lakh seventy-one thousand eight hundred only')->assertSee('A. Rauf');
         $this->assertSame('Rupees two crore five lakh only', AmountInWords::say(20500000));
     }
 }

@@ -293,7 +293,7 @@ class InvoiceController extends Controller
         $customer = ($head['customer_id'] ?? null) ? Customer::find($head['customer_id']) : null;
 
         return [
-            'dispatches' => $dispatches, 'customer' => $customer, 'nextNumber' => $invoice?->invoice_number ?: $service->nextNumber('INVOICE'),
+            'dispatches' => $dispatches, 'customer' => $customer, 'nextNumber' => $invoice?->invoice_number ?: $service->previewNumber('INVOICE'),
             'template' => app(InvoiceTemplates::class)->options()[app(InvoiceTemplates::class)->default()] ?? 'Standard invoice',
             'invoice' => $invoice, 'head' => $head, 'lines' => $lines,
             'customers' => Customer::orderedByName()->get(), 'taxRates' => TaxRate::where('is_active', true)->orderBy('name')->get(),

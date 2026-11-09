@@ -435,6 +435,7 @@ Route::prefix('lots')->name('lots.')->controller(LotController::class)->group(fu
     Route::get('/queue', [LotQueueController::class, 'queue'])->name('queue');
     Route::post('/bulk', 'bulk')->name('bulk');
     Route::post('/bulk-stage', 'bulkStage')->name('bulk-stage');
+    Route::post('/bulk-inspect', 'bulkInspect')->name('bulk-inspect');
     Route::post('/batch-stage', 'batchStage')->name('batch-stage');
     Route::post('/release-first-iron', 'releaseFirstIron')->name('release-first-iron');
     Route::get('/{lot}', 'show')->name('show');

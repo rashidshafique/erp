@@ -44,15 +44,10 @@ class SalesOrder extends Model
         });
     }
 
-    /** Next order number of the year. Call inside a transaction; takes the same lock as manual order entry. */
+    /** The next order number (S-10000). Call inside a transaction; takes the same lock as manual order entry. */
     public static function nextNumber(): string
     {
-        \Illuminate\Support\Facades\DB::select('SELECT pg_advisory_xact_lock(?)', [2026101202]);
-        $prefix = 'SO-'.now()->format('Y').'-';
-        $last = static::where('order_number', 'like', $prefix.'%')->pluck('order_number')
-            ->map(fn ($n) => (int) substr($n, strlen($prefix)))->max() ?? 0;
-
-        return $prefix.str_pad((string) ($last + 1), 4, '0', STR_PAD_LEFT);
+        return \App\Support\DocumentNumbers::next('sales_order');
     }
 
     public function customer(): BelongsTo

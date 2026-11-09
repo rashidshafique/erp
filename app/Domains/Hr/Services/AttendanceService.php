@@ -151,7 +151,9 @@ class AttendanceService
         $problems = [];
         $saved = 0;
         foreach ($byCode as $code => $times) {
-            $e = Employee::whereRaw('upper(code) = ?', [$code])->first();
+            // A clock still set up with an employee's code from before renumbering is matched through the old code.
+            $e = Employee::whereRaw('upper(code) = ?', [$code])->first()
+                ?? Employee::whereKey(\Illuminate\Support\Facades\DB::table('number_history')->where('table_name', 'employees')->whereRaw('upper(old_number) = ?', [$code])->value('record_id'))->first();
             if (! $e) {
                 $unknown[] = $code;
 

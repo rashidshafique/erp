@@ -25,24 +25,14 @@ class HeatNumberTest extends TestCase
         return DB::transaction(fn () => app(HeatNumber::class)->next(now()->parse($day)));
     }
 
-    public function test_the_first_heat_of_a_day_is_h_yymm_dd_and_the_others_count_up_from_1(): void
+    public function test_heats_run_in_one_series_from_h_10000_and_older_numbers_do_not_count(): void
     {
-        $this->assertSame('H-2610-25', $this->next('2026-10-25'));
         $this->heat('H-2610-25');
-        $this->assertSame('H-2610-25-1', $this->next('2026-10-25'));
-        $this->heat('H-2610-25-1');
-        $this->assertSame('H-2610-25-2', $this->next('2026-10-25'));
-
-        $this->assertSame('H-2610-26', $this->next('2026-10-26'), 'Another day starts again.');
-        $this->assertSame('H-2701-05', $this->next('2027-01-05'), 'Two-digit year, then month, then day.');
-    }
-
-    public function test_an_older_numbered_heat_counts_as_a_heat_of_its_day(): void
-    {
         $this->heat('H-20261025-001');
 
-        $this->assertSame('H-2610-25-1', $this->next('2026-10-25'));
-        $this->assertSame('H-2610-24', $this->next('2026-10-24'));
+        $this->assertSame('H-10000', $this->next('2026-10-25'));
+        $this->heat('H-10000');
+        $this->assertSame('H-10001', $this->next('2026-10-26'), 'The series does not restart by day.');
     }
 
     public function test_the_short_number_reads_both_forms(): void
@@ -53,7 +43,7 @@ class HeatNumberTest extends TestCase
             ['H-2610-25', 'H-2610-25-2', 'H-2610-24-1', 'H-20261019-012', 'TRIAL-1']));
     }
 
-    public function test_heats_planned_for_a_day_get_the_new_numbers(): void
+    public function test_heats_planned_for_a_day_take_the_next_numbers(): void
     {
         $furnace = Furnace::create(['code' => 'IF-9', 'name' => 'Induction', 'furnace_type' => 'INDUCTION', 'status' => 'ACTIVE']);
         $grade = \App\Models\IronGrade::where('code', 'EN-GJS-500-7')->firstOrFail();
@@ -66,6 +56,6 @@ class HeatNumberTest extends TestCase
             $planner->startHeat($furnace, $grade, 500, $day)->heat_number,
         ]);
 
-        $this->assertSame(['H-2610-25', 'H-2610-25-1', 'H-2610-25-2'], $numbers);
+        $this->assertSame(['H-10000', 'H-10001', 'H-10002'], $numbers);
     }
 }

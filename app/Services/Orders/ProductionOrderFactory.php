@@ -98,11 +98,6 @@ class ProductionOrderFactory
 
     private function nextNumber(): string
     {
-        DB::select('SELECT pg_advisory_xact_lock(?)', [2026101101]);
-        $prefix = 'PO-'.now()->format('Y').'-';
-        $last = ProductionOrder::where('production_order_number', 'like', $prefix.'%')->pluck('production_order_number')
-            ->map(fn ($n) => (int) substr($n, strlen($prefix)))->max() ?? 0;
-
-        return $prefix.str_pad((string) ($last + 1), 3, '0', STR_PAD_LEFT);
+        return \App\Support\DocumentNumbers::next('production_order');
     }
 }

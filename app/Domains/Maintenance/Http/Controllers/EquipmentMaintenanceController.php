@@ -366,10 +366,6 @@ class EquipmentMaintenanceController extends Controller
     /** @param class-string<\Illuminate\Database\Eloquent\Model> $model */
     private function nextNumber(string $prefix, string $model, string $column): string
     {
-        do {
-            $number = $prefix.'-'.now()->format('ymd').'-'.Str::upper(Str::random(4));
-        } while ($model::query()->where($column, $number)->exists());
-
-        return $number;
+        return \App\Support\DocumentNumbers::next($prefix === 'MWO' ? 'maintenance_work_order' : 'breakdown');
     }
 }

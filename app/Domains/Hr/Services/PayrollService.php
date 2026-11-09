@@ -28,7 +28,7 @@ class PayrollService
             throw new RuntimeException('There is already a payroll for '.$m->format('F Y').'.');
         }
 
-        return PayrollPeriod::create(['code' => 'PAY-'.$m->format('Y-m'), 'month' => $m, 'starts_on' => $m, 'ends_on' => $m->copy()->endOfMonth()->startOfDay(), 'status' => 'DRAFT']);
+        return PayrollPeriod::create(['code' => \App\Support\DocumentNumbers::next('payroll_period'), 'month' => $m, 'starts_on' => $m, 'ends_on' => $m->copy()->endOfMonth()->startOfDay(), 'status' => 'DRAFT']);
     }
 
     /** Everyone who was employed at some point in the month, apart from people paid through a final settlement. */

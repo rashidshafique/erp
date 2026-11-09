@@ -25,6 +25,8 @@ class LedgerSettings
         'supplier_advances' => ['Money paid to suppliers not yet on a bill (advances)', '22-05-01'],
         'bank' => ['Money in and out (except cash)', '22-01-03'],
         'cash' => ['Cash', '22-01-01'],
+        'cheques_received' => ['Post-dated cheques in hand (settled when received)', '22-02-04'],
+        'cheques_issued' => ['Post-dated cheques issued (settled when given)', '12-01-03'],
         'opening_equity' => ['Opening balances', '31-03-02'],
     ];
 
@@ -48,7 +50,10 @@ class LedgerSettings
         return $account;
     }
 
-    /** Where money paid by this method goes: a method set under Settings, cash for "Cash", the bank for anything else. */
+    /**
+     * Where money paid by this method goes when a receipt or payment names no account (one saved without the ledger, or by an older
+     * client): a method mapped before accounts were picked on the form, cash for "Cash", the bank for anything else.
+     */
     public static function methodAccount(?string $method): LedgerAccount
     {
         $map = self::methodMap();

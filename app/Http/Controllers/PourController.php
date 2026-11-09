@@ -133,20 +133,7 @@ class PourController extends Controller
         ]);
 
         $pour = DB::transaction(function () use ($validated) {
-            $prefix = 'P-'.now()->format('ymd').'-';
-
-            $last = Pour::query()
-                ->where('pour_number', 'like', $prefix.'%')
-                ->lockForUpdate()
-                ->pluck('pour_number')
-                ->map(fn ($number) => (int) substr(
-                    $number,
-                    strlen($prefix)
-                ))
-                ->max() ?? 0;
-
-            $validated['pour_number'] = $prefix
-                .str_pad((string) ($last + 1), 2, '0', STR_PAD_LEFT);
+            $validated['pour_number'] = \App\Support\DocumentNumbers::next('pour');
 
             $validated['status'] = 'PLANNED';
 

@@ -172,7 +172,7 @@ class PayrollTest extends TestCase
         Employee::create(['first_name' => 'No', 'last_name' => 'Salary', 'employment_type' => 'PERMANENT', 'joined_on' => '2025-01-01', 'status' => 'ACTIVE', 'weekly_off' => '0']);
         $svc = app(PayrollService::class);
         $p = $svc->createPeriod('2026-09-15');
-        $this->assertSame('PAY-2026-09', $p->code);
+        $this->assertSame('PP-10000', $p->code);
         $sum = $svc->calculate($p);
         $this->assertSame(1, $sum['people']);
         $this->assertCount(1, $sum['no_salary']);

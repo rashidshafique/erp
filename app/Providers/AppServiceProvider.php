@@ -59,9 +59,18 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Bootstrap any application services.
      */
+    /** A tunnel (ngrok) serves the page over https but reaches this copy over http; links and forms must follow the address people see. Local installs only. */
+    private function followTunnelScheme(): void
+    {
+        if ($this->app->environment('local') && str_starts_with(strtolower((string) request()->header('X-Forwarded-Proto')), 'https')) {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
+    }
+
     public function boot(): void
     {
         Paginator::defaultView('vendor.pagination.minimal');
+        $this->followTunnelScheme();
         \Illuminate\Support\Facades\Blade::if('fieldcan', fn (string $kind): bool => \App\Support\Fields::can($kind));
         DevCommands::artisan('schedule:work', 'scheduler');   // automatic heat charges and the other scheduled jobs, under composer run dev
         Formats::registerCarbonMacros();

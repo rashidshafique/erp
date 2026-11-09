@@ -195,7 +195,7 @@ class DataImportTest extends TestCase
         $this->assertEquals(1250.5, (float) Product::where('code', 'PRD-101')->value('nominal_weight_kg'));
         $this->assertSame(['B'], ProductRevision::where('product_id', $p->id)->pluck('revision')->all());
         $this->assertSame('DRAFT', ProductRevision::where('product_id', $p->id)->value('status'));
-        $this->assertMatchesRegularExpression('/^PRD-\d+$/', Product::where('name', 'Cover plate')->value('code'), 'blank code is generated');
+        $this->assertMatchesRegularExpression('/^PR-1\d{4}$/', Product::where('name', 'Cover plate')->value('code'), 'blank code is generated');
         $this->assertSame('COMMITTED', $b->fresh()->status);
         $this->assertDatabaseHas('audit_logs', ['entity_type' => 'Product', 'action' => 'CREATED']);
         $this->get(route('imports.show', $b))->assertOk()->assertSee('3')->assertSee('added');

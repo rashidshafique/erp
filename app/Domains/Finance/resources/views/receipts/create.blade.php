@@ -1,6 +1,6 @@
 @extends('layouts.app')
-@section('title', 'Receive payment')
-@section('breadcrumb', 'New receipt')
+@section('title', $asCheque ? 'Receive a cheque' : 'Receive payment')
+@section('breadcrumb', $asCheque ? 'New cheque' : 'New receipt')
 @section('content')
 @php
     $num = fn ($v, $d = 0) => \App\Support\Formats::number((float) $v, $d);
@@ -14,8 +14,8 @@
 .rc-btn { padding: 7px 14px; border-radius: 6px; background: #fff; border: 1px solid #d9dbde; font-size: 13px; color: #1c1d1f; cursor: pointer; text-decoration: none !important; font-family: inherit; }
 .rc-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 500; }
 .rc-body { padding: 20px 28px; display: flex; flex-direction: column; gap: 20px; }
-.rc-head { display: grid; grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr)); gap: 14px; padding-bottom: 20px; border-bottom: 1px solid #e6e7e9; }
-.rc-head > label, .rc-head > div { display: flex; flex-direction: column; gap: 6px; margin: 0; }
+.rc-head { display: grid; grid-template-columns: minmax(0, 1.6fr) repeat({{ $accounts->isNotEmpty() ? 4 : 3 }}, minmax(0, 1fr)); gap: 14px; padding-bottom: 20px; border-bottom: 1px solid #e6e7e9; }
+.rc-head > label, .rc-head > div:not(.pay-with), .rc-head .pay-with > label { display: flex; flex-direction: column; gap: 6px; margin: 0; }
 .rc-lab { font-size: 12px; color: #55585d; font-weight: 400; }
 .rc-head input, .rc-head select { padding: 7px 10px; border: 1px solid #d9dbde; border-radius: 6px; font-size: 13px; background: #fff; width: 100%; }
 .rc-sec { font-size: 12px; font-weight: 600; color: #55585d; text-transform: uppercase; letter-spacing: .06em; }
@@ -26,16 +26,16 @@
 .rc-sum > div { display: flex; flex-direction: column; gap: 2px; } .rc-sum b { font-size: 15px; font-weight: 600; }
 @media (max-width: 1000px) { .rc-head { grid-template-columns: minmax(0, 1fr); } }
 </style>
-<form id="pickCustomer" method="GET" action="{{ route('receipts.create') }}"></form>
+<form id="pickCustomer" method="GET" action="{{ route('receipts.create') }}">@if ($asCheque)<input type="hidden" name="cheque" value="1">@endif</form>
 <form id="receiptForm" method="POST" action="{{ route('receipts.store') }}" x-data="{ amount: {{ (float) old('amount', 0) }}, alloc: {}, get used() { return Object.values(this.alloc).reduce((n, v) => n + (Number(v) || 0), 0); },
     fmt(v) { return (Number(v) || 0).toLocaleString('en-US', { maximumFractionDigits: window.decimalPlaces ?? 0 }); },
     fill() { let left = Number(this.amount) || 0; document.querySelectorAll('[data-owing]').forEach(el => { const take = Math.min(left, Number(el.dataset.owing)); this.alloc[el.dataset.id] = take > 0 ? take.toFixed(2) : ''; left -= take; }); } }">@csrf
 <div class="rc-card">
     <div class="rc-bar">
-        <div class="rc-crumb"><a href="{{ route('receipts.index') }}">Receipts</a><span class="sl">/</span><span>New receipt</span></div>
+        <div class="rc-crumb">@if ($asCheque)<a href="{{ route('cheques.received') }}">Cheques received</a><span class="sl">/</span><span>New cheque</span>@else<a href="{{ route('receipts.index') }}">Receipts</a><span class="sl">/</span><span>New receipt</span>@endif</div>
         <div class="rc-btns">
-            <a class="rc-btn" href="{{ $invoiceId ? route('invoices.show', $invoiceId) : route('receipts.index') }}">Cancel</a>
-            @if ($customerId)<button class="rc-btn primary" type="submit">Save receipt</button>@endif
+            <a class="rc-btn" href="{{ $invoiceId ? route('invoices.show', $invoiceId) : route($asCheque ? 'cheques.received' : 'receipts.index') }}">Cancel</a>
+            @if ($customerId)<button class="rc-btn primary" type="submit">{{ $asCheque ? 'Save cheque' : 'Save receipt' }}</button>@endif
         </div>
     </div>
     <div class="rc-body">
@@ -47,9 +47,7 @@
             @if ($customerId)
             <input type="hidden" name="customer_id" value="{{ $customerId }}">
             <label><span class="rc-lab">Received on</span><input type="date" name="received_on" value="{{ old('received_on', today()->toDateString()) }}" required></label>
-            <label><span class="rc-lab">Method · reference</span>
-                <div style="display:flex;gap:6px"><input name="method" list="methods" value="{{ old('method') }}" maxlength="30" placeholder="Method" style="flex:0 0 42%"><input name="reference" value="{{ old('reference') }}" maxlength="100" placeholder="Cheque or transfer number"></div>
-                <datalist id="methods"><option>Bank transfer</option><option>Cheque</option><option>Cash</option></datalist></label>
+            @include('finance::partials.pay-with', ['into' => 'Into', 'lab' => 'rc-lab', 'drawnOn' => true, 'asCheque' => $asCheque, 'pdcMode' => \App\Domains\Finance\Services\FinanceRules::pdcMode()])
             <label><span class="rc-lab">Amount received</span><input type="number" step="any" min="0" name="amount" x-model.number="amount" required style="text-align:right;font-weight:500"></label>
             @endif
         </div>
