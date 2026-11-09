@@ -452,11 +452,12 @@ new class extends Component
     $num = fn ($v) => Formats::number((float) $v, 0);
     $p = $panel['row'] ?? null; $inv = $p['invoice'] ?? null;
 @endphp
-<div class="cl-card" x-data="{ menu: null, openMenu(e, invoice, customer) { this.menu = { x: Math.min(e.clientX, window.innerWidth - 180), y: Math.min(e.clientY, window.innerHeight - 90), invoice, customer }; this.$nextTick(() => this.$refs.menu?.querySelector('a')?.focus()); } }"
-     @click.window="menu = null" @keydown.escape.window="menu = null" @scroll.window="menu = null" @resize.window="menu = null">
-    <div class="cl-ctx" x-ref="menu" x-show="menu" x-cloak role="menu" :style="menu && `left:${menu.x}px;top:${menu.y}px`" @contextmenu.prevent>
-        <a role="menuitem" :href="menu?.invoice">Open invoice</a>
-        <a role="menuitem" :href="menu?.customer">Open customer</a>
+<div class="cl-card" x-data="{ menu: false, mx: 0, my: 0, invoiceUrl: '', customerUrl: '', openMenu(e, invoice, customer) { this.invoiceUrl = invoice; this.customerUrl = customer; this.mx = Math.min(e.clientX, window.innerWidth - 180); this.my = Math.min(e.clientY, window.innerHeight - 90); this.menu = true; this.$nextTick(() => this.$refs.menu.querySelector('a').focus()); } }"
+     @click.window="menu = false" @keydown.escape.window="menu = false" @scroll.window="menu = false" @resize.window="menu = false">
+    {{-- Closing only hides the menu: the links keep their addresses, so a click still follows them. --}}
+    <div class="cl-ctx" x-ref="menu" x-show="menu" x-cloak role="menu" :style="`left:${mx}px;top:${my}px`" @contextmenu.prevent>
+        <a role="menuitem" :href="invoiceUrl">Open invoice</a>
+        <a role="menuitem" :href="customerUrl">Open customer</a>
     </div>
     <div class="cl-bar">
         <div style="display:flex;align-items:center;gap:16px">
