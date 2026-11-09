@@ -123,7 +123,7 @@
             <div><div class="iv-lab">{{ $label }} date</div><div>{{ $invoice->invoice_date->format('j M Y') }}</div></div>
             <div><div class="iv-lab">Due</div><div>{{ $invoice->due_date?->format('j M Y') ?? '—' }}</div>@if ($invoice->due_date && ! $credit && $invoice->status === 'ISSUED' && $balance > 0)<div class="iv-lab" @if ($late) style="color:#b3352c" @endif>{{ $late ? (int) $invoice->due_date->diffInDays(today()).' days overdue' : 'in '.(int) today()->diffInDays($invoice->due_date).' days' }}</div>@endif</div>
             <div><div class="iv-lab">Total</div><div>{{ $money($invoice->total) }}</div>@if ($invoice->tax_withheld > 0)<div class="iv-lab">customer pays {{ $money($invoice->payableToUs()) }}</div>@endif</div>
-            <div><div class="iv-lab">Settled</div><div>{{ $money($settled) }}</div>@if ($invoice->withheldSettled() > 0)<div class="iv-lab">incl. {{ $money($invoice->withheldSettled()) }} withheld</div>@endif</div>
+            <div><div class="iv-lab">Settled</div><div>{{ $money($settled) }}</div>@if ($invoice->withheldSettled() > 0)<div class="iv-lab">Withheld tax certified {{ $money($invoice->withheldSettled()) }}</div>@endif</div>
             <div><div class="iv-lab">Balance</div><div style="font-weight:600;font-size:15px">{{ $money($balance) }}</div>@if ($invoice->credited() > 0)<div class="iv-lab">{{ $money($invoice->credited()) }} credited</div>@endif</div>
         </div>
         @if ($invoice->status === 'VOID')<div class="alert alert-error">Voided {{ $invoice->voided_at?->displayShortDateTime() }}: {{ $invoice->void_reason }}</div>@endif
