@@ -114,7 +114,7 @@ class EnquiryIntakeTest extends TestCase
             ->assertSessionHasNoErrors();
         $customer = Customer::whereHas('party', fn ($q) => $q->where('name', 'Orbis Gears'))->firstOrFail();
         $this->assertTrue($customer->is_prospect);
-        $this->assertSame('ORBI', $customer->code);
+        $this->assertStringStartsWith('CU-1', $customer->code);
         $this->post(route('enquiries.store'), ['customer_mode' => 'NEW', 'new_name' => 'orbis gears', 'source_type' => 'CONCEPT', 'action' => 'draft'])->assertSessionHasErrors('new_name');
     }
 

@@ -73,7 +73,7 @@ class EquipmentMaintenanceTest extends TestCase
         ])->assertSessionHasNoErrors()->assertSessionHas('success');
 
         $plan = MaintenancePlan::firstOrFail();
-        $this->assertStringStartsWith('MNT', $plan->code);
+        $this->assertStringStartsWith('MP-1', $plan->code);
         $this->assertTrue($plan->active);
         $this->assertSame(today()->addDays(30)->toDateString(), $plan->next_due_at->toDateString());
 

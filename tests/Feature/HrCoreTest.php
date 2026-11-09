@@ -36,7 +36,7 @@ class HrCoreTest extends TestCase
     public function test_adding_an_employee_generates_a_code_probation_and_the_joining_checklist(): void
     {
         $e = $this->emp(['cnic' => '3520112345671']);
-        $this->assertMatchesRegularExpression('/^EMP-\d{5}$/', $e->code);
+        $this->assertMatchesRegularExpression('/^EM-1\d{4}$/', $e->code);
         $this->assertSame('ONBOARDING', $e->status);
         $this->assertSame('2026-12-01', $e->probation_ends_on->toDateString());   // 3 months
         $this->assertSame('35201-1234567-1', $e->cnic);
@@ -84,7 +84,7 @@ class HrCoreTest extends TestCase
         $dg = HrDesignation::create(['name' => 'Moulder']);
         $boss = $this->emp(['first_name' => 'Boss']);
         $e = $this->emp(['first_name' => 'Worker', 'department_id' => $d1->id, 'manager_id' => $boss->id]);
-        $this->assertMatchesRegularExpression('/^DEP-\d{5}$/', $d1->code);
+        $this->assertMatchesRegularExpression('/^DE-1\d{4}$/', $d1->code);
 
         $this->post(route('hr.employees.transfer', $e), ['kind' => 'TRANSFER', 'effective_on' => '2026-10-01', 'department_id' => $d2->id, 'designation_id' => $dg->id, 'manager_id' => $boss->id])->assertSessionHas('success');
         $e->refresh();
@@ -179,7 +179,7 @@ class HrCoreTest extends TestCase
         $e = $this->emp();
         $this->post(route('hr.policies.store'), ['title' => 'PPE rules', 'category' => 'SAFETY', 'requires_ack' => 1, 'body' => 'Wear PPE.'])->assertSessionHasNoErrors();
         $p = HrPolicy::first();
-        $this->assertMatchesRegularExpression('/^POL-\d{5}$/', $p->code);
+        $this->assertMatchesRegularExpression('/^PO-1\d{4}$/', $p->code);
         $this->post(route('hr.policies.acknowledge', $p), ['employee_ids' => [$e->id]])->assertStatus(422);   // not published
         $this->post(route('hr.policies.publish', $p))->assertSessionHas('success');
         $this->put(route('hr.policies.update', $p), ['title' => 'PPE rules', 'category' => 'SAFETY', 'body' => 'Changed.'])->assertSessionHas('error');   // locked once published

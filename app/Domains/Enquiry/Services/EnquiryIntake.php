@@ -277,14 +277,8 @@ class EnquiryIntake
 
     private function newCustomer(array $d): Customer
     {
-        $base = strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', Str::ascii($d['new_name'])), 0, 4)) ?: 'CUST';
-        $code = $base;
-        for ($n = 1; Customer::withTrashed()->where('code', $code)->exists(); $n++) {
-            $code = $base.str_pad((string) $n, 2, '0', STR_PAD_LEFT);
-        }
-
         return Customer::create([
-            'code' => $code, 'name' => trim($d['new_name']), 'contact_name' => $d['new_contact'] ?? null,
+            'name' => trim($d['new_name']), 'contact_name' => $d['new_contact'] ?? null,
             'phone' => $d['new_phone'] ?? null, 'email' => $d['new_email'] ?? null, 'payment_terms' => $d['new_terms'] ?? null,
             'active' => true, 'is_prospect' => true,
         ]);

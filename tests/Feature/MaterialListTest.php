@@ -108,9 +108,9 @@ class MaterialListTest extends TestCase
 
     public function test_a_blank_code_is_generated_and_a_typed_one_is_kept_in_capitals_on_both_the_dialog_and_the_form_page(): void
     {
-        Livewire::test('material-list')->call('create')->assertSee('Blank: MAT-')->set('form.name', 'Bentonite')->call('save')->assertHasNoErrors();
+        Livewire::test('material-list')->call('create')->assertSee('Blank: MT-')->set('form.name', 'Bentonite')->call('save')->assertHasNoErrors();
         $generated = Material::where('name', 'Bentonite')->sole();
-        $this->assertMatchesRegularExpression('/^MAT-\w+$/', $generated->code);
+        $this->assertMatchesRegularExpression('/^MT-1\d{4}$/', $generated->code);
 
         Livewire::test('material-list')->call('create')->set('form.name', 'Coke')->set('form.code', ' coke-1 ')->call('save')->assertHasNoErrors();
         $this->assertNotNull(Material::where('code', 'COKE-1')->first());
@@ -119,7 +119,7 @@ class MaterialListTest extends TestCase
         $form = ['name' => 'Silica sand', 'material_type' => 'SAND', 'base_uom' => 'kg', 'status' => 'ACTIVE', 'is_stock_tracked' => 1, 'requires_lot_tracking' => 1];
         $this->post(route('materials.store'), $form)->assertSessionHasNoErrors();
         $sand = Material::where('name', 'Silica sand')->sole();
-        $this->assertMatchesRegularExpression('/^MAT-\w+$/', $sand->code);
+        $this->assertMatchesRegularExpression('/^MT-1\d{4}$/', $sand->code);
         $this->assertNotSame($generated->code, $sand->code);
 
         $this->put(route('materials.update', $sand), $form + ['name' => 'Silica sand 2'])->assertSessionHasNoErrors();
@@ -128,6 +128,6 @@ class MaterialListTest extends TestCase
         $this->assertSame('SAND-X', $sand->fresh()->code);
         $this->post(route('materials.store'), $form + ['code' => 'sand-x'])->assertSessionHasErrors('code');
 
-        $this->get(route('materials.create'))->assertOk()->assertSee('Leave blank to generate: MAT-');
+        $this->get(route('materials.create'))->assertOk()->assertSee('Leave blank to generate: MT-');
     }
 }

@@ -67,7 +67,7 @@ class CapaServiceProvider extends ModuleServiceProvider
     protected function codeKinds(): array
     {
         return [
-            'capa' => ['capa_actions', 'CPA', 4, 'Corrective action'],
+            'capa' => ['capa_actions', 'CA', 4, 'Corrective action'],
         ];
     }
 }

@@ -262,7 +262,7 @@ class HrAttendanceLeaveTest extends TestCase
     {
         $this->post(route('hr.shifts.store'), ['name' => 'Pour', 'starts_at' => '06:00', 'ends_at' => '14:00', 'break_minutes' => 30, 'grace_minutes' => 5])->assertSessionHasNoErrors();
         $s = HrShift::where('name', 'Pour')->first();
-        $this->assertMatchesRegularExpression('/^SHF-\d{5}$/', $s->code);
+        $this->assertMatchesRegularExpression('/^SH-1\d{4}$/', $s->code);
         $this->post(route('hr.shifts.store'), ['name' => 'Same', 'starts_at' => '06:00', 'ends_at' => '06:00', 'break_minutes' => 0, 'grace_minutes' => 0])->assertSessionHasErrors('ends_at');
         $this->put(route('hr.shifts.update', $s), ['name' => 'Pour 2', 'starts_at' => '06:00', 'ends_at' => '14:30', 'break_minutes' => 30, 'grace_minutes' => 5])->assertSessionHasNoErrors();
         $this->assertFalse($s->fresh()->active);

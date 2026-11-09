@@ -4,12 +4,13 @@ namespace App\Services\Codes;
 
 use App\Domains\Core\ModuleRegistry;
 use App\Models\AppSetting;
+use App\Support\DocumentNumbers;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Item codes (PRD-00012) and engraving marks (00417). Unique by construction: a counter that never repeats,
+ * Item codes (PR-10012) and engraving marks (00417). Unique by construction: a counter that never repeats,
  * and a register that refuses duplicates. Style and length come from Settings → Codes and marking.
  */
 class CodeGenerator
@@ -18,15 +19,15 @@ class CodeGenerator
 
     /** kind => [table, default prefix, leading digit used in numbers-only codes, label] */
     private const CORE_KINDS = [
-        'product' => ['products', 'PRD', 1, 'Product'],
-        'pattern' => ['patterns', 'PAT', 2, 'Pattern'],
-        'core_box' => ['core_boxes', 'CBX', 3, 'Core box'],
-        'core_definition' => ['core_definitions', 'COR', 4, 'Core'],
-        'mould_configuration' => ['mould_configurations', 'MCF', 5, 'Mould configuration'],
-        'flask' => ['flasks', 'FLK', 6, 'Flask'],
-        'customer' => ['customers', 'C', 7, 'Customer'],
-        'material' => ['materials', 'MAT', 8, 'Material'],
-        'casting_analysis' => ['casting_analyses', 'CAN', 6, 'Casting analysis'],
+        'product' => ['products', 'PR', 1, 'Product'],
+        'pattern' => ['patterns', 'PA', 2, 'Pattern'],
+        'core_box' => ['core_boxes', 'CB', 3, 'Core box'],
+        'core_definition' => ['core_definitions', 'CO', 4, 'Core'],
+        'mould_configuration' => ['mould_configurations', 'MC', 5, 'Mould configuration'],
+        'flask' => ['flasks', 'FL', 6, 'Flask'],
+        'customer' => ['customers', 'CU', 7, 'Customer'],
+        'material' => ['materials', 'MT', 8, 'Material'],
+        'casting_analysis' => ['casting_analyses', 'AN', 6, 'Casting analysis'],
     ];
 
     /**
@@ -94,7 +95,12 @@ class CodeGenerator
     {
         [$table, , $typeDigit] = self::kinds()[$kind];
         do {
+            // Codes run from 10000 like document numbers (CU-10000); a counter still below that jumps up to it.
             $n = $this->next("code:$kind");
+            if ($n < DocumentNumbers::START) {
+                DB::update('UPDATE code_sequences SET next_value = GREATEST(next_value, ?) WHERE key = ?', [DocumentNumbers::START + 1, "code:$kind"]);
+                $n = DocumentNumbers::START;
+            }
             $code = $this->format($kind, $n, $typeDigit);
         } while (DB::table($table)->where('code', $code)->exists());
 

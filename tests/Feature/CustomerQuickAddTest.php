@@ -35,7 +35,7 @@ class CustomerQuickAddTest extends TestCase
         $response = $this->postJson(route('customers.store'), ['name' => 'No Code Ltd'])->assertCreated();
 
         $customer = Customer::findOrFail($response->json('id'));
-        $this->assertMatchesRegularExpression('/^C-\d+$/', $customer->code);
+        $this->assertMatchesRegularExpression('/^CU-1\d{4}$/', $customer->code);
         $response->assertJson(['label' => $customer->code.' — No Code Ltd']);
     }
 }

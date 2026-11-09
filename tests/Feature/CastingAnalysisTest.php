@@ -141,7 +141,7 @@ class CastingAnalysisTest extends TestCase
         $a = CastingAnalysis::firstOrFail();
         $resp->assertRedirect(route('casting-analyses.show', $a));
         $this->assertSame('COMPLETE', $a->status, (string) $a->error);
-        $this->assertMatchesRegularExpression('/^CAN-\d{5}$/', $a->code);
+        $this->assertMatchesRegularExpression('/^AN-1\d{4}$/', $a->code);
         $this->assertNotNull($a->score);
 
         $this->get(route('casting-analyses.show', $a))->assertOk()->assertSee('Manufacturability')->assertSee('Chemistry')->assertSee('Freezing map');

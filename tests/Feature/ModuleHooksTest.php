@@ -125,6 +125,6 @@ class ModuleHooksTest extends TestCase
 
     public function test_the_gauge_code_kind_now_comes_from_the_maintenance_module(): void
     {
-        $this->assertSame('GAU', CodeGenerator::kinds()['gauge'][1]);
+        $this->assertSame('GA', CodeGenerator::kinds()['gauge'][1]);
     }
 }

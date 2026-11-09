@@ -118,8 +118,8 @@ class EnquiryServiceProvider extends ModuleServiceProvider
     protected function codeKinds(): array
     {
         return [
-            'enquiry' => ['enquiries', 'ENQ', 7, 'Enquiry'],
-            'quotation' => ['quotations', 'QUO', 8, 'Quotation'],
+            'enquiry' => ['enquiries', 'E', 7, 'Enquiry'],
+            'quotation' => ['quotations', 'Q', 8, 'Quotation'],
         ];
     }
 }

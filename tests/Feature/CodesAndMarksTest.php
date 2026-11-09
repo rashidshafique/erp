@@ -31,18 +31,18 @@ class CodesAndMarksTest extends TestCase
     {
         $a = Product::create(['name' => 'A', 'product_type' => 'CASTING', 'base_uom' => 'EA']);
         $b = Product::create(['name' => 'B', 'product_type' => 'CASTING', 'base_uom' => 'EA']);
-        $this->assertSame('PRD-00001', $a->code);
-        $this->assertSame('PRD-00002', $b->code);
+        $this->assertSame('PR-10000', $a->code);
+        $this->assertSame('PR-10001', $b->code);
         $c = Product::create(['code' => 'GV-001', 'name' => 'C', 'product_type' => 'CASTING', 'base_uom' => 'EA']);
         $this->assertSame('GV-001', $c->code);
-        $this->assertStringStartsWith('PAT-', $this->pattern()->code);
+        $this->assertStringStartsWith('PA-1', $this->pattern()->code);
     }
 
     public function test_a_generated_code_never_collides_with_a_typed_one(): void
     {
-        Product::create(['code' => 'PRD-00001', 'name' => 'Typed', 'product_type' => 'CASTING', 'base_uom' => 'EA']);
+        Product::create(['code' => 'PR-10000', 'name' => 'Typed', 'product_type' => 'CASTING', 'base_uom' => 'EA']);
         $p = Product::create(['name' => 'Auto', 'product_type' => 'CASTING', 'base_uom' => 'EA']);
-        $this->assertSame('PRD-00002', $p->code);
+        $this->assertSame('PR-10001', $p->code);
     }
 
     public function test_code_styles_numbers_letters_and_both(): void
@@ -51,7 +51,7 @@ class CodesAndMarksTest extends TestCase
         $this->assertMatchesRegularExpression('/^1\d{5}$/', Product::create(['name' => 'N', 'product_type' => 'CASTING', 'base_uom' => 'EA'])->code);
         $this->assertMatchesRegularExpression('/^2\d{5}$/', $this->pattern()->code);
         AppSetting::setValue('codes.code_style', 'LETTERS');
-        $this->assertMatchesRegularExpression('/^PRD[A-Z]{5}$/', Product::create(['name' => 'L', 'product_type' => 'CASTING', 'base_uom' => 'EA'])->code);
+        $this->assertMatchesRegularExpression('/^PR[A-Z]{5}$/', Product::create(['name' => 'L', 'product_type' => 'CASTING', 'base_uom' => 'EA'])->code);
         AppSetting::setValue('codes.code_style', 'BOTH');
         AppSetting::setValue('codes.prefix.product', 'CST');
         $this->assertMatchesRegularExpression('/^CST-\d{5}$/', Product::create(['name' => 'B', 'product_type' => 'CASTING', 'base_uom' => 'EA'])->code);
@@ -127,8 +127,8 @@ class CodesAndMarksTest extends TestCase
     public function test_forms_accept_a_blank_code(): void
     {
         $this->post(route('products.store'), ['name' => 'Auto product', 'product_type' => 'CASTING', 'base_uom' => 'EA', 'active' => 1, 'revision' => 'A', 'revision_status' => 'DRAFT'])->assertSessionHasNoErrors();
-        $this->assertSame('PRD-00001', Product::where('name', 'Auto product')->value('code'));
-        $this->get(route('products.create'))->assertOk()->assertSee('PRD-00002');
+        $this->assertSame('PR-10000', Product::where('name', 'Auto product')->value('code'));
+        $this->get(route('products.create'))->assertOk()->assertSee('PR-10001');
     }
 
     public function test_row_click_setting_switches_the_behaviour(): void

@@ -105,7 +105,7 @@ class DocumentNumbers
     }
 
     /**
-     * Renumbers every numbered row of a type from START in date order (then created_at, id), keeping the old numbers in
+     * Renumbers every numbered row of a type from START in date order (then created_at, then the old number, id), keeping the old numbers in
      * number_history. Rows with no number (drafts) are left alone. Returns old => new.
      *
      * @return array<string, string>
@@ -128,7 +128,8 @@ class DocumentNumbers
     public static function renumberRows(string $table, string $column, string $prefix, ?string $date, array $where = [], string $key = 'id'): array
     {
         $rows = DB::table($table)->whereNotNull($column)->where($where)
-            ->when($date, fn ($q) => $q->orderBy($date))->when(Schema::hasColumn($table, 'created_at'), fn ($q) => $q->orderBy('created_at'))->orderBy($key)
+            ->when($date, fn ($q) => $q->orderBy($date))->when(Schema::hasColumn($table, 'created_at'), fn ($q) => $q->orderBy('created_at'))
+            ->orderByRaw('length('.$column.')')->orderBy($column)->orderBy($key)
             ->get([$key, $column]);
         $map = [];
         $n = self::START;
