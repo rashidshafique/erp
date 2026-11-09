@@ -59,7 +59,7 @@
 <div style="padding:20px 28px;display:flex;flex-direction:column;gap:20px;font-size:13px">
 <div class="iv-head">
     <div style="display:flex;flex-direction:column;gap:6px">
-        <label class="iv-f"><span>Customer</span><select name="customer_id" required @change="if (cfg.create && $event.target.value) { location = cfg.url + '?customer=' + $event.target.value; }"><option value="">Select customer</option>@foreach ($customers as $c)<option value="{{ $c->id }}" @selected(old('customer_id', $head['customer_id'] ?? null) === $c->id)>{{ $c->name }}</option>@endforeach</select></label>
+        <label class="iv-f"><span>Customer</span><select data-search-select name="customer_id" required @change="if (cfg.create && $event.target.value) { location = cfg.url + '?customer=' + $event.target.value; }"><option value="">Select customer</option>@foreach ($customers as $c)<option value="{{ $c->id }}" @selected(old('customer_id', $head['customer_id'] ?? null) === $c->id)>{{ $c->name }}</option>@endforeach</select></label>
         <div class="iv-addr">@if ($customer){{ trim((string) $customer->billing_address) }}@if ($customer->tax_number){{ "\n" }}<span class="el-sub" style="font-size:13px">{{ $customer->tax_number }}</span>@endif @else<span class="el-sub" style="font-size:13px">Address fills in from the customer</span>@endif</div>
     </div>
     <div style="display:flex;flex-direction:column;gap:8px">

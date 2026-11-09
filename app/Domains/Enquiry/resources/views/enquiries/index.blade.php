@@ -50,7 +50,7 @@
             <form method="GET" action="{{ route('enquiries.index') }}" class="el-filters">
                 @if ($tab !== 'open')<input type="hidden" name="tab" value="{{ $tab }}">@endif
                 <input type="search" name="search" value="{{ request('search') }}" placeholder="Search code, part, customer or RFQ ref" aria-label="Search code, part, customer or RFQ ref">
-                <select name="customer" aria-label="Customer" onchange="this.form.submit()"><option value="">Customer: all</option>@foreach ($customers as $c)<option value="{{ $c->id }}" @selected(request('customer') === $c->id)>{{ $c->name }}</option>@endforeach</select>
+                <select data-search-select name="customer" aria-label="Customer" onchange="this.form.submit()"><option value="">Customer: all</option>@foreach ($customers as $c)<option value="{{ $c->id }}" @selected(request('customer') === $c->id)>{{ $c->name }}</option>@endforeach</select>
                 <select name="owner" aria-label="Owner" onchange="this.form.submit()"><option value="">Owner: all</option>@foreach ($owners as $u)<option value="{{ $u->id }}" @selected((string) request('owner') === (string) $u->id)>{{ $u->name }}</option>@endforeach</select>
                 <noscript><button class="el-btn" type="submit">Filter</button></noscript>
                 @if (request()->hasAny(['search', 'customer', 'owner']))<a class="el-note" href="{{ route('enquiries.index', $tab === 'open' ? [] : ['tab' => $tab]) }}">Clear</a>@endif

@@ -335,7 +335,7 @@ new class extends Component
     <div class="pc-main">
         <div class="pc-filters" role="search">
             <input id="search" type="search" wire:model.live.debounce.300ms="search" placeholder="Search code, name or drawing" aria-label="Search code, name or drawing" autocomplete="off">
-            <select wire:model.live="customer" aria-label="Customer">
+            <select data-search-select wire:model.live="customer" aria-label="Customer">
                 <option value="">Customer: all</option>
                 @foreach ($customers as $id => $name)<option value="{{ $id }}">{{ $name }}</option>@endforeach
             </select>

@@ -4,7 +4,7 @@
 <div class="page-heading"><div><h1>Dispatches</h1><p>Goods that have left the foundry.</p></div><div class="actions"><a class="btn btn-primary" href="{{ route('dispatches.create') }}">+ New dispatch</a></div></div>
 <div class="panel"><div class="panel-body">
     <form method="GET" class="filters">
-        <div class="field"><label for="customer">Customer</label><select id="customer" name="customer" onchange="this.form.submit()"><option value="">All customers</option>@foreach ($customers as $c)<option value="{{ $c->id }}" @selected($customerId === $c->id)>{{ $c->name }} ({{ $c->code }})</option>@endforeach</select></div>
+        <div class="field"><label for="customer">Customer</label><select data-search-select id="customer" name="customer" onchange="this.form.submit()"><option value="">All customers</option>@foreach ($customers as $c)<option value="{{ $c->id }}" @selected($customerId === $c->id)>{{ $c->name }} ({{ $c->code }})</option>@endforeach</select></div>
         <noscript><button class="btn btn-primary" type="submit">Filter</button></noscript>
         @if ($customerId)<a class="btn" href="{{ route('dispatches.index') }}">Reset</a>@endif
     </form>

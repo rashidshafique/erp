@@ -26,7 +26,7 @@
 @foreach ($list->customers as $c)<form method="POST" action="{{ route('price-lists.assign', $c) }}" style="display:flex;gap:8px;align-items:center;margin-bottom:6px">@csrf @method('PUT')<input type="hidden" name="price_list_id" value=""><span>{{ $c->name }}</span><button class="btn btn-small">Take off</button></form>@endforeach
 @if ($customers->isNotEmpty())
 <form method="POST" x-data="{ customer: '' }" :action="customer ? '{{ url('price-lists/customers') }}/' + customer : '#'" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">@csrf @method('PUT')<input type="hidden" name="price_list_id" value="{{ $list->id }}">
-<select x-model="customer" required><option value="">Give a customer this list…</option>@foreach ($customers as $c)<option value="{{ $c->id }}">{{ $c->name }}</option>@endforeach</select><button class="btn">Add</button></form>
+<select data-search-select x-model="customer" required><option value="">Give a customer this list…</option>@foreach ($customers as $c)<option value="{{ $c->id }}">{{ $c->name }}</option>@endforeach</select><button class="btn">Add</button></form>
 @endif
 </div></div>
 <div class="panel"><div class="panel-header"><h2>List details</h2></div><form method="POST" action="{{ route('price-lists.update', $list) }}">@csrf @method('PUT')<div class="panel-body form-grid">

@@ -63,7 +63,7 @@
     <div class="panel-header"><h2>Idle patterns</h2><span class="muted small">Not moulded for {{ $rules['idle_months'] }} months or more: ask the customer to collect them or agree to scrap them</span></div>
     <div class="panel-body">
         <form method="GET" action="{{ route('pattern-ownership.index') }}" class="filters">
-            <div class="field"><label for="customer">Customer</label><select id="customer" name="customer"><option value="">All owners</option>@foreach ($customers as $c)<option value="{{ $c->id }}" @selected($customerId === $c->id)>{{ $c->name }}</option>@endforeach</select></div>
+            <div class="field"><label for="customer">Customer</label><select data-search-select id="customer" name="customer"><option value="">All owners</option>@foreach ($customers as $c)<option value="{{ $c->id }}" @selected($customerId === $c->id)>{{ $c->name }}</option>@endforeach</select></div>
             <button class="btn btn-primary" type="submit">Filter</button>
         </form>
     </div>

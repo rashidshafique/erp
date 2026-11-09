@@ -41,7 +41,7 @@
     <div class="rc-body">
         <div class="rc-head">
             <div><span class="rc-lab">Customer</span>
-                <select form="pickCustomer" name="customer" onchange="this.form.submit()" aria-label="Customer"><option value="">Pick a customer</option>@foreach ($customers as $c)<option value="{{ $c->id }}" @selected($customerId === $c->id)>{{ $c->name }}</option>@endforeach</select>
+                <select data-search-select form="pickCustomer" name="customer" onchange="this.form.submit()" aria-label="Customer"><option value="">Pick a customer</option>@foreach ($customers as $c)<option value="{{ $c->id }}" @selected($customerId === $c->id)>{{ $c->name }}</option>@endforeach</select>
                 @if ($customerId)<span class="rc-lab">{{ $open->count() }} open {{ $open->count() === 1 ? 'invoice' : 'invoices' }} · {{ \App\Support\Formats::money($owingTotal, 0) }}</span>@endif
             </div>
             @if ($customerId)

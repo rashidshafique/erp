@@ -816,5 +816,7 @@ document.addEventListener('change', function (e) {
 }, true);
 </script>
 <script src="{{ asset('js/phone-queue.js') }}" defer></script>
+{{-- Type-to-search on every <select data-search-select> (every customer dropdown carries it); pages that include it too get it once. --}}
+@include('partials.search-select')
 </body>
 </html>

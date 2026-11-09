@@ -132,4 +132,12 @@ class InvoiceListTest extends TestCase
         Livewire::test('invoice-list')->assertSee('Open invoice')->assertSee('Open customer')
             ->assertSeeHtml("openMenu(\$event, '".addcslashes(route('invoices.show', $invoice), '/')."', '".addcslashes(route('parties.show', $customer->fresh()->party_id), '/')."')");
     }
+
+    public function test_the_customer_filter_is_a_dropdown_with_search(): void
+    {
+        $customer = Customer::create(['code' => 'ACME', 'name' => 'Acme Pumps', 'active' => true]);
+        $this->invoice($customer, 'INV-ONE', 'ISSUED', 100, today()->addDays(9)->toDateString());
+
+        $this->get(route('invoices.index'))->assertOk()->assertSee('<select data-search-select wire:model.live="customer"', false)->assertSee('.ss-pop', false);
+    }
 }

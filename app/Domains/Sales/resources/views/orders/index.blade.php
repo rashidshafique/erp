@@ -31,7 +31,7 @@
             <form method="GET" action="{{ route('sales-orders.index') }}" class="el-filters">
                 @if ($status)<input type="hidden" name="status" value="{{ $status }}">@endif
                 <input type="search" name="search" value="{{ $search }}" placeholder="Search order number, customer or reference" aria-label="Search order number, customer or reference">
-                <select name="customer" aria-label="Customer" onchange="this.form.submit()"><option value="">Customer: all</option>@foreach ($customers as $c)<option value="{{ $c->id }}" @selected(request('customer') === $c->id)>{{ $c->name }}</option>@endforeach</select>
+                <select data-search-select name="customer" aria-label="Customer" onchange="this.form.submit()"><option value="">Customer: all</option>@foreach ($customers as $c)<option value="{{ $c->id }}" @selected(request('customer') === $c->id)>{{ $c->name }}</option>@endforeach</select>
                 <noscript><button class="el-btn" type="submit">Filter</button></noscript>
                 @if ($filtered)<a class="el-note" href="{{ route('sales-orders.index', $status ? ['status' => $status] : []) }}">Clear</a>@endif
             </form>

@@ -489,7 +489,7 @@ new class extends Component
                 <label class="cl-chip">
                     <span class="k">Customer</span><b>{{ $customers->firstWhere('id', $customer)?->name ?? 'All' }}</b>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#55585d" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
-                    <select wire:model.live="customer" aria-label="Customer"><option value="">All</option>@foreach ($customers as $c)<option value="{{ $c->id }}">{{ $c->name }}</option>@endforeach</select>
+                    <select data-search-select wire:model.live="customer" aria-label="Customer"><option value="">All</option>@foreach ($customers as $c)<option value="{{ $c->id }}">{{ $c->name }}</option>@endforeach</select>
                 </label>
                 <span style="position:relative;display:inline-flex" wire:key="date-menu"
                       x-data="invoiceDates(@js($perDay), @js(today()->toDateString()), @js($from))" @click.outside="close()" @keydown.escape.window="close()">

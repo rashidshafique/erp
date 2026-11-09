@@ -5,7 +5,7 @@
 <div class="page-heading"><div><h1>Record a tax certificate</h1><p>Pick the customer and tax, then how much each invoice carries. That part is then settled.</p></div></div>
 @error('certificate')<div class="alert alert-error">{{ $message }}</div>@enderror
 <div class="panel"><div class="panel-body"><form method="GET" class="filters">
-    <div class="field"><label for="customer">Customer</label><select id="customer" name="customer" onchange="this.form.tax && (this.form.tax.value = ''); this.form.submit()"><option value="">—</option>@foreach ($customers as $c)<option value="{{ $c->id }}" @selected($customerId === $c->id)>{{ $c->name }}</option>@endforeach</select></div>
+    <div class="field"><label for="customer">Customer</label><select data-search-select id="customer" name="customer" onchange="this.form.tax && (this.form.tax.value = ''); this.form.submit()"><option value="">—</option>@foreach ($customers as $c)<option value="{{ $c->id }}" @selected($customerId === $c->id)>{{ $c->name }}</option>@endforeach</select></div>
     @if ($customerId)
     <div class="field"><label for="tax">Tax</label><select id="tax" name="tax" onchange="this.form.submit()">@foreach ($taxes as $code => $t)<option value="{{ $code }}" @selected($taxCode === $code)>{{ $t['label'] }}{{ $t['authority'] ? ' · '.$t['authority'] : '' }}{{ $t['open'] > 0 ? ' · '.$m($t['open']).' waiting' : '' }}</option>@endforeach</select></div>
     @endif
