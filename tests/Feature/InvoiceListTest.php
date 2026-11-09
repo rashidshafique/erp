@@ -34,10 +34,11 @@ class InvoiceListTest extends TestCase
         ReceiptAllocation::create(['receipt_id' => $receipt->id, 'invoice_id' => $paid->id, 'amount' => 200]);
 
         $list = Livewire::test('invoice-list');
-        $list->assertSee('INV-LATE')->assertSee('Part paid')->assertSee('Overdue')->assertSeeText('Drafts 1')->assertSeeText('Unpaid 2')->assertSeeText('Overdue 1')->assertSeeText('Paid 1');
+        $list->assertSee('INV-LATE')->assertSee('Part paid')->assertSee('Overdue')->assertSeeText('Drafts 1')->assertSeeText('Unpaid 2')->assertSeeText('Part paid 1')->assertSeeText('Overdue 1')->assertSeeText('Paid 1');
 
         $list->call('showTab', 'OVERDUE')->assertSee('INV-LATE')->assertDontSee('INV-PART');
         $list->call('showTab', 'DRAFT')->assertSee('Review and post');
+        $list->call('showTab', 'PART')->assertSee('INV-PART')->assertDontSee('INV-LATE')->assertDontSee('INV-PAID');
         $list->call('showTab', 'OPEN')->call('select', $part->id)->assertSee('Receive payment')->assertSee('REC-1')->assertSee('600');
         $list->call('showTab', 'PAID')->assertSee('INV-PAID')->assertDontSee('INV-LATE')->assertSee('Credit note');
     }
@@ -94,5 +95,30 @@ class InvoiceListTest extends TestCase
         $list->call('sortBy', 'total')->assertSet('dir', 'asc')->assertSeeInOrder(['INV-SMALL', 'INV-BIG']);
         $list->call('sortBy', 'customer')->assertSet('dir', 'asc')->assertSeeInOrder(['INV-BIG', 'INV-SMALL']);
         $list->call('sortBy', 'nonsense')->assertSet('sort', 'customer');
+    }
+
+    public function test_columns_run_date_number_customer_status_total_balance(): void
+    {
+        $customer = Customer::create(['code' => 'ACME', 'name' => 'Acme Pumps', 'active' => true]);
+        $this->invoice($customer, 'INV-ONE', 'ISSUED', 100, today()->addDays(9)->toDateString());
+
+        Livewire::test('invoice-list')->assertSeeInOrder(['Date', 'Number', 'Customer', 'Status · due', 'Total', 'Balance'])
+            ->assertSeeInOrder([today()->format('j M'), 'INV-ONE', 'Acme Pumps', 'Issued', 'in 9 days']);
+    }
+
+    public function test_balances_warn_near_or_over_the_customer_credit_limit_and_the_panel_shows_the_credit(): void
+    {
+        $near = tap(Customer::create(['code' => 'NEAR', 'name' => 'Near Pumps', 'active' => true]), fn (Customer $c) => $c->forceFill(['credit_limit' => 1000])->save());
+        $over = tap(Customer::create(['code' => 'OVER', 'name' => 'Over Valves', 'active' => true]), fn (Customer $c) => $c->forceFill(['credit_limit' => 1000])->save());
+        $fine = tap(Customer::create(['code' => 'FINE', 'name' => 'Fine Castings', 'active' => true]), fn (Customer $c) => $c->forceFill(['credit_limit' => 10000])->save());
+        $this->invoice($near, 'INV-NEAR', 'ISSUED', 950, today()->addDays(9)->toDateString());
+        $late = $this->invoice($over, 'INV-OVER', 'ISSUED', 1500, today()->addDays(9)->toDateString());
+        $this->invoice($fine, 'INV-FINE', 'ISSUED', 100, today()->addDays(9)->toDateString());
+
+        $list = Livewire::test('invoice-list')->assertSee('95% of credit limit')->assertSee('Over credit limit')->assertDontSee('1% of credit limit');
+        $list->call('select', $late->id)->assertSee('Customer credit')->assertSee('150% used')->assertSee('warn until the balance is under the limit');
+
+        \App\Models\AppSetting::setValue(\App\Domains\Finance\Services\FinanceRules::CREDIT_CHECK, 'OFF');
+        Livewire::test('invoice-list')->assertDontSee('Over credit limit')->assertDontSee('Customer credit');
     }
 }

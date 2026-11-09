@@ -4,6 +4,8 @@ use App\Domains\Dispatch\Models\Dispatch;
 use App\Domains\Finance\Models\Invoice;
 use App\Domains\Finance\Models\ReceiptAllocation;
 use App\Domains\Finance\Models\WithholdingCertificateAllocation;
+use App\Domains\Finance\Services\CreditLimits;
+use App\Domains\Finance\Services\FinanceRules;
 use App\Domains\Finance\Services\InvoiceService;
 use App\Models\Customer;
 use App\Support\Formats;
@@ -26,7 +28,10 @@ new class extends Component
 {
     use WithPagination;
 
-    private const TABS = ['' => 'All', 'DRAFT' => 'Drafts', 'OPEN' => 'Unpaid', 'OVERDUE' => 'Overdue', 'PAID' => 'Paid', 'VOID' => 'Voided'];
+    private const TABS = ['' => 'All', 'DRAFT' => 'Drafts', 'OPEN' => 'Unpaid', 'PART' => 'Part paid', 'OVERDUE' => 'Overdue', 'PAID' => 'Paid', 'VOID' => 'Voided'];
+
+    /** Warn on a customer's invoices from this share of its credit limit. */
+    private const CREDIT_NEAR = 90;
 
     #[Url(except: '')]
     public string $search = '';
@@ -41,22 +46,18 @@ new class extends Component
     private const MONTHS = ['1m' => 1, '3m' => 3, '6m' => 6, '12m' => 12];
 
     /**
-     * Columns the list sorts by: label, alignment, the first direction a click gives, and the words for each direction.
+     * The table's columns in order, each sorting the list: label, alignment, the first direction a click gives, and the words for each direction.
      *
      * @var array<string, array{0: string, 1: string, 2: string, 3: string, 4: string}>
      */
     private const SORTS = [
         'date' => ['Date', 'left', 'desc', 'date, newest first', 'date, oldest first'],
-        'customer' => ['Customer', 'left', 'asc', 'customer, A to Z', 'customer, Z to A'],
         'number' => ['Number', 'left', 'desc', 'number, newest first', 'number, oldest first'],
-        'due' => ['Due', 'left', 'asc', 'due date, soonest first', 'due date, latest first'],
+        'customer' => ['Customer', 'left', 'asc', 'customer, A to Z', 'customer, Z to A'],
+        'due' => ['Status · due', 'left', 'asc', 'due date, soonest first', 'due date, latest first'],
         'total' => ['Total', 'right', 'desc', 'total, largest first', 'total, smallest first'],
         'balance' => ['Balance', 'right', 'desc', 'balance, largest first', 'balance, smallest first'],
-        'status' => ['Status', 'left', 'asc', 'status, overdue first', 'status, overdue last'],
     ];
-
-    /** Status order for sorting, most pressing first. */
-    private const STAGE_ORDER = ['Overdue' => 0, 'Part paid' => 1, 'Issued' => 2, 'Draft' => 3, 'Paid' => 4, 'Credit note' => 5, 'Voided' => 6];
 
     /** 'fy' (default) the financial year today falls in; '1m', '3m', '6m', '12m' back from today; 'day' or 'range' from `from` to `to`; 'all' (or '') every date. */
     #[Url(except: 'fy')]
@@ -272,6 +273,40 @@ new class extends Component
         return ['label' => $label, 'presets' => $presets];
     }
 
+    /**
+     * Each customer's credit position against its limit, for customers with a limit or a hold while credit checks are on.
+     *
+     * @param  Collection<int, Customer>  $customers
+     * @return array<string, array{limit: ?float, used: float, owed: float, orders: float, pct: int, over: bool, near: bool, hold: bool, note: string}>
+     */
+    private function credit(Collection $customers): array
+    {
+        $rule = FinanceRules::creditCheck();
+        if ($rule === 'OFF') {
+            return [];
+        }
+        $limits = app(CreditLimits::class);
+        $money = fn (float $v) => Formats::money($v, 0);
+
+        return $customers->filter(fn (Customer $c) => $c->credit_limit !== null || $c->credit_hold)->mapWithKeys(function (Customer $c) use ($limits, $rule, $money) {
+            $e = $limits->exposure($c->id);
+            $limit = $c->credit_limit !== null ? (float) $c->credit_limit : null;
+            $pct = $limit > 0 ? (int) round($e['total'] * 100 / $limit) : 0;
+            $over = $limit !== null && $e['total'] > $limit;
+            $released = $c->credit_release_until && $c->credit_release_until->gte(today());
+            $note = match (true) {
+                $released => 'Released until '.$c->credit_release_until->displayDate().': orders and dispatches go through.',
+                (bool) $c->credit_hold => 'On credit hold'.($c->credit_hold_reason ? ': '.$c->credit_hold_reason : '').'. New orders and dispatches stop.',
+                $over && $rule === 'BLOCK' => "New orders and dispatches for {$c->name} stop until the balance is under the limit.",
+                $over => "New orders and dispatches for {$c->name} warn until the balance is under the limit.",
+                default => '',
+            };
+
+            return [$c->id => ['limit' => $limit, 'used' => $e['total'], 'owed' => round($e['invoices'] - $e['on_account'], 2), 'orders' => $e['orders'], 'pct' => $pct,
+                'over' => $over, 'near' => ! $over && $limit !== null && $pct >= self::CREDIT_NEAR, 'hold' => (bool) $c->credit_hold && ! $released, 'note' => $note]];
+        })->all();
+    }
+
     public function with(): array
     {
         $search = trim($this->search);
@@ -294,6 +329,7 @@ new class extends Component
         $inTab = fn (array $r, string $tab) => match ($tab) {
             '' => true,
             'OPEN' => in_array($r['stage'][2], ['OPEN', 'OVERDUE'], true),
+            'PART' => in_array($r['stage'][2], ['OPEN', 'OVERDUE'], true) && $r['paid'] > 0,
             default => $r['stage'][2] === $tab,
         };
         $counts = collect(self::TABS)->map(fn ($label, $tab) => $rows->filter(fn ($r) => $inTab($r, $tab))->count())->all();
@@ -305,7 +341,6 @@ new class extends Component
             'due' => fn ($r) => $r['invoice']->status === 'DRAFT' || ! $r['invoice']->due_date ? '9999-12-31' : $r['invoice']->due_date->toDateString(),
             'total' => fn ($r) => (float) $r['invoice']->total,
             'balance' => fn ($r) => $r['balance'],
-            'status' => fn ($r) => self::STAGE_ORDER[$r['stage'][0]] ?? 9,
         };
         $shown = $rows->filter(fn ($r) => $inTab($r, $tab));
         $shown = ($desc ? $shown->sortByDesc($key) : $shown->sortBy($key))->values();
@@ -313,12 +348,14 @@ new class extends Component
         $page = LengthAwarePaginator::resolveCurrentPage();
         $paged = new LengthAwarePaginator($shown->forPage($page, 25)->values(), $shown->count(), 25, $page, ['path' => LengthAwarePaginator::resolveCurrentPath()]);
         $selected = $shown->first(fn ($r) => $r['invoice']->id === $this->selectedId) ?? $shown->first();
+        $onPage = collect($paged->items())->map(fn ($r) => $r['invoice']->customer)->push($selected['invoice']->customer ?? null)->filter()->unique('id');
 
         return [
             'rows' => $paged, 'counts' => $counts, 'tabs' => self::TABS, 'tab' => $tab,
             'owed' => round($shown->sum('balance'), 2),
             'customers' => Customer::whereIn('id', Invoice::select('customer_id'))->orderedByName()->get(),
             'date' => $this->dateMenu(),
+            'credit' => $this->credit($onPage),
             'filtersOn' => ($this->customer !== '' ? 1 : 0) + ($range ? 1 : 0) + ($search !== '' ? 1 : 0),
             'sorts' => collect(self::SORTS)->map(fn ($s, $k) => ['label' => $s[0], 'align' => $s[1], 'on' => $k === $sort, 'words' => ucfirst($s[2] === $this->dir || $k !== $sort ? $s[3] : $s[4])])->all(),
             'sortWords' => ucfirst(self::SORTS[$sort][$desc === (self::SORTS[$sort][2] === 'desc') ? 3 : 4]),
@@ -393,6 +430,9 @@ new class extends Component
 .cl-table td, .cl-table th { text-align: left; } .cl-table .r { text-align: right; }
 .cl-table tbody tr { cursor: pointer; } .cl-table tbody tr.sel { background: #f5f8fe; }
 .cl-sub { font-size: 12px; color: #6b6e73; }
+.cl-table .nw { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.cl-table code { font-weight: 400; background: none; padding: 0; color: inherit; }
+.cl-meter { margin-top: 8px; height: 6px; border-radius: 3px; background: #e6e7e9; overflow: hidden; } .cl-meter div { height: 6px; border-radius: 3px; }
 .cl-pill { font-size: 11.5px; padding: 2px 8px; border-radius: 999px; font-weight: 500; white-space: nowrap; display: inline-block; }
 .cl-ok { background: #e7f4ec; color: #1d7048; } .cl-warn { background: #fbf0dc; color: #94610a; } .cl-bad { background: #fbe7e5; color: #b3352c; } .cl-info { background: #eaf0fd; color: #2f5fd0; } .cl-grey { background: #f0f1f3; color: #55585d; }
 .cl-side { border-left: 1px solid #e6e7e9; padding: 20px 24px; background: #f8f8f9; display: flex; flex-direction: column; gap: 18px; }
@@ -415,7 +455,7 @@ new class extends Component
             <nav class="cl-tabs" role="tablist">
                 @foreach ($tabs as $key => $label)
                     @if ($key !== 'VOID' || $counts['VOID'] > 0)
-                        <a href="#" role="tab" aria-selected="{{ $tab === $key ? 'true' : 'false' }}" wire:click.prevent="showTab('{{ $key }}')" @class(['on' => $tab === $key])><span class="dot" style="background:{{ ['' => 'transparent', 'DRAFT' => '#9a9da2', 'OPEN' => '#2f5fd0', 'OVERDUE' => '#b3352c', 'PAID' => '#1d7048', 'VOID' => '#c4c7cc'][$key] }}"></span>{{ $label }} <span @class(['n', 'bad' => $key === 'OVERDUE' && $counts[$key] > 0])>{{ $counts[$key] }}</span></a>
+                        <a href="#" role="tab" aria-selected="{{ $tab === $key ? 'true' : 'false' }}" wire:click.prevent="showTab('{{ $key }}')" @class(['on' => $tab === $key])><span class="dot" style="background:{{ ['' => 'transparent', 'DRAFT' => '#9a9da2', 'OPEN' => '#2f5fd0', 'PART' => '#7f9ee6', 'OVERDUE' => '#b3352c', 'PAID' => '#1d7048', 'VOID' => '#c4c7cc'][$key] }}"></span>{{ $label }} <span @class(['n', 'bad' => $key === 'OVERDUE' && $counts[$key] > 0])>{{ $counts[$key] }}</span></a>
                     @endif
                 @endforeach
             </nav>
@@ -518,15 +558,27 @@ new class extends Component
                     <thead><tr>@foreach ($sorts as $k => $so)<th wire:click="sortBy('{{ $k }}')" title="Sort by {{ strtolower($so['label']) }}" aria-sort="{{ $so['on'] ? ($sortDesc ? 'descending' : 'ascending') : 'none' }}" @class(['s', 'on' => $so['on'], 'r' => $so['align'] === 'right'])>{{ $so['label'] }}<span class="ar">{{ $so['on'] ? ($sortDesc ? '↓' : '↑') : '↕' }}</span></th>@endforeach</tr></thead>
                     <tbody>
                     @foreach ($rows as $r)
-                        @php $i = $r['invoice']; [$label, $pill] = $r['stage']; $late = $label === 'Overdue'; @endphp
+                        @php
+                            $i = $r['invoice']; [$label, $pill] = $r['stage']; $late = $label === 'Overdue';
+                            $cl = $credit[$i->customer_id] ?? null; $live = $cl && in_array($r['stage'][2], ['OPEN', 'OVERDUE'], true);
+                        @endphp
                         <tr wire:key="invoice-{{ $i->id }}" @class(['sel' => $inv && $inv->id === $i->id]) wire:click="select('{{ $i->id }}')">
-                            <td style="color:#55585d">{{ $i->invoice_date->format('j M') }}</td>
+                            <td class="nw">{{ $i->invoice_date->format('j M') }}</td>
+                            <td class="nw"><code>{{ $i->invoice_number ?? 'Draft' }}</code>@if ($i->isCreditNote())<div class="cl-sub">credit note</div>@endif</td>
                             <td><div style="font-weight:500">{{ $i->customer?->name }}</div><div class="cl-sub">{{ $i->customer_reference }}</div></td>
-                            <td><code style="font-weight:600">{{ $i->invoice_number ?? 'Draft' }}</code>@if ($i->isCreditNote())<div class="cl-sub">credit note</div>@endif</td>
-                            <td>@if ($i->due_date && $i->status !== 'DRAFT')<div>{{ $i->due_date->format('j M') }}</div><div class="cl-sub" @if ($late) style="color:#b3352c" @endif>{{ $label === 'Paid' ? 'Paid' : ($i->due_date->isPast() ? (int) $i->due_date->diffInDays(today()).' days overdue' : 'in '.(int) today()->diffInDays($i->due_date).' days') }}</div>@else — @endif</td>
-                            <td class="r">{{ $num($i->total) }}</td>
-                            <td class="r" style="font-weight:500">{{ $r['balance'] > 0 ? $num($r['balance']) : '—' }}</td>
-                            <td><span class="cl-pill {{ $pill }}">{{ $label }}</span></td>
+                            <td>
+                                <div style="display:flex;align-items:center;gap:8px;white-space:nowrap"><span class="cl-pill {{ $pill }}">{{ $label }}</span><span class="nw">{{ $i->due_date && $i->status === 'ISSUED' && ! $i->isCreditNote() ? $i->due_date->format('j M') : '—' }}</span></div>
+                                @if ($i->due_date && $i->status === 'ISSUED' && ! $i->isCreditNote())
+                                    <div class="cl-sub" style="margin-top:3px;@if ($late) color:#b3352c @endif">{{ $label === 'Paid' ? 'Paid' : ($i->due_date->isPast() ? (int) $i->due_date->diffInDays(today()).' days overdue' : 'in '.(int) today()->diffInDays($i->due_date).' days') }}</div>
+                                @endif
+                            </td>
+                            <td class="r nw">{{ $num($i->total) }}</td>
+                            <td class="r nw" @if ($live) title="{{ $i->customer?->name }}: {{ \App\Support\Formats::money($cl['used'], 0) }} used of {{ $cl['limit'] !== null ? \App\Support\Formats::money($cl['limit'], 0).' credit limit ('.$cl['pct'].'%)' : 'no limit' }}" @endif>
+                                <div style="font-weight:500;@if ($live && $cl['over']) color:#b3352c @endif">{{ $r['balance'] > 0 ? $num($r['balance']) : '—' }}</div>
+                                @if ($live && ($cl['over'] || $cl['near'] || $cl['hold']))
+                                    <div style="font-size:11.5px;font-weight:600;margin-top:3px;color:{{ $cl['over'] || $cl['hold'] ? '#b3352c' : '#94610a' }}">! {{ $cl['hold'] ? 'Credit hold' : ($cl['over'] ? 'Over credit limit' : $cl['pct'].'% of credit limit') }}</div>
+                                @endif
+                            </td>
                         </tr>
                     @endforeach
                     </tbody>
@@ -563,6 +615,19 @@ new class extends Component
             <div><div class="cl-sec">Linked</div><div style="margin-top:8px">
                 @foreach ($panel['linked'] as [$k, $v])<div class="cl-row"><span>{{ $k }}</span><code>{{ $v }}</code></div>@endforeach
             </div></div>
+            @endif
+            @php $pc = $credit[$inv->customer_id] ?? null; @endphp
+            @if ($pc)
+            <div><div class="cl-sec">Customer credit</div>
+                @if ($pc['limit'] !== null)
+                    @php $tone = $pc['over'] ? '#b3352c' : ($pc['near'] ? '#94610a' : '#1d7048'); @endphp
+                    <div style="margin-top:8px;display:flex;justify-content:space-between;gap:12px"><span>{{ $pc['orders'] > 0 ? 'Used of limit' : 'Owed of limit' }}</span><span style="text-align:right">{{ \App\Support\Formats::money($pc['used'], 0) }} / {{ \App\Support\Formats::money($pc['limit'], 0) }}</span></div>
+                    <div class="cl-meter"><div style="width:{{ min(max($pc['pct'], 0), 100) }}%;background:{{ $tone }}"></div></div>
+                    <div style="margin-top:6px;font-size:12px;font-weight:500;color:{{ $pc['over'] || $pc['near'] ? $tone : '#55585d' }}">{{ $pc['pct'] }}% used{{ $pc['over'] ? ' · over by '.\App\Support\Formats::money($pc['used'] - $pc['limit'], 0) : ($pc['near'] ? ' · close to the limit' : '') }}</div>
+                    @if ($pc['orders'] > 0)<div class="cl-sub" style="margin-top:2px">owed {{ \App\Support\Formats::money($pc['owed'], 0) }} · open orders {{ \App\Support\Formats::money($pc['orders'], 0) }}</div>@endif
+                @endif
+                @if ($pc['note'])<div style="margin-top:4px;font-size:12px;color:{{ $pc['hold'] ? '#b3352c' : '#55585d' }};line-height:1.45">{{ $pc['note'] }}</div>@endif
+            </div>
             @endif
             <div><div class="cl-sec">Last activity</div><div style="margin-top:8px;color:#55585d;line-height:1.5">{{ $panel['last'] }}</div></div>
             <div style="display:flex;gap:8px;flex-wrap:wrap">
