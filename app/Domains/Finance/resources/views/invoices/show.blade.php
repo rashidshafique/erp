@@ -133,9 +133,9 @@
     @if ($draft)<div class="iv-body" style="border-top:1px solid #e6e7e9">@endif
         <div style="display:flex;flex-direction:column;gap:10px">
             <div class="iv-sec">Lines</div>
-            <div class="iv-tbl"><table><thead><tr><th style="width:36%">Product</th><th>Trace</th><th class="r">Qty</th><th>UoM</th><th class="r">Unit price</th><th class="r">Disc %</th><th class="r">Amount</th></tr></thead><tbody>
+            <div class="iv-tbl"><table><thead><tr><th style="width:36%">Product</th><th>Trace</th><th class="r">Qty</th><th>UoM</th><th class="r">Unit price</th><th class="r">Discount</th><th class="r">Amount</th></tr></thead><tbody>
             @foreach ($invoice->lines as $l)
-                <tr><td>{{ $l->description }}</td><td style="color:#55585d">{{ $trace[$l->id] ?? '' }}</td><td class="r">{{ $num($l->quantity, fmod((float) $l->quantity, 1) == 0 ? 0 : 3) }}</td><td style="color:#55585d">{{ $l->uom }}</td><td class="r">{{ $num($l->unit_price, fmod((float) $l->unit_price, 1) == 0 ? 0 : 2) }}</td><td class="r" style="color:#55585d">{{ $num($l->discount_percent, fmod((float) $l->discount_percent, 1) == 0 ? 0 : 2) }}</td><td class="r">{{ $num($l->line_net, 2) }}</td></tr>
+                <tr><td>{{ $l->description }}</td><td style="color:#55585d">{{ $trace[$l->id] ?? '' }}</td><td class="r">{{ $num($l->quantity, fmod((float) $l->quantity, 1) == 0 ? 0 : 3) }}</td><td style="color:#55585d">{{ $l->uom }}</td><td class="r">{{ $num($l->unit_price, fmod((float) $l->unit_price, 1) == 0 ? 0 : 2) }}</td><td class="r" style="color:#55585d">@if ($l->discount_percent > 0){{ $num($l->discount_percent, fmod((float) $l->discount_percent, 1) == 0 ? 0 : 2) }}%@elseif ($l->discount_amount > 0){{ $num($l->discount_amount, 2) }}@endif</td><td class="r">{{ $num($l->line_net, 2) }}</td></tr>
             @endforeach
             </tbody></table></div>
             <div class="iv-tot"><div>

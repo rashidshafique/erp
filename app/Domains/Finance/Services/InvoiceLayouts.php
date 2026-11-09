@@ -217,7 +217,7 @@ class InvoiceLayouts
             'qty' => Formats::number((float) $line->quantity, 3).($line->uom ? ' '.$line->uom : ''),
             'unit' => (string) $line->uom,
             'price' => $n($line->unit_price),
-            'discount' => $pct($line->discount_percent),
+            'discount' => (float) $line->discount_percent > 0 ? $pct($line->discount_percent) : ((float) $line->discount_amount > 0 ? $n($line->discount_amount) : ''),
             'net' => $n($line->line_net),
             'tax_pct' => $pct($line->tax_percent),
             'tax_amt' => $n($line->line_tax),

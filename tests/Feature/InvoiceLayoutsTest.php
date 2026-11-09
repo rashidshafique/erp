@@ -63,6 +63,27 @@ class InvoiceLayoutsTest extends TestCase
         $this->assertStringContainsString($ten, $simple, 'the discount column shows the discount');
     }
 
+    public function test_a_fixed_discount_prints_as_an_amount_and_a_percent_as_a_percent(): void
+    {
+        $invoice = $this->invoice([
+            ['description' => 'Pump casing', 'quantity' => 2, 'uom' => 'pcs', 'unit_price' => 100, 'discount_amount' => 15],
+            ['description' => 'Valve body', 'quantity' => 1, 'uom' => 'pcs', 'unit_price' => 100, 'discount_percent' => 10],
+        ]);
+        $amount = Formats::number(15, 2);
+        $percent = Formats::number(10, 2).'%';
+
+        $simple = $this->print($invoice, 'SIMPLE');   // the tax layout hides its discount column unless a template turns it on
+        $this->assertStringContainsString($amount, $simple, 'the discount column shows the fixed amount');
+        $this->assertStringContainsString($percent, $simple, 'the discount column shows the percent');
+
+        $standard = $this->print($invoice, 'STANDARD');
+        $this->assertStringContainsString("less {$amount}", $standard);
+        $this->assertStringContainsString("less {$percent}", $standard);
+
+        app(InvoiceService::class)->issue($invoice);   // a posted invoice lists its lines; a draft shows the printed page
+        $this->get(route('invoices.show', $invoice))->assertOk()->assertSeeInOrder(['Pump casing', $amount, 'Valve body', '10%']);
+    }
+
     public function test_a_credit_note_keeps_its_own_title_in_a_layout_with_another_title(): void
     {
         $service = app(InvoiceService::class);
