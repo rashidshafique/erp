@@ -18,7 +18,7 @@ use InvalidArgumentException;
 /**
  * The double entry for each Finance document:
  * - invoice: debit receivables with the total, credit sales with each line and the tax owed to each authority (a credit note the other way);
- * - supplier bill: debit each line's account and the tax on it, credit payables with the total, then move any tax we withhold from
+ * - supplier bill: debit each line's account and the tax on it (to the input account of the authority it was paid to), credit payables with the total, then move any tax we withhold from
  *   payables to what we owe the authority (a supplier credit note the other way);
  * - receipt: debit cash or bank, credit receivables with the part put on invoices and customer advances with the rest;
  * - supplier payment: credit cash or bank, debit payables with the part put on bills and advances to suppliers with the rest;
@@ -206,7 +206,15 @@ class PostingRules
             $from = $l->account_id || ! $bill->original ? $l : ($bill->original->lines->firstWhere('description', $l->description) ?? $l);
             $account = $l->account_id ?: ($from->account_id ?: LedgerSettings::account($from->purchase_order_line_id ? 'purchases' : 'expense')->id);
             $lines[] = [($credit ? 'credit' : 'debit') => $l->line_net, 'account_id' => $account];
-            $lines[] = [($credit ? 'credit' : 'debit') => $l->line_tax, 'account_id' => $tax];
+            // Tax goes to the input account of the authority it was paid to (PRA apart from FBR); whatever is not split by authority to input tax.
+            $left = (float) $l->line_tax;
+            foreach (collect($l->taxes ?? [])->reject(fn ($t) => $t['withheld'] ?? false) as $t) {
+                $lines[] = [($credit ? 'credit' : 'debit') => (float) $t['amount'], 'account_id' => LedgerSettings::inputTaxAccount($t['authority'] ?? null)->id];
+                $left -= (float) $t['amount'];
+            }
+            if (round($left, 2) != 0.0) {
+                $lines[] = [($credit ? 'credit' : 'debit') => round($left, 2), 'account_id' => $tax];
+            }
         }
         if ((float) $bill->tax_withheld > 0) {
             $lines[] = [($credit ? 'credit' : 'debit') => (float) $bill->tax_withheld, 'account_id' => LedgerSettings::account('payables')->id, 'party_type' => 'supplier', 'party_id' => $bill->supplier_id];

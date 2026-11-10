@@ -1,6 +1,7 @@
 <?php
 
 return [
+    App\Domains\Assets\AssetsServiceProvider::class,
     App\Domains\Capa\CapaServiceProvider::class,
     App\Domains\Compliance\ComplianceServiceProvider::class,
     App\Domains\Development\DevelopmentServiceProvider::class,

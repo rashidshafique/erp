@@ -146,7 +146,8 @@ trait ChartDialog
             $ids[] = AppSetting::getValue('ledger.account.'.$role) ?: LedgerAccount::where('code', LedgerSettings::ROLES[$role][1])->value('id');
         }
 
-        return array_values(array_filter(array_merge($ids, array_values(LedgerSettings::methodMap()), array_values(LedgerSettings::taxMap()))));
+        return array_values(array_filter(array_merge($ids, array_values(LedgerSettings::methodMap()), array_values(LedgerSettings::taxMap()), array_values(LedgerSettings::inputTaxMap()),
+            LedgerAccount::whereIn('code', LedgerSettings::INPUT_TAX_DEFAULTS)->pluck('id')->all())));
     }
 
     /** @return Collection<int, LedgerAccount> sections of a category in display order */

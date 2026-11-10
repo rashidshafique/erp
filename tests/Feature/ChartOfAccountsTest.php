@@ -38,7 +38,7 @@ class ChartOfAccountsTest extends TestCase
 
     public function test_the_starting_chart_has_the_clients_structure(): void
     {
-        $this->assertSame([12, 48, 123], [LedgerAccount::whereRaw('length(code) = 2')->count(), LedgerAccount::whereRaw('length(code) = 5')->count(), LedgerAccount::whereRaw('length(code) = 8')->count()]);
+        $this->assertSame([12, 48, 126], [LedgerAccount::whereRaw('length(code) = 2')->count(), LedgerAccount::whereRaw('length(code) = 5')->count(), LedgerAccount::whereRaw('length(code) = 8')->count()]);
         $pig = $this->account('22-06-01');
         $this->assertSame(['Pig iron', 'ASSET', '22-06'], [$pig->name, $pig->type, $pig->parent->code]);
         $this->assertSame(['Stock in trade', 'Current Assets'], [$pig->parent->report_line, $pig->parent->parent->name]);

@@ -109,6 +109,28 @@ class GeneralLedgerTest extends TestCase
         $this->assertSame(['12-01-01' => -860.0, '22-04-01' => 60.0, '51-02-01' => 600.0, '61-02-01' => 200.0], $this->balances());
     }
 
+    public function test_tax_on_a_bill_goes_to_the_input_account_of_its_authority_and_pra_has_its_own(): void
+    {
+        app(TaxSetup::class)->loadDefaults(TaxJurisdiction::pack());
+        $supplier = $this->supplier();
+        PartyTaxProfile::updateOrCreate(['party_id' => $supplier->party_id], ['tax_status' => 'REGISTERED', 'region' => 'PB', 'registrations' => ['NTN' => '1234567-8', 'PRA' => 'P-1234']]);
+        $this->post(route('bills.store'), ['supplier_id' => $supplier->id, 'bill_date' => '2026-10-01', 'supplier_bill_number' => 'S-2', 'lines' => [
+            ['description' => 'Pattern stage 1', 'quantity' => 1, 'unit_price' => 1000, 'tax_percent' => 16, 'supply_type' => 'SERVICE', 'account_id' => $this->account('51-06-01')->id],
+            ['description' => 'Pig iron', 'quantity' => 1, 'unit_price' => 500, 'tax_percent' => 18, 'account_id' => $this->account('22-06-01')->id],
+        ]])->assertSessionHasNoErrors();
+        $bill = SupplierBill::sole();
+
+        $this->post(route('bills.post', $bill))->assertSessionHasNoErrors();
+
+        $balances = $this->balances();
+        $this->assertSame(160.0, $balances['22-04-02']);
+        $this->assertSame(90.0, $balances['22-04-01']);
+
+        AppSetting::setValue(LedgerSettings::INPUT_TAX_ACCOUNTS, json_encode(['PRA' => $this->account('22-04-01')->id]));
+        $this->assertSame('22-04-01', LedgerSettings::inputTaxAccount('PRA')->code);
+        $this->assertSame('22-04-01', LedgerSettings::inputTaxAccount('FBR')->code);
+    }
+
     public function test_receipts_and_payments_move_cash_or_bank_by_method_and_money_not_on_a_document_is_an_advance(): void
     {
         $invoice = app(InvoiceService::class)->issue($this->draftInvoice(300));

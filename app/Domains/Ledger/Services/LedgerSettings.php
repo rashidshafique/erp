@@ -36,6 +36,11 @@ class LedgerSettings
 
     public const TAX_ACCOUNTS = 'ledger.tax_accounts';
 
+    public const INPUT_TAX_ACCOUNTS = 'ledger.input_tax_accounts';
+
+    /** @var array<string, string> Authority code => account code its input tax goes to when none is set under Settings. */
+    public const INPUT_TAX_DEFAULTS = ['PRA' => '22-04-02'];
+
     public const COST_OF_SALES = 'ledger.cost_of_sales';
 
     /** The account for a role: the one set under Settings, else the starting chart's. */
@@ -83,6 +88,26 @@ class LedgerSettings
     public static function taxMap(): array
     {
         return json_decode((string) AppSetting::getValue(self::TAX_ACCOUNTS, '{}'), true) ?: [];
+    }
+
+    /**
+     * The account tax paid to this authority on a supplier bill is claimed back from: one set under Settings, else the starting
+     * chart's account for that authority (PRA has its own), else the tax-on-supplier-bills account.
+     */
+    public static function inputTaxAccount(?string $authority): LedgerAccount
+    {
+        $id = $authority ? (self::inputTaxMap()[$authority] ?? null) : null;
+        $default = $authority ? (self::INPUT_TAX_DEFAULTS[$authority] ?? null) : null;
+
+        return ($id ? LedgerAccount::find($id) : null)
+            ?? ($default ? LedgerAccount::where('code', $default)->where('is_active', true)->first() : null)
+            ?? self::account('input_tax');
+    }
+
+    /** @return array<string, string> Authority code => account id. */
+    public static function inputTaxMap(): array
+    {
+        return json_decode((string) AppSetting::getValue(self::INPUT_TAX_ACCOUNTS, '{}'), true) ?: [];
     }
 
     /** The top-level expense account the profit and loss shows before gross profit: the one set under Settings, else category 51 if it is one; none when set to "none". */

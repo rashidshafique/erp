@@ -1,5 +1,7 @@
 @php($menu = app(\App\Domains\Core\Contracts\MenuFilter::class))
 @foreach (app(\App\Domains\Core\ModuleRegistry::class)->navGroups($position ?? 'bottom') as $group)
+    {{-- links other modules add to this group (Fixed assets under Accounts) come after its own --}}
+    @php($group['items'] = array_merge($group['items'], app(\App\Domains\Core\ModuleRegistry::class)->navItems($group['key'])))
     @continue(! $menu->showsModuleGroup($group['key']) || ! $menu->showsAny(array_column($group['items'], 'route')))
     @php($patterns = array_merge($group['active'], ...array_column($group['items'], 'active')))
     <div class="nav-group {{ request()->routeIs(...$patterns) ? 'is-active' : '' }}">

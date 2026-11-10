@@ -18,6 +18,14 @@
 @endforeach
 </div></div>
 @endif
+@if ($authorities->isNotEmpty())
+<div class="panel"><div class="panel-header"><h2>Tax paid to each authority on supplier bills</h2></div><div class="panel-body form-grid">
+@foreach ($authorities as $authority)
+    @php($default = \App\Domains\Ledger\Services\LedgerSettings::INPUT_TAX_DEFAULTS[$authority->code] ?? null)
+    <label>{{ $authority->code }} · {{ $authority->name }}<select name="input_tax[{{ $authority->code }}]"><option value="">{{ $default ? 'Starting chart: '.$default : 'Tax on supplier bills account' }}</option>{!! $options($inputTaxMap[$authority->code] ?? null) !!}</select></label>
+@endforeach
+</div></div>
+@endif
 <div class="panel"><div class="panel-header"><h2>Profit and loss</h2></div><div class="panel-body form-grid">
     <label>Cost of sales<select name="cost_of_sales"><option value="none">None: no gross profit line</option>@foreach ($topExpenses as $a)<option value="{{ $a->id }}" @selected($costOfSales === $a->id)>{{ $a->label() }}</option>@endforeach</select><span class="muted small">Shown after income, with gross profit below.</span>@error('cost_of_sales')<span class="error">{{ $message }}</span>@enderror</label>
 </div></div>
