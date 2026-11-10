@@ -30,6 +30,8 @@ class Journal extends Model
         'journal' => ['Journal', 'ledger.journals.show'],
         'withholding_certificate' => ['Tax certificate', null],
         'cheque' => ['Cheque', 'cheques.show'],
+        'depreciation_run' => ['Depreciation run', 'assets.runs.show'],
+        'fixed_asset' => ['Fixed asset', 'assets.show'],
         'receipt_allocation' => ['Receipt', null],
         'supplier_payment_allocation' => ['Supplier payment', null],
     ];

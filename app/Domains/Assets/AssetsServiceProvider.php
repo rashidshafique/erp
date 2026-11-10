@@ -3,6 +3,7 @@
 namespace App\Domains\Assets;
 
 use App\Domains\Core\ModuleServiceProvider;
+use Livewire\Livewire;
 
 /**
  * Fixed assets (design 28): the register of plant, buildings, vehicles and the tools the foundry owns, each asset's cost and
@@ -30,6 +31,20 @@ class AssetsServiceProvider extends ModuleServiceProvider
         return __DIR__;
     }
 
+    public function boot(): void
+    {
+        parent::boot();
+        Livewire::addNamespace('assets', viewPath: __DIR__.'/resources/views/livewire');
+    }
+
+    protected function navItems(): array
+    {
+        return [
+            ['group' => 'ledger', 'label' => 'Fixed assets', 'route' => 'assets.index', 'icon' => 'building', 'active' => ['assets.index', 'assets.show', 'assets.create', 'assets.edit']],
+            ['group' => 'ledger', 'label' => 'Depreciation run', 'route' => 'assets.depreciation', 'icon' => 'calendar', 'active' => ['assets.depreciation*', 'assets.runs.*']],
+        ];
+    }
+
     protected function permissionCatalog(): array
     {
         return ['assets.manage' => 'Fixed-asset register, depreciation runs and disposals'];
@@ -39,4 +54,5 @@ class AssetsServiceProvider extends ModuleServiceProvider
     {
         return [['pattern' => 'assets.*', 'permission' => 'assets.manage']];
     }
+
 }
