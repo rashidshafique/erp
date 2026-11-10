@@ -29,6 +29,14 @@ class DashboardLayoutsTest extends TestCase
         $this->get(route('dashboard', ['layout' => 'command']))->assertOk()->assertSee('Good castings')->assertDontSee('Choose a dashboard layout');
     }
 
+    public function test_the_icast_owner_view_renders_on_an_empty_database(): void
+    {
+        $this->get(route('dashboard', ['layout' => 'icast']))->assertOk()
+            ->assertSee('Good castings')->assertSee('Cash to collect')->assertSee('Waiting for your decision')
+            ->assertSee("Where it's slipping", false)->assertSee('Classic owner view')
+            ->assertSee('fonts.googleapis.com/css2?family=Inter', false)->assertSee('#F99B31');
+    }
+
     public function test_telemetry_renders_on_an_empty_database(): void
     {
         $page = $this->get(route('dashboard', ['layout' => 'telemetry']));

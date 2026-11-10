@@ -14,9 +14,10 @@ class ErpDashboardController extends Controller
             return redirect()->route(\App\Support\StartPage::routeFor($request->user()));   // each role has a home of its own
         }
 
-        $layout = match ($request->query('layout')) {   // the owner's home (4a) is the default; the pipeline view (1a) and the wall screen have their own links
+        $layout = match ($request->query('layout')) {   // the owner's home (4a) is the default; the pipeline view (1a), the iCast owner view and the wall screen have their own links
             'telemetry' => 'telemetry',
             'classic' => 'classic',
+            'icast' => 'icast',
             default => 'owner',
         };
 
@@ -49,7 +50,7 @@ class ErpDashboardController extends Controller
             ->get();
 
         $extra = match ($layout) {
-            'owner' => ['o' => $data->owner()],
+            'owner', 'icast' => ['o' => $data->owner()],
             'classic' => (fn (array $d) => ['d' => $d, 'headline' => $data->headline($d['daily']), 'pipeline' => $data->pipeline(), 'melt' => $data->melt()])($data->all()),
             'telemetry' => ['d' => $data->telemetry()],
             default => ['d' => $data->all()],
