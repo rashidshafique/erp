@@ -50,7 +50,8 @@ class ErpDashboardController extends Controller
             ->get();
 
         $extra = match ($layout) {
-            'owner', 'icast' => ['o' => $data->owner()],
+            'owner' => ['o' => $data->owner()],
+            'icast' => ['o' => $data->owner(), 't' => $data->ownerTiles()],
             'classic' => (fn (array $d) => ['d' => $d, 'headline' => $data->headline($d['daily']), 'pipeline' => $data->pipeline(), 'melt' => $data->melt()])($data->all()),
             'telemetry' => ['d' => $data->telemetry()],
             default => ['d' => $data->all()],

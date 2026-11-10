@@ -17,14 +17,17 @@
     $greeting = $hour < 12 ? 'Good morning' : ($hour < 18 ? 'Good afternoon' : 'Good evening');
     $money = fn (float $n) => \App\Support\Formats::number($n, 0);
     $one = fn (float $n) => number_format($n, 1);
-    $pctPlan = $o['plan'] > 0 ? min(100, round(100 * $o['good'] / $o['plan'])) : null;
-    $change = $o['salesPrev'] > 0 ? round(100 * ($o['sales'] - $o['salesPrev']) / $o['salesPrev']) : null;
     $current = max(0, $o['owed'] - $o['overdue']);
     $overdueShare = $o['owed'] > 0 ? round(100 * $o['overdue'] / $o['owed']) : 0;
     $shades = ['#F99B31', '#0A0A0A', '#CC7F28', '#8F8C84', '#D6D4CD'];
     $peak = max(1, collect($o['tonnage'])->max('total'));
     $tone = ['red' => '#C0472F', 'amber' => '#CC7F28', 'blue' => '#F99B31'];
     $pending = $o['decisions']->count();
+    $lacs = fn (float $n) => \App\Support\Formats::withCurrency(number_format($n, 1).' L');
+    $upDown = fn (?float $change, bool $upIsGood = true) => $change === null ? null : ((($change >= 0) === $upIsGood) ? 'up' : 'down');
+    $soldTone = $upDown($t['sold']['change']);
+    $turnoverTone = $upDown($t['turnover']['change']);
+    $returnsTone = $upDown($t['returns']['change'], false);
 @endphp
 <style>
 .ic { --ic-brand: #F99B31; --ic-brand-deep: #CC7F28; --ic-ink: #0A0A0A; --ic-text: #33322F; --ic-muted: #726F68; --ic-line: #E7E6E2; --ic-soft: #F7F7F5; --ic-paper: #FFFFFF; --ic-green: #1C7C4F; --ic-red: #C0472F; display: flex; flex-direction: column; gap: 20px; font-family: 'Inter', system-ui, sans-serif; color: var(--ic-text); }
@@ -48,12 +51,19 @@
 .ic-btn .n { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: rgba(255,255,255,.14); font-size: 10.5px; }
 
 /* KPI strip */
-.ic-kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+.ic-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 .ic-kpi { position: relative; display: flex; flex-direction: column; gap: 6px; min-height: 148px; padding: 18px; border: 1px solid var(--ic-line); border-radius: 18px; background: var(--ic-paper); }
 .ic-kpi .lab { font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--ic-muted); }
 .ic-kpi .val { font-size: 38px; line-height: 1; font-weight: 800; letter-spacing: -.04em; color: var(--ic-ink); }
 .ic-kpi .note { margin-top: auto; font-size: 11.5px; color: var(--ic-muted); }
 .ic-kpi .note.ok { color: var(--ic-green); } .ic-kpi .note.bad { color: var(--ic-red); } .ic-kpi .note.warn { color: var(--ic-brand-deep); }
+.ic-kpi .foot { margin-top: auto; display: flex; flex-direction: column; gap: 7px; }
+.ic-kpi .foot .note { margin-top: 0; }
+.ic-kpi .delta { display: inline-flex; align-items: center; gap: 3px; width: fit-content; padding: 2px 7px; border-radius: 999px; font-size: 10.5px; font-weight: 700; }
+.ic-kpi .delta.up { background: #E7F4EC; color: var(--ic-green); }
+.ic-kpi .delta.down { background: #FBE9E4; color: var(--ic-red); }
+.ic-kpi.dark .delta.up { background: rgba(28,124,79,.28); color: #8FE0B4; }
+.ic-kpi.dark .delta.down { background: rgba(192,71,47,.28); color: #FF9D8A; }
 .ic-kpi .track { height: 5px; border-radius: 999px; background: #EFEEEA; overflow: hidden; }
 .ic-kpi .track i { display: block; height: 100%; border-radius: 999px; background: var(--ic-brand); }
 .ic-kpi.dark { background: var(--ic-ink); border-color: var(--ic-ink); }
@@ -113,7 +123,7 @@
 .ic-table .muted { color: var(--ic-muted); }
 .ic-foot { display: flex; justify-content: space-between; gap: 12px; padding: 12px 18px; border-top: 1px solid var(--ic-line); font-size: 11.5px; color: var(--ic-muted); }
 
-@media (max-width: 1180px) { .ic-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } .ic-grid, .ic-grid.wide { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 1180px) { .ic-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ic-grid, .ic-grid.wide { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 780px) { .ic-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ic-hero { flex-direction: column; align-items: flex-start; padding: 24px; } .ic-hero h1 { font-size: 28px; } .ic-kpi .val { font-size: 32px; } }
 </style>
 
@@ -133,40 +143,46 @@
 
     <section class="ic-kpis" aria-label="Month at a glance">
         <div class="ic-kpi">
-            <div class="lab ic-mono">Good castings</div>
-            <div class="val">{{ $one($o['good']) }}<small style="font-size:14px;font-weight:600;color:var(--ic-muted)"> t</small></div>
-            @if ($pctPlan !== null)
-                <div class="track"><i style="width:{{ $pctPlan }}%"></i></div>
-                <div class="note">{{ $pctPlan }}% of {{ $one($o['plan']) }} t plan</div>
-            @else
-                <div class="note">No plan for the month</div>
-            @endif
-        </div>
-        <div class="ic-kpi">
-            <div class="lab ic-mono">Sales invoiced</div>
-            <div class="val">{{ $money($o['sales']) }}</div>
-            <div class="note {{ $change === null ? '' : ($change >= 0 ? 'ok' : 'bad') }}">
-                {{ $change === null ? 'Nothing invoiced last month' : ($change >= 0 ? '▲ +' : '▼ ').$change.'% vs last month' }}
+            <div class="lab ic-mono">Castings sold</div>
+            <div class="val">{{ $one($t['sold']['tons']) }}<small style="font-size:14px;font-weight:600;color:var(--ic-muted)"> t</small></div>
+            <div class="foot">
+                <div class="note">Last month to date {{ $one($t['sold']['prev']) }} t</div>
+                @if ($soldTone)
+                    <span class="delta {{ $soldTone }}">{{ $t['sold']['change'] >= 0 ? '▲' : '▼' }} {{ $one(abs($t['sold']['delta'])) }} t · {{ number_format(abs($t['sold']['change']), 1) }}%</span>
+                @else
+                    <span class="note">Nothing sold last month to date</span>
+                @endif
             </div>
         </div>
         <div class="ic-kpi">
-            <div class="lab ic-mono">Internal rejection</div>
-            <div class="val">{{ $o['scrap'] === null ? '—' : $one($o['scrap']).'%' }}</div>
-            <div class="note {{ $o['scrap'] === null ? '' : ($o['scrap'] > 3 ? 'bad' : 'ok') }}">
-                {{ $o['scrap'] === null ? 'Nothing poured this month' : 'Target 3.0%' }}
+            <div class="lab ic-mono">Turnover{{ \App\Support\Formats::currencySuffix() }}</div>
+            <div class="val">{{ number_format($t['turnover']['lacs'], 1) }}<small style="font-size:14px;font-weight:600;color:var(--ic-muted)"> L</small></div>
+            <div class="foot">
+                <div class="note">Last month {{ $lacs($t['turnover']['prev']) }}</div>
+                @if ($turnoverTone)
+                    <span class="delta {{ $turnoverTone }}">{{ $t['turnover']['change'] >= 0 ? '▲' : '▼' }} {{ number_format(abs($t['turnover']['change']), 1) }}% vs last month</span>
+                @endif
+            </div>
+        </div>
+        <div class="ic-kpi">
+            <div class="lab ic-mono">Casting returns</div>
+            <div class="val">{{ $one($t['returns']['tons']) }}<small style="font-size:14px;font-weight:600;color:var(--ic-muted)"> t</small></div>
+            <div class="foot">
+                <div class="note">Projected {{ $one($t['returns']['projected']) }} t · last month {{ $one($t['returns']['prev']) }} t</div>
+                @if ($returnsTone)
+                    <span class="delta {{ $returnsTone }}">{{ $t['returns']['change'] > 0 ? '▲' : '▼' }} {{ number_format(abs($t['returns']['change']), 1) }}% vs last month</span>
+                @else
+                    <span class="note">No returns last month</span>
+                @endif
             </div>
         </div>
         <div class="ic-kpi dark">
-            <div class="lab ic-mono">Cash to collect</div>
-            <div class="val">{{ $money($o['owed']) }}</div>
-            <div class="note {{ $o['overdue'] > 0 ? 'bad' : 'ok' }}">
-                {{ $o['overdue'] > 0 ? $money($o['overdue']).' over 60 days' : 'Nothing over 60 days' }}
+            <div class="lab ic-mono">Orders pending</div>
+            <div class="val">{{ $one($t['pending']['tons']) }}<small style="font-size:14px;font-weight:600;color:#A8A7A1"> t</small></div>
+            <div class="foot">
+                <div class="note">{{ $lacs($t['pending']['value_lacs']) }} · {{ $t['pending']['orders'] }} open order{{ $t['pending']['orders'] === 1 ? '' : 's' }}</div>
+                <div class="note" style="color:#A8A7A1">Not yet dispatched</div>
             </div>
-        </div>
-        <div class="ic-kpi">
-            <div class="lab ic-mono">Open NCRs</div>
-            <div class="val">{{ $o['ncrs'] }}</div>
-            <div class="note {{ $o['ncrMajor'] ? 'bad' : '' }}">{{ $o['ncrMajor'] }} major or critical</div>
         </div>
     </section>
 
