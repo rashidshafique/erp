@@ -29,6 +29,12 @@ class DashboardLayoutsTest extends TestCase
         $this->get(route('dashboard', ['layout' => 'command']))->assertOk()->assertSee('Good castings')->assertDontSee('Choose a dashboard layout');
     }
 
+    public function test_the_dashboard_is_also_reachable_at_dashboard(): void
+    {
+        $this->get('/dashboard?layout=icast')->assertOk()->assertSee('Classic owner view');
+        $this->get('/dashboard')->assertOk()->assertSee('Good castings');
+    }
+
     public function test_the_icast_owner_view_renders_on_an_empty_database(): void
     {
         $this->get(route('dashboard', ['layout' => 'icast']))->assertOk()
