@@ -28,7 +28,7 @@ class DepreciationRunController extends Controller
         }
         $last = DepreciationRun::where('status', DepreciationRun::POSTED)->max('period');
 
-        return $last ? Carbon::parse($last)->addMonthNoOverflow()->startOfMonth() : today()->startOfMonth();
+        return $last ? Carbon::parse($last)->addMonthNoOverflow()->startOfMonth() : today()->startOfMonth()->subMonthNoOverflow();
     }
 
     public function show(Request $request): View
@@ -62,6 +62,7 @@ class DepreciationRunController extends Controller
             'noFills' => $lines->filter(fn ($l) => $l['asset']->method === 'USAGE' && ! $l['fills'])->count(),
             'journal' => collect($journal)->map(fn ($l) => $l + ['account' => $accounts[$l['account_id']] ?? null])->sortBy(fn ($l) => isset($l['credit']) ? '1'.$l['account']?->code : '0'.$l['account']?->code)->values(),
             'block' => $posted ? $this->posting->reverseBlock($posted) : null,
+            'postBlock' => $posted ? null : $this->posting->postBlock($period),
             'later' => DepreciationRun::where('status', DepreciationRun::POSTED)->where('period', '>', $period->toDateString())->exists(),
         ]);
     }

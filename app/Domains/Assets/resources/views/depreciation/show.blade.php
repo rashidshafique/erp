@@ -23,7 +23,7 @@
                 <button type="button" class="fa-btn" onclick="document.getElementById('reverse').showModal()">Reverse run…</button>
             @else
                 <form method="POST" action="{{ route('assets.depreciation.post') }}">@csrf<input type="hidden" name="period" value="{{ $period->format('Y-m') }}">
-                    <button class="fa-btn primary" @disabled($total <= 0 || $problem || $later)>Post run</button></form>
+                    <button class="fa-btn primary" @disabled($total <= 0 || $problem || $later || $postBlock)>Post run</button></form>
             @endif
         </div>
     </div>
@@ -80,6 +80,9 @@
                 <h3 class="fa-sec">Checks</h3>
                 @if ($problem)
                     <div class="fa-check"><span class="i" style="color:#b3352c">✗</span><div>{{ $problem }}</div></div>
+                @endif
+                @if ($postBlock)
+                    <div class="fa-check"><span class="i" style="color:#b3352c">✗</span><div>{{ $postBlock }}</div></div>
                 @endif
                 @if ($later && ! $posted)
                     <div class="fa-check"><span class="i" style="color:#b3352c">✗</span><div>A later month is posted<div class="fa-sub">Runs are posted in order; reverse the later month first.</div></div></div>

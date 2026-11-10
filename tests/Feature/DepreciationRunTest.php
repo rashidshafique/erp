@@ -27,6 +27,7 @@ class DepreciationRunTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->travelTo('2026-12-02');
         $admin = User::factory()->create(['is_active' => true, 'must_change_password' => false]);
         $admin->roles()->attach(Role::where('code', 'ADMIN')->value('id'));
         $this->actingAs($admin);
@@ -101,6 +102,27 @@ class DepreciationRunTest extends TestCase
 
         $this->post(route('assets.depreciation.post'), ['period' => '2026-11'])->assertSessionHasNoErrors();
         $this->assertSame(['21-03-02' => -24800.0, '51-06-03' => 24800.0], $this->balances());
+    }
+
+    public function test_months_are_posted_in_order_and_only_once_they_have_ended(): void
+    {
+        FixedAsset::factory()->create();
+        $this->post(route('assets.depreciation.post'), ['period' => '2026-09'])->assertSessionHasNoErrors();
+
+        $this->get(route('assets.depreciation', ['period' => '2026-11']))->assertOk()->assertSee('Post October 2026 first.');
+        $this->post(route('assets.depreciation.post'), ['period' => '2026-11'])->assertSessionHasErrors(['run' => 'Post October 2026 first.']);
+        $this->post(route('assets.depreciation.post'), ['period' => '2026-12'])->assertSessionHasErrors(['run' => 'December ends on 31 Dec; post after the last shift.']);
+        $this->assertSame(1, DepreciationRun::count());
+    }
+
+    public function test_an_asset_brought_in_with_depreciation_to_date_is_charged_only_after_that_date(): void
+    {
+        ['asset' => $asset] = $this->patternWithRuns();
+        $asset->update(['opening_depreciation' => 7440, 'opening_fills' => 30, 'opening_to' => '2026-11-10']);   // MR-90 on 2 Nov is in the brought-in figures
+
+        $november = app(Depreciation::class)->forMonth(Carbon::parse('2026-11-01'))->sole();
+        $this->assertSame([64, 15872.0], [$november['fills'], $november['charge']]);
+        $this->assertSame([], app(Depreciation::class)->forMonth(Carbon::parse('2026-10-01'))->all());
     }
 
     public function test_a_run_is_not_reversed_while_a_later_one_is_posted_or_its_month_is_closed(): void

@@ -134,12 +134,13 @@ class FixedAssetController extends Controller
             'life_fills' => ['nullable', 'integer', 'min:1', 'required_if:method,USAGE'],
             'opening_depreciation' => ['nullable', 'numeric', 'min:0'],
             'opening_fills' => ['nullable', 'integer', 'min:0'],
+            'opening_to' => ['nullable', 'date', 'before_or_equal:today', Rule::requiredIf(fn () => (float) $request->input('opening_depreciation') > 0 || (int) $request->input('opening_fills') > 0)],
             'tax_class' => ['nullable', 'string', 'max:60'],
             'equipment_id' => ['nullable', 'uuid', 'exists:equipment,id'],
             'pattern_id' => ['nullable', 'uuid', 'exists:patterns,id'],
             'core_box_id' => ['nullable', 'uuid', 'exists:core_boxes,id'],
             'notes' => ['nullable', 'string', 'max:2000'],
-        ], ['in_use_on.required' => 'An asset in use needs the date it went into use.']);
+        ], ['in_use_on.required' => 'An asset in use needs the date it went into use.', 'opening_to.required' => 'Say the day the depreciation to date runs to.']);
         foreach (['cost', 'residual_value', 'opening_depreciation', 'opening_fills'] as $f) {
             $data[$f] = (float) ($data[$f] ?? 0);
         }
@@ -147,6 +148,13 @@ class FixedAssetController extends Controller
         if ($data['residual_value'] + $data['opening_depreciation'] > $data['cost'] && $data['cost'] > 0) {
             throw \Illuminate\Validation\ValidationException::withMessages(['opening_depreciation' => 'Depreciation to date and the residual value cannot be more than the cost.']);
         }
+        if ($data['opening_depreciation'] <= 0 && $data['opening_fills'] <= 0) {
+            $data['opening_to'] = null;
+        }
+        // only the link that fits the kind is kept: a hidden select still sends what was picked before the kind changed
+        $data['pattern_id'] = $data['kind'] === 'PATTERN' ? ($data['pattern_id'] ?? null) : null;
+        $data['core_box_id'] = $data['kind'] === 'CORE_BOX' ? ($data['core_box_id'] ?? null) : null;
+        $data['equipment_id'] = in_array($data['kind'], ['PATTERN', 'CORE_BOX'], true) ? null : ($data['equipment_id'] ?? null);
         if (($asset ? $asset->status : $data['status']) === 'IN_PROGRESS') {
             $data['in_use_on'] = null;
         }

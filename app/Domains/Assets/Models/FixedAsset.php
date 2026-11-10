@@ -39,7 +39,7 @@ class FixedAsset extends Model
     protected function casts(): array
     {
         return [
-            'in_use_on' => 'date', 'disposed_on' => 'date', 'cost' => 'float', 'residual_value' => 'float', 'life_years' => 'float',
+            'in_use_on' => 'date', 'opening_to' => 'date', 'disposed_on' => 'date', 'cost' => 'float', 'residual_value' => 'float', 'life_years' => 'float',
             'rate_percent' => 'float', 'life_fills' => 'integer', 'opening_depreciation' => 'float', 'opening_fills' => 'integer',
         ];
     }

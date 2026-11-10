@@ -98,6 +98,9 @@ class AssetPosting
         if (DepreciationRun::where('status', DepreciationRun::POSTED)->where('period', '>', $period->toDateString())->exists()) {
             throw new InvalidArgumentException('A later month is already posted; runs are posted in order.');
         }
+        if ($block = $this->postBlock($period)) {
+            throw new InvalidArgumentException($block);
+        }
         $lines = $this->depreciation->forMonth($period);
         if ($lines->sum('charge') <= 0) {
             throw new InvalidArgumentException('Nothing to depreciate in '.$period->format('F Y').'.');
@@ -115,6 +118,25 @@ class AssetPosting
 
             return $run;
         });
+    }
+
+    /**
+     * Why a month cannot be posted yet, or null when it can: it has not ended, or the month before it is not posted while
+     * earlier months are (runs go month by month, so none is skipped and lost).
+     */
+    public function postBlock(Carbon $period): ?string
+    {
+        $period = $period->copy()->startOfMonth();
+        $end = $period->copy()->endOfMonth();
+        if ($end->gte(today())) {
+            return $period->format('F').' ends on '.$end->format('j M').'; post after the last shift.';
+        }
+        $before = $period->copy()->subMonthNoOverflow();
+        if (DepreciationRun::where('status', DepreciationRun::POSTED)->where('period', '<', $period->toDateString())->exists() && ! $this->postedRun($before)) {
+            return 'Post '.$before->format('F Y').' first.';
+        }
+
+        return null;
     }
 
     /**

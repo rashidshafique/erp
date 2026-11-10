@@ -51,7 +51,7 @@ class FixedAssetRegisterTest extends TestCase
         $this->post(route('assets.store'), [
             'asset_class_id' => AssetClass::where('name', 'Patterns and core boxes (own)')->value('id'), 'name' => 'Manifold pattern, 2 cav.', 'kind' => 'PATTERN',
             'status' => 'IN_USE', 'in_use_on' => '2024-01-09', 'location' => 'Pattern store', 'cost' => 2480000, 'method' => 'USAGE', 'life_fills' => 20000,
-            'opening_depreciation' => 1488000, 'opening_fills' => 12000, 'pattern_id' => $pattern->id,
+            'opening_depreciation' => 1488000, 'opening_fills' => 12000, 'opening_to' => '2026-10-31', 'pattern_id' => $pattern->id, 'equipment_id' => null,
         ])->assertSessionHasNoErrors();
 
         $asset = FixedAsset::sole();
@@ -62,8 +62,14 @@ class FixedAssetRegisterTest extends TestCase
         $this->get(route('assets.show', $asset))->assertOk()->assertSee('Manifold pattern, 2 cav.')->assertSee('992,000')->assertSee('12,000 of 20,000 fills');
 
         $this->post(route('assets.store'), ['asset_class_id' => AssetClass::where('name', 'Factory buildings')->value('id'), 'name' => 'Shed', 'kind' => 'BUILDING',
-            'status' => 'IN_USE', 'in_use_on' => '2020-01-01', 'cost' => 100, 'method' => 'STRAIGHT_LINE', 'life_years' => 30, 'opening_depreciation' => 150])
+            'status' => 'IN_USE', 'in_use_on' => '2020-01-01', 'cost' => 100, 'method' => 'STRAIGHT_LINE', 'life_years' => 30, 'opening_depreciation' => 150, 'opening_to' => '2026-10-31'])
             ->assertSessionHasErrors('opening_depreciation');
+        $this->from(route('assets.create'))->followingRedirects()->post(route('assets.store'), ['asset_class_id' => AssetClass::where('name', 'Factory buildings')->value('id'),
+            'name' => 'Shed', 'kind' => 'BUILDING', 'status' => 'IN_USE', 'in_use_on' => '2020-01-01', 'cost' => 100, 'method' => 'STRAIGHT_LINE', 'life_years' => 30, 'opening_depreciation' => 150, 'opening_to' => '2026-10-31'])
+            ->assertOk()->assertSee('cannot be more than the cost');
+        $this->post(route('assets.store'), ['asset_class_id' => AssetClass::where('name', 'Factory buildings')->value('id'), 'name' => 'Shed', 'kind' => 'BUILDING',
+            'status' => 'IN_USE', 'in_use_on' => '2020-01-01', 'cost' => 1000, 'method' => 'STRAIGHT_LINE', 'life_years' => 30, 'opening_depreciation' => 150])
+            ->assertSessionHasErrors('opening_to');
     }
 
     public function test_putting_an_asset_in_use_moves_its_cost_out_of_capital_work_in_progress_and_starts_depreciation(): void

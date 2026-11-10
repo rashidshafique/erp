@@ -14,7 +14,8 @@ use Illuminate\Support\Facades\DB;
  * - Reducing balance: the yearly rate on the book value at the start of the month, ÷ 12, a part month from the in-use date.
  * - Usage (patterns and core boxes): rate per fill = (cost − residual) ÷ life fills, charge = fills in the month × rate.
  *   Pattern fills are moulds made on moulding runs of any revision of the pattern; core box fills are cores made ÷ its cavities.
- * No charge takes the book value below the residual value.
+ * No charge takes the book value below the residual value. An asset brought in with depreciation to date is charged, and its
+ * fills counted, only from the day after the date that depreciation runs to.
  */
 class Depreciation
 {
@@ -39,8 +40,11 @@ class Depreciation
         return $assets->map(function (FixedAsset $asset) use ($start, $end, $before, $patternFills, $coreFills) {
             $book = round($asset->cost - $asset->opening_depreciation - ($before[$asset->id] ?? 0.0), 2);
             $left = round($book - $asset->residual_value, 2);
-            $from = $asset->in_use_on->gt($start) ? $asset->in_use_on : $start;
+            $from = collect([$start, $asset->in_use_on, $asset->opening_to?->copy()->addDay()])->filter()->max();
             $to = $asset->disposed_on && $asset->disposed_on->lt($end) ? $asset->disposed_on : $end;
+            if ($from->gt($to)) {
+                return null;
+            }
             $share = ((int) round($from->copy()->startOfDay()->diffInDays($to->copy()->startOfDay())) + 1) / $end->daysInMonth;
             [$fills, $rate, $runs] = [null, null, []];
             $charge = match ($asset->method) {
@@ -61,7 +65,7 @@ class Depreciation
             $capped = $charge > $left;
 
             return ['asset' => $asset, 'fills' => $fills, 'rate' => $rate, 'charge' => max(0.0, min($charge, $left)), 'book_before' => $book, 'runs' => $runs, 'capped' => $capped];
-        })->filter(fn ($l) => $l['book_before'] > $l['asset']->residual_value || $l['charge'] > 0)->values();
+        })->filter()->filter(fn ($l) => $l['book_before'] > $l['asset']->residual_value || $l['charge'] > 0)->values();
     }
 
     /** @return array<string, float> asset id => charges posted in runs before this month */
