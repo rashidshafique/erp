@@ -42,6 +42,7 @@ class DocumentNumbers
         'pour' => ['Pour', 'pours', 'pour_number', 'U', 'created_at'],
         'casting_lot' => ['Casting lot', 'casting_lots', 'lot_number', 'L', 'created_at'],
         'core_lot' => ['Core lot', 'core_lots', 'lot_number', 'O', 'made_on'],
+        'material_lot' => ['Material lot', 'material_lots', 'lot_number', 'ML', 'created_at'],
         'ncr' => ['Nonconformance report', 'nonconformance_reports', 'ncr_number', 'N', 'created_at'],
         'inspection' => ['Inspection', 'quality_inspections', 'inspection_number', 'X', 'created_at'],
         'deviation' => ['Deviation', 'product_deviations', 'deviation_number', 'V', 'created_at'],

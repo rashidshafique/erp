@@ -85,6 +85,19 @@ class MaterialsTest extends TestCase
         $this->assertSame(0, MaterialLot::count());
     }
 
+    public function test_a_lot_left_without_a_number_takes_the_next_in_its_series(): void
+    {
+        $material = $this->material();
+        $form = ['status' => 'QUARANTINE', 'received_qty' => 10, 'accepted_qty' => 0, 'currency_code' => 'PKR'];
+
+        $this->get(route('materials.lots.create', $material))->assertOk()->assertSee('ML-10000');
+        $this->post(route('materials.lots.store', $material), $form)->assertSessionHasNoErrors();
+        $this->post(route('materials.lots.store', $material), $form + ['lot_number' => 'OWN-7'])->assertSessionHasNoErrors();
+        $this->post(route('materials.lots.store', $material), $form + ['lot_number' => ''])->assertSessionHasNoErrors();
+
+        $this->assertSame(['ML-10000', 'ML-10001', 'OWN-7'], MaterialLot::orderBy('lot_number')->pluck('lot_number')->all());
+    }
+
     public function test_posting_a_receipt_adds_stock_once(): void
     {
         $material = $this->material();
