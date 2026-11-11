@@ -31,6 +31,7 @@ class MaterialLotController extends Controller
             'material' => $material,
             'lot' => new MaterialLot(),
             'suppliers' => $this->suppliersForLots(),
+            'nextLotNumber' => \App\Support\DocumentNumbers::preview('material_lot'),
         ]);
     }
 
@@ -38,7 +39,7 @@ class MaterialLotController extends Controller
     {
         $validated = $request->validate([
             'lot_number' => [
-                'required', 'string', 'max:80',
+                'nullable', 'string', 'max:80',
                 Rule::unique('material_lots', 'lot_number'),
             ],
             'supplier_id' => ['nullable', 'uuid', Rule::exists('suppliers', 'id')->whereNull('deleted_at')],
@@ -81,7 +82,13 @@ class MaterialLotController extends Controller
 
         $validated['material_id'] = $material->id;
 
-        $lot = $material->lots()->create($validated);
+        $lot = DB::transaction(function () use ($material, $validated): MaterialLot {
+            $validated['lot_number'] = filled($validated['lot_number'] ?? null)
+                ? $validated['lot_number']
+                : \App\Support\DocumentNumbers::next('material_lot');
+
+            return $material->lots()->create($validated);
+        });
 
         return redirect()
             ->route('materials.show', $material)

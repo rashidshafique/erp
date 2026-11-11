@@ -16,9 +16,10 @@
 
     <div class="panel"><div class="panel-body"><div class="form-grid">
         <div class="field">
-            <label for="lot_number">Internal lot number *</label>
-            <input id="lot_number" name="lot_number" required
+            <label for="lot_number">Internal lot number</label>
+            <input id="lot_number" name="lot_number" placeholder="{{ $nextLotNumber }}"
                    value="{{ old('lot_number') }}">
+            <div class="help">Leave blank to number it {{ $nextLotNumber }}.</div>
         </div>
         @if($suppliers->isNotEmpty())
         <div class="field">
