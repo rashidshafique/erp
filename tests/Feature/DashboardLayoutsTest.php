@@ -29,6 +29,47 @@ class DashboardLayoutsTest extends TestCase
         $this->get(route('dashboard', ['layout' => 'command']))->assertOk()->assertSee('Good castings')->assertDontSee('Choose a dashboard layout');
     }
 
+    public function test_the_dashboard_is_also_reachable_at_dashboard(): void
+    {
+        $this->get('/dashboard?layout=icast')->assertOk()->assertSee('Classic owner view');
+        $this->get('/dashboard')->assertOk()->assertSee('Good castings');
+    }
+
+    public function test_the_icast_owner_view_renders_on_an_empty_database(): void
+    {
+        $this->get(route('dashboard', ['layout' => 'icast']))->assertOk()
+            ->assertSee('Castings sold')->assertSee('Turnover')->assertSee('Casting returns')->assertSee('Orders pending')
+            ->assertSee('Cash to collect')->assertSee('Waiting for your decision')
+            ->assertSee("Where it's slipping", false)->assertSee('Classic owner view')
+            ->assertSee('fonts.googleapis.com/css2?family=Inter', false)->assertSee('#F99B31');
+    }
+
+    public function test_the_four_owner_tiles_show_sold_weight_turnover_returns_and_pending_orders(): void
+    {
+        $this->travelTo('2026-10-17 10:00:00');
+        $customer = \App\Models\Customer::create(['code' => 'MER', 'name' => 'Meridian Auto']);
+        $product = \App\Models\Product::create(['code' => 'P-1', 'name' => 'Flange', 'nominal_weight_kg' => 25]);
+        $revision = \App\Models\ProductRevision::create(['product_id' => $product->id, 'revision' => 'A', 'status' => 'APPROVED', 'net_weight_kg' => 25]);
+
+        $invoice = ['customer_id' => $customer->id, 'status' => 'ISSUED', 'currency' => 'USD', 'tax_total' => 0];
+        $sold = \App\Domains\Finance\Models\Invoice::create($invoice + ['kind' => 'INVOICE', 'invoice_number' => 'INV-1', 'invoice_date' => '2026-10-05', 'subtotal' => 200000, 'total' => 200000]);
+        $lastSold = \App\Domains\Finance\Models\Invoice::create($invoice + ['kind' => 'INVOICE', 'invoice_number' => 'INV-0', 'invoice_date' => '2026-09-10', 'subtotal' => 100000, 'total' => 100000]);
+        $credit = \App\Domains\Finance\Models\Invoice::create($invoice + ['kind' => 'CREDIT_NOTE', 'invoice_number' => 'CN-1', 'invoice_date' => '2026-10-06', 'subtotal' => 50000, 'total' => 50000]);
+        $lastCredit = \App\Domains\Finance\Models\Invoice::create($invoice + ['kind' => 'CREDIT_NOTE', 'invoice_number' => 'CN-0', 'invoice_date' => '2026-09-12', 'subtotal' => 20000, 'total' => 20000]);
+        foreach ([[$sold, 2000], [$lastSold, 1000], [$credit, 500], [$lastCredit, 200]] as [$document, $kg]) {
+            \App\Domains\Finance\Models\InvoiceLine::create(['invoice_id' => $document->id, 'line_number' => 1, 'description' => 'Flange', 'quantity' => $kg, 'uom' => 'kg', 'unit_price' => 100, 'line_net' => $kg * 100]);
+        }
+
+        $order = \App\Domains\Sales\Models\SalesOrder::create(['order_number' => 'S-1', 'customer_id' => $customer->id, 'order_date' => '2026-10-01', 'status' => 'CONFIRMED']);
+        \App\Domains\Sales\Models\SalesOrderLine::create(['sales_order_id' => $order->id, 'product_id' => $product->id, 'product_revision_id' => $revision->id, 'line_number' => 1, 'ordered_qty' => 100, 'unit_price' => 1000, 'uom' => 'piece']);
+
+        $this->get(route('dashboard', ['layout' => 'icast']))->assertOk()
+            ->assertSeeInOrder(['Castings sold', '2.0', 'Last month to date 1.0 t', '▲ 1.0 t · 100.0%'])
+            ->assertSeeInOrder(['Turnover', '1.5', 'Last month 0.8', '▲ 87.5% vs last month'])
+            ->assertSeeInOrder(['Casting returns', '0.5', 'Projected 0.9 t · last month 0.2 t', '▲ 355.9% vs last month'])
+            ->assertSeeInOrder(['Orders pending', '2.5', '1.0 L', '1 open order', 'Not yet dispatched']);
+    }
+
     public function test_telemetry_renders_on_an_empty_database(): void
     {
         $page = $this->get(route('dashboard', ['layout' => 'telemetry']));

@@ -53,7 +53,7 @@
 <div class="own">
     <div class="own-head">
         <h1>{{ $greeting }}{{ $first ? ', '.$first : '' }}</h1>
-        <span>{{ now()->format('D j M') }} · {{ now()->format('F') }}, day {{ now()->day }} of {{ now()->daysInMonth }}</span>
+        <span>{{ now()->format('D j M') }} · {{ now()->format('F') }}, day {{ now()->day }} of {{ now()->daysInMonth }} · <a href="{{ route('dashboard', ['layout' => 'icast']) }}">iCast view →</a></span>
     </div>
 
     <div class="own-kpis">

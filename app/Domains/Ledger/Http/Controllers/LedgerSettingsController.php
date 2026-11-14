@@ -31,7 +31,7 @@ class LedgerSettingsController extends Controller
 
         return view('ledger::settings.edit', [
             'accounts' => LedgerAccount::postable()->orderBy('code')->get(), 'chosen' => $chosen,
-            'authorities' => $authorities, 'taxMap' => LedgerSettings::taxMap(),
+            'authorities' => $authorities, 'taxMap' => LedgerSettings::taxMap(), 'inputTaxMap' => LedgerSettings::inputTaxMap(),
             'topExpenses' => LedgerAccount::whereNull('parent_id')->where('type', 'EXPENSE')->orderBy('code')->get(), 'costOfSales' => LedgerSettings::costOfSales()?->id,
         ]);
     }
@@ -41,6 +41,7 @@ class LedgerSettingsController extends Controller
         $d = $request->validate([
             'roles' => ['array'], 'roles.*' => ['nullable', 'uuid', 'exists:ledger_accounts,id'],
             'tax' => ['array'], 'tax.*' => ['nullable', 'uuid', 'exists:ledger_accounts,id'],
+            'input_tax' => ['array'], 'input_tax.*' => ['nullable', 'uuid', 'exists:ledger_accounts,id'],
             'cost_of_sales' => ['nullable', 'string', 'max:36'],
         ]);
         if ($request->has('cost_of_sales')) {
@@ -56,6 +57,9 @@ class LedgerSettingsController extends Controller
             }
         }
         AppSetting::setValue(LedgerSettings::TAX_ACCOUNTS, json_encode(array_filter($d['tax'] ?? [])), 'Ledger account for the tax of each authority');
+        if ($request->has('input_tax')) {
+            AppSetting::setValue(LedgerSettings::INPUT_TAX_ACCOUNTS, json_encode(array_filter($d['input_tax'] ?? [])), 'Ledger account for the input tax of each authority');
+        }
 
         return back()->with('success', 'Ledger settings saved.');
     }

@@ -54,6 +54,7 @@ class DocumentNumbers
         'payroll_period' => ['Payroll period', 'payroll_periods', 'code', 'PP', 'month'],
         'leave_request' => ['Leave request', 'leave_requests', 'code', 'LR', 'created_at'],
         'hr_advance' => ['Employee advance', 'employee_advances', 'code', 'EA', 'created_at'],
+        'fixed_asset' => ['Fixed asset', 'fixed_assets', 'code', 'FA', 'created_at'],
     ];
 
     /** Columns elsewhere that hold a copy of a document's number, set to the new one when it is renumbered. */
