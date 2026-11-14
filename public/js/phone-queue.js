@@ -109,3 +109,106 @@
     };
     flush();
 })();
+
+/*
+ * Resizable right panel: any two-column grid whose right column is a fixed side panel (the 340px detail and context
+ * panels on lists, records and dashboards) gets a drag edge on that panel's left side, like the menu resizer.
+ * The width stays between 200 and 350px, is kept per browser for every page, and a double-click resets it.
+ * Narrow screens are left alone, so pages still drop to one column where their own styles say so.
+ */
+(function () {
+    var KEY = 'erp.sideWidth', MIN = 200, MAX = 350, WIDE = 1001, timer = null, busy = false;
+    var clamp = function (w) { return Math.max(MIN, Math.min(MAX, Math.round(w))); };
+    var stored = function () { try { var w = parseInt(localStorage.getItem(KEY), 10); return w >= MIN && w <= MAX ? w : null; } catch (e) { return null; } };
+    var store = function (w) { try { if (w === null) { localStorage.removeItem(KEY); } else { localStorage.setItem(KEY, String(w)); } } catch (e) {} };
+
+    var css = document.createElement('style');
+    css.textContent = '.side-resizer{position:absolute;top:0;bottom:0;width:9px;z-index:5;cursor:col-resize;touch-action:none}'
+        + '.side-resizer::after{content:"";position:absolute;top:0;bottom:0;left:4px;width:2px;background:transparent;transition:background .12s}'
+        + '.side-resizer:hover::after,.side-resizer:focus-visible::after,.side-resizer.dragging::after{background:var(--accent,#2563eb)}'
+        + 'body.resizing-side{cursor:col-resize;user-select:none}';
+    document.head.appendChild(css);
+
+    function tracks(el) {
+        var t = getComputedStyle(el).gridTemplateColumns.trim().split(/\s+/);
+        return t.length === 2 && /px$/.test(t[0]) && /px$/.test(t[1]) ? [parseFloat(t[0]), parseFloat(t[1])] : null;
+    }
+    function isPanel(el) {
+        if (el.children.length < 2 || el.closest('.sidebar, table') || getComputedStyle(el).display !== 'grid') { return false; }
+        var t = tracks(el);
+        return !!t && t[0] > t[1] && t[1] >= (el.dataset.sideResize ? MIN : 280) && t[1] <= (el.dataset.sideResize ? MAX : 380);
+    }
+    function place(el) {
+        var h = el.querySelector(':scope > .side-resizer'), s = getComputedStyle(el), t = tracks(el);
+        if (!h || !t) { return; }
+        var gap = parseFloat(s.columnGap) || 0;
+        h.style.left = (el.clientWidth - (parseFloat(s.paddingRight) || 0) - t[1] - gap / 2 - 4.5) + 'px';
+    }
+    function apply(el, w) {
+        var v = 'minmax(0, 1fr) ' + w + 'px';
+        if (el.style.gridTemplateColumns !== v) { el.style.setProperty('grid-template-columns', v, 'important'); }
+        place(el);
+    }
+    function release(el) {
+        el.style.removeProperty('grid-template-columns');
+        var h = el.querySelector(':scope > .side-resizer'); if (h) { h.remove(); }
+        delete el.dataset.sideResize;
+    }
+    function handle(el) {
+        var h = document.createElement('div');
+        h.className = 'side-resizer'; h.tabIndex = 0;
+        h.setAttribute('role', 'separator'); h.setAttribute('aria-orientation', 'vertical');
+        h.setAttribute('aria-label', 'Drag to resize the side panel (double-click to reset)');
+        if (getComputedStyle(el).position === 'static') { el.style.position = 'relative'; }
+        h.addEventListener('pointerdown', function (e) {
+            var x = e.clientX, w = tracks(el)[1];
+            h.setPointerCapture(e.pointerId); h.classList.add('dragging'); document.body.classList.add('resizing-side');
+            function move(ev) { apply(el, clamp(w + x - ev.clientX)); }
+            function up() {
+                h.removeEventListener('pointermove', move); h.removeEventListener('pointerup', up); h.removeEventListener('pointercancel', up);
+                h.classList.remove('dragging'); document.body.classList.remove('resizing-side');
+                store(tracks(el)[1]); scan();
+            }
+            h.addEventListener('pointermove', move); h.addEventListener('pointerup', up); h.addEventListener('pointercancel', up);
+            e.preventDefault();
+        });
+        h.addEventListener('keydown', function (e) {
+            var step = e.key === 'ArrowLeft' ? 10 : e.key === 'ArrowRight' ? -10 : 0;
+            if (!step) { return; }
+            var w = clamp(tracks(el)[1] + step); apply(el, w); store(w); e.preventDefault();
+        });
+        h.addEventListener('dblclick', function () { store(null); release(el); scan(); });
+        el.appendChild(h);
+    }
+    function scan() {
+        if (busy) { return; }
+        busy = true;
+        var wide = window.innerWidth >= WIDE;
+        document.querySelectorAll('[data-side-resize]').forEach(function (el) {
+            if (!wide || !el.isConnected) { release(el); return; }
+            el.style.removeProperty('grid-template-columns');
+            if (!isPanel(el)) { release(el); }
+        });
+        if (wide) {
+            document.querySelectorAll('.main-area *').forEach(function (el) {
+                if (!isPanel(el)) { return; }
+                el.dataset.sideResize = '1';
+                if (!el.querySelector(':scope > .side-resizer')) { handle(el); }
+                apply(el, clamp(stored() || tracks(el)[1]));
+            });
+        }
+        busy = false;
+    }
+    function later() { clearTimeout(timer); timer = setTimeout(scan, 150); }
+
+    if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', scan); } else { scan(); }
+    window.addEventListener('resize', later);
+    document.addEventListener('livewire:navigated', later);
+    new MutationObserver(function (list) {
+        if (busy || document.body.classList.contains('resizing-side')) { return; }
+        for (var i = 0; i < list.length; i++) {
+            var m = list[i];
+            if (m.type === 'childList' && !(m.target.classList && m.target.classList.contains('side-resizer'))) { later(); return; }
+        }
+    }).observe(document.body, { childList: true, subtree: true });
+})();
