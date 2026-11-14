@@ -113,14 +113,15 @@
 /*
  * Resizable right panel: any two-column grid whose right column is a fixed side panel (the 340px detail and context
  * panels on lists, records and dashboards) gets a drag edge on that panel's left side, like the menu resizer.
- * The width stays between 200 and 350px, is kept per browser for every page, and a double-click resets it.
+ * The width stays between 200 and 350px, is kept per page address in this browser, and a double-click resets it.
  * Narrow screens are left alone, so pages still drop to one column where their own styles say so.
  */
 (function () {
-    var KEY = 'erp.sideWidth', MIN = 200, MAX = 350, WIDE = 1001, timer = null, busy = false;
+    var MIN = 200, MAX = 350, WIDE = 1001, timer = null, busy = false;
     var clamp = function (w) { return Math.max(MIN, Math.min(MAX, Math.round(w))); };
-    var stored = function () { try { var w = parseInt(localStorage.getItem(KEY), 10); return w >= MIN && w <= MAX ? w : null; } catch (e) { return null; } };
-    var store = function (w) { try { if (w === null) { localStorage.removeItem(KEY); } else { localStorage.setItem(KEY, String(w)); } } catch (e) {} };
+    var key = function () { return 'erp.sideWidth:' + location.pathname; };
+    var stored = function () { try { var w = parseInt(localStorage.getItem(key()), 10); return w >= MIN && w <= MAX ? w : null; } catch (e) { return null; } };
+    var store = function (w) { try { if (w === null) { localStorage.removeItem(key()); } else { localStorage.setItem(key(), String(w)); } } catch (e) {} };
 
     var css = document.createElement('style');
     css.textContent = '.side-resizer{position:absolute;top:0;bottom:0;width:9px;z-index:5;cursor:col-resize;touch-action:none}'
