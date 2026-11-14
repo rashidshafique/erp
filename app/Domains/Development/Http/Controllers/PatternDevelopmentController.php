@@ -213,6 +213,10 @@ class PatternDevelopmentController extends Controller
             if ($isLast) {
                 app(ToolRegister::class)->linkRequirements($development);
                 app(ToolRegister::class)->retire($development);
+                if (app(\App\Domains\Core\ModuleRegistry::class)->isEnabled('assets')
+                    && $asset = app(\App\Domains\Assets\Services\AssetPosting::class)->capitaliseDevelopment($development->id, today()->toDateString())) {
+                    $this->log($development, 'STAGE', "The bills we paid for this tool became asset {$asset->code}, in use from today.");
+                }
             }
             if ($isLast && $revision = $development->draftRevision()) {
                 $revision->update(['status' => 'APPROVED', 'effective_from' => $revision->effective_from ?? today()]);

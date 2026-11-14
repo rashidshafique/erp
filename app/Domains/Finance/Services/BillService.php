@@ -22,6 +22,11 @@ use InvalidArgumentException;
 /** Entering, posting, voiding and crediting supplier bills. A bill may name a purchase order and its lines, but never depends on one. */
 class BillService
 {
+    /** Capital work in progress and work in progress for pattern development, in the starting chart. */
+    private const CAPITAL_WIP = '21-04-01';
+
+    private const DEVELOPMENT_WIP = '22-08-04';
+
     public function __construct(private InvoiceService $numbers, private Advances $advances, private LotCosting $costing) {}
 
     /**
@@ -71,7 +76,7 @@ class BillService
                 SupplierBillLine::create([
                     'supplier_bill_id' => $bill->id, 'line_number' => $i + 1, 'description' => trim($l['description']), 'quantity' => $qty, 'uom' => $l['uom'] ?? null,
                     'unit_price' => $price, 'tax_percent' => $percent, 'line_net' => $net, 'line_tax' => $lineTax, 'purchase_order_line_id' => ($l['purchase_order_line_id'] ?? null) ?: null,
-                    'account_id' => ($l['account_id'] ?? null) ?: null, 'supply_type' => $taxLines[$i]->supplyType,
+                    'account_id' => ($l['account_id'] ?? null) ?: null, 'supply_type' => $taxLines[$i]->supplyType, ...$this->treatAs($l),
                     'taxes' => array_map(fn (TaxAmount $t) => (array) $t, $taxes->forLine($i)), 'line_withheld' => $taxes->withheld($i),
                 ]);
                 $subtotal += $net;
@@ -136,11 +141,13 @@ class BillService
             if (FinanceRules::billMatch() === 'BLOCK' && ($issues = $this->matchIssues($bill)) !== []) {
                 throw new InvalidArgumentException('The bill does not match the order: '.implode(' ', $issues));
             }
+            $this->assetsInProgress($bill);
             $due = $bill->due_date ?? ($bill->isCreditNote() ? null : $bill->bill_date->copy()->addDays(FinanceRules::daysFromTerms($bill->payment_terms)));
             $bill->update(['bill_number' => $this->numbers->nextNumber('BILL'), 'status' => 'POSTED', 'posted_at' => now(), 'due_date' => $due]);
             event(new DocumentPosted($bill));
             event(new BillPosted($bill));
             $this->costing->refresh($bill);
+            $this->assetCosts($bill);
             if (FinanceRules::advances() === 'AUTO') {
                 $this->advances->applyToBill($bill);
             }
@@ -163,6 +170,7 @@ class BillService
             event(new DocumentVoided($bill));
             event(new BillVoided($bill));
             $this->costing->refresh($bill, 'VOIDED');
+            $this->assetCosts($bill, false);
         });
 
         return $bill->fresh();
@@ -208,6 +216,63 @@ class BillService
                 'description' => $l->description, 'quantity' => $left, 'uom' => $l->uom, 'unit_price' => $l->unit_price, 'tax_percent' => $l->tax_percent, 'purchase_order_line_id' => $l->id,
             ] : null;
         })->filter()->values()->all();
+    }
+
+    /**
+     * What a line is treated as (design 28g), from `treat`: "asset:<id>" is cost of an asset in progress and goes to capital work in
+     * progress; "dev:<id>" is cost of a pattern development, in work in progress when the customer pays for the tool (28a) or capital
+     * work in progress when the foundry does (28b). Anything else keeps the line's own account.
+     *
+     * @param  array<string, mixed>  $line
+     * @return array{fixed_asset_id?: string|null, pattern_development_id?: string|null, account_id?: string}
+     */
+    private function treatAs(array $line): array
+    {
+        [$type, $id] = array_pad(explode(':', (string) ($line['treat'] ?? ''), 2), 2, null);
+        $code = match ($type) {
+            'asset' => self::CAPITAL_WIP,
+            'dev' => in_array(DB::table('pattern_developments')->where('id', $id)->value('who_pays'), ['CUSTOMER', 'SHARED'], true) ? self::DEVELOPMENT_WIP : self::CAPITAL_WIP,
+            default => null,
+        };
+        if ($code === null || ! \Illuminate\Support\Str::isUuid((string) $id)) {
+            return ['fixed_asset_id' => null, 'pattern_development_id' => null];
+        }
+        $link = $type === 'asset' ? ['fixed_asset_id' => $id, 'pattern_development_id' => null] : ['fixed_asset_id' => null, 'pattern_development_id' => $id];
+        $account = DB::table('ledger_accounts')->where('code', $code)->value('id');
+
+        return $account ? $link + ['account_id' => $account] : $link;
+    }
+
+    /** An asset line can only add to an asset still in progress: once in use its cost has left capital work in progress. */
+    private function assetsInProgress(SupplierBill $bill): void
+    {
+        $ids = $bill->lines()->whereNotNull('fixed_asset_id')->pluck('fixed_asset_id');
+        $done = DB::table('fixed_assets')->whereIn('id', $ids)->where('status', '!=', 'IN_PROGRESS')->value('code');
+        if ($done) {
+            throw new InvalidArgumentException("{$done} is already in use, so a bill cannot add to its cost. Charge the line to an account instead.");
+        }
+    }
+
+    /** Posting adds each asset line to its asset's cost build-up (a credit note takes it off); voiding removes it again. */
+    private function assetCosts(SupplierBill $bill, bool $add = true): void
+    {
+        $lines = $bill->lines()->whereNotNull('fixed_asset_id')->get();
+        if ($lines->isEmpty() || ! class_exists(\App\Domains\Assets\Models\FixedAsset::class)) {
+            return;
+        }
+        foreach ($lines as $l) {
+            $asset = \App\Domains\Assets\Models\FixedAsset::find($l->fixed_asset_id);
+            if ($asset === null) {
+                continue;
+            }
+            if ($add) {
+                $asset->costs()->create(['source_type' => 'BILL_LINE', 'source_id' => $l->id, 'description' => $l->description, 'incurred_on' => $bill->bill_date,
+                    'reference' => trim($bill->bill_number.' · '.$bill->supplier_bill_number, ' ·'), 'amount' => $bill->isCreditNote() ? -$l->line_net : $l->line_net]);
+            } else {
+                $asset->costs()->where('source_type', 'BILL_LINE')->where('source_id', $l->id)->delete();
+            }
+            $asset->refreshCost();
+        }
     }
 
     /** How much of a purchase order line posted bills carry. */

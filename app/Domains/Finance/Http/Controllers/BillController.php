@@ -86,7 +86,8 @@ class BillController extends Controller
         if ($bill->status !== 'DRAFT') {
             return redirect()->route('bills.show', $bill)->withErrors(['bill' => 'Only a draft can be changed.']);
         }
-        $lines = $bill->lines->map(fn ($l) => $l->only(['description', 'quantity', 'uom', 'unit_price', 'tax_percent', 'purchase_order_line_id', 'account_id', 'supply_type']))->all();
+        $lines = $bill->lines->map(fn ($l) => $l->only(['description', 'quantity', 'uom', 'unit_price', 'tax_percent', 'purchase_order_line_id', 'account_id', 'supply_type'])
+            + ['treat' => $l->fixed_asset_id ? 'asset:'.$l->fixed_asset_id : ($l->pattern_development_id ? 'dev:'.$l->pattern_development_id : '')])->all();
 
         return view('finance::bills.form', $this->formData($bill, $bill->only(['supplier_id', 'purchase_order_id', 'payment_terms', 'currency']), $lines) + ['notice' => null]);
     }
@@ -166,7 +167,7 @@ class BillController extends Controller
         return [
             'bill' => $bill, 'head' => $head,
             'lines' => $lines ?: [['description' => '', 'quantity' => 1, 'uom' => '', 'unit_price' => 0, 'tax_percent' => $default, 'purchase_order_line_id' => null, 'account_id' => null]],
-            'suppliers' => Supplier::orderedByName()->get(), 'ledgerAccounts' => self::ledgerAccounts(), 'currency' => $bill?->currency ?? ($head['currency'] ?? null) ?: FinanceRules::currency(),
+            'suppliers' => Supplier::orderedByName()->get(), 'ledgerAccounts' => self::ledgerAccounts(), 'treatOptions' => self::treatOptions(), 'currency' => $bill?->currency ?? ($head['currency'] ?? null) ?: FinanceRules::currency(),
         ];
     }
 
@@ -183,6 +184,31 @@ class BillController extends Controller
 
         return \App\Domains\Ledger\Models\LedgerAccount::postable()->orderByRaw("type <> 'EXPENSE'")->orderBy('code')->get()
             ->map(fn ($a) => ['id' => $a->id, 'label' => $a->label()]);
+    }
+
+    /**
+     * What a line can be treated as besides an expense or stock (design 28g): an asset in progress, or a pattern development still open.
+     * The note says where it posts; a development goes to work in progress when the customer pays for the tool.
+     *
+     * @return list<array{value: string, label: string, note: string}>
+     */
+    private static function treatOptions(): array
+    {
+        $registry = app(\App\Domains\Core\ModuleRegistry::class);
+        $options = [];
+        if ($registry->isEnabled('assets')) {
+            foreach (\App\Domains\Assets\Models\FixedAsset::where('status', 'IN_PROGRESS')->orderBy('code')->get(['id', 'code', 'name']) as $a) {
+                $options[] = ['value' => 'asset:'.$a->id, 'label' => "Asset · {$a->code} {$a->name}", 'note' => '21-04-01 capital work in progress'];
+            }
+        }
+        if ($registry->isEnabled('development')) {
+            foreach (\App\Domains\Development\Models\PatternDevelopment::where('status', 'OPEN')->orderBy('code')->get(['id', 'code', 'who_pays']) as $d) {
+                $customer = in_array($d->who_pays, ['CUSTOMER', 'SHARED'], true);
+                $options[] = ['value' => 'dev:'.$d->id, 'label' => "Development · {$d->code}", 'note' => $customer ? '22-08-04 WIP, customer pays' : '21-04-01 capital work in progress'];
+            }
+        }
+
+        return $options;
     }
 
     /** @return array<string, mixed> */
@@ -202,6 +228,7 @@ class BillController extends Controller
             'lines' => ['required', 'array', 'min:1'], 'lines.*.description' => ['nullable', 'string', 'max:300'], 'lines.*.quantity' => ['nullable', 'numeric', 'gt:0'],
             'lines.*.uom' => ['nullable', 'string', 'max:20'], 'lines.*.unit_price' => ['nullable', 'numeric', 'min:0'], 'lines.*.tax_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'lines.*.purchase_order_line_id' => ['nullable', 'uuid'], 'lines.*.account_id' => ['nullable', 'uuid'], 'lines.*.supply_type' => ['nullable', 'in:GOODS,SERVICE'],
+            'lines.*.treat' => ['nullable', 'regex:/^(asset|dev):[0-9a-f-]{36}$/'],
         ])['lines']);
     }
 }

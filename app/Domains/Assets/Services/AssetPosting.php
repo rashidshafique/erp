@@ -2,6 +2,7 @@
 
 namespace App\Domains\Assets\Services;
 
+use App\Domains\Assets\Models\AssetClass;
 use App\Domains\Assets\Models\AssetEvent;
 use App\Domains\Assets\Models\DepreciationRun;
 use App\Domains\Assets\Models\FixedAsset;
@@ -33,6 +34,46 @@ class AssetPosting
     {
         return LedgerAccount::where('code', self::CAPITAL_WIP)->first()
             ?? throw new InvalidArgumentException('The chart has no capital work in progress account ('.self::CAPITAL_WIP.').');
+    }
+
+    /**
+     * Capitalise on approval (28e): the supplier bills a development we paid for collected in capital work in progress become one
+     * asset for its tool, put in use today. Method usage, with the rated life from the tool's life limit. Customer-paid tools never
+     * come here: their bills sit in work in progress (22-08-04) until billed on. Nothing in capital work in progress: no asset.
+     */
+    public function capitaliseDevelopment(string $developmentId, string $date): ?FixedAsset
+    {
+        $development = DB::table('pattern_developments')->where('id', $developmentId)->first(['id', 'code']);
+        $wip = LedgerAccount::where('code', self::CAPITAL_WIP)->value('id');
+        $lines = DB::table('supplier_bill_lines as l')->join('supplier_bills as b', 'b.id', '=', 'l.supplier_bill_id')
+            ->where('l.pattern_development_id', $developmentId)->where('l.account_id', $wip)->where('b.status', 'POSTED')
+            ->get(['l.id', 'l.description', 'l.line_net', 'b.kind', 'b.bill_number', 'b.supplier_bill_number', 'b.bill_date']);
+        if ($development === null || $lines->isEmpty() || FixedAsset::where('pattern_development_id', $developmentId)->exists()) {
+            return null;
+        }
+        $tool = DB::table('pattern_development_tools')->where('pattern_development_id', $developmentId)
+            ->where(fn ($q) => $q->whereNotNull('pattern_id')->orWhereNotNull('core_box_id'))->orderBy('created_at')->first(['label', 'pattern_id', 'core_box_id']);
+        $life = $tool ? DB::table('tooling_life_limits')->where($tool->pattern_id ? 'pattern_id' : 'core_box_id', $tool->pattern_id ?? $tool->core_box_id)
+            ->where('is_active', true)->value('service_life_quantity') : null;
+        $class = AssetClass::whereHas('costAccount', fn ($q) => $q->where('code', '21-03-01'))->first()
+            ?? throw new InvalidArgumentException('No asset class uses 21-03-01 Patterns and core boxes (own).');
+
+        return DB::transaction(function () use ($development, $lines, $tool, $life, $class, $date) {
+            $asset = FixedAsset::create([
+                'asset_class_id' => $class->id, 'name' => $tool?->label ?: "Tool from {$development->code}", 'kind' => $tool?->core_box_id ? 'CORE_BOX' : 'PATTERN',
+                'status' => 'IN_PROGRESS', 'method' => $life ? 'USAGE' : 'NONE', 'life_fills' => $life ? (int) $life : null,
+                'pattern_id' => $tool?->pattern_id, 'core_box_id' => $tool?->core_box_id, 'pattern_development_id' => $development->id, 'residual_value' => 0,
+            ]);
+            foreach ($lines as $l) {
+                $asset->costs()->create(['source_type' => 'BILL_LINE', 'source_id' => $l->id, 'description' => $l->description, 'incurred_on' => $l->bill_date,
+                    'reference' => trim($l->bill_number.' · '.$l->supplier_bill_number, ' ·'), 'amount' => $l->kind === 'CREDIT_NOTE' ? -$l->line_net : $l->line_net]);
+            }
+            $asset->refreshCost();
+            AssetEvent::create(['fixed_asset_id' => $asset->id, 'kind' => 'CAPITALISED', 'happened_on' => $date, 'user_id' => auth()->id(),
+                'note' => "Capitalised on approval of {$development->code}: {$lines->count()} supplier bill line(s)."]);
+
+            return $this->putInUse($asset->fresh(), $date);
+        });
     }
 
     /** Moves an asset in progress into use from the date given; its cost leaves capital work in progress for its class's cost account. */
