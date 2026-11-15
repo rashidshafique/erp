@@ -13,6 +13,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 /** Core boxes: new or modified from existing tooling, and the core each cavity makes. */
@@ -41,15 +42,17 @@ class CoreBoxController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $this->validated($request);
-        $box = DB::transaction(function () use ($data) {
+        $map = $this->cavityMap((int) $data['cavities'], $data['core_definition_id'], (array) $request->input('cavity_cores', []), []);
+        $box = DB::transaction(function () use ($data, $map) {
             $box = CoreBox::create($data);
-            $box->saveCavityMap(array_fill(1, (int) $box->cavities, $box->core_definition_id));
+            $box->saveCavityMap($map);
 
             return $box;
         });
+        $same = count(array_unique(array_filter($map))) === 1 && count(array_filter($map)) === count($map);
 
         return redirect()->route('core-boxes.show', $box)->with('success', "Core box {$box->code} added."
-            .($box->cavities > 1 ? ' Every cavity makes the same core; set the cavities that make a different one.' : ''));
+            .($box->cavities > 1 && $same ? ' Every cavity makes the same core.' : ''));
     }
 
     public function show(CoreBox $coreBox): View
@@ -75,11 +78,11 @@ class CoreBoxController extends Controller
     public function update(Request $request, CoreBox $coreBox): RedirectResponse
     {
         $data = $this->validated($request, $coreBox);
-        DB::transaction(function () use ($coreBox, $data) {
+        $map = $this->cavityMap((int) $data['cavities'], $data['core_definition_id'], (array) $request->input('cavity_cores', []),
+            $coreBox->cavityMap()->pluck('core_definition_id', 'cavity_number')->all());
+        DB::transaction(function () use ($coreBox, $data, $map) {
             $coreBox->update($data);
-            // More cavities start on the main core; fewer drop the highest numbers.
-            $map = $coreBox->cavityMap()->pluck('core_definition_id', 'cavity_number')->all();
-            $coreBox->saveCavityMap(collect(range(1, (int) $coreBox->cavities))->mapWithKeys(fn ($n) => [$n => $map[$n] ?? $coreBox->core_definition_id])->all());
+            $coreBox->saveCavityMap($map);
         });
 
         return redirect()->route('core-boxes.show', $coreBox)->with('success', "{$coreBox->code} saved.");
@@ -137,12 +140,42 @@ class CoreBoxController extends Controller
         return redirect()->route('core-boxes.show', $coreBox)->with('success', "{$coreBox->code} restored.");
     }
 
+    /**
+     * The core in each cavity from the form: "" is the main core, "none" a cavity not in use, else that core. A cavity the form
+     * did not post keeps what it made, or the main core when it is new; more cavities than before start on the main core and
+     * fewer drop the highest numbers.
+     *
+     * @param  array<int|string, string|null>  $posted  cavity number => "", "none" or a core id
+     * @param  array<int, string|null>  $current  cavity number => core id, as saved
+     * @return array<int, string|null>
+     */
+    private function cavityMap(int $cavities, string $mainCore, array $posted, array $current): array
+    {
+        $map = collect(range(1, $cavities))->mapWithKeys(fn (int $n) => [$n => match (true) {
+            ! array_key_exists($n, $posted) => $current[$n] ?? $mainCore,
+            $posted[$n] === 'none' => null,
+            blank($posted[$n]) => $mainCore,
+            default => $posted[$n],
+        }])->all();
+        if (collect($map)->filter()->isEmpty()) {
+            throw ValidationException::withMessages(['cavity_cores' => 'At least one cavity must make a core.']);
+        }
+
+        return $map;
+    }
+
     /** @return array<string, mixed> */
     private function formData(CoreBox $box): array
     {
+        $saved = $box->exists ? $box->cavityMap()->pluck('core_definition_id', 'cavity_number')->all() : [];
+
         return [
             'box' => $box,
-            'cores' => CoreDefinition::where('status', 'ACTIVE')->orWhere('id', $box->core_definition_id)->orderBy('code')->get(),
+            // cavity number => "" (the main core), a core id, or "none" for a cavity not in use
+            'cavityCores' => $box->exists
+                ? collect($saved)->map(fn ($id) => $id === $box->core_definition_id ? '' : $id)->all() + array_fill_keys(range(1, max(1, (int) $box->cavities)), 'none')
+                : [],
+            'cores' => CoreDefinition::where('status', 'ACTIVE')->orWhere('id', $box->core_definition_id)->orWhereIn('id', array_filter($saved))->orderBy('code')->get(),
             'otherBoxes' => CoreBox::when($box->exists, fn ($q) => $q->whereKeyNot($box->id))->orderBy('code')->get(),
             'patterns' => Pattern::orderBy('code')->get(['id', 'code', 'name']),
         ];
@@ -166,11 +199,18 @@ class CoreBoxController extends Controller
             'commissioned_on' => ['nullable', 'date'],
             'description' => ['nullable', 'string', 'max:2000'],
             'notes' => ['nullable', 'string', 'max:4000'],
+            'cavity_cores' => ['nullable', 'array'],
+            'cavity_cores.*' => ['nullable', 'string', function (string $attribute, mixed $value, \Closure $fail) {
+                if ($value !== 'none' && ! (\Illuminate\Support\Str::isUuid($value) && CoreDefinition::whereKey($value)->exists())) {
+                    $fail('Choose a core for each cavity, or Not in use.');
+                }
+            }],
         ], [
             'core_definition_id.required' => 'Choose the core this box makes.',
             'modified_from_core_box_id.required_if' => 'Choose the core box it was modified from.',
             'modified_from_pattern_id.required_if' => 'Choose the pattern it was modified from.',
         ]);
+        unset($data['cavity_cores']);
         if (blank($data['code'] ?? null)) {
             unset($data['code']);
         }

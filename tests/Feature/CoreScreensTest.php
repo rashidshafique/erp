@@ -82,6 +82,41 @@ class CoreScreensTest extends TestCase
         $this->assertSame([1 => $a->id, 2 => $b->id, 3 => $a->id], $box->cavityMap()->pluck('core_definition_id', 'cavity_number')->all());
     }
 
+    public function test_the_new_box_form_sets_the_core_made_in_each_cavity_in_one_save(): void
+    {
+        $a = $this->core('Core A');
+        $b = $this->core('Core B');
+
+        $this->post(route('core-boxes.store'), $this->boxPayload($a, ['cavities' => 3, 'cavity_cores' => [1 => '', 2 => $b->id, 3 => 'none']]))->assertSessionHasNoErrors();
+
+        $box = CoreBox::sole();
+        $this->assertSame([1 => $a->id, 2 => $b->id], $box->cavityMap()->pluck('core_definition_id', 'cavity_number')->all());
+        $this->assertSame($a->id, $box->core_definition_id);
+        $this->get(route('core-boxes.edit', $box))->assertOk()->assertSee('name="cavity_cores[2]"', false)
+            ->assertSee('<option value="'.$b->id.'" selected>', false)->assertSee('<option value="none" selected>Not in use</option>', false);
+    }
+
+    public function test_a_box_from_the_form_must_use_at_least_one_cavity_and_only_known_cores(): void
+    {
+        $a = $this->core('Core A');
+
+        $this->post(route('core-boxes.store'), $this->boxPayload($a, ['cavities' => 2, 'cavity_cores' => [1 => 'none', 2 => 'none']]))->assertSessionHasErrors('cavity_cores');
+        $this->post(route('core-boxes.store'), $this->boxPayload($a, ['cavities' => 2, 'cavity_cores' => [1 => '', 2 => 'not-a-core']]))->assertSessionHasErrors('cavity_cores.2');
+        $this->assertSame(0, CoreBox::count());
+    }
+
+    public function test_editing_a_box_keeps_cavities_the_form_did_not_send_and_starts_new_ones_on_the_main_core(): void
+    {
+        $a = $this->core('Core A');
+        $b = $this->core('Core B');
+        $this->post(route('core-boxes.store'), $this->boxPayload($a, ['cavities' => 2, 'cavity_cores' => [1 => '', 2 => $b->id]]));
+        $box = CoreBox::sole();
+
+        $this->put(route('core-boxes.update', $box), $this->boxPayload($a, ['cavities' => 3, 'cavity_cores' => [1 => $b->id]]))->assertSessionHasNoErrors();
+
+        $this->assertSame([1 => $b->id, 2 => $b->id, 3 => $a->id], $box->cavityMap()->pluck('core_definition_id', 'cavity_number')->all());
+    }
+
     public function test_a_modified_box_needs_the_tooling_it_came_from(): void
     {
         $core = $this->core();
