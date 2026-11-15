@@ -16,7 +16,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
-/** Core boxes: new or modified from existing tooling, and the core each cavity makes. */
+/** Core boxes: new or modified from existing tooling, and how many cavities make each core. */
 class CoreBoxController extends Controller
 {
     public function index(Request $request): View
@@ -61,7 +61,6 @@ class CoreBoxController extends Controller
 
         return view('tooling::core-boxes.show', [
             'box' => $coreBox,
-            'cores' => CoreDefinition::where('status', 'ACTIVE')->orWhereIn('id', $coreBox->cavityMap->pluck('core_definition_id'))->orderBy('code')->get(),
             'records' => ToolingMaintenanceRecord::where('core_box_id', $coreBox->id)->latest('reported_at')->limit(10)->get(),
             'life' => ToolingLifeLimit::where('core_box_id', $coreBox->id)->where('is_active', true)->first(),
             'derived' => CoreBox::where('modified_from_core_box_id', $coreBox->id)->orderBy('code')->get(),
@@ -80,9 +79,6 @@ class CoreBoxController extends Controller
         $rows = $this->posted($request);
         $saved = $coreBox->cavityMap()->pluck('core_definition_id', 'cavity_number')->all();
         $map = match (true) {
-            // The same cores in the same numbers keep the cavity numbering set on the box page.
-            $rows !== null && $this->counts($rows['cores']) === $this->counts($this->rowsFromMap($saved))
-                && $rows['blocked'] === (int) $coreBox->cavities - count($saved) => $saved + array_fill_keys(range(1, (int) $data['cavities']), null),
             $rows !== null => $this->mapFromRows($rows['cores'], $rows['blocked']),
             // More cavities start on the main core; fewer drop the highest numbers.
             default => collect(range(1, (int) $data['cavities']))->mapWithKeys(fn ($n) => [$n => $saved[$n] ?? $data['core_definition_id']])->all(),
@@ -95,22 +91,6 @@ class CoreBoxController extends Controller
         });
 
         return redirect()->route('core-boxes.show', $coreBox)->with('success', "{$coreBox->code} saved.");
-    }
-
-    /** The core made in each cavity; a cavity left empty is not in use. */
-    public function updateCavities(Request $request, CoreBox $coreBox): RedirectResponse
-    {
-        $data = $request->validate([
-            'cores' => ['required', 'array'],
-            'cores.*' => ['nullable', 'uuid', Rule::exists('core_definitions', 'id')->whereNull('deleted_at')],
-        ]);
-        $map = collect(range(1, (int) $coreBox->cavities))->mapWithKeys(fn ($n) => [$n => $data['cores'][$n] ?? null])->all();
-        if (collect($map)->filter()->isEmpty()) {
-            return back()->withErrors(['cores' => 'At least one cavity must make a core.']);
-        }
-        $coreBox->saveCavityMap($map);
-
-        return back()->with('success', 'Cores per cavity saved.');
     }
 
     /** Who owns the box and where it is (design 18h). */
@@ -198,18 +178,6 @@ class CoreBoxController extends Controller
         ksort($map);
 
         return collect($map)->filter()->countBy()->map(fn ($n, $core) => ['core' => (string) $core, 'qty' => $n])->values()->all();
-    }
-
-    /**
-     * @param  list<array{core: string, qty: int}>  $rows
-     * @return array<string, int>
-     */
-    private function counts(array $rows): array
-    {
-        $counts = collect($rows)->pluck('qty', 'core')->all();
-        ksort($counts);
-
-        return $counts;
     }
 
     /** @return array<string, mixed> */

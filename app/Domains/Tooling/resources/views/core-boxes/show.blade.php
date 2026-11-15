@@ -35,7 +35,7 @@
 <div class="panel"><div class="panel-header"><h2>Core box</h2></div><div class="panel-body">
     @include('attachments._cover', ['type' => 'core_box', 'id' => $box->id])
     <dl class="tool-facts">
-        <div><dt>Cavities</dt><dd>{{ $box->cavities }}</dd></div>
+        <div><dt>Cavities</dt><dd>{{ $box->cavities }}@if ($box->blockedCavities() > 0) · {{ $box->blockedCavities() }} blocked @endif</dd></div>
         <div><dt>Material</dt><dd>{{ $box->material ?: '—' }}</dd></div>
         <div><dt>Commissioned</dt><dd>{{ $box->commissioned_on?->displayDate() ?? '—' }}</dd></div>
         <div><dt>Origin</dt><dd>{{ \App\Models\CoreBox::ORIGINS[$box->origin] ?? $box->origin }}
@@ -50,25 +50,16 @@
 
 @include('tooling::core-boxes._ownership')
 
-<div class="panel"><div class="panel-header"><h2>Core made in each cavity</h2><span class="muted small">Leave a cavity empty when it is blocked off or not in use.</span></div>
-    <form method="POST" action="{{ route('core-boxes.cavities', $box) }}">@csrf @method('PUT')
-        <div class="table-wrap"><table>
-            <thead><tr><th>Cavity</th><th>Core</th></tr></thead>
-            <tbody>
-            @foreach (range(1, $box->cavities) as $n)
-                @php $current = $box->cavityMap->firstWhere('cavity_number', $n)?->core_definition_id; @endphp
-                <tr><td>{{ $n }}</td><td>
-                    @if ($box->trashed())
-                        {{ $box->cavityMap->firstWhere('cavity_number', $n)?->coreDefinition?->name ?? '—' }}
-                    @else
-                        <select name="cores[{{ $n }}]"><option value="">— not in use —</option>@foreach ($cores as $c)<option value="{{ $c->id }}" @selected($current === $c->id)>{{ $c->code }} · {{ $c->name }}</option>@endforeach</select>
-                    @endif
-                </td></tr>
-            @endforeach
-            </tbody>
-        </table></div>
-        @unless ($box->trashed())<div class="panel-body"><button class="btn btn-primary" type="submit">Save cores per cavity</button></div>@endunless
-    </form>
+<div class="panel"><div class="panel-header"><h2>Cores this box makes</h2>@unless ($box->trashed())<a class="btn btn-small" href="{{ route('core-boxes.edit', $box) }}">Edit cores</a>@endunless</div>
+    <div class="table-wrap"><table>
+        <thead><tr><th>Core</th><th class="r">Cavities</th></tr></thead>
+        <tbody>
+        @foreach ($box->coreCounts() as $row)
+            <tr><td>@if ($row['core'])<x-item :name="$row['core']->name" :code="$row['core']->code" :href="route('cores.show', $row['core'])" />@else — @endif</td><td class="r">{{ $row['qty'] }}</td></tr>
+        @endforeach
+        @if ($box->blockedCavities() > 0)<tr><td class="muted">Blocked, makes nothing</td><td class="r">{{ $box->blockedCavities() }}</td></tr>@endif
+        </tbody>
+    </table></div>
 </div>
 
 @if ($derived->isNotEmpty())

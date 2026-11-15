@@ -30,21 +30,20 @@
     <div class="muted small" style="margin-top:8px">Barcode</div>{!! \App\Support\Code128::svg($core->code, 44, 2) !!}
 </div></div>
 
-<div class="panel"><div class="panel-header"><h2>Core boxes that make it</h2><span class="muted small">A box with several cores lists the cavities that make this one.</span></div>
+<div class="panel"><div class="panel-header"><h2>Core boxes that make it</h2><span class="muted small">A box that makes several cores shows how many of its cavities make this one.</span></div>
     <div class="table-wrap"><table>
-        <thead><tr><th>Core box</th><th>Revision</th><th>Cavities for this core</th><th>Box cavities</th><th>Status</th></tr></thead>
+        <thead><tr><th>Core box</th><th>Revision</th><th>Cavities for this core</th><th>Status</th></tr></thead>
         <tbody>
         @forelse ($cavities as $rows)
             @php $box = $rows->first()->coreBox; @endphp
             <tr>
                 <td><x-item :name="$box->name" :code="$box->code" :href="route('core-boxes.show', $box)" /></td>
                 <td class="mono">{{ $box->revision }}</td>
-                <td>{{ $rows->pluck('cavity_number')->implode(', ') }}</td>
-                <td>{{ $box->cavities }}</td>
+                <td>{{ $rows->count() }} of {{ $box->cavities }}</td>
                 <td><span class="status {{ $box->status === 'ACTIVE' ? 'status-completed' : 'status-cancelled' }}">{{ $box->status }}</span></td>
             </tr>
         @empty
-            <tr><td colspan="5" class="muted">No core box makes this core yet. <a href="{{ route('core-boxes.create', ['core' => $core->id]) }}">Add one</a>.</td></tr>
+            <tr><td colspan="4" class="muted">No core box makes this core yet. <a href="{{ route('core-boxes.create', ['core' => $core->id]) }}">Add one</a>.</td></tr>
         @endforelse
         </tbody>
     </table></div>

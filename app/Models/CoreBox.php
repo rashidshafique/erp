@@ -120,6 +120,32 @@ class CoreBox extends Model
         }
     }
 
+    /**
+     * Each core the box makes with how many cavities make it, in the order of its first cavity.
+     *
+     * @return list<array{core: CoreDefinition, qty: int}>
+     */
+    public function coreCounts(): array
+    {
+        return $this->cavityMap->sortBy('cavity_number')->groupBy('core_definition_id')
+            ->map(fn ($rows) => ['core' => $rows->first()->coreDefinition, 'qty' => $rows->count()])->values()->all();
+    }
+
+    /** Cavities that make no core: plugged or not in use. */
+    public function blockedCavities(): int
+    {
+        return max(0, (int) $this->cavities - $this->cavityMap->count());
+    }
+
+    /** e.g. "Pump body core × 3, Pump neck core × 1, 1 blocked". */
+    public function makesLine(): string
+    {
+        $blocked = $this->blockedCavities();
+
+        return collect($this->coreCounts())->map(fn ($r) => ($r['core']?->name ?? '—').' × '.$r['qty'])
+            ->when($blocked > 0, fn ($c) => $c->push($blocked.' blocked'))->implode(', ');
+    }
+
     /** @return \Illuminate\Support\Collection<int, CoreDefinition> the distinct cores this box makes */
     public function coresMade()
     {

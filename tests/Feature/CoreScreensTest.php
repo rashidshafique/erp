@@ -44,38 +44,35 @@ class CoreScreensTest extends TestCase
         $this->assertSame([$core->id], $box->cavityMap->pluck('core_definition_id')->unique()->all());
     }
 
-    public function test_cavities_of_one_box_can_make_different_cores(): void
+    public function test_one_box_can_make_different_cores_and_its_pages_show_how_many_of_each(): void
     {
         $a = $this->core('Core A');
         $b = $this->core('Core B');
-        $this->post(route('core-boxes.store'), $this->boxPayload($a, ['cavities' => 3]));
-        $box = CoreBox::firstOrFail();
 
-        $this->put(route('core-boxes.cavities', $box), ['cores' => [1 => $a->id, 2 => $b->id, 3 => null]])->assertSessionHasNoErrors();
+        $this->post(route('core-boxes.store'), $this->boxPayload($a, ['box_cores' => [['core' => $a->id, 'qty' => 2], ['core' => $b->id, 'qty' => 1]], 'blocked' => 1]))->assertSessionHasNoErrors();
 
-        $this->assertSame([1 => $a->id, 2 => $b->id], $box->cavityMap()->pluck('core_definition_id', 'cavity_number')->all());
-        $this->get(route('cores.show', $b))->assertOk()->assertSee($box->code);
+        $box = CoreBox::sole();
         $this->assertEqualsCanonicalizing([$a->id, $b->id], $box->coresMade()->pluck('id')->all());
+        $this->assertSame('Core A × 2, Core B × 1, 1 blocked', $box->makesLine());
+        $this->get(route('core-boxes.show', $box))->assertOk()->assertSee('Cores this box makes')->assertSee('Blocked, makes nothing')->assertDontSee('Core made in each cavity');
+        $this->get(route('cores.show', $b))->assertOk()->assertSee($box->code)->assertSee('1 of 4');
     }
 
-    public function test_a_box_must_keep_at_least_one_cavity_in_use(): void
+    public function test_a_box_must_make_at_least_one_core(): void
     {
         $core = $this->core();
-        $this->post(route('core-boxes.store'), $this->boxPayload($core, ['cavities' => 2]));
-        $box = CoreBox::firstOrFail();
 
-        $this->put(route('core-boxes.cavities', $box), ['cores' => [1 => null, 2 => null]])->assertSessionHasErrors('cores');
+        $this->post(route('core-boxes.store'), $this->boxPayload($core, ['box_cores' => [], 'blocked' => 2]))->assertSessionHasErrors('box_cores');
 
-        $this->assertSame(2, $box->cavityMap()->count());
+        $this->assertSame(0, CoreBox::count());
     }
 
-    public function test_changing_the_cavity_count_keeps_set_cores_and_adds_the_main_core(): void
+    public function test_changing_only_the_cavity_count_keeps_set_cores_and_adds_the_main_core(): void
     {
         $a = $this->core('Core A');
         $b = $this->core('Core B');
-        $this->post(route('core-boxes.store'), $this->boxPayload($a, ['cavities' => 2]));
-        $box = CoreBox::firstOrFail();
-        $this->put(route('core-boxes.cavities', $box), ['cores' => [1 => $a->id, 2 => $b->id]]);
+        $this->post(route('core-boxes.store'), $this->boxPayload($a, ['box_cores' => [['core' => $a->id, 'qty' => 1], ['core' => $b->id, 'qty' => 1]]]));
+        $box = CoreBox::sole();
 
         $this->put(route('core-boxes.update', $box), $this->boxPayload($a, ['cavities' => 3]))->assertSessionHasNoErrors();
 
@@ -115,18 +112,15 @@ class CoreScreensTest extends TestCase
         $this->assertSame(0, CoreBox::count());
     }
 
-    public function test_saving_the_same_cores_keeps_the_cavity_numbers_and_new_counts_renumber(): void
+    public function test_new_counts_number_the_cavities_in_row_order(): void
     {
         $a = $this->core('Core A');
         $b = $this->core('Core B');
         $this->post(route('core-boxes.store'), $this->boxPayload($a, ['box_cores' => [['core' => $a->id, 'qty' => 3], ['core' => $b->id, 'qty' => 1]]]));
         $box = CoreBox::sole();
-        $this->put(route('core-boxes.cavities', $box), ['cores' => [1 => $a->id, 2 => $b->id, 3 => $a->id, 4 => $a->id]]);
-
-        $this->put(route('core-boxes.update', $box), $this->boxPayload($a, ['name' => 'Renamed', 'box_cores' => [['core' => $a->id, 'qty' => 3], ['core' => $b->id, 'qty' => 1]]]))->assertSessionHasNoErrors();
-        $this->assertSame([1 => $a->id, 2 => $b->id, 3 => $a->id, 4 => $a->id], $box->cavityMap()->pluck('core_definition_id', 'cavity_number')->all());
 
         $this->put(route('core-boxes.update', $box), $this->boxPayload($a, ['box_cores' => [['core' => $b->id, 'qty' => 2], ['core' => $a->id, 'qty' => 1]], 'blocked' => 1]))->assertSessionHasNoErrors();
+
         $this->assertSame([1 => $b->id, 2 => $b->id, 3 => $a->id], $box->cavityMap()->pluck('core_definition_id', 'cavity_number')->all());
         $this->assertSame(4, $box->fresh()->cavities);
         $this->assertSame($b->id, $box->fresh()->core_definition_id);

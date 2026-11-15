@@ -43,7 +43,7 @@
                 <label style="display:flex;align-items:center;gap:6px;font-weight:400">Blocked cavities <input type="number" name="blocked" min="0" max="199" value="{{ $blockedNow }}" style="width:80px" data-core-blocked></label>
                 <span class="muted">Cavities: <strong data-core-total>{{ collect($rows)->sum(fn ($r) => (int) ($r['qty'] ?? 0)) + $blockedNow }}</strong> (total)</span>
             </div>
-            <div class="help">The first core is the box's main core. Blocked cavities are plugged or not in use. The exact cavity numbers can be changed on the box page.</div>
+            <div class="help">The first core is the box's main core. Blocked cavities are plugged or not in use.</div>
         </div>
         <div class="field"><label for="revision">Revision *</label><input id="revision" name="revision" required maxlength="20" value="{{ old('revision', $box->revision) }}"></div>
         <div class="field"><label for="status">Status *</label><select id="status" name="status" required>@foreach (['ACTIVE', 'INACTIVE', 'RETIRED'] as $s)<option value="{{ $s }}" @selected(old('status', $box->status) === $s)>{{ $s }}</option>@endforeach</select></div>
