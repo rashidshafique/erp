@@ -82,7 +82,8 @@ Updated 2026-11-15.
 - Cores and Core boxes lists are Livewire (`tooling::core-list`, `tooling::core-box-list`) in the products list layout: status tabs, search, filters, Export, Details side panel, archived behind the footer with Restore.
 - Lent: an active box whose location is "Lent to a third party for core making" (Change location, with who has it). It has its own tab and status (`CoreBox::displayStatus()`, `STATUS_LABELS`) and still counts as an active box for products and core lots. It is not in the Status dropdown.
 - Left out of 29a/29d: name and code in one cell, life used as a list column, In repair tab, row ⋯ menus.
-- Not built from turn 29: core page and form tweaks (29b/29c), core stock, cores made and the lot page (29g–29i), product and moulding run panels (29j).
+- Core page (29b) and core form (29c) built: facts grid with Made in and On hand, description and notes side by side, boxes table with box cavities, empty-box prompt, archived banner with Restore; the form has no status (new cores are Active), a mark code, the code set automatically, and engineering notes folded.
+- Not built from turn 29: core stock, cores made and the lot page (29g–29i), product and moulding run panels (29j).
 - `CodesAndMarksTest` has two failures on the Appearance settings text ("Click a table row to open it"); they come from outside this work.
 
 **Production**

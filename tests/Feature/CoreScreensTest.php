@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\CoreBox;
 use App\Models\CoreDefinition;
+use App\Models\CoreLot;
 use App\Models\Customer;
 use App\Models\Pattern;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -194,5 +195,45 @@ class CoreScreensTest extends TestCase
             ->assertSee('Ownership tag NL-T-0121')->assertSee('Return on request: 14 days');
         $this->put(route('core-boxes.ownership', $box), ['owner_type' => 'FOUNDRY', 'owner_customer_id' => $customer->id, 'custody' => 'IN_STORE']);
         $this->assertNull($box->fresh()->owner_customer_id);
+    }
+    public function test_the_core_form_has_no_status_and_saves_a_typed_mark(): void
+    {
+        $this->get(route('cores.create'))->assertOk()->assertDontSee('name="status"', false)->assertSee('Set automatically')->assertSee('+ Add engineering notes, photo or barcode');
+
+        $this->post(route('cores.store'), ['name' => 'Volute core', 'core_type' => 'STANDARD', 'mark_code' => 'volc'])->assertSessionHasNoErrors();
+
+        $core = CoreDefinition::sole();
+        $this->assertSame('ACTIVE', $core->status);
+        $this->assertSame('VOLC', $core->mark_code);
+        $this->get(route('cores.edit', $core))->assertOk()->assertSee('Edit core');
+    }
+
+    public function test_a_core_mark_taken_by_another_tool_is_refused_before_saving(): void
+    {
+        $this->post(route('cores.store'), ['name' => 'First', 'core_type' => 'STANDARD', 'mark_code' => 'ABC1']);
+
+        $this->post(route('cores.store'), ['name' => 'Second', 'core_type' => 'STANDARD', 'mark_code' => 'abc1'])->assertSessionHasErrors('mark_code');
+
+        $this->assertSame(1, CoreDefinition::count());
+    }
+
+    public function test_the_core_page_shows_made_in_on_hand_and_the_empty_box_prompt(): void
+    {
+        $core = $this->core();
+        $this->get(route('cores.show', $core))->assertOk()->assertSee('leave it empty for a bought-in core')->assertSee('0 cores · 0 lots');
+
+        $this->post(route('core-boxes.store'), $this->boxPayload($core, ['cavities' => 2]));
+        $box = CoreBox::sole();
+        CoreLot::create(['lot_number' => 'CL-1', 'core_definition_id' => $core->id, 'core_box_id' => $box->id, 'quantity_made' => 12, 'made_on' => now(), 'status' => 'STORED', 'qc_status' => 'NOT_REQUIRED']);
+
+        $this->get(route('cores.show', $core))->assertOk()->assertSee('Made in')->assertSee('12 cores · 1 lot')->assertSee('Box cavities')->assertSee('2 of 2');
+    }
+
+    public function test_an_archived_core_hides_editing_and_offers_restore(): void
+    {
+        $core = $this->core();
+        $core->delete();
+
+        $this->get(route('cores.show', $core))->assertOk()->assertSee('Restore')->assertDontSee(route('cores.edit', $core))->assertDontSee('+ Product');
     }
 }
