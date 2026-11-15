@@ -40,7 +40,8 @@
                 <td><x-item :name="$box->name" :code="$box->code" :href="route('core-boxes.show', $box)" /></td>
                 <td class="mono">{{ $box->revision }}</td>
                 <td>{{ $rows->count() }} of {{ $box->cavities }}</td>
-                <td><span class="status {{ $box->status === 'ACTIVE' ? 'status-completed' : 'status-cancelled' }}">{{ $box->status }}</span></td>
+                @php $shown = $box->displayStatus(); @endphp
+                <td><span class="status {{ match ($shown) { 'ACTIVE' => 'status-completed', 'LENT' => 'status-in-progress', default => 'status-cancelled' } }}">{{ \App\Models\CoreBox::STATUS_LABELS[$shown] ?? $shown }}</span></td>
             </tr>
         @empty
             <tr><td colspan="4" class="muted">No core box makes this core yet. <a href="{{ route('core-boxes.create', ['core' => $core->id]) }}">Add one</a>.</td></tr>
