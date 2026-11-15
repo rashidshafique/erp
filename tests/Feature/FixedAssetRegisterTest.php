@@ -108,4 +108,28 @@ class FixedAssetRegisterTest extends TestCase
             ->call('showTab', 'IN_PROGRESS')->assertSee('New sand mixer')->assertDontSee('Pump body pattern');
         $this->get(route('assets.create'))->assertOk()->assertSee('PT-0430')->assertDontSee('PT-9000');
     }
+
+    public function test_with_details_on_a_row_click_shows_the_asset_in_the_panel_and_with_it_off_the_row_opens_the_asset_page(): void
+    {
+        AssetClass::query()->update(['tax_class' => 'Plant 15%']);
+        $furnace = FixedAsset::factory()->create(['name' => 'Induction furnace IF-1', 'location' => 'Melt shop']);
+        $mixer = FixedAsset::factory()->create(['name' => 'Sand mixer SM-2', 'location' => 'Sand plant', 'opening_depreciation' => 1100000, 'opening_to' => '2026-10-31']);
+        AssetClass::whereKey($mixer->asset_class_id)->update(['tax_class' => null]);
+        $mixer->update(['tax_class' => null]);
+        $furnace->update(['tax_class' => 'Plant 15%']);
+
+        $page = Livewire::test('assets::register')->assertSet('details', true)
+            ->call('select', $mixer->id)->assertSee('Hide panel')->assertSee('Rs 1,100,000')->assertDontSee('Last used')
+            ->assertSeeHtml("wire:click=\"select('{$furnace->id}')\"")
+            ->assertSee('near end of life')->assertSee('no tax class')
+            ->call('showFlag', 'END')->assertSee('Sand mixer SM-2')->assertDontSee('Induction furnace IF-1')
+            ->call('showFlag', 'END')->call('toggleDetails')->assertSet('details', false)
+            ->assertDontSee('Hide panel')->assertSee('Asset no.')->assertSee('Cost')
+            ->assertSeeHtml("window.location = '".route('assets.show', $furnace)."'");
+        $this->assertFalse(session('lists.details'));
+        Livewire::test('assets::register')->assertSet('details', false);
+
+        $page->call('sortBy', 'book')->assertSeeInOrder(['Sand mixer SM-2', 'Induction furnace IF-1']);
+        $this->get(route('assets.index'))->assertOk()->assertSee('Fixed assets');
+    }
 }

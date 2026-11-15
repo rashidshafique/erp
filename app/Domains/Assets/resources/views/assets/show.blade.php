@@ -116,6 +116,7 @@
 
 @if ($asset->status === 'IN_USE')
     <livewire:assets::dispose :asset="$asset" />
+    <script>if (location.hash === '#dispose') { document.addEventListener('DOMContentLoaded', () => document.getElementById('dispose')?.showModal()); }</script>
 @endif
 @if ($asset->status === 'IN_PROGRESS')
 <dialog class="fa-dialog" id="in-use">
