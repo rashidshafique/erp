@@ -56,6 +56,10 @@ class ProductCatalogueTest extends TestCase
 
         $list = Livewire::test('product-list');
         $list->call('focus', $this->valve->id)->assertSee('125.00')->assertSee('4 pcs');   // the side panel: latest price and pieces shipped in a year
+
+        $list->call('toggleDetails')->assertSet('details', false)->assertDontSee('4 pcs')->assertViewHas('focus', null)
+            ->assertSeeHtml("window.location = '".route('products.show', $this->valve)."'");
+        $this->assertFalse(session('lists.details'));
     }
 
     public function test_the_list_shows_each_product_customer_and_can_be_narrowed_by_customer_and_status_tab(): void

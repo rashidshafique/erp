@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
+use App\Support\ListDetails;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -24,6 +25,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 new class extends Component
 {
+    use ListDetails;
     use WithPagination;
 
     #[Url(except: '')]
@@ -229,6 +231,7 @@ new class extends Component
 
         // The side panel shows the ticked row, else the first one on the page.
         $focus = $products->getCollection()->firstWhere('id', $this->focused) ?? $products->getCollection()->first();
+        $focus = $this->details ? $focus : null;
         $summary = null;
         if ($focus) {
             $revision = $grades[$focus->id]['revision'] ?? null;
@@ -267,29 +270,11 @@ new class extends Component
 ?>
 
 <div class="pc">
+@include('partials.list-ui')
 <style global>
-    .pc { background: #fff; border: 1px solid #e6e7e9; border-radius: 10px; font-size: 13px; color: #1c1d1f; overflow: hidden; }
+    .pc { background: #fff; border: 1px solid #e6e7e9; border-radius: 8px; font-size: 13px; color: #1c1d1f; }
     .pc button, .pc select, .pc input { font: inherit; min-height: 0; }
-    .pc-bar { display: flex; align-items: center; justify-content: space-between; padding: 14px 28px; border-bottom: 1px solid #e6e7e9; gap: 16px; flex-wrap: wrap; }
-    .pc-bar-left { display: flex; align-items: center; gap: 16px; }
-    .pc-tabs { display: flex; gap: 4px; color: #6b6e73; }
-    .pc-tabs button { padding: 4px 10px; border-radius: 6px; background: none; border: 0; color: #6b6e73; cursor: pointer; }
-    .pc-tabs button[aria-selected=true] { background: #f0f1f3; color: #1c1d1f; }
-    .pc-btns { display: flex; gap: 8px; }
-    .pc-btn { padding: 7px 14px; border-radius: 6px; background: #fff; border: 1px solid #d9dbde; color: #1c1d1f; text-decoration: none; cursor: pointer; }
-    .pc-btn.primary { background: #2f5fd0; border-color: #2f5fd0; color: #fff; font-weight: 500; }
-    .pc-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; }
-    .pc-main { padding: 20px 28px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-    .pc-filters { display: flex; gap: 8px; align-items: center; flex-wrap: nowrap; overflow-x: auto; }
-    .pc-filters input[type=search] { flex: 1 1 200px; width: auto; min-width: 140px; max-width: 320px; margin: 0; padding: 7px 10px; border: 1px solid #d9dbde; border-radius: 6px; background: #fff; }
-    .pc-filters select { flex: 0 0 auto; width: auto; min-width: 0; margin: 0; padding: 6px 10px; border: 1px solid #d9dbde; border-radius: 6px; background: #fff; color: #1c1d1f; }
-    .pc-filters .pc-btn, .pc-filters span { flex: 0 0 auto; white-space: nowrap; }
-    .pc table { width: 100%; border-collapse: collapse; }
-    .pc th { text-align: left; font-size: 12px; font-weight: 500; color: #6b6e73; padding: 8px 12px; border-bottom: 1px solid #e6e7e9; white-space: nowrap; }
-    .pc td { padding: 10px 12px; border-bottom: 1px solid #e6e7e9; vertical-align: middle; }
-    .pc tbody tr { cursor: pointer; }
-    .pc tbody tr:last-child td { border-bottom: 0; }
-    .pc tbody tr.on { background: #f5f8fe; }
+    .pc .ls-list tbody tr.on { background: #f5f8fe; }
     .pc th.r, .pc td.r { text-align: right; }
     .pc code { font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; background: none; padding: 0; }
     .pc .name { font-weight: 500; color: #1c1d1f; text-decoration: none; }
@@ -310,51 +295,45 @@ new class extends Component
     .pc-side .stats .k { font-size: 12px; color: #6b6e73; }
     .pc-note { padding: 10px 12px; border: 1px solid #f0d9a8; border-radius: 8px; background: #fffaf0; color: #94610a; font-size: 12.5px; }
     .pc-link { background: none; border: 0; padding: 0 0 0 6px; color: #2f5fd0; cursor: pointer; }
-    .pc-foot { display: flex; justify-content: space-between; align-items: center; color: #6b6e73; font-size: 12.5px; }
+    .pc-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 8px 20px; border-top: 1px solid #e6e7e9; color: #6b6e73; font-size: 12.5px; }
     .pc-foot a, .pc-foot button { color: #2f5fd0; background: none; border: 0; padding: 0; cursor: pointer; text-decoration: none; }
-    @media (max-width: 1100px) { .pc-grid { grid-template-columns: 1fr; } .pc-side { border-left: 0; border-top: 1px solid #e6e7e9; } .pc-bar, .pc-main { padding-left: 16px; padding-right: 16px; } .pc-main { overflow-x: auto; } }
 </style>
 
-<div class="pc-bar">
-    <div class="pc-bar-left">
-        <strong>Products</strong>
-        <div class="pc-tabs" role="tablist">
-            <button type="button" role="tab" aria-selected="{{ ! $archived && $active === '1' ? 'true' : 'false' }}" wire:click="showStatus('1')">Active {{ Formats::number($activeProducts) }}</button>
-            <button type="button" role="tab" aria-selected="{{ ! $archived && $active === 'dev' ? 'true' : 'false' }}" wire:click="showStatus('dev')">In development {{ Formats::number($inDevelopment) }}</button>
-            <button type="button" role="tab" aria-selected="{{ ! $archived && $active === '0' ? 'true' : 'false' }}" wire:click="showStatus('0')">Obsolete {{ Formats::number($inactiveProducts) }}</button>
-        </div>
-    </div>
-    <div class="pc-btns">
-        <a class="pc-btn" href="{{ route('imports.create', ['entity' => 'product']) }}">Import</a>
-        @if (Route::has('developments.create'))<a class="pc-btn" href="{{ route('developments.create', ['from' => 'products']) }}">Start development</a>@endif
-        <a class="pc-btn primary" href="{{ route('products.create') }}">New product</a>
+<div class="ls-head">
+    <h1 class="ls-title">Products</h1>
+    <div class="ls-actions">
+        <a class="ls-btn" href="{{ route('imports.create', ['entity' => 'product']) }}">Import</a>
+        @if (Route::has('developments.create'))<a class="ls-btn" href="{{ route('developments.create', ['from' => 'products']) }}">Start development</a>@endif
+        <a class="ls-btn primary" href="{{ route('products.create') }}">New product</a>
     </div>
 </div>
+<nav class="ls-tabs" role="tablist" aria-label="Product status">
+    @foreach (['' => ['All', $totalProducts], '1' => ['Active', $activeProducts], 'dev' => ['In development', $inDevelopment], '0' => ['Obsolete', $inactiveProducts]] as $key => [$label, $n])
+        <button type="button" role="tab" aria-selected="{{ ! $archived && $active === (string) $key ? 'true' : 'false' }}" @class(['on' => ! $archived && $active === (string) $key]) wire:click="showStatus('{{ $key }}')">{{ $label }}<span class="n">{{ Formats::number($n) }}</span></button>
+    @endforeach
+</nav>
+<div class="ls-tools" role="search">
+    @include('partials.list-search', ['placeholder' => 'Search code, name or drawing'])
+    <x-list-filters :count="($customer !== '' ? 1 : 0) + ($metal !== '' ? 1 : 0) + ($process !== '' ? 1 : 0)">
+        <label>Customer<select data-search-select wire:model.live="customer"><option value="">All</option>@foreach ($customers as $id => $name)<option value="{{ $id }}">{{ $name }}</option>@endforeach</select></label>
+        <label>Metal<select wire:model.live="metal"><option value="">All</option>@foreach ($grades_list as $grade)<option value="{{ $grade->id }}">{{ $grade->code }}</option>@endforeach</select></label>
+        <label>Process<select wire:model.live="process"><option value="">All</option>@foreach ($processes as $sand)<option value="{{ $sand }}">{{ $sand }}</option>@endforeach</select></label>
+    </x-list-filters>
+    @if ($search !== '' || $metal !== '' || $active !== '' || $customer !== '' || $process !== '')<button class="ls-tool" type="button" wire:click="resetFilters">Reset</button>@endif
+    <span class="muted" wire:loading>Updating…</span>
+    <span class="ls-right">
+        @include('partials.list-export')
+        <span class="ls-sep" aria-hidden="true"></span>
+        @include('partials.list-details-toggle')
+    </span>
+</div>
 
-<div class="pc-grid">
-    <div class="pc-main">
-        <div class="pc-filters" role="search">
-            <input id="search" type="search" wire:model.live.debounce.300ms="search" placeholder="Search code, name or drawing" aria-label="Search code, name or drawing" autocomplete="off">
-            <select data-search-select wire:model.live="customer" aria-label="Customer">
-                <option value="">Customer: all</option>
-                @foreach ($customers as $id => $name)<option value="{{ $id }}">{{ $name }}</option>@endforeach
-            </select>
-            <select wire:model.live="metal" aria-label="Metal">
-                <option value="">Metal: all</option>
-                @foreach ($grades_list as $grade)<option value="{{ $grade->id }}">{{ $grade->code }}</option>@endforeach
-            </select>
-            <select wire:model.live="process" aria-label="Process">
-                <option value="">Process: all</option>
-                @foreach ($processes as $sand)<option value="{{ $sand }}">{{ $sand }}</option>@endforeach
-            </select>
-            @if ($search !== '' || $metal !== '' || $active !== '' || $customer !== '' || $process !== '')<button class="pc-btn" type="button" wire:click="resetFilters">Reset</button>@endif
-            <span class="muted" wire:loading>Updating…</span>
-        </div>
-
+<div @class(['ls-body', 'with-panel' => $details && $focus])>
+    <div class="ls-list" x-data @if ($details) x-on:keydown.arrow-down.prevent="($event.target.closest('tr')?.nextElementSibling)?.focus()" x-on:keydown.arrow-up.prevent="($event.target.closest('tr')?.previousElementSibling)?.focus()" @endif>
         @if ($products->isEmpty())
-            <p class="muted">{{ $archived ? 'No archived products.' : 'No products found.' }}</p>
+            <p class="ls-empty">{{ $archived ? 'No archived products.' : 'No products found.' }}</p>
         @else
-            <div style="margin:0 -12px">
+            <div class="ls-scroll">
                 <table data-table="products">
                     <thead>
                         <tr>
@@ -367,10 +346,13 @@ new class extends Component
                                 $g = $grades[$product->id] ?? null;
                                 $sand = ($patterns[$product->id] ?? null)?->pattern->madeForSand();
                                 $isDraft = $product->status === 'DEVELOPMENT' || ($g && $g['revision']?->status === 'DRAFT' && ! $product->revisions->contains('status', 'APPROVED'));
+                                $show = route('products.show', $product);
                             @endphp
-                            <tr wire:key="product-{{ $product->id }}" wire:click="focus('{{ $product->id }}')" @class(['on' => $focus && (string) $focus->id === (string) $product->id])>
+                            <tr wire:key="product-{{ $product->id }}-{{ $details ? 'p' : 'f' }}" tabindex="0" @class(['on' => $details && $focus && (string) $focus->id === (string) $product->id])
+                                @if ($details) wire:click="focus('{{ $product->id }}')" x-on:focus="$wire.focus('{{ $product->id }}')" x-on:dblclick="window.location = '{{ $show }}'" x-on:keydown.enter="window.location = '{{ $show }}'"
+                                @else x-on:click="if (! $event.target.closest('a,button,form')) window.location = '{{ $show }}'" x-on:keydown.enter="window.location = '{{ $show }}'" @endif>
                                 <td><code>{{ $product->code }}</code></td>
-                                <td><a class="name" href="{{ route('products.show', $product) }}" wire:click.stop>{{ $product->name }}</a></td>
+                                <td><a class="name" href="{{ $show }}" wire:click.stop>{{ $product->name }}</a></td>
                                 <td>{{ $product->customer_name ?? '—' }}</td>
                                 <td><span class="grade">{{ $g['grade']->code ?? '—' }}</span></td>
                                 <td>{{ $sand ?: '—' }}</td>
@@ -389,20 +371,17 @@ new class extends Component
                     </tbody>
                 </table>
             </div>
-            <div class="pc-foot">
-                <span>Showing {{ $products->firstItem() }}–{{ $products->lastItem() }} of {{ $products->total() }}</span>
-                <span class="pagination-links">{{ $products->links() }}</span>
-            </div>
         @endif
         <div class="pc-foot">
+            <span>@if ($products->isNotEmpty())Showing {{ $products->firstItem() }}–{{ $products->lastItem() }} of {{ $products->total() }}@endif</span>
+            <span class="pagination-links">{{ $products->links() }}</span>
             <button type="button" wire:click="$toggle('archived')">{{ $archived ? 'Back to current products' : $archivedProducts.' archived' }}</button>
-            <button type="button" wire:click="export">Export CSV</button>
         </div>
     </div>
 
-    @if ($focus)
-        <aside class="pc-side" aria-label="Summary of {{ $focus->name }}">
-            <h3><a href="{{ route('products.show', $focus) }}">{{ $focus->code }} · {{ $focus->name }}</a></h3>
+    @if ($details && $focus)
+        <aside class="pc-side ls-panel" aria-label="Summary of {{ $focus->name }}">
+            <div class="ls-ph"><h3><a href="{{ route('products.show', $focus) }}">{{ $focus->code }} · {{ $focus->name }}</a></h3>@include('partials.list-hide-panel')</div>
             <div class="row"><span>Customer</span><span>{{ $focus->customer_name ?? '—' }}</span></div>
             <div class="row"><span>Drawing</span><span>{{ $summary['drawing'] ? $summary['drawing']->drawing_number.($summary['drawing']->drawing_revision ? ' rev '.$summary['drawing']->drawing_revision : '') : '—' }}</span></div>
             <div class="row"><span>Pattern</span><span>@if ($summary['pattern'])<code>{{ $summary['pattern']->pattern->code }}</code>@if ($summary['cavity']) cavity {{ $summary['cavity'] }}@endif @else — @endif</span></div>
