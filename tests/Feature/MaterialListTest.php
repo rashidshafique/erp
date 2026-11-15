@@ -31,7 +31,7 @@ class MaterialListTest extends TestCase
         $fine = $this->material(['code' => 'COKE', 'name' => 'Foundry coke', 'minimum_stock_qty' => 100]);
         $this->stock($fine, 900);
 
-        $this->get(route('materials.index'))->assertOk()->assertSee('FESI-75')->assertSee('COKE')->assertSee('+ New material');
+        $this->get(route('materials.index'))->assertOk()->assertSee('FESI-75')->assertSee('COKE')->assertSee('New material');
 
         Livewire::test('material-list')
             ->assertSee('40.000')->assertSee('900.000')->assertSee('Cost per unit')->assertViewHas('lowCount', 1)

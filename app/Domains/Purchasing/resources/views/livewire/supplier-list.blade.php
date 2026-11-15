@@ -162,75 +162,64 @@ new class extends Component
 
 <div>
 @include('partials.quick-dialog-assets')
+@include('partials.list-ui')
 
 @if ($saved)<div class="alert alert-success" role="status">{{ $saved }} @if ($savedId)<a href="{{ route('suppliers.show', $savedId) }}">Open supplier →</a>@endif</div>@endif
 
-<div class="metrics">
-    <a href="#" class="metric" wire:click.prevent="showSlice()" style="text-decoration:none;color:inherit"><div class="metric-label">All suppliers</div><div class="metric-value">{{ $total }}</div></a>
-    @foreach (['PENDING' => ['Pending approval', ['PENDING', '']], 'review' => ['Review overdue', ['', 'review']], 'CONDITIONAL' => ['Conditional', ['CONDITIONAL', '']], 'SUSPENDED' => ['Suspended / disqualified', ['SUSPENDED', '']]] as $key => [$label, $slice])
-        <a href="#" class="metric" wire:click.prevent="showSlice('{{ $slice[0] }}', '{{ $slice[1] }}')" style="text-decoration:none;color:inherit"><div class="metric-label">{{ $label }}</div><div class="metric-value" @if ($counts[$key] && in_array($key, ['review', 'SUSPENDED'])) style="color:var(--danger)" @elseif ($counts[$key]) style="color:var(--warning)" @endif>{{ $counts[$key] }}</div></a>
-    @endforeach
-</div>
-
-<div class="panel">
-    <div class="panel-body">
-        <div class="filters" role="search">
-            <div class="field">
-                <label for="sup-search">Search code, name or what they supply</label>
-                <input id="sup-search" type="search" wire:model.live.debounce.300ms="search" autocomplete="off">
-            </div>
-            <div class="field">
-                <label for="sup-status">Status</label>
-                <select id="sup-status" wire:model.live="status">
-                    <option value="">All</option>
-                    @foreach ($statuses as $key => $label)<option value="{{ $key }}">{{ $label }}</option>@endforeach
-                </select>
-            </div>
-            <div class="field">
-                <label for="sup-state">Review</label>
-                <select id="sup-state" wire:model.live="state">
-                    <option value="">Any</option>
-                    <option value="review">Overdue</option>
-                </select>
-            </div>
-            <button class="btn" type="button" wire:click="resetFilters">Reset</button>
-            <span class="muted small" wire:loading.delay>Updating…</span>
-            <button class="btn btn-primary" type="button" wire:click="create" style="margin-left:auto">+ Add supplier</button>
+<div class="ls-card">
+    <div class="ls-head">
+        <h1 class="ls-title">Suppliers</h1>
+        <div class="ls-actions">
+            <a class="ls-btn" href="{{ route('settings.rules', ['advanced' => 1]).'#purchasing' }}">Incoming rules</a>
+            <button class="ls-btn primary" type="button" wire:click="create">New supplier</button>
         </div>
     </div>
-</div>
-
-<div class="panel">
-    <div class="panel-header">
-        <h2>Suppliers</h2>
-        <span class="muted small">{{ $suppliers->total() }} records · <a href="{{ route('settings.rules', ['advanced' => 1]).'#purchasing' }}">Incoming rules</a></span>
+    <nav class="ls-tabs" aria-label="Supplier status">
+        @foreach (['' => ['All', $total, ['', '']], 'PENDING' => ['Pending approval', $counts['PENDING'], ['PENDING', '']], 'CONDITIONAL' => ['Conditional', $counts['CONDITIONAL'], ['CONDITIONAL', '']], 'SUSPENDED' => ['Suspended / disqualified', $counts['SUSPENDED'], ['SUSPENDED', '']]] as $key => [$label, $n, $slice])
+            @php $on = $status === $slice[0]; @endphp
+            <a href="#" wire:click.prevent="showSlice('{{ $slice[0] }}', '{{ $slice[1] }}')" @class(['on' => $on]) @if ($on) aria-current="page" @endif>{{ $label }}<span @class(['n', 'bad' => $key === 'SUSPENDED' && $n > 0])>{{ $n }}</span></a>
+        @endforeach
+    </nav>
+    <div class="ls-tools" role="search">
+        @include('partials.list-search', ['placeholder' => 'Search code, name or what they supply'])
+        <x-list-filters :count="in_array($status, ['', 'PENDING', 'CONDITIONAL', 'SUSPENDED'], true) ? 0 : 1">
+            <label>Status<select wire:model.live="status"><option value="">All</option>@foreach ($statuses as $key => $label)<option value="{{ $key }}">{{ $label }}</option>@endforeach</select></label>
+        </x-list-filters>
+        @if ($counts['review'] > 0 || $state === 'review')
+            <span class="ls-sep" aria-hidden="true"></span>
+            <button type="button" wire:click="showSlice('{{ $status }}', '{{ $state === 'review' ? '' : 'review' }}')" @class(['ls-flag', 'on' => $state === 'review']) aria-pressed="{{ $state === 'review' ? 'true' : 'false' }}"><b>{{ $counts['review'] }}</b>Review overdue</button>
+        @endif
+        @if ($search !== '' || $status !== '' || $state !== '')<button class="ls-tool" type="button" wire:click="resetFilters">Reset</button>@endif
+        <span class="muted small" wire:loading.delay>Updating…</span>
     </div>
 
     @if ($suppliers->isEmpty())
         <div class="empty-state">
             <strong>No suppliers found</strong>
             <p>{{ $total ? 'Nothing matches these filters.' : 'Add the first supplier to start the approved list. Material lots can then name the supplier they came from.' }}</p>
-            <button class="btn btn-primary" type="button" wire:click="create">+ Add supplier</button>
+            <button class="btn btn-primary" type="button" wire:click="create">New supplier</button>
         </div>
     @else
-        <div class="table-wrap">
-            <table>
-                <thead><tr><th>Supplier</th><th>Supplies</th><th>Status</th><th>Score</th><th>Next review</th><th></th></tr></thead>
+        <div class="ls-list"><div class="ls-scroll">
+            <table class="no-row-click">
+                <thead><tr><th>Supplier</th><th>Supplies</th><th>Status</th><th>Score</th><th>Next review</th><th><span class="sr-only">Actions</span></th></tr></thead>
                 <tbody>
                 @foreach ($suppliers as $supplier)
-                    <tr wire:key="supplier-{{ $supplier->id }}">
-                        <td><a href="{{ route('suppliers.show', $supplier) }}"><strong class="mono">{{ $supplier->code }}</strong></a><div class="muted small">{{ $supplier->name }}@if ($supplier->contact_name || $supplier->phone) · {{ collect([$supplier->contact_name, $supplier->phone])->filter()->implode(' · ') }}@endif</div></td>
+                    @php $show = route('suppliers.show', $supplier); @endphp
+                    <tr wire:key="supplier-{{ $supplier->id }}" tabindex="0" x-data x-on:click="if (! $event.target.closest('a,button,summary,details')) window.location = '{{ $show }}'" x-on:keydown.enter="window.location = '{{ $show }}'">
+                        <td><a href="{{ $show }}"><strong class="mono">{{ $supplier->code }}</strong></a><div class="muted small">{{ $supplier->name }}@if ($supplier->contact_name || $supplier->phone) · {{ collect([$supplier->contact_name, $supplier->phone])->filter()->implode(' · ') }}@endif</div></td>
                         <td>{{ $supplier->supplies ?: '—' }}</td>
                         <td><span class="status {{ in_array($supplier->approval_status, ['APPROVED']) ? 'status-completed' : (in_array($supplier->approval_status, Supplier::BLOCKED) ? 'status-cancelled' : '') }}">{{ $statuses[$supplier->approval_status] }}</span></td>
                         <td>{{ $supplier->latest_score ?? '—' }}</td>
                         <td @if ($supplier->isReviewOverdue()) style="color:var(--danger)" @endif>{{ $supplier->next_review_on?->displayDate() ?? '—' }}</td>
-                        <td style="white-space:nowrap"><button class="btn btn-small" type="button" wire:click="edit('{{ $supplier->id }}')">Quick edit</button> <a href="{{ route('suppliers.show', $supplier) }}">Open →</a></td>
+                        <td class="r"><details class="ls-menu right"><summary class="ls-more" aria-label="Actions for {{ $supplier->code }}">⋯</summary>
+                            <div class="ls-pop" role="menu"><a role="menuitem" href="{{ $show }}">Open</a><button type="button" role="menuitem" wire:click="edit('{{ $supplier->id }}')">Quick edit</button></div></details></td>
                     </tr>
                 @endforeach
                 </tbody>
             </table>
-        </div>
-        <div class="pagination">
+        </div></div>
+        <div class="pagination ls-pager">
             <div class="muted small">Showing {{ $suppliers->firstItem() }}–{{ $suppliers->lastItem() }} of {{ $suppliers->total() }}</div>
             <div class="pagination-links">{{ $suppliers->links() }}</div>
         </div>

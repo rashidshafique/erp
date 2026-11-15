@@ -28,7 +28,7 @@ class SupplierListTest extends TestCase
         $this->supplier('Late Alloys', ['next_review_on' => today()->subDays(3)]);
         $this->supplier('New Binders', ['approval_status' => 'PENDING']);
 
-        $this->get(route('suppliers.index'))->assertOk()->assertSee('Acme Pig Iron')->assertSee('+ Add supplier')->assertSee('Review overdue');
+        $this->get(route('suppliers.index'))->assertOk()->assertSee('Acme Pig Iron')->assertSee('New supplier')->assertSee('Review overdue');
         $this->get(route('suppliers.index', ['state' => 'review']))->assertOk()->assertSee('Late Alloys')->assertDontSee('Acme Pig Iron');
         $this->get(route('suppliers.index', ['status' => 'PENDING']))->assertOk()->assertSee('New Binders')->assertDontSee('Acme Pig Iron');
         $this->get(route('suppliers.index', ['q' => 'pig']))->assertOk()->assertSee('Acme Pig Iron')->assertDontSee('Late Alloys');

@@ -165,71 +165,46 @@ new class extends Component
 
 <div>
 @include('partials.quick-dialog-assets')
+@include('partials.list-ui')
 
 @if ($saved)<div class="alert alert-success" role="status">{{ $saved }}</div>@endif
 
-<div class="metrics">
-    <div class="metric"><div class="metric-label">Total materials</div><div class="metric-value">{{ \App\Support\Formats::number($totalMaterials) }}</div></div>
-    <div class="metric"><div class="metric-label">Active</div><div class="metric-value">{{ \App\Support\Formats::number($activeMaterials) }}</div></div>
-    <div class="metric"><div class="metric-label">Inactive</div><div class="metric-value">{{ \App\Support\Formats::number($inactiveMaterials) }}</div></div>
-    <div class="metric"><div class="metric-label">At or below minimum</div><div class="metric-value" @if ($lowCount) style="color:var(--danger)" @endif>{{ \App\Support\Formats::number($lowCount) }}</div></div>
-</div>
-
-<div class="panel">
-    <div class="panel-body">
-        <div class="filters" role="search">
-            <div class="field">
-                <label for="mat-search">Search code or name</label>
-                <input id="mat-search" type="search" wire:model.live.debounce.300ms="search" placeholder="e.g. FESI-75" autocomplete="off">
-            </div>
-            <div class="field">
-                <label for="mat-type">Type</label>
-                <select id="mat-type" wire:model.live="type">
-                    <option value="">All types</option>
-                    @foreach (\App\Models\Material::TYPES as $key => $label)<option value="{{ $key }}">{{ $label }}</option>@endforeach
-                </select>
-            </div>
-            <div class="field">
-                <label for="mat-status">Status</label>
-                <select id="mat-status" wire:model.live="status">
-                    <option value="">All</option>
-                    <option value="ACTIVE">Active</option>
-                    <option value="INACTIVE">Inactive</option>
-                </select>
-            </div>
-            <div class="field">
-                <label for="mat-stock">Stock</label>
-                <select id="mat-stock" wire:model.live="stock">
-                    <option value="">All</option>
-                    <option value="low">At or below minimum</option>
-                    <option value="untracked">Not stock tracked</option>
-                </select>
-            </div>
-            <button class="btn" type="button" wire:click="resetFilters">Reset</button>
-            <span class="muted small" wire:loading.delay>Updating…</span>
-            <button class="btn btn-primary" type="button" wire:click="create" style="margin-left:auto">+ New material</button>
-        </div>
+<div class="ls-card">
+    <div class="ls-head">
+        <h1 class="ls-title">Materials</h1>
+        <div class="ls-actions"><button class="ls-btn primary" type="button" wire:click="create">New material</button></div>
     </div>
-</div>
-
-<div class="panel">
-    <div class="panel-header">
-        <h2>Materials</h2>
-        <span class="muted small">{{ $materials->total() }} records</span>
+    <nav class="ls-tabs" aria-label="Material status">
+        @foreach (['' => ['All', $totalMaterials], 'ACTIVE' => ['Active', $activeMaterials], 'INACTIVE' => ['Inactive', $inactiveMaterials]] as $key => [$label, $n])
+            <a href="#" wire:click.prevent="$set('status', '{{ $key }}')" @class(['on' => $status === $key]) @if ($status === $key) aria-current="page" @endif>{{ $label }}<span class="n">{{ \App\Support\Formats::number($n) }}</span></a>
+        @endforeach
+    </nav>
+    <div class="ls-tools" role="search">
+        @include('partials.list-search', ['placeholder' => 'Search code or name'])
+        <x-list-filters :count="($type !== '' ? 1 : 0) + ($stock === 'untracked' ? 1 : 0)">
+            <label>Type<select wire:model.live="type"><option value="">All types</option>@foreach (\App\Models\Material::TYPES as $key => $label)<option value="{{ $key }}">{{ $label }}</option>@endforeach</select></label>
+            <label>Stock<select wire:model.live="stock"><option value="">All</option><option value="low">At or below minimum</option><option value="untracked">Not stock tracked</option></select></label>
+        </x-list-filters>
+        @if ($lowCount > 0 || $stock === 'low')
+            <span class="ls-sep" aria-hidden="true"></span>
+            <button type="button" wire:click="$set('stock', '{{ $stock === 'low' ? '' : 'low' }}')" @class(['ls-flag', 'on' => $stock === 'low']) aria-pressed="{{ $stock === 'low' ? 'true' : 'false' }}"><b>{{ \App\Support\Formats::number($lowCount) }}</b>at or below minimum</button>
+        @endif
+        @if ($search !== '' || $type !== '' || $status !== '' || $stock !== '')<button class="ls-tool" type="button" wire:click="resetFilters">Reset</button>@endif
+        <span class="muted small" wire:loading.delay>Updating…</span>
     </div>
 
     @if ($materials->isEmpty())
         <div class="empty-state">
             <strong>No materials found</strong>
             <p>{{ $totalMaterials ? 'Nothing matches these filters.' : 'Add the first material to start recording lots and stock.' }}</p>
-            <button class="btn btn-primary" type="button" wire:click="create">+ New material</button>
+            <button class="btn btn-primary" type="button" wire:click="create">New material</button>
         </div>
     @else
-        <div class="table-wrap">
-            <table>
+        <div class="ls-list"><div class="ls-scroll">
+            <table class="no-row-click">
                 <thead>
                     <tr>
-                        <th>Material</th><th>Type</th><th>Unit</th><th>On hand</th><th>Minimum</th>@fieldcan('costs')<th>Cost per unit</th>@endfieldcan<th>Lots</th><th>Recipes</th><th>Status</th><th></th>
+                        <th>Material</th><th>Type</th><th>Unit</th><th>On hand</th><th>Minimum</th>@fieldcan('costs')<th>Cost per unit</th>@endfieldcan<th>Lots</th><th>Recipes</th><th>Status</th><th><span class="sr-only">Actions</span></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -237,9 +212,10 @@ new class extends Component
                         @php
                             $held = $onHand[$material->id] ?? 0.0;
                             $low = $levels->isAtOrBelowMinimum($material, $held);
+                            $show = route('materials.show', $material);
                         @endphp
-                        <tr wire:key="material-{{ $material->id }}">
-                            <td><a href="{{ route('materials.show', $material) }}"><strong>{{ $material->code }}</strong></a><div class="muted small">{{ $material->name }}</div></td>
+                        <tr wire:key="material-{{ $material->id }}" tabindex="0" x-data x-on:click="if (! $event.target.closest('a,button,summary,details')) window.location = '{{ $show }}'" x-on:keydown.enter="window.location = '{{ $show }}'">
+                            <td><a href="{{ $show }}"><strong>{{ $material->code }}</strong></a><div class="muted small">{{ $material->name }}</div></td>
                             <td>{{ \App\Models\Material::TYPES[$material->material_type] ?? $material->material_type }}</td>
                             <td>{{ $material->base_uom }}</td>
                             <td>
@@ -256,13 +232,14 @@ new class extends Component
                             <td>{{ $material->lots_count }}</td>
                             <td>{{ $material->charge_batch_items_count }}</td>
                             <td><span class="status {{ $material->status === 'ACTIVE' ? 'status-completed' : 'status-cancelled' }}">{{ $material->status }}</span></td>
-                            <td style="white-space:nowrap"><button class="btn btn-small" type="button" wire:click="edit('{{ $material->id }}')">Quick edit</button> <a href="{{ route('materials.show', $material) }}">Open →</a></td>
+                            <td class="r"><details class="ls-menu right"><summary class="ls-more" aria-label="Actions for {{ $material->code }}">⋯</summary>
+                            <div class="ls-pop" role="menu"><a role="menuitem" href="{{ $show }}">Open</a><button type="button" role="menuitem" wire:click="edit('{{ $material->id }}')">Quick edit</button></div></details></td>
                         </tr>
                     @endforeach
                 </tbody>
             </table>
-        </div>
-        <div class="pagination">
+        </div></div>
+        <div class="pagination ls-pager">
             <div class="muted small">Showing {{ $materials->firstItem() }}–{{ $materials->lastItem() }} of {{ $materials->total() }}</div>
             <div class="pagination-links">{{ $materials->links() }}</div>
         </div>
