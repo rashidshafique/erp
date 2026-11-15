@@ -52,7 +52,7 @@ class FixedAssetController extends Controller
 
     public function show(FixedAsset $asset, Depreciation $depreciation): View
     {
-        $asset->load(['assetClass.costAccount', 'assetClass.depreciationAccount', 'costs', 'events.journal', 'events.user', 'pattern', 'coreBox', 'equipment', 'createdBy']);
+        $asset->load(['assetClass.costAccount', 'assetClass.depreciationAccount', 'costs', 'events.journal', 'events.user', 'pattern', 'coreBox', 'equipment', 'createdBy', 'disposal.invoice', 'disposal.customer']);
         $months = $asset->runLines()->with('run')->whereHas('run', fn ($q) => $q->where('status', DepreciationRun::POSTED))->get()
             ->sortByDesc(fn ($l) => $l->run->period)->values();
         $last = DepreciationRun::where('status', DepreciationRun::POSTED)->max('period');

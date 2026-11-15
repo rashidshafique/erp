@@ -197,6 +197,12 @@ class AssetPosting
         if (($closed = LedgerSettings::closedTo()) && $run->periodEnd()->toDateString() <= $closed) {
             return ['message' => $run->period->format('F').' is closed; reopen it in month close first.', 'later' => null];
         }
+        // an asset disposed of after this month took its book value from this run; running the month again would leave its sale wrong
+        $gone = FixedAsset::whereIn('id', $run->lines()->select('fixed_asset_id'))->whereNotNull('disposed_on')
+            ->whereDate('disposed_on', '>', $run->periodEnd())->orderBy('disposed_on')->first();
+        if ($gone) {
+            return ['message' => "{$gone->code} was disposed of on {$gone->disposed_on->displayDate()} at the book value after this run, so the run stays.", 'later' => null];
+        }
 
         return null;
     }

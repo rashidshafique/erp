@@ -21,7 +21,7 @@ new class extends Component
     use WithPagination;
 
     /** @var array<string, string> */
-    private const TABS = ['' => 'All', 'PLANT' => 'Plant & machinery', 'TOOLS' => 'Patterns & tooling', 'BUILDING' => 'Buildings', 'VEHICLE' => 'Vehicles', 'IN_PROGRESS' => 'In progress', 'RETIRED' => 'Retired'];
+    private const TABS = ['' => 'All', 'PLANT' => 'Plant & machinery', 'TOOLS' => 'Patterns & tooling', 'BUILDING' => 'Buildings', 'VEHICLE' => 'Vehicles', 'IN_PROGRESS' => 'In progress', 'RETIRED' => 'Sold or retired'];
 
     #[Url(except: '')]
     public string $tab = '';
@@ -66,12 +66,12 @@ new class extends Component
 
     public function with(Depreciation $depreciation): array
     {
-        $all = FixedAsset::with(['assetClass', 'pattern', 'coreBox', 'equipment'])->orderBy('code')->get();
+        $all = FixedAsset::with(['assetClass', 'pattern', 'coreBox', 'equipment', 'disposal.invoice'])->orderBy('code')->get();
         $posted = DB::table('depreciation_run_lines')->join('depreciation_runs', 'depreciation_runs.id', '=', 'depreciation_run_lines.depreciation_run_id')
             ->where('depreciation_runs.status', DepreciationRun::POSTED)->groupBy('fixed_asset_id')
             ->selectRaw('fixed_asset_id, sum(charge) as charge, sum(coalesce(fills, 0)) as fills')->get()->keyBy('fixed_asset_id');
         $rows = $all->map(function (FixedAsset $a) use ($posted) {
-            $dep = round($a->opening_depreciation + (float) ($posted[$a->id]->charge ?? 0), 2);
+            $dep = round($a->opening_depreciation + (float) ($posted[$a->id]->charge ?? 0) + (float) ($a->disposal?->charge ?? 0), 2);
 
             return ['asset' => $a, 'depreciated' => $dep, 'book' => round($a->cost - $dep, 2), 'fills' => $a->opening_fills + (int) ($posted[$a->id]->fills ?? 0)];
         });
@@ -196,6 +196,9 @@ new class extends Component
                 @if ($a->events()->exists())
                     @php $first = $a->events()->first(); @endphp
                     <div><div class="fa-lab">Came from</div><div>{{ $first->note ?? ucfirst(\App\Domains\Assets\Models\AssetEvent::KINDS[$first->kind] ?? '') }}</div></div>
+                @endif
+                @if ($d = $a->disposal)
+                    <div><div class="fa-lab">{{ \App\Domains\Assets\Models\FixedAsset::STATUSES[$a->status] }} on {{ $d->disposed_on->displayDate() }}</div><div>@if ($d->invoice)<a href="{{ route('invoices.show', $d->invoice) }}">{{ $d->invoice->invoice_number }}</a> · @endif{{ $d->gain >= 0 ? 'gain' : 'loss' }} Rs {{ $num(abs($d->gain)) }}</div></div>
                 @endif
                 <div><a class="fa-btn" href="{{ route('assets.show', $a) }}">Open asset</a></div>
             @else

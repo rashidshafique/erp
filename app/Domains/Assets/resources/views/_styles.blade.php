@@ -44,5 +44,14 @@
 .fa-dialog::backdrop { background: rgba(20,20,20,.35); }
 .fa-dialog form, .fa-dialog .body { padding: 20px 24px; display: flex; flex-direction: column; gap: 14px; }
 .fa-dialog .foot { display: flex; justify-content: flex-end; gap: 8px; }
+.fa-dispose { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; }
+.fa-dispose-form { display: flex; flex-direction: column; gap: 12px; }
+.fa-dispose-form label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.fa-dispose-side { display: flex; flex-direction: column; gap: 18px; background: #fafafa; border-radius: 8px; padding: 14px 16px; }
+.fa-choice { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.fa-choice label { flex-direction: row !important; align-items: flex-start; gap: 10px !important; padding: 9px 12px; border: 1px solid #d9dbde; border-radius: 8px; cursor: pointer; }
+.fa-choice label.on { border-color: var(--accent); background: #f5f8fe; }
+.fa-choice label > span { display: flex; flex-direction: column; gap: 2px; }
+@media (max-width: 760px) { .fa-dispose { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 1000px) { .fa-grid { grid-template-columns: minmax(0, 1fr); } .fa-side { border-left: 0; border-top: 1px solid #e6e7e9; border-radius: 0 0 8px 8px; } .fa-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .fa-bar, .fa-main { padding-left: 16px; padding-right: 16px; } }
 </style>

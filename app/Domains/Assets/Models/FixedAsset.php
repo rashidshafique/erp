@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * One fixed asset (design 28d): a furnace, a building, a forklift or a pattern or core box the foundry owns. Its cost is the sum of
@@ -72,6 +73,11 @@ class FixedAsset extends Model
         return $this->hasMany(AssetEvent::class)->orderBy('happened_on')->orderBy('created_at');
     }
 
+    public function disposal(): HasOne
+    {
+        return $this->hasOne(AssetDisposal::class);
+    }
+
     public function runLines(): HasMany
     {
         return $this->hasMany(DepreciationRunLine::class);
@@ -114,14 +120,19 @@ class FixedAsset extends Model
         return $this->pattern?->code ?? $this->coreBox?->code ?? $this->equipment?->code;
     }
 
-    /** Depreciation brought in when the asset was added plus every posted run, to the end of the given month (all of it when none is given). */
+    /**
+     * Depreciation brought in when the asset was added, plus every posted run and the charge posted with its disposal, to the end of
+     * the given month (all of it when none is given).
+     */
     public function depreciatedTo(?string $periodEnd = null): float
     {
         $posted = DepreciationRunLine::query()->where('fixed_asset_id', $this->id)
             ->whereHas('run', fn ($q) => $q->where('status', DepreciationRun::POSTED)->when($periodEnd, fn ($r) => $r->where('period', '<=', $periodEnd)))
             ->sum('charge');
 
-        return round($this->opening_depreciation + (float) $posted, 2);
+        $atSale = $this->disposal && (! $periodEnd || $this->disposal->disposed_on->toDateString() <= $periodEnd) ? $this->disposal->charge : 0.0;
+
+        return round($this->opening_depreciation + (float) $posted + $atSale, 2);
     }
 
     public function bookValue(): float

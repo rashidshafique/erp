@@ -14,6 +14,7 @@
     <div class="actions">
         <a class="btn" href="{{ route('assets.edit', $asset) }}">Edit</a>
         @if ($asset->status === 'IN_PROGRESS')<button type="button" class="btn btn-primary" onclick="document.getElementById('in-use').showModal()">Put in use…</button>@endif
+        @if ($asset->status === 'IN_USE')<button type="button" class="btn" onclick="document.getElementById('dispose').showModal()">Sell or retire…</button>@endif
     </div>
 </div>
 @error('in_use_on')<div class="alert alert-error">{{ $message }}</div>@enderror
@@ -82,7 +83,12 @@
         </div>
     </div>
     <aside class="fa-side">
-        <div><div class="fa-lab">Book value</div><div class="fa-big" style="font-size:22px">Rs {{ $num($book) }}</div></div>
+        @if ($d = $asset->disposal)
+            <div><div class="fa-lab">{{ \App\Domains\Assets\Models\AssetDisposal::KINDS[$d->kind][0] === 'Write off' ? 'Written off' : 'Sold' }} on {{ $d->disposed_on->displayDate() }}</div>
+                <div>@if ($d->customer){{ $d->customer->name }} · @endif @if ($d->invoice)<a href="{{ route('invoices.show', $d->invoice) }}">{{ $d->invoice->invoice_number }}</a> · Rs {{ $num($d->price) }}@else{{ $d->reason }}@endif</div>
+                <div class="fa-sub">Book value {{ $num($d->book_value) }} · {{ $d->gain >= 0 ? 'gain' : 'loss' }} {{ $num(abs($d->gain)) }}@if ($d->weight_kg) · {{ $num($d->weight_kg) }} kg @endif</div></div>
+        @endif
+        <div><div class="fa-lab">{{ $asset->disposal ? 'Book value when it went' : 'Book value' }}</div><div class="fa-big" style="font-size:22px">Rs {{ $num($book) }}</div></div>
         <div class="fa-two">
             <div><div class="fa-lab">Cost</div><div>Rs {{ $num($asset->cost) }}</div></div>
             <div><div class="fa-lab">Depreciated</div><div>Rs {{ $num($depreciated) }}</div></div>
@@ -104,6 +110,9 @@
     </aside>
 </div></div>
 
+@if ($asset->status === 'IN_USE')
+    <livewire:assets::dispose :asset="$asset" />
+@endif
 @if ($asset->status === 'IN_PROGRESS')
 <dialog class="fa-dialog" id="in-use">
     <form method="POST" action="{{ route('assets.in-use', $asset) }}">@csrf

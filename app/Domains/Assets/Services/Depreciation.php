@@ -15,33 +15,35 @@ use Illuminate\Support\Facades\DB;
  * - Usage (patterns and core boxes): rate per fill = (cost − residual) ÷ life fills, charge = fills in the month × rate.
  *   Pattern fills are moulds made on moulding runs of any revision of the pattern; core box fills are cores made ÷ its cavities.
  * No charge takes the book value below the residual value. An asset brought in with depreciation to date is charged, and its
- * fills counted, only from the day after the date that depreciation runs to.
+ * fills counted, only from the day after the date that depreciation runs to. An asset sold, scrapped or written off (28h) had its
+ * charge to that day posted with the disposal, so no run from that month on takes it.
  */
 class Depreciation
 {
     /**
-     * Every asset's charge for the month, worked out fresh, or only those of the ids given. Assets in progress, gone before the month,
-     * or with nothing left to depreciate are left out.
+     * Every asset's charge for the month, worked out fresh, or only those of the ids given. Assets in progress, disposed of in or
+     * before the month, or with nothing left to depreciate are left out. Given a disposal date, the charge runs only to that day and
+     * the asset is taken even though it is being disposed of (the charge posted with the sale).
      *
      * @param  list<string>|null  $only
      * @return Collection<int, array{asset: FixedAsset, fills: int|null, rate: float|null, charge: float, book_before: float, runs: list<string>, capped: bool}>
      */
-    public function forMonth(Carbon $period, ?array $only = null): Collection
+    public function forMonth(Carbon $period, ?array $only = null, ?Carbon $disposedOn = null): Collection
     {
         [$start, $end] = [$period->copy()->startOfMonth(), $period->copy()->endOfMonth()];
         $assets = FixedAsset::with(['assetClass', 'pattern', 'coreBox', 'equipment'])->where('status', '!=', 'IN_PROGRESS')
             ->whereNotNull('in_use_on')->whereDate('in_use_on', '<=', $end)
-            ->where(fn ($q) => $q->whereNull('disposed_on')->orWhereDate('disposed_on', '>=', $start))
+            ->when($disposedOn === null, fn ($q) => $q->where(fn ($q) => $q->whereNull('disposed_on')->orWhereDate('disposed_on', '>', $end)))
             ->where('method', '!=', 'NONE')->when($only !== null, fn ($q) => $q->whereIn('id', $only))->orderBy('code')->get();
         $before = $this->postedBefore($start);
         $patternFills = $this->patternFills($assets->whereNotNull('pattern_id')->pluck('pattern_id')->all(), $start, $end);
         $coreFills = $this->coreBoxFills($assets->whereNotNull('core_box_id')->pluck('core_box_id')->all(), $start, $end);
 
-        return $assets->map(function (FixedAsset $asset) use ($start, $end, $before, $patternFills, $coreFills) {
+        return $assets->map(function (FixedAsset $asset) use ($start, $end, $before, $patternFills, $coreFills, $disposedOn) {
             $book = round($asset->cost - $asset->opening_depreciation - ($before[$asset->id] ?? 0.0), 2);
             $left = round($book - $asset->residual_value, 2);
             $from = collect([$start, $asset->in_use_on, $asset->opening_to?->copy()->addDay()])->filter()->max();
-            $to = $asset->disposed_on && $asset->disposed_on->lt($end) ? $asset->disposed_on : $end;
+            $to = $disposedOn && $disposedOn->lt($end) ? $disposedOn->copy()->startOfDay() : $end;
             if ($from->gt($to)) {
                 return null;
             }

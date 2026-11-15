@@ -17,7 +17,7 @@ use InvalidArgumentException;
 
 /**
  * The double entry for each Finance document:
- * - invoice: debit receivables with the total, credit sales with each line and the tax owed to each authority (a credit note the other way);
+ * - invoice: debit receivables with the total, credit sales (or the line's own account, such as gain on disposal for an asset sold) with each line and the tax owed to each authority (a credit note the other way);
  * - supplier bill: debit each line's account and the tax on it (to the input account of the authority it was paid to), credit payables with the total, then move any tax we withhold from
  *   payables to what we owe the authority (a supplier credit note the other way);
  * - receipt: debit cash or bank, credit receivables with the part put on invoices and customer advances with the rest;
@@ -173,7 +173,7 @@ class PostingRules
         $income = LedgerSettings::account($credit ? 'sales_returns' : 'sales')->id;
         $lines = [[($credit ? 'credit' : 'debit') => $invoice->total, 'account_id' => LedgerSettings::account('receivables')->id] + $party];
         foreach ($invoice->lines as $l) {
-            $lines[] = [($credit ? 'debit' : 'credit') => $l->line_net, 'account_id' => $income];
+            $lines[] = [($credit ? 'debit' : 'credit') => $l->line_net, 'account_id' => $l->account_id ?: $income];
             $charged = collect($l->taxes ?? [])->reject(fn ($t) => $t['withheld'] ?? false);
             $left = (float) $l->line_tax;
             foreach ($charged as $t) {

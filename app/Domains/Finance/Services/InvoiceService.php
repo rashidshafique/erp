@@ -69,7 +69,7 @@ class InvoiceService
                 $taxLine = $taxLines[$i];
                 InvoiceLine::create([
                     'invoice_id' => $invoice->id, 'line_number' => $i + 1, 'product_id' => ($l['product_id'] ?? null) ?: null, 'description' => trim($l['description']), 'quantity' => round((float) $l['quantity'], 3), 'uom' => $l['uom'] ?? null,
-                    'unit_price' => round((float) $l['unit_price'], 4), 'discount_percent' => self::discount($l), 'discount_amount' => self::discountAmount($l), 'tax_rate_id' => $l['tax_rate_id'] ?? null, 'tax_percent' => $taxes->chargedRate($i),
+                    'unit_price' => round((float) $l['unit_price'], 4), 'discount_percent' => self::discount($l), 'discount_amount' => self::discountAmount($l), 'tax_rate_id' => $l['tax_rate_id'] ?? null, 'account_id' => ($l['account_id'] ?? null) ?: null, 'tax_percent' => $taxes->chargedRate($i),
                     'line_net' => $taxLine->net, 'line_tax' => $taxes->charged($i), 'line_withheld' => $taxes->withheld($i),
                     'supply_type' => $taxLine->supplyType, 'tariff_code' => $taxLine->tariffCode, 'inventory_class' => $taxLine->inventoryClass,
                     'taxes' => array_map(fn (TaxAmount $t) => (array) $t, $taxes->forLine($i)),
@@ -147,6 +147,9 @@ class InvoiceService
         if ($invoice->status !== 'ISSUED') {
             throw new InvalidArgumentException('Only an issued document can be voided.');
         }
+        if ($invoice->source_type === 'fixed_asset') {
+            throw new InvalidArgumentException('This invoice sold a fixed asset; raise a credit note for a price change. Undoing the sale itself is not built yet.');
+        }
         if (! $invoice->isCreditNote() && ($invoice->paid() > 0 || $invoice->credited() > 0 || $invoice->withheldSettled() > 0)) {
             throw new InvalidArgumentException('Payments, tax certificates or credit notes are recorded against this invoice; void or reverse those first, or raise a credit note instead.');
         }
@@ -169,6 +172,11 @@ class InvoiceService
     {
         if ($original->status !== 'ISSUED' || $original->isCreditNote()) {
             throw new InvalidArgumentException('A credit note can only be raised against an issued invoice.');
+        }
+        // lines of an asset sale credit their own account (28h), so the note takes the same one off instead of sales returns
+        $accounts = $original->lines()->pluck('account_id')->unique();
+        if ($accounts->count() === 1 && $accounts->first()) {
+            $lines = array_map(fn ($l) => $l + ['account_id' => $accounts->first()], $lines);
         }
         $note = $this->saveDraft([
             'kind' => 'CREDIT_NOTE', 'customer_id' => $original->customer_id, 'original_invoice_id' => $original->id, 'currency' => $original->currency,

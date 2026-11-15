@@ -13,7 +13,7 @@ class AssetEvent extends Model
 {
     use HasUuids;
 
-    public const KINDS = ['ADDED' => 'added', 'IN_USE' => 'in use', 'CAPITALISED' => 'capitalised', 'EDITED' => 'edited'];
+    public const KINDS = ['ADDED' => 'added', 'IN_USE' => 'in use', 'CAPITALISED' => 'capitalised', 'EDITED' => 'edited', 'SOLD' => 'sold', 'SCRAPPED' => 'scrapped', 'WRITTEN_OFF' => 'written off'];
 
     protected $table = 'fixed_asset_events';
 
