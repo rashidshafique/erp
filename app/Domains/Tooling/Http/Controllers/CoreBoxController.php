@@ -19,16 +19,10 @@ use Illuminate\View\View;
 /** Core boxes: new or modified from existing tooling, and how many cavities make each core. */
 class CoreBoxController extends Controller
 {
-    public function index(Request $request): View
+    /** The list itself is the tooling::core-box-list Livewire component; this is the page around it. */
+    public function index(): View
     {
-        $boxes = CoreBox::query()->with('coreDefinition', 'cavityMap.coreDefinition')
-            ->when($request->boolean('archived'), fn ($q) => $q->onlyTrashed())
-            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status')))
-            ->when($request->filled('search'), fn ($q) => $q->where(fn ($q) => $q->where('code', 'ilike', '%'.$request->input('search').'%')
-                ->orWhere('name', 'ilike', '%'.$request->input('search').'%')->orWhere('mark_code', 'ilike', '%'.$request->input('search').'%')))
-            ->orderBy('code')->paginate(50)->withQueryString();
-
-        return view('tooling::core-boxes.index', ['boxes' => $boxes]);
+        return view('tooling::core-boxes.index');
     }
 
     public function create(Request $request): View

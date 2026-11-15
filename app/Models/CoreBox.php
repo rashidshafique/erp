@@ -44,8 +44,14 @@ class CoreBox extends Model
         'return_notice_days',
     ];
 
-    /** Custodies a core box can be set to by hand; the names are the pattern ones (Pattern::CUSTODIES). */
+    /** Custodies a core box can be set to by hand; see CUSTODY_LABELS. */
     public const CUSTODIES = ['IN_STORE', 'PATTERN_SHOP', 'LENT'];
+
+    /** Where a core box can be. Lent is a box given to a third party who makes the cores with it. */
+    public const CUSTODY_LABELS = ['IN_STORE' => 'In our store', 'PATTERN_SHOP' => 'At the pattern shop', 'LENT' => 'Lent to a third party for core making'];
+
+    /** The statuses the lists and the page head show: Lent is an active box that is out with a third party. */
+    public const STATUS_LABELS = ['ACTIVE' => 'In use', 'LENT' => 'Lent', 'INACTIVE' => 'Inactive', 'RETIRED' => 'Retired'];
 
     protected $casts = [
         'return_notice_days' => 'integer',
@@ -70,10 +76,16 @@ class CoreBox extends Model
         return $this->owner_type === 'FOUNDRY' || ! $this->ownerCustomer ? 'Foundry-owned' : $this->ownerCustomer->name.' · customer-owned';
     }
 
+    /** ACTIVE, LENT (active and lent to a third party), INACTIVE or RETIRED; a key of STATUS_LABELS. */
+    public function displayStatus(): string
+    {
+        return $this->status === 'ACTIVE' && $this->custody === 'LENT' ? 'LENT' : (string) $this->status;
+    }
+
     /** e.g. "In our store · CS-R2-04". */
     public function custodyLabel(): string
     {
-        return (Pattern::CUSTODIES[$this->custody] ?? $this->custody).($this->custody_location ? ' · '.$this->custody_location : '');
+        return (self::CUSTODY_LABELS[$this->custody] ?? $this->custody).($this->custody_location ? ' · '.$this->custody_location : '');
     }
 
     protected static function booted(): void

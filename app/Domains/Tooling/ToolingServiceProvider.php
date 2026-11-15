@@ -7,6 +7,7 @@ use App\Domains\Tooling\Models\ToolingLifeLimit;
 use App\Domains\Tooling\Models\ToolingMaintenanceRecord;
 use App\Domains\Tooling\Models\ToolingUsageRecord;
 use App\Domains\Tooling\Services\ToolingLifeStatusService;
+use Livewire\Livewire;
 
 /** Tooling maintenance records, service-life limits and usage, and the pages that show a tool and its engraved mark. */
 class ToolingServiceProvider extends ModuleServiceProvider
@@ -29,6 +30,13 @@ class ToolingServiceProvider extends ModuleServiceProvider
     protected function modulePath(): string
     {
         return __DIR__;
+    }
+
+    public function boot(): void
+    {
+        parent::boot();
+
+        Livewire::addNamespace('tooling', viewPath: __DIR__.'/resources/views/livewire');
     }
 
     protected function classAliases(): array

@@ -2,7 +2,6 @@
 
 namespace App\Domains\Tooling\Http\Controllers;
 
-use App\Domains\Tooling\Services\CoreLotService;
 use App\Http\Controllers\Controller;
 use App\Models\CoreBoxCavity;
 use App\Models\CoreDefinition;
@@ -15,17 +14,10 @@ use Illuminate\View\View;
 /** The cores the foundry makes: what each is, which core boxes make it and which products need it. */
 class CoreController extends Controller
 {
-    public function index(Request $request, CoreLotService $lots): View
+    /** The list itself is the tooling::core-list Livewire component; this is the page around it. */
+    public function index(): View
     {
-        $cores = CoreDefinition::query()
-            ->when($request->boolean('archived'), fn ($q) => $q->onlyTrashed())
-            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->input('status')))
-            ->when($request->filled('search'), fn ($q) => $q->where(fn ($q) => $q->where('code', 'ilike', '%'.$request->input('search').'%')
-                ->orWhere('name', 'ilike', '%'.$request->input('search').'%')))
-            ->withCount(['cavities as boxes_count' => fn ($q) => $q->select(\DB::raw('count(distinct core_box_id)'))])
-            ->orderBy('code')->paginate(50)->withQueryString();
-
-        return view('tooling::cores.index', ['cores' => $cores, 'onHand' => $lots->onHand()]);
+        return view('tooling::cores.index');
     }
 
     public function create(): View

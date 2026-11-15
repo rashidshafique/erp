@@ -5,7 +5,7 @@
 
 @section('content')
 <div class="page-heading">
-    <div><h1>{{ $box->name }}</h1><p>Core box · <span class="mono">{{ $box->code }}</span> · revision {{ $box->revision }} · <span class="status {{ $box->status === 'ACTIVE' ? 'status-completed' : 'status-cancelled' }}">{{ $box->status }}</span></p></div>
+    <div><h1>{{ $box->name }}</h1><p>Core box · <span class="mono">{{ $box->code }}</span> · revision {{ $box->revision }} · @php $shown = $box->displayStatus(); @endphp<span class="status {{ match ($shown) { 'ACTIVE' => 'status-completed', 'LENT' => 'status-in-progress', default => 'status-cancelled' } }}">{{ \App\Models\CoreBox::STATUS_LABELS[$shown] ?? $shown }}</span>@if ($shown === 'LENT' && $box->custody_location) <span class="muted">with {{ $box->custody_location }}</span>@endif</p></div>
     <div class="actions">
         @if ($box->trashed())
             <form method="POST" action="{{ route('core-boxes.restore', $box) }}" style="display:inline">@csrf<button class="btn btn-primary" type="submit">Restore core box</button></form>
