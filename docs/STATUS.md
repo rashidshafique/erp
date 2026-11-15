@@ -76,6 +76,15 @@ Updated 2026-11-15.
 - Dashboard is the owner's home; the old pipeline view is at `?layout=classic`. The melt panel shows the next scheduled heat.
 - Patterns: core boxes show in the patterns list with a Show filter. Core boxes and core stock sit under Engineering. Production orders are labelled Orders and sit right after Planning.
 
+**Cores and core boxes (design turn 29, 2026-11-15)**
+- Turn 29 (29a–29j) is on the live design canvas, Production page. Picks: no cavity map; Lent added; Details panel on both lists.
+- Core box form: each core the box makes with how many cavities make it, plus blocked cavities (the form numbers cavities in row order). The box page lists the same counts (Edit cores opens the form); the per-cavity table and the `core-boxes.cavities` route are gone. The core page shows "3 of 5" per box.
+- Cores and Core boxes lists are Livewire (`tooling::core-list`, `tooling::core-box-list`) in the products list layout: status tabs, search, filters, Export, Details side panel, archived behind the footer with Restore.
+- Lent: an active box whose location is "Lent to a third party for core making" (Change location, with who has it). It has its own tab and status (`CoreBox::displayStatus()`, `STATUS_LABELS`) and still counts as an active box for products and core lots. It is not in the Status dropdown.
+- Left out of 29a/29d: name and code in one cell, life used as a list column, In repair tab, row ⋯ menus.
+- Not built from turn 29: core page and form tweaks (29b/29c), core stock, cores made and the lot page (29g–29i), product and moulding run panels (29j).
+- `CodesAndMarksTest` has two failures on the Appearance settings text ("Click a table row to open it"); they come from outside this work.
+
 **Production**
 - Moulding runs: bulk entry, three-step record screen, KPI strip, mould hardness, stations, sand test from a run.
 - Work lists: planned items, runs matched to the list, draft-list start setting, remake shortfall added in one click.
