@@ -13,7 +13,6 @@
         <span class="muted">/</span>
         <span class="pd-bar-title" title="{{ $product->code }} {{ $product->name }}">{{ $product->code }} {{ $product->name }}</span>
         <span class="pd-edit-only muted">/</span><span class="pd-edit-only">Edit</span>
-        <span class="pd-tabs-slot"></span>
     </div>
     <div class="pd-actions">
         @if ($product->trashed())
@@ -32,6 +31,7 @@
         @endif
     </div>
 </div>
+<div class="pd-tabrow pd-view-only"><span class="pd-tabs-slot"></span></div>
 @if ($product->trashed())<div class="alert alert-warning">Archived on {{ $product->deleted_at->displayDate() }}. It is left out of the product list, its counts and every product picker, and stays on the orders and lots that used it. Restore it to use it again.</div>@endif
 
 
@@ -285,18 +285,23 @@
 @include('attachments._panel', ['type' => 'product', 'id' => $product->id])
 @include('audit._history', ['type' => 'Product', 'id' => $product->id])
 <style>
-    .pd-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; background: #fff; border: 1px solid #e6e7e9; border-radius: 10px 10px 0 0; padding: 14px 28px; font-size: 13px; }
-    .pd-bar-left { display: flex; align-items: center; gap: 16px; flex-wrap: nowrap; flex: 1 1 100%; min-width: 0; }
+    .pd-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; background: #fff; border: 1px solid #e6e7e9; border-radius: 8px 8px 0 0; padding: 8px 20px; min-height: 48px; box-sizing: border-box; font-size: 13px; }
+    body.pd-editing .pd-bar { border-bottom-width: 1px; }
+    .pd-bar-left { display: flex; align-items: center; gap: 12px; flex-wrap: nowrap; flex: 1 1 auto; min-width: 0; font-size: 16px; }
+    .pd-bar-left .pd-crumb { font-weight: 400; color: #55585d; }
+    .pd-bar-title { font-weight: 600; }
     .pd-crumb { font-weight: 600; color: #1c1d1f; text-decoration: none; flex: none; }
     .pd-bar-left > span { white-space: nowrap; }
     .pd-bar-title { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-    .pd-bar .tabbar { position: static; border: 0; margin: 0; padding: 0 0 2px; background: none; gap: 4px; flex: 1 1 auto; min-width: 0; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
-    .pd-bar .tabbar button { padding: 4px 10px; margin: 0; border: 0; border-radius: 6px; font-size: 13px; font-weight: 400; color: #6b6e73; flex: none; white-space: nowrap; }
-    .pd-bar .tabbar button:hover { background: #f0f1f3; color: #1c1d1f; }
-    .pd-bar .tabbar button[aria-selected="true"] { background: #f0f1f3; color: #1c1d1f; }
+    .pd-tabrow { background: #fff; border: 1px solid #e6e7e9; border-top: 0; padding: 0 20px; font-size: 13px; }
+    .pd-tabrow .tabbar { position: static; border: 0; margin: 0; padding: 0; background: none; gap: 22px; height: 38px; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+    .pd-tabrow .tabbar::-webkit-scrollbar { display: none; }
+    .pd-tabrow .tabbar button { padding: 0; margin: 0; border: 0; border-radius: 0; background: none; font-size: 13px; font-weight: 400; color: #55585d; flex: none; white-space: nowrap; }
+    .pd-tabrow .tabbar button:hover { background: none; color: #1c1d1f; }
+    .pd-tabrow .tabbar button[aria-selected="true"] { background: none; color: #1c1d1f; font-weight: 600; box-shadow: inset 0 -2px 0 var(--accent); }
     .pd-actions { display: flex; gap: 8px; align-items: center; justify-content: flex-end; margin-left: auto; flex: none; }
     .pd-actions form { display: inline; }
-    .pd-btn { padding: 7px 14px; border-radius: 6px; background: #fff; border: 1px solid #d9dbde; color: #1c1d1f; font: inherit; font-size: 13px; text-decoration: none; cursor: pointer; }
+    .pd-btn { display: inline-flex; align-items: center; height: 32px; box-sizing: border-box; white-space: nowrap; padding: 0 12px; border-radius: 6px; background: #fff; border: 1px solid #d9dbde; color: #1c1d1f; font: inherit; font-size: 13px; text-decoration: none; cursor: pointer; }
     .pd-btn.primary { background: #2f5fd0; border-color: #2f5fd0; color: #fff; font-weight: 500; }
     .pd-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; background: #fff; border: 1px solid #e6e7e9; border-top: 0; border-radius: 0 0 10px 10px; font-size: 13px; color: #1c1d1f; margin-bottom: 18px; }
     .pd-main { padding: 20px 28px; display: flex; flex-direction: column; gap: 22px; min-width: 0; }
@@ -324,7 +329,7 @@
     .pd-side hr { border: 0; border-top: 1px solid #e6e7e9; margin: 2px 0; width: 100%; }
     .pd-note { margin: 0; color: #55585d; }
     .pd-callout { padding: 12px 14px; border: 1px solid #cdd9f5; border-radius: 8px; background: #fff; color: #2f5fd0; }
-    @media (max-width: 1100px) { .pd-grid { grid-template-columns: 1fr; } .pd-side { border-left: 0; border-top: 1px solid #e6e7e9; } .pd-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pd-cols { grid-template-columns: 1fr; } .pd-bar { padding-left: 16px; padding-right: 16px; } }
+    @media (max-width: 1100px) { .pd-grid { grid-template-columns: 1fr; } .pd-side { border-left: 0; border-top: 1px solid #e6e7e9; } .pd-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pd-cols { grid-template-columns: 1fr; } .pd-bar, .pd-tabrow { padding-left: 16px; padding-right: 16px; } }
     body:not(.pd-editing) .pd-edit-only, body.pd-editing .pd-view-only { display: none !important; }
     .pe-main { padding: 4px 40px 12px; display: flex; flex-direction: column; min-width: 0; }
     .pe-sec { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 32px; padding: 24px 0; border-bottom: 1px solid #e6e7e9; }
