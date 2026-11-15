@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
+use App\Support\ListDetails;
 
 /**
  * The invoice list (design 24a): status tabs with counts, a filter bar (search, customer, a date menu of presets with a custom
@@ -26,6 +27,7 @@ use Livewire\WithPagination;
  */
 new class extends Component
 {
+    use ListDetails;
     use WithPagination;
 
     private const TABS = ['' => 'All', 'DRAFT' => 'Drafts', 'OPEN' => 'Unpaid', 'PART' => 'Part paid', 'OVERDUE' => 'Overdue', 'PAID' => 'Paid', 'VOID' => 'Voided'];
@@ -347,7 +349,7 @@ new class extends Component
 
         $page = LengthAwarePaginator::resolveCurrentPage();
         $paged = new LengthAwarePaginator($shown->forPage($page, 25)->values(), $shown->count(), 25, $page, ['path' => LengthAwarePaginator::resolveCurrentPath()]);
-        $selected = $shown->first(fn ($r) => $r['invoice']->id === $this->selectedId) ?? $shown->first();
+        $selected = $this->details ? ($shown->first(fn ($r) => $r['invoice']->id === $this->selectedId) ?? $shown->first()) : null;
         $onPage = collect($paged->items())->map(fn ($r) => $r['invoice']->customer)->push($selected['invoice']->customer ?? null)->filter()->unique('id');
 
         return [
@@ -374,31 +376,16 @@ new class extends Component
 ?>
 
 <div>
+@include('partials.list-ui')
 <style>
 [x-cloak] { display: none !important; }
-.cl-card { border: 1px solid #e6e7e9; border-radius: 8px; background: #fff; font-size: 13px; }
-.cl-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 14px 28px; border-bottom: 1px solid #e6e7e9; }
-.cl-tabs { display: flex; gap: 18px; align-self: stretch; margin: -14px 0; }
-.cl-tabs a { display: inline-flex; align-items: center; gap: 7px; padding: 0 2px; white-space: nowrap; color: #55585d; font-weight: 500; text-decoration: none !important; }
-.cl-tabs a.on { color: #1c1d1f; font-weight: 600; box-shadow: inset 0 -2px 0 var(--accent); }
-.cl-tabs .dot { width: 7px; height: 7px; border-radius: 50%; }
-.cl-tabs .n { font-size: 12px; font-weight: 500; color: #6b6e73; font-variant-numeric: tabular-nums; }
-.cl-tabs a.on .n { color: var(--accent); } .cl-tabs .n.bad { color: #b3352c; }
 .cl-btn { padding: 7px 14px; border-radius: 6px; background: #fff; border: 1px solid #d9dbde; font-size: 13px; color: #1c1d1f; cursor: pointer; text-decoration: none !important; }
 .cl-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 500; }
-.cl-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; }
-.cl-main { padding: 20px 28px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-.cl-filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.cl-search { flex: 1; min-width: 180px; max-width: 320px; display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px; box-sizing: border-box; border: 1px solid #c9cbcf; border-radius: 6px; background: #fff; }
-.cl-search input { flex: 1; min-width: 0; border: 0 !important; padding: 0 !important; height: 32px; font-size: 13px; background: transparent; box-shadow: none !important; outline: 0; }
-.cl-chip { position: relative; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 10px 0 12px; box-sizing: border-box; border: 1px solid #c9cbcf; border-radius: 6px; background: #fff; box-shadow: 0 1px 0 rgba(0,0,0,.04); cursor: pointer; white-space: nowrap; font-size: 13px; color: #1c1d1f; }
+.cl-chip { position: relative; display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px 0 12px; box-sizing: border-box; border: 1px solid #c9cbcf; border-radius: 6px; background: #fff; box-shadow: 0 1px 0 rgba(0,0,0,.04); cursor: pointer; white-space: nowrap; font-size: 13px; color: #1c1d1f; }
 .cl-chip .k { color: #55585d; } .cl-chip b { font-weight: 500; }
 .cl-chip.open { border-color: var(--accent); background: var(--accent-soft); }
 .cl-chip select { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
-.cl-fbtn { font-weight: 500; padding: 0 12px; }
-.cl-badge { min-width: 18px; height: 18px; padding: 0 5px; box-sizing: border-box; border-radius: 9px; background: var(--accent); color: #fff; font-size: 11.5px; font-weight: 600; line-height: 18px; text-align: center; }
-.cl-sep { width: 1px; height: 20px; background: #e6e7e9; margin: 0 2px; }
-.cl-pop { position: absolute; top: 40px; right: 0; z-index: 20; display: flex; align-items: flex-start; background: #fff; border: 1px solid #e6e7e9; border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,.14), 0 2px 6px rgba(0,0,0,.06); font-size: 13px; white-space: nowrap; max-width: calc(100vw - 32px); overflow-x: auto; cursor: default; }
+.cl-pop { position: absolute; top: 38px; right: 0; z-index: 20; display: flex; align-items: flex-start; background: #fff; border: 1px solid #e6e7e9; border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,.14), 0 2px 6px rgba(0,0,0,.06); font-size: 13px; white-space: nowrap; max-width: calc(100vw - 32px); overflow-x: auto; cursor: default; }
 .cl-pre { width: 230px; padding: 6px; }
 .cl-pre button { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border: 0; border-radius: 6px; background: transparent; color: #1c1d1f; font-size: 13px; text-align: left; cursor: pointer; }
 .cl-pre button:hover { background: #f5f6f7; }
@@ -422,14 +409,12 @@ new class extends Component
 .cl-cal .foot button { padding: 6px 12px; border: 0; border-radius: 6px; background: transparent; color: #55585d; font-size: 13px; cursor: pointer; }
 .cl-cal .foot button.apply { padding: 6px 14px; background: var(--accent); color: #fff; font-weight: 500; }
 .cl-cal .foot button.apply:disabled { opacity: .45; cursor: default; }
-.cl-sort { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 4px; border: 0; background: transparent; color: #55585d; cursor: pointer; white-space: nowrap; font-size: 13px; position: relative; }
+.cl-sort { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 4px; border: 0; background: transparent; color: #55585d; cursor: pointer; white-space: nowrap; font-size: 13px; position: relative; }
 .cl-sort b { font-weight: 500; color: #1c1d1f; }
 .cl-table th.s { cursor: pointer; user-select: none; white-space: nowrap; color: #55585d; font-weight: 500; }
 .cl-table th.s.on { color: #1c1d1f; font-weight: 600; }
 .cl-table th.s .ar { display: inline-block; width: 12px; margin-left: 4px; font-size: 11px; color: #c9cbcf; } .cl-table th.s.on .ar { color: var(--accent); }
-.cl-table { margin: 0 -12px; overflow-x: auto; }
 .cl-table td, .cl-table th { text-align: left; } .cl-table .r { text-align: right; }
-.cl-table tbody tr { cursor: pointer; } .cl-table tbody tr.sel { background: #f5f8fe; }
 .cl-sub { font-size: 12px; color: #6b6e73; }
 .cl-ctx { position: fixed; z-index: 50; min-width: 160px; padding: 4px; background: #fff; border: 1px solid #e6e7e9; border-radius: 8px; box-shadow: 0 12px 32px rgba(0,0,0,.14), 0 2px 6px rgba(0,0,0,.06); font-size: 13px; }
 .cl-ctx a { display: block; padding: 7px 10px; border-radius: 6px; color: #1c1d1f; text-decoration: none !important; outline: 0; }
@@ -445,47 +430,37 @@ new class extends Component
 .cl-sec { font-size: 12px; font-weight: 600; color: #6b6e73; text-transform: uppercase; letter-spacing: .06em; }
 .cl-row { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid #e6e7e9; }
 .cl-row span + span, .cl-row code { color: #6b6e73; text-align: right; }
-@media (max-width: 1000px) { .cl-grid { grid-template-columns: minmax(0, 1fr); } .cl-side { border-left: 0; border-top: 1px solid #e6e7e9; border-radius: 0 0 8px 8px; } }
 </style>
 
 @php
     $num = fn ($v) => Formats::number((float) $v, 0);
     $p = $panel['row'] ?? null; $inv = $p['invoice'] ?? null;
 @endphp
-<div class="cl-card" x-data="{ menu: false, mx: 0, my: 0, invoiceUrl: '', customerUrl: '', openMenu(e, invoice, customer) { this.invoiceUrl = invoice; this.customerUrl = customer; this.mx = Math.min(e.clientX, window.innerWidth - 180); this.my = Math.min(e.clientY, window.innerHeight - 90); this.menu = true; this.$nextTick(() => this.$refs.menu.querySelector('a').focus()); } }"
+<div class="ls-card" x-data="{ menu: false, mx: 0, my: 0, invoiceUrl: '', customerUrl: '', openMenu(e, invoice, customer) { this.invoiceUrl = invoice; this.customerUrl = customer; this.mx = Math.min(e.clientX, window.innerWidth - 180); this.my = Math.min(e.clientY, window.innerHeight - 90); this.menu = true; this.$nextTick(() => this.$refs.menu.querySelector('a').focus()); } }"
      @click.window="menu = false" @keydown.escape.window="menu = false" @scroll.window="menu = false" @resize.window="menu = false">
     {{-- Closing only hides the menu: the links keep their addresses, so a click still follows them. --}}
     <div class="cl-ctx" x-ref="menu" x-show="menu" x-cloak role="menu" :style="`left:${mx}px;top:${my}px`" @contextmenu.prevent>
         <a role="menuitem" :href="invoiceUrl">Open invoice</a>
         <a role="menuitem" :href="customerUrl">Open customer</a>
     </div>
-    <div class="cl-bar">
-        <div style="display:flex;align-items:center;gap:16px">
-            <strong style="font-weight:600">Invoices</strong>
-            <nav class="cl-tabs" role="tablist">
-                @foreach ($tabs as $key => $label)
-                    @if ($key !== 'VOID' || $counts['VOID'] > 0)
-                        <a href="#" role="tab" aria-selected="{{ $tab === $key ? 'true' : 'false' }}" wire:click.prevent="showTab('{{ $key }}')" @class(['on' => $tab === $key])><span class="dot" style="background:{{ ['' => 'transparent', 'DRAFT' => '#9a9da2', 'OPEN' => '#2f5fd0', 'PART' => '#7f9ee6', 'OVERDUE' => '#b3352c', 'PAID' => '#1d7048', 'VOID' => '#c4c7cc'][$key] }}"></span>{{ $label }} <span @class(['n', 'bad' => $key === 'OVERDUE' && $counts[$key] > 0])>{{ $counts[$key] }}</span></a>
-                    @endif
-                @endforeach
-            </nav>
-        </div>
-        <div style="display:flex;gap:8px">
-            <a class="cl-btn primary" href="{{ route('invoices.create') }}">New invoice</a>
-        </div>
+    <div class="ls-head">
+        <h1 class="ls-title">Invoices</h1>
+        <div class="ls-actions"><a class="ls-btn primary" href="{{ route('invoices.create') }}">New invoice</a></div>
     </div>
-    <div class="cl-grid">
-        <div class="cl-main">
-            <div class="cl-filters">
-                <label class="cl-search">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#55585d" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-                    <input type="search" wire:model.live.debounce.300ms="search" placeholder="Search number, customer or PO" autocomplete="off" aria-label="Search number, customer or PO">
-                </label>
-                <button type="button" class="cl-chip cl-fbtn" wire:click="resetFilters" title="Reset filters: all customers, this financial year, no search">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1c1d1f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h18l-7 8v6l-4 2v-8L3 5z"/></svg>
-                    Filters @if ($filtersOn)<span class="cl-badge">{{ $filtersOn }}</span>@endif
+    <nav class="ls-tabs" role="tablist" aria-label="Invoice status">
+        @foreach ($tabs as $key => $label)
+            @if ($key !== 'VOID' || $counts['VOID'] > 0)
+                <a href="#" role="tab" aria-selected="{{ $tab === $key ? 'true' : 'false' }}" wire:click.prevent="showTab('{{ $key }}')" @class(['on' => $tab === $key])>@if ($key !== '')<span class="dot" style="background:{{ ['DRAFT' => '#9a9da2', 'OPEN' => '#2f5fd0', 'PART' => '#7f9ee6', 'OVERDUE' => '#b3352c', 'PAID' => '#1d7048', 'VOID' => '#c4c7cc'][$key] }}"></span>@endif{{ $label }} <span @class(['n', 'bad' => $key === 'OVERDUE' && $counts[$key] > 0])>{{ $counts[$key] }}</span></a>
+            @endif
+        @endforeach
+    </nav>
+            <div class="ls-tools">
+                @include('partials.list-search', ['placeholder' => 'Search number, customer or PO'])
+                <button type="button" @class(['ls-tool', 'on' => $filtersOn > 0]) wire:click="resetFilters" title="Reset filters: all customers, this financial year, no search">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h18l-7 8v6l-4 2v-8L3 5z"/></svg>
+                    Filters @if ($filtersOn)<b>{{ $filtersOn }}</b>@endif
                 </button>
-                <span class="cl-sep" aria-hidden="true"></span>
+                <span class="ls-sep" aria-hidden="true"></span>
                 <label class="cl-chip">
                     <span class="k">Customer</span><b>{{ $customers->firstWhere('id', $customer)?->name ?? 'All' }}</b>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#55585d" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
@@ -546,7 +521,8 @@ new class extends Component
                         </div>
                     </div>
                 </span>
-                <span style="position:relative;margin-left:auto" x-data="{ open: false }" @click.outside="open = false">
+                <span class="ls-right">
+                <span style="position:relative" x-data="{ open: false }" @click.outside="open = false">
                     <button type="button" class="cl-sort" @click="open = ! open" aria-haspopup="true" :aria-expanded="open">
                         Sort <b>{{ $sortWords }}</b>
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#55585d" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
@@ -559,11 +535,16 @@ new class extends Component
                         </div>
                     </div>
                 </span>
+                <span class="ls-sep" aria-hidden="true"></span>
+                @include('partials.list-details-toggle')
+                </span>
             </div>
+    <div @class(['ls-body', 'with-panel' => $details && $inv])>
+        <div class="ls-list" x-data @if ($details) x-on:keydown.arrow-down.prevent="($event.target.closest('tr')?.nextElementSibling)?.focus()" x-on:keydown.arrow-up.prevent="($event.target.closest('tr')?.previousElementSibling)?.focus()" @endif>
             @if ($rows->isEmpty())
-                <div class="muted">{{ $anyInvoice ? 'No invoice matches these filters.' : 'No invoice yet.' }}</div>
+                <p class="ls-empty">{{ $anyInvoice ? 'No invoice matches these filters.' : 'No invoice yet.' }}</p>
             @else
-            <div class="cl-table">
+            <div class="ls-scroll cl-table">
                 <table class="no-row-click">
                     <thead><tr>@foreach ($sorts as $k => $so)<th wire:click="sortBy('{{ $k }}')" title="Sort by {{ strtolower($so['label']) }}" aria-sort="{{ $so['on'] ? ($sortDesc ? 'descending' : 'ascending') : 'none' }}" @class(['s', 'on' => $so['on'], 'r' => $so['align'] === 'right'])>{{ $so['label'] }}<span class="ar">{{ $so['on'] ? ($sortDesc ? '↓' : '↑') : '↕' }}</span></th>@endforeach</tr></thead>
                     <tbody>
@@ -572,7 +553,10 @@ new class extends Component
                             $i = $r['invoice']; [$label, $pill] = $r['stage']; $late = $label === 'Overdue';
                             $cl = $credit[$i->customer_id] ?? null; $live = $cl && in_array($r['stage'][2], ['OPEN', 'OVERDUE'], true);
                         @endphp
-                        <tr wire:key="invoice-{{ $i->id }}" @class(['sel' => $inv && $inv->id === $i->id]) wire:click="select('{{ $i->id }}')">
+                        @php $show = route('invoices.show', $i); @endphp
+                        <tr wire:key="invoice-{{ $i->id }}-{{ $details ? 'p' : 'f' }}" tabindex="0" @class(['sel' => $details && $inv && $inv->id === $i->id])
+                            @if ($details) wire:click="select('{{ $i->id }}')" x-on:focus="$wire.select('{{ $i->id }}')" x-on:dblclick="window.location = '{{ $show }}'" x-on:keydown.enter="window.location = '{{ $show }}'"
+                            @else x-on:click="if (! $event.target.closest('a,button')) window.location = '{{ $show }}'" x-on:keydown.enter="window.location = '{{ $show }}'" @endif>
                             <td class="nw">{{ $i->invoice_date->format('j M') }}</td>
                             <td class="nw"><code>{{ $i->invoice_number ?? 'Draft' }}</code>@if ($i->isCreditNote())<div class="cl-sub">credit note</div>@endif</td>
                             @php $custUrl = $i->customer ? ($i->customer->party_id ? route('parties.show', $i->customer->party_id) : route('customers.index', ['search' => $i->customer->name])) : null; @endphp
@@ -595,21 +579,21 @@ new class extends Component
                     </tbody>
                 </table>
             </div>
-            <div class="pagination"><div class="pagination-links">{{ $rows->links() }}</div></div>
+            <div class="ls-pager">{{ $rows->links() }}</div>
             @endif
-            <div style="display:flex;justify-content:space-between;gap:16px;font-size:12px;color:#55585d">
+            <div class="ls-pager" style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:12px;color:#55585d">
                 <span>{{ $rows->total() }} {{ $rows->total() === 1 ? 'invoice' : 'invoices' }} · balance {{ \App\Support\Formats::money($owed, 0) }}</span>
                 @if ($waiting)<span>{{ $waiting }} dispatch {{ $waiting === 1 ? 'note' : 'notes' }} not yet invoiced · <a href="{{ route('invoices.create') }}">create invoices</a></span>@endif
             </div>
         </div>
 
-        @if ($inv)
-        <aside class="cl-side" wire:key="invoice-panel-{{ $inv->id }}">
+        @if ($details && $inv)
+        <aside class="cl-side ls-panel" aria-label="Invoice details" wire:key="invoice-panel-{{ $inv->id }}">
             @php [$label, $pill] = $p['stage']; @endphp
-            <div>
+            <div class="ls-ph"><div>
                 <div style="display:flex;align-items:center;gap:8px"><code style="font-size:16px;font-weight:600">{{ $inv->invoice_number ?? 'Draft' }}</code><span class="cl-pill {{ $pill }}">{{ $label }}</span></div>
                 <div style="color:#55585d">{{ $inv->customer?->name }}@if ($inv->customer_reference) · {{ $inv->customer_reference }}@endif</div>
-            </div>
+            </div>@include('partials.list-hide-panel')</div>
             <div class="cl-two">
                 <div><div class="lab">Invoice date</div><div>{{ $inv->invoice_date->format('j M Y') }}</div></div>
                 <div><div class="lab">Due</div><div>{{ $inv->due_date && $inv->status !== 'DRAFT' ? $inv->due_date->format('j M Y') : '—' }}</div></div>

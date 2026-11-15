@@ -133,6 +133,17 @@ class InvoiceListTest extends TestCase
             ->assertSeeHtml("openMenu(\$event, '".addcslashes(route('invoices.show', $invoice), '/')."', '".addcslashes(route('parties.show', $customer->fresh()->party_id), '/')."')");
     }
 
+    public function test_details_off_hides_the_side_panel_and_a_row_opens_the_invoice(): void
+    {
+        $customer = Customer::create(['code' => 'ACME', 'name' => 'Acme Pumps', 'active' => true]);
+        $invoice = $this->invoice($customer, 'INV-ONE', 'ISSUED', 100, today()->addDays(9)->toDateString());
+
+        Livewire::test('invoice-list')->assertSeeHtml('aria-label="Invoice details"')->assertSeeHtml("wire:click=\"select('{$invoice->id}')\"")
+            ->call('toggleDetails')->assertSet('details', false)->assertDontSeeHtml('aria-label="Invoice details"')
+            ->assertDontSeeHtml("wire:click=\"select('{$invoice->id}')\"")->assertSeeHtml("window.location = '".route('invoices.show', $invoice)."'");
+        $this->assertFalse(session('lists.details'));
+    }
+
     public function test_the_customer_filter_is_a_dropdown_with_search(): void
     {
         $customer = Customer::create(['code' => 'ACME', 'name' => 'Acme Pumps', 'active' => true]);
