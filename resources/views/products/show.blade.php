@@ -1,17 +1,15 @@
 
 @extends('layouts.app')
 
-@section('title', $product->code)
+@section('title', $product->name.' · '.$product->code)
 @section('breadcrumb')
-<a href="{{ route('products.index') }}">Products</a> / {{ $product->code }}
+<a href="{{ route('products.index') }}">Products</a> / {{ $product->name }}
 @endsection
 
 @section('content')
 <div class="pd-bar">
     <div class="pd-bar-left">
-        <a href="{{ route('products.index') }}" class="pd-crumb">Products</a>
-        <span class="muted">/</span>
-        <span class="pd-bar-title" title="{{ $product->code }} {{ $product->name }}">{{ $product->code }} {{ $product->name }}</span>
+        <span class="pd-bar-title" title="{{ $product->name }} · {{ $product->code }}">{{ $product->name }} <span class="muted mono">{{ $product->code }}</span></span>
         <span class="pd-edit-only muted">/</span><span class="pd-edit-only">Edit</span>
     </div>
     <div class="pd-actions">
@@ -176,12 +174,12 @@
         <div style="margin:6px 0 10px">{!! \App\Support\Code128::svg($product->code, 40, 2) !!} <a class="small" href="{{ route('labels.show', ['product', $product->id]) }}" target="_blank">Print label →</a></div>
         <div class="detail-grid">
             <div>
-                <div class="detail-label">Product code</div>
-                <div class="detail-value">{{ $product->code }}</div>
-            </div>
-            <div>
                 <div class="detail-label">Product name</div>
                 <div class="detail-value">{{ $product->name }}</div>
+            </div>
+            <div>
+                <div class="detail-label">Product code</div>
+                <div class="detail-value">{{ $product->code }}</div>
             </div>
             <div>
                 <div class="detail-label">Product type</div>
@@ -288,9 +286,7 @@
     .pd-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap; background: #fff; border: 1px solid #e6e7e9; border-radius: 8px 8px 0 0; padding: 8px 20px; min-height: 48px; box-sizing: border-box; font-size: 13px; }
     body.pd-editing .pd-bar { border-bottom-width: 1px; }
     .pd-bar-left { display: flex; align-items: center; gap: 12px; flex-wrap: nowrap; flex: 1 1 auto; min-width: 0; font-size: 16px; }
-    .pd-bar-left .pd-crumb { font-weight: 400; color: #55585d; }
     .pd-bar-title { font-weight: 600; }
-    .pd-crumb { font-weight: 600; color: #1c1d1f; text-decoration: none; flex: none; }
     .pd-bar-left > span { white-space: nowrap; }
     .pd-bar-title { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
     .pd-tabrow { background: #fff; border: 1px solid #e6e7e9; border-top: 0; padding: 0 20px; font-size: 13px; }
