@@ -42,17 +42,16 @@ class CoreBoxController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $this->validated($request);
-        $map = $this->cavityMap((int) $data['cavities'], $data['core_definition_id'], (array) $request->input('cavity_cores', []), []);
+        $rows = $this->posted($request);
+        $map = $rows ? $this->mapFromRows($rows['cores'], $rows['blocked']) : array_fill(1, (int) $data['cavities'], $data['core_definition_id']);
         $box = DB::transaction(function () use ($data, $map) {
             $box = CoreBox::create($data);
             $box->saveCavityMap($map);
 
             return $box;
         });
-        $same = count(array_unique(array_filter($map))) === 1 && count(array_filter($map)) === count($map);
 
-        return redirect()->route('core-boxes.show', $box)->with('success', "Core box {$box->code} added."
-            .($box->cavities > 1 && $same ? ' Every cavity makes the same core.' : ''));
+        return redirect()->route('core-boxes.show', $box)->with('success', "Core box {$box->code} added.");
     }
 
     public function show(CoreBox $coreBox): View
@@ -78,8 +77,18 @@ class CoreBoxController extends Controller
     public function update(Request $request, CoreBox $coreBox): RedirectResponse
     {
         $data = $this->validated($request, $coreBox);
-        $map = $this->cavityMap((int) $data['cavities'], $data['core_definition_id'], (array) $request->input('cavity_cores', []),
-            $coreBox->cavityMap()->pluck('core_definition_id', 'cavity_number')->all());
+        $rows = $this->posted($request);
+        $saved = $coreBox->cavityMap()->pluck('core_definition_id', 'cavity_number')->all();
+        $map = match (true) {
+            // The same cores in the same numbers keep the cavity numbering set on the box page.
+            $rows !== null && $this->counts($rows['cores']) === $this->counts($this->rowsFromMap($saved))
+                && $rows['blocked'] === (int) $coreBox->cavities - count($saved) => $saved + array_fill_keys(range(1, (int) $data['cavities']), null),
+            $rows !== null => $this->mapFromRows($rows['cores'], $rows['blocked']),
+            // More cavities start on the main core; fewer drop the highest numbers.
+            default => collect(range(1, (int) $data['cavities']))->mapWithKeys(fn ($n) => [$n => $saved[$n] ?? $data['core_definition_id']])->all(),
+        };
+        ksort($map);
+        $map = array_slice($map, 0, (int) $data['cavities'], true);
         DB::transaction(function () use ($coreBox, $data, $map) {
             $coreBox->update($data);
             $coreBox->saveCavityMap($map);
@@ -141,27 +150,66 @@ class CoreBoxController extends Controller
     }
 
     /**
-     * The core in each cavity from the form: "" is the main core, "none" a cavity not in use, else that core. A cavity the form
-     * did not post keeps what it made, or the main core when it is new; more cavities than before start on the main core and
-     * fewer drop the highest numbers.
+     * The form's "Cores this box makes" rows, with rows for the same core merged, or null when the form did not send them
+     * (an import, an older caller).
      *
-     * @param  array<int|string, string|null>  $posted  cavity number => "", "none" or a core id
-     * @param  array<int, string|null>  $current  cavity number => core id, as saved
+     * @return array{cores: list<array{core: string, qty: int}>, blocked: int}|null
+     */
+    private function posted(Request $request): ?array
+    {
+        if (! $request->has('box_cores')) {
+            return null;
+        }
+        $cores = collect($request->input('box_cores'))->filter(fn ($r) => filled($r['core'] ?? null))
+            ->groupBy('core')->map(fn ($g, $core) => ['core' => (string) $core, 'qty' => (int) $g->sum('qty')])->values()->all();
+
+        return ['cores' => $cores, 'blocked' => (int) $request->input('blocked', 0)];
+    }
+
+    /**
+     * Cavities numbered in row order (A × 3, B × 1 → 1–3 A, 4 B), blocked cavities last and not in use.
+     *
+     * @param  list<array{core: string, qty: int}>  $rows
      * @return array<int, string|null>
      */
-    private function cavityMap(int $cavities, string $mainCore, array $posted, array $current): array
+    private function mapFromRows(array $rows, int $blocked): array
     {
-        $map = collect(range(1, $cavities))->mapWithKeys(fn (int $n) => [$n => match (true) {
-            ! array_key_exists($n, $posted) => $current[$n] ?? $mainCore,
-            $posted[$n] === 'none' => null,
-            blank($posted[$n]) => $mainCore,
-            default => $posted[$n],
-        }])->all();
-        if (collect($map)->filter()->isEmpty()) {
-            throw ValidationException::withMessages(['cavity_cores' => 'At least one cavity must make a core.']);
+        $map = [];
+        foreach ($rows as $row) {
+            for ($i = 0; $i < $row['qty']; $i++) {
+                $map[count($map) + 1] = $row['core'];
+            }
+        }
+        for ($i = 0; $i < $blocked; $i++) {
+            $map[count($map) + 1] = null;
         }
 
         return $map;
+    }
+
+    /**
+     * A saved cavity map as form rows: each core once, in the order of its first cavity, with how many cavities make it.
+     *
+     * @param  array<int, string|null>  $map
+     * @return list<array{core: string, qty: int}>
+     */
+    private function rowsFromMap(array $map): array
+    {
+        ksort($map);
+
+        return collect($map)->filter()->countBy()->map(fn ($n, $core) => ['core' => (string) $core, 'qty' => $n])->values()->all();
+    }
+
+    /**
+     * @param  list<array{core: string, qty: int}>  $rows
+     * @return array<string, int>
+     */
+    private function counts(array $rows): array
+    {
+        $counts = collect($rows)->pluck('qty', 'core')->all();
+        ksort($counts);
+
+        return $counts;
     }
 
     /** @return array<string, mixed> */
@@ -171,10 +219,8 @@ class CoreBoxController extends Controller
 
         return [
             'box' => $box,
-            // cavity number => "" (the main core), a core id, or "none" for a cavity not in use
-            'cavityCores' => $box->exists
-                ? collect($saved)->map(fn ($id) => $id === $box->core_definition_id ? '' : $id)->all() + array_fill_keys(range(1, max(1, (int) $box->cavities)), 'none')
-                : [],
+            'boxCores' => $box->exists ? $this->rowsFromMap($saved) : [['core' => (string) $box->core_definition_id, 'qty' => 1]],
+            'blocked' => $box->exists ? max(0, (int) $box->cavities - count($saved)) : 0,
             'cores' => CoreDefinition::where('status', 'ACTIVE')->orWhere('id', $box->core_definition_id)->orWhereIn('id', array_filter($saved))->orderBy('code')->get(),
             'otherBoxes' => CoreBox::when($box->exists, fn ($q) => $q->whereKeyNot($box->id))->orderBy('code')->get(),
             'patterns' => Pattern::orderBy('code')->get(['id', 'code', 'name']),
@@ -187,30 +233,43 @@ class CoreBoxController extends Controller
         $data = $request->validate([
             'code' => ['nullable', 'string', 'max:40', Rule::unique('core_boxes', 'code')->ignore($box?->id)],
             'name' => ['required', 'string', 'max:255'],
-            'core_definition_id' => ['required', 'uuid', Rule::exists('core_definitions', 'id')->whereNull('deleted_at')],
+            'core_definition_id' => ['required_without:box_cores', 'nullable', 'uuid', Rule::exists('core_definitions', 'id')->whereNull('deleted_at')],
             'revision' => ['required', 'string', 'max:20'],
             'status' => ['required', Rule::in(['ACTIVE', 'INACTIVE', 'RETIRED'])],
             'origin' => ['required', Rule::in(array_keys(CoreBox::ORIGINS))],
             'modified_from_core_box_id' => ['nullable', 'required_if:origin,MODIFIED_BOX', 'uuid', Rule::exists('core_boxes', 'id'), Rule::notIn([$box?->id])],
             'modified_from_pattern_id' => ['nullable', 'required_if:origin,MODIFIED_PATTERN', 'uuid', Rule::exists('patterns', 'id')],
             'material' => ['nullable', 'string', 'max:50'],
-            'cavities' => ['required', 'integer', 'min:1', 'max:200'],
+            'cavities' => ['required_without:box_cores', 'nullable', 'integer', 'min:1', 'max:200'],
             'nominal_core_weight_kg' => ['nullable', 'numeric', 'gt:0', 'max:99999'],
             'commissioned_on' => ['nullable', 'date'],
             'description' => ['nullable', 'string', 'max:2000'],
             'notes' => ['nullable', 'string', 'max:4000'],
-            'cavity_cores' => ['nullable', 'array'],
-            'cavity_cores.*' => ['nullable', 'string', function (string $attribute, mixed $value, \Closure $fail) {
-                if ($value !== 'none' && ! (\Illuminate\Support\Str::isUuid($value) && CoreDefinition::whereKey($value)->exists())) {
-                    $fail('Choose a core for each cavity, or Not in use.');
-                }
-            }],
+            'box_cores' => ['nullable', 'array'],
+            'box_cores.*.core' => ['required', 'uuid', Rule::exists('core_definitions', 'id')->whereNull('deleted_at')],
+            'box_cores.*.qty' => ['required', 'integer', 'min:1', 'max:200'],
+            'blocked' => ['nullable', 'integer', 'min:0', 'max:199'],
         ], [
+            'box_cores.*.core.required' => 'Choose the core on each row, or remove the row.',
+            'box_cores.*.core.exists' => 'Choose the core on each row, or remove the row.',
+            'box_cores.*.qty.min' => 'Each core needs at least one cavity.',
             'core_definition_id.required' => 'Choose the core this box makes.',
             'modified_from_core_box_id.required_if' => 'Choose the core box it was modified from.',
             'modified_from_pattern_id.required_if' => 'Choose the pattern it was modified from.',
         ]);
-        unset($data['cavity_cores']);
+        if ($request->has('box_cores')) {
+            $rows = $this->posted($request);
+            $total = collect($rows['cores'])->sum('qty') + $rows['blocked'];
+            if ($rows['cores'] === []) {
+                throw ValidationException::withMessages(['box_cores' => 'Add the core this box makes.']);
+            }
+            if ($total > 200) {
+                throw ValidationException::withMessages(['box_cores' => 'A box has at most 200 cavities.']);
+            }
+            $data['core_definition_id'] = $rows['cores'][0]['core'];
+            $data['cavities'] = $total;
+        }
+        unset($data['box_cores'], $data['blocked']);
         if (blank($data['code'] ?? null)) {
             unset($data['code']);
         }

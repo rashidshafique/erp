@@ -6,36 +6,44 @@
 
 @section('content')
 <div class="page-heading">
-    <div><h1>{{ $isNew ? 'New core box' : 'Edit '.$box->code }}</h1><p>A box with more than one cavity can make a different core in each.</p></div>
+    <div><h1>{{ $isNew ? 'New core box' : 'Edit '.$box->code }}</h1><p>List each core the box makes and how many cavities make it.</p></div>
 </div>
 <form method="POST" action="{{ $isNew ? route('core-boxes.store') : route('core-boxes.update', $box) }}">
     @csrf @if (! $isNew) @method('PUT') @endif
     <div class="panel"><div class="panel-body"><div class="form-grid">
         <div class="field"><label for="name">Name *</label><input id="name" name="name" required maxlength="255" value="{{ old('name', $box->name) }}"></div>
         <div class="field"><label for="code">Code</label><input id="code" name="code" maxlength="40" value="{{ old('code', $box->code) }}"><div class="help">Leave empty to number it automatically.</div></div>
-        <div class="field"><label for="core_definition_id">Core it makes *</label><select id="core_definition_id" name="core_definition_id" required data-search-select><option value="">— choose —</option>@foreach ($cores as $c)<option value="{{ $c->id }}" @selected(old('core_definition_id', $box->core_definition_id) === $c->id)>{{ $c->code }} · {{ $c->name }}</option>@endforeach</select><div class="help">The main core. New cavities start on it. <a href="{{ route('cores.create') }}">Add a core first</a> if it is not listed.</div></div>
-        <div class="field"><label for="cavities">Cavities *</label><input id="cavities" type="number" name="cavities" required min="1" max="200" value="{{ old('cavities', $box->cavities) }}"></div>
         @php
-            $count = max(1, (int) old('cavities', $box->cavities ?: 1));
-            $picked = old('cavity_cores', $cavityCores);
-            $cavityOptions = function (string $value) use ($cores) {
-                $html = '<option value="">Same as main core</option>';
+            $rows = collect(old('box_cores', $boxCores))->values()->all() ?: [['core' => '', 'qty' => 1]];
+            $blockedNow = (int) old('blocked', $blocked);
+            $coreOptions = function (string $value) use ($cores) {
+                $html = '<option value="">— choose —</option>';
                 foreach ($cores as $c) { $html .= '<option value="'.e($c->id).'"'.($value === $c->id ? ' selected' : '').'>'.e($c->code.' · '.$c->name).'</option>'; }
 
-                return $html.'<option value="none"'.($value === 'none' ? ' selected' : '').'>Not in use</option>';
+                return $html;
             };
         @endphp
-        <div class="field field-full" data-cavity-box @if ($count < 2) hidden @endif>
-            <label>Core in each cavity</label>
-            <div class="help" style="margin:0 0 6px">Leave a cavity on the main core, pick another core for it, or set it Not in use when it is blocked off.</div>
-            @error('cavity_cores')<div class="error">{{ $message }}</div>@enderror
-            <div class="table-wrap"><table class="cb-cavities"><thead><tr><th style="width:90px">Cavity</th><th>Core</th></tr></thead>
-                <tbody data-cavity-rows>
-                @foreach (range(1, $count) as $n)
-                    <tr data-cavity="{{ $n }}"><td>{{ $n }}</td><td><select name="cavity_cores[{{ $n }}]" aria-label="Core in cavity {{ $n }}">{!! $cavityOptions((string) ($picked[$n] ?? '')) !!}</select></td></tr>
+        <div class="field field-full" data-box-cores>
+            <label>Cores this box makes *</label>
+            @foreach (['box_cores', 'core_definition_id'] as $k)@error($k)<div class="error">{{ $message }}</div>@enderror @endforeach
+            @foreach ($errors->get('box_cores.*') as $messages)<div class="error">{{ $messages[0] }}</div>@break @endforeach
+            <div class="table-wrap"><table class="cb-cores"><thead><tr><th>Core</th><th style="width:110px">Cavities</th><th style="width:40px"><span class="sr-only">Remove</span></th></tr></thead>
+                <tbody data-core-rows>
+                @foreach ($rows as $i => $r)
+                    <tr data-core-row><td><select name="box_cores[{{ $i }}][core]" data-search-select aria-label="Core">{!! $coreOptions((string) ($r['core'] ?? '')) !!}</select></td>
+                        <td><input type="number" name="box_cores[{{ $i }}][qty]" min="1" max="200" required value="{{ $r['qty'] ?? 1 }}" aria-label="Cavities making this core" data-core-qty></td>
+                        <td><button type="button" class="btn btn-small" data-core-remove aria-label="Remove core">&times;</button></td></tr>
                 @endforeach
                 </tbody></table></div>
-            <template data-cavity-template><tr data-cavity="__N__"><td>__N__</td><td><select name="cavity_cores[__N__]" aria-label="Core in cavity __N__">{!! $cavityOptions('') !!}</select></td></tr></template>
+            <template data-core-template><tr data-core-row><td><select name="box_cores[__I__][core]" data-search-select aria-label="Core">{!! $coreOptions('') !!}</select></td>
+                <td><input type="number" name="box_cores[__I__][qty]" min="1" max="200" required value="1" aria-label="Cavities making this core" data-core-qty></td>
+                <td><button type="button" class="btn btn-small" data-core-remove aria-label="Remove core">&times;</button></td></tr></template>
+            <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:8px">
+                <button type="button" class="btn btn-small" data-core-add>+ Add core</button>
+                <label style="display:flex;align-items:center;gap:6px;font-weight:400">Blocked cavities <input type="number" name="blocked" min="0" max="199" value="{{ $blockedNow }}" style="width:80px" data-core-blocked></label>
+                <span class="muted">Cavities: <strong data-core-total>{{ collect($rows)->sum(fn ($r) => (int) ($r['qty'] ?? 0)) + $blockedNow }}</strong> (total)</span>
+            </div>
+            <div class="help">The first core is the box's main core. Blocked cavities are plugged or not in use. The exact cavity numbers can be changed on the box page.</div>
         </div>
         <div class="field"><label for="revision">Revision *</label><input id="revision" name="revision" required maxlength="20" value="{{ old('revision', $box->revision) }}"></div>
         <div class="field"><label for="status">Status *</label><select id="status" name="status" required>@foreach (['ACTIVE', 'INACTIVE', 'RETIRED'] as $s)<option value="{{ $s }}" @selected(old('status', $box->status) === $s)>{{ $s }}</option>@endforeach</select></div>
@@ -56,15 +64,19 @@
         const sync = () => document.querySelectorAll('[data-origin]').forEach(el => { el.hidden = el.dataset.origin !== origin.value; });
         origin.addEventListener('change', sync); sync();
 
-        // The cavity rows follow the Cavities box: rows are added on the main core and the highest ones dropped.
-        const count = document.getElementById('cavities'), box = document.querySelector('[data-cavity-box]'),
-            rows = box.querySelector('[data-cavity-rows]'), tpl = box.querySelector('[data-cavity-template]');
-        count.addEventListener('input', () => {
-            const n = Math.max(1, Math.min(200, parseInt(count.value, 10) || 1));
-            while (rows.children.length < n) { rows.insertAdjacentHTML('beforeend', tpl.innerHTML.replace(/__N__/g, String(rows.children.length + 1))); }
-            while (rows.children.length > n) { rows.lastElementChild.remove(); }
-            box.hidden = n < 2;
-        });
+        // "Cores this box makes": add and remove rows, and keep the cavity total in step.
+        const box = document.querySelector('[data-box-cores]'), rows = box.querySelector('[data-core-rows]'), tpl = box.querySelector('[data-core-template]');
+        let next = rows.children.length;
+        const total = () => {
+            let n = parseInt(box.querySelector('[data-core-blocked]').value, 10) || 0;
+            rows.querySelectorAll('[data-core-qty]').forEach(q => { n += parseInt(q.value, 10) || 0; });
+            box.querySelector('[data-core-total]').textContent = n;
+            rows.querySelectorAll('[data-core-remove]').forEach(b => { b.disabled = rows.children.length < 2; });
+        };
+        box.addEventListener('input', total);
+        box.querySelector('[data-core-add]').addEventListener('click', () => { rows.insertAdjacentHTML('beforeend', tpl.innerHTML.replace(/__I__/g, String(next++))); total(); });
+        rows.addEventListener('click', e => { const b = e.target.closest('[data-core-remove]'); if (b && rows.children.length > 1) { b.closest('tr').remove(); total(); } });
+        total();
     })();
 </script>
 @include('partials.search-select')
