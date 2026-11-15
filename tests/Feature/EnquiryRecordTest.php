@@ -37,7 +37,7 @@ class EnquiryRecordTest extends TestCase
 
         $this->get(route('enquiries.index'))->assertOk()
             ->assertSee($open->code)->assertSee('Brake caliper bracket')->assertSee('EN-GJS-450-10 · 1,000 / yr')->assertSee('Feasibility')->assertSee('Customer builds or supplies')
-            ->assertSee('2 d')->assertSee('Open 1')->assertSee('Lost 1')->assertSee('Declined 1')->assertSee('Last 90 days')
+            ->assertSee('2 d')->assertSeeText('Open 1')->assertSeeText('Lost 1')->assertSeeText('Declined 1')->assertSee('Last 90 days')
             ->assertSee('Price')->assertSee('1 declined');
         $this->get(route('enquiries.index', ['tab' => 'lost']))->assertOk()->assertSee($lost->code)->assertDontSee($declined->code)->assertDontSee($open->code);
         $this->get(route('enquiries.index', ['tab' => 'due']))->assertOk()->assertSee($open->code);

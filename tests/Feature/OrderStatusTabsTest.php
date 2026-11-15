@@ -36,7 +36,7 @@ class OrderStatusTabsTest extends TestCase
             SalesOrder::create(['order_number' => $number, 'customer_id' => $c->id, 'order_date' => today(), 'status' => $status]);
         }
 
-        $this->get(route('sales-orders.index'))->assertOk()->assertSee('Open 2')->assertSee('Dispatched 1');
+        $this->get(route('sales-orders.index'))->assertOk()->assertSeeText('Open 2')->assertSeeText('Dispatched 1');
         $this->get(route('sales-orders.index', ['status' => 'OPEN']))->assertSee('SO-1')->assertSee('SO-2')->assertDontSee('SO-3');
         $this->get(route('sales-orders.index', ['status' => 'DISPATCHED']))->assertSee('SO-3')->assertDontSee('SO-1');
         $this->get(route('sales-orders.index', ['search' => 'valve']))->assertSee('SO-2')->assertDontSee('SO-1');

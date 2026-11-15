@@ -74,6 +74,7 @@ Route::get('/', ErpDashboardController::class)->name('dashboard');
 Route::get('/dashboard', ErpDashboardController::class)->name('dashboard.page');   // the same home at the obvious address, so bookmarks and links can say /dashboard
 Route::get('/home', \App\Http\Controllers\RoleHomeController::class)->name('home');
 Route::get('/quality-home', \App\Http\Controllers\QualityHomeController::class)->name('quality.home');
+Route::post('/lists/details', \App\Http\Controllers\ListDetailsController::class)->name('lists.details');
 Route::prefix('moulding-runs')
     ->name('moulding-runs.')
     ->controller(MouldingRunController::class)

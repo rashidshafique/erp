@@ -17,7 +17,7 @@
 .ls-tabs .dot { width: 7px; height: 7px; border-radius: 50%; }
 .ls-tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 8px 20px; border-bottom: 1px solid #e6e7e9; }
 .ls-search { display: flex; align-items: center; gap: 8px; width: 280px; max-width: 100%; height: 32px; padding: 0 10px; box-sizing: border-box; border: 1px solid #c9cbcf; border-radius: 6px; background: #fff; }
-.ls-search input { flex: 1; min-width: 0; border: 0 !important; padding: 0 !important; margin: 0; height: 30px; font-size: 13px; background: transparent; box-shadow: none !important; outline: 0; }
+.ls-search input { flex: 1; min-width: 0; min-height: 0; border: 0 !important; padding: 0 !important; margin: 0; height: 30px; font-size: 13px; background: transparent; box-shadow: none !important; outline: 0; }
 .ls-tool { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; box-sizing: border-box; border: 1px solid #c9cbcf; border-radius: 6px; background: #fff; color: #1c1d1f; font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; list-style: none; text-decoration: none !important; }
 .ls-tool::-webkit-details-marker, .ls-menu summary::-webkit-details-marker { display: none; }
 .ls-tool.on { border-color: var(--accent); color: var(--accent); } .ls-tool b { color: var(--accent); }
@@ -32,7 +32,8 @@
 .ls-pop a, .ls-pop button { display: block; text-align: left; padding: 7px 10px; border-radius: 6px; color: #1c1d1f; text-decoration: none !important; background: none; border: 0; font-size: 13px; cursor: pointer; white-space: nowrap; }
 .ls-pop a:hover, .ls-pop button:hover { background: #f3f4f6; }
 .ls-filters { padding: 12px; gap: 10px; min-width: 240px; } .ls-filters label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #55585d; }
-.ls-filters select { width: 100%; margin: 0; }
+.ls-select { width: auto; max-width: 240px; height: 32px; min-height: 0; margin: 0; padding: 0 8px; font-size: 13px; border-radius: 6px; }
+.ls-filters select { width: 100%; margin: 0; min-height: 32px; padding: 4px 8px; font-size: 13px; }
 .ls-body { display: grid; grid-template-columns: minmax(0, 1fr); } .ls-body.with-panel { grid-template-columns: minmax(0, 1fr) 340px; }
 .ls-list { min-width: 0; } .ls-scroll { overflow-x: auto; } .ls-empty { padding: 20px; margin: 0; color: #6b6e73; }
 .ls-list table { width: 100%; border-collapse: collapse; margin: 0; }

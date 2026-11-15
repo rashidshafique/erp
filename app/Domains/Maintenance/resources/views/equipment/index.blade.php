@@ -31,17 +31,20 @@
 
 @include('maintenance::equipment._styles')
 
-<div class="el-card">
-    <div class="el-bar">
-        <div style="display:flex;align-items:center;gap:16px;font-size:13px;flex-wrap:wrap">
-            <span style="font-weight:600">Maintenance</span>
-            <nav class="el-tabs">@foreach ($tabs as $key => $label)<a href="{{ $tabUrl($key) }}" @class(['on' => $tab === $key])>{{ $label }}</a>@endforeach</nav>
-        </div>
-        <div style="display:flex;gap:8px">
-            <button type="button" class="el-btn" data-quick="qd-breakdown">Log breakdown</button>
-            <button type="button" class="el-btn primary" data-quick="qd-work-order">New work order</button>
+@include('partials.list-ui')
+@php $details = \App\Support\ListLayout::details(); @endphp
+<div class="el-card ls-card">
+    <div class="ls-head">
+        <h1 class="ls-title">Maintenance</h1>
+        <div class="ls-actions">
+            <button type="button" class="ls-btn" data-quick="qd-breakdown">Log breakdown</button>
+            <button type="button" class="ls-btn primary" data-quick="qd-work-order">New work order</button>
         </div>
     </div>
+    <nav class="ls-tabs" aria-label="Maintenance">
+        @foreach ($tabs as $key => $label)<a href="{{ $tabUrl($key) }}" @class(['on' => $tab === $key])>{{ $label }}</a>@endforeach
+        <span style="margin-left:auto;align-self:center">@include('partials.list-details-form')</span>
+    </nav>
 
     <div class="el-stats">
         <div class="el-stat">
@@ -72,7 +75,7 @@
         </div>
     </div>
 
-    <div class="el-grid">
+    <div class="el-grid" @style(['grid-template-columns: minmax(0, 1fr)' => ! $details])>
         <div class="el-main">
             @switch($tab)
                 @case('plans')
@@ -88,7 +91,7 @@
                     @include('maintenance::equipment._work-orders')
             @endswitch
         </div>
-        <aside class="el-side">@include('maintenance::equipment._rail')</aside>
+        @if ($details)<aside class="el-side"><div class="ls-ph" style="justify-content:flex-end">@include('partials.list-hide-form')</div>@include('maintenance::equipment._rail')</aside>@endif
     </div>
 </div>
 

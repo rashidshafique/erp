@@ -41,7 +41,7 @@ return [
     ],
 
     // Open to every signed-in user; the screens check who may do what (own leave, a team's leave).
-    'open_routes' => ['help.*'],
+    'open_routes' => ['help.*', 'lists.details'],
 
     /*
      * Livewire requests, per component: [the route whose permission its changes need (null = any signed-in user),
@@ -58,8 +58,8 @@ return [
         'inventory::reorder-alerts' => [null],
         'heat-skipped-charges' => ['heats.charge-rounds.restore', ['refresh']],
         'heat-charge-history' => ['heats.charge-entries.store'],
-        'customer-list' => ['customers.store', ['showSlice', 'select', 'resetFilters', 'paginationView', 'create', 'edit', 'closeForm', 'export'], ['search', 'status', 'overdueOnly', 'selectedId']],
-        'product-list' => ['products.update', ['resetFilters', 'paginationView', 'showStatus', 'focus', 'export'], ['search', 'metal', 'active', 'customer', 'process', 'focused', 'archived', 'selected']],
+        'customer-list' => ['customers.store', ['showSlice', 'select', 'toggleDetails', 'resetFilters', 'paginationView', 'create', 'edit', 'closeForm', 'export'], ['search', 'status', 'overdueOnly', 'selectedId']],
+        'product-list' => ['products.update', ['resetFilters', 'paginationView', 'showStatus', 'focus', 'toggleDetails', 'export'], ['search', 'metal', 'active', 'customer', 'process', 'focused', 'archived', 'selected']],
         'material-list' => ['materials.store', ['resetFilters', 'paginationView', 'create', 'edit', 'closeForm'], ['search', 'type', 'status', 'stock']],
         'purchasing::supplier-list' => ['suppliers.store', ['showSlice', 'resetFilters', 'paginationView', 'create', 'edit', 'closeForm'], ['search', 'status', 'state']],
         'inventory::location-list' => ['stock-locations.index', ['create', 'edit', 'cancel'], ['search', 'showInactive']],

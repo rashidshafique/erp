@@ -33,28 +33,32 @@
     @media (max-width: 1100px) { .el-grid { grid-template-columns: 1fr; } .el-side { border-left: 0; border-top: 1px solid var(--border); } }
     @media (max-width: 700px) { .el-bar, .el-main { padding-left: 16px; padding-right: 16px; } }
 </style>
-<div class="el-card">
-    <div class="el-bar">
-        <div style="display:flex;align-items:center;gap:16px;font-size:13px;flex-wrap:wrap">
-            <span style="font-weight:600">Enquiries</span>
-            <nav class="el-tabs">@foreach (EnquiryController::TABS as $k => $l)<a href="{{ $keep(['tab' => $k === 'open' ? null : $k]) }}" @class(['on' => $tab === $k])>{{ $l }} {{ $counts[$k] }}</a>@endforeach</nav>
-        </div>
-        <div style="display:flex;gap:8px">
-            <x-column-picker table="enquiries" :columns="['customer' => 'Customer', 'stage' => 'Stage', 'pattern' => 'Pattern', 'value' => 'Annual value', 'reply' => 'Reply by', 'owner' => 'Owner']" />
-            <a class="el-btn" href="{{ route('enquiries.export', request()->query()) }}">Export</a>
-            <a class="el-btn primary" href="{{ route('enquiries.create') }}">New enquiry</a>
-        </div>
+@include('partials.list-ui')
+@php $details = \App\Support\ListLayout::details(); @endphp
+<div class="el-card ls-card">
+    <div class="ls-head">
+        <h1 class="ls-title">Enquiries</h1>
+        <div class="ls-actions"><a class="ls-btn primary" href="{{ route('enquiries.create') }}">New enquiry</a></div>
     </div>
-    <div class="el-grid">
+    <nav class="ls-tabs" aria-label="Enquiry stage">@foreach (EnquiryController::TABS as $k => $l)<a href="{{ $keep(['tab' => $k === 'open' ? null : $k]) }}" @class(['on' => $tab === $k])>{{ $l }} <span class="n">{{ $counts[$k] }}</span></a>@endforeach</nav>
+    <div class="ls-tools">
+        <form method="GET" action="{{ route('enquiries.index') }}" style="display:contents">
+            @if ($tab !== 'open')<input type="hidden" name="tab" value="{{ $tab }}">@endif
+            <label class="ls-search"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#55585d" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" name="search" value="{{ request('search') }}" placeholder="Search code, part, customer or RFQ ref" aria-label="Search code, part, customer or RFQ ref"></label>
+            <select data-search-select name="customer" aria-label="Customer" class="ls-select" onchange="this.form.submit()"><option value="">Customer: all</option>@foreach ($customers as $c)<option value="{{ $c->id }}" @selected(request('customer') === $c->id)>{{ $c->name }}</option>@endforeach</select>
+            <select name="owner" aria-label="Owner" class="ls-select" onchange="this.form.submit()"><option value="">Owner: all</option>@foreach ($owners as $u)<option value="{{ $u->id }}" @selected((string) request('owner') === (string) $u->id)>{{ $u->name }}</option>@endforeach</select>
+            <noscript><button class="ls-tool" type="submit">Filter</button></noscript>
+            @if (request()->hasAny(['search', 'customer', 'owner']))<a class="ls-tool" href="{{ route('enquiries.index', $tab === 'open' ? [] : ['tab' => $tab]) }}">Clear</a>@endif
+        </form>
+        <span class="ls-right">
+            <x-column-picker table="enquiries" :columns="['customer' => 'Customer', 'stage' => 'Stage', 'pattern' => 'Pattern', 'value' => 'Annual value', 'reply' => 'Reply by', 'owner' => 'Owner']" />
+            <a class="ls-tool" href="{{ route('enquiries.export', request()->query()) }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12m0 0-4-4m4 4 4-4M5 20h14"/></svg>Export</a>
+            <span class="ls-sep" aria-hidden="true"></span>
+            @include('partials.list-details-form')
+        </span>
+    </div>
+    <div class="el-grid" @style(['grid-template-columns: minmax(0, 1fr)' => ! $details])>
         <div class="el-main">
-            <form method="GET" action="{{ route('enquiries.index') }}" class="el-filters">
-                @if ($tab !== 'open')<input type="hidden" name="tab" value="{{ $tab }}">@endif
-                <input type="search" name="search" value="{{ request('search') }}" placeholder="Search code, part, customer or RFQ ref" aria-label="Search code, part, customer or RFQ ref">
-                <select data-search-select name="customer" aria-label="Customer" onchange="this.form.submit()"><option value="">Customer: all</option>@foreach ($customers as $c)<option value="{{ $c->id }}" @selected(request('customer') === $c->id)>{{ $c->name }}</option>@endforeach</select>
-                <select name="owner" aria-label="Owner" onchange="this.form.submit()"><option value="">Owner: all</option>@foreach ($owners as $u)<option value="{{ $u->id }}" @selected((string) request('owner') === (string) $u->id)>{{ $u->name }}</option>@endforeach</select>
-                <noscript><button class="el-btn" type="submit">Filter</button></noscript>
-                @if (request()->hasAny(['search', 'customer', 'owner']))<a class="el-note" href="{{ route('enquiries.index', $tab === 'open' ? [] : ['tab' => $tab]) }}">Clear</a>@endif
-            </form>
             @if ($rows->isEmpty())
                 <div class="empty-state"><strong>{{ $tab === 'open' && ! request()->hasAny(['search', 'customer', 'owner']) ? 'No open enquiries' : 'No enquiry matches' }}</strong><p>Record each request as it comes in, whether it is a repeat, a drawing, a sample or a concept.</p><a class="btn btn-primary" href="{{ route('enquiries.create') }}">Start a request</a></div>
             @else
@@ -90,8 +94,9 @@
             @endif
             <div class="el-note">On hold follows the customer's credit hold. Won enquiries link to their order and development.</div>
         </div>
+        @if ($details)
         <aside class="el-side">
-            <div><div class="el-h">Last 90 days</div><div style="margin-top:8px">
+            <div><div class="ls-ph"><div class="el-h">Last 90 days</div>@include('partials.list-hide-form')</div><div style="margin-top:8px">
                 <div class="el-row"><span>Received</span><span>{{ $stats['received'] }}</span></div>
                 <div class="el-row"><span>Quoted</span><span>{{ $stats['quoted'] }}</span></div>
                 <div class="el-row"><span>Won</span><span>{{ $stats['won'] }}{{ $stats['wonShare'] !== null ? ' · '.$stats['wonShare'].'% of quoted' : '' }}</span></div>
@@ -105,6 +110,7 @@
                 @endforelse
             </div></div>
         </aside>
+        @endif
     </div>
 </div>
 @endsection
