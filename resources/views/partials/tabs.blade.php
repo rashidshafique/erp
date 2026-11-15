@@ -2,10 +2,11 @@
      in front of each section; everything up to the next marker belongs to that tab. Alerts always stay on top.
      Optional data-tab-warn / data-tab-block counts show as yellow / red badges on the tab. --}}
 <style>
-    .tabbar { display: flex; gap: 2px; flex-wrap: wrap; border-bottom: 2px solid var(--border); margin: 6px 0 18px; position: sticky; top: 0; background: var(--page); z-index: 5; padding-top: 4px; }
-    .tabbar button { appearance: none; border: 0; background: transparent; padding: 10px 16px; font: inherit; font-weight: 600; color: var(--muted); cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; border-radius: 6px 6px 0 0; }
-    .tabbar button:hover { color: var(--text); background: var(--surface); }
-    .tabbar button[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); background: var(--surface); }
+    .tabbar { display: flex; gap: 22px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; height: 38px; border-bottom: 1px solid var(--border); margin: 6px 0 18px; position: sticky; top: 0; background: var(--page); z-index: 5; padding: 0 2px; }
+    .tabbar::-webkit-scrollbar { display: none; }
+    .tabbar button { appearance: none; flex: none; border: 0; background: transparent; padding: 0; margin: 0; font: inherit; font-size: 13px; font-weight: 400; color: #55585d; cursor: pointer; white-space: nowrap; border-radius: 0; }
+    .tabbar button:hover { color: var(--text); }
+    .tabbar button[aria-selected="true"] { color: var(--text); font-weight: 600; box-shadow: inset 0 -2px 0 var(--accent); }
     .tabbar button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
     .tab-count { display: inline-block; min-width: 18px; margin-left: 6px; padding: 0 7px; border-radius: 6px; font-size: 11px; font-weight: 600; line-height: 1.6; text-align: center; }
     .tab-count-warn { background: #fff3cd; color: #7a5b00; }
