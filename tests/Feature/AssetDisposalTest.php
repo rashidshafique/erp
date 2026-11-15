@@ -124,6 +124,18 @@ class AssetDisposalTest extends TestCase
         $this->assertSame(['21-01-03' => -1200000.0, '21-02-02' => 100000.0, '42-01-05' => 1095000.0, '51-06-04' => 5000.0], $this->balances());
     }
 
+    public function test_an_asset_put_in_use_through_the_register_can_be_sold(): void
+    {
+        $asset = FixedAsset::factory()->inProgress()->create();
+        app(AssetPosting::class)->putInUse($asset, '2026-11-01');
+
+        Livewire::test('assets::dispose', ['asset' => $asset->fresh()])->set('date', '2026-11-20')->set('price', '1300000')->set('buyerName', 'Al-Noor')->call('save')->assertHasNoErrors();
+
+        $this->assertSame(2, \App\Domains\Ledger\Models\Journal::whereIn('source_type', ['fixed_asset', 'fixed_asset_disposal'])->count());
+        // in use 1 to 20 November: 20 of 30 days of 10,000, cleared again with the cost; 21-01-03 took the cost in and gave it back
+        $this->assertSame(['21-04-01' => -1200000.0, '22-02-01' => 1300000.0, '42-01-05' => -106666.67, '51-06-04' => 6666.67], $this->balances());
+    }
+
     public function test_a_disposal_waits_for_last_months_depreciation_and_a_posted_month_is_not_charged_twice(): void
     {
         $asset = FixedAsset::factory()->create();   // in use since January, no depreciation posted

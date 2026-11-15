@@ -55,7 +55,7 @@ new class extends Component
 
     public function save(Disposals $disposals): void
     {
-        abort_unless(EnforceAccess::allows(Auth::user(), 'assets.dispose'), 403);
+        abort_unless(EnforceAccess::allows(Auth::user(), 'assets.in-use'), 403);
         $this->validate([
             'kind' => ['required', 'in:'.implode(',', array_keys(AssetDisposal::KINDS))],
             'date' => ['required', 'date'],

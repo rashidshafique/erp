@@ -144,20 +144,21 @@ class Disposals
                 throw new InvalidArgumentException("Asset class {$class->name} needs an expense and an accumulated depreciation account.");
             }
             $label = AssetDisposal::KINDS[$kind][0];
+            $status = AssetDisposal::KINDS[$kind][1];
+            $disposal = AssetDisposal::create([
+                'fixed_asset_id' => $asset->id, 'kind' => $kind, 'disposed_on' => $date->toDateString(), 'customer_id' => $customer?->id, 'invoice_id' => $invoice?->id,
+                'receipt_id' => $receipt?->id, 'price' => $price, 'weight_kg' => $weight, 'charge' => $f['charge'], 'cost_removed' => $asset->cost,
+                'depreciation_cleared' => $f['cleared'], 'book_value' => $f['book'], 'gain' => $f['gain'], 'reason' => ($data['reason'] ?? null) ?: null, 'user_id' => auth()->id(),
+            ]);
+            // its own source: the asset's put-in-use journal already holds the fixed_asset one
             $journal = $this->ledger->post($date->toDateString(), [
                 ['debit' => $f['charge'], 'account_id' => $class->expense_account_id, 'description' => "{$asset->code} depreciation 1–{$date->format('j M')}"],
                 ['debit' => $f['before'], 'account_id' => $class->depreciation_account_id, 'description' => "{$asset->code} depreciation cleared"],
                 ['debit' => max(0.0, $f['book']), 'account_id' => self::gainAccount()->id, 'description' => "{$asset->code} book value"],
                 ['credit' => max(0.0, -$f['book']), 'account_id' => self::gainAccount()->id, 'description' => "{$asset->code} book value"],
                 ['credit' => $asset->cost, 'account_id' => $class->cost_account_id, 'description' => $asset->code],
-            ], ['type' => 'fixed_asset', 'id' => $asset->id], "{$asset->code} {$asset->name} · ".strtolower($label).($invoice ? " · {$invoice->invoice_number}" : ''));
-            $status = AssetDisposal::KINDS[$kind][1];
-            $disposal = AssetDisposal::create([
-                'fixed_asset_id' => $asset->id, 'kind' => $kind, 'disposed_on' => $date->toDateString(), 'customer_id' => $customer?->id, 'invoice_id' => $invoice?->id,
-                'receipt_id' => $receipt?->id, 'price' => $price, 'weight_kg' => $weight, 'charge' => $f['charge'], 'cost_removed' => $asset->cost,
-                'depreciation_cleared' => $f['cleared'], 'book_value' => $f['book'], 'gain' => $f['gain'], 'journal_id' => $journal->id,
-                'reason' => ($data['reason'] ?? null) ?: null, 'user_id' => auth()->id(),
-            ]);
+            ], ['type' => 'fixed_asset_disposal', 'id' => $disposal->id], "{$asset->code} {$asset->name} · ".strtolower($label).($invoice ? " · {$invoice->invoice_number}" : ''));
+            $disposal->update(['journal_id' => $journal->id]);
             $asset->update(['status' => $status, 'disposed_on' => $date->toDateString()]);
             if ($asset->equipment_id) {
                 Equipment::whereKey($asset->equipment_id)->update(['status' => 'DISPOSED']);

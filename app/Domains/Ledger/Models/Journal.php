@@ -32,6 +32,7 @@ class Journal extends Model
         'cheque' => ['Cheque', 'cheques.show'],
         'depreciation_run' => ['Depreciation run', 'assets.runs.show'],
         'fixed_asset' => ['Fixed asset', 'assets.show'],
+        'fixed_asset_disposal' => ['Asset disposal', null],
         'receipt_allocation' => ['Receipt', null],
         'supplier_payment_allocation' => ['Supplier payment', null],
     ];

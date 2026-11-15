@@ -62,6 +62,10 @@
                     <tr><td>{{ $next->format('M Y') }} to date</td>@if ($asset->method === 'USAGE')<td class="r nw">{{ $num($pending['fills']) }}@if ($pending['runs']) <span class="fa-sub">· {{ implode(', ', array_slice($pending['runs'], 0, 4)) }}</span>@endif</td>@endif
                         <td class="r nw">{{ $num($pending['charge']) }}</td><td class="r nw">{{ $num($pending['book_before'] - $pending['charge']) }}</td><td class="fa-sub">Posts with the {{ $next->format('F') }} run</td></tr>
                 @endif
+                @if ($asset->disposal && $asset->disposal->charge > 0)
+                    <tr><td>1–{{ $asset->disposal->disposed_on->format('j M Y') }}</td>@if ($asset->method === 'USAGE')<td></td>@endif<td class="r nw">{{ $num($asset->disposal->charge) }}</td><td class="r nw">{{ $num($asset->disposal->book_value) }}</td>
+                        <td class="fa-sub">@if ($asset->disposal->journal)<a href="{{ route('ledger.journals.show', $asset->disposal->journal) }}">Posted with the {{ $asset->status === 'WRITTEN_OFF' ? 'write-off' : 'sale' }}</a>@else Posted with the sale @endif</td></tr>
+                @endif
                 @foreach ($months as $m)
                     <tr><td>{{ $m->run->period->format('M Y') }}</td>@if ($asset->method === 'USAGE')<td class="r nw">{{ $num($m->fills) }}</td>@endif<td class="r nw">{{ $num($m->charge) }}</td><td class="r nw">{{ $num($m->book_before - $m->charge) }}</td>
                         <td class="fa-sub"><a href="{{ route('assets.depreciation', ['period' => $m->run->period->format('Y-m')]) }}">Posted</a></td></tr>
