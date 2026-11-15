@@ -4,6 +4,7 @@ use App\Domains\Assets\Models\DepreciationRun;
 use App\Domains\Assets\Models\FixedAsset;
 use App\Domains\Assets\Services\Depreciation;
 use App\Support\Formats;
+use App\Support\ListDetails;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -22,6 +23,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 new class extends Component
 {
+    use ListDetails;
     use WithPagination;
 
     /** @var array<string, string> */
@@ -32,9 +34,6 @@ new class extends Component
 
     /** @var list<string> */
     private const SORTS = ['name', 'code', 'tool', 'where', 'life', 'last', 'cost', 'book', 'status'];
-
-    /** The session key the Details toggle is kept under, shared by the lists that follow 28c. */
-    public const DETAILS_KEY = 'lists.details';
 
     #[Url(except: '')]
     public string $tab = '';
@@ -60,14 +59,7 @@ new class extends Component
     #[Url(except: 25)]
     public int $perPage = 25;
 
-    public bool $details = true;
-
     public ?string $selectedId = null;
-
-    public function mount(): void
-    {
-        $this->details = (bool) session(self::DETAILS_KEY, true);
-    }
 
     public function showTab(string $tab = ''): void
     {
@@ -94,12 +86,6 @@ new class extends Component
     {
         $this->perPage = in_array($count, [25, 50, 100], true) ? $count : 25;
         $this->resetPage();
-    }
-
-    public function toggleDetails(): void
-    {
-        $this->details = ! $this->details;
-        session([self::DETAILS_KEY => $this->details]);
     }
 
     public function updated(string $property): void

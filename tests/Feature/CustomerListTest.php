@@ -95,6 +95,19 @@ class CustomerListTest extends TestCase
             ->assertSeeHtml("wire:click=\"select('{$acme->id}')\"");
     }
 
+    public function test_details_off_hides_the_side_panel_and_the_choice_is_kept_for_every_list(): void
+    {
+        $acme = $this->customer('ACME', 'Acme Pumps');
+
+        Livewire::test('customer-list')->assertSet('details', true)->assertSeeHtml('aria-label="Customer details"')
+            ->call('toggleDetails')->assertSet('details', false)->assertDontSeeHtml('aria-label="Customer details"')
+            ->assertDontSeeHtml("wire:click=\"select('{$acme->id}')\"")->assertSeeHtml(route('parties.show', $acme->fresh()->party_id))->assertSee('Quick edit');
+
+        $this->assertFalse(session('lists.details'));
+        Livewire::test('customer-list')->assertSet('details', false)->assertViewHas('panel', null);
+        Livewire::test('assets::register')->assertSet('details', false);
+    }
+
     public function test_a_customer_can_be_set_to_take_partial_shipments(): void
     {
         $customer = $this->customer('ACME', 'Acme Pumps');

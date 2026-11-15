@@ -1,0 +1,2 @@
+{{-- The button at the top of a 28c list's side panel that turns Details off. --}}
+<button type="button" class="ls-hide" wire:click="toggleDetails" title="Hide panel" aria-label="Hide panel"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 6l6 6-6 6M5 6l6 6-6 6"/></svg></button>

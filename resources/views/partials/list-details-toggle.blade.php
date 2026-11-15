@@ -1,0 +1,3 @@
+{{-- The Details toggle of a 28c list (App\Support\ListDetails): shows or hides the side panel. --}}
+<button type="button" wire:click="toggleDetails" @class(['ls-tool', 'ls-details', 'on' => $details]) aria-pressed="{{ $details ? 'true' : 'false' }}" title="{{ $details ? 'Hide' : 'Show' }} detail panel">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="14.5" y="4" width="6.5" height="16" rx="1.5" fill="currentColor" opacity="0.14" stroke="none"/><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="14.5" y1="4" x2="14.5" y2="20"/></svg>Details</button>

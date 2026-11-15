@@ -11,6 +11,7 @@ use App\Domains\Sales\Models\SalesOrder;
 use App\Http\Middleware\EnforceAccess;
 use App\Models\Customer;
 use App\Services\Codes\CodeGenerator;
+use App\Support\ListDetails;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
@@ -25,6 +26,7 @@ use Livewire\WithPagination;
  */
 new class extends Component
 {
+    use ListDetails;
     use WithPagination;
 
     #[Url(except: '')]
@@ -232,7 +234,7 @@ new class extends Component
         $parts = SalesOrderLine::query()->join('sales_orders as so', 'so.id', '=', 'sales_order_lines.sales_order_id')->whereIn('so.customer_id', $ids)
             ->groupBy('so.customer_id')->selectRaw('so.customer_id, count(distinct sales_order_lines.product_id) as n')->pluck('n', 'customer_id');
         $limits = $owed->isNotEmpty() || app(ModuleRegistry::class)->isEnabled('finance') ? app(CreditLimits::class) : null;
-        $selected = $this->selectedId ?? $customers->first()?->id;
+        $selected = $this->details ? ($this->selectedId ?? $customers->first()?->id) : null;
 
         return [
             'customers' => $customers, 'owed' => $owed, 'parts' => $parts,
@@ -283,23 +285,10 @@ new class extends Component
 
 <div>
 @include('partials.quick-dialog-assets')
+@include('partials.list-ui')
 <style>
-.cl-card { border: 1px solid #e6e7e9; border-radius: 8px; background: #fff; overflow: hidden; font-size: 13px; }
-.cl-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 14px 28px; border-bottom: 1px solid #e6e7e9; }
-.cl-tabs { display: flex; gap: 4px; color: #6b6e73; }
-.cl-tabs a { padding: 4px 10px; border-radius: 6px; color: #6b6e73; text-decoration: none !important; }
-.cl-tabs a.on { background: #f0f1f3; color: #1c1d1f; }
 .cl-btn { padding: 7px 14px; border-radius: 6px; background: #fff; border: 1px solid #d9dbde; font-size: 13px; color: #1c1d1f; cursor: pointer; text-decoration: none !important; }
 .cl-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 500; }
-.cl-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; }
-.cl-main { padding: 20px 28px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-.cl-filters { display: flex; gap: 8px; align-items: center; }
-.cl-filters input[type=search] { flex: 1; max-width: 320px; padding: 7px 10px; border: 1px solid #d9dbde; border-radius: 6px; font-size: 13px; }
-.cl-chip { padding: 6px 10px; border: 1px solid #d9dbde; border-radius: 6px; background: #fff; font-size: 13px; cursor: pointer; }
-.cl-chip.on { background: #f0f1f3; }
-.cl-table { margin: 0 -12px; overflow-x: auto; }
-.cl-table td, .cl-table th { text-align: left; } .cl-table .r { text-align: right; }
-.cl-table tbody tr { cursor: pointer; } .cl-table tbody tr.sel { background: #f5f8fe; }
 .cl-sub { font-size: 12px; color: #6b6e73; }
 .cl-pill { font-size: 11.5px; padding: 2px 8px; border-radius: 999px; font-weight: 500; white-space: nowrap; display: inline-block; }
 .cl-ok { background: #e7f4ec; color: #1d7048; } .cl-warn { background: #fbf0dc; color: #94610a; } .cl-bad { background: #fbe7e5; color: #b3352c; } .cl-info { background: #eaf0fd; color: #2f5fd0; }
@@ -314,7 +303,6 @@ new class extends Component
 .cl-dot { width: 10px; height: 10px; margin-top: 4px; border-radius: 50%; }
 .cl-step small { font-size: 12px; color: #6b6e73; display: block; }
 .cl-alert { padding: 12px 14px; border-radius: 8px; background: #fbe7e5; color: #b3352c; display: flex; flex-direction: column; gap: 4px; line-height: 1.5; }
-@media (max-width: 1000px) { .cl-grid { grid-template-columns: minmax(0, 1fr); } .cl-side { border-left: 0; border-top: 1px solid #e6e7e9; } }
 </style>
 
 @if ($saved)<div class="alert alert-success" role="status">{{ $saved }}</div>@endif
@@ -325,38 +313,42 @@ new class extends Component
     $c = $panel['customer'] ?? null; $stage = $panel['stage'] ?? null;
     $sub = fn ($x) => collect([$x->short_name, $x->billing_address ? trim(strtok($x->billing_address, "\n")) : null])->filter()->implode(' · ');
 @endphp
-<div class="cl-card">
-    <div class="cl-bar">
-        <div style="display:flex;align-items:center;gap:16px">
-            <strong style="font-weight:600">Customers</strong>
-            <nav class="cl-tabs">
-                @foreach (['' => 'All', 'active' => 'Active', 'prospect' => 'Prospects', 'hold' => 'On hold'] as $key => $label)
-                    <a href="#" wire:click.prevent="showSlice('{{ $key }}')" @class(['on' => $status === $key])>{{ $label }} {{ $counts[$key] }}</a>
-                @endforeach
-            </nav>
-        </div>
-        <div style="display:flex;gap:8px">
-            <x-column-picker table="customers" :columns="['supply' => 'Supply', 'parts' => 'Parts', 'open' => 'Open orders', 'developments' => 'Developments', 'ppm' => 'PPM 12 mo', 'terms' => 'Terms', 'balance' => 'Balance', 'status' => 'Status']" />
-            <button class="cl-btn" type="button" wire:click="export">Export</button>
-            <button class="cl-btn primary" type="button" wire:click="create">New customer</button>
+<div class="ls-card">
+    <div class="ls-head">
+        <h1 class="ls-title">Customers</h1>
+        <div class="ls-actions">
+            <button class="ls-btn primary" type="button" wire:click="create">New customer</button>
         </div>
     </div>
-    <div class="cl-grid">
-        <div class="cl-main">
-            <div class="cl-filters">
-                <input type="search" wire:model.live.debounce.300ms="search" placeholder="Search name, city or contact" autocomplete="off" aria-label="Search name, city or contact">
-                @if ($showFinance)<button type="button" wire:click="$toggle('overdueOnly')" @class(['cl-chip', 'on' => $overdueOnly])>Overdue only</button>@endif
-            </div>
+    <nav class="ls-tabs" aria-label="Customer status">
+        @foreach (['' => 'All', 'active' => 'Active', 'prospect' => 'Prospects', 'hold' => 'On hold'] as $key => $label)
+            <a href="#" wire:click.prevent="showSlice('{{ $key }}')" @class(['on' => $status === $key]) @if ($status === $key) aria-current="page" @endif>{{ $label }}<span class="n">{{ $counts[$key] }}</span></a>
+        @endforeach
+    </nav>
+    <div class="ls-tools">
+        @include('partials.list-search', ['placeholder' => 'Search name, city or contact'])
+        @if ($showFinance)<button type="button" wire:click="$toggle('overdueOnly')" @class(['ls-flag', 'on' => $overdueOnly]) aria-pressed="{{ $overdueOnly ? 'true' : 'false' }}">Overdue only</button>@endif
+        <span class="ls-right">
+            <x-column-picker table="customers" :columns="['supply' => 'Supply', 'parts' => 'Parts', 'open' => 'Open orders', 'developments' => 'Developments', 'ppm' => 'PPM 12 mo', 'terms' => 'Terms', 'balance' => 'Balance', 'status' => 'Status']" />
+            @include('partials.list-export')
+            <span class="ls-sep" aria-hidden="true"></span>
+            @include('partials.list-details-toggle')
+        </span>
+    </div>
+    <div @class(['ls-body', 'with-panel' => $details && $c])>
+        <div class="ls-list" x-data @if ($details) x-on:keydown.arrow-down.prevent="($event.target.closest('tr')?.nextElementSibling)?.focus()" x-on:keydown.arrow-up.prevent="($event.target.closest('tr')?.previousElementSibling)?.focus()" @endif>
             @if ($customers->isEmpty())
-                <div class="muted">{{ $counts[''] ? 'No customer matches.' : 'Add the first customer before entering an order.' }}</div>
+                <p class="ls-empty">{{ $counts[''] ? 'No customer matches.' : 'Add the first customer before entering an order.' }}</p>
             @else
-            <div class="cl-table">
+            <div class="ls-scroll">
                 <table class="no-row-click" data-table="customers">
-                    <thead><tr><th>Customer</th><th data-col="supply">Supply</th><th class="r" data-col="parts">Parts</th><th class="r" data-col="open">Open orders</th><th class="r" data-col="developments">Developments</th><th class="r" data-col="ppm">PPM 12 mo</th><th data-col="terms">Terms</th><th class="r" data-col="balance">Balance</th><th data-col="status">Status</th></tr></thead>
+                    <thead><tr><th>Customer</th><th data-col="supply">Supply</th><th class="r" data-col="parts">Parts</th><th class="r" data-col="open">Open orders</th><th class="r" data-col="developments">Developments</th><th class="r" data-col="ppm">PPM 12 mo</th><th data-col="terms">Terms</th><th class="r" data-col="balance">Balance</th><th data-col="status">Status</th>@unless ($details)<th><span class="sr-only">Actions</span></th>@endunless</tr></thead>
                     <tbody>
                     @foreach ($customers as $row)
-                        @php $st = $row->stage(); $o = $owed->get($row->id); @endphp
-                        <tr wire:key="customer-{{ $row->id }}" @class(['sel' => $c && $c->id === $row->id]) wire:click="select('{{ $row->id }}')">
+                        @php $st = $row->stage(); $o = $owed->get($row->id); $open = $row->party_id ? "window.location = '".route('parties.show', $row->party_id)."'" : "\$wire.edit('{$row->id}')"; @endphp
+                        <tr wire:key="customer-{{ $row->id }}-{{ $details ? 'p' : 'f' }}" tabindex="0" @class(['sel' => $details && $c && $c->id === $row->id])
+                            @if ($details) wire:click="select('{{ $row->id }}')" x-on:focus="$wire.select('{{ $row->id }}')" x-on:dblclick="{{ $open }}" x-on:keydown.enter="{{ $open }}"
+                            @else x-on:click="if (! $event.target.closest('a,button,summary,details')) {{ $open }}" x-on:keydown.enter="{{ $open }}" @endif>
                             <td><div style="font-weight:500">{{ $row->name }}@if ($st === 'prospect') <span class="cl-pill {{ $stages['prospect'][1] }}">Prospect</span>@endif</div><div class="cl-sub">{{ $sub($row) ?: $row->code }}</div></td>
                             <td data-col="supply">{{ $row->sales_orders_count ? 'Serial' : '—' }}</td>
                             <td class="r" data-col="parts">{{ $parts[$row->id] ?? 0 }}</td>
@@ -366,25 +358,31 @@ new class extends Component
                             <td data-col="terms">{{ $row->payment_terms ?: '—' }}</td>
                             <td class="r" data-col="balance">@if ($showFinance){{ $money($o['balance'] ?? 0) }}@if (($o['overdue'] ?? 0) > 0) · <span class="cl-pill cl-bad">{{ $money($o['overdue']) }} overdue</span>@endif @else — @endif</td>
                             <td data-col="status"><span class="cl-pill {{ $stages[$st][1] }}">{{ $stages[$st][0] }}</span></td>
+                            @unless ($details)
+                                <td class="r"><details class="ls-menu right"><summary class="ls-more" aria-label="Actions for {{ $row->code }}">⋯</summary>
+                                    <div class="ls-pop" role="menu">@if ($row->party_id)<a role="menuitem" href="{{ route('parties.show', $row->party_id) }}">Open record</a>@endif
+                                        <button type="button" role="menuitem" wire:click="edit('{{ $row->id }}')">Quick edit</button>
+                                        <a role="menuitem" href="{{ route('customer-requirements.edit', $row) }}">Requirements</a></div></details></td>
+                            @endunless
                         </tr>
                     @endforeach
                     </tbody>
                 </table>
             </div>
-            <div class="pagination"><div class="pagination-links">{{ $customers->links() }}</div></div>
+            <div class="ls-pager">{{ $customers->links() }}</div>
             @endif
         </div>
 
-        @if ($c)
-        <aside class="cl-side" wire:key="customer-panel-{{ $c->id }}">
-            <div>
+        @if ($details && $c)
+        <aside class="cl-side ls-panel" aria-label="Customer details" wire:key="customer-panel-{{ $c->id }}">
+            <div class="ls-ph"><div>
                 <div style="display:flex;align-items:center;gap:8px"><h3>{{ $c->name }}</h3>@if ($stage !== 'active')<span class="cl-pill {{ $stages[$stage][1] }}">{{ $stages[$stage][0] }}</span>@endif</div>
                 @if ($c->billing_address)
                     <div style="color:#6b6e73;font-size:13px;line-height:1.5">{{ nl2br(e($c->billing_address)) }}</div>
                 @else
                     <div style="color:#6b6e73">{{ $c->code }}</div>
                 @endif
-            </div>
+            </div>@include('partials.list-hide-panel')</div>
 
             @if ($stage === 'hold')
                 <div class="cl-alert"><span style="font-weight:600">Credit hold</span>
