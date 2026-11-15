@@ -11,6 +11,7 @@ use App\Models\ProductRevision;
 use App\Models\ProductionOrder;
 use App\Services\PatternCavityMap;
 use App\Services\Planning\HeatPlanner;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -32,6 +33,36 @@ class ProductController extends Controller
             'product' => new Product,
             'revisionStatuses' => ['DRAFT', 'APPROVED', 'OBSOLETE'],
         ]);
+    }
+
+    /**
+     * The quick "New product" dialog of the sales order lines: a casting by name, unit and weight, with no revision yet, so it
+     * can go on an order at once. The answer is the order line's value for it ("product:<id>") with what the line shows.
+     */
+    public function storeQuick(Request $request): JsonResponse|RedirectResponse
+    {
+        if (is_string($request->input('code'))) {
+            $request->merge(['code' => strtoupper(trim($request->input('code')))]);
+        }
+        $data = $request->validate([
+            'code' => ['nullable', 'string', 'max:40', 'unique:products,code'],
+            'name' => ['required', 'string', 'max:255'],
+            'base_uom' => ['required', Rule::in(['piece', 'kg', 'set'])],
+            'nominal_weight_kg' => ['nullable', 'numeric', 'gt:0', 'max:99999999.9999'],
+        ]);
+        $product = Product::create([
+            'code' => filled($data['code'] ?? null) ? $data['code'] : null,
+            'name' => trim($data['name']),
+            'product_type' => 'CASTING',
+            'base_uom' => $data['base_uom'],
+            'nominal_weight_kg' => $data['nominal_weight_kg'] ?? null,
+            'active' => true,
+        ]);
+
+        return $request->wantsJson()
+            ? response()->json(['id' => 'product:'.$product->id, 'label' => $product->name,
+                'data' => ['sub' => $product->code.' · no revision yet', 'uom' => $product->base_uom, 'kg' => $product->nominal_weight_kg ?? '']], 201)
+            : back()->with('success', "Product {$product->code} added.");
     }
 
     public function store(Request $request)

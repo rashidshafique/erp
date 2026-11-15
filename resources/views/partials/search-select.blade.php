@@ -1,7 +1,9 @@
 {{-- Type-to-search for long dropdowns. Mark a <select data-search-select>; each <option> may carry data-sub (a second line, such
      as a name) and data-img (a small photo). Clicking the select or typing on it opens a search box listing the options; picking
      one sets the select and fires "change", so the form and other scripts see an ordinary select. Without JavaScript the plain
-     select still works. Works for selects added to the page later and inside a modal <dialog>. Include once per page. --}}
+     select still works. Works for selects added to the page later and inside a modal <dialog>. Include once per page.
+     data-quick-add="<quick dialog id>" with data-quick-add-label adds a "+ New …" entry under the list that opens that quick
+     dialog (partials.quick-dialog) for this select, with the search text as the new name. --}}
 @once
 <style>
     .ss-pop { position: fixed; z-index: 60; width: 300px; max-width: calc(100vw - 16px); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 12px 32px rgb(15 23 42 / 18%); padding: 6px; }
@@ -15,6 +17,8 @@
     .ss-pop li strong { font-weight: 600; }
     .ss-pop li small { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .ss-pop .ss-none { padding: 8px 6px; color: var(--muted); font-size: 12.5px; }
+    .ss-pop .ss-add { display: block; width: 100%; margin-top: 6px; padding: 7px 6px; border: 0; border-top: 1px solid var(--border); border-radius: 0 0 6px 6px; background: none; color: var(--accent); font: inherit; font-size: 12.5px; font-weight: 600; text-align: left; cursor: pointer; }
+    .ss-pop .ss-add:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
 </style>
 <script>
 (function () {
@@ -66,6 +70,15 @@
         close(false); target = select;
         pop = document.createElement('div'); pop.className = 'ss-pop'; pop.setAttribute('role', 'listbox');
         pop.innerHTML = '<input type="search" autocomplete="off" aria-label="Search"><ul></ul>';
+        if (select.dataset.quickAdd) {
+            if (!select.id) select.id = 'ss-' + Math.random().toString(36).slice(2, 9);
+            var add = document.createElement('button'); add.type = 'button'; add.className = 'ss-add';
+            add.dataset.quick = select.dataset.quickAdd; add.dataset.quickTarget = select.id;
+            add.textContent = '+ ' + (select.dataset.quickAddLabel || 'New');
+            add.addEventListener('mousedown', function (e) { e.preventDefault(); });
+            add.addEventListener('click', function () { add.dataset.quickFill = pop ? pop.querySelector('input').value.trim() : ''; setTimeout(function () { close(false); }, 0); });
+            pop.appendChild(add);
+        }
         (select.closest('dialog') || document.body).appendChild(pop);
         pop.style.left = Math.max(8, Math.min(select.getBoundingClientRect().left, window.innerWidth - 308)) + 'px';
         var input = pop.querySelector('input'); input.value = typed || '';

@@ -23,7 +23,7 @@
                 <strong>{{ $p['name'] }}</strong><small>{{ $p['sub'] }}</small><small class="muted" style="display:block">Has production orders: cannot go below what is scheduled or shipped</small>
                 <input type="hidden" name="lines[{{ $i }}][product_revision_id]" value="{{ $value }}">
             @else
-                <select name="lines[{{ $i }}][product_revision_id]" data-search-select="photos" data-product aria-label="Product">
+                <select name="lines[{{ $i }}][product_revision_id]" data-search-select="photos" data-product aria-label="Product" data-quick-list="so-products" @if ($canAddProduct ?? false) data-quick-add="qd-product" data-quick-add-label="New product" @endif>
                     <option value="">Select product</option>
                     @if ($value !== '' && ! isset($catalogue[$value]))<option value="{{ $value }}" data-sub="{{ $p['sub'] }}" data-uom="{{ $p['uom'] }}" data-kg="{{ $p['kg'] ?? '' }}" selected>{{ $p['name'] }}</option>@endif
                     @foreach ($catalogue as $v => $c)<option value="{{ $v }}" data-sub="{{ $c['sub'] }}" @if ($c['img']) data-img="{{ $c['img'] }}" @endif @if ($prices && $c['price'] !== null) data-price="{{ $c['price'] }}" @endif data-uom="{{ $c['uom'] }}" data-kg="{{ $c['kg'] }}" @selected((string) $v === (string) $value)>{{ $c['name'] }}</option>@endforeach

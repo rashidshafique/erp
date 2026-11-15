@@ -2,6 +2,8 @@
      $needsReason, $started, with the catalogue data from SalesOrderController::create(). --}}
 @include('partials.search-select')
 @include('partials.quick-dialog', ['id' => 'qd-customer', 'title' => 'Add a customer', 'action' => route('customers.store'), 'submit' => 'Add customer', 'fields' => 'customers._quick-fields'])
+@php $canAddProduct = \App\Http\Middleware\EnforceAccess::allows(auth()->user(), 'products.quick'); @endphp
+@if ($canAddProduct)@include('partials.quick-dialog', ['id' => 'qd-product', 'title' => 'New product', 'action' => route('products.quick'), 'submit' => 'Add product', 'fields' => 'products._quick-fields'])@endif
 @php
     $photos = \App\Models\Attachment::coverUrlsFor('product', $revisions->pluck('product_id')->merge($bareProducts->pluck('id'))->all());
     $money = \App\Support\Formats::all();
@@ -153,7 +155,7 @@
 
 @if ($errors->any())<div class="alert alert-error">@foreach ($errors->all() as $e)<div>{{ $e }}</div>@endforeach</div>@endif
 
-@if ($catalogue->isEmpty())
+@if ($catalogue->isEmpty() && ! $canAddProduct)
     <div class="alert alert-error">There are no products to order yet. Add a product first.</div>
 @else
 <form method="POST" action="{{ $action }}" id="so-form" @if ($copyFrom) data-copy @endif @class(['so-noprice' => ! $prices, 'so-disc' => $discounts]) data-today="{{ today()->toDateString() }}" data-ahead="{{ \App\Support\OrderRules::repeatAheadDays() }}">
@@ -173,7 +175,7 @@
     @if ($order)<p class="muted small" style="margin:-6px 0 14px">Every change is written to the order's history with who made it{{ $needsReason ? ' and your reason' : '' }}.</p>@endif
     <div class="so-top">
         <div class="field"><label for="customer_id">Customer <a href="{{ route('customers.create') }}" class="qd-add" data-quick="qd-customer" data-quick-target="customer_id">+ Add</a></label>
-            <select id="customer_id" name="customer_id" required data-search-select><option value="">Select customer</option>
+            <select id="customer_id" name="customer_id" required data-search-select data-quick-add="qd-customer" data-quick-add-label="New customer"><option value="">Select customer</option>
                 @foreach ($customers as $c)<option value="{{ $c->id }}" data-sub="{{ $c->code }}" data-terms="{{ $c->payment_terms }}" @selected(old('customer_id', $order?->customer_id ?? $copyFrom?->customer_id) === $c->id)>{{ $c->name }}</option>@endforeach
             </select>@if ($started)<div class="muted small">Production orders exist, so the customer cannot change.</div>@endif</div>
         <div class="field"><label for="customer_reference">Customer PO no.</label><input id="customer_reference" name="customer_reference" maxlength="100" value="{{ old('customer_reference', $order?->customer_reference) }}"></div>
@@ -187,15 +189,15 @@
         <div class="so-grid so-lines-head" aria-hidden="true"><span class="so-head-product">Product</span><span>Unit</span><span>Qty</span>@if ($prices)<span>Price</span>@if ($discounts)<span>Disc %</span>@endif<span class="so-right">Total</span>@endif<span></span></div>
         <div data-lines>
             @foreach ($formLines as $i => $l)
-                @include('sales::orders._create-line', ['discounts' => $discounts, 'i' => $i, 'value' => $l['value'], 'p' => $l['p'], 'line' => $l['line'], 'record' => $l['record'], 'catalogue' => $catalogue, 'currency' => $money['currency'], 'prices' => $prices])
+                @include('sales::orders._create-line', ['discounts' => $discounts, 'i' => $i, 'value' => $l['value'], 'p' => $l['p'], 'line' => $l['line'], 'record' => $l['record'], 'catalogue' => $catalogue, 'canAddProduct' => $canAddProduct, 'currency' => $money['currency'], 'prices' => $prices])
             @endforeach
             {{-- A new order starts with one empty row to pick the first product in. --}}
             @if ($formLines->isEmpty() && ! $order)
-                @include('sales::orders._create-line', ['discounts' => $discounts, 'i' => 0, 'value' => '', 'p' => $blankLine, 'line' => [], 'record' => null, 'catalogue' => $catalogue, 'currency' => $money['currency'], 'prices' => $prices])
+                @include('sales::orders._create-line', ['discounts' => $discounts, 'i' => 0, 'value' => '', 'p' => $blankLine, 'line' => [], 'record' => null, 'catalogue' => $catalogue, 'canAddProduct' => $canAddProduct, 'currency' => $money['currency'], 'prices' => $prices])
             @endif
         </div>
         <div class="so-empty" data-no-lines hidden>No lines yet. Add the first one below.</div>
-        <div class="so-add-row"><button type="button" class="btn" data-add-line>+ Add line</button><a href="{{ route('products.create') }}" target="_blank" class="qd-add">+ Create product</a></div>
+        <div class="so-add-row"><button type="button" class="btn" data-add-line>+ Add line</button></div>
     </div>
 
     <div class="so-bottom">
@@ -225,7 +227,7 @@
 </div>
 </form>
 
-<template id="so-line-template">@include('sales::orders._create-line', ['discounts' => $discounts, 'i' => '__I__', 'value' => '', 'p' => $blankLine, 'line' => [], 'record' => null, 'catalogue' => $catalogue, 'currency' => $money['currency'], 'prices' => $prices])</template>
+<template id="so-line-template">@include('sales::orders._create-line', ['discounts' => $discounts, 'i' => '__I__', 'value' => '', 'p' => $blankLine, 'line' => [], 'record' => null, 'catalogue' => $catalogue, 'canAddProduct' => $canAddProduct, 'currency' => $money['currency'], 'prices' => $prices])</template>
 
 <script>
 (function () {

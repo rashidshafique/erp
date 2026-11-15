@@ -31,6 +31,27 @@ class SalesOrderCreateScreenTest extends TestCase
             ->assertSee('lines[__I__][unit_price]" step="any"', false);
     }
 
+    public function test_a_product_and_a_customer_are_added_from_the_pickers_in_a_dialog_and_the_product_can_be_ordered_at_once(): void
+    {
+        $customer = Customer::create(['code' => 'ACME', 'name' => 'Acme Pumps']);
+
+        $this->get(route('sales-orders.create'))->assertOk()->assertSee('id="qd-product"', false)
+            ->assertSee('data-quick-add="qd-product" data-quick-add-label="New product"', false)->assertSee('data-quick-add="qd-customer" data-quick-add-label="New customer"', false);
+
+        $answer = $this->postJson(route('products.quick'), ['name' => 'Valve body', 'code' => 'vb-1', 'base_uom' => 'kg', 'nominal_weight_kg' => 12.5])->assertCreated()->json();
+        $product = Product::where('code', 'VB-1')->sole();
+        $this->assertSame(['id' => 'product:'.$product->id, 'label' => 'Valve body'], \Illuminate\Support\Arr::only($answer, ['id', 'label']));
+        $this->assertSame('kg', $answer['data']['uom']);
+        $this->assertSame('CASTING', $product->product_type);
+
+        $this->postJson(route('products.quick'), ['code' => 'VB-1', 'base_uom' => 'piece'])->assertJsonValidationErrors(['name', 'code']);
+
+        $this->post(route('sales-orders.store'), ['customer_id' => $customer->id, 'order_date' => today()->toDateString(), 'lines' => [
+            ['product_revision_id' => $answer['id'], 'ordered_qty' => 4],
+        ]])->assertSessionHasNoErrors();
+        $this->assertSame($product->id, \App\Domains\Sales\Models\SalesOrderLine::sole()->product_id);
+    }
+
     public function test_lines_are_kept_when_the_order_is_refused(): void
     {
         $rev = ProductRevision::create(['product_id' => Product::create(['code' => 'FLG-1', 'name' => 'Flange'])->id, 'revision' => 'A', 'status' => 'APPROVED']);

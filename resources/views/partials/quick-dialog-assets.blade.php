@@ -33,6 +33,8 @@
     function open(dlg, link) {
         dlg.dataset.target = (link && link.dataset.quickTarget) || '';
         dlg.dataset.value = (link && link.dataset.quickValue) || 'id';
+        var name = dlg.querySelector('.qd-fields [name="name"]');
+        if (name && link && link.dataset.quickFill) name.value = link.dataset.quickFill;
         if (dlg.showModal) { if (!dlg.open) dlg.showModal(); } else { dlg.setAttribute('open', ''); }
         var first = dlg.querySelector('.qd-fields input:not([type=hidden]), .qd-fields select, .qd-fields textarea');
         if (first) setTimeout(function () { first.focus(); }, 30);
@@ -40,8 +42,13 @@
     function addOption(target, item, valueKey) {
         var value = valueKey === 'label' ? item.label : item.id, group = target.dataset.quickList;
         var selects = group ? document.querySelectorAll('select[data-quick-list="' + group + '"]') : [target];
+        // Selects in <template> rows (lines added later) get the new item too.
+        if (group) document.querySelectorAll('template').forEach(function (t) { selects = [].concat([].slice.call(selects), [].slice.call(t.content.querySelectorAll('select[data-quick-list="' + group + '"]'))); });
         selects.forEach(function (s) {
-            if (![].some.call(s.options, function (o) { return o.value === value; })) s.add(new Option(item.label, value));
+            if ([].some.call(s.options, function (o) { return o.value === value; })) return;
+            var o = new Option(item.label, value);
+            Object.keys(item.data || {}).forEach(function (k) { if (item.data[k] !== null && item.data[k] !== '') o.dataset[k] = item.data[k]; });
+            s.add(o);
         });
         target.value = value;
         target.dispatchEvent(new Event('change', { bubbles: true }));

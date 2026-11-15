@@ -154,6 +154,7 @@ Route::prefix('products')
         Route::get('/', 'index')->name('index');
         Route::get('/create', 'create')->name('create');
         Route::post('/', 'store')->name('store');
+        Route::post('/quick', 'storeQuick')->name('quick');
         Route::get('/{product}/edit', 'edit')->name('edit');
         Route::put('/{product}', 'update')->name('update');
         Route::post('/{product}/grade', 'setGrade')->name('grade');
