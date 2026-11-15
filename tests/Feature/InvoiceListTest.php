@@ -5,7 +5,10 @@ namespace Tests\Feature;
 use App\Domains\Finance\Models\Invoice;
 use App\Domains\Finance\Models\Receipt;
 use App\Domains\Finance\Models\ReceiptAllocation;
+use App\Domains\Finance\Services\FinanceRules;
+use App\Models\AppSetting;
 use App\Models\Customer;
+use App\Support\Formats;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -105,7 +108,21 @@ class InvoiceListTest extends TestCase
         $this->invoice($customer, 'INV-ONE', 'ISSUED', 100, today()->addDays(9)->toDateString());
 
         Livewire::test('invoice-list')->assertSeeInOrder(['Date', 'Number', 'Customer', 'Status · due', 'Total', 'Balance'])
-            ->assertSeeInOrder([today()->format('j M'), 'INV-ONE', 'Acme Pumps', 'Issued', 'in 9 days']);
+            ->assertSeeInOrder([today()->displayShortDate(), 'INV-ONE', 'Acme Pumps', 'Issued', 'in 9 days']);
+    }
+
+    public function test_the_dates_follow_the_display_format_setting(): void
+    {
+        AppSetting::setValue('format.date', 'dmy/', 'How dates are shown');
+        Formats::flush();
+        $customer = Customer::create(['code' => 'ACME', 'name' => 'Acme Pumps', 'active' => true]);
+        $this->invoice($customer, 'INV-ONE', 'ISSUED', 100, today()->addDays(9)->toDateString());
+
+        Livewire::test('invoice-list')
+            ->assertSee(today()->format('d/m'))
+            ->assertSee(today()->addDays(9)->format('d/m'))
+            ->assertSee(today()->format('d/m/Y'));
+        Formats::flush();
     }
 
     public function test_balances_warn_near_or_over_the_customer_credit_limit_and_the_panel_shows_the_credit(): void
@@ -120,7 +137,7 @@ class InvoiceListTest extends TestCase
         $list = Livewire::test('invoice-list')->assertSee('95% of credit limit')->assertSee('Over credit limit')->assertDontSee('1% of credit limit');
         $list->call('select', $late->id)->assertSee('Customer credit')->assertSee('150% used')->assertSee('warn until the balance is under the limit');
 
-        \App\Models\AppSetting::setValue(\App\Domains\Finance\Services\FinanceRules::CREDIT_CHECK, 'OFF');
+        AppSetting::setValue(FinanceRules::CREDIT_CHECK, 'OFF');
         Livewire::test('invoice-list')->assertDontSee('Over credit limit')->assertDontSee('Customer credit');
     }
 

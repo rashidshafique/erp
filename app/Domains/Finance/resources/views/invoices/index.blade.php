@@ -4,10 +4,14 @@
 @section('content')
 {{-- Alpine data for the date menu's calendar in the invoice list (Livewire single-file views keep their own scripts). --}}
 <script>
-    window.invoiceDates = function (perDay, today, from) {
+    window.invoiceDates = function (perDay, today, from, short) {
         const MN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const WD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const pad = n => String(n).padStart(2, '0');
-        const words = iso => { const [y, m, d] = iso.split('-'); return Number(d) + ' ' + MN[Number(m) - 1]; };
+        const words = iso => {
+            const [y, m, d] = iso.split('-').map(Number);
+            return short.replace('D', WD[new Date(y, m - 1, d).getDay()]).replace('d', String(d)).replace('m', pad(m)).replace('M', MN[m - 1]);
+        };
         const start = (from || today).split('-').map(Number);
         return {
             open: false, cal: false, mode: 'range', pf: null, pt: null,

@@ -211,15 +211,15 @@ new class extends Component
     private function lastActivity(Invoice $i, float $paid): string
     {
         if ($i->status === 'DRAFT') {
-            return 'Draft saved '.$i->updated_at->format('j M').'. Not posted.';
+            return 'Draft saved '.$i->updated_at->displayShortDate().'. Not posted.';
         }
         if ($i->status === 'VOID') {
-            return 'Voided '.($i->voided_at ?? $i->updated_at)->format('j M').($i->void_reason ? ': '.$i->void_reason : '.');
+            return 'Voided '.($i->voided_at ?? $i->updated_at)->displayShortDate().($i->void_reason ? ': '.$i->void_reason : '.');
         }
         $receipt = $i->allocations()->with('receipt')->get()->sortByDesc(fn ($a) => $a->receipt?->received_on)->first()?->receipt;
-        $line = 'Posted '.($i->issued_at ?? $i->invoice_date)->format('j M').'.';
+        $line = 'Posted '.($i->issued_at ?? $i->invoice_date)->displayShortDate().'.';
 
-        return $receipt ? $line.' Receipt '.$receipt->receipt_number.' on '.$receipt->received_on->format('j M').' settled '.Formats::money($paid, 0).'.' : $line;
+        return $receipt ? $line.' Receipt '.$receipt->receipt_number.' on '.$receipt->received_on->displayShortDate().' settled '.Formats::money($paid, 0).'.' : $line;
     }
 
     /**
@@ -246,10 +246,10 @@ new class extends Component
      */
     private function dateMenu(): array
     {
-        $since = fn (int $n, bool $year = false) => 'since '.today()->subMonthsNoOverflow($n)->format($year ? 'j M Y' : 'j M');
+        $since = fn (int $n, bool $year = false) => 'since '.($year ? today()->subMonthsNoOverflow($n)->displayDate() : today()->subMonthsNoOverflow($n)->displayShortDate());
         $fy = FinancialYear::containing();
         $fyWords = $fy['start']->format('M').'–'.$fy['end']->format('M');
-        $day = fn (string $d) => Carbon::parse($d)->format('j M');
+        $day = fn (string $d) => Carbon::parse($d)->displayShortDate();
         $custom = match ($this->period) {
             'day' => $this->from !== '' ? $day($this->from) : '',
             'range' => $this->from !== '' ? $day($this->from).' – '.$day($this->to ?: $this->from) : '',
@@ -467,7 +467,7 @@ new class extends Component
                     <select data-search-select wire:model.live="customer" aria-label="Customer"><option value="">All</option>@foreach ($customers as $c)<option value="{{ $c->id }}">{{ $c->name }}</option>@endforeach</select>
                 </label>
                 <span style="position:relative;display:inline-flex" wire:key="date-menu"
-                      x-data="invoiceDates(@js($perDay), @js(today()->toDateString()), @js($from))" @click.outside="close()" @keydown.escape.window="close()">
+                      x-data="invoiceDates(@js($perDay), @js(today()->toDateString()), @js($from), @js(\App\Support\Formats::shortPattern()))" @click.outside="close()" @keydown.escape.window="close()">
                     <button type="button" class="cl-chip" :class="{ open }" @click="open ? close() : (open = true)" aria-haspopup="true" :aria-expanded="open">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#55585d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
                         <span class="k">Date</span><b>{{ $date['label'] }}</b>
@@ -557,12 +557,12 @@ new class extends Component
                         <tr wire:key="invoice-{{ $i->id }}-{{ $details ? 'p' : 'f' }}" tabindex="0" @class(['sel' => $details && $inv && $inv->id === $i->id])
                             @if ($details) wire:click="select('{{ $i->id }}')" x-on:focus="$wire.select('{{ $i->id }}')" x-on:dblclick="window.location = '{{ $show }}'" x-on:keydown.enter="window.location = '{{ $show }}'"
                             @else x-on:click="if (! $event.target.closest('a,button')) window.location = '{{ $show }}'" x-on:keydown.enter="window.location = '{{ $show }}'" @endif>
-                            <td class="nw">{{ $i->invoice_date->format('j M') }}</td>
+                            <td class="nw">{{ $i->invoice_date->displayShortDate() }}</td>
                             <td class="nw"><code>{{ $i->invoice_number ?? 'Draft' }}</code>@if ($i->isCreditNote())<div class="cl-sub">credit note</div>@endif</td>
                             @php $custUrl = $i->customer ? ($i->customer->party_id ? route('parties.show', $i->customer->party_id) : route('customers.index', ['search' => $i->customer->name])) : null; @endphp
                             <td><div style="font-weight:500" @if ($custUrl) @contextmenu.prevent="openMenu($event, @js(route('invoices.show', $i)), @js($custUrl))" @endif>{{ $i->customer?->name }}</div><div class="cl-sub">{{ $i->customer_reference }}</div></td>
                             <td>
-                                <div style="display:flex;align-items:center;gap:8px;white-space:nowrap"><span class="cl-pill {{ $pill }}">{{ $label }}</span><span class="nw">{{ $i->due_date && $i->status === 'ISSUED' && ! $i->isCreditNote() ? $i->due_date->format('j M') : '—' }}</span></div>
+                                <div style="display:flex;align-items:center;gap:8px;white-space:nowrap"><span class="cl-pill {{ $pill }}">{{ $label }}</span><span class="nw">{{ $i->due_date && $i->status === 'ISSUED' && ! $i->isCreditNote() ? $i->due_date->displayShortDate() : '—' }}</span></div>
                                 @if ($i->due_date && $i->status === 'ISSUED' && ! $i->isCreditNote())
                                     <div class="cl-sub" style="margin-top:3px;@if ($late) color:#b3352c @endif">{{ $label === 'Paid' ? 'Paid' : ($i->due_date->isPast() ? (int) $i->due_date->diffInDays(today()).' days overdue' : 'in '.(int) today()->diffInDays($i->due_date).' days') }}</div>
                                 @endif
@@ -595,8 +595,8 @@ new class extends Component
                 <div style="color:#55585d">{{ $inv->customer?->name }}@if ($inv->customer_reference) · {{ $inv->customer_reference }}@endif</div>
             </div>@include('partials.list-hide-panel')</div>
             <div class="cl-two">
-                <div><div class="lab">Invoice date</div><div>{{ $inv->invoice_date->format('j M Y') }}</div></div>
-                <div><div class="lab">Due</div><div>{{ $inv->due_date && $inv->status !== 'DRAFT' ? $inv->due_date->format('j M Y') : '—' }}</div></div>
+                <div><div class="lab">Invoice date</div><div>{{ $inv->invoice_date->displayDate() }}</div></div>
+                <div><div class="lab">Due</div><div>{{ $inv->due_date && $inv->status !== 'DRAFT' ? $inv->due_date->displayDate() : '—' }}</div></div>
                 <div><div class="lab">Total</div><div>{{ \App\Support\Formats::money($inv->total, 0) }}</div></div>
                 <div><div class="lab">Balance</div><div style="font-weight:600">{{ \App\Support\Formats::money($p['balance'], 0) }}</div></div>
             </div>

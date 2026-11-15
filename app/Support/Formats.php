@@ -104,6 +104,12 @@ class Formats
         return $d ? $d->format(self::DATES[self::all()['date']]['short']) : '';
     }
 
+    /** The day-and-month pattern itself, for the scripts that format a date as it is picked. */
+    public static function shortPattern(): string
+    {
+        return self::DATES[self::all()['date']]['short'];
+    }
+
     public static function time(?CarbonInterface $d): string
     {
         return $d ? $d->format(self::TIMES[self::all()['time']]['time']) : '';
