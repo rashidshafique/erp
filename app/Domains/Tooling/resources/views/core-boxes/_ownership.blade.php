@@ -10,20 +10,20 @@
     $editable = ! $box->trashed();
 @endphp
 <div class="panel" id="ownership">
-    <div class="panel-header"><h2>Ownership and custody</h2></div>
+    <div class="panel-header"><h2>Ownership &amp; custody</h2>
+        @if ($editable)<span class="actions"><button type="button" class="btn btn-small" data-open-ownership>Change owner</button><button type="button" class="btn btn-small" data-open-ownership>Change location</button></span>@endif</div>
     <div class="panel-body">
-        <div class="record-list">
-            @include('partials.record-row', ['icon' => 'building', 'title' => $box->ownerLabel(),
-                'sub' => collect([$paidBy ? 'Paid by '.$paidBy : null, $box->ownership_reference ? 'Ownership tag '.$box->ownership_reference : null, $box->return_notice_days !== null ? 'Return on request: '.($box->return_notice_days ? $box->return_notice_days.' days' : 'at once') : null])->filter()->implode(' · ') ?: 'No paper recorded',
-                'editTarget' => $editable ? 'cb-ownership-edit' : null, 'editLabel' => 'Change owner'])
-            @include('partials.record-row', ['icon' => 'map-pin', 'title' => $box->custodyLabel(), 'sub' => 'Where the core box is now',
-                'editTarget' => $editable ? 'cb-ownership-edit' : null, 'editLabel' => 'Change location'])
-        </div>
+        <dl class="tool-facts cb-facts4">
+            <div><dt>Owner</dt><dd>{{ $box->ownerLabel() }}@if ($paidBy)<span class="sub">Paid by {{ $paidBy }}</span>@endif</dd></div>
+            <div><dt>Where it is now</dt><dd>{{ $box->displayStatus() === 'LENT' ? 'Lent' : $box->custodyLabel() }}</dd></div>
+            <div><dt>{{ $box->custody === 'LENT' ? 'With whom' : 'Location' }}</dt><dd>{{ $box->custody_location ?: '—' }}</dd></div>
+            <div><dt>Ownership tag</dt><dd>{{ $box->ownership_reference ?: '—' }}@if ($box->return_notice_days !== null)<span class="sub">Return on request: {{ $box->return_notice_days ? $box->return_notice_days.' days' : 'at once' }}</span>@endif</dd></div>
+        </dl>
     </div>
     @if ($editable)
-    <div class="panel-body" style="border-top:1px solid var(--border)">
+    <div class="panel-body cb-own-edit" style="border-top:1px solid var(--border)">
         <details id="cb-ownership-edit" @if ($errors->hasAny(['owner_type', 'owner_customer_id', 'custody', 'custody_location', 'return_notice_days'])) open @endif>
-            <summary class="btn">Change owner or location</summary>
+            <summary class="sr-only">Change owner or location</summary>
             <form method="POST" action="{{ route('core-boxes.ownership', $box) }}" style="margin-top:12px">@csrf @method('PUT')
                 <div class="form-grid">
                     <div class="field"><label for="cb-owner_type">Owner *</label><select id="cb-owner_type" name="owner_type">@foreach (['FOUNDRY' => 'Foundry', 'CUSTOMER' => 'Customer'] as $k => $l)<option value="{{ $k }}" @selected(old('owner_type', $box->owner_type) === $k)>{{ $l }}</option>@endforeach</select></div>
@@ -39,3 +39,6 @@
     </div>
     @endif
 </div>
+@if ($editable)
+<script>document.querySelectorAll('[data-open-ownership]').forEach(b => b.addEventListener('click', () => { const d = document.getElementById('cb-ownership-edit'); d.open = true; d.querySelector('select, input')?.focus(); }));</script>
+@endif

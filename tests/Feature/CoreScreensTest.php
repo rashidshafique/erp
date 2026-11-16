@@ -55,7 +55,7 @@ class CoreScreensTest extends TestCase
         $box = CoreBox::sole();
         $this->assertEqualsCanonicalizing([$a->id, $b->id], $box->coresMade()->pluck('id')->all());
         $this->assertSame('Core A × 2, Core B × 1, 1 blocked', $box->makesLine());
-        $this->get(route('core-boxes.show', $box))->assertOk()->assertSee('Cores this box makes')->assertSee('Blocked, makes nothing')->assertDontSee('Core made in each cavity');
+        $this->get(route('core-boxes.show', $box))->assertOk()->assertSee('Cavity map')->assertSee('Cavity 4: blocked', false)->assertSee('Blocked × 1');
         $this->get(route('cores.show', $b))->assertOk()->assertSee($box->code)->assertSee('1 of 4');
     }
 
@@ -191,8 +191,8 @@ class CoreScreensTest extends TestCase
             'custody_location' => 'CS-R2-04', 'ownership_reference' => 'NL-T-0121', 'return_notice_days' => 14])->assertSessionHasNoErrors();
 
         $this->assertSame($customer->id, $box->fresh()->owner_customer_id);
-        $this->get(route('core-boxes.show', $box))->assertOk()->assertSee('Nordline · customer-owned')->assertSee('In our store · CS-R2-04')
-            ->assertSee('Ownership tag NL-T-0121')->assertSee('Return on request: 14 days');
+        $this->get(route('core-boxes.show', $box))->assertOk()->assertSee('Nordline · customer-owned')->assertSee('In our store')->assertSee('CS-R2-04')
+            ->assertSee('NL-T-0121')->assertSee('Return on request: 14 days');
         $this->put(route('core-boxes.ownership', $box), ['owner_type' => 'FOUNDRY', 'owner_customer_id' => $customer->id, 'custody' => 'IN_STORE']);
         $this->assertNull($box->fresh()->owner_customer_id);
     }
@@ -235,5 +235,59 @@ class CoreScreensTest extends TestCase
         $core->delete();
 
         $this->get(route('cores.show', $core))->assertOk()->assertSee('Restore')->assertDontSee(route('cores.edit', $core))->assertDontSee('+ Product');
+    }
+
+    public function test_a_cavity_is_changed_or_blocked_from_the_map_and_the_main_core_follows(): void
+    {
+        $a = $this->core('Core A');
+        $b = $this->core('Core B');
+        $this->post(route('core-boxes.store'), $this->boxPayload($a, ['box_cores' => [['core' => $a->id, 'qty' => 2], ['core' => $b->id, 'qty' => 1]]]));
+        $box = CoreBox::sole();
+        $this->get(route('core-boxes.show', $box))->assertOk()->assertSee(route('core-boxes.cavity', [$box, 3]))->assertSee('Save cavity');
+
+        $this->put(route('core-boxes.cavity', [$box, 1]), ['core' => $b->id])->assertSessionHasNoErrors();
+        $this->put(route('core-boxes.cavity', [$box, 2]), ['core' => ''])->assertSessionHasNoErrors();
+
+        $this->assertSame([1 => $b->id, 3 => $b->id], $box->cavityMap()->pluck('core_definition_id', 'cavity_number')->all());
+        $this->assertSame($b->id, $box->fresh()->core_definition_id);
+        $this->assertSame(1, $box->fresh()->blockedCavities());
+        $this->put(route('core-boxes.cavity', [$box, 4]), ['core' => $a->id])->assertNotFound();
+    }
+
+    public function test_the_last_cavity_making_a_core_cannot_be_blocked(): void
+    {
+        $core = $this->core();
+        $this->post(route('core-boxes.store'), $this->boxPayload($core, ['cavities' => 2]));
+        $box = CoreBox::sole();
+        $this->put(route('core-boxes.cavity', [$box, 1]), ['core' => '']);
+
+        $this->put(route('core-boxes.cavity', [$box, 2]), ['core' => ''])->assertSessionHasErrors('core');
+
+        $this->assertSame([2 => $core->id], $box->cavityMap()->pluck('core_definition_id', 'cavity_number')->all());
+    }
+
+    public function test_saving_the_form_with_the_same_counts_keeps_cavities_set_on_the_map(): void
+    {
+        $a = $this->core('Core A');
+        $b = $this->core('Core B');
+        $this->post(route('core-boxes.store'), $this->boxPayload($a, ['box_cores' => [['core' => $a->id, 'qty' => 2], ['core' => $b->id, 'qty' => 1]], 'blocked' => 1]));
+        $box = CoreBox::sole();
+        $this->put(route('core-boxes.cavity', [$box, 4]), ['core' => $b->id]);
+        $this->put(route('core-boxes.cavity', [$box, 3]), ['core' => '']);
+
+        $this->put(route('core-boxes.update', $box), $this->boxPayload($a, ['name' => 'Renamed', 'box_cores' => [['core' => $a->id, 'qty' => 2], ['core' => $b->id, 'qty' => 1]], 'blocked' => 1]))->assertSessionHasNoErrors();
+
+        $this->assertSame([1 => $a->id, 2 => $a->id, 4 => $b->id], $box->cavityMap()->pluck('core_definition_id', 'cavity_number')->all());
+        $this->assertSame('Renamed', $box->fresh()->name);
+    }
+
+    public function test_an_archived_box_shows_its_map_read_only(): void
+    {
+        $this->post(route('core-boxes.store'), $this->boxPayload($this->core(), ['cavities' => 2]));
+        $box = CoreBox::sole();
+        $box->delete();
+
+        $this->get(route('core-boxes.show', $box))->assertOk()->assertSee('Restore')->assertSee('Cavity map')->assertDontSee('Save cavity')->assertDontSee(route('core-boxes.edit', $box));
+        $this->put(route('core-boxes.cavity', [$box, 1]), ['core' => ''])->assertNotFound();
     }
 }

@@ -51,7 +51,10 @@ class CoreBox extends Model
     public const CUSTODY_LABELS = ['IN_STORE' => 'In our store', 'PATTERN_SHOP' => 'At the pattern shop', 'LENT' => 'Lent to a third party for core making'];
 
     /** The statuses the lists and the page head show: Lent is an active box that is out with a third party. */
-    public const STATUS_LABELS = ['ACTIVE' => 'In use', 'LENT' => 'Lent', 'INACTIVE' => 'Inactive', 'RETIRED' => 'Retired'];
+    /** Cell tints for the cavity map, one per core in order of its first cavity; they differ in lightness as well as hue. */
+    public const MAP_TINTS = ['#dbe7fb', '#f6e3c8', '#dff0e6', '#ecdff6', '#f9dcdc', '#e3e7ea'];
+
+    public const STATUS_LABELS =['ACTIVE' => 'In use', 'LENT' => 'Lent', 'INACTIVE' => 'Inactive', 'RETIRED' => 'Retired'];
 
     protected $casts = [
         'return_notice_days' => 'integer',
@@ -127,9 +130,39 @@ class CoreBox extends Model
                 $this->cavityMap()->create(['cavity_number' => (int) $number, 'core_definition_id' => $coreId]);
             }
         }
+        $this->syncMainCore();
+    }
+
+    /** Sets the core one cavity makes, or blocks it when $coreId is null. The map must keep at least one core. */
+    public function setCavity(int $number, ?string $coreId): void
+    {
+        if (filled($coreId)) {
+            $this->cavityMap()->updateOrCreate(['cavity_number' => $number], ['core_definition_id' => $coreId]);
+        } else {
+            $this->cavityMap()->where('cavity_number', $number)->delete();
+        }
+        $this->syncMainCore();
+        $this->unsetRelation('cavityMap');
+    }
+
+    /** The box's main core is the one in its lowest filled cavity. */
+    private function syncMainCore(): void
+    {
         if ($first = $this->cavityMap()->first()) {
             $this->update(['core_definition_id' => $first->core_definition_id]);
         }
+    }
+
+    /**
+     * Each cavity from 1 to the box's count with the core it makes, or null when blocked.
+     *
+     * @return array<int, CoreDefinition|null>
+     */
+    public function cavityCells(): array
+    {
+        $byNumber = $this->cavityMap->keyBy('cavity_number');
+
+        return collect(range(1, max(1, (int) $this->cavities)))->mapWithKeys(fn (int $n) => [$n => $byNumber->get($n)?->coreDefinition])->all();
     }
 
     /**

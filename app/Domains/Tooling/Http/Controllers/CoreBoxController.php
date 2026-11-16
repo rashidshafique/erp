@@ -59,6 +59,7 @@ class CoreBoxController extends Controller
             'life' => ToolingLifeLimit::where('core_box_id', $coreBox->id)->where('is_active', true)->first(),
             'derived' => CoreBox::where('modified_from_core_box_id', $coreBox->id)->orderBy('code')->get(),
             'customers' => Customer::active()->orderedByName()->get(),
+            'cores' => CoreDefinition::where('status', 'ACTIVE')->orderBy('code')->get(['id', 'code', 'name']),
         ]);
     }
 
@@ -73,6 +74,8 @@ class CoreBoxController extends Controller
         $rows = $this->posted($request);
         $saved = $coreBox->cavityMap()->pluck('core_definition_id', 'cavity_number')->all();
         $map = match (true) {
+            // The same cores in the same numbers keep the cavity numbers set on the box page.
+            $rows !== null && $this->sameCounts($rows, $saved, (int) $data['cavities']) => $saved + array_fill(1, (int) $data['cavities'], null),
             $rows !== null => $this->mapFromRows($rows['cores'], $rows['blocked']),
             // More cavities start on the main core; fewer drop the highest numbers.
             default => collect(range(1, (int) $data['cavities']))->mapWithKeys(fn ($n) => [$n => $saved[$n] ?? $data['core_definition_id']])->all(),
@@ -90,6 +93,35 @@ class CoreBoxController extends Controller
     /** Who owns the box and where it is (design 18h). */
     public function updateOwnership(Request $request, CoreBox $coreBox): RedirectResponse
     {
+        $coreBox->update($this->ownership($request));
+
+        return back()->with('success', "Ownership of {$coreBox->code} saved.");
+    }
+
+    /** Sets the core one cavity makes, or blocks it, from the cavity map on the box page. */
+    public function cavity(Request $request, CoreBox $coreBox, int $number): RedirectResponse
+    {
+        abort_if($coreBox->trashed(), 404);
+        abort_if($number < 1 || $number > (int) $coreBox->cavities, 404);
+        $data = $request->validate([
+            'core' => ['nullable', 'uuid', Rule::exists('core_definitions', 'id')->whereNull('deleted_at')],
+        ], ['core.exists' => 'Choose a core, or Blocked.']);
+        $coreId = $data['core'] ?? null;
+        if ($coreId === null && $coreBox->cavityMap()->where('cavity_number', '!=', $number)->doesntExist()) {
+            throw ValidationException::withMessages(['core' => 'A box must make at least one core, so its last cavity cannot be blocked.']);
+        }
+        $coreBox->setCavity($number, $coreId);
+
+        return redirect()->to(route('core-boxes.show', $coreBox).'#cavity-map')->with('success', $coreId ? "Cavity {$number} saved." : "Cavity {$number} blocked.");
+    }
+
+    /**
+     * Who owns the box and where it is, from the box page or the form.
+     *
+     * @return array{owner_type: string, owner_customer_id: ?string, custody: string, custody_location: ?string, ownership_reference: ?string, return_notice_days: ?int}
+     */
+    private function ownership(Request $request): array
+    {
         $data = $request->validate([
             'owner_type' => ['required', Rule::in(['FOUNDRY', 'CUSTOMER'])],
             'owner_customer_id' => ['required_if:owner_type,CUSTOMER', 'nullable', 'uuid', Rule::exists('customers', 'id')],
@@ -104,9 +136,22 @@ class CoreBoxController extends Controller
         if ($data['owner_type'] === 'FOUNDRY') {
             $data['owner_customer_id'] = null;
         }
-        $coreBox->update($data);
 
-        return back()->with('success', "Ownership of {$coreBox->code} saved.");
+        return $data + ['owner_customer_id' => null, 'custody_location' => null, 'ownership_reference' => null, 'return_notice_days' => null];
+    }
+
+    /**
+     * Whether the posted rows give each core the same number of cavities as the saved map, with the same total.
+     *
+     * @param  array{cores: list<array{core: string, qty: int}>, blocked: int}  $rows
+     * @param  array<int, string>  $saved  cavity number => core id
+     */
+    private function sameCounts(array $rows, array $saved, int $total): bool
+    {
+        $posted = collect($rows['cores'])->mapWithKeys(fn ($r) => [$r['core'] => $r['qty']])->sortKeys()->all();
+        $had = collect($saved)->countBy()->sortKeys()->all();
+
+        return $saved !== [] && $posted === $had && max(array_keys($saved)) <= $total;
     }
 
     public function archive(CoreBox $coreBox): RedirectResponse
