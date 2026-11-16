@@ -337,6 +337,6 @@ class PostDatedChequeTest extends TestCase
         $this->post(route('cheques.bounce', Cheque::where('amount', 300)->sole()), ['date' => '2026-11-12', 'reason' => 'Stopped']);
         $this->receiveCheque(200, [], '2026-11-20');
 
-        $this->get(route('cheques.received'))->assertOk()->assertSee('All 3')->assertSeeInOrder(['20 Nov', '25 Nov', 'Bounced']);
+        $this->get(route('cheques.received'))->assertOk()->assertSee('All<span class="n">3</span>', false)->assertSeeInOrder(['20 Nov', '25 Nov', 'Bounced']);
     }
 }

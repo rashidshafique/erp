@@ -21,11 +21,11 @@ class OrderStatusTabsTest extends TestCase
             PurchaseOrder::create(['po_number' => $number, 'supplier_id' => $supplier->id, 'order_date' => today(), 'status' => $status, 'currency' => 'PKR']);
         }
 
-        $this->get(route('purchase-orders.index'))->assertOk()->assertSee('Open <span>(2)</span>', false)->assertSee('All <span>(3)</span>', false)->assertSee('PO-3');
+        $this->get(route('purchase-orders.index'))->assertOk()->assertSee('Open<span class="n">2</span>', false)->assertSee('All<span class="n">3</span>', false)->assertSee('PO-3');
         $this->get(route('purchase-orders.index', ['status' => 'OPEN']))->assertSee('PO-1')->assertSee('PO-2')->assertDontSee('PO-3');
         $this->get(route('purchase-orders.index', ['status' => 'DRAFT']))->assertSee('PO-1')->assertDontSee('PO-2');
         $this->get(route('purchase-orders.index', ['status' => 'RECEIVING']))->assertSee('PO-2')->assertDontSee('PO-1');
-        $this->get(route('purchase-orders.index', ['search' => 'morbi']))->assertSee('PO-2')->assertDontSee('PO-1')->assertSee('All <span>(1)</span>', false);
+        $this->get(route('purchase-orders.index', ['search' => 'morbi']))->assertSee('PO-2')->assertDontSee('PO-1')->assertSee('All<span class="n">1</span>', false);
     }
 
     public function test_sales_orders_filter_by_status_buttons_with_counts_and_search_by_customer(): void

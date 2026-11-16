@@ -12,7 +12,7 @@
 <style>
 .cl-card { border: 1px solid #e6e7e9; border-radius: 8px; background: #fff; overflow: hidden; font-size: 13px; }
 .cl-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 14px 28px; border-bottom: 1px solid #e6e7e9; }
-.cl-tabs { display: flex; gap: 4px; flex-wrap: wrap; } .cl-tabs a { padding: 4px 10px; border-radius: 6px; color: #55585d; text-decoration: none !important; } .cl-tabs a.on { background: #f0f1f3; color: #1c1d1f; }
+.cl-tabs { display: flex; gap: 22px; flex-wrap: wrap; } .cl-tabs a { display: inline-flex; align-items: center; gap: 7px; height: 38px; color: #55585d; text-decoration: none !important; } .cl-tabs a.on { font-weight: 600; color: #1c1d1f; box-shadow: inset 0 -2px 0 var(--accent); } .cl-tabs .n { display: inline-flex; align-items: center; justify-content: center; min-width: 21px; height: 19px; padding: 0 6px; box-sizing: border-box; border-radius: 10px; background: #eceef1; color: #55585d; font-size: 11.5px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1; } .cl-tabs .on .n { background: color-mix(in srgb, var(--accent) 14%, #fff); color: var(--accent); }
 .cl-btn { padding: 7px 14px; border-radius: 6px; background: #fff; border: 1px solid #d9dbde; font-size: 13px; color: #1c1d1f; cursor: pointer; text-decoration: none !important; font-family: inherit; }
 .cl-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 500; } .cl-btn.small { padding: 3px 10px; font-size: 12px; }
 .cl-main { padding: 20px 28px; display: flex; flex-direction: column; gap: 16px; }
@@ -30,7 +30,7 @@
             <nav class="cl-tabs">
                 @foreach (\App\Domains\Finance\Http\Controllers\ChequeController::TABS as $key => $label)
                     @if ($key !== 'deposited' || $steps === 'DEPOSIT' || $counts[$key] > 0)
-                    <a href="{{ route($received ? 'cheques.received' : 'cheques.issued', ['tab' => $key, 'q' => $search ?: null]) }}" @class(['on' => $tab === $key])>{{ $label }} {{ $counts[$key] }}</a>
+                    <a href="{{ route($received ? 'cheques.received' : 'cheques.issued', ['tab' => $key, 'q' => $search ?: null]) }}" @class(['on' => $tab === $key]) @if ($tab === $key) aria-current="page" @endif>{{ $label }}<span class="n">{{ $counts[$key] }}</span></a>
                     @endif
                 @endforeach
             </nav>

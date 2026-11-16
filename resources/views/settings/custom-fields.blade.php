@@ -12,7 +12,9 @@
     .cf-records a { display: flex; justify-content: space-between; gap: 8px; padding: 7px 12px; border-radius: 6px; color: inherit; text-decoration: none; font-size: 13.5px; }
     .cf-records a:hover { background: var(--hover); }
     .cf-records a.active { background: var(--hover); font-weight: 500; color: var(--accent-dark); }
-    .cf-records .n { color: var(--muted); font-size: 12px; }
+    .cf-records a { align-items: center; }
+    .cf-records .n { display: inline-flex; align-items: center; justify-content: center; min-width: 21px; height: 19px; padding: 0 6px; box-sizing: border-box; border-radius: 10px; background: #eceef1; color: #55585d; font-size: 11.5px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1; }
+    .cf-records a.active .n { background: color-mix(in srgb, var(--accent) 14%, #fff); color: var(--accent); }
     .cf-empty { padding: 32px 16px; text-align: center; color: var(--muted); }
     dialog.cf-new { border: 1px solid var(--border); border-radius: 10px; padding: 0; width: min(520px, 94vw); }
     dialog.cf-new::backdrop { background: rgba(0,0,0,.25); }

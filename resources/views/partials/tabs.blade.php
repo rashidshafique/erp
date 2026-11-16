@@ -8,7 +8,7 @@
     .tabbar button:hover { color: var(--text); }
     .tabbar button[aria-selected="true"] { color: var(--text); font-weight: 600; box-shadow: inset 0 -2px 0 var(--accent); }
     .tabbar button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-    .tab-count { display: inline-block; min-width: 18px; margin-left: 6px; padding: 0 7px; border-radius: 6px; font-size: 11px; font-weight: 600; line-height: 1.6; text-align: center; }
+    .tab-count { display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; min-width: 21px; height: 19px; margin-left: 7px; padding: 0 6px; box-sizing: border-box; border-radius: 10px; font-size: 11.5px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1; }
     .tab-count-warn { background: #fff3cd; color: #7a5b00; }
     .tab-count-block { background: #fce8e6; color: #a12820; }
     .tab-pane[hidden] { display: none; }
