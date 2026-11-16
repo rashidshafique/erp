@@ -201,7 +201,7 @@ new class extends Component
             <div class="ls-scroll">
                 <table data-table="core-boxes">
                     <thead>
-                        <tr><th>Code</th><th>Name</th><th>Rev</th><th>Makes</th><th class="r">Cavities</th><th>Owner / where it is</th><th>Status</th></tr>
+                        <tr><th>Code</th><th>Name</th><th>Rev</th><th>Makes</th><th class="r">Cavities</th><th>Owner / where it is</th><th>Status</th>@unless ($details || $archived)<th><span class="sr-only">Actions</span></th>@endunless</tr>
                     </thead>
                     <tbody>
                         @foreach ($boxes as $box)
@@ -219,6 +219,14 @@ new class extends Component
                                     @if ($archived)<span class="pill">Archived</span> <form method="POST" action="{{ route('core-boxes.restore', $box) }}" style="display:inline" wire:click.stop>@csrf<button class="tk-link" type="submit">Restore</button></form>
                                     @else<span @class(['pill', 'ok' => $shown === 'ACTIVE', 'info' => $shown === 'LENT'])>{{ CoreBox::STATUS_LABELS[$shown] ?? $shown }}</span>@endif
                                 </td>
+                                @unless ($details || $archived)
+                                    <td class="r"><details class="ls-menu right"><summary class="ls-more" aria-label="Actions for {{ $box->code }}">⋯</summary>
+                                        <div class="ls-pop" role="menu"><a role="menuitem" href="{{ $show }}">Open core box</a>
+                                            <a role="menuitem" href="{{ $show }}#cavity-map">Edit cavities</a>
+                                            <a role="menuitem" href="{{ $show }}#ownership">Change location</a>
+                                            @if (Route::has('tooling-maintenance.create'))<a role="menuitem" href="{{ route('tooling-maintenance.create', ['tooling_type' => 'CORE_BOX', 'core_box_id' => $box->id, 'activity_type' => 'REPAIR']) }}">Raise refurb request</a>@endif
+                                            @if (Route::has('developments.create'))<a role="menuitem" href="{{ route('developments.create', ['from' => 'core_box:'.$box->id]) }}">Start replacement</a>@endif</div></details></td>
+                                @endunless
                             </tr>
                         @endforeach
                     </tbody>
@@ -242,11 +250,8 @@ new class extends Component
                 @unless ($archived)<a class="ls-btn" href="{{ route('core-boxes.edit', $focus) }}">Edit</a>@endunless
             </div>
             @if ($openRecord)<div class="tk-note">{{ \Illuminate\Support\Str::limit($openRecord->problem_description ?: ucfirst(strtolower(str_replace('_', ' ', $openRecord->activity_type))), 80) }}. <a href="{{ route('tooling-maintenance.show', $openRecord) }}">{{ $openRecord->record_number }}</a> open since {{ $openRecord->reported_at?->displayDate() }}.</div>@endif
-            <div class="label">Cores it makes</div>
-            @foreach ($focus->coreCounts() as $row)
-                <div class="row"><span>@if ($row['core'])<a href="{{ route('cores.show', $row['core']) }}"><code>{{ $row['core']->code }}</code></a> {{ $row['core']->name }}@else — @endif</span><span>× {{ $row['qty'] }}</span></div>
-            @endforeach
-            @if ($focus->blockedCavities() > 0)<div class="row"><span>Blocked</span><span>× {{ $focus->blockedCavities() }}</span></div>@endif
+            <div class="label">Cavity map</div>
+            @include('tooling::core-boxes._cavity-map', ['box' => $focus, 'small' => true])
             @if ($life)
                 <div class="row"><span>Life used</span><span>{{ Formats::number($life['used']['current_usage'], 0) }} of {{ Formats::number((float) $life['limit']->service_life_quantity, 0) }} {{ strtolower(str_replace('_', ' ', $life['limit']->usage_unit)) }}</span></div>
             @endif

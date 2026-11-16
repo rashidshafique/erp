@@ -69,7 +69,8 @@ class CoreListsTest extends TestCase
         $this->assertSame(['Spare box'], $this->names($list->call('showStatus', 'LENT'), 'boxes'));
         $this->assertSame(['Old box'], $this->names($list->call('showStatus', 'RETIRED'), 'boxes'));
         $list->call('showStatus', '')->assertSee('Lent · Erie Core Works')->call('focus', $lent->id)
-            ->assertSee('Cores it makes')->assertSee('Manifold core')->assertSee('Lent to a third party for core making · Erie Core Works');
+            ->assertSee('Cavity map')->assertSee('Cavity 1: Manifold core')->assertSee('Lent to a third party for core making · Erie Core Works');
+        $list->set('details', false)->assertSee('Edit cavities')->assertSee(route('core-boxes.show', $lent).'#cavity-map');
 
         $this->get(route('core-boxes.show', $lent))->assertOk()->assertSee('Lent')->assertSee('with Erie Core Works');
         $this->get(route('core-boxes.index', ['status' => 'LENT']))->assertOk()->assertSee('Spare box')->assertDontSee('Home box');
