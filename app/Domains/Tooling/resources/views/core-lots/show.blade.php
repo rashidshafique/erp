@@ -32,7 +32,7 @@
 
 @if ($lot->qc_status === 'PENDING')
     <div class="cl-check" role="status">
-        <span><strong>Check required.</strong> These cores cannot be used until the lot passes. Fail it to scrap them or raise an NCR.</span>
+        <span><strong>Check required.</strong> @if ($lot->coreDefinition?->check_note){{ $lot->coreDefinition->check_note }} @endif These cores cannot be used until the lot passes. Fail it to scrap them or raise an NCR.</span>
         <span class="acts">
             <form method="POST" action="{{ route('core-lots.check', $lot) }}">@csrf @method('PUT')<input type="hidden" name="result" value="PASSED"><button class="btn btn-primary" type="submit">Pass</button></form>
             <form method="POST" action="{{ route('core-lots.check', $lot) }}">@csrf @method('PUT')<input type="hidden" name="result" value="FAILED"><button class="btn" type="submit">Fail</button></form>

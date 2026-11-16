@@ -120,6 +120,7 @@ class CoreController extends Controller
             'nominal_weight_kg' => ['nullable', 'numeric', 'gt:0', 'max:99999'],
             'description' => ['nullable', 'string', 'max:2000'],
             'engineering_notes' => ['nullable', 'string', 'max:4000'],
+            'check_note' => ['nullable', 'string', 'max:500'],
         ], ['name.required' => 'Give the core a name.']);
         if (blank($data['code'] ?? null)) {
             unset($data['code']);

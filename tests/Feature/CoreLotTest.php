@@ -312,4 +312,16 @@ class CoreLotTest extends TestCase
 
         $this->assertSame(3, CoreLot::sole()->remaining());
     }
+
+    public function test_a_core_says_what_to_check_and_its_waiting_lots_show_it(): void
+    {
+        $this->get(route('cores.edit', $this->core))->assertOk()->assertDontSee('What to check');
+        CoreRules::set('qc', 'REQUIRED');
+        $this->get(route('cores.edit', $this->core))->assertOk()->assertSee('What to check');
+
+        $this->put(route('cores.update', $this->core), ['name' => 'Jacket core', 'core_type' => 'STANDARD', 'check_note' => 'Sample 3 cores per lot: vents open.'])->assertSessionHasNoErrors();
+        $lot = $this->make();
+
+        $this->get(route('core-lots.show', $lot))->assertOk()->assertSee('Check required.')->assertSee('Sample 3 cores per lot: vents open.');
+    }
 }

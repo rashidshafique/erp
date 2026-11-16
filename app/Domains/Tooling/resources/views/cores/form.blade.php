@@ -18,6 +18,9 @@
         <div class="field"><label for="mark_code">Mark code</label><input id="mark_code" name="mark_code" minlength="3" maxlength="20" pattern="[A-Za-z0-9]+" value="{{ old('mark_code', $core->mark_code) }}"><div class="help">Leave empty to number it automatically.</div></div>
         <div class="field"><label for="code">Code</label><input id="code" value="{{ $isNew ? 'Set automatically' : $core->code }}" disabled></div>
         <div class="field field-full"><label for="description">Description</label><textarea id="description" name="description" rows="2" maxlength="2000">{{ old('description', $core->description) }}</textarea></div>
+        @if (\App\Domains\Tooling\Support\CoreRules::get('qc') === 'REQUIRED')
+        <div class="field field-full"><label for="check_note">What to check</label><input id="check_note" name="check_note" maxlength="500" value="{{ old('check_note', $core->check_note) }}" placeholder="e.g. Sample 3 cores per lot: vents open, prints clean, no cracks"><div class="help">Shown on each lot of this core while it waits for its check.</div></div>
+        @endif
         <div class="field field-full">
             <details @if (old('engineering_notes', $core->engineering_notes)) open @endif>
                 <summary style="cursor:pointer;color:var(--accent)">+ Add engineering notes, photo or barcode</summary>

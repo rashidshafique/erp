@@ -28,6 +28,7 @@ class CoreDefinition extends Model
         'nominal_weight_kg',
         'process_type',
         'description',
+        'check_note',
         'engineering_notes',
     ];
 
