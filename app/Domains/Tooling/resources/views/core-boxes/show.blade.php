@@ -34,7 +34,6 @@
 @if ($box->trashed())<div class="alert alert-warning" style="display:flex;align-items:center;gap:10px"><span class="status status-cancelled">Archived</span><span>Archived {{ $box->deleted_at->displayDate() }} — hidden from pickers and lists. Facts stay readable.</span><form method="POST" action="{{ route('core-boxes.restore', $box) }}" style="margin-left:auto">@csrf<button class="btn" type="submit">Restore</button></form></div>@endif
 <style>
     .core-top { display: flex; gap: 20px; align-items: flex-start; } .core-top .cover-box { float: none; margin: 0; flex: none; } .core-top > div { flex: 1; min-width: 0; }
-    .core-top .tool-facts, .cb-facts4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .cb-own-edit:has(> details:not([open])) { display: none; }
     .cb-life { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
     .cb-life .bar { flex: 0 1 320px; height: 8px; border-radius: 4px; background: color-mix(in srgb, var(--border) 70%, transparent); overflow: hidden; }
@@ -42,6 +41,7 @@
     .cb-life .bar.warn span { background: #b8730a; } .cb-life .bar.over span { background: #b3261e; }
     @media (max-width: 800px) { .core-top { flex-direction: column; } .core-top .tool-facts, .cb-facts4 { grid-template-columns: 1fr 1fr; } }
 </style>
+@include('tooling::_facts-css')
 <div class="tab-marker" data-tab-start="Core box"></div>
 <div class="panel"><div class="panel-body">
     <div class="core-top">

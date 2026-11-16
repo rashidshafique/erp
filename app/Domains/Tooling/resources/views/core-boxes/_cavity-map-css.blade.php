@@ -12,7 +12,7 @@
     button.cb-cell:hover, button.cb-cell:focus-visible { border-color: var(--accent, #2f5fd0); outline: 2px solid color-mix(in srgb, var(--accent, #2f5fd0) 30%, transparent); }
     .cb-map-key { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; }
     .cb-map-key span { display: inline-flex; align-items: center; gap: 6px; }
-    .cb-map-key i { width: 12px; height: 12px; border-radius: 3px; border: 1px solid #b9bdc2; }
+    .cb-map-key i { display: inline-block; flex: none; width: 12px; height: 12px; border-radius: 3px; border: 1px solid #b9bdc2; }
     .cb-map.small .cb-cell { width: 60px; min-height: 44px; padding: 4px 6px; }
 </style>
 @endonce
