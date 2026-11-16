@@ -212,7 +212,7 @@ new class extends Component
                         <td><span class="status {{ in_array($supplier->approval_status, ['APPROVED']) ? 'status-completed' : (in_array($supplier->approval_status, Supplier::BLOCKED) ? 'status-cancelled' : '') }}">{{ $statuses[$supplier->approval_status] }}</span></td>
                         <td>{{ $supplier->latest_score ?? '—' }}</td>
                         <td @if ($supplier->isReviewOverdue()) style="color:var(--danger)" @endif>{{ $supplier->next_review_on?->displayDate() ?? '—' }}</td>
-                        <td class="r"><details class="ls-menu right"><summary class="ls-more" aria-label="Actions for {{ $supplier->code }}">⋯</summary>
+                        <td class="act"><details class="ls-menu right"><summary class="ls-more" aria-label="Actions for {{ $supplier->code }}">⋯</summary>
                             <div class="ls-pop" role="menu"><a role="menuitem" href="{{ $show }}">Open</a><button type="button" role="menuitem" wire:click="edit('{{ $supplier->id }}')">Quick edit</button></div></details></td>
                     </tr>
                 @endforeach

@@ -145,7 +145,6 @@ new class extends Component
 <style global>
     .tk { background: #fff; border: 1px solid #e6e7e9; border-radius: 8px; font-size: 13px; color: #1c1d1f; }
     .tk button, .tk select, .tk input { font: inherit; min-height: 0; }
-    .tk .ls-list tbody tr.on { background: #f5f8fe; }
     .tk th.r, .tk td.r { text-align: right; }
     .tk code { font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; background: none; padding: 0; }
     .tk .name { font-weight: 500; color: #1c1d1f; text-decoration: none; }
@@ -216,7 +215,7 @@ new class extends Component
                             @php $show = route('core-boxes.show', $box); $shown = $box->displayStatus(); @endphp
                             <tr wire:key="box-{{ $box->id }}-{{ $details ? 'p' : 'f' }}" tabindex="0" @class(['on' => $details && $focus && (string) $focus->id === (string) $box->id])
                                 @if ($details) wire:click="focus('{{ $box->id }}')" x-on:focus="$wire.focus('{{ $box->id }}')" x-on:dblclick="window.location = '{{ $show }}'" x-on:keydown.enter="window.location = '{{ $show }}'"
-                                @else x-on:click="if (! $event.target.closest('a,button,form')) window.location = '{{ $show }}'" x-on:keydown.enter="window.location = '{{ $show }}'" @endif>
+                                @else x-on:click="if (! $event.target.closest('a,button,form,summary,details')) window.location = '{{ $show }}'" x-on:keydown.enter="window.location = '{{ $show }}'" @endif>
                                 @php $pct = $lives[$box->id] ?? null; @endphp
                                 <td><a class="name" href="{{ $show }}" wire:click.stop>{{ $box->name }}</a><div class="muted"><code>{{ $box->code }}</code> · Rev {{ $box->revision }}</div></td>
                                 <td>{{ $box->makesLine() ?: '—' }}</td>
@@ -230,7 +229,7 @@ new class extends Component
                                     @else<span @class(['pill', 'ok' => $shown === 'ACTIVE', 'info' => $shown === 'LENT'])>{{ CoreBox::STATUS_LABELS[$shown] ?? $shown }}</span>@endif
                                 </td>
                                 @unless ($details || $archived)
-                                    <td class="r"><details class="ls-menu right"><summary class="ls-more" aria-label="Actions for {{ $box->code }}">⋯</summary>
+                                    <td class="act"><details class="ls-menu right"><summary class="ls-more" aria-label="Actions for {{ $box->code }}">⋯</summary>
                                         <div class="ls-pop" role="menu"><a role="menuitem" href="{{ $show }}">Open core box</a>
                                             <a role="menuitem" href="{{ $show }}#cavity-map">Edit cavities</a>
                                             <a role="menuitem" href="{{ $show }}#ownership">Change location</a>

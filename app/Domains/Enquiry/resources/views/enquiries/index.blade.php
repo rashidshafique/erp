@@ -22,7 +22,7 @@
     .el-side { border-left: 1px solid var(--border); padding: 20px 24px; background: #f8f8f9; display: flex; flex-direction: column; gap: 18px; font-size: 13px; }
     .el-filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13px; } .el-filters input[type=search] { flex: 1; max-width: 320px; } .el-filters select { width: auto; }
     .el-table { margin: 0 -12px; overflow-x: auto; } .el-table table { width: 100%; } .el-table td { vertical-align: top; }
-    .el-table tbody tr { cursor: pointer; } .el-table tbody tr:hover { background: #f5f8fe; }
+    .el-table tbody tr { cursor: pointer; }
     .el-sub { font-size: 12px; color: var(--muted); }
     .el-pill { font-size: 11.5px; padding: 2px 8px; border-radius: 999px; font-weight: 500; white-space: nowrap; background: #f0f1f3; color: #6b6e73; }
     .el-pill.el-blue { background: #eaf0fd; color: var(--accent); } .el-pill.el-ok { background: #e7f4ec; color: #1d7048; } .el-pill.el-warn { background: #fbf0dc; color: #94610a; } .el-pill.el-bad { background: #fbe7e5; color: #b3352c; }
@@ -63,7 +63,7 @@
                 <div class="empty-state"><strong>{{ $tab === 'open' && ! request()->hasAny(['search', 'customer', 'owner']) ? 'No open enquiries' : 'No enquiry matches' }}</strong><p>Record each request as it comes in, whether it is a repeat, a drawing, a sample or a concept.</p><a class="btn btn-primary" href="{{ route('enquiries.create') }}">Start a request</a></div>
             @else
             <div class="el-table"><table data-table="enquiries">
-                <thead><tr><th>Code</th><th>Part</th><th data-col="customer">Customer</th><th data-col="stage">Stage</th><th data-col="pattern">Pattern</th><th class="el-r" data-col="value">Annual value</th><th data-col="reply">Reply by</th><th data-col="owner">Owner</th></tr></thead>
+                <thead><tr><th>Code</th><th>Part</th><th data-col="customer">Customer</th><th data-col="stage">Stage</th><th data-col="pattern">Pattern</th><th class="el-r" data-col="value">Annual value</th><th data-col="reply">Reply by</th><th data-col="owner">Owner</th>@unless ($details)<th><span class="sr-only">Actions</span></th>@endunless</tr></thead>
                 <tbody>
                 @foreach ($rows as $r)
                     @php
@@ -71,7 +71,7 @@
                         $issued = $r->quotations->whereNotNull('issued_at')->sortByDesc('issued_at')->first();
                         $pattern = EnquiryController::patternText($r);
                     @endphp
-                    <tr onclick="if (!event.target.closest('a')) location.href='{{ route('enquiries.show', $r) }}'">
+                    <tr onclick="if (!event.target.closest('a,summary,details')) location.href='{{ route('enquiries.show', $r) }}'">
                         <td><a href="{{ route('enquiries.show', $r) }}" style="color:inherit"><code>{{ $r->code }}</code></a></td>
                         <td><div style="font-weight:500">{{ $first?->description ?? $r->title }}</div><div class="el-sub">{{ collect([$first?->material_text, $first?->annual_qty ? \App\Support\Formats::number($first->annual_qty).' / yr' : null, $r->items->count() > 1 ? '+'.($r->items->count() - 1).' more' : null])->filter()->implode(' · ') ?: Enquiry::SOURCES[$r->source_type] }}</div></td>
                         <td data-col="customer">{{ $r->customer?->name }}</td>
@@ -86,6 +86,7 @@
                             @else<span class="el-sub">—</span>@endif
                         </td>
                         <td data-col="owner">{{ $r->owner?->name ?? '—' }}</td>
+                        @unless ($details)<td class="act"><details class="ls-menu right"><summary class="ls-more" aria-label="Actions for {{ $r->code }}">⋯</summary><div class="ls-pop" role="menu"><a role="menuitem" href="{{ route('enquiries.show', $r) }}">Open enquiry</a><a role="menuitem" href="{{ route('enquiries.edit', $r) }}">Edit</a></div></details></td>@endunless
                     </tr>
                 @endforeach
                 </tbody>

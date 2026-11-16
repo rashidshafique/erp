@@ -134,7 +134,6 @@ new class extends Component
 <style global>
     .tk { background: #fff; border: 1px solid #e6e7e9; border-radius: 8px; font-size: 13px; color: #1c1d1f; }
     .tk button, .tk select, .tk input { font: inherit; min-height: 0; }
-    .tk .ls-list tbody tr.on { background: #f5f8fe; }
     .tk th.r, .tk td.r { text-align: right; }
     .tk code { font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; background: none; padding: 0; }
     .tk .name { font-weight: 500; color: #1c1d1f; text-decoration: none; }
@@ -143,7 +142,7 @@ new class extends Component
     .tk .pill.warn { background: #fbf0dc; color: #94610a; }
     .tk .muted { color: #6b6e73; }
     .tk-side { border-left: 1px solid #e6e7e9; padding: 20px 24px; background: #f8f8f9; display: flex; flex-direction: column; gap: 12px; }
-    .tk-side h3 { margin: 0; font-size: 13px; font-weight: 600; }
+    .tk-side h3 { margin: 0; font-size: 14px; font-weight: 600; }
     .tk-side h3 a { color: inherit; text-decoration: none; }
     .tk-side .row { display: flex; justify-content: space-between; gap: 12px; }
     .tk-side .row span:first-child { color: #6b6e73; }
@@ -193,14 +192,14 @@ new class extends Component
             <div class="ls-scroll">
                 <table data-table="cores">
                     <thead>
-                        <tr><th>Code</th><th>Name</th><th>Type</th><th>Process</th><th class="r">Weight kg</th><th>Made by</th><th class="r">Needed by</th><th class="r">On hand</th><th>Status</th></tr>
+                        <tr><th>Code</th><th>Name</th><th>Type</th><th>Process</th><th class="r">Weight kg</th><th>Made by</th><th class="r">Needed by</th><th class="r">On hand</th><th>Status</th>@unless ($details || $archived)<th><span class="sr-only">Actions</span></th>@endunless</tr>
                     </thead>
                     <tbody>
                         @foreach ($cores as $core)
                             @php $show = route('cores.show', $core); $boxes = $madeBy[$core->id]; @endphp
                             <tr wire:key="core-{{ $core->id }}-{{ $details ? 'p' : 'f' }}" tabindex="0" @class(['on' => $details && $focus && (string) $focus->id === (string) $core->id])
                                 @if ($details) wire:click="focus('{{ $core->id }}')" x-on:focus="$wire.focus('{{ $core->id }}')" x-on:dblclick="window.location = '{{ $show }}'" x-on:keydown.enter="window.location = '{{ $show }}'"
-                                @else x-on:click="if (! $event.target.closest('a,button,form')) window.location = '{{ $show }}'" x-on:keydown.enter="window.location = '{{ $show }}'" @endif>
+                                @else x-on:click="if (! $event.target.closest('a,button,form,summary,details')) window.location = '{{ $show }}'" x-on:keydown.enter="window.location = '{{ $show }}'" @endif>
                                 <td><code>{{ $core->code }}</code></td>
                                 <td><a class="name" href="{{ $show }}" wire:click.stop>{{ $core->name }}</a></td>
                                 <td>{{ CoreDefinition::TYPES[$core->core_type] ?? $core->core_type }}</td>
@@ -214,6 +213,12 @@ new class extends Component
                                     @elseif ($core->status === 'ACTIVE')<span class="pill ok">Active</span>
                                     @else<span class="pill">Inactive</span>@endif
                                 </td>
+                                @unless ($details || $archived)
+                                    <td class="act"><details class="ls-menu right"><summary class="ls-more" aria-label="Actions for {{ $core->code }}">⋯</summary>
+                                        <div class="ls-pop" role="menu"><a role="menuitem" href="{{ $show }}">Open core</a>
+                                            <a role="menuitem" href="{{ route('cores.edit', $core) }}">Edit</a>
+                                            @if (Route::has('core-lots.create'))<a role="menuitem" href="{{ route('core-lots.create', ['core' => $core->id]) }}">Record cores made</a>@endif</div></details></td>
+                                @endunless
                             </tr>
                         @endforeach
                     </tbody>

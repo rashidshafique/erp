@@ -232,7 +232,7 @@ new class extends Component
                             <td>{{ $material->lots_count }}</td>
                             <td>{{ $material->charge_batch_items_count }}</td>
                             <td><span class="status {{ $material->status === 'ACTIVE' ? 'status-completed' : 'status-cancelled' }}">{{ $material->status }}</span></td>
-                            <td class="r"><details class="ls-menu right"><summary class="ls-more" aria-label="Actions for {{ $material->code }}">⋯</summary>
+                            <td class="act"><details class="ls-menu right"><summary class="ls-more" aria-label="Actions for {{ $material->code }}">⋯</summary>
                             <div class="ls-pop" role="menu"><a role="menuitem" href="{{ $show }}">Open</a><button type="button" role="menuitem" wire:click="edit('{{ $material->id }}')">Quick edit</button></div></details></td>
                         </tr>
                     @endforeach

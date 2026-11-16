@@ -274,7 +274,6 @@ new class extends Component
 <style global>
     .pc { background: #fff; border: 1px solid #e6e7e9; border-radius: 8px; font-size: 13px; color: #1c1d1f; }
     .pc button, .pc select, .pc input { font: inherit; min-height: 0; }
-    .pc .ls-list tbody tr.on { background: #f5f8fe; }
     .pc th.r, .pc td.r { text-align: right; }
     .pc code { font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; background: none; padding: 0; }
     .pc .name { font-weight: 500; color: #1c1d1f; text-decoration: none; }
@@ -285,7 +284,7 @@ new class extends Component
     .pc .pill.warn { background: #fbf0dc; color: #94610a; }
     .pc .muted { color: #6b6e73; }
     .pc-side { border-left: 1px solid #e6e7e9; padding: 20px 24px; background: #f8f8f9; display: flex; flex-direction: column; gap: 14px; }
-    .pc-side h3 { margin: 0; font-size: 13px; font-weight: 600; }
+    .pc-side h3 { margin: 0; font-size: 14px; font-weight: 600; }
     .pc-side h3 a { color: inherit; text-decoration: none; }
     .pc-side .row { display: flex; justify-content: space-between; gap: 12px; }
     .pc-side .row span:first-child { color: #6b6e73; }
@@ -337,7 +336,7 @@ new class extends Component
                 <table data-table="products">
                     <thead>
                         <tr>
-                            <th>Code</th><th>Name</th><th>Customer</th><th>Grade</th><th>Process</th><th class="r">Casting kg</th><th>Revision</th><th>PPAP</th><th>Status</th>
+                            <th>Code</th><th>Name</th><th>Customer</th><th>Grade</th><th>Process</th><th class="r">Casting kg</th><th>Revision</th><th>PPAP</th><th>Status</th>@unless ($details || $archived)<th><span class="sr-only">Actions</span></th>@endunless
                         </tr>
                     </thead>
                     <tbody>
@@ -350,7 +349,7 @@ new class extends Component
                             @endphp
                             <tr wire:key="product-{{ $product->id }}-{{ $details ? 'p' : 'f' }}" tabindex="0" @class(['on' => $details && $focus && (string) $focus->id === (string) $product->id])
                                 @if ($details) wire:click="focus('{{ $product->id }}')" x-on:focus="$wire.focus('{{ $product->id }}')" x-on:dblclick="window.location = '{{ $show }}'" x-on:keydown.enter="window.location = '{{ $show }}'"
-                                @else x-on:click="if (! $event.target.closest('a,button,form')) window.location = '{{ $show }}'" x-on:keydown.enter="window.location = '{{ $show }}'" @endif>
+                                @else x-on:click="if (! $event.target.closest('a,button,form,summary,details')) window.location = '{{ $show }}'" x-on:keydown.enter="window.location = '{{ $show }}'" @endif>
                                 <td><code>{{ $product->code }}</code></td>
                                 <td><a class="name" href="{{ $show }}" wire:click.stop>{{ $product->name }}</a></td>
                                 <td>{{ $product->customer_name ?? '—' }}</td>
@@ -366,6 +365,11 @@ new class extends Component
                                     @elseif ($isDraft)<span class="pill info">In development</span>
                                     @else<span class="pill ok">Active</span>@endif
                                 </td>
+                                @unless ($details || $archived)
+                                    <td class="act"><details class="ls-menu right"><summary class="ls-more" aria-label="Actions for {{ $product->code }}">⋯</summary>
+                                        <div class="ls-pop" role="menu"><a role="menuitem" href="{{ $show }}">Open product</a>
+                                            <a role="menuitem" href="{{ route('products.edit', $product) }}">Edit</a></div></details></td>
+                                @endunless
                             </tr>
                         @endforeach
                     </tbody>

@@ -55,11 +55,11 @@
         @if ($lots->isEmpty())
             <p class="ls-empty">{{ $all ? 'No lots for this core.' : 'No lots with cores left.' }}</p>
         @else
-            <div class="ls-scroll"><table>
-                <thead><tr><th>Lot</th><th>Core</th><th>Box</th><th>Made</th><th class="r">Left / made</th><th>Where</th>@if ($showCheck)<th>Check</th>@endif<th>Status</th></tr></thead>
+            <div class="ls-scroll ls-list"><table>
+                <thead><tr><th>Lot</th><th>Core</th><th>Box</th><th>Made</th><th class="r">Left / made</th><th>Where</th>@if ($showCheck)<th>Check</th>@endif<th>Status</th><th><span class="sr-only">Actions</span></th></tr></thead>
                 <tbody>
                 @foreach ($lots as $lot)
-                    <tr>
+                    <tr x-data x-on:click="if (! $event.target.closest('a,button,summary,details')) window.location = '{{ route('core-lots.show', $lot) }}'">
                         <td><a href="{{ route('core-lots.show', $lot) }}" class="mono">{{ $lot->lot_number }}</a></td>
                         <td>{{ $lot->coreDefinition->name }}</td>
                         <td class="mono">{{ $lot->coreBox->code }}</td>
@@ -68,6 +68,7 @@
                         <td>{{ $lot->location ?: '—' }}</td>
                         @if ($showCheck)<td>@if ($lot->qc_status === 'NOT_REQUIRED')<span class="muted">Not required</span>@else<span class="status {{ $qcChip[$lot->qc_status] ?? '' }}">{{ \App\Models\CoreLot::QC[$lot->qc_status] }}</span>@endif</td>@endif
                         <td><span class="status {{ $statusChip[$lot->status] ?? '' }}">{{ \App\Models\CoreLot::STATUSES[$lot->status] ?? $lot->status }}</span></td>
+                        <td class="act"><details class="ls-menu right"><summary class="ls-more" aria-label="Actions for {{ $lot->lot_number }}">⋯</summary><div class="ls-pop" role="menu"><a role="menuitem" href="{{ route('core-lots.show', $lot) }}">Open lot</a></div></details></td>
                     </tr>
                 @endforeach
                 </tbody>

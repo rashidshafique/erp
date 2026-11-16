@@ -546,7 +546,7 @@ new class extends Component
             @else
             <div class="ls-scroll cl-table">
                 <table class="no-row-click">
-                    <thead><tr>@foreach ($sorts as $k => $so)<th wire:click="sortBy('{{ $k }}')" title="Sort by {{ strtolower($so['label']) }}" aria-sort="{{ $so['on'] ? ($sortDesc ? 'descending' : 'ascending') : 'none' }}" @class(['s', 'on' => $so['on'], 'r' => $so['align'] === 'right'])>{{ $so['label'] }}<span class="ar">{{ $so['on'] ? ($sortDesc ? '↓' : '↑') : '↕' }}</span></th>@endforeach</tr></thead>
+                    <thead><tr>@foreach ($sorts as $k => $so)<th wire:click="sortBy('{{ $k }}')" title="Sort by {{ strtolower($so['label']) }}" aria-sort="{{ $so['on'] ? ($sortDesc ? 'descending' : 'ascending') : 'none' }}" @class(['s', 'on' => $so['on'], 'r' => $so['align'] === 'right'])>{{ $so['label'] }}<span class="ar">{{ $so['on'] ? ($sortDesc ? '↓' : '↑') : '↕' }}</span></th>@endforeach @unless ($details)<th><span class="sr-only">Actions</span></th>@endunless</tr></thead>
                     <tbody>
                     @foreach ($rows as $r)
                         @php
@@ -556,7 +556,7 @@ new class extends Component
                         @php $show = route('invoices.show', $i); @endphp
                         <tr wire:key="invoice-{{ $i->id }}-{{ $details ? 'p' : 'f' }}" tabindex="0" @class(['sel' => $details && $inv && $inv->id === $i->id])
                             @if ($details) wire:click="select('{{ $i->id }}')" x-on:focus="$wire.select('{{ $i->id }}')" x-on:dblclick="window.location = '{{ $show }}'" x-on:keydown.enter="window.location = '{{ $show }}'"
-                            @else x-on:click="if (! $event.target.closest('a,button')) window.location = '{{ $show }}'" x-on:keydown.enter="window.location = '{{ $show }}'" @endif>
+                            @else x-on:click="if (! $event.target.closest('a,button,summary,details')) window.location = '{{ $show }}'" x-on:keydown.enter="window.location = '{{ $show }}'" @endif>
                             <td class="nw">{{ $i->invoice_date->displayShortDate() }}</td>
                             <td class="nw"><code>{{ $i->invoice_number ?? 'Draft' }}</code>@if ($i->isCreditNote())<div class="cl-sub">credit note</div>@endif</td>
                             @php $custUrl = $i->customer ? ($i->customer->party_id ? route('parties.show', $i->customer->party_id) : route('customers.index', ['search' => $i->customer->name])) : null; @endphp
@@ -574,6 +574,11 @@ new class extends Component
                                     <div style="font-size:11.5px;font-weight:600;margin-top:3px;color:{{ $cl['over'] || $cl['hold'] ? '#b3352c' : '#94610a' }}">! {{ $cl['hold'] ? 'Credit hold' : ($cl['over'] ? 'Over credit limit' : $cl['pct'].'% of credit limit') }}</div>
                                 @endif
                             </td>
+                            @unless ($details)
+                                <td class="act"><details class="ls-menu right"><summary class="ls-more" aria-label="Actions for invoice {{ $i->invoice_number ?? 'draft' }}">⋯</summary>
+                                    <div class="ls-pop" role="menu"><a role="menuitem" href="{{ $show }}">Open invoice</a>
+                                        <a role="menuitem" href="{{ route('invoices.print', $i) }}" target="_blank">Print</a></div></details></td>
+                            @endunless
                         </tr>
                     @endforeach
                     </tbody>

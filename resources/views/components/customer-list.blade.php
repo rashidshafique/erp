@@ -359,7 +359,7 @@ new class extends Component
                             <td class="r" data-col="balance">@if ($showFinance){{ $money($o['balance'] ?? 0) }}@if (($o['overdue'] ?? 0) > 0) · <span class="cl-pill cl-bad">{{ $money($o['overdue']) }} overdue</span>@endif @else — @endif</td>
                             <td data-col="status"><span class="cl-pill {{ $stages[$st][1] }}">{{ $stages[$st][0] }}</span></td>
                             @unless ($details)
-                                <td class="r"><details class="ls-menu right"><summary class="ls-more" aria-label="Actions for {{ $row->code }}">⋯</summary>
+                                <td class="act"><details class="ls-menu right"><summary class="ls-more" aria-label="Actions for {{ $row->code }}">⋯</summary>
                                     <div class="ls-pop" role="menu">@if ($row->party_id)<a role="menuitem" href="{{ route('parties.show', $row->party_id) }}">Open record</a>@endif
                                         <button type="button" role="menuitem" wire:click="edit('{{ $row->id }}')">Quick edit</button>
                                         <a role="menuitem" href="{{ route('customer-requirements.edit', $row) }}">Requirements</a></div></details></td>

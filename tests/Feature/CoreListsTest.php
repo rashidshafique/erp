@@ -98,4 +98,13 @@ class CoreListsTest extends TestCase
         $list->assertSee('Where it comes from')->assertSee('<th>Commissioned</th>', false)->assertSee('Life used')->assertSee('Modified from CB-0121')->assertSee('14');
         $list->call('toggleDetails')->assertSee('Life used')->assertDontSee('Where it comes from')->assertDontSee('<th>Commissioned</th>', false);
     }
+
+    public function test_the_cores_list_has_a_row_menu_only_with_the_panel_off(): void
+    {
+        $this->core('Valve core');
+
+        $list = Livewire::test('tooling::core-list');
+        $list->assertDontSee('Actions for', false);
+        $list->call('toggleDetails')->assertSee('Actions for', false)->assertSee('Record cores made');
+    }
 }

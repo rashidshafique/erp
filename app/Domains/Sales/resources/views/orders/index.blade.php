@@ -43,11 +43,11 @@
                 <div class="empty-state"><strong>{{ $filtered || $status ? 'No sales order matches' : 'No sales orders yet' }}</strong><p>From customer order through contract review to production and dispatch.</p><a class="btn btn-primary" href="{{ route('sales-orders.create') }}">New sales order</a></div>
             @else
             <div class="el-table"><table data-table="sales-orders">
-                <thead><tr><th>Order</th><th data-col="customer">Customer</th><th data-col="ref">Customer ref</th><th data-col="date">Order date</th><th data-col="delivery">Delivery</th><th class="el-r" data-col="lines">Lines</th><th data-col="status">Status</th></tr></thead>
+                <thead><tr><th>Order</th><th data-col="customer">Customer</th><th data-col="ref">Customer ref</th><th data-col="date">Order date</th><th data-col="delivery">Delivery</th><th class="el-r" data-col="lines">Lines</th><th data-col="status">Status</th>@unless ($details)<th><span class="sr-only">Actions</span></th>@endunless</tr></thead>
                 <tbody>
                 @foreach ($orders as $o)
                     @php $late = in_array($o->status, SalesOrder::OPEN, true) && $o->requested_delivery_date && $o->requested_delivery_date->isBefore(today()); @endphp
-                    <tr onclick="if (!event.target.closest('a')) location.href='{{ route('sales-orders.show', $o) }}'">
+                    <tr onclick="if (!event.target.closest('a,summary,details')) location.href='{{ route('sales-orders.show', $o) }}'">
                         <td><a href="{{ route('sales-orders.show', $o) }}" style="color:inherit"><code>{{ $o->order_number }}</code></a></td>
                         <td data-col="customer">{{ $o->customer?->name }}</td>
                         <td data-col="ref">{{ $o->customer_reference ?: '—' }}</td>
@@ -55,6 +55,7 @@
                         <td data-col="delivery">@if ($o->requested_delivery_date)<span @class(['el-pill', 'el-bad' => $late])>{{ $o->requested_delivery_date->displayDate() }}@if ($late) · late @endif</span>@else<span class="el-sub">—</span>@endif</td>
                         <td class="el-r" data-col="lines">{{ $o->lines_count }}</td>
                         <td data-col="status"><span class="el-pill {{ $tones[$o->status] ?? '' }}">{{ SalesOrder::STATUSES[$o->status] ?? str_replace('_', ' ', $o->status) }}</span></td>
+                        @unless ($details)<td class="act"><details class="ls-menu right"><summary class="ls-more" aria-label="Actions for {{ $o->order_number }}">⋯</summary><div class="ls-pop" role="menu"><a role="menuitem" href="{{ route('sales-orders.show', $o) }}">Open order</a><a role="menuitem" href="{{ route('sales-orders.edit', $o) }}">Edit</a></div></details></td>@endunless
                     </tr>
                 @endforeach
                 </tbody>
