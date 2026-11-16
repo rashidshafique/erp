@@ -535,8 +535,6 @@ new class extends Component
                         </div>
                     </div>
                 </span>
-                <span class="ls-sep" aria-hidden="true"></span>
-                @include('partials.list-details-toggle')
                 </span>
             </div>
     <div @class(['ls-body', 'with-panel' => $details && $inv])>
@@ -546,7 +544,7 @@ new class extends Component
             @else
             <div class="ls-scroll cl-table">
                 <table class="no-row-click">
-                    <thead><tr>@foreach ($sorts as $k => $so)<th wire:click="sortBy('{{ $k }}')" title="Sort by {{ strtolower($so['label']) }}" aria-sort="{{ $so['on'] ? ($sortDesc ? 'descending' : 'ascending') : 'none' }}" @class(['s', 'on' => $so['on'], 'r' => $so['align'] === 'right'])>{{ $so['label'] }}<span class="ar">{{ $so['on'] ? ($sortDesc ? '↓' : '↑') : '↕' }}</span></th>@endforeach @unless ($details)<th><span class="sr-only">Actions</span></th>@endunless</tr></thead>
+                    <thead><tr>@foreach ($sorts as $k => $so)<th wire:click="sortBy('{{ $k }}')" title="Sort by {{ strtolower($so['label']) }}" aria-sort="{{ $so['on'] ? ($sortDesc ? 'descending' : 'ascending') : 'none' }}" @class(['s', 'on' => $so['on'], 'r' => $so['align'] === 'right'])>{{ $so['label'] }}<span class="ar">{{ $so['on'] ? ($sortDesc ? '↓' : '↑') : '↕' }}</span></th>@endforeach @unless ($details)<th class="ls-dth">@include('partials.list-details-toggle')</th>@endunless</tr></thead>
                     <tbody>
                     @foreach ($rows as $r)
                         @php

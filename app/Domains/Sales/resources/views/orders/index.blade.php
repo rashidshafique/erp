@@ -32,9 +32,7 @@
         </form>
         <span class="ls-right">
             <x-column-picker table="sales-orders" :columns="['customer' => 'Customer', 'ref' => 'Customer ref', 'date' => 'Order date', 'delivery' => 'Delivery', 'lines' => 'Lines', 'status' => 'Status']" />
-            <a class="ls-tool" href="{{ route('sales-orders.export', request()->query()) }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12m0 0-4-4m4 4 4-4M5 20h14"/></svg>Export</a>
-            <span class="ls-sep" aria-hidden="true"></span>
-            @include('partials.list-details-form')
+            <a class="ls-tool ls-ico" href="{{ route('sales-orders.export', request()->query()) }}" title="Export" aria-label="Export"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12m0 0-4-4m4 4 4-4M5 20h14"/></svg></a>
         </span>
     </div>
     <div class="el-grid" @style(['grid-template-columns: minmax(0, 1fr)' => ! $details])>
@@ -43,7 +41,7 @@
                 <div class="empty-state"><strong>{{ $filtered || $status ? 'No sales order matches' : 'No sales orders yet' }}</strong><p>From customer order through contract review to production and dispatch.</p><a class="btn btn-primary" href="{{ route('sales-orders.create') }}">New sales order</a></div>
             @else
             <div class="el-table"><table data-table="sales-orders">
-                <thead><tr><th>Order</th><th data-col="customer">Customer</th><th data-col="ref">Customer ref</th><th data-col="date">Order date</th><th data-col="delivery">Delivery</th><th class="el-r" data-col="lines">Lines</th><th data-col="status">Status</th>@unless ($details)<th><span class="sr-only">Actions</span></th>@endunless</tr></thead>
+                <thead><tr><th>Order</th><th data-col="customer">Customer</th><th data-col="ref">Customer ref</th><th data-col="date">Order date</th><th data-col="delivery">Delivery</th><th class="el-r" data-col="lines">Lines</th><th data-col="status">Status</th>@unless ($details)<th class="ls-dth">@include('partials.list-details-form')</th>@endunless</tr></thead>
                 <tbody>
                 @foreach ($orders as $o)
                     @php $late = in_array($o->status, SalesOrder::OPEN, true) && $o->requested_delivery_date && $o->requested_delivery_date->isBefore(today()); @endphp

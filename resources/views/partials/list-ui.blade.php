@@ -21,7 +21,9 @@
 .ls-tool { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; box-sizing: border-box; border: 1px solid #c9cbcf; border-radius: 6px; background: #fff; color: #1c1d1f; font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; list-style: none; text-decoration: none !important; }
 .ls-tool::-webkit-details-marker, .ls-menu summary::-webkit-details-marker { display: none; }
 .ls-tool.on { border-color: var(--accent); color: var(--accent); } .ls-tool b { color: var(--accent); }
-.ls-details.on { border-width: 1.5px; background: #eef3fd; }
+.ls-ico { justify-content: center; width: 34px; padding: 0; position: relative; }
+.ls-badge { position: absolute; top: -5px; right: -5px; min-width: 15px; height: 15px; padding: 0 4px; box-sizing: border-box; border-radius: 8px; background: var(--accent); color: #fff; font-size: 10px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; }
+.ls-list th.ls-dth { width: 44px; padding: 0 8px; text-align: center; }
 .ls-sep { width: 1px; height: 20px; background: #e6e7e9; margin: 0 4px; }
 .ls-flag { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; box-sizing: border-box; border: 1px solid #f0dcb4; background: #fdf6ea; border-radius: 15px; font-size: 12.5px; color: #1c1d1f; cursor: pointer; white-space: nowrap; }
 .ls-flag b { color: #94610a; } .ls-flag.on { border-color: #c58a1a; box-shadow: inset 0 0 0 1px #c58a1a; }

@@ -179,8 +179,6 @@ new class extends Component
     <span class="muted" wire:loading>Updating…</span>
     <span class="ls-right">
         @include('partials.list-export')
-        <span class="ls-sep" aria-hidden="true"></span>
-        @include('partials.list-details-toggle')
     </span>
 </div>
 
@@ -192,7 +190,7 @@ new class extends Component
             <div class="ls-scroll">
                 <table data-table="cores">
                     <thead>
-                        <tr><th>Code</th><th>Name</th><th>Type</th><th>Process</th><th class="r">Weight kg</th><th>Made by</th><th class="r">Needed by</th><th class="r">On hand</th><th>Status</th>@unless ($details || $archived)<th><span class="sr-only">Actions</span></th>@endunless</tr>
+                        <tr><th>Code</th><th>Name</th><th>Type</th><th>Process</th><th class="r">Weight kg</th><th>Made by</th><th class="r">Needed by</th><th class="r">On hand</th><th>Status</th>@unless ($details)<th class="ls-dth">@include('partials.list-details-toggle')</th>@endunless</tr>
                     </thead>
                     <tbody>
                         @foreach ($cores as $core)

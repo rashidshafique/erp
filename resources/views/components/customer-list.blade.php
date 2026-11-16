@@ -331,8 +331,6 @@ new class extends Component
         <span class="ls-right">
             <x-column-picker table="customers" :columns="['supply' => 'Supply', 'parts' => 'Parts', 'open' => 'Open orders', 'developments' => 'Developments', 'ppm' => 'PPM 12 mo', 'terms' => 'Terms', 'balance' => 'Balance', 'status' => 'Status']" />
             @include('partials.list-export')
-            <span class="ls-sep" aria-hidden="true"></span>
-            @include('partials.list-details-toggle')
         </span>
     </div>
     <div @class(['ls-body', 'with-panel' => $details && $c])>
@@ -342,7 +340,7 @@ new class extends Component
             @else
             <div class="ls-scroll">
                 <table class="no-row-click" data-table="customers">
-                    <thead><tr><th>Customer</th><th data-col="supply">Supply</th><th class="r" data-col="parts">Parts</th><th class="r" data-col="open">Open orders</th><th class="r" data-col="developments">Developments</th><th class="r" data-col="ppm">PPM 12 mo</th><th data-col="terms">Terms</th><th class="r" data-col="balance">Balance</th><th data-col="status">Status</th>@unless ($details)<th><span class="sr-only">Actions</span></th>@endunless</tr></thead>
+                    <thead><tr><th>Customer</th><th data-col="supply">Supply</th><th class="r" data-col="parts">Parts</th><th class="r" data-col="open">Open orders</th><th class="r" data-col="developments">Developments</th><th class="r" data-col="ppm">PPM 12 mo</th><th data-col="terms">Terms</th><th class="r" data-col="balance">Balance</th><th data-col="status">Status</th>@unless ($details)<th class="ls-dth">@include('partials.list-details-toggle')</th>@endunless</tr></thead>
                     <tbody>
                     @foreach ($customers as $row)
                         @php $st = $row->stage(); $o = $owed->get($row->id); $open = $row->party_id ? "window.location = '".route('parties.show', $row->party_id)."'" : "\$wire.edit('{$row->id}')"; @endphp

@@ -195,8 +195,6 @@ new class extends Component
     <span class="muted" wire:loading>Updating…</span>
     <span class="ls-right">
         @include('partials.list-export')
-        <span class="ls-sep" aria-hidden="true"></span>
-        @include('partials.list-details-toggle')
     </span>
 </div>
 
@@ -208,7 +206,7 @@ new class extends Component
             <div class="ls-scroll">
                 <table data-table="core-boxes">
                     <thead>
-                        <tr><th>Core box</th><th>Makes</th><th class="r">Cavities</th>@unless ($details)<th>Where it comes from</th>@endunless<th>Owner / where it is</th>@unless ($details)<th>Commissioned</th>@endunless<th>Life used</th><th>Status</th>@unless ($details || $archived)<th><span class="sr-only">Actions</span></th>@endunless</tr>
+                        <tr><th>Core box</th><th>Makes</th><th class="r">Cavities</th>@unless ($details)<th>Where it comes from</th>@endunless<th>Owner / where it is</th>@unless ($details)<th>Commissioned</th>@endunless<th>Life used</th><th>Status</th>@unless ($details)<th class="ls-dth">@include('partials.list-details-toggle')</th>@endunless</tr>
                     </thead>
                     <tbody>
                         @foreach ($boxes as $box)

@@ -322,8 +322,6 @@ new class extends Component
     <span class="muted" wire:loading>Updating…</span>
     <span class="ls-right">
         @include('partials.list-export')
-        <span class="ls-sep" aria-hidden="true"></span>
-        @include('partials.list-details-toggle')
     </span>
 </div>
 
@@ -336,7 +334,7 @@ new class extends Component
                 <table data-table="products">
                     <thead>
                         <tr>
-                            <th>Code</th><th>Name</th><th>Customer</th><th>Grade</th><th>Process</th><th class="r">Casting kg</th><th>Revision</th><th>PPAP</th><th>Status</th>@unless ($details || $archived)<th><span class="sr-only">Actions</span></th>@endunless
+                            <th>Code</th><th>Name</th><th>Customer</th><th>Grade</th><th>Process</th><th class="r">Casting kg</th><th>Revision</th><th>PPAP</th><th>Status</th>@unless ($details)<th class="ls-dth">@include('partials.list-details-toggle')</th>@endunless
                         </tr>
                     </thead>
                     <tbody>

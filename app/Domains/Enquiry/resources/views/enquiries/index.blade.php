@@ -52,9 +52,7 @@
         </form>
         <span class="ls-right">
             <x-column-picker table="enquiries" :columns="['customer' => 'Customer', 'stage' => 'Stage', 'pattern' => 'Pattern', 'value' => 'Annual value', 'reply' => 'Reply by', 'owner' => 'Owner']" />
-            <a class="ls-tool" href="{{ route('enquiries.export', request()->query()) }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12m0 0-4-4m4 4 4-4M5 20h14"/></svg>Export</a>
-            <span class="ls-sep" aria-hidden="true"></span>
-            @include('partials.list-details-form')
+            <a class="ls-tool ls-ico" href="{{ route('enquiries.export', request()->query()) }}" title="Export" aria-label="Export"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12m0 0-4-4m4 4 4-4M5 20h14"/></svg></a>
         </span>
     </div>
     <div class="el-grid" @style(['grid-template-columns: minmax(0, 1fr)' => ! $details])>
@@ -63,7 +61,7 @@
                 <div class="empty-state"><strong>{{ $tab === 'open' && ! request()->hasAny(['search', 'customer', 'owner']) ? 'No open enquiries' : 'No enquiry matches' }}</strong><p>Record each request as it comes in, whether it is a repeat, a drawing, a sample or a concept.</p><a class="btn btn-primary" href="{{ route('enquiries.create') }}">Start a request</a></div>
             @else
             <div class="el-table"><table data-table="enquiries">
-                <thead><tr><th>Code</th><th>Part</th><th data-col="customer">Customer</th><th data-col="stage">Stage</th><th data-col="pattern">Pattern</th><th class="el-r" data-col="value">Annual value</th><th data-col="reply">Reply by</th><th data-col="owner">Owner</th>@unless ($details)<th><span class="sr-only">Actions</span></th>@endunless</tr></thead>
+                <thead><tr><th>Code</th><th>Part</th><th data-col="customer">Customer</th><th data-col="stage">Stage</th><th data-col="pattern">Pattern</th><th class="el-r" data-col="value">Annual value</th><th data-col="reply">Reply by</th><th data-col="owner">Owner</th>@unless ($details)<th class="ls-dth">@include('partials.list-details-form')</th>@endunless</tr></thead>
                 <tbody>
                 @foreach ($rows as $r)
                     @php
