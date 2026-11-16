@@ -11,7 +11,7 @@ class CoreLotUse extends Model
 {
     use HasUuids;
 
-    public const KINDS = ['USED' => 'Used in moulding', 'SCRAPPED' => 'Scrapped'];
+    public const KINDS = ['USED' => 'Used in moulding', 'SCRAPPED' => 'Scrapped', 'CORRECTION' => 'Corrected'];
 
     protected $fillable = ['core_lot_id', 'quantity', 'kind', 'moulding_run_id', 'used_on', 'notes'];
 

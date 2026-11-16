@@ -286,4 +286,30 @@ class CoreLotTest extends TestCase
         $this->get(route('products.show', $product))->assertOk()->assertSee('revision D')->assertSee($this->box->code)
             ->assertSee('! No active box')->assertSee('Other revisions · 1 core');
     }
+
+    public function test_a_minus_quantity_corrects_the_newest_lots_and_the_box_life_count(): void
+    {
+        $older = $this->make(['made_on' => today()->subDay()->format('Y-m-d')]);
+        $newer = $this->make(['quantity_made' => 4]);
+
+        $this->post(route('core-lots.store'), ['core_definition_id' => $this->core->id, 'core_box_id' => $this->box->id, 'quantity_made' => -6, 'made_on' => today()->format('Y-m-d')])
+            ->assertSessionHasNoErrors()->assertRedirect(route('core-lots.show', $newer));
+
+        $this->assertSame([0, 8], [$newer->remaining(), $older->remaining()]);
+        $this->assertSame('USED_UP', $newer->fresh()->status);
+        $this->assertSame(8, (int) ToolingUsageRecord::where('core_box_id', $this->box->id)->sum('usage_quantity'));
+        $this->get(route('core-lots.show', $older))->assertOk()->assertSee('Corrected entry');
+    }
+
+    public function test_a_correction_cannot_take_more_than_is_left_or_be_used_in_a_run(): void
+    {
+        $this->make(['quantity_made' => 3]);
+        $payload = ['core_definition_id' => $this->core->id, 'core_box_id' => $this->box->id, 'made_on' => today()->format('Y-m-d')];
+
+        $this->post(route('core-lots.store'), $payload + ['quantity_made' => -4])->assertSessionHasErrors('quantity_made');
+        $this->post(route('core-lots.store'), $payload + ['quantity_made' => -1, 'use_now' => 1])->assertSessionHasErrors('use_now');
+        $this->post(route('core-lots.store'), $payload + ['quantity_made' => 0])->assertSessionHasErrors('quantity_made');
+
+        $this->assertSame(3, CoreLot::sole()->remaining());
+    }
 }

@@ -71,6 +71,41 @@ class CoreLotService
     }
 
     /**
+     * Corrects an earlier cores-made entry (design 29h: a minus quantity). The cores come off the newest lots of that core and
+     * box that still have some left, as Corrected uses, and the box's life count drops with them.
+     *
+     * @return CoreLot the newest lot corrected
+     */
+    public function correct(CoreDefinition $core, CoreBox $box, int $quantity, CarbonInterface $on, ?string $notes = null): CoreLot
+    {
+        return DB::transaction(function () use ($core, $box, $quantity, $on, $notes) {
+            $lots = CoreLot::where('core_definition_id', $core->id)->where('core_box_id', $box->id)->where('status', '!=', 'USED_UP')
+                ->orderByDesc('made_on')->orderByDesc('created_at')->lockForUpdate()->get()->filter(fn (CoreLot $l) => $l->remaining() > 0)->values();
+            $left = $lots->sum(fn (CoreLot $l) => $l->remaining());
+            if ($left < $quantity) {
+                throw ValidationException::withMessages(['quantity_made' => "Only {$left} {$core->name} made in {$box->code} are left to correct."]);
+            }
+            $todo = $quantity;
+            foreach ($lots as $lot) {
+                $n = min($todo, $lot->remaining());
+                $this->take($lot, $n, 'CORRECTION', $on, null, $notes);
+                $record = ToolingUsageRecord::where('reference_type', 'core_lot')->where('reference_id', $lot->id)->first();
+                if ($record && (float) $record->usage_quantity > $n) {
+                    $record->update(['usage_quantity' => (float) $record->usage_quantity - $n]);
+                } elseif ($record) {
+                    $record->delete();
+                }
+                $todo -= $n;
+                if ($todo === 0) {
+                    break;
+                }
+            }
+
+            return $lots->first();
+        });
+    }
+
+    /**
      * Takes cores out of a lot. Using needs a lot that has passed its check when checks are on; scrapping never does.
      */
     public function take(CoreLot $lot, int $quantity, string $kind, CarbonInterface $on, ?string $mouldingRunId = null, ?string $notes = null): CoreLotUse

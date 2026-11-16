@@ -66,7 +66,7 @@
         @php $use = $row['use']; @endphp
         <tr>
             <td>{{ $use->used_on->displayDate() }}</td>
-            <td>@if ($use->kind === 'SCRAPPED') Scrapped @elseif ($use->mouldingRun)<a href="{{ route('moulding-runs.show', $use->mouldingRun) }}" class="mono">{{ $use->mouldingRun->run_number }}</a> <span class="muted">moulding run @if ($use->mouldingRun->patternRevision?->pattern) · {{ $use->mouldingRun->patternRevision->pattern->name }}@endif</span>@else Used in moulding @endif
+            <td>@if ($use->kind === 'SCRAPPED') Scrapped @elseif ($use->kind === 'CORRECTION') Corrected entry @elseif ($use->mouldingRun)<a href="{{ route('moulding-runs.show', $use->mouldingRun) }}" class="mono">{{ $use->mouldingRun->run_number }}</a> <span class="muted">moulding run @if ($use->mouldingRun->patternRevision?->pattern) · {{ $use->mouldingRun->patternRevision->pattern->name }}@endif</span>@else Used in moulding @endif
                 @if ($use->notes)<div class="muted small">{{ $use->notes }}</div>@endif</td>
             <td class="r">{{ $use->quantity }}</td>
             <td class="r">{{ $row['left'] }}</td>

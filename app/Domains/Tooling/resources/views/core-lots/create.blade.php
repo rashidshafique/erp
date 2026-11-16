@@ -19,7 +19,7 @@
         <div class="field full"><label for="core_box_id">Core box *</label><select id="core_box_id" name="core_box_id" required><option value="">Choose a core box…</option>
             @foreach ($boxes as $b)<option value="{{ $b->id }}" data-cores="{{ $b->cavityMap->pluck('core_definition_id')->unique()->implode(' ') }}" @selected(old('core_box_id') === $b->id)>{{ $b->code }} · {{ $b->name }}</option>@endforeach
         </select><div class="help" id="box-help">Only boxes that make the chosen core are offered.</div></div>
-        <div class="field"><label for="quantity_made">Quantity *</label><input id="quantity_made" type="number" name="quantity_made" required min="1" max="100000" value="{{ old('quantity_made') }}"></div>
+        <div class="field"><label for="quantity_made">Quantity *</label><input id="quantity_made" type="number" name="quantity_made" required min="-100000" max="100000" value="{{ old('quantity_made') }}" aria-describedby="qty-help"><div class="help" id="qty-help">A minus number corrects an earlier entry.</div>@error('quantity_made')<div class="error">{{ $message }}</div>@enderror</div>
         <div class="field"><label for="made_on">Made on *</label><input id="made_on" type="date" name="made_on" required max="{{ today()->format('Y-m-d') }}" value="{{ old('made_on', today()->format('Y-m-d')) }}"></div>
         <div class="field full"><label class="check"><input type="checkbox" id="use_now" name="use_now" value="1" @checked(old('use_now', $run !== null))> Used today in a moulding run</label></div>
         <div class="used" data-when="used">
@@ -29,7 +29,8 @@
         <div class="field full" data-when="kept"><label for="location"><span id="loc-label">Where they are kept</span> {{ $locationRequired ? '*' : '' }}</label><input id="location" name="location" maxlength="100" list="core-places" value="{{ old('location') }}" placeholder="Shelf, rack or bay"><datalist id="core-places">@foreach ($places as $p)<option value="{{ $p }}">@endforeach</datalist></div>
         <div class="field full"><label for="notes">Notes <span class="muted small">Optional</span></label><textarea id="notes" name="notes" rows="2" maxlength="2000">{{ old('notes') }}</textarea></div>
     </div>
-    <p class="cm-note">Creates lot <span class="mono">{{ $nextLot }}</span><span id="left-note"></span>.</p>
+    <p class="cm-note" id="lot-note">Creates lot <span class="mono">{{ $nextLot }}</span><span id="left-note"></span>.</p>
+    <p class="cm-note" id="fix-note" hidden>Takes <span id="fix-n"></span> off the newest lots of this core and box, and off the box's life count.</p>
     </div></div>
     <div class="actions"><a class="btn" href="{{ $run ? route('moulding-runs.show', $run) : ($stockOn ? route('core-lots.index') : route('cores.index')) }}">Cancel</a><button class="btn btn-primary" type="submit">Save</button></div>
 </form>
@@ -51,6 +52,8 @@
             loc.required = required && !(now.checked && left === 0);
             used.max = n || 100000;
             $('left-note').textContent = n ? ' · ' + left + ' left' + (now.checked ? ' after the run' : '') : '';
+            $('lot-note').hidden = n < 0; $('fix-note').hidden = n >= 0; $('fix-n').textContent = -n;
+            if (n < 0) { loc.required = false; document.querySelector('[data-when="kept"]').hidden = true; }
         }
         [core, now].forEach(el => el.addEventListener('change', sync)); [made, used].forEach(el => el.addEventListener('input', sync)); sync();
     })();

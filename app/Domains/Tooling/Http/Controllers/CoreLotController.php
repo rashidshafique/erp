@@ -16,6 +16,7 @@ use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 /** Cores made, kept and used: a lot is one batch of one core from one box. */
@@ -78,14 +79,24 @@ class CoreLotController extends Controller implements HasMiddleware
         $data = $request->validate([
             'core_definition_id' => ['required', 'uuid', Rule::exists('core_definitions', 'id')->whereNull('deleted_at')],
             'core_box_id' => ['required', 'uuid', Rule::exists('core_boxes', 'id')->whereNull('deleted_at')],
-            'quantity_made' => ['required', 'integer', 'min:1', 'max:100000'],
+            // A minus quantity corrects an earlier entry (design 29h).
+            'quantity_made' => ['required', 'integer', 'min:-100000', 'max:100000', 'not_in:0'],
             'made_on' => ['required', 'date', 'before_or_equal:today'],
             'location' => ['nullable', 'string', 'max:100'],
             'use_now' => ['nullable', 'boolean'],
             'used_quantity' => ['nullable', 'integer', 'min:1', 'lte:quantity_made'],
             'moulding_run_id' => ['nullable', 'uuid', Rule::exists('moulding_runs', 'id')],
             'notes' => ['nullable', 'string', 'max:2000'],
-        ], ['core_box_id.required' => 'Choose the core box the cores were made in.', 'used_quantity.lte' => 'More cannot be used than were made.']);
+        ], ['core_box_id.required' => 'Choose the core box the cores were made in.', 'used_quantity.lte' => 'More cannot be used than were made.', 'quantity_made.not_in' => 'Enter how many were made, or a minus number to correct an earlier entry.']);
+        if ((int) $data['quantity_made'] < 0) {
+            if (! empty($data['use_now'])) {
+                throw ValidationException::withMessages(['use_now' => 'A correction cannot be used in a run. Untick Used today.']);
+            }
+            $lot = $service->correct(CoreDefinition::findOrFail($data['core_definition_id']), CoreBox::findOrFail($data['core_box_id']), -(int) $data['quantity_made'],
+                Carbon::parse($data['made_on']), $data['notes'] ?? null);
+
+            return redirect()->route('core-lots.show', $lot)->with('success', 'Corrected: '.-(int) $data['quantity_made'].' taken off.');
+        }
         $used = empty($data['use_now']) ? 0 : (int) ($data['used_quantity'] ?? $data['quantity_made']);
         $left = (int) $data['quantity_made'] - $used;
 
