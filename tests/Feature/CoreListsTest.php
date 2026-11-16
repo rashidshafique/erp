@@ -87,4 +87,15 @@ class CoreListsTest extends TestCase
         $list->set('archived', true)->assertSee('Restore');
         $this->assertSame(['Gone box'], $this->names($list, 'boxes'));
     }
+
+    public function test_the_box_list_shows_origin_and_commissioned_columns_only_with_the_panel_off(): void
+    {
+        $core = $this->core('Valve core');
+        $old = $this->box('Old box', $core, ['code' => 'CB-0121']);
+        $this->box('New box', $core, ['modified_from_core_box_id' => $old->id, 'origin' => 'MODIFIED', 'commissioned_on' => '2025-01-14']);
+
+        $list = Livewire::test('tooling::core-box-list')->call('toggleDetails');
+        $list->assertSee('Where it comes from')->assertSee('<th>Commissioned</th>', false)->assertSee('Life used')->assertSee('Modified from CB-0121')->assertSee('14');
+        $list->call('toggleDetails')->assertSee('Life used')->assertDontSee('Where it comes from')->assertDontSee('<th>Commissioned</th>', false);
+    }
 }

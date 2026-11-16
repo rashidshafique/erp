@@ -114,7 +114,9 @@ new class extends Component
     /** @return array<string, mixed> */
     public function with(): array
     {
-        $boxes = $this->filtered()->with('cavityMap.coreDefinition', 'ownerCustomer')->orderBy('code')->paginate(20);
+        $boxes = $this->filtered()->with('cavityMap.coreDefinition', 'ownerCustomer', 'modifiedFromBox', 'modifiedFromPattern')->orderBy('code')->paginate(20);
+        $lives = ToolingLifeLimit::whereIn('core_box_id', $boxes->getCollection()->pluck('id'))->where('is_active', true)->get()->keyBy('core_box_id')
+            ->map(fn (ToolingLifeLimit $limit) => app(ToolingLifeStatusService::class)->calculate($limit)['life_percent']);
         $focus = $this->details ? ($boxes->getCollection()->firstWhere('id', $this->focused) ?? $boxes->getCollection()->first()) : null;
         $life = null;
         $openRecord = null;
@@ -127,6 +129,7 @@ new class extends Component
 
         return [
             'boxes' => $boxes,
+            'lives' => $lives,
             'focus' => $focus,
             'life' => $life,
             'openRecord' => $openRecord,
@@ -151,8 +154,13 @@ new class extends Component
     .tk .pill.info { background: #eaf0fd; color: #2f5fd0; }
     .tk .pill.warn { background: #fbf0dc; color: #94610a; }
     .tk .muted { color: #6b6e73; }
+    .tk .tk-life { display: flex; align-items: center; gap: 8px; min-width: 100px; }
+    .tk .tk-life .bar { flex: 1; height: 6px; border-radius: 3px; background: #e6e7e9; overflow: hidden; }
+    .tk .tk-life .bar i { display: block; height: 6px; background: #1d7048; }
+    .tk .tk-life .bar i.warn { background: #c58a1a; }
+    .tk .tk-life > span.warn { color: #94610a; font-weight: 600; }
     .tk-side { border-left: 1px solid #e6e7e9; padding: 20px 24px; background: #f8f8f9; display: flex; flex-direction: column; gap: 12px; }
-    .tk-side h3 { margin: 0; font-size: 13px; font-weight: 600; }
+    .tk-side h3 { margin: 0; font-size: 14px; font-weight: 600; }
     .tk-side h3 a { color: inherit; text-decoration: none; }
     .tk-side .row { display: flex; justify-content: space-between; gap: 12px; }
     .tk-side .row span:first-child { color: #6b6e73; }
@@ -201,7 +209,7 @@ new class extends Component
             <div class="ls-scroll">
                 <table data-table="core-boxes">
                     <thead>
-                        <tr><th>Code</th><th>Name</th><th>Rev</th><th>Makes</th><th class="r">Cavities</th><th>Owner / where it is</th><th>Status</th>@unless ($details || $archived)<th><span class="sr-only">Actions</span></th>@endunless</tr>
+                        <tr><th>Core box</th><th>Makes</th><th class="r">Cavities</th>@unless ($details)<th>Where it comes from</th>@endunless<th>Owner / where it is</th>@unless ($details)<th>Commissioned</th>@endunless<th>Life used</th><th>Status</th>@unless ($details || $archived)<th><span class="sr-only">Actions</span></th>@endunless</tr>
                     </thead>
                     <tbody>
                         @foreach ($boxes as $box)
@@ -209,12 +217,14 @@ new class extends Component
                             <tr wire:key="box-{{ $box->id }}-{{ $details ? 'p' : 'f' }}" tabindex="0" @class(['on' => $details && $focus && (string) $focus->id === (string) $box->id])
                                 @if ($details) wire:click="focus('{{ $box->id }}')" x-on:focus="$wire.focus('{{ $box->id }}')" x-on:dblclick="window.location = '{{ $show }}'" x-on:keydown.enter="window.location = '{{ $show }}'"
                                 @else x-on:click="if (! $event.target.closest('a,button,form')) window.location = '{{ $show }}'" x-on:keydown.enter="window.location = '{{ $show }}'" @endif>
-                                <td><code>{{ $box->code }}</code></td>
-                                <td><a class="name" href="{{ $show }}" wire:click.stop>{{ $box->name }}</a></td>
-                                <td>{{ $box->revision }}</td>
+                                @php $pct = $lives[$box->id] ?? null; @endphp
+                                <td><a class="name" href="{{ $show }}" wire:click.stop>{{ $box->name }}</a><div class="muted"><code>{{ $box->code }}</code> · Rev {{ $box->revision }}</div></td>
                                 <td>{{ $box->makesLine() ?: '—' }}</td>
                                 <td class="r">{{ $box->cavities }}</td>
+                                @unless ($details)<td>@if ($box->modifiedFromBox)Modified from {{ $box->modifiedFromBox->code }}@elseif ($box->modifiedFromPattern)Modified from {{ $box->modifiedFromPattern->code }}@else{{ CoreBox::ORIGINS[$box->origin] ?? '—' }}@endif</td>@endunless
                                 <td>{{ $box->owner_type === 'CUSTOMER' && $box->ownerCustomer ? $box->ownerCustomer->name : 'Foundry' }} · {{ $shown === 'LENT' && $box->custody_location ? 'Lent · '.$box->custody_location : (CoreBox::CUSTODY_LABELS[$box->custody] ?? '—') }}</td>
+                                @unless ($details)<td>{{ $box->commissioned_on?->displayDate() ?? '—' }}</td>@endunless
+                                <td>@if ($pct === null)—@else<span class="tk-life"><span class="bar"><i @class(['warn' => $pct >= 80]) style="width: {{ min(100, round($pct)) }}%"></i></span><span @class(['warn' => $pct >= 80])>{{ round($pct) }}%</span></span>@endif</td>
                                 <td>
                                     @if ($archived)<span class="pill">Archived</span> <form method="POST" action="{{ route('core-boxes.restore', $box) }}" style="display:inline" wire:click.stop>@csrf<button class="tk-link" type="submit">Restore</button></form>
                                     @else<span @class(['pill', 'ok' => $shown === 'ACTIVE', 'info' => $shown === 'LENT'])>{{ CoreBox::STATUS_LABELS[$shown] ?? $shown }}</span>@endif
