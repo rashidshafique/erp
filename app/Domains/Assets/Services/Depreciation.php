@@ -109,11 +109,16 @@ class Depreciation
             return [];
         }
 
-        return DB::table('core_lots')->join('core_boxes', 'core_boxes.id', '=', 'core_lots.core_box_id')->whereIn('core_lots.core_box_id', $coreBoxIds)
+        // Cores taken off a lot by a correction (a minus cores-made entry) were never made, so they do not count.
+        $corrected = DB::table('core_lot_uses')->where('kind', 'CORRECTION')->selectRaw('core_lot_id, sum(quantity) as n')->groupBy('core_lot_id');
+
+        return DB::table('core_lots')->join('core_boxes', 'core_boxes.id', '=', 'core_lots.core_box_id')
+            ->leftJoinSub($corrected, 'fix', 'fix.core_lot_id', '=', 'core_lots.id')->whereIn('core_lots.core_box_id', $coreBoxIds)
             ->whereBetween('core_lots.made_on', [$start->toDateString(), $end->toDateString()])->where('core_lots.quantity_made', '>', 0)
-            ->orderBy('core_lots.made_on')->get(['core_lots.core_box_id', 'core_lots.made_on', 'core_lots.quantity_made', 'core_lots.lot_number', 'core_boxes.cavities'])
+            ->orderBy('core_lots.made_on')->get(['core_lots.core_box_id', 'core_lots.made_on', 'core_lots.quantity_made', 'fix.n as corrected', 'core_lots.lot_number', 'core_boxes.cavities'])
+            ->map(fn ($r) => tap($r, fn ($r) => $r->quantity_made = (int) $r->quantity_made - (int) $r->corrected))->filter(fn ($r) => $r->quantity_made > 0)
             ->groupBy('core_box_id')->map(fn ($rows) => $rows->map(fn ($r) => [
                 'date' => substr((string) $r->made_on, 0, 10), 'fills' => (int) ceil($r->quantity_made / max(1, (int) $r->cavities)), 'number' => $r->lot_number,
-            ])->all())->all();
+            ])->values()->all())->all();
     }
 }

@@ -6,7 +6,8 @@
 @section('content')
 @php
     $statusChip = ['MADE' => 'status-in-progress', 'STORED' => 'status-completed', 'USED_UP' => 'status-cancelled'];
-    $used = $lot->quantity_made - $remaining;
+    $corrected = (int) $lot->uses->where('kind', 'CORRECTION')->sum('quantity');
+    $used = $lot->quantity_made - $corrected - $remaining;
     $left = $lot->quantity_made;
     $rows = $lot->uses->map(function ($use) use (&$left) { $left -= $use->quantity; return ['use' => $use, 'left' => $left]; })->reverse();
 @endphp
@@ -51,7 +52,7 @@
         <div><dt>Core box</dt><dd><a href="{{ route('core-boxes.show', $lot->coreBox) }}" class="mono">{{ $lot->coreBox->code }}</a> <span class="muted">Rev {{ $lot->coreBox->revision }}</span></dd></div>
         <div><dt>Made on</dt><dd>{{ $lot->made_on->displayDate() }}</dd></div>
         <div><dt>Where</dt><dd>{{ $lot->location ?: '—' }}</dd></div>
-        <div><dt>Made</dt><dd>{{ $lot->quantity_made }}</dd></div>
+        <div><dt>Made</dt><dd>{{ $lot->quantity_made - $corrected }}@if ($corrected)<span class="sub">{{ $lot->quantity_made }} entered, {{ $corrected }} corrected</span>@endif</dd></div>
         <div><dt>Used</dt><dd>{{ $used }}</dd></div>
         <div><dt>Left</dt><dd>{{ $remaining }}</dd></div>
         <div><dt>Status</dt><dd><span class="status {{ $statusChip[$lot->status] ?? '' }}">{{ \App\Models\CoreLot::STATUSES[$lot->status] ?? $lot->status }}</span>@if ($lot->qc_status === 'PASSED')<span class="sub">Check passed</span>@endif</dd></div>

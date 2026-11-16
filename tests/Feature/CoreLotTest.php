@@ -298,7 +298,9 @@ class CoreLotTest extends TestCase
         $this->assertSame([0, 8], [$newer->remaining(), $older->remaining()]);
         $this->assertSame('USED_UP', $newer->fresh()->status);
         $this->assertSame(8, (int) ToolingUsageRecord::where('core_box_id', $this->box->id)->sum('usage_quantity'));
-        $this->get(route('core-lots.show', $older))->assertOk()->assertSee('Corrected entry');
+        $this->get(route('core-lots.show', $older))->assertOk()->assertSee('Corrected entry')->assertSee('10 entered, 2 corrected');
+        $fills = app(\App\Domains\Assets\Services\Depreciation::class)->coreBoxFills([$this->box->id], today()->subWeek(), today());
+        $this->assertSame([4], array_column($fills[$this->box->id], 'fills'));
     }
 
     public function test_a_correction_cannot_take_more_than_is_left_or_be_used_in_a_run(): void

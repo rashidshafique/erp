@@ -53,7 +53,7 @@
                 <div><dt>Core weight</dt><dd>{{ $box->nominal_core_weight_kg !== null ? rtrim(rtrim($box->nominal_core_weight_kg, '0'), '.').' kg' : '—' }}</dd></div>
                 <div><dt>Commissioned</dt><dd>{{ $box->commissioned_on?->displayDate() ?? '—' }}</dd></div>
                 <div><dt>Mark code</dt><dd>@include('tooling::tools._mark', ['tool' => $box, 'type' => 'core_box', 'bare' => true])</dd></div>
-                <div><dt>Barcode</dt><dd><code>*{{ preg_replace('/[^A-Za-z0-9]/', '', $box->code) }}*</code></dd></div>
+                <div><dt>Barcode</dt><dd>{!! \App\Support\Code128::svg($box->code, 44, 2) !!}</dd></div>
                 <div><dt>Where it comes from</dt><dd>
                     @if ($box->modifiedFromBox)Modified from <a href="{{ route('core-boxes.show', $box->modifiedFromBox) }}"><span class="mono">{{ $box->modifiedFromBox->code }}</span> {{ $box->modifiedFromBox->name }}</a>
                     @elseif ($box->modifiedFromPattern)Modified from <a href="{{ route('patterns.show', $box->modifiedFromPattern) }}"><span class="mono">{{ $box->modifiedFromPattern->code }}</span> {{ $box->modifiedFromPattern->name }}</a>
