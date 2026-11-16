@@ -7,7 +7,7 @@
 @endphp
 @if ($needs)
 <div class="panel">
-    <div class="panel-header"><h2>Cores</h2><span class="muted small">{{ max((int) $run->planned_mould_qty, (int) $run->moulds_made_qty) }} moulds planned @if ($stock) · <a href="{{ route('core-lots.index') }}">Core stock</a>@endif</span></div>
+    <div class="panel-header"><h2>Cores</h2><span class="muted small">{{ max((int) $run->planned_mould_qty, (int) $run->moulds_made_qty) }} moulds planned · @if ($stock)<a href="{{ route('core-lots.index') }}">Core stock</a>@else<a href="{{ route('core-lots.create', ['run' => $run->id]) }}">Record cores made</a>@endif</span></div>
     <div class="table-wrap"><table>
         <thead><tr><th>Core</th><th class="r">Needed</th>@if ($stock)<th class="r">On hand</th><th></th><th></th>@endif</tr></thead>
         <tbody>

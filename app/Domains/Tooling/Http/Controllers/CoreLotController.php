@@ -21,14 +21,17 @@ use Illuminate\View\View;
 /** Cores made, kept and used: a lot is one batch of one core from one box. */
 class CoreLotController extends Controller implements HasMiddleware
 {
-    /** With core stock off in the core rules, none of these pages or actions exist. */
+    /**
+     * With core stock off in the core rules there is no stock page and nothing to issue from. Cores made can still be recorded,
+     * since core box life and depreciation count from them.
+     */
     public static function middleware(): array
     {
         return [new Middleware(function (Request $request, \Closure $next) {
             abort_unless(CoreRules::stockOn(), 404);
 
             return $next($request);
-        })];
+        }, only: ['index', 'issueToRun'])];
     }
 
     public function index(Request $request, CoreLotService $service): View
@@ -54,12 +57,15 @@ class CoreLotController extends Controller implements HasMiddleware
 
     public function create(Request $request): View
     {
+        $run = MouldingRun::with('patternRevision.pattern')->find($request->input('run'));
+        $runs = MouldingRun::with('patternRevision.pattern')->latest('run_date')->limit(30)->get();
+
         return view('tooling::core-lots.create', [
             'core' => CoreDefinition::find($request->input('core')),
-            'run' => MouldingRun::find($request->input('run')),
+            'run' => $run,
             'cores' => CoreDefinition::where('status', 'ACTIVE')->orderBy('name')->get(),
             'boxes' => CoreBox::where('status', 'ACTIVE')->with('cavityMap')->orderBy('code')->get(),
-            'runs' => MouldingRun::with('patternRevision.pattern')->latest('run_date')->limit(30)->get(),
+            'runs' => $run && ! $runs->contains($run) ? $runs->prepend($run) : $runs,
             'nextLot' => \App\Support\DocumentNumbers::preview('core_lot'),
             'places' => CoreLot::whereNotNull('location')->distinct()->orderBy('location')->limit(50)->pluck('location'),
             'locationRequired' => CoreRules::get('location') === 'REQUIRED',

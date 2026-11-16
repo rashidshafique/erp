@@ -13,7 +13,7 @@ class CoreRules
     public const RULES = [
         'stock' => ['cores.stock', 'Track core stock', [
             'ON' => 'Record cores made, keep lots and count what is on hand',
-            'OFF' => 'No core stock: runs only list the cores they need',
+            'OFF' => 'No stock page: cores made still count for box life; runs list the cores they need',
         ], 'ON'],
         'qc' => ['cores.qc', 'Check cores before they are used', [
             'OFF' => 'No check: usable once made',
@@ -25,7 +25,7 @@ class CoreRules
         ], 'OPTIONAL'],
     ];
 
-    /** Whether cores made are recorded as lots with stock on hand. Off, the core stock pages are closed. */
+    /** Whether cores made are recorded as lots with stock on hand. Off, the stock page and issuing are closed; cores made are still recorded. */
     public static function stockOn(): bool
     {
         return static::get('stock') === 'ON';

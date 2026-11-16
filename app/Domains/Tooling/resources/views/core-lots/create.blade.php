@@ -1,7 +1,8 @@
 @extends('layouts.app')
 
 @section('title', 'Cores made')
-@section('breadcrumb')<a href="{{ route('core-lots.index') }}">Core stock</a> / Cores made @endsection
+@php $stockOn = \App\Domains\Tooling\Support\CoreRules::stockOn(); @endphp
+@section('breadcrumb')<a href="{{ $stockOn ? route('core-lots.index') : route('cores.index') }}">{{ $stockOn ? 'Core stock' : 'Cores' }}</a> / Cores made @endsection
 
 @section('content')
 <style>
@@ -30,7 +31,7 @@
     </div>
     <p class="cm-note">Creates lot <span class="mono">{{ $nextLot }}</span><span id="left-note"></span>.</p>
     </div></div>
-    <div class="actions"><a class="btn" href="{{ route('core-lots.index') }}">Cancel</a><button class="btn btn-primary" type="submit">Save</button></div>
+    <div class="actions"><a class="btn" href="{{ $run ? route('moulding-runs.show', $run) : ($stockOn ? route('core-lots.index') : route('cores.index')) }}">Cancel</a><button class="btn btn-primary" type="submit">Save</button></div>
 </form>
 <script>
     (function () {

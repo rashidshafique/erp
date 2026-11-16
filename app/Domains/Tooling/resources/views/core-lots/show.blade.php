@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('title', $lot->lot_number)
-@section('breadcrumb')<a href="{{ route('core-lots.index') }}">Core stock</a> / {{ $lot->lot_number }} @endsection
+@section('breadcrumb')@if (\App\Domains\Tooling\Support\CoreRules::stockOn())<a href="{{ route('core-lots.index') }}">Core stock</a>@else<a href="{{ route('cores.show', $lot->coreDefinition) }}">{{ $lot->coreDefinition->code }}</a>@endif / {{ $lot->lot_number }} @endsection
 
 @section('content')
 @php

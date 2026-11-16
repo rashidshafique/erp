@@ -247,15 +247,30 @@ class CoreLotTest extends TestCase
         $this->get(route('core-lots.show', $lot))->assertOk()->assertSee('Scrapped')->assertDontSee('Scrap remainder');
     }
 
-    public function test_with_core_stock_off_the_stock_pages_close_and_a_run_only_lists_the_cores_needed(): void
+    public function test_with_core_stock_off_the_stock_page_closes_but_cores_made_still_count_for_the_box(): void
     {
         $run = $this->mouldingRun(3);
         CoreRules::set('stock', 'OFF');
 
         $this->get(route('core-lots.index'))->assertNotFound();
-        $this->post(route('core-lots.store'), ['core_definition_id' => $this->core->id, 'core_box_id' => $this->box->id, 'quantity_made' => 5, 'made_on' => today()->format('Y-m-d')])->assertNotFound();
-        $this->get(route('moulding-runs.show', $run))->assertOk()->assertSee('Jacket core')->assertDontSee('On hand')->assertDontSee('Short 12');
-        $this->get(route('cores.index'))->assertOk()->assertDontSee(route('core-lots.index'), false);
+        $this->post(route('core-lots.issue-to-run', $run), ['core_definition_id' => $this->core->id, 'quantity' => 1])->assertNotFound();
+        $this->get(route('moulding-runs.show', $run))->assertOk()->assertSee('Jacket core')->assertDontSee('On hand')->assertDontSee('Short 12')->assertSee('Record cores made');
+        $this->get(route('cores.index'))->assertOk()->assertDontSee('href="'.route('core-lots.index').'"', false)->assertSee('Cores made');
+        $this->get(route('core-lots.create', ['run' => $run->id]))->assertOk()->assertDontSee('href="'.route('core-lots.index').'"', false);
+        $lot = $this->make(['use_now' => 1, 'moulding_run_id' => $run->id]);
+        $this->assertSame(10, (int) ToolingUsageRecord::where('core_box_id', $this->box->id)->sum('usage_quantity'));
+        $this->get(route('core-lots.show', $lot))->assertOk()->assertDontSee('href="'.route('core-lots.index').'"', false);
+    }
+
+    public function test_cores_made_from_an_older_run_still_offers_that_run(): void
+    {
+        $run = $this->mouldingRun(1);
+        $run->update(['run_date' => today()->subYear()]);
+        foreach (range(1, 30) as $i) {
+            MouldingRun::create(['run_number' => 'MR-N'.$i, 'production_order_id' => $run->production_order_id, 'run_date' => today(), 'status' => 'PLANNED', 'planned_mould_qty' => 1]);
+        }
+
+        $this->get(route('core-lots.create', ['run' => $run->id]))->assertOk()->assertSee($run->run_number);
     }
 
     public function test_the_product_panel_lists_the_current_revision_cores_and_flags_a_core_with_no_box(): void
