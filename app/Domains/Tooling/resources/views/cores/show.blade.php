@@ -29,7 +29,7 @@
                 <div><dt>Mark code</dt><dd>@include('tooling::tools._mark', ['tool' => $core, 'type' => 'core_definition', 'bare' => true])</dd></div>
                 <div><dt>Barcode</dt><dd><code>*{{ preg_replace('/[^A-Za-z0-9]/', '', $core->code) }}*</code></dd></div>
                 <div><dt>Made in</dt><dd>@if ($madeIn)<x-item :name="$madeIn->name" :code="$madeIn->code" :href="route('core-boxes.show', $madeIn)" />@else — @endif</dd></div>
-                <div><dt>On hand</dt><dd>{{ $onHand['cores'] }} {{ $onHand['cores'] === 1 ? 'core' : 'cores' }} · {{ $onHand['lots'] }} {{ $onHand['lots'] === 1 ? 'lot' : 'lots' }}</dd></div>
+                @if (\App\Domains\Tooling\Support\CoreRules::stockOn())<div><dt>On hand</dt><dd>{{ $onHand['cores'] }} {{ $onHand['cores'] === 1 ? 'core' : 'cores' }} · {{ $onHand['lots'] }} {{ $onHand['lots'] === 1 ? 'lot' : 'lots' }}</dd></div>@endif
             </dl>
             @if ($core->description || $core->engineering_notes)
             <div class="core-text">

@@ -160,7 +160,7 @@ new class extends Component
     <h1 class="ls-title">Cores</h1>
     <div class="ls-actions">
         <a class="ls-btn" href="{{ route('core-boxes.index') }}">Core boxes</a>
-        @if (Route::has('core-lots.index'))<a class="ls-btn" href="{{ route('core-lots.index') }}">Core stock</a>@endif
+        @if (Route::has('core-lots.index') && \App\Domains\Tooling\Support\CoreRules::stockOn())<a class="ls-btn" href="{{ route('core-lots.index') }}">Core stock</a>@endif
         <a class="ls-btn" href="{{ route('imports.create', ['entity' => 'core_definition']) }}">Import</a>
         <a class="ls-btn primary" href="{{ route('cores.create') }}">New core</a>
     </div>

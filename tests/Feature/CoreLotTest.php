@@ -156,7 +156,7 @@ class CoreLotTest extends TestCase
         $need = app(\App\Domains\Tooling\Services\CoreLotService::class)->needsForRun($run)[0];
 
         $this->assertSame([4, 12, 0, 5, 7], [$need['per_mould'], $need['needed'], $need['issued'], $need['on_hand'], $need['short']]);
-        $this->get(route('moulding-runs.show', $run))->assertOk()->assertSee('7 short');
+        $this->get(route('moulding-runs.show', $run))->assertOk()->assertSee('Short 7')->assertSee('The run can still start');
     }
 
     public function test_a_run_that_uses_some_cavities_needs_cores_for_those_only(): void
@@ -198,5 +198,77 @@ class CoreLotTest extends TestCase
         $this->assertStringNotContainsString('Cores &amp; core boxes', $html);
         $this->assertStringNotContainsString('href="'.route('core-lots.index').'" class="nav-link', $menu);
         $this->get(route('core-lots.index'))->assertOk()->assertSee('nav-link active', false);
+    }
+
+    public function test_cores_made_can_be_partly_used_in_a_run_and_the_rest_kept(): void
+    {
+        $run = $this->mouldingRun(2);
+        $lot = $this->make(['quantity_made' => 10, 'use_now' => 1, 'used_quantity' => 4, 'moulding_run_id' => $run->id, 'location' => 'Rack 2']);
+
+        $this->assertSame(6, $lot->remaining());
+        $this->assertSame(['STORED', 'Rack 2'], [$lot->status, $lot->location]);
+        $this->assertSame(4, (int) $lot->uses()->where('moulding_run_id', $run->id)->sum('quantity'));
+        $this->post(route('core-lots.store'), ['core_definition_id' => $this->core->id, 'core_box_id' => $this->box->id, 'quantity_made' => 3, 'made_on' => today()->format('Y-m-d'), 'use_now' => 1, 'used_quantity' => 4])
+            ->assertSessionHasErrors('used_quantity');
+    }
+
+    public function test_when_a_place_is_required_only_cores_left_after_the_run_need_one(): void
+    {
+        CoreRules::set('location', 'REQUIRED');
+
+        $this->post(route('core-lots.store'), ['core_definition_id' => $this->core->id, 'core_box_id' => $this->box->id, 'quantity_made' => 5, 'made_on' => today()->format('Y-m-d'), 'use_now' => 1, 'used_quantity' => 3])
+            ->assertSessionHasErrors('location');
+        $this->assertSame(0, $this->make(['quantity_made' => 5, 'use_now' => 1, 'used_quantity' => 5])->remaining());
+    }
+
+    public function test_core_stock_lists_the_oldest_lot_first_with_a_tile_per_core_and_no_check_column_when_checks_are_off(): void
+    {
+        $this->get(route('core-lots.index'))->assertOk()->assertSee('No core lots yet');
+        $new = $this->make(['location' => 'Rack 1']);
+        $old = $this->make(['location' => 'Rack 2', 'made_on' => today()->subDays(3)->format('Y-m-d')]);
+        $this->make(['use_now' => 1]);
+
+        $this->get(route('core-lots.index'))->assertOk()->assertSee('2 lots with cores left')->assertSeeInOrder([$old->lot_number, $new->lot_number])
+            ->assertDontSee('<th>Check</th>', false)->assertSee('Jacket core');
+        CoreRules::set('qc', 'REQUIRED');
+        $this->get(route('core-lots.index'))->assertSee('<th>Check</th>', false);
+    }
+
+    public function test_the_lot_page_lists_every_movement_and_passes_a_check_in_one_tap(): void
+    {
+        CoreRules::set('qc', 'REQUIRED');
+        $lot = $this->make(['location' => 'Rack 1']);
+
+        $this->get(route('core-lots.show', $lot))->assertOk()->assertSee('Check required')->assertSee('Scrap remainder')->assertSee('+10');
+        $this->put(route('core-lots.check', $lot), ['result' => 'PASSED'])->assertSessionHasNoErrors();
+        $this->get(route('core-lots.show', $lot))->assertDontSee('Check required');
+        $this->post(route('core-lots.take', $lot), ['kind' => 'SCRAPPED', 'quantity' => 10, 'used_on' => today()->format('Y-m-d')])->assertSessionHasNoErrors();
+        $this->assertSame('USED_UP', $lot->fresh()->status);
+        $this->get(route('core-lots.show', $lot))->assertOk()->assertSee('Scrapped')->assertDontSee('Scrap remainder');
+    }
+
+    public function test_with_core_stock_off_the_stock_pages_close_and_a_run_only_lists_the_cores_needed(): void
+    {
+        $run = $this->mouldingRun(3);
+        CoreRules::set('stock', 'OFF');
+
+        $this->get(route('core-lots.index'))->assertNotFound();
+        $this->post(route('core-lots.store'), ['core_definition_id' => $this->core->id, 'core_box_id' => $this->box->id, 'quantity_made' => 5, 'made_on' => today()->format('Y-m-d')])->assertNotFound();
+        $this->get(route('moulding-runs.show', $run))->assertOk()->assertSee('Jacket core')->assertDontSee('On hand')->assertDontSee('Short 12');
+        $this->get(route('cores.index'))->assertOk()->assertDontSee(route('core-lots.index'), false);
+    }
+
+    public function test_the_product_panel_lists_the_current_revision_cores_and_flags_a_core_with_no_box(): void
+    {
+        $product = Product::create(['code' => 'P-CORES', 'name' => 'Pump body']);
+        $old = ProductRevision::create(['product_id' => $product->id, 'revision' => 'C', 'status' => 'OBSOLETE']);
+        $now = ProductRevision::create(['product_id' => $product->id, 'revision' => 'D', 'status' => 'APPROVED']);
+        $boxless = CoreDefinition::create(['name' => 'Neck core', 'core_type' => 'STANDARD']);
+        CoreRequirement::create(['core_definition_id' => $this->core->id, 'product_revision_id' => $now->id, 'quantity_per_casting' => 1]);
+        CoreRequirement::create(['core_definition_id' => $boxless->id, 'product_revision_id' => $now->id, 'quantity_per_casting' => 1]);
+        CoreRequirement::create(['core_definition_id' => $this->core->id, 'product_revision_id' => $old->id, 'quantity_per_casting' => 2]);
+
+        $this->get(route('products.show', $product))->assertOk()->assertSee('revision D')->assertSee($this->box->code)
+            ->assertSee('! No active box')->assertSee('Other revisions · 1 core');
     }
 }

@@ -11,43 +11,62 @@ use App\Models\CoreLot;
 use App\Models\MouldingRun;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /** Cores made, kept and used: a lot is one batch of one core from one box. */
-class CoreLotController extends Controller
+class CoreLotController extends Controller implements HasMiddleware
 {
+    /** With core stock off in the core rules, none of these pages or actions exist. */
+    public static function middleware(): array
+    {
+        return [new Middleware(function (Request $request, \Closure $next) {
+            abort_unless(CoreRules::stockOn(), 404);
+
+            return $next($request);
+        })];
+    }
+
     public function index(Request $request, CoreLotService $service): View
     {
+        $all = $request->input('show') === 'all';
         $lots = CoreLot::with('coreDefinition', 'coreBox')->withSum('uses as taken', 'quantity')
             ->when($request->filled('core'), fn ($q) => $q->where('core_definition_id', $request->input('core')))
-            ->when($request->input('show', 'open') === 'open', fn ($q) => $q->where('status', '!=', 'USED_UP'))
-            ->latest('made_on')->latest('created_at')->paginate(50)->withQueryString();
+            ->when(! $all, fn ($q) => $q->where('status', '!=', 'USED_UP'))
+            ->orderBy('made_on')->orderBy('lot_number')->paginate(50)->withQueryString();
+        $qcOn = CoreRules::get('qc') === 'REQUIRED';
 
         return view('tooling::core-lots.index', [
             'lots' => $lots,
+            'all' => $all,
             'onHand' => $service->onHand(),
-            'cores' => CoreDefinition::orderBy('code')->get(['id', 'code', 'name']),
-            'rules' => collect(CoreRules::RULES)->map(fn ($r, $k) => CoreRules::get($k))->all(),
+            'stocked' => CoreDefinition::withTrashed()->whereIn('id', CoreLot::select('core_definition_id'))->orderBy('name')->get(['id', 'code', 'name']),
+            'cores' => CoreDefinition::orderBy('name')->get(['id', 'code', 'name']),
+            'openLots' => CoreLot::where('status', '!=', 'USED_UP')->count(),
+            'anyLots' => CoreLot::exists(),
+            'showCheck' => $qcOn || $lots->contains(fn (CoreLot $l) => $l->qc_status !== 'NOT_REQUIRED'),
         ]);
     }
 
     public function create(Request $request): View
     {
-        $core = CoreDefinition::find($request->input('core'));
-
         return view('tooling::core-lots.create', [
-            'core' => $core,
-            'cores' => CoreDefinition::where('status', 'ACTIVE')->orderBy('code')->get(),
+            'core' => CoreDefinition::find($request->input('core')),
+            'run' => MouldingRun::find($request->input('run')),
+            'cores' => CoreDefinition::where('status', 'ACTIVE')->orderBy('name')->get(),
             'boxes' => CoreBox::where('status', 'ACTIVE')->with('cavityMap')->orderBy('code')->get(),
-            'runs' => MouldingRun::latest('run_date')->limit(30)->get(),
+            'runs' => MouldingRun::with('patternRevision.pattern')->latest('run_date')->limit(30)->get(),
+            'nextLot' => \App\Support\DocumentNumbers::preview('core_lot'),
+            'places' => CoreLot::whereNotNull('location')->distinct()->orderBy('location')->limit(50)->pluck('location'),
             'locationRequired' => CoreRules::get('location') === 'REQUIRED',
         ]);
     }
 
-    /** Records a batch made; "used straight away" takes the whole batch out again in the same step. */
+    /** Records a batch made. Ticking "used today" takes the cores used out to the run in the same step; the rest stay in the lot. */
     public function store(Request $request, CoreLotService $service): RedirectResponse
     {
         $data = $request->validate([
@@ -57,33 +76,36 @@ class CoreLotController extends Controller
             'made_on' => ['required', 'date', 'before_or_equal:today'],
             'location' => ['nullable', 'string', 'max:100'],
             'use_now' => ['nullable', 'boolean'],
+            'used_quantity' => ['nullable', 'integer', 'min:1', 'lte:quantity_made'],
             'moulding_run_id' => ['nullable', 'uuid', Rule::exists('moulding_runs', 'id')],
             'notes' => ['nullable', 'string', 'max:2000'],
-        ], ['core_box_id.required' => 'Choose the core box the cores were made in.']);
+        ], ['core_box_id.required' => 'Choose the core box the cores were made in.', 'used_quantity.lte' => 'More cannot be used than were made.']);
+        $used = empty($data['use_now']) ? 0 : (int) ($data['used_quantity'] ?? $data['quantity_made']);
+        $left = (int) $data['quantity_made'] - $used;
 
-        $lot = DB::transaction(function () use ($data, $service) {
+        $lot = DB::transaction(function () use ($data, $service, $used, $left) {
             $madeOn = Carbon::parse($data['made_on']);
             $lot = $service->make(CoreDefinition::findOrFail($data['core_definition_id']), CoreBox::findOrFail($data['core_box_id']), (int) $data['quantity_made'], $madeOn,
-                empty($data['use_now']) ? ($data['location'] ?? null) : null, $data['notes'] ?? null, ! empty($data['use_now']));
-            if (! empty($data['use_now'])) {
-                $service->take($lot, $lot->quantity_made, 'USED', $madeOn, $data['moulding_run_id'] ?? null);
+                $left > 0 ? ($data['location'] ?? null) : null, $data['notes'] ?? null, $left === 0);
+            if ($used > 0) {
+                $service->take($lot, $used, 'USED', $madeOn, $data['moulding_run_id'] ?? null);
             }
 
             return $lot;
         });
 
-        return redirect()->route('core-lots.show', $lot)->with('success', "Lot {$lot->lot_number}: {$lot->quantity_made} made".(empty($data['use_now']) ? '.' : ' and used.'));
+        return redirect()->route('core-lots.show', $lot)->with('success', "Lot {$lot->lot_number}: {$lot->quantity_made} made".($used > 0 ? ", {$used} used, {$left} left." : '.'));
     }
 
     public function show(CoreLot $coreLot, CoreLotService $service): View
     {
-        $coreLot->load('coreDefinition', 'coreBox', 'uses.mouldingRun');
+        $coreLot->load('coreDefinition', 'coreBox', 'uses.mouldingRun.patternRevision.pattern');
 
         return view('tooling::core-lots.show', [
             'lot' => $coreLot,
             'remaining' => $coreLot->remaining(),
-            'runs' => MouldingRun::latest('run_date')->limit(30)->get(),
-            'qcOn' => CoreRules::get('qc') === 'REQUIRED',
+            'runs' => MouldingRun::with('patternRevision.pattern')->latest('run_date')->limit(30)->get(),
+            'places' => CoreLot::whereNotNull('location')->distinct()->orderBy('location')->limit(50)->pluck('location'),
         ]);
     }
 
