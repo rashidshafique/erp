@@ -77,7 +77,7 @@ Updated 2026-11-15.
 - Patterns: core boxes show in the patterns list with a Show filter. Core boxes and core stock sit under Engineering. Production orders are labelled Orders and sit right after Planning.
 
 **Cores and core boxes (design turn 29, 2026-11-15)**
-- Turn 29 (29a–29j) is on the live design canvas, Production page. Picks: no cavity map; Lent added; Details panel on both lists.
+- Turn 29 (29a–29j) is on the live design canvas, Production page. Picks: cavity map M1 (added 2026-11-16), form layout B, Lent added, Details panel on both lists.
 - Core box form: each core the box makes with how many cavities make it, plus blocked cavities (the form numbers cavities in row order). The box page lists the same counts (Edit cores opens the form); the per-cavity table and the `core-boxes.cavities` route are gone. The core page shows "3 of 5" per box.
 - Cores and Core boxes lists are Livewire (`tooling::core-list`, `tooling::core-box-list`) in the products list layout: status tabs, search, filters, Export, Details side panel, archived behind the footer with Restore.
 - Lent: an active box whose location is "Lent to a third party for core making" (Change location, with who has it). It has its own tab and status (`CoreBox::displayStatus()`, `STATUS_LABELS`) and still counts as an active box for products and core lots. It is not in the Status dropdown.
@@ -88,7 +88,13 @@ Updated 2026-11-15.
   - Cores made (29h): "Used today in a moulding run" takes a run and how many were used; the rest stay in the lot at "Where the rest is kept" (needed by the location rule only when some are left). The box is picked when only one box makes the core. The form shows the lot number it will create and how many are left. Opened from a run with `?run=` it starts ticked on that run.
   - Lot page (29i): Core, Core box, Made on, Where, Made, Used, Left, Status; an amber Check required block with Pass and Fail (a failed lot shows red with Pass after all); Move, Use and Scrap remainder in the head; one Uses list, newest first, ending in the Made row, with what was left after each.
   - Panels (29j): the product page shows the current revision's cores with ✓ boxes or ! No active box, other revisions folded below. The run panel shows Needed, On hand and ✓ or ! Short N, and a line that the run can still start with Record cores made. It keeps Issue (oldest lots first) and shows how many were issued, though the design leaves both out.
-- Not built from turn 29: a correction as a cores-made entry with a minus quantity (29h); a check sample rule shown in the check block (29i); the cavity map, layout B preview and M1–M3 options (picked out).
+- Finished 2026-11-16:
+  - Cavity map (M1): numbered cells, each showing its core or Blocked, with a key. It is a visual aid only, in cavity-number order, and does not show where a cavity sits in the box. It is editable on the box page (`core-boxes.cavity`, `CoreBox::setCavity`; the last core cannot be blocked) and read-only in the list's Details panel. A form save with unchanged counts keeps the numbers set on the map.
+  - Box page (29e): facts grid, ownership grid, life bar or "No life limit", archived banner.
+  - Form layout B (29f): live preview, "+ New core…" quick dialog, no Status on a new box, ownership on the form.
+  - Row ⋯ menu on the box list (29d).
+  - Minus correction on Cores made (29h): taken off the newest lots as Corrected uses, and the box's usage record goes down too.
+  - Per-core "What to check" (`check_note`) shown in the lot's check block (29i).
 - `CodesAndMarksTest` has two failures on the Appearance settings text ("Click a table row to open it"); they come from outside this work.
 
 **Production**
