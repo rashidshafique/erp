@@ -15,7 +15,7 @@
     <div class="panel-body">
         <dl class="tool-facts cb-facts4">
             <div><dt>Owner</dt><dd>{{ $box->ownerLabel() }}@if ($paidBy)<span class="sub">Paid by {{ $paidBy }}</span>@endif</dd></div>
-            <div><dt>Where it is now</dt><dd>{{ $box->displayStatus() === 'LENT' ? 'Lent' : $box->custodyLabel() }}</dd></div>
+            <div><dt>Where it is now</dt><dd>{{ $box->displayStatus() === 'LENT' ? 'Lent' : (\App\Models\CoreBox::CUSTODY_LABELS[$box->custody] ?? $box->custody) }}</dd></div>
             <div><dt>{{ $box->custody === 'LENT' ? 'With whom' : 'Location' }}</dt><dd>{{ $box->custody_location ?: '—' }}</dd></div>
             <div><dt>Ownership tag</dt><dd>{{ $box->ownership_reference ?: '—' }}@if ($box->return_notice_days !== null)<span class="sub">Return on request: {{ $box->return_notice_days ? $box->return_notice_days.' days' : 'at once' }}</span>@endif</dd></div>
         </dl>

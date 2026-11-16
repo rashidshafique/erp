@@ -290,4 +290,27 @@ class CoreScreensTest extends TestCase
         $this->get(route('core-boxes.show', $box))->assertOk()->assertSee('Restore')->assertSee('Cavity map')->assertDontSee('Save cavity')->assertDontSee(route('core-boxes.edit', $box));
         $this->put(route('core-boxes.cavity', [$box, 1]), ['core' => ''])->assertNotFound();
     }
+
+    public function test_the_new_box_form_has_a_preview_no_status_and_saves_ownership(): void
+    {
+        $core = $this->core();
+        $customer = Customer::create(['code' => 'MAS', 'name' => 'Meridian', 'active' => true]);
+        $this->get(route('core-boxes.create'))->assertOk()->assertSee('As you type it')->assertSee('data-quick-add="qd-core"', false)->assertDontSee('name="status"', false);
+
+        $payload = $this->boxPayload($core, ['owner_type' => 'CUSTOMER', 'owner_customer_id' => $customer->id, 'custody' => 'LENT', 'custody_location' => 'Erie Pattern Works', 'ownership_reference' => 'MAS-114']);
+        unset($payload['status']);
+        $this->post(route('core-boxes.store'), $payload)->assertSessionHasNoErrors();
+
+        $box = CoreBox::sole();
+        $this->assertSame(['ACTIVE', 'CUSTOMER', $customer->id, 'LENT', 'MAS-114'], [$box->status, $box->owner_type, $box->owner_customer_id, $box->custody, $box->ownership_reference]);
+        $this->post(route('core-boxes.store'), $this->boxPayload($core, ['name' => 'Other', 'owner_type' => 'FOUNDRY', 'custody' => 'LENT']))->assertSessionHasErrors('custody_location');
+        $this->get(route('core-boxes.edit', $box))->assertOk()->assertSee('name="status"', false);
+    }
+
+    public function test_a_core_added_from_the_box_form_comes_back_as_json(): void
+    {
+        $this->postJson(route('cores.store'), ['name' => 'Pump neck core', 'core_type' => 'STANDARD'])->assertCreated()->assertJsonPath('label', CoreDefinition::sole()->code.' · Pump neck core');
+
+        $this->assertSame('ACTIVE', CoreDefinition::sole()->status);
+    }
 }

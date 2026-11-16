@@ -28,14 +28,17 @@ class CoreBoxController extends Controller
     public function create(Request $request): View
     {
         return view('tooling::core-boxes.form', $this->formData(new CoreBox([
-            'status' => 'ACTIVE', 'origin' => 'NEW', 'revision' => 'A', 'cavities' => 1,
+            'status' => 'ACTIVE', 'origin' => 'NEW', 'revision' => 'A', 'cavities' => 1, 'owner_type' => 'FOUNDRY', 'custody' => 'IN_STORE',
             'core_definition_id' => $request->input('core'),
         ])));
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $data = $this->validated($request);
+        $data = $this->validated($request) + ['status' => 'ACTIVE'];
+        if ($request->has('owner_type')) {
+            $data = $this->ownership($request) + $data;
+        }
         $rows = $this->posted($request);
         $map = $rows ? $this->mapFromRows($rows['cores'], $rows['blocked']) : array_fill(1, (int) $data['cavities'], $data['core_definition_id']);
         $box = DB::transaction(function () use ($data, $map) {
@@ -71,6 +74,9 @@ class CoreBoxController extends Controller
     public function update(Request $request, CoreBox $coreBox): RedirectResponse
     {
         $data = $this->validated($request, $coreBox);
+        if ($request->has('owner_type')) {
+            $data = $this->ownership($request) + $data;
+        }
         $rows = $this->posted($request);
         $saved = $coreBox->cavityMap()->pluck('core_definition_id', 'cavity_number')->all();
         $map = match (true) {
@@ -231,6 +237,7 @@ class CoreBoxController extends Controller
             'cores' => CoreDefinition::where('status', 'ACTIVE')->orWhere('id', $box->core_definition_id)->orWhereIn('id', array_filter($saved))->orderBy('code')->get(),
             'otherBoxes' => CoreBox::when($box->exists, fn ($q) => $q->whereKeyNot($box->id))->orderBy('code')->get(),
             'patterns' => Pattern::orderBy('code')->get(['id', 'code', 'name']),
+            'customers' => Customer::where(fn ($q) => $q->active()->orWhere('id', $box->owner_customer_id))->orderedByName()->get(),
         ];
     }
 
@@ -242,7 +249,8 @@ class CoreBoxController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'core_definition_id' => ['required_without:box_cores', 'nullable', 'uuid', Rule::exists('core_definitions', 'id')->whereNull('deleted_at')],
             'revision' => ['required', 'string', 'max:20'],
-            'status' => ['required', Rule::in(['ACTIVE', 'INACTIVE', 'RETIRED'])],
+            // A new box is in use; the edit form keeps Status for taking a box out of use.
+            'status' => [$box ? 'required' : 'nullable', Rule::in(['ACTIVE', 'INACTIVE', 'RETIRED'])],
             'origin' => ['required', Rule::in(array_keys(CoreBox::ORIGINS))],
             'modified_from_core_box_id' => ['nullable', 'required_if:origin,MODIFIED_BOX', 'uuid', Rule::exists('core_boxes', 'id'), Rule::notIn([$box?->id])],
             'modified_from_pattern_id' => ['nullable', 'required_if:origin,MODIFIED_PATTERN', 'uuid', Rule::exists('patterns', 'id')],
@@ -277,6 +285,9 @@ class CoreBoxController extends Controller
             $data['cavities'] = $total;
         }
         unset($data['box_cores'], $data['blocked']);
+        if (blank($data['status'] ?? null)) {
+            unset($data['status']);
+        }
         if (blank($data['code'] ?? null)) {
             unset($data['code']);
         }

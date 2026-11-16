@@ -9,6 +9,7 @@ use App\Models\CoreBox;
 use App\Models\CoreDefinition;
 use App\Models\CoreLot;
 use App\Models\ProductRevision;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
@@ -29,13 +30,17 @@ class CoreController extends Controller
         return view('tooling::cores.form', ['core' => new CoreDefinition(['core_type' => 'STANDARD', 'status' => 'ACTIVE'])]);
     }
 
-    public function store(Request $request): RedirectResponse
+    /** From the core form, or the quick "+ New core…" dialog on the core box form, which asks for JSON. */
+    public function store(Request $request): RedirectResponse|JsonResponse
     {
         $data = $this->validated($request);
         $mark = $data['mark_code'] ?? null;
         unset($data['mark_code']);
         $core = CoreDefinition::create($data + ['status' => 'ACTIVE']);
         $this->applyMark($core, $mark);
+        if ($request->expectsJson()) {
+            return response()->json(['id' => $core->id, 'label' => $core->code.' · '.$core->name], 201);
+        }
 
         return redirect()->route('cores.show', $core)->with('success', "Core {$core->code} added. Add the core box that makes it.");
     }
