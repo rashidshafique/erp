@@ -4,8 +4,9 @@ namespace App\Support;
 
 /**
  * Puts the sidebar's links in the order of the workflow design (1a): Sales, Engineering, Production, Quality, Logistics, each
- * with its design entries first. Links the design has no place for stay in their old groups, which follow. The links are the
- * ones the menu already drew, so permissions, menu filters, counts and the current page all carry over unchanged.
+ * with its design entries first. The start-page link and the calendar the menu draws above them stay at the top; links the
+ * design has no place for stay in their old groups, which follow. The links are the ones the menu already drew, so permissions,
+ * menu filters, counts and the current page all carry over unchanged.
  */
 class MenuLayout
 {
@@ -77,16 +78,21 @@ class MenuLayout
             }
         }
 
+        $top = '';
         $rest = '';
         foreach ($chunks as $i => $chunk) {
             $chunk = preg_replace_callback('/\0([^\0]*)\0/', fn (array $m) => $links[$m[1]] ?? '', $chunk);
             if ($i > 0 && ! str_contains($chunk, 'class="nav-link')) {
                 continue;
             }
-            $rest .= $chunk;
+            if ($i === 0) {
+                $top .= $chunk;   // the start page and calendar are drawn above the groups, and stay there
+            } else {
+                $rest .= $chunk;
+            }
         }
 
-        return $groups.$rest;
+        return $top.$groups.$rest;
     }
 
     private static function key(string $href): string

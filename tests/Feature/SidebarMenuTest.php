@@ -94,6 +94,8 @@ class SidebarMenuTest extends TestCase
         $html = $this->get(route('dashboard'))->assertOk()->getContent();
         $nav = substr($html, strpos($html, '<nav class="sidebar-nav"'), strpos($html, '</nav>') - strpos($html, '<nav class="sidebar-nav"'));
 
+        $this->assertLessThan(strpos($nav, 'Sales</span>'), strpos($nav, '<span>Dashboard</span>'), 'the start page sits above the groups');
+
         // Each entry is found after the one before it. A single regex with .* runs out of backtracking on a long menu.
         $at = 0;
         foreach (['Sales</span>', 'Invoices', 'Enquiries', 'Sales orders', 'Receipts', 'Cheques received', 'Engineering</span>', 'Feasibility', 'Patterns &amp; tooling', 'Cores</span>',
