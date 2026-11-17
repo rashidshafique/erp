@@ -4,6 +4,7 @@ use App\Domains\Enquiry\Http\Controllers\EnquiryController;
 use App\Domains\Enquiry\Http\Controllers\EnquiryRecordController;
 use App\Domains\Enquiry\Http\Controllers\FeasibilityController;
 use App\Domains\Enquiry\Http\Controllers\QuotationController;
+use App\Domains\Enquiry\Http\Controllers\QuotationListController;
 use App\Domains\Enquiry\Http\Controllers\QuotationSettingsController;
 use Illuminate\Support\Facades\Route;
 
@@ -38,6 +39,8 @@ Route::middleware('web')->group(function () {
     });
 
     Route::prefix('quotations')->name('quotations.')->controller(QuotationController::class)->group(function () {
+        Route::get('/', [QuotationListController::class, 'index'])->name('index');
+        Route::get('/export', [QuotationListController::class, 'export'])->name('export');
         Route::get('/{quotation}', 'show')->name('show');
         Route::get('/{quotation}/print', 'print')->name('print');
         Route::put('/{quotation}', 'update')->name('update');

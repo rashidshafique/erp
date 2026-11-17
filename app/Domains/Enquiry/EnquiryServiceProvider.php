@@ -68,8 +68,10 @@ class EnquiryServiceProvider extends ModuleServiceProvider
     protected function navItems(): array
     {
         return [
-            ['group' => 'sales', 'label' => 'Enquiries & quotes', 'route' => 'enquiries.index', 'icon' => 'message', 'active' => ['enquiries.index', 'enquiries.create', 'enquiries.show', 'enquiries.items.*', 'quotations.*'],
-                'count' => fn (): int => Enquiry::whereIn('status', ['NEW', 'FEASIBILITY'])->count() + Quotation::where('status', 'DRAFT')->count()],
+            ['group' => 'sales', 'label' => 'Enquiries', 'route' => 'enquiries.index', 'icon' => 'message', 'active' => ['enquiries.index', 'enquiries.create', 'enquiries.show', 'enquiries.items.*'],
+                'count' => fn (): int => Enquiry::whereIn('status', ['NEW', 'FEASIBILITY'])->count()],
+            ['group' => 'sales', 'label' => 'Quotations', 'route' => 'quotations.index', 'icon' => 'file-text', 'active' => ['quotations.*'],
+                'count' => fn (): int => Quotation::where('status', 'DRAFT')->count() + Quotation::where('status', 'AWAITING_APPROVAL')->count()],
             ['group' => 'sales', 'label' => 'Feasibility', 'route' => 'feasibility.index', 'icon' => 'clipboard-check', 'active' => ['feasibility.*']],
         ];
     }

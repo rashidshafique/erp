@@ -38,10 +38,8 @@ class EnquiryController extends Controller
         $tab = array_key_exists((string) $request->query('tab'), self::TABS) ? $request->query('tab') : 'open';
         $since = today()->subDays(90);
         $closed90 = Enquiry::whereIn('status', ['LOST', 'DECLINED'])->where('closed_at', '>=', $since);
-        $quotedIds = Quotation::whereNotNull('issued_at')->where('issued_at', '>=', $since)->distinct()->pluck('enquiry_id');
-        $firstIssue = Quotation::whereNotNull('issued_at')->selectRaw('enquiry_id, min(issued_at) as first_issued')->groupBy('enquiry_id');
-        $daysToQuote = DB::query()->fromSub($firstIssue, 'q')->join('enquiries', 'enquiries.id', '=', 'q.enquiry_id')
-            ->where('q.first_issued', '>=', $since)->selectRaw('avg(extract(epoch from (q.first_issued - enquiries.received_on::timestamptz)) / 86400) as days')->value('days');
+        $figures = app(\App\Domains\Enquiry\Services\QuotationFigures::class);
+        $quotedIds = $figures->quotedEnquiries($since);
         $won90 = Enquiry::where('status', 'WON')->where('closed_at', '>=', $since)->count();
 
         return view('enquiry::enquiries.index', [
@@ -55,7 +53,7 @@ class EnquiryController extends Controller
                 'quoted' => $quotedIds->count(),
                 'won' => $won90,
                 'wonShare' => $quotedIds->count() > 0 ? round(100 * $won90 / $quotedIds->count()) : null,
-                'daysToQuote' => $daysToQuote !== null ? round((float) $daysToQuote, 1) : null,
+                'daysToQuote' => $figures->daysToQuote($since),
             ],
             'reasons' => (clone $closed90)->whereNotNull('close_reason')->selectRaw('close_reason, status, count(*) as n')->groupBy('close_reason', 'status')->get()
                 ->groupBy('close_reason')->map(fn ($g) => ['lost' => (int) $g->where('status', 'LOST')->sum('n'), 'declined' => (int) $g->where('status', 'DECLINED')->sum('n')])

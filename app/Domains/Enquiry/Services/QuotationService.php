@@ -65,7 +65,7 @@ class QuotationService
         ];
     }
 
-    /** A new draft version for the enquiry, priced from its items. Earlier drafts and issued versions are replaced. */
+    /** A new draft revision of the enquiry's quotation, priced from its items. It keeps the quotation's number; an issued revision is superseded when this one is sent. */
     public function create(Enquiry $enquiry): Quotation
     {
         $rates = Rates::get();
@@ -85,7 +85,7 @@ class QuotationService
 
         return DB::transaction(function () use ($enquiry, $rates, $inputs, $prev) {
             $q = Quotation::create([
-                'enquiry_id' => $enquiry->id, 'version' => ($prev?->version ?? 0) + 1, 'status' => 'DRAFT', 'currency' => config('quotation.currency'),
+                'code' => $prev?->code, 'enquiry_id' => $enquiry->id, 'version' => ($prev?->version ?? 0) + 1, 'status' => 'DRAFT', 'currency' => config('quotation.currency'),
                 'payment_terms' => $prev?->payment_terms ?? $enquiry->customer?->payment_terms, 'delivery_weeks' => $prev?->delivery_weeks,
                 'tooling_mode' => $prev?->tooling_mode ?? 'NONE', 'tooling_amortise_qty' => $prev?->tooling_amortise_qty, 'notes' => $prev?->notes,
                 'created_by_id' => Auth::id(), 'created_by_name' => Auth::user()?->name,
