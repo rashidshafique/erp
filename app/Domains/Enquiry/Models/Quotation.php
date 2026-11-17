@@ -91,7 +91,7 @@ class Quotation extends Model
     /** Pieces a year times the piece price, over the lines, falling back to the quoted quantity when the item has no annual figure. */
     public function annualValue(): float
     {
-        return (float) $this->lines->sum(fn (QuotationLine $l) => ($l->item?->annual_qty ?: $l->qty) * (float) $l->unit_price);
+        return (float) $this->lines->sum(fn (QuotationLine $l) => ($l->annualQty() ?: $l->qty) * (float) $l->unit_price);
     }
 
     public function lowestMargin(): float

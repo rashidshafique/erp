@@ -43,6 +43,7 @@
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
             <span class="el-pill {{ $tones[$key] ?? '' }}">{{ $q->statusLabel() }}</span><span class="el-sub">rev {{ $q->version }}@unless ($isLatest) · superseded by a later revision @endunless</span>
             @if ($q->status === 'DRAFT')<a class="el-btn primary" href="{{ route('quotations.show', $q) }}">Open costing editor</a>@endif
+            @if (app(\App\Domains\Enquiry\Services\QuotationService::class)->canRevise($q))<a class="el-btn primary" href="{{ route('quotations.revise', $q) }}">New revision</a>@endif
             @if (in_array($q->status, ['ISSUED', 'ACCEPTED', 'EXPIRED', 'SUPERSEDED', 'REJECTED'], true))<a class="el-btn" href="{{ route('quotations.print', $q) }}" target="_blank">Preview PDF</a>@endif
         </div>
     </div>
@@ -56,7 +57,7 @@
                 <div class="el-table"><table><thead><tr><th>Part</th><th class="el-r">Annual qty</th><th class="el-r">Batch</th><th class="el-r">Piece price</th><th class="el-r">Tooling</th><th>Lead time</th></tr></thead><tbody>
                 @foreach ($q->lines as $l)
                     <tr><td><div style="font-weight:500">{{ $l->item?->description }}</div><div class="el-sub">{{ collect([$l->item?->material_text, Formats::number((float) $l->weight_kg, 1).' kg', $l->item?->drawing_rev ? 'drawing rev '.$l->item->drawing_rev : null])->filter()->implode(' · ') }}</div></td>
-                        <td class="el-r">{{ $l->item?->annual_qty ? Formats::number($l->item->annual_qty).' / yr' : '—' }}</td><td class="el-r">{{ Formats::number($l->qty) }}</td>
+                        <td class="el-r">{{ $l->annualQty() ? Formats::number($l->annualQty()).' / yr' : '—' }}</td><td class="el-r">{{ Formats::number($l->qty) }}</td>
                         <td class="el-r">{{ $money($l->unit_price) }}</td><td class="el-r">{{ (float) $l->tooling_cost > 0 ? $money($l->tooling_cost, 0) : '—' }}</td><td>{{ $q->delivery_weeks ? $q->delivery_weeks.' weeks' : '—' }}</td></tr>
                 @endforeach
                 </tbody></table></div>

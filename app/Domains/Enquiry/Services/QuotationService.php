@@ -96,7 +96,7 @@ class QuotationService
                 $tooling = app(PatternOwnership::class)->toolingFor($enquiry->customer_id, $item->product_id);
                 $old = $prev?->lines->firstWhere('enquiry_item_id', $item->id);
                 $line = $q->lines()->create([
-                    'enquiry_item_id' => $item->id, 'line_no' => $i + 1, 'qty' => $in['qty'], 'weight_kg' => $in['weight_kg'], 'poured_kg' => $in['poured_kg'], 'family' => $in['family'],
+                    'enquiry_item_id' => $item->id, 'line_no' => $i + 1, 'qty' => $in['qty'], 'annual_qty' => $item->annual_qty ?: null, 'weight_kg' => $in['weight_kg'], 'poured_kg' => $in['poured_kg'], 'family' => $in['family'],
                     'cores_count' => $in['cores_count'], 'heat_treatment' => $item->heat_treatment, 'ndt' => $item->ndt,
                     'machining_cost' => $item->machining_cost, 'other_cost' => $item->other_cost, 'scrap_pct' => $in['scrap_pct'],
                     'overhead_pct' => $rates['overhead_pct'], 'margin_pct' => $old?->margin_pct ?? $rates['margin_pct'], 'tooling_cost' => $tooling['customer_owned'] ? 0 : $item->tooling_cost,
@@ -107,6 +107,89 @@ class QuotationService
 
             return $q->fresh('lines');
         });
+    }
+
+    /** The revisions a quotation can still be revised from: a closed-out accepted one is locked, later changes go on the order. */
+    public function canRevise(Quotation $q): bool
+    {
+        return in_array($q->status, ['ISSUED', 'EXPIRED', 'REJECTED'], true) && $q->isLatest();
+    }
+
+    /**
+     * The next revision of a quotation (design 30c), as a draft with the same number. Lines ticked to change take the new figures, the
+     * others keep exactly the price they had; the earlier revision is marked superseded and stays on the record. The change note says
+     * what moved, so the list of revisions answers "why" six months later.
+     *
+     * @param  array{reason: string, changes: list<string>, lines?: array<string, array{apply?: bool, price?: mixed, annual_qty?: mixed, tooling?: mixed, family?: ?string}>, valid_until?: ?string, notes?: ?string, delivery_weeks?: mixed, payment_terms?: ?string}  $in
+     */
+    public function revise(Quotation $from, array $in): Quotation
+    {
+        abort_unless($this->canRevise($from), 422);
+        $changes = $in['changes'] ?? [];
+        $from->load('lines.item');
+
+        return DB::transaction(function () use ($from, $in, $changes) {
+            $moved = [];
+            $q = Quotation::create([
+                'code' => $from->code, 'enquiry_id' => $from->enquiry_id, 'version' => $from->version + 1, 'status' => 'DRAFT', 'currency' => $from->currency,
+                'payment_terms' => in_array('terms', $changes, true) && filled($in['payment_terms'] ?? null) ? $in['payment_terms'] : $from->payment_terms,
+                'delivery_weeks' => in_array('lead', $changes, true) && filled($in['delivery_weeks'] ?? null) ? (int) $in['delivery_weeks'] : $from->delivery_weeks,
+                'tooling_mode' => $from->tooling_mode, 'tooling_amortise_qty' => $from->tooling_amortise_qty,
+                'valid_until' => $in['valid_until'] ?? null, 'notes' => $in['notes'] ?? null, 'revision_reason' => $in['reason'],
+                'created_by_id' => Auth::id(), 'created_by_name' => Auth::user()?->name,
+            ]);
+            foreach ($from->lines as $old) {
+                $row = $in['lines'][$old->id] ?? [];
+                $apply = (bool) ($row['apply'] ?? false);
+                $new = $old->only(['enquiry_item_id', 'line_no', 'qty', 'annual_qty', 'weight_kg', 'poured_kg', 'family', 'cores_count', 'heat_treatment', 'ndt', 'machining_cost', 'other_cost', 'scrap_pct', 'overhead_pct', 'margin_pct', 'tooling_cost', 'basis']);
+                $new['price_override'] = $old->unit_price;
+                if ($apply && in_array('price', $changes, true) && filled($row['price'] ?? null) && round((float) $row['price'], 2) !== round((float) $old->unit_price, 2)) {
+                    $new['price_override'] = round((float) $row['price'], 2);
+                    $moved[] = sprintf('piece price %s to %s', \App\Support\Formats::number((float) $old->unit_price, 2), \App\Support\Formats::number((float) $new['price_override'], 2));
+                }
+                if ($apply && in_array('qty', $changes, true) && filled($row['annual_qty'] ?? null) && (int) $row['annual_qty'] !== (int) $old->annualQty()) {
+                    $new['annual_qty'] = (int) $row['annual_qty'];
+                    $moved[] = sprintf('annual quantity %s to %s', \App\Support\Formats::number((int) $old->annualQty()), \App\Support\Formats::number($new['annual_qty']));
+                }
+                if ($apply && in_array('tooling', $changes, true) && filled($row['tooling'] ?? null) && round((float) $row['tooling'], 2) !== round((float) $old->tooling_cost, 2)) {
+                    $new['tooling_cost'] = round((float) $row['tooling'], 2);
+                    $moved[] = 'tooling changed';
+                }
+                if ($apply && in_array('scope', $changes, true) && filled($row['family'] ?? null) && $row['family'] !== $old->family) {
+                    $new['family'] = $row['family'];
+                    $moved[] = 'alloy changed to '.strtolower($row['family']);
+                }
+                $q->lines()->create($new);
+            }
+            if (in_array('lead', $changes, true) && (int) $q->delivery_weeks !== (int) $from->delivery_weeks) {
+                $moved[] = "lead time {$from->delivery_weeks} to {$q->delivery_weeks} weeks";
+            }
+            if (in_array('terms', $changes, true) && $q->payment_terms !== $from->payment_terms) {
+                $moved[] = 'terms changed';
+            }
+            $this->recalc($q->fresh('lines'));
+            $label = Quotation::REVISION_REASONS[$in['reason']][0] ?? 'Revised';
+            $q->update(['change_note' => $label.($moved ? ': '.implode(', ', array_unique($moved)) : '')]);
+            $from->update(['status' => 'SUPERSEDED']);
+            QuotationEvent::log($q, 'SYSTEM', "Rev {$q->version} made from rev {$from->version}. {$q->change_note}.");
+
+            return $q->fresh('lines');
+        });
+    }
+
+    /**
+     * What each line costs a piece at today's rates, for the margin preview on a new revision. Line id => cost.
+     *
+     * @return array<string, float>
+     */
+    public function costToday(Quotation $q): array
+    {
+        $rates = Rates::get();
+        $ctx = ['tooling_mode' => $q->tooling_mode, 'tooling_amortise_qty' => $q->tooling_amortise_qty];
+
+        return $q->lines->mapWithKeys(fn ($l) => [$l->id => $this->calc->line(
+            $l->only(['weight_kg', 'poured_kg', 'family', 'cores_count', 'heat_treatment', 'ndt', 'machining_cost', 'other_cost', 'scrap_pct', 'overhead_pct', 'margin_pct', 'tooling_cost']) + ['price_override' => null], $rates, $ctx
+        )['unit_cost']])->all();
     }
 
     /** Recompute every line from its stored inputs. */

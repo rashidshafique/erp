@@ -58,6 +58,41 @@ class QuotationController extends Controller
         ]);
     }
 
+    /** The new revision form (design 30c). */
+    public function reviseForm(Quotation $quotation)
+    {
+        abort_unless($this->svc->canRevise($quotation), 422);
+        $quotation = $this->load($quotation);
+
+        return view('enquiry::quotations.revise', [
+            'q' => $quotation, 'costToday' => $this->svc->costToday($quotation), 'floor' => (float) \App\Domains\Enquiry\Services\Rates::get()['min_margin_pct'],
+            'validityDays' => (int) config('quotation.validity_days'),
+        ]);
+    }
+
+    /** Makes the next revision, and sends it too when asked (it may then wait for approval). */
+    public function reviseStore(Request $request, Quotation $quotation)
+    {
+        abort_unless($this->svc->canRevise($quotation), 422);
+        $d = $request->validate([
+            'reason' => ['required', Rule::in(array_keys(Quotation::REVISION_REASONS))],
+            'changes' => ['array'], 'changes.*' => [Rule::in(['price', 'qty', 'tooling', 'lead', 'scope', 'terms'])],
+            'lines' => ['array'], 'lines.*.apply' => ['nullable', 'boolean'], 'lines.*.price' => ['nullable', 'numeric', 'min:0.01'],
+            'lines.*.annual_qty' => ['nullable', 'integer', 'min:1'], 'lines.*.tooling' => ['nullable', 'numeric', 'min:0'], 'lines.*.family' => ['nullable', Rule::in(['GREY', 'DUCTILE'])],
+            'valid_until' => ['nullable', 'date', 'after_or_equal:today'], 'notes' => ['nullable', 'string', 'max:3000'],
+            'delivery_weeks' => ['nullable', 'integer', 'min:1', 'max:104'], 'payment_terms' => ['nullable', 'string', 'max:200'],
+            'action' => ['required', Rule::in(['send', 'draft'])],
+        ]);
+        $revision = $this->svc->revise($quotation, $d);
+        if ($d['action'] === 'send') {
+            $msg = $this->svc->issue($revision);
+
+            return redirect()->route('quotations.show', [$revision, 'record' => 1])->with($msg ? 'error' : 'success', $msg ?? "Revision {$revision->version} sent.");
+        }
+
+        return redirect()->route('quotations.show', $revision)->with('success', "Revision {$revision->version} saved as a draft. It keeps the number {$revision->code}.");
+    }
+
     /** A line the team adds to the log: an email in or out, or a note. */
     public function log(Request $request, Quotation $quotation)
     {

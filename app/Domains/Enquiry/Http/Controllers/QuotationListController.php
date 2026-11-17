@@ -28,7 +28,7 @@ class QuotationListController extends Controller
         'customer' => '(select p.name from customers c join parties p on p.id = c.party_id where c.id = enquiries.customer_id)',
         'rev' => 'quotations.version',
         'piece' => '(select l.unit_price from quotation_lines l where l.quotation_id = quotations.id order by l.line_no limit 1)',
-        'value' => '(select sum(coalesce(nullif(i.annual_qty, 0), l.qty) * l.unit_price) from quotation_lines l join enquiry_items i on i.id = l.enquiry_item_id where l.quotation_id = quotations.id)',
+        'value' => '(select sum(coalesce(nullif(l.annual_qty, 0), nullif(i.annual_qty, 0), l.qty) * l.unit_price) from quotation_lines l join enquiry_items i on i.id = l.enquiry_item_id where l.quotation_id = quotations.id)',
         'valid' => 'quotations.valid_until',
         'status' => 'quotations.status',
     ];

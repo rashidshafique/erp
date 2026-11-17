@@ -99,8 +99,8 @@ class Enquiry extends Model
             $this->status === 'NEW' => 'DRAFT',
             ! $this->isOpen() => $this->status,
             (bool) $this->customer?->credit_hold => 'ON_HOLD',
-            $this->status === 'QUOTED' => 'QUOTED',
             $this->quotations->contains('status', 'DRAFT') => 'QUOTING',
+            $this->status === 'QUOTED' => 'QUOTED',
             default => 'FEASIBILITY',
         };
     }

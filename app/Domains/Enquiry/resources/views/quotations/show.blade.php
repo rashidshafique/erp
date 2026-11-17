@@ -15,7 +15,7 @@
 @if ($q->status === 'ACCEPTED' && $q->salesOrder)<div class="alert alert-success">Accepted. Sales order @if (Route::has('sales-orders.show'))<a href="{{ route('sales-orders.show', $q->salesOrder) }}">{{ $q->salesOrder->order_number }}</a>@else{{ $q->salesOrder->order_number }}@endif was created.</div>@endif
 @if ($q->status === 'EXPIRED')<div class="alert alert-error">This quotation has expired. Make a new version from the enquiry and issue it.</div>@endif
 @php
-    $annual = $q->lines->sum(fn ($l) => $l->unit_price * ($l->item?->annual_qty ?: 0));
+    $annual = $q->lines->sum(fn ($l) => $l->unit_price * ($l->annualQty() ?: 0));
     $target = $q->lines->count() === 1 ? $q->lines->first()->item?->target_price : null;
     $one = $q->lines->count() === 1 ? $q->lines->first() : null;
     $margin = $total > 0 ? ($total - $q->lines->sum(fn ($l) => $l->unit_cost * $l->qty)) / $total * 100 : 0;

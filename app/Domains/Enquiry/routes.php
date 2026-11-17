@@ -44,6 +44,8 @@ Route::middleware('web')->group(function () {
         Route::get('/{quotation}', 'show')->name('show');
         Route::get('/{quotation}/print', 'print')->name('print');
         Route::put('/{quotation}', 'update')->name('update');
+        Route::get('/{quotation}/revise', 'reviseForm')->name('revise');
+        Route::post('/{quotation}/revise', 'reviseStore')->name('revise.store');
         Route::post('/{quotation}/log', 'log')->name('log');
         Route::post('/{quotation}/refresh', 'refresh')->name('refresh');
         Route::post('/{quotation}/issue', 'issue')->name('issue');

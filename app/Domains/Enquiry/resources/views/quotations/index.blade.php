@@ -115,7 +115,7 @@
         <aside class="el-side">
             <div>
                 <div class="ls-ph"><div><div style="font-weight:600;font-size:14px">{{ $sFirst?->item?->description ?? $s->enquiry->title }}</div><div class="el-sub"><code>{{ $s->code }}</code> · rev {{ $s->version }} · {{ $s->enquiry->customer?->name }}</div></div>@include('partials.list-hide-form')</div>
-                <div style="display:flex;gap:8px;margin-top:10px;align-items:center"><a class="el-btn primary" href="{{ route('quotations.show', $s) }}">Open quotation</a><span class="el-pill {{ $tones[$sKey] ?? '' }}">{{ $s->statusLabel() }}</span></div>
+                <div style="display:flex;gap:8px;margin-top:10px;align-items:center"><a class="el-btn primary" href="{{ route('quotations.show', $s) }}">Open quotation</a>@if (app(\App\Domains\Enquiry\Services\QuotationService::class)->canRevise($s))<a class="el-btn" href="{{ route('quotations.revise', $s) }}">New revision</a>@endif<span class="el-pill {{ $tones[$sKey] ?? '' }}">{{ $s->statusLabel() }}</span></div>
             </div>
             @if ($sKey === 'AWAITING_APPROVAL')
                 <div class="qt-wait">Waiting for approval since {{ $s->approval_asked_at?->displayShortDate() ?? 'it was asked' }}: the piece price is under the margin floor of {{ rtrim(rtrim(number_format($floor, 1), '0'), '.') }}%.</div>
@@ -124,7 +124,7 @@
                 <div><div class="k">Margin</div><div class="v">{{ number_format($low, 1) }}%</div><div class="el-sub">Floor {{ rtrim(rtrim(number_format($floor, 1), '0'), '.') }}%{{ $low < $floor ? ' · '.number_format($floor - $low, 1).' points under, needs approval' : '' }}</div></div>
                 <div><div class="k">Piece price</div><div class="v">{{ $sFirst ? \App\Support\Formats::money((float) $sFirst->unit_price, 2) : '—' }}</div></div>
                 <div><div class="k">Tooling</div><div class="v">{{ \App\Support\Formats::money((float) $s->lines->sum('tooling_cost'), 0) }}</div></div>
-                <div><div class="k">Annual volume</div><div class="v">{{ $sFirst ? \App\Support\Formats::number($sFirst->item?->annual_qty ?: $sFirst->qty).' / yr' : '—' }}</div></div>
+                <div><div class="k">Annual volume</div><div class="v">{{ $sFirst ? \App\Support\Formats::number($sFirst->annualQty() ?: $sFirst->qty).' / yr' : '—' }}</div></div>
                 <div><div class="k">Annual value</div><div class="v">{{ \App\Support\Formats::money($s->annualValue(), 0) }}</div></div>
                 <div><div class="k">Terms</div><div class="v">{{ $s->payment_terms ?: '—' }}</div></div>
             </div>
