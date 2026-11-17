@@ -218,6 +218,41 @@ class QuotationController extends Controller
             return back()->with('error', $e->getMessage());
         }
 
+        return $this->afterAccept($quotation, $order);
+    }
+
+    /** Close the quotation as accepted, lost or no reply (design 30e). */
+    public function closeForm(Quotation $quotation)
+    {
+        abort_unless($this->svc->canClose($quotation), 422);
+        $quotation = $this->load($quotation);
+
+        return view('enquiry::quotations.close', ['q' => $quotation, 'developments' => $quotation->enquiry->developments()->where('status', 'OPEN')->get(), 'expired' => $quotation->isExpired()]);
+    }
+
+    public function closeStore(Request $request, Quotation $quotation)
+    {
+        $d = $request->validate([
+            'outcome' => ['required', Rule::in(array_keys(Quotation::OUTCOMES))],
+            'customer_po' => ['nullable', 'string', 'max:100'], 'customer_po_date' => ['nullable', 'date'],
+            'lost_reason' => ['nullable', Rule::in(array_keys(Quotation::LOST_REASONS))], 'price_gap_pct' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'note' => ['nullable', 'string', 'max:500'],
+        ]);
+        try {
+            $order = $this->svc->close($quotation, $d);
+        } catch (\RuntimeException $e) {
+            return back()->withInput()->with('error', $e->getMessage());
+        }
+        if ($order) {
+            return $this->afterAccept($quotation, $order);
+        }
+
+        return redirect()->route('quotations.show', [$quotation, 'record' => 1])->with('success', $d['outcome'] === 'LOST' ? 'Closed as lost. The reason feeds the lost figures on the lists.' : 'Closed with no reply. The history is kept and it is not counted as lost.');
+    }
+
+    /** Where an accepted quotation goes next: its new order, held by contract review while a new product's revision waits for approval. */
+    private function afterAccept(Quotation $quotation, \App\Domains\Sales\Models\SalesOrder $order)
+    {
         if (! Route::has('sales-orders.show')) {
             return redirect()->route('quotations.show', $quotation)->with('success', "Quotation accepted. Draft sales order {$order->order_number} was created.");
         }

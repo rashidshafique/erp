@@ -128,11 +128,6 @@
                 <form method="POST" action="{{ route('quotations.refresh', $q) }}">@csrf<button class="btn" type="submit">Re-read the enquiry</button></form>
                 <form method="POST" action="{{ route('quotations.issue', $q) }}" onsubmit="return confirm('Issue this quotation to the customer?')">@csrf<button class="btn btn-primary" type="submit" @disabled($blockers)>Issue quotation</button></form>
             </div></div>
-        @elseif ($q->status === 'ISSUED')
-        <div class="sec"><div class="k" style="font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Customer's answer</div>
-            <p style="margin:0 0 10px">Issued {{ $q->issued_at?->displayDate() }} by {{ $q->issued_by_name }}. Accepting creates the product and a draft revision if they do not exist, and a draft sales order priced from this quotation.</p>
-            <form method="POST" action="{{ route('quotations.accept', $q) }}" onsubmit="return confirm('Customer accepted? This creates a draft sales order.')">@csrf<button class="btn btn-primary" type="submit">Customer accepted</button></form>
-            <form method="POST" action="{{ route('quotations.reject', $q) }}" style="display:flex;gap:6px;margin-top:8px">@csrf<input name="decision_note" placeholder="Why (optional)"><button class="btn btn-danger" type="submit">Customer declined</button></form></div>
         @else
         <div class="sec">{{ $q->status }}{{ $q->decided_at ? ' on '.$q->decided_at->displayDate() : '' }}{{ $q->decision_note ? ' — '.$q->decision_note : '' }}</div>
         @endif

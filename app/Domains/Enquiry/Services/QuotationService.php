@@ -426,6 +426,66 @@ class QuotationService
         });
     }
 
+    /** How a lost reason on a quotation reads on the enquiry, whose own list of reasons feeds the lost-and-declined summary. */
+    public const ENQUIRY_REASONS = ['PRICE' => 'PRICE', 'LEAD_TIME' => 'DELIVERY_LEAD', 'CAPABILITY' => 'CAPABILITY', 'NO_REPLY' => 'NO_RESPONSE', 'CANCELLED' => 'PROJECT_CANCELLED'];
+
+    /** Whether the quotation is at a point where the customer's answer can be recorded: it has been sent and nothing has been decided. */
+    public function canClose(Quotation $q): bool
+    {
+        return in_array($q->status, ['ISSUED', 'EXPIRED'], true) && $q->isLatest();
+    }
+
+    /**
+     * Records the customer's answer (design 30e). Accepted fills a sales order from the quote, closes the enquiry as won and keeps their
+     * order reference; lost asks why, which feeds the lost-and-declined figures; no reply keeps the history without calling it lost.
+     *
+     * @param  array{outcome: string, customer_po?: ?string, customer_po_date?: ?string, lost_reason?: ?string, price_gap_pct?: mixed, note?: ?string}  $d
+     * @return SalesOrder|null the order an accepted quotation made
+     *
+     * @throws \RuntimeException
+     */
+    public function close(Quotation $q, array $d): ?SalesOrder
+    {
+        if (! $this->canClose($q)) {
+            throw new \RuntimeException('Only a sent quotation can be closed.');
+        }
+        $note = filled($d['note'] ?? null) ? trim($d['note']) : null;
+
+        return DB::transaction(function () use ($q, $d, $note) {
+            if ($d['outcome'] === 'ACCEPTED') {
+                $order = $this->accept($q);
+                $po = filled($d['customer_po'] ?? null) ? trim($d['customer_po']) : null;
+                $q->update(['outcome' => 'ACCEPTED', 'customer_po' => $po, 'customer_po_date' => $d['customer_po_date'] ?? null, 'decision_note' => $note]);
+                if ($po) {
+                    $order->update(['customer_reference' => $po]);
+                }
+                QuotationEvent::log($q, 'NOTE', 'Customer order '.($po ?? 'reference not given').($d['customer_po_date'] ?? null ? ' dated '.\Illuminate\Support\Carbon::parse($d['customer_po_date'])->displayDate() : '').'.'.($note ? ' '.$note : ''));
+
+                return $order;
+            }
+            if ($d['outcome'] === 'LOST') {
+                $reason = $d['lost_reason'] ?? null;
+                if (! array_key_exists((string) $reason, Quotation::LOST_REASONS)) {
+                    throw new \RuntimeException('Choose why it was lost.');
+                }
+                $enquiry = $q->enquiry;
+                if ($enquiry->isOpen()) {
+                    app(EnquiryCloser::class)->close($enquiry, ['outcome' => 'LOST', 'close_reason' => self::ENQUIRY_REASONS[$reason], 'note' => $note,
+                        'winning_price' => null]);
+                }
+                $q->update(['status' => 'REJECTED', 'outcome' => 'LOST', 'lost_reason' => $reason, 'decided_at' => now(), 'decision_note' => $note ?? Quotation::LOST_REASONS[$reason],
+                    'price_gap_pct' => $reason === 'PRICE' && filled($d['price_gap_pct'] ?? null) ? (float) $d['price_gap_pct'] : null]);
+                QuotationEvent::log($q, 'SYSTEM', 'Closed as lost: '.Quotation::LOST_REASONS[$reason].($reason === 'PRICE' && filled($d['price_gap_pct'] ?? null) ? ', about '.rtrim(rtrim(number_format((float) $d['price_gap_pct'], 1), '0'), '.').'% off' : '').'.'.($note ? ' '.$note : ''));
+
+                return null;
+            }
+            $q->update(['status' => 'EXPIRED', 'outcome' => 'NO_REPLY', 'decided_at' => now(), 'decision_note' => $note ?? 'Ran out of validity with no reply']);
+            QuotationEvent::log($q, 'SYSTEM', 'Closed with no reply. It ran out of validity and nobody came back.'.($note ? ' '.$note : ''));
+
+            return null;
+        });
+    }
+
     /** A won enquiry gets the pattern developments its pattern decision needs, or a note on its log when the module is off. */
     private function openDevelopments(Enquiry $enquiry, bool $firstTime, Quotation $quote): void
     {

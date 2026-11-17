@@ -74,11 +74,11 @@ class QuotationRecordTest extends TestCase
         $this->get(route('quotations.show', $gone))->assertOk()->assertSee('has expired');
     }
 
-    public function test_a_sent_quotation_can_still_be_accepted_or_declined_from_the_record(): void
+    public function test_a_sent_quotation_offers_the_close_dialog_and_can_still_be_declined_directly(): void
     {
         $q = $this->quote();
 
-        $this->get(route('quotations.show', $q))->assertSee('Customer accepted')->assertSee('Customer declined');
+        $this->get(route('quotations.show', $q))->assertSee('Close quotation')->assertSee(route('quotations.close', $q));
         $this->post(route('quotations.reject', $q), ['decision_note' => 'Went with an import'])->assertRedirect();
         $this->assertSame('REJECTED', $q->fresh()->status);
         $this->assertStringContainsString('marked lost: Went with an import', $q->events()->first()->text);

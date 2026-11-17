@@ -46,6 +46,8 @@ Route::middleware('web')->group(function () {
         Route::put('/{quotation}', 'update')->name('update');
         Route::get('/{quotation}/revise', 'reviseForm')->name('revise');
         Route::post('/{quotation}/revise', 'reviseStore')->name('revise.store');
+        Route::get('/{quotation}/close', 'closeForm')->name('close');
+        Route::post('/{quotation}/close', 'closeStore')->name('close.store');
         Route::get('/{quotation}/approval', 'approvalForm')->name('approval');
         Route::post('/{quotation}/approval', 'approvalDecide')->name('approval.decide');
         Route::post('/{quotation}/condition-met', 'conditionMet')->name('condition-met');

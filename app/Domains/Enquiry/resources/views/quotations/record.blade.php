@@ -46,6 +46,7 @@
             <span class="el-pill {{ $tones[$key] ?? '' }}">{{ $q->statusLabel() }}</span><span class="el-sub">rev {{ $q->version }}@unless ($isLatest) · superseded by a later revision @endunless</span>
             @if ($q->status === 'DRAFT')<a class="el-btn primary" href="{{ route('quotations.show', $q) }}">Open costing editor</a>@endif
             @if (app(\App\Domains\Enquiry\Services\QuotationService::class)->canRevise($q))<a class="el-btn primary" href="{{ route('quotations.revise', $q) }}">New revision</a>@endif
+            @if (app(\App\Domains\Enquiry\Services\QuotationService::class)->canClose($q))<a class="el-btn" href="{{ route('quotations.close', $q) }}">Close quotation</a>@endif
             @if (in_array($q->status, ['ISSUED', 'ACCEPTED', 'EXPIRED', 'SUPERSEDED', 'REJECTED'], true))<a class="el-btn" href="{{ route('quotations.print', $q) }}" target="_blank">Preview PDF</a>@endif
         </div>
     </div>
@@ -141,11 +142,8 @@
                 @if ($first?->item)<div class="el-row"><span><a href="{{ route('feasibility.show', $first->item) }}">Feasibility</a></span><span>{{ ucfirst(strtolower(str_replace('_', ' ', $first->item->feasibility_status))) }}</span></div>@endif
                 @if ($q->salesOrder)<div class="el-row"><span><a href="{{ route('sales-orders.show', $q->salesOrder) }}">Sales order {{ $q->salesOrder->order_number }}</a></span><span></span></div>@endif
             </div></div>
-            @if ($q->status === 'ISSUED')
-                <div><div class="el-h">If it is won</div><p class="el-note" style="margin:8px 0 10px">Accepting opens a new sales order with these lines and prices already in, and closes the enquiry as won.</p>
-                    <form method="POST" action="{{ route('quotations.accept', $q) }}" onsubmit="return confirm('Customer accepted? This creates a draft sales order.')">@csrf<button class="el-btn primary" type="submit">Customer accepted</button></form>
-                    <form method="POST" action="{{ route('quotations.reject', $q) }}" style="display:flex;gap:6px;margin-top:8px">@csrf<input name="decision_note" placeholder="Why (optional)" aria-label="Why it was lost"><button class="el-btn" type="submit">Customer declined</button></form>
-                </div>
+            @if ($q->status === 'ISSUED' || $key === 'EXPIRED')
+                <div><div class="el-h">If it is won</div><p class="el-note" style="margin:8px 0 0">Marking it accepted opens a new sales order with these lines and prices already in, and closes the enquiry as won.</p></div>
             @endif
         </aside>
     </div>

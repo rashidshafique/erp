@@ -54,6 +54,9 @@ class DevelopmentOpener
             if ($existing) {
                 $existing->update(['enquiry_item_id' => $item->id, 'product_id' => $existing->product_id ?? $item->product_id]
                     + ($quote ? $costs + ['who_pays' => $existing->who_pays ?? $costs['who_pays']] : []));
+                if ($won) {
+                    $this->moveToBuild($existing, $enquiry);
+                }
 
                 continue;
             }
@@ -121,6 +124,18 @@ class DevelopmentOpener
             'quoted_tooling_cost' => $line ? (float) $line->tooling_cost : null, 'cost_currency' => $quote->currency,
             'who_pays' => $type === 'CUSTOMER_PATTERN' || $quote->tooling_mode !== 'NONE' ? 'CUSTOMER' : 'FOUNDRY',
         ];
+    }
+
+    /** A development opened early, for design and costing before the quote, moves on to its build stage when the quote is won (design 30e). */
+    private function moveToBuild(PatternDevelopment $development, Enquiry $enquiry): void
+    {
+        $build = collect($development->stages())->search(fn (string $stage) => preg_match('/build|modification/i', $stage) === 1);
+        if ($build === false || $development->stage_index >= $build) {
+            return;
+        }
+        $development->update(['stage_index' => $build]);
+        $development->events()->create(['kind' => 'STAGE', 'user_name' => Auth::user()?->name, 'text' => "Moved to {$development->stageName()} when {$enquiry->code} was won."]);
+        EnquiryEvent::system($enquiry, "Pattern development {$development->code} moved to {$development->stageName()}.");
     }
 
     private function create(Enquiry $enquiry, EnquiryItem $item, string $type, bool $won, array $costs = []): PatternDevelopment
