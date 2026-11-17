@@ -7,6 +7,7 @@ use App\Domains\Development\Services\DevelopmentOpener;
 use App\Domains\Enquiry\Models\Enquiry;
 use App\Domains\Enquiry\Models\EnquiryEvent;
 use App\Domains\Enquiry\Models\EnquiryItem;
+use App\Domains\Enquiry\Models\QuotationEvent;
 use App\Models\PatternRevision;
 use App\Models\Product;
 use App\Models\ProductRevision;
@@ -205,6 +206,7 @@ class QuotationService
             if (in_array($q->enquiry->status, ['NEW', 'FEASIBILITY'], true)) {
                 $q->enquiry->update(['status' => 'QUOTED']);
             }
+            QuotationEvent::log($q, 'SYSTEM', "Rev {$q->version} sent.");
         });
 
         return null;
@@ -214,6 +216,7 @@ class QuotationService
     {
         abort_unless(in_array($q->status, ['ISSUED', 'EXPIRED'], true), 422);
         $q->update(['status' => 'REJECTED', 'decided_at' => now(), 'decision_note' => $reason]);
+        QuotationEvent::log($q, 'SYSTEM', "Rev {$q->version} marked lost".(filled($reason) ? ": {$reason}." : '.'));
     }
 
     /**
@@ -258,6 +261,7 @@ class QuotationService
             }
             $q->update(['status' => 'ACCEPTED', 'decided_at' => now(), 'sales_order_id' => $order->id]);
             $enquiry->update(['status' => 'WON', 'closed_at' => now()]);
+            QuotationEvent::log($q, 'SYSTEM', "Rev {$q->version} accepted; sales order {$order->order_number} created.");
             $this->openDevelopments($enquiry, $firstTime, $q);
 
             return $order;

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 @section('title', $q->code)
-@section('breadcrumb')<a href="{{ route('enquiries.index') }}">Enquiries</a> / <a href="{{ route('enquiries.show', $q->enquiry) }}">{{ $q->enquiry->code }}</a> / {{ $q->code }} @endsection
+@section('breadcrumb')<a href="{{ route('quotations.index') }}">Quotations</a> / {{ $q->code }} @endsection
 @section('content')
 <style>.ca-wrap td, .ca-wrap th { white-space: normal; vertical-align: top; } .num { text-align: right; } .q-in { width: 84px; } .bd td { padding: 2px 8px; font-size: 12.5px; }</style>
 @php
@@ -41,11 +41,12 @@
 </style>
 <div class="qd-card" data-qd>
     <div class="qd-bar">
-        <div><a href="{{ route('enquiries.index') }}">Quotations</a> / <a href="{{ route('enquiries.show', $q->enquiry) }}">{{ $q->enquiry->code }}</a> / <code>{{ $q->code }}</code>
-            <span class="qd-vers">@foreach ($versions->sortBy('version') as $v)<a href="{{ route('quotations.show', $v->id) }}" @class(['on' => $v->id === $q->id])>R{{ $v->version - 1 }}</a>@endforeach</span>
+        <div><a href="{{ route('quotations.index') }}">Quotations</a> / <a href="{{ route('enquiries.show', $q->enquiry) }}">{{ $q->enquiry->code }}</a> / <code>{{ $q->code }}</code>
+            <span class="qd-vers">@foreach ($versions->sortBy('version') as $v)<a href="{{ route('quotations.show', $v->id) }}" @class(['on' => $v->id === $q->id])>v{{ $v->version }}</a>@endforeach</span>
             <span class="status {{ $qcls[$q->status] ?? '' }}" style="margin-left:8px">{{ $q->status }}</span></div>
         <div style="display:flex;gap:10px;align-items:center">
             <div class="qd-seg" role="group" aria-label="Detail"><button type="button" class="on" data-mode="detailed">Detailed</button><button type="button" data-mode="simple">Simple</button></div>
+            <a class="btn" href="{{ route('quotations.show', [$q, 'record' => 1]) }}">Record</a>
             @if (! $draft)<a class="btn" href="{{ route('quotations.print', $q) }}" target="_blank">Customer copy</a>@endif
             <a class="btn" href="{{ route('enquiries.show', $q->enquiry) }}">Back to enquiry</a>
         </div>
@@ -139,8 +140,8 @@ document.querySelectorAll('[data-qd] [data-mode]').forEach(function (b) { b.addE
 </script>
 
 <div class="tab-marker" data-tab-start="Versions & history"></div>
-<div class="panel"><div class="panel-header"><h2>Versions</h2></div><div class="table-wrap"><table><thead><tr><th>Quotation</th><th>Version</th><th>Status</th></tr></thead><tbody>
-@foreach ($versions as $v)<tr><td><a href="{{ route('quotations.show', $v->id) }}">{{ $v->code }}</a></td><td>{{ $v->version }}</td><td>{{ $v->status }}</td></tr>@endforeach
+<div class="panel"><div class="panel-header"><h2>Versions</h2></div><div class="table-wrap"><table><thead><tr><th>Quotation</th><th>Revision</th><th>Status</th></tr></thead><tbody>
+@foreach ($versions as $v)<tr><td><a href="{{ route('quotations.show', $v->id) }}">{{ $v->code }}</a></td><td>v{{ $v->version }}</td><td>{{ \App\Domains\Enquiry\Models\Quotation::STATUSES[$v->status] ?? $v->status }}</td></tr>@endforeach
 </tbody></table></div></div>
 @include('audit._history', ['type' => 'Quotation', 'id' => $q->id])
 @endsection

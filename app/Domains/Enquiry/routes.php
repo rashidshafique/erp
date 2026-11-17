@@ -44,6 +44,7 @@ Route::middleware('web')->group(function () {
         Route::get('/{quotation}', 'show')->name('show');
         Route::get('/{quotation}/print', 'print')->name('print');
         Route::put('/{quotation}', 'update')->name('update');
+        Route::post('/{quotation}/log', 'log')->name('log');
         Route::post('/{quotation}/refresh', 'refresh')->name('refresh');
         Route::post('/{quotation}/issue', 'issue')->name('issue');
         Route::post('/{quotation}/reject', 'reject')->name('reject');

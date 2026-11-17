@@ -7,6 +7,7 @@ use App\Services\Orders\ProductionOrderFactory;
 use App\Http\Controllers\Controller;
 use App\Domains\Enquiry\Models\Enquiry;
 use App\Domains\Enquiry\Models\Quotation;
+use App\Domains\Enquiry\Models\QuotationEvent;
 use App\Domains\Enquiry\Models\QuotationLine;
 use App\Services\Patterns\PatternOwnership;
 use App\Domains\Enquiry\Services\QuotationService;
@@ -39,15 +40,31 @@ class QuotationController extends Controller
         return $q->load('lines.item.analysis', 'lines.item.product:id,code,name', 'enquiry.customer', 'salesOrder:id,order_number');
     }
 
-    public function show(Quotation $quotation)
+    /** A draft opens the costing editor (1d) where its price is worked out; every other revision, and a draft asked for as ?record, opens the record (30b). */
+    public function show(Request $request, Quotation $quotation)
     {
         $quotation = $this->load($quotation);
+        if ($quotation->status === 'DRAFT' && ! $request->boolean('record')) {
+            return view('enquiry::quotations.show', [
+                'q' => $quotation, 'blockers' => $this->svc->issueBlockers($quotation),
+                'versions' => $quotation->enquiry->quotations()->get(['id', 'code', 'version', 'status']),
+                'toolingNotes' => $quotation->lines->mapWithKeys(fn ($l) => [$l->id => app(PatternOwnership::class)->toolingFor($quotation->enquiry->customer_id, $l->item?->product_id)]),
+            ]);
+        }
 
-        return view('enquiry::quotations.show', [
-            'q' => $quotation, 'blockers' => $quotation->status === 'DRAFT' ? $this->svc->issueBlockers($quotation) : [],
-            'versions' => $quotation->enquiry->quotations()->get(['id', 'code', 'version', 'status']),
-            'toolingNotes' => $quotation->lines->mapWithKeys(fn ($l) => [$l->id => app(PatternOwnership::class)->toolingFor($quotation->enquiry->customer_id, $l->item?->product_id)]),
+        return view('enquiry::quotations.record', [
+            'q' => $quotation, 'revisions' => $quotation->revisions()->with('lines.item')->get(), 'events' => $quotation->events()->get(),
+            'floor' => (float) \App\Domains\Enquiry\Services\Rates::get()['min_margin_pct'], 'isLatest' => $quotation->isLatest(),
         ]);
+    }
+
+    /** A line the team adds to the log: an email in or out, or a note. */
+    public function log(Request $request, Quotation $quotation)
+    {
+        $d = $request->validate(['kind' => ['required', Rule::in(['EMAIL_OUT', 'EMAIL_IN', 'NOTE'])], 'text' => ['required', 'string', 'max:1000']]);
+        QuotationEvent::log($quotation, str_starts_with($d['kind'], 'EMAIL') ? 'EMAIL' : 'NOTE', $d['text'], $d['kind'] === 'EMAIL_OUT' ? 'OUT' : ($d['kind'] === 'EMAIL_IN' ? 'IN' : null));
+
+        return back()->with('success', 'Added to the log.');
     }
 
     public function print(Quotation $quotation)
