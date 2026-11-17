@@ -34,6 +34,8 @@
 </style>
 @if (session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
 @if (session('error'))<div class="alert alert-error">{{ session('error') }}</div>@endif
+@if ($q->status === 'AWAITING_APPROVAL')<div style="padding:10px 14px;margin-bottom:12px;border-radius:7px;background:#fbf0dc;color:#5a3d07;font-size:13px">Waiting for approval since {{ $q->approval_asked_at?->displayDate() ?? 'it was asked' }}: the piece price is under the margin floor of {{ $pct($floor) }}%. <a href="{{ route('quotations.approval', $q) }}">Review the approval</a>.</div>@endif
+@if ($q->status === 'DRAFT' && $q->approved_by)<div style="padding:10px 14px;margin-bottom:12px;border-radius:7px;background:#e7f4ec;color:#1d5a3a;font-size:13px">Approved by {{ $q->approved_by }}{{ $q->approved_at ? ' on '.$q->approved_at->displayDate() : '' }}.@if (filled($q->approval_condition)) Condition: {{ $q->approval_condition }}@endif</div>@endif
 @if ($key === 'EXPIRED')<div class="alert alert-error">This quotation has expired. Make a new revision from the enquiry and send it.</div>@endif
 @if ($q->status === 'ACCEPTED' && $q->salesOrder)<div class="alert alert-success">Accepted. Sales order <a href="{{ route('sales-orders.show', $q->salesOrder) }}">{{ $q->salesOrder->order_number }}</a> was created from it.</div>@endif
 <div class="el-card">

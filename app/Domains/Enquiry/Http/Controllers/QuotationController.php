@@ -93,6 +93,48 @@ class QuotationController extends Controller
         return redirect()->route('quotations.show', $revision)->with('success', "Revision {$revision->version} saved as a draft. It keeps the number {$revision->code}.");
     }
 
+    /** The margin approval (design 30d): the gap in money, what changed since the last revision, what the part has fetched before, then the decision. */
+    public function approvalForm(Quotation $quotation)
+    {
+        $quotation = $this->load($quotation);
+        $floor = (float) \App\Domains\Enquiry\Services\Rates::get()['min_margin_pct'];
+        $line = $quotation->lines->sortBy('effective_margin_pct')->first();
+        $floorPrice = $line && (float) $line->unit_cost > 0 ? (float) $line->unit_cost / (1 - $floor / 100) : 0.0;
+        $gap = $line ? max(0.0, $floorPrice - (float) $line->unit_price) : 0.0;
+        $productId = $line?->item?->product_id;
+
+        return view('enquiry::quotations.approval', [
+            'q' => $quotation, 'floor' => $floor, 'line' => $line, 'gap' => $gap, 'gapYear' => $gap * (float) ($line?->annualQty() ?: $line?->qty ?: 0),
+            'previous' => $quotation->revisions()->with('lines')->where('version', '<', $quotation->version)->first(),
+            'earlier' => $quotation->revisions()->with('lines')->where('version', '<', $quotation->version)->get(),
+            'orders' => $productId ? \App\Domains\Sales\Models\SalesOrderLine::query()->join('sales_orders', 'sales_orders.id', '=', 'sales_order_lines.sales_order_id')
+                ->where('sales_order_lines.product_id', $productId)->orderByDesc('sales_orders.order_date')->limit(3)
+                ->get(['sales_orders.order_number', 'sales_orders.order_date', 'sales_order_lines.unit_price', 'sales_order_lines.ordered_qty']) : collect(),
+            'note' => $quotation->events()->where('kind', 'NOTE')->first(), 'request' => $this->svc->pendingApproval($quotation),
+            'canDecide' => (bool) request()->user()?->hasPermission('approvals.decide') || ! config('foundry.require_login'),
+        ]);
+    }
+
+    public function approvalDecide(Request $request, Quotation $quotation)
+    {
+        $d = $request->validate(['choice' => ['required', Rule::in(['approve', 'condition', 'back'])], 'note' => ['nullable', 'string', 'max:1000'], 'condition' => ['nullable', 'string', 'max:500']]);
+        try {
+            $this->svc->decideApproval($quotation, $d['choice'], $d['note'] ?? null, $d['condition'] ?? null, $request->user());
+        } catch (\RuntimeException $e) {
+            return back()->withErrors(['approval' => $e->getMessage()]);
+        }
+        $msg = ['approve' => 'Approved. The quotation is ready to send.', 'condition' => 'Approved with a condition. It can be sent once the condition is met.', 'back' => 'Sent back to the quote owner with your note.'][$d['choice']];
+
+        return redirect()->route('quotations.show', [$quotation, 'record' => 1])->with('success', $msg);
+    }
+
+    public function conditionMet(Quotation $quotation)
+    {
+        $this->svc->conditionMet($quotation);
+
+        return back()->with('success', 'Condition marked as met.');
+    }
+
     /** A line the team adds to the log: an email in or out, or a note. */
     public function log(Request $request, Quotation $quotation)
     {

@@ -13,6 +13,9 @@ use App\Models\Product;
 use App\Models\ProductRevision;
 use App\Domains\Enquiry\Models\Quotation;
 use App\Domains\Sales\Models\SalesOrder;
+use App\Models\ApprovalRequest;
+use App\Models\User;
+use App\Services\Approvals\ApprovalDecided;
 use App\Services\Approvals\ApprovalGate;
 use App\Services\Patterns\PatternOwnership;
 use Illuminate\Support\Facades\Auth;
@@ -252,8 +255,75 @@ class QuotationService
         if ($q->tooling_mode === 'AMORTISED' && (int) $q->tooling_amortise_qty < 1) {
             $out[] = 'Tooling is spread over the castings, but the number of castings is not set.';
         }
+        if (filled($q->approval_condition)) {
+            $out[] = 'Approved on one condition that is not marked as met: '.$q->approval_condition;
+        }
 
         return $out;
+    }
+
+    /** The approval request waiting on this revision, when its margin is under the floor and the approval rule is on. */
+    public function pendingApproval(Quotation $q): ?ApprovalRequest
+    {
+        return ApprovalRequest::where('action_key', 'quotation.issue_low_margin')->where('subject_type', 'Quotation')->where('subject_id', $q->id)->where('status', 'PENDING')->first();
+    }
+
+    /**
+     * The approver's answer (design 30d): approve, approve with a condition that has to be met before it can be sent, or send it back
+     * with a note. The approval engine records and checks the decision; onApprovalDecided moves the quotation on.
+     *
+     * @throws \RuntimeException when the approver may not decide, or the answer needs a note or condition it was not given
+     */
+    public function decideApproval(Quotation $q, string $choice, ?string $note, ?string $condition, ?User $user): void
+    {
+        if ($q->status !== 'AWAITING_APPROVAL') {
+            throw new \RuntimeException('This quotation is not waiting for approval.');
+        }
+        $req = $this->pendingApproval($q) ?? throw new \RuntimeException('There is no approval request waiting for this quotation.');
+        if ($choice === 'condition' && blank($condition)) {
+            throw new \RuntimeException('Write the condition that has to be met before it can be sent.');
+        }
+        if ($choice === 'back' && blank($note)) {
+            throw new \RuntimeException('Give a reason when sending it back.');
+        }
+        DB::transaction(function () use ($q, $req, $choice, $note, $condition, $user) {
+            if ($choice === 'condition') {
+                $q->update(['approval_condition' => $condition]);
+            }
+            app(ApprovalGate::class)->decide($req, $choice === 'back' ? 'REJECT' : 'APPROVE', $choice === 'condition' ? trim('Approved with a condition: '.$condition.' '.$note) : $note, $user);
+        });
+    }
+
+    /** Moves a quotation on once its approval request is decided: approved and ready to send, or back to a draft. */
+    public function onApprovalDecided(ApprovalDecided $event): void
+    {
+        $req = $event->request;
+        if ($req->action_key !== 'quotation.issue_low_margin' || $req->subject_type !== 'Quotation') {
+            return;
+        }
+        $q = Quotation::with('lines')->find($req->subject_id);
+        if (! $q || $q->status !== 'AWAITING_APPROVAL') {
+            return;
+        }
+        $last = $req->decisions()->latest('created_at')->first();
+        $who = $last?->user_name ?? 'An approver';
+        if ($req->status === 'APPROVED') {
+            $q->update(['status' => 'DRAFT', 'approved_by' => $who, 'approved_at' => now()]);
+            QuotationEvent::log($q, 'APPROVAL', sprintf('Approved at %.1f%% by %s.', $q->lowestMargin(), $who).(filled($q->approval_condition) ? ' Condition: '.$q->approval_condition : ''));
+        } elseif (in_array($req->status, ['REJECTED', 'CANCELLED'], true)) {
+            $q->update(['status' => 'DRAFT', 'approval_asked_at' => null, 'approval_condition' => null]);
+            QuotationEvent::log($q, 'APPROVAL', $req->status === 'CANCELLED' ? 'The approval request was cancelled. Back to a draft.' : "Sent back by {$who}: ".($last?->comment ?? '').'');
+        } else {
+            QuotationEvent::log($q, 'APPROVAL', "{$who} approved. Waiting for the rest of the approvals.");
+        }
+    }
+
+    /** The approver's condition has been met, so the quotation can be sent. The log keeps what it was. */
+    public function conditionMet(Quotation $q): void
+    {
+        abort_unless($q->status === 'DRAFT' && filled($q->approval_condition), 422);
+        QuotationEvent::log($q, 'APPROVAL', 'Condition met: '.$q->approval_condition);
+        $q->update(['approval_condition' => null]);
     }
 
     public function lowestMargin(Quotation $q): float
@@ -275,8 +345,13 @@ class QuotationService
         $low = $this->lowestMargin($q);
         if ($low < $min) {
             $msg = null;
-            $ok = app(ApprovalGate::class)->passes('quotation.issue_low_margin', 'Quotation', $q->id, $q->code.sprintf(' (margin %.1f%% against minimum %.1f%%)', $low, $min), $msg);
+            $ok = app(ApprovalGate::class)->passes('quotation.issue_low_margin', 'Quotation', $q->id, $q->code.sprintf(' rev %d (margin %.1f%% against minimum %.1f%%)', $q->version, $low, $min), $msg);
             if (! $ok) {
+                if ($q->status === 'DRAFT') {
+                    $q->update(['status' => 'AWAITING_APPROVAL', 'approval_asked_at' => now(), 'approval_asked_by' => Auth::user()?->name]);
+                    QuotationEvent::log($q, 'APPROVAL', sprintf('Sent for approval: margin %.1f%% against a floor of %.1f%%.', $low, $min));
+                }
+
                 return $msg;
             }
         }

@@ -11,6 +11,8 @@ use App\Domains\Enquiry\Services\EnquiryGuide;
 use App\Domains\Enquiry\Services\QuotationService;
 use App\Domains\Enquiry\Services\QuoteCalculator;
 use App\Domains\Enquiry\Services\Rates;
+use App\Services\Approvals\ApprovalDecided;
+use Illuminate\Support\Facades\Event;
 use Livewire\Livewire;
 
 /** Customer enquiries, the guided request wizard, feasibility, and the costed quotations that follow. */
@@ -49,6 +51,7 @@ class EnquiryServiceProvider extends ModuleServiceProvider
         parent::boot();
 
         Livewire::addNamespace('enquiry', viewPath: __DIR__.'/resources/views/livewire');
+        Event::listen(ApprovalDecided::class, [QuotationService::class, 'onApprovalDecided']);
     }
 
     protected function classAliases(): array
@@ -94,6 +97,7 @@ class EnquiryServiceProvider extends ModuleServiceProvider
     {
         return [
             ['pattern' => 'enquiries.*', 'permission' => 'sales.manage'],
+            ['pattern' => 'quotations.approval.decide', 'permission' => 'approvals.decide'],
             ['pattern' => 'quotations.*', 'permission' => 'sales.manage'],
             ['pattern' => 'feasibility.*', 'permission' => 'sales.manage'],
         ];

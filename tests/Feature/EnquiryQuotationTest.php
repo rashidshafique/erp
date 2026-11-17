@@ -145,7 +145,7 @@ class EnquiryQuotationTest extends TestCase
         ApprovalPolicy::create(['action_key' => 'quotation.issue_low_margin', 'is_active' => true, 'required_approvals' => 1, 'permission' => 'approvals.decide', 'allow_self_approval' => false]);
         $msg = $svc->issue($q->fresh());
         $this->assertStringContainsString('approval', (string) $msg);
-        $this->assertSame('DRAFT', $q->fresh()->status);
+        $this->assertSame('AWAITING_APPROVAL', $q->fresh()->status);
     }
 
     public function test_new_version_supersedes_the_issued_one_and_keeps_margins(): void

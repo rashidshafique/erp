@@ -87,8 +87,9 @@ class ApprovalGate
                 $req->update(['status' => $new]);
             }
             $this->audit('UPDATED', $req, ['decision' => ['from' => null, 'to' => $decision.($comment ? ': '.$comment : '')]] + ($new ? ['status' => ['from' => 'PENDING', 'to' => $new]] : []));
+            event(new ApprovalDecided($req->refresh()));
 
-            return $req->refresh();
+            return $req;
         });
     }
 
@@ -103,6 +104,7 @@ class ApprovalGate
         $from = $req->status;
         $req->update(['status' => 'CANCELLED']);
         $this->audit('UPDATED', $req, ['status' => ['from' => $from, 'to' => 'CANCELLED']]);
+        event(new ApprovalDecided($req));
     }
 
     public function progress(ApprovalRequest $r): string

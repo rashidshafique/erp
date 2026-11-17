@@ -112,6 +112,14 @@
             <div class="row"><span class="k">Total for quantities</span><span>{{ $n($total) }}</span></div>
             <div class="row"><span class="k">Lowest margin</span><span class="{{ $low < $min ? 'text-danger' : '' }}">{{ $n($low, 1) }}%</span></div>
         </div>
+        @if ($draft && $q->approved_by)
+        <div class="sec"><div class="k" style="font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Approval</div>
+            <p style="margin:0">Approved by {{ $q->approved_by }}{{ $q->approved_at ? ' on '.$q->approved_at->displayDate() : '' }}.</p>
+            @if (filled($q->approval_condition))
+                <p style="margin:8px 0">Condition: {{ $q->approval_condition }}</p>
+                <form method="POST" action="{{ route('quotations.condition-met', $q) }}">@csrf<button class="btn" type="submit">Condition met</button></form>
+            @endif</div>
+        @endif
         @if ($draft)
         <div class="sec"><div class="k" style="font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Before it can go out</div>
             @if ($blockers)<ul style="margin:0;padding-left:18px">@foreach ($blockers as $bl)<li>{{ $bl }}</li>@endforeach</ul>@else<p style="margin:0">Every part is assessed and priced.</p>@endif

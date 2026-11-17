@@ -118,7 +118,7 @@
                 <div style="display:flex;gap:8px;margin-top:10px;align-items:center"><a class="el-btn primary" href="{{ route('quotations.show', $s) }}">Open quotation</a>@if (app(\App\Domains\Enquiry\Services\QuotationService::class)->canRevise($s))<a class="el-btn" href="{{ route('quotations.revise', $s) }}">New revision</a>@endif<span class="el-pill {{ $tones[$sKey] ?? '' }}">{{ $s->statusLabel() }}</span></div>
             </div>
             @if ($sKey === 'AWAITING_APPROVAL')
-                <div class="qt-wait">Waiting for approval since {{ $s->approval_asked_at?->displayShortDate() ?? 'it was asked' }}: the piece price is under the margin floor of {{ rtrim(rtrim(number_format($floor, 1), '0'), '.') }}%.</div>
+                <div class="qt-wait">Waiting for approval since {{ $s->approval_asked_at?->displayShortDate() ?? 'it was asked' }}: the piece price is under the margin floor of {{ rtrim(rtrim(number_format($floor, 1), '0'), '.') }}%. <a href="{{ route('quotations.approval', $s) }}">Review the approval</a>.</div>
             @endif
             <div class="qt-facts">
                 <div><div class="k">Margin</div><div class="v">{{ number_format($low, 1) }}%</div><div class="el-sub">Floor {{ rtrim(rtrim(number_format($floor, 1), '0'), '.') }}%{{ $low < $floor ? ' · '.number_format($floor - $low, 1).' points under, needs approval' : '' }}</div></div>
