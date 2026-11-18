@@ -297,7 +297,7 @@ class InvoiceController extends Controller
             'template' => app(InvoiceTemplates::class)->options()[app(InvoiceTemplates::class)->default()] ?? 'Standard invoice',
             'invoice' => $invoice, 'head' => $head, 'lines' => $lines,
             'customers' => Customer::orderedByName()->get(), 'taxRates' => TaxRate::where('is_active', true)->orderBy('name')->get(),
-            'currency' => $invoice?->currency ?? FinanceRules::currency(), 'products' => $this->products($onLines),
+            'currency' => $invoice?->currency ?? $customer?->currency ?? FinanceRules::currency(), 'products' => $this->products($onLines),
         ];
     }
 

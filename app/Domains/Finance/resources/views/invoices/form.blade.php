@@ -49,7 +49,7 @@
     .iv-sw.iv-on { background: var(--accent); } .iv-sw.iv-on i { left: 14px; }
     @media (max-width: 1100px) { .iv-head, .iv-foot, .iv-dns { grid-template-columns: 1fr; } }
 </style>
-<form method="POST" action="{{ $invoice ? route('invoices.update', $invoice) : route('invoices.store') }}" x-data="invoiceLines(@js($startLines), @js($taxJson), @js((object) $products), @js(Route::has('price-lists.lookup') ? route('price-lists.lookup') : null), @js($dispatches), @js(['terms' => $customerTerms, 'dueDays' => \App\Domains\Finance\Services\FinanceRules::dueDays(), 'create' => ! $invoice, 'url' => route('invoices.create'), 'tax' => app(\App\Domains\Finance\Services\InvoiceService::class)->defaultTaxRateId()]))" x-ref="form">@csrf @if ($invoice) @method('PUT') @endif
+<form method="POST" action="{{ $invoice ? route('invoices.update', $invoice) : route('invoices.store') }}" x-data="invoiceLines(@js($startLines), @js($taxJson), @js((object) $products), @js(Route::has('price-lists.lookup') ? route('price-lists.lookup') : null), @js($dispatches), @js(['terms' => $customerTerms, 'dueDays' => \App\Domains\Finance\Services\FinanceRules::dueDays(), 'create' => ! $invoice, 'url' => route('invoices.create'), 'tax' => app(\App\Domains\Finance\Services\InvoiceService::class)->defaultTaxRateId($customer)]))" x-ref="form">@csrf @if ($invoice) @method('PUT') @endif
 <input type="hidden" name="source_type" value="{{ old('source_type', $head['source_type'] ?? 'manual') }}"><input type="hidden" name="source_id" value="{{ old('source_id', $head['source_id'] ?? '') }}">
 @if ($notice)<p class="el-note" style="margin:0 0 8px">{{ $notice }}</p>@endif
 @if ($errors->any())<div class="flash flash-error">{{ $errors->first() }}</div>@endif

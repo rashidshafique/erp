@@ -57,7 +57,7 @@ new class extends Component
     /** @return array<string, mixed> */
     private function blankForm(): array
     {
-        return ['code' => '', 'name' => '', 'short_name' => '', 'contact_name' => '', 'phone' => '', 'email' => '', 'tax_number' => '', 'payment_terms' => '', 'billing_address' => '', 'shipping_address' => '', 'active' => true, 'is_prospect' => false, 'ppap_requested' => false, 'ppap_level' => '', 'allows_partial_shipments' => false];
+        return ['code' => '', 'name' => '', 'short_name' => '', 'contact_name' => '', 'phone' => '', 'email' => '', 'tax_number' => '', 'payment_terms' => '', 'billing_address' => '', 'shipping_address' => '', 'active' => true, 'is_prospect' => false, 'ppap_requested' => false, 'ppap_level' => '', 'allows_partial_shipments' => false, 'country' => 'PK', 'currency' => 'PKR', 'supply' => 'LOCAL', 'withholds_tax' => false];
     }
 
     public function updatedSearch(): void
@@ -130,6 +130,7 @@ new class extends Component
         $this->form['active'] = (bool) $customer->active;
         $this->form['ppap_requested'] = (bool) $customer->ppap_requested;
         $this->form['allows_partial_shipments'] = (bool) $customer->allows_partial_shipments;
+        $this->form['withholds_tax'] = (bool) $customer->withholds_tax;
         $this->saved = null;
         $this->formOpen = true;
     }
@@ -158,6 +159,9 @@ new class extends Component
         $data['is_prospect'] = (bool) $data['is_prospect'];
         $data['ppap_requested'] = (bool) $data['ppap_requested'];
         $data['allows_partial_shipments'] = (bool) $data['allows_partial_shipments'];
+        $data['withholds_tax'] = (bool) ($data['withholds_tax'] ?? false);
+        $data['country'] = strtoupper($data['country']);
+        $data['currency'] = strtoupper($data['currency']);
         $data['ppap_level'] = $data['ppap_requested'] && ($data['ppap_level'] ?? '') !== '' ? (int) $data['ppap_level'] : null;
 
         if ($customer) {
@@ -397,6 +401,7 @@ new class extends Component
                     <div><div class="lab">Phone</div><div>{{ $c->phone ?: '—' }}</div></div>
                     <div><div class="lab">Credit limit</div><div>{!! $c->credit_limit !== null ? e($money($c->credit_limit)) : '<span style="color:#6b6e73">Not set</span>' !!}</div></div>
                     <div><div class="lab">Terms</div><div>{{ $c->payment_terms ?: '—' }}</div></div>
+                    <div><div class="lab">Supply</div><div>{{ \App\Models\Customer::SUPPLIES[$c->supply] ?? $c->supply }} · {{ $c->currency }}{{ $c->withholds_tax ? ' · withholds tax' : '' }}</div></div>
                 </div>
                 @if ($stage === 'prospect')
                     @php
@@ -456,6 +461,10 @@ new class extends Component
                 <div class="field"><label for="c-email">Email</label><input id="c-email" type="email" wire:model="form.email" maxlength="160" @error('form.email') aria-invalid="true" @enderror></div>
                 <div class="field"><label for="c-tax">Tax number</label><input id="c-tax" wire:model="form.tax_number" maxlength="60"></div>
                 <div class="field"><label for="c-terms">Payment terms</label><input id="c-terms" wire:model="form.payment_terms" maxlength="100" placeholder="e.g. 30 days"></div>
+                <div class="field"><label for="c-supply">Local or export</label><select id="c-supply" wire:model="form.supply">@foreach (\App\Models\Customer::SUPPLIES as $k => $label)<option value="{{ $k }}">{{ $label }}</option>@endforeach</select><div class="help">Export is zero-rated: new invoice lines carry no sales tax.</div></div>
+                <div class="field"><label for="c-country">Country (2 letters)</label><input id="c-country" wire:model="form.country" maxlength="2" style="text-transform:uppercase" @error('form.country') aria-invalid="true" @enderror></div>
+                <div class="field"><label for="c-currency">Currency (3 letters)</label><input id="c-currency" wire:model="form.currency" maxlength="3" style="text-transform:uppercase" @error('form.currency') aria-invalid="true" @enderror><div class="help">Quotations and invoices for this customer are priced in it.</div></div>
+                <div class="field"><label><input type="checkbox" wire:model="form.withholds_tax"> Withholds tax at source</label><div class="help">Expected deduction shown on the invoice.</div></div>
                 <div class="field field-full"><label for="c-billing">Billing address</label><textarea id="c-billing" rows="2" wire:model="form.billing_address"></textarea></div>
                 <div class="field field-full"><label for="c-shipping">Shipping address</label><textarea id="c-shipping" rows="2" wire:model="form.shipping_address"></textarea></div>
                 <div class="field field-full"><label><input type="checkbox" wire:model="form.is_prospect"> Prospect</label><div class="help">Converts to active when marked, or on first sales order.</div></div>

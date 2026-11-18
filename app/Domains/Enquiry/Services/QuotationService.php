@@ -89,7 +89,7 @@ class QuotationService
 
         return DB::transaction(function () use ($enquiry, $rates, $inputs, $prev) {
             $q = Quotation::create([
-                'code' => $prev?->code, 'enquiry_id' => $enquiry->id, 'version' => ($prev?->version ?? 0) + 1, 'status' => 'DRAFT', 'currency' => config('quotation.currency'),
+                'code' => $prev?->code, 'enquiry_id' => $enquiry->id, 'version' => ($prev?->version ?? 0) + 1, 'status' => 'DRAFT', 'currency' => $enquiry->customer?->currency ?: config('quotation.currency'),
                 'payment_terms' => $prev?->payment_terms ?? $enquiry->customer?->payment_terms, 'delivery_weeks' => $prev?->delivery_weeks,
                 'tooling_mode' => $prev?->tooling_mode ?? 'NONE', 'tooling_amortise_qty' => $prev?->tooling_amortise_qty, 'notes' => $prev?->notes,
                 'created_by_id' => Auth::id(), 'created_by_name' => Auth::user()?->name,

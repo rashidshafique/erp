@@ -45,7 +45,7 @@ class InvoiceService
 
         return DB::transaction(function () use ($head, $lines, $invoice, $taxDate, $adjustments) {
             $customer = Customer::findOrFail($head['customer_id']);
-            $head += ['kind' => 'INVOICE', 'invoice_date' => today()->toDateString(), 'currency' => FinanceRules::currency()];
+            $head += ['kind' => 'INVOICE', 'invoice_date' => today()->toDateString(), 'currency' => $customer->currency ?: FinanceRules::currency()];
             $head['payment_terms'] = $head['payment_terms'] ?? $customer->payment_terms;
             $head['due_date'] = $head['due_date'] ?? null;
             if ($invoice === null) {
@@ -204,7 +204,7 @@ class InvoiceService
     {
         $done = InvoiceLine::whereIn('dispatch_item_id', $dispatch->items->pluck('id'))
             ->whereHas('invoice', fn ($q) => $q->where('kind', 'INVOICE')->where('status', '!=', 'VOID')->when($exceptInvoiceId, fn ($q) => $q->where('id', '!=', $exceptInvoiceId)))->pluck('dispatch_item_id')->all();
-        $default = $this->defaultTaxRateId();
+        $default = $this->defaultTaxRateId($dispatch->customer);
 
         return $dispatch->items->reject(fn ($i) => in_array($i->id, $done, true))->map(function ($i) use ($default) {
             $product = $i->salesOrderLine?->product ?? $i->packingItem?->lot?->product;
@@ -226,7 +226,7 @@ class InvoiceService
      */
     public function linesFromOrder(SalesOrder $order): array
     {
-        $default = $this->defaultTaxRateId();
+        $default = $this->defaultTaxRateId($order->customer);
 
         return $order->lines->map(function ($l) use ($default) {
             $left = round((float) $l->ordered_qty - $this->invoicedQuantity($l->id), 3);
@@ -273,8 +273,13 @@ class InvoiceService
         return ['supply_type' => $product?->supply_type ?: TaxLine::GOODS, 'tariff_code' => $product?->tariff_code, 'inventory_class' => $product?->inventory_class];
     }
 
-    public function defaultTaxRateId(): ?string
+    /** The tax rate new lines start on; an export customer is zero-rated, so none. */
+    public function defaultTaxRateId(?Customer $customer = null): ?string
     {
+        if ($customer?->isExport()) {
+            return null;
+        }
+
         return TaxRate::where('is_active', true)->where('is_default', true)->value('id');
     }
 

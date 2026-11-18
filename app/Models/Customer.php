@@ -17,6 +17,9 @@ class Customer extends Model
 
     public string $codeKind = 'customer';
 
+    /** Local customers are charged sales tax; export customers are zero-rated. */
+    public const SUPPLIES = ['LOCAL' => 'Local', 'EXPORT' => 'Export'];
+
     protected $fillable = [
         'code',
         'name',
@@ -33,12 +36,16 @@ class Customer extends Model
         'ppap_requested',
         'ppap_level',
         'allows_partial_shipments',
+        'country',
+        'currency',
+        'supply',
+        'withholds_tax',
     ];
 
     /** Credit fields are set by the Finance module, price list by Sales; neither is mass-assigned from the customer forms. */
     protected function casts(): array
     {
-        return ['credit_limit' => 'float', 'credit_hold' => 'boolean', 'is_prospect' => 'boolean', 'ppap_requested' => 'boolean', 'allows_partial_shipments' => 'boolean', 'credit_release_until' => 'date'];
+        return ['credit_limit' => 'float', 'credit_hold' => 'boolean', 'is_prospect' => 'boolean', 'ppap_requested' => 'boolean', 'allows_partial_shipments' => 'boolean', 'withholds_tax' => 'boolean', 'credit_release_until' => 'date'];
     }
 
     /**
@@ -60,6 +67,10 @@ class Customer extends Model
             'shipping_address' => ['nullable', 'string', 'max:1000'],
             'tax_number' => ['nullable', 'string', 'max:60'],
             'payment_terms' => ['nullable', 'string', 'max:100'],
+            'country' => ['sometimes', 'required', 'string', 'size:2'],
+            'currency' => ['sometimes', 'required', 'string', 'size:3'],
+            'supply' => ['sometimes', 'required', Rule::in(array_keys(self::SUPPLIES))],
+            'withholds_tax' => ['boolean'],
         ];
     }
 
@@ -72,6 +83,11 @@ class Customer extends Model
     public function requirementProfiles(): BelongsToMany
     {
         return $this->belongsToMany(\App\Domains\Compliance\Models\RequirementProfile::class, 'customer_requirement_profiles', 'customer_id', 'requirement_profile_id')->withTimestamps();
+    }
+
+    public function isExport(): bool
+    {
+        return $this->supply === 'EXPORT';
     }
 
     /** Where the account stands: on hold, a prospect (flagged and no order yet), inactive, or active. */
