@@ -33,6 +33,22 @@ class HrCoreTest extends TestCase
         }
     }
 
+    public function test_the_list_changes_tab_and_search_in_place_and_the_panel_follows_the_focus(): void
+    {
+        $a = $this->emp(['first_name' => 'Imran', 'last_name' => 'Ali']);
+        $b = $this->emp(['first_name' => 'Sana', 'last_name' => 'Khan']);
+        $b->update(['status' => 'EXITED']);
+
+        $page = \Livewire\Livewire::test('hr::employee-list')
+            ->assertSee($a->code)->assertDontSee($b->code)
+            ->call('showTab', 'EXITED')->assertSee($b->code)->assertDontSee($a->code)
+            ->call('showTab', 'current')->set('search', 'imran')->assertSee($a->code)
+            ->set('search', 'nobody')->assertDontSee($a->code)
+            ->call('resetFilters')->assertSee($a->code);
+        $page->call('focus', $a->id)->assertSee($a->work_email ?? 'Open employee');
+        $page->call('toggleDetails')->assertSee(route('hr.employees.show', $a));
+    }
+
     public function test_adding_an_employee_generates_a_code_probation_and_the_joining_checklist(): void
     {
         $e = $this->emp(['cnic' => '3520112345671']);
@@ -134,7 +150,7 @@ class HrCoreTest extends TestCase
         $this->assertFalse((bool) $u->fresh()->is_active);
         $this->assertSame('EXITED', $e->events()->first()->kind);
         $this->get(route('hr.employees.index'))->assertDontSee($e->code);                                   // current staff only by default
-        $this->get(route('hr.employees.index', ['status' => 'EXITED']))->assertSee($e->code);
+        $this->get(route('hr.employees.index', ['tab' => 'EXITED']))->assertSee($e->code);
     }
 
     public function test_cancelling_an_exit_restores_status_and_drops_open_clearance_tasks(): void

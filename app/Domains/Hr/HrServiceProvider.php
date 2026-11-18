@@ -53,6 +53,7 @@ use App\Domains\Hr\Services\SettlementService;
 use App\Domains\Hr\Support\EmployeePeopleDirectory;
 use App\Domains\Hr\Support\HrAccess;
 use Illuminate\Console\Scheduling\Schedule;
+use Livewire\Livewire;
 
 /** People: employees, organisation, attendance, leave and policies, and the payroll that follows from them. */
 class HrServiceProvider extends ModuleServiceProvider
@@ -86,6 +87,7 @@ class HrServiceProvider extends ModuleServiceProvider
     public function boot(): void
     {
         parent::boot();
+        Livewire::addNamespace('hr', viewPath: __DIR__.'/resources/views/livewire');
         if ($this->app->make(ModuleRegistry::class)->isEnabled($this->moduleName())) {
             $this->app->singleton(PeopleDirectory::class, EmployeePeopleDirectory::class);
         }

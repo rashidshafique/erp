@@ -26,6 +26,7 @@ use App\Domains\Hr\Support\HrAccess;
 use App\Http\Controllers\Controller;
 use App\Models\PayComponent;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -48,18 +49,30 @@ class EmployeeController extends Controller
         ];
     }
 
-    public function index(Request $request): View
-    {
-        $q = Employee::query()->with('department', 'designation', 'location')
-            ->when($request->filled('search'), function ($q) use ($request) {
-                $s = '%'.trim($request->search).'%';
-                $q->where(fn ($w) => $w->where('code', 'ilike', $s)->orWhere('first_name', 'ilike', $s)->orWhere('last_name', 'ilike', $s)->orWhere('cnic', 'ilike', $s)->orWhere('phone', 'ilike', $s));
-            })
-            ->when($request->filled('department'), fn ($q) => $q->where('department_id', $request->department))
-            ->when($request->filled('location'), fn ($q) => $q->where('location_id', $request->location))
-            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->status), fn ($q) => $q->where('status', '!=', 'EXITED'));
+    /** Tabs of the list: current staff is everyone not yet left; the others show one status. */
+    public const TABS = ['current' => 'Current', 'ONBOARDING' => 'Onboarding', 'PROBATION' => 'On probation', 'ACTIVE' => 'Active', 'NOTICE' => 'Serving notice', 'EXITED' => 'Left'];
 
-        return view('hr::employees.index', $this->lookups() + ['employees' => $q->orderBy('code')->paginate(25)->withQueryString()]);
+    public function index(): View
+    {
+        return view('hr::employees.index');
+    }
+
+    /**
+     * The employees of a tab with the search, department and location filters applied.
+     *
+     * @param  array{search?: string, department?: string, location?: string}  $filters
+     * @return Builder<Employee>
+     */
+    public static function filtered(string $tab = 'current', array $filters = []): Builder
+    {
+        $search = trim($filters['search'] ?? '');
+
+        return Employee::query()->with('department', 'designation', 'location')
+            ->when($tab === 'current' || ! array_key_exists($tab, self::TABS), fn ($q) => $q->where('status', '!=', 'EXITED'), fn ($q) => $q->where('status', $tab))
+            ->when($search !== '', fn ($q) => $q->where(fn ($w) => $w->where('code', 'ilike', "%{$search}%")->orWhere('first_name', 'ilike', "%{$search}%")->orWhere('last_name', 'ilike', "%{$search}%")->orWhere('cnic', 'ilike', "%{$search}%")->orWhere('phone', 'ilike', "%{$search}%")))
+            ->when(! empty($filters['department']), fn ($q) => $q->where('department_id', $filters['department']))
+            ->when(! empty($filters['location']), fn ($q) => $q->where('location_id', $filters['location']))
+            ->orderBy('code');
     }
 
     public function create(): View
