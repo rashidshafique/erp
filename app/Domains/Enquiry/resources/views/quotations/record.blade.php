@@ -44,17 +44,18 @@
             <div style="font-size:16px;font-weight:600;margin-top:2px">{{ $first?->item?->description ?? $q->enquiry->title }} <span class="el-sub" style="font-weight:400">· {{ $q->enquiry->customer?->name }}</span></div></div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
             <span class="el-pill {{ $tones[$key] ?? '' }}">{{ $q->statusLabel() }}</span><span class="el-sub">rev {{ $q->version }}@unless ($isLatest) · superseded by a later revision @endunless</span>
-            @if ($q->status === 'DRAFT')<a class="el-btn primary" href="{{ route('quotations.show', $q) }}">Open costing editor</a>@endif
             @if (app(\App\Domains\Enquiry\Services\QuotationService::class)->canRevise($q))<a class="el-btn primary" href="{{ route('quotations.revise', $q) }}">New revision</a>@endif
             @if (app(\App\Domains\Enquiry\Services\QuotationService::class)->canClose($q))<a class="el-btn" href="{{ route('quotations.close', $q) }}">Close quotation</a>@endif
             @if (in_array($q->status, ['ISSUED', 'ACCEPTED', 'EXPIRED', 'SUPERSEDED', 'REJECTED'], true))<a class="el-btn" href="{{ route('quotations.print', $q) }}" target="_blank">Preview PDF</a>@endif
         </div>
     </div>
+    @include('enquiry::quotations._tabs')
     <div class="qr-steps" aria-label="Where the quotation stands">
         @foreach ($steps as $i => $label)<div @class(['done' => $i < $step && ! ($i === 1 && ! $needsApproval), 'now' => $i === $step, 'skip' => $i === 1 && ! $needsApproval && $i < $step])><i></i><span>{{ $label }}</span></div>@endforeach
     </div>
     <div class="el-grid" style="grid-template-columns: minmax(0, 1fr) 320px">
         <div class="el-main">
+            @if ($tab === 'summary')
             <div class="qr-sec">
                 <div class="el-h">Lines</div>
                 <div class="el-table"><table><thead><tr><th>Part</th><th class="el-r">Annual qty</th><th class="el-r">Batch</th><th class="el-r">Piece price</th><th class="el-r">Tooling</th><th>Lead time</th></tr></thead><tbody>
@@ -95,7 +96,9 @@
                     @endfieldcan
                 </div>
             @endforeach
+            @endif
 
+            @if ($tab === 'revisions')
             <div class="qr-sec">
                 <div class="el-h">Revisions</div>
                 <div class="el-table"><table><thead><tr><th>Rev</th><th>Date</th><th class="el-r">Piece</th><th class="el-r">Tooling</th><th>What changed</th><th>By</th><th>Status</th></tr></thead><tbody>
@@ -108,7 +111,9 @@
                 </tbody></table></div>
                 <div class="el-note" style="margin-top:8px">A revision never overwrites the one before it. The customer keeps whatever they were sent.</div>
             </div>
+            @endif
 
+            @if ($tab === 'log')
             <div class="qr-sec">
                 <div class="el-h">Log</div>
                 <div class="qr-log">
@@ -123,6 +128,7 @@
                     <input type="text" name="text" maxlength="1000" required placeholder="What was said or decided" aria-label="Log text"><button class="el-btn" type="submit">Add to log</button>
                 </form>
             </div>
+            @endif
         </div>
         <aside class="el-side qr-rail">
             <div>

@@ -40,12 +40,16 @@ class QuotationController extends Controller
         return $q->load('lines.item.analysis', 'lines.item.product:id,code,name', 'enquiry.customer', 'salesOrder:id,order_number');
     }
 
-    /** A draft opens the costing editor (1d) where its price is worked out; every other revision, and a draft asked for as ?record, opens the record (30b). */
+    /** One screen, four tabs (design 30f, `?tab=`): Costing is the editor where a draft's price is worked out (read-only once sent), Summary, Revisions and Log are the record (30b). A draft opens on Costing, any other revision on Summary. */
     public function show(Request $request, Quotation $quotation)
     {
         $quotation = $this->load($quotation);
-        if ($quotation->status === 'DRAFT' && ! $request->boolean('record')) {
-            return view('enquiry::quotations.show', [
+        $tab = $request->query('tab');
+        if (! in_array($tab, ['summary', 'costing', 'revisions', 'log'], true)) {
+            $tab = $quotation->status === 'DRAFT' && ! $request->boolean('record') ? 'costing' : 'summary';
+        }
+        if ($tab === 'costing') {
+            return view('enquiry::quotations.show', ['tab' => $tab,
                 'q' => $quotation, 'blockers' => $this->svc->issueBlockers($quotation),
                 'versions' => $quotation->enquiry->quotations()->get(['id', 'code', 'version', 'status']),
                 'toolingNotes' => $quotation->lines->mapWithKeys(fn ($l) => [$l->id => app(PatternOwnership::class)->toolingFor($quotation->enquiry->customer_id, $l->item?->product_id)]),
@@ -53,7 +57,7 @@ class QuotationController extends Controller
         }
 
         return view('enquiry::quotations.record', [
-            'q' => $quotation, 'revisions' => $quotation->revisions()->with('lines.item')->get(), 'events' => $quotation->events()->get(),
+            'tab' => $tab, 'q' => $quotation, 'revisions' => $quotation->revisions()->with('lines.item')->get(), 'events' => $quotation->events()->get(),
             'floor' => (float) \App\Domains\Enquiry\Services\Rates::get()['min_margin_pct'], 'isLatest' => $quotation->isLatest(),
         ]);
     }

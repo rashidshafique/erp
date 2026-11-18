@@ -46,11 +46,11 @@
             <span class="status {{ $qcls[$q->status] ?? '' }}" style="margin-left:8px">{{ $q->status }}</span></div>
         <div style="display:flex;gap:10px;align-items:center">
             <div class="qd-seg" role="group" aria-label="Detail"><button type="button" class="on" data-mode="detailed">Detailed</button><button type="button" data-mode="simple">Simple</button></div>
-            <a class="btn" href="{{ route('quotations.show', [$q, 'record' => 1]) }}">Record</a>
             @if (! $draft)<a class="btn" href="{{ route('quotations.print', $q) }}" target="_blank">Customer copy</a>@endif
             <a class="btn" href="{{ route('enquiries.show', $q->enquiry) }}">Back to enquiry</a>
         </div>
     </div>
+    @include('enquiry::quotations._tabs')
     <div class="qd-grid">
     <div class="qd-main">
     <form method="POST" action="{{ route('quotations.update', $q) }}" id="q-form">@csrf @method('PUT')

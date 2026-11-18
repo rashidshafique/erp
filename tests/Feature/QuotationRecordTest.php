@@ -31,8 +31,9 @@ class QuotationRecordTest extends TestCase
 
         $this->get(route('quotations.show', $q))->assertOk()
             ->assertSee($q->code)->assertSee('Impeller housing 65-160')->assertSee('EN-GJL-250')->assertSeeText('How the piece price is built')->assertSeeText('Metal')->assertSeeText('Scrap allowance')
-            ->assertSeeText('Piece price')->assertSeeText('Revisions')->assertSeeText('First quote')->assertSee('8 weeks')->assertSee('Preview PDF')
+            ->assertSeeText('Piece price')->assertSee('8 weeks')->assertSee('Preview PDF')
             ->assertSee('Enquiry '.$q->enquiry->code)->assertSee('Feasibility')->assertDontSee('Save and recalculate');
+        $this->get(route('quotations.show', [$q, 'tab' => 'revisions']))->assertSeeText('First quote');
     }
 
     public function test_a_draft_opens_the_costing_editor_and_the_record_when_asked(): void
@@ -40,7 +41,10 @@ class QuotationRecordTest extends TestCase
         $q = $this->quote('DRAFT');
 
         $this->get(route('quotations.show', $q))->assertOk()->assertSee('Save and recalculate');
-        $this->get(route('quotations.show', [$q, 'record' => 1]))->assertOk()->assertSee('Open costing editor')->assertDontSee('Save and recalculate');
+        $this->get(route('quotations.show', [$q, 'record' => 1]))->assertOk()->assertSee('aria-current="page"', false)->assertSee('Costing')->assertDontSee('Save and recalculate');
+        $this->get(route('quotations.show', [$q, 'tab' => 'revisions']))->assertOk()->assertSee('A revision never overwrites')->assertDontSee('How the piece price is built');
+        $this->get(route('quotations.show', [$q, 'tab' => 'log']))->assertOk()->assertSee('Add to log')->assertDontSee('A revision never overwrites');
+        $this->get(route('quotations.show', [$q, 'tab' => 'costing']))->assertOk()->assertSee('Save and recalculate');
     }
 
     public function test_revisions_share_the_number_and_the_record_lists_each_with_what_changed(): void
@@ -50,7 +54,7 @@ class QuotationRecordTest extends TestCase
         $second = app(QuotationService::class)->create($first->enquiry->fresh(['items', 'quotations.lines']));
         $second->update(['change_note' => 'Price cut: yield 62% to 68% after the riser moved', 'created_by_name' => 'J. Varga']);
 
-        $this->get(route('quotations.show', [$second, 'record' => 1]))->assertOk()
+        $this->get(route('quotations.show', [$second, 'tab' => 'revisions']))->assertOk()
             ->assertSeeText('v2')->assertSeeText('v1')->assertSeeText('Price cut: yield 62% to 68%')->assertSeeText('J. Varga')->assertSeeText('Superseded');
         $this->get(route('quotations.show', $first))->assertOk()->assertSee('superseded by a later revision');
     }
@@ -63,7 +67,7 @@ class QuotationRecordTest extends TestCase
         $this->post(route('quotations.log', $q), ['kind' => 'NOTE', 'text' => 'Riser moved to the flange boss.'])->assertRedirect();
         $this->post(route('quotations.log', $q), ['kind' => 'BOGUS', 'text' => 'x'])->assertSessionHasErrors('kind');
 
-        $this->get(route('quotations.show', $q))->assertSee('Customer asked whether the price could come down.')->assertSee('In · ')->assertSee('Riser moved to the flange boss.');
+        $this->get(route('quotations.show', [$q, 'tab' => 'log']))->assertSee('Customer asked whether the price could come down.')->assertSee('In · ')->assertSee('Riser moved to the flange boss.');
         $this->assertSame(2, $q->events()->count());
     }
 
