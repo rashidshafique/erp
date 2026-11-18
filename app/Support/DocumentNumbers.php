@@ -23,6 +23,8 @@ class DocumentNumbers
     public const TYPES = [
         'invoice' => ['Invoice', 'invoices', 'invoice_number', 'I', 'invoice_date', ['kind' => 'INVOICE']],
         'credit_note' => ['Credit note', 'invoices', 'invoice_number', 'C', 'invoice_date', ['kind' => 'CREDIT_NOTE']],
+        'proforma' => ['Proforma invoice', 'invoices', 'invoice_number', 'PF', 'invoice_date', ['kind' => 'PROFORMA']],
+        'debit_note' => ['Debit note', 'invoices', 'invoice_number', 'DN', 'invoice_date', ['kind' => 'DEBIT_NOTE']],
         'receipt' => ['Receipt', 'receipts', 'receipt_number', 'R', 'received_on'],
         'tax_certificate' => ['Tax certificate', 'withholding_certificates', 'certificate_number', 'T', 'certificate_date'],
         'supplier_bill' => ['Supplier bill', 'supplier_bills', 'bill_number', 'B', 'bill_date'],

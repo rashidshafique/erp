@@ -284,7 +284,7 @@ class InvoiceService
     }
 
     /** Finance document types by the kind or old prefix callers pass. */
-    private const NUMBER_TYPES = ['INVOICE' => 'invoice', 'CREDIT_NOTE' => 'credit_note', 'RC' => 'receipt', 'SP' => 'supplier_payment',
+    private const NUMBER_TYPES = ['INVOICE' => 'invoice', 'CREDIT_NOTE' => 'credit_note', 'PROFORMA' => 'proforma', 'DEBIT_NOTE' => 'debit_note', 'RC' => 'receipt', 'SP' => 'supplier_payment',
         'WHC' => 'tax_certificate', 'BILL' => 'supplier_bill', 'SCN' => 'supplier_bill'];
 
     /** The next number for a finance document kind (I-10000, C-10000, R-10000…), from DocumentNumbers. Call inside a transaction. */

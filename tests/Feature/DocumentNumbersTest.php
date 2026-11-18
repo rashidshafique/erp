@@ -41,6 +41,7 @@ class DocumentNumbersTest extends TestCase
         $this->assertSame(['I-10000', 'I-10001'], [$this->issue('2026-11-01')->invoice_number, $this->issue('2026-11-02')->invoice_number]);
         $this->assertSame('I-10002', DocumentNumbers::preview('invoice'));
         $this->assertSame('C-10000', DocumentNumbers::preview('credit_note'));
+        $this->assertSame(['PF-10000', 'DN-10000'], [DocumentNumbers::preview('proforma'), DocumentNumbers::preview('debit_note')]);
 
         AppSetting::setValue('numbers.prefix.invoice', 'inv');
         $this->assertSame('INV-10000', $this->issue('2026-11-03')->invoice_number);
