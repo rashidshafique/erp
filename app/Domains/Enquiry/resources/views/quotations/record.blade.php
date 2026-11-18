@@ -13,7 +13,7 @@
     $first = $q->lines->first();
     $money = fn ($v, $d = 2) => Formats::money((float) $v, $d);
     $pct = fn ($v) => rtrim(rtrim(number_format((float) $v, 1), '0'), '.');
-    $low = $q->lowestMargin();
+    $low = $q->setMargin();
     $days = $q->valid_until ? (int) today()->diffInDays($q->valid_until, false) : null;
     $step = match ($key) { 'DRAFT' => 0, 'AWAITING_APPROVAL' => 1, 'ISSUED', 'EXPIRED' => 2, 'ACCEPTED', 'REJECTED' => 3, default => 2 };
     $steps = ['Draft', 'Approval', 'Sent', ['ACCEPTED' => 'Accepted', 'REJECTED' => 'Lost', 'EXPIRED' => 'No reply'][$key] ?? 'Accepted'];

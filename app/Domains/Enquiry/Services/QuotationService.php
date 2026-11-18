@@ -309,7 +309,7 @@ class QuotationService
         $who = $last?->user_name ?? 'An approver';
         if ($req->status === 'APPROVED') {
             $q->update(['status' => 'DRAFT', 'approved_by' => $who, 'approved_at' => now()]);
-            QuotationEvent::log($q, 'APPROVAL', sprintf('Approved at %.1f%% by %s.', $q->lowestMargin(), $who).(filled($q->approval_condition) ? ' Condition: '.$q->approval_condition : ''));
+            QuotationEvent::log($q, 'APPROVAL', sprintf('Approved at %.1f%% by %s.', $q->setMargin(), $who).(filled($q->approval_condition) ? ' Condition: '.$q->approval_condition : ''));
         } elseif (in_array($req->status, ['REJECTED', 'CANCELLED'], true)) {
             $q->update(['status' => 'DRAFT', 'approval_asked_at' => null, 'approval_condition' => null]);
             QuotationEvent::log($q, 'APPROVAL', $req->status === 'CANCELLED' ? 'The approval request was cancelled. Back to a draft.' : "Sent back by {$who}: ".($last?->comment ?? '').'');
@@ -328,7 +328,7 @@ class QuotationService
 
     public function lowestMargin(Quotation $q): float
     {
-        return (float) $q->lines->min('effective_margin_pct');
+        return $q->setMargin();
     }
 
     /** Issue the quotation. Returns null when done, or the message to show (blockers or an approval request). */

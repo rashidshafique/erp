@@ -94,9 +94,19 @@ class Quotation extends Model
         return (float) $this->lines->sum(fn (QuotationLine $l) => ($l->annualQty() ?: $l->qty) * (float) $l->unit_price);
     }
 
-    public function lowestMargin(): float
+    /**
+     * The margin the floor is tested on: every part's margin weighted by its yearly value, so one thin part is carried by the others
+     * (design 30g, the floor is tested on the set). A one-part quotation gives that part's margin. With no value to weigh by, the lowest.
+     */
+    public function setMargin(): float
     {
-        return (float) $this->lines->min('effective_margin_pct');
+        $weights = $this->lines->map(fn (QuotationLine $l) => max(0.0, ($l->annualQty() ?: $l->qty) * (float) $l->unit_price));
+        $total = $weights->sum();
+        if ($total <= 0) {
+            return (float) $this->lines->min('effective_margin_pct');
+        }
+
+        return (float) $this->lines->values()->reduce(fn ($sum, QuotationLine $l, $i) => $sum + (float) $l->effective_margin_pct * $weights[$i], 0.0) / $total;
     }
 
     public function salesOrder(): BelongsTo

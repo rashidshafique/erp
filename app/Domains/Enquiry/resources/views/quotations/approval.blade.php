@@ -9,7 +9,7 @@
     use App\Support\Formats;
     $money = fn ($v, $d = 2) => Formats::money((float) $v, $d);
     $pct = fn ($v) => rtrim(rtrim(number_format((float) $v, 1), '0'), '.');
-    $low = $q->lowestMargin();
+    $low = $q->setMargin();
     $waiting = $q->approval_asked_at ? (int) $q->approval_asked_at->diffInDays(now()) : 0;
     $waitingNow = $q->status === 'AWAITING_APPROVAL';
     $annual = $line?->annualQty() ?: $line?->qty;

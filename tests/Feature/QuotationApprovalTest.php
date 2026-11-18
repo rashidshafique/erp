@@ -143,4 +143,35 @@ class QuotationApprovalTest extends TestCase
         $this->post(route('quotations.approval.decide', $q), ['choice' => 'approve'])->assertSessionHasErrors('approval');
         $this->assertSame('DRAFT', $q->fresh()->status);
     }
+
+    private function twoParts(int $thinAnnual, int $richAnnual): Quotation
+    {
+        ApprovalPolicy::create(['action_key' => 'quotation.issue_low_margin', 'is_active' => true, 'required_approvals' => 1, 'permission' => 'approvals.decide', 'allow_self_approval' => true]);
+        $c = Customer::create(['code' => 'C'.uniqid(), 'name' => 'Kovar', 'payment_terms' => 'Net 45']);
+        $e = Enquiry::create(['customer_id' => $c->id, 'title' => 'Pump set', 'source_type' => 'DRAWING', 'status' => 'FEASIBILITY', 'received_on' => today()->subDays(3)]);
+        $e->items()->create(['line_no' => 1, 'description' => 'Casing', 'material_text' => 'EN-GJL-250', 'weight_kg' => 14.2, 'annual_qty' => $thinAnnual, 'first_batch_qty' => 200, 'family' => 'GREY', 'feasibility_status' => 'OK']);
+        $e->items()->create(['line_no' => 2, 'description' => 'Impeller', 'material_text' => 'EN-GJL-250', 'weight_kg' => 5.8, 'annual_qty' => $richAnnual, 'first_batch_qty' => 200, 'family' => 'GREY', 'feasibility_status' => 'OK']);
+        $svc = app(QuotationService::class);
+        $q = $svc->create($e->fresh('items'));
+        $q->lines->firstWhere('line_no', 1)->update(['margin_pct' => 4]);
+        $q->lines->firstWhere('line_no', 2)->update(['margin_pct' => 35]);
+        $svc->recalc($q->fresh('lines'));
+
+        return $q->fresh('lines');
+    }
+
+    public function test_the_floor_is_tested_on_the_whole_quotation_not_its_thinnest_part(): void
+    {
+        $carried = $this->twoParts(100, 30000);
+        $this->assertLessThan(12, $carried->lines->min('effective_margin_pct'));
+        $this->assertGreaterThan(12, $carried->setMargin());
+        $this->assertSame('ISSUED', $this->ask($carried)->status);
+    }
+
+    public function test_a_thin_part_that_carries_the_year_still_needs_approval(): void
+    {
+        $thin = $this->twoParts(30000, 100);
+        $this->assertLessThan(12, $thin->setMargin());
+        $this->assertSame('AWAITING_APPROVAL', $this->ask($thin)->status);
+    }
 }

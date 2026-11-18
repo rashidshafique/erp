@@ -111,7 +111,7 @@
             <div class="el-note">One row per quotation, not per revision: the Rev column says which one is live. Earlier revisions stay on the record. Accepted rows show their sales order and lost rows show the reason, so the list answers "what happened" without opening anything.</div>
         </div>
         @if ($details && $selected)
-        @php $s = $selected; $sKey = $s->statusKey(); $sFirst = $s->lines->first(); $low = $s->lowestMargin(); @endphp
+        @php $s = $selected; $sKey = $s->statusKey(); $sFirst = $s->lines->first(); $low = $s->setMargin(); @endphp
         <aside class="el-side">
             <div>
                 <div class="ls-ph"><div><div style="font-weight:600;font-size:14px">{{ $sFirst?->item?->description ?? $s->enquiry->title }}</div><div class="el-sub"><code>{{ $s->code }}</code> · rev {{ $s->version }} · {{ $s->enquiry->customer?->name }}</div></div>@include('partials.list-hide-form')</div>

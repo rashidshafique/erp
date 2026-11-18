@@ -9,7 +9,7 @@
     $n = fn ($v, $d = 2) => \App\Support\Formats::number((float) $v, $d);
     $total = $q->lines->sum(fn ($l) => $l->unit_price * $l->qty);
     $min = \App\Domains\Enquiry\Services\Rates::get()['min_margin_pct'];
-    $low = $q->lines->min('effective_margin_pct');
+    $low = $q->setMargin();
 @endphp
 @if (session('error'))<div class="alert alert-error">{{ session('error') }}</div>@endif
 @if ($q->status === 'ACCEPTED' && $q->salesOrder)<div class="alert alert-success">Accepted. Sales order @if (Route::has('sales-orders.show'))<a href="{{ route('sales-orders.show', $q->salesOrder) }}">{{ $q->salesOrder->order_number }}</a>@else{{ $q->salesOrder->order_number }}@endif was created.</div>@endif
