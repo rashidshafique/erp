@@ -33,32 +33,9 @@ class EnquiryController extends Controller
     public const TABS = ['open' => 'Open', 'due' => 'Due this week', 'won' => 'Won', 'lost' => 'Lost', 'declined' => 'Declined'];
 
     /** The enquiries list (design 14a): every RFQ from receipt to won or lost, with the last 90 days and why we lose beside it. */
-    public function index(Request $request)
+    public function index()
     {
-        $tab = array_key_exists((string) $request->query('tab'), self::TABS) ? $request->query('tab') : 'open';
-        $since = today()->subDays(90);
-        $closed90 = Enquiry::whereIn('status', ['LOST', 'DECLINED'])->where('closed_at', '>=', $since);
-        $figures = app(\App\Domains\Enquiry\Services\QuotationFigures::class);
-        $quotedIds = $figures->quotedEnquiries($since);
-        $won90 = Enquiry::where('status', 'WON')->where('closed_at', '>=', $since)->count();
-
-        return view('enquiry::enquiries.index', [
-            'rows' => self::rows($request, $tab),
-            'tab' => $tab,
-            'counts' => collect(self::TABS)->map(fn ($l, $k) => $this->tabQuery($k)->count())->all(),
-            'customers' => Customer::whereIn('id', Enquiry::select('customer_id'))->orderedByName()->get(),
-            'owners' => User::whereIn('id', Enquiry::whereNotNull('owner_id')->select('owner_id'))->orderBy('name')->get(['id', 'name']),
-            'stats' => [
-                'received' => Enquiry::where('received_on', '>=', $since)->count(),
-                'quoted' => $quotedIds->count(),
-                'won' => $won90,
-                'wonShare' => $quotedIds->count() > 0 ? round(100 * $won90 / $quotedIds->count()) : null,
-                'daysToQuote' => $figures->daysToQuote($since),
-            ],
-            'reasons' => (clone $closed90)->whereNotNull('close_reason')->selectRaw('close_reason, status, count(*) as n')->groupBy('close_reason', 'status')->get()
-                ->groupBy('close_reason')->map(fn ($g) => ['lost' => (int) $g->where('status', 'LOST')->sum('n'), 'declined' => (int) $g->where('status', 'DECLINED')->sum('n')])
-                ->sortByDesc(fn ($r) => $r['lost'] + $r['declined']),
-        ]);
+        return view('enquiry::enquiries.index');
     }
 
     /** The filtered list as a CSV file. */
@@ -86,17 +63,28 @@ class EnquiryController extends Controller
 
     private static function query(Request $request, string $tab)
     {
+        return self::filtered($tab, $request->only(['search', 'customer', 'owner', 'source']));
+    }
+
+    /**
+     * The enquiries of a tab with the search, customer, owner and source filters applied, due soonest first. Shared by the
+     * Livewire list, the CSV export and the plain page.
+     *
+     * @param  array<string, mixed>  $filters
+     */
+    public static function filtered(string $tab, array $filters = [])
+    {
         return (new self)->tabQuery($tab)
             ->with('customer', 'owner:id,name', 'pattern:id,code', 'items', 'quotations.lines', 'developments:id,enquiry_id,pattern_by,status')
-            ->when($request->filled('search'), function ($q) use ($request) {
-                $s = '%'.trim($request->input('search')).'%';
+            ->when(filled($filters['search'] ?? null), function ($q) use ($filters) {
+                $s = '%'.trim($filters['search']).'%';
                 $q->where(fn ($w) => $w->where('code', 'ilike', $s)->orWhere('title', 'ilike', $s)->orWhere('customer_reference', 'ilike', $s)
                     ->orWhereHas('items', fn ($i) => $i->where('description', 'ilike', $s))
                     ->orWhereHas('customer', fn ($c) => $c->whereHas('party', fn ($p) => $p->where('name', 'ilike', $s))));
             })
-            ->when($request->filled('customer'), fn ($q) => $q->where('customer_id', $request->input('customer')))
-            ->when($request->filled('owner'), fn ($q) => $q->where('owner_id', $request->input('owner')))
-            ->when($request->filled('source'), fn ($q) => $q->where('source_type', $request->input('source')))
+            ->when(filled($filters['customer'] ?? null), fn ($q) => $q->where('customer_id', $filters['customer']))
+            ->when(filled($filters['owner'] ?? null), fn ($q) => $q->where('owner_id', $filters['owner']))
+            ->when(filled($filters['source'] ?? null), fn ($q) => $q->where('source_type', $filters['source']))
             ->orderByRaw('due_on is null')->orderBy('due_on')->orderByDesc('created_at');
     }
 

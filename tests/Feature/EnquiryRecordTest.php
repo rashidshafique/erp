@@ -29,6 +29,20 @@ class EnquiryRecordTest extends TestCase
         return $e->fresh(['items', 'customer']);
     }
 
+    public function test_the_list_changes_tab_and_filters_without_a_page_load(): void
+    {
+        $open = $this->enquiry(['due_on' => today()->addDays(2)]);
+        $later = $this->enquiry(['customer' => 'Kovar Pumps', 'due_on' => today()->addDays(30)]);
+        $lost = $this->enquiry(['status' => 'LOST', 'close_reason' => 'PRICE', 'closed_at' => now()]);
+
+        Livewire::actingAs(User::factory()->create())->test('enquiry::enquiry-list')
+            ->assertSee($open->code)->assertSee($later->code)->assertDontSee($lost->code)
+            ->call('showTab', 'due')->assertSee($open->code)->assertDontSee($later->code)
+            ->call('showTab', 'lost')->assertSee($lost->code)->assertDontSee($open->code)
+            ->call('showTab', 'open')->set('search', 'kovar')->assertSee($later->code)->assertDontSee($open->code)
+            ->call('resetFilters')->assertSee($open->code);
+    }
+
     public function test_the_list_shows_stage_pattern_value_reply_by_and_the_tabs_filter_it(): void
     {
         $open = $this->enquiry(['due_on' => today()->addDays(2), 'pattern_route' => 'CUSTOMER']);
