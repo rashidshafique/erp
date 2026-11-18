@@ -43,6 +43,17 @@ class EnquiryRecordTest extends TestCase
             ->call('resetFilters')->assertSee($open->code);
     }
 
+    public function test_the_side_panel_shows_the_clicked_enquiry_and_rows_open_the_record_when_it_is_closed(): void
+    {
+        $a = $this->enquiry(['due_on' => today()->addDays(2), 'customer_reference' => 'RFQ-AAA']);
+        $b = $this->enquiry(['customer' => 'Kovar Pumps', 'due_on' => today()->addDays(5), 'customer_reference' => 'RFQ-BBB']);
+
+        $page = Livewire::actingAs(User::factory()->create())->test('enquiry::enquiry-list')
+            ->assertSee('RFQ-AAA')->assertDontSee('RFQ-BBB')
+            ->call('focus', $b->id)->assertSee('RFQ-BBB')->assertSee('Last 90 days');
+        $page->call('toggleDetails')->assertDontSee('Last 90 days')->assertSee(route('enquiries.show', $b));
+    }
+
     public function test_the_list_shows_stage_pattern_value_reply_by_and_the_tabs_filter_it(): void
     {
         $open = $this->enquiry(['due_on' => today()->addDays(2), 'pattern_route' => 'CUSTOMER']);

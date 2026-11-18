@@ -31,6 +31,13 @@ new class extends Component
     #[Url(except: '')]
     public string $owner = '';
 
+    public ?string $focused = null;
+
+    public function focus(string $id): void
+    {
+        $this->focused = $id;
+    }
+
     public function showTab(string $tab): void
     {
         $this->tab = array_key_exists($tab, EnquiryController::TABS) ? $tab : 'open';
@@ -72,11 +79,13 @@ new class extends Component
         $figures = app(QuotationFigures::class);
         $quotedIds = $figures->quotedEnquiries($since);
         $won90 = Enquiry::where('status', 'WON')->where('closed_at', '>=', $since)->count();
-        $filters = ['search' => $this->search, 'customer' => $this->customer, 'owner' => $this->owner];
+        $rows = EnquiryController::filtered($tab, ['search' => $this->search, 'customer' => $this->customer, 'owner' => $this->owner])->paginate(20);
+        $focus = $this->details ? ($rows->getCollection()->firstWhere('id', $this->focused) ?? $rows->getCollection()->first()) : null;
 
         return [
             'tab' => $tab,
-            'rows' => EnquiryController::filtered($tab, $filters)->paginate(20),
+            'rows' => $rows,
+            'focus' => $focus,
             'counts' => collect(EnquiryController::TABS)->map(fn ($l, $k) => EnquiryController::filtered($k)->count())->all(),
             'customers' => Customer::whereIn('id', Enquiry::select('customer_id'))->orderedByName()->get(),
             'owners' => User::whereIn('id', Enquiry::whereNotNull('owner_id')->select('owner_id'))->orderBy('name')->get(['id', 'name']),
@@ -132,7 +141,9 @@ new class extends Component
                         $issued = $r->quotations->whereNotNull('issued_at')->sortByDesc('issued_at')->first();
                         $pattern = EnquiryController::patternText($r);
                     @endphp
-                    <tr wire:key="enq-{{ $r->id }}" onclick="if (!event.target.closest('a,summary,details')) location.href='{{ route('enquiries.show', $r) }}'">
+                    <tr wire:key="enq-{{ $r->id }}-{{ $details ? 'p' : 'f' }}" tabindex="0" @class(['on' => $details && $focus && $focus->id === $r->id])
+                        @if ($details) wire:click="focus('{{ $r->id }}')" x-on:focus="$wire.focus('{{ $r->id }}')" x-on:dblclick="window.location = '{{ route('enquiries.show', $r) }}'" x-on:keydown.enter="window.location = '{{ route('enquiries.show', $r) }}'"
+                        @else x-data x-on:click="if (! $event.target.closest('a,button,summary,details')) window.location = '{{ route('enquiries.show', $r) }}'" x-on:keydown.enter="window.location = '{{ route('enquiries.show', $r) }}'" @endif>
                         <td><a href="{{ route('enquiries.show', $r) }}" style="color:inherit"><code>{{ $r->code }}</code></a></td>
                         <td><div style="font-weight:500">{{ $first?->description ?? $r->title }}</div><div class="el-sub">{{ collect([$first?->material_text, $first?->annual_qty ? \App\Support\Formats::number($first->annual_qty).' / yr' : null, $r->items->count() > 1 ? '+'.($r->items->count() - 1).' more' : null])->filter()->implode(' · ') ?: Enquiry::SOURCES[$r->source_type] }}</div></td>
                         <td data-col="customer">{{ $r->customer?->name }}</td>
@@ -158,7 +169,30 @@ new class extends Component
         </div>
         @if ($details)
         <aside class="el-side">
-            <div><div class="ls-ph"><div class="el-h">Last 90 days</div>@include('partials.list-hide-panel')</div><div style="margin-top:8px">
+            @if ($focus)
+                @php
+                    $fFirst = $focus->items->first(); $fValue = $focus->annualValue(); $fStage = $focus->stage();
+                    $fIssued = $focus->quotations->whereNotNull('issued_at')->sortByDesc('issued_at')->first();
+                @endphp
+                <div>
+                    <div class="ls-ph"><div class="el-h"><a href="{{ route('enquiries.show', $focus) }}" style="color:inherit"><code>{{ $focus->code }}</code></a></div>@include('partials.list-hide-panel')</div>
+                    <div style="margin-top:8px;font-weight:500">{{ $fFirst?->description ?? $focus->title }}</div>
+                    <div class="el-sub">{{ $focus->customer?->name }}</div>
+                    <div style="display:flex;gap:8px;margin:10px 0"><a class="ls-btn primary" href="{{ route('enquiries.show', $focus) }}">Open enquiry</a>@if ($focus->isOpen())<a class="ls-btn" href="{{ route('enquiries.edit', $focus) }}">Edit</a>@endif</div>
+                    <div class="el-row"><span>Stage</span><span><span class="el-pill {{ $tones[$fStage] }}">{{ Enquiry::STAGES[$fStage] }}</span></span></div>
+                    <div class="el-row"><span>Material</span><span>{{ $fFirst?->material_text ?: '—' }}</span></div>
+                    <div class="el-row"><span>Annual quantity</span><span>{{ $fFirst?->annual_qty ? \App\Support\Formats::number($fFirst->annual_qty) : '—' }}</span></div>
+                    <div class="el-row"><span>Annual value</span><span>{{ $fValue ? $money($fValue) : '—' }}</span></div>
+                    <div class="el-row"><span>Pattern</span><span>{{ EnquiryController::patternText($focus) ?? 'Not set' }}</span></div>
+                    <div class="el-row"><span>Reply by</span><span>{{ $focus->due_on?->displayShortDate() ?? '—' }}</span></div>
+                    <div class="el-row"><span>Quotation sent</span><span>{{ $fIssued ? $fIssued->issued_at->displayShortDate() : '—' }}</span></div>
+                    <div class="el-row"><span>RFQ ref</span><span>{{ $focus->customer_reference ?: '—' }}</span></div>
+                    <div class="el-row"><span>Source</span><span>{{ Enquiry::SOURCES[$focus->source_type] ?? $focus->source_type }}</span></div>
+                    <div class="el-row"><span>Owner</span><span>{{ $focus->owner?->name ?? '—' }}</span></div>
+                    @if ($focus->items->count() > 1)<div class="el-row"><span>Lines</span><span>{{ $focus->items->count() }}</span></div>@endif
+                </div>
+            @endif
+            <div><div class="ls-ph"><div class="el-h">Last 90 days</div>@unless ($focus)@include('partials.list-hide-panel')@endunless</div><div style="margin-top:8px">
                 <div class="el-row"><span>Received</span><span>{{ $stats['received'] }}</span></div>
                 <div class="el-row"><span>Quoted</span><span>{{ $stats['quoted'] }}</span></div>
                 <div class="el-row"><span>Won</span><span>{{ $stats['won'] }}{{ $stats['wonShare'] !== null ? ' · '.$stats['wonShare'].'% of quoted' : '' }}</span></div>
