@@ -1,0 +1,225 @@
+{
+  "v": 1,
+  "mode": "omelette",
+  "root": "project/",
+  "title": "Foundry ERP workflow design",
+  "entry": "Foundry ERP Quality.dc.html",
+  "pages": [
+    {
+      "path": "Foundry ERP Quality.dc.html",
+      "title": "Foundry ERP Quality",
+      "kind": "page"
+    },
+    {
+      "path": "Foundry ERP.dc.html",
+      "title": "Foundry ERP",
+      "kind": "page"
+    },
+    {
+      "path": "Foundry ERP Styles.dc.html",
+      "title": "Foundry ERP Styles",
+      "kind": "page"
+    },
+    {
+      "path": "Foundry ERP Production.dc.html",
+      "title": "Foundry ERP Production",
+      "kind": "page"
+    },
+    {
+      "path": "Foundry ERP Cores.dc.html",
+      "title": "Foundry ERP Cores",
+      "kind": "page"
+    },
+    {
+      "path": "Foundry ERP Development.dc.html",
+      "title": "Foundry ERP Development",
+      "kind": "page"
+    },
+    {
+      "path": "Foundry ERP Products.dc.html",
+      "title": "Foundry ERP Products",
+      "kind": "page"
+    },
+    {
+      "path": "Foundry ERP Plant.dc.html",
+      "title": "Foundry ERP Plant",
+      "kind": "page"
+    },
+    {
+      "path": "Foundry ERP Settings.dc.html",
+      "title": "Foundry ERP Settings",
+      "kind": "page"
+    },
+    {
+      "path": "Foundry ERP Sales.dc.html",
+      "title": "Foundry ERP Sales",
+      "kind": "page"
+    },
+    {
+      "path": "Foundry ERP Accounts.dc.html",
+      "title": "Foundry ERP Accounts",
+      "kind": "page"
+    },
+    {
+      "path": "Foundry ERP Overview.dc.html",
+      "title": "Foundry ERP Overview",
+      "kind": "page"
+    },
+    {
+      "path": "archive/Foundry ERP single file 2026-11-01.dc.html",
+      "title": "Foundry ERP single file 2026-11-01",
+      "kind": "page"
+    },
+    {
+      "path": "design_handoff_foundry_erp/Foundry ERP Accounts.dc.html",
+      "title": "Foundry ERP Accounts",
+      "kind": "page"
+    },
+    {
+      "path": "design_handoff_foundry_erp/Foundry ERP Overview.dc.html",
+      "title": "Foundry ERP Overview",
+      "kind": "page"
+    },
+    {
+      "path": "design_handoff_foundry_erp/Foundry ERP Production.dc.html",
+      "title": "Foundry ERP Production",
+      "kind": "page"
+    },
+    {
+      "path": "design_handoff_foundry_erp/Foundry ERP Cores.dc.html",
+      "title": "Foundry ERP Cores",
+      "kind": "page"
+    },
+    {
+      "path": "design_handoff_foundry_erp/Foundry ERP Development.dc.html",
+      "title": "Foundry ERP Development",
+      "kind": "page"
+    },
+    {
+      "path": "design_handoff_foundry_erp/Foundry ERP Products.dc.html",
+      "title": "Foundry ERP Products",
+      "kind": "page"
+    },
+    {
+      "path": "design_handoff_foundry_erp/Foundry ERP Plant.dc.html",
+      "title": "Foundry ERP Plant",
+      "kind": "page"
+    },
+    {
+      "path": "design_handoff_foundry_erp/Foundry ERP Quality.dc.html",
+      "title": "Foundry ERP Quality",
+      "kind": "page"
+    },
+    {
+      "path": "design_handoff_foundry_erp/Foundry ERP Sales.dc.html",
+      "title": "Foundry ERP Sales",
+      "kind": "page"
+    },
+    {
+      "path": "design_handoff_foundry_erp/Foundry ERP.dc.html",
+      "title": "Foundry ERP",
+      "kind": "page"
+    },
+    {
+      "path": "style-explorations/Owner Home Industrial.dc.html",
+      "title": "Owner Home Industrial",
+      "kind": "page"
+    },
+    {
+      "path": "Foundry ERP R4 Components.dc.html",
+      "title": "Foundry ERP R4 Components",
+      "kind": "page"
+    },
+    {
+      "path": "Foundry ERP R4 Homes.dc.html",
+      "title": "Foundry ERP R4 Homes",
+      "kind": "page"
+    },
+    {
+      "path": "Foundry ERP R4 Bell.dc.html",
+      "title": "Foundry ERP R4 Bell",
+      "kind": "page"
+    },
+    {
+      "path": "Foundry ERP R4 Quality.dc.html",
+      "title": "Foundry ERP R4 Quality",
+      "kind": "page"
+    },
+    {
+      "path": "Foundry ERP R4 Moulding.dc.html",
+      "title": "Foundry ERP R4 Moulding",
+      "kind": "page"
+    },
+    {
+      "path": "Foundry ERP R4 Furnace.dc.html",
+      "title": "Foundry ERP R4 Furnace",
+      "kind": "page"
+    },
+    {
+      "path": "Foundry ERP R4 Owner.dc.html",
+      "title": "Foundry ERP R4 Owner",
+      "kind": "page"
+    },
+    {
+      "path": "design_handoff_foundry_erp/Foundry ERP R4 Components.dc.html",
+      "title": "Foundry ERP R4 Components",
+      "kind": "page"
+    },
+    {
+      "path": "design_handoff_foundry_erp/Foundry ERP R4 Homes.dc.html",
+      "title": "Foundry ERP R4 Homes",
+      "kind": "page"
+    },
+    {
+      "path": "design_handoff_foundry_erp/Foundry ERP R4 Bell.dc.html",
+      "title": "Foundry ERP R4 Bell",
+      "kind": "page"
+    },
+    {
+      "path": "design_handoff_foundry_erp/Foundry ERP R4 Quality.dc.html",
+      "title": "Foundry ERP R4 Quality",
+      "kind": "page"
+    },
+    {
+      "path": "design_handoff_foundry_erp/Foundry ERP R4 Moulding.dc.html",
+      "title": "Foundry ERP R4 Moulding",
+      "kind": "page"
+    },
+    {
+      "path": "design_handoff_foundry_erp/Foundry ERP R4 Furnace.dc.html",
+      "title": "Foundry ERP R4 Furnace",
+      "kind": "page"
+    },
+    {
+      "path": "design_handoff_foundry_erp/Foundry ERP R4 Owner.dc.html",
+      "title": "Foundry ERP R4 Owner",
+      "kind": "page"
+    },
+    {
+      "path": "Foundry ERP DS Sample.dc.html",
+      "title": "Foundry ERP DS Sample",
+      "kind": "page"
+    }
+  ],
+  "migratorVersion": "artifact-migrator (claude-design-backend ed667f7ac9c1)",
+  "createdAt": "2026-11-05T02:45:52.051Z",
+  "source": {
+    "v": 1,
+    "app": "claude-design",
+    "url": "https://claude.ai/design/p/0c8ccccd-9836-42b4-89f8-013177bc6f27",
+    "projectId": "0c8ccccd-9836-42b4-89f8-013177bc6f27",
+    "exportedAt": "2026-11-05T02:45:52.051Z"
+  },
+  "report": {
+    "itemsVersion": 2,
+    "pages": {
+      "total": 16,
+      "ok": 16,
+      "partial": 0,
+      "notMigrated": 0
+    },
+    "items": [],
+    "truncated": 0,
+    "truncatedLeftOut": 0
+  }
+}
