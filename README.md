@@ -4,7 +4,7 @@ Laravel ERP for iron foundries: enquiry and quotation, sales orders with contrac
 
 Optional parts live as modules in `app/Domains/` and can be switched on or off from the modules settings page.
 
-Docs: `docs/STAGE2.md` (order to pour), `docs/STATUS.md` (what is done), `docs/PLAN.md` (module by module plan).
+Docs: `docs/PRD.md` (product requirements: vision, modules, flows, roadmap), `docs/STAGE2.md` (order to pour), `docs/STATUS.md` (what is done), `docs/PLAN.md` (module by module plan).
 
 ## Quick start (fresh copy)
 
