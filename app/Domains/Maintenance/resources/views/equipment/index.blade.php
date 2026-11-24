@@ -11,15 +11,15 @@
     $hours = fn ($value): string => rtrim(rtrim(\App\Support\Formats::number($value, 2), '0'), '.');
     $tabUrl = fn (string $key): string => route('equipment-maintenance.index', $key === 'work-orders' ? [] : ['tab' => $key]);
     $pill = fn (string $state): string => match ($state) {
-        'in_progress', 'completed' => 'blue',
-        'on_hold', 'due', 'due_soon' => 'warn',
-        'overdue', 'meter_due', 'cancelled' => 'bad',
+        'in_progress', 'completed' => 'el-blue',
+        'on_hold', 'due', 'due_soon' => 'el-warn',
+        'overdue', 'meter_due', 'cancelled' => 'el-bad',
         default => '',
     };
     $statusTone = fn (string $status): string => match ($status) {
-        'BREAKDOWN', 'RETIRED', 'DISPOSED' => 'bad',
-        'MAINTENANCE' => 'warn',
-        'IN_USE' => 'blue',
+        'BREAKDOWN', 'RETIRED', 'DISPOSED' => 'el-bad',
+        'MAINTENANCE' => 'el-warn',
+        'IN_USE' => 'el-blue',
         default => '',
     };
     $nextMeter = $nextMeterPlan;

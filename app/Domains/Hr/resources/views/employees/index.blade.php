@@ -3,7 +3,7 @@
 @section('title', 'Employees')
 @section('breadcrumb', 'Employees')
 @section('content')
-@include('hr::_list_styles')
+@include('partials.record-ui')
 @include('partials.list-ui')
 <livewire:hr::employee-list />
 @endsection

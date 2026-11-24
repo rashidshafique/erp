@@ -21,7 +21,7 @@
     $product = $first?->item?->product;
     $development = $q->enquiry->developments()->orderByDesc('created_at')->first();
 @endphp
-@include('enquiry::partials._list_styles')
+@include('partials.record-ui')
 <style>
     .qr-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; padding: 14px 28px 0; }
     .qr-steps div { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--muted); } .qr-steps i { height: 4px; border-radius: 2px; background: #e6e7e9; }

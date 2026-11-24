@@ -3,7 +3,7 @@
 @section('title', 'Enquiries')
 @section('breadcrumb', 'Enquiries')
 @section('content')
-@include('enquiry::partials._list_styles')
+@include('partials.record-ui')
 @include('partials.list-ui')
 <livewire:enquiry::enquiry-list />
 @endsection

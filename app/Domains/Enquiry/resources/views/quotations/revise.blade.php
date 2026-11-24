@@ -17,7 +17,7 @@
     $reason = old('reason', 'PRICE_ASK');
     $ticked = old('changes', $suggest[$reason]);
 @endphp
-@include('enquiry::partials._list_styles')
+@include('partials.record-ui')
 <style>
     .rv-reasons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; } .rv-reasons label { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--border); border-radius: 7px; cursor: pointer; font-size: 13px; }
     .rv-reasons label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft, #eaf0fd); } .rv-reasons .d { font-size: 12px; color: var(--muted); }

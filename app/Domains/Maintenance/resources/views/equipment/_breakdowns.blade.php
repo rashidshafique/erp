@@ -14,7 +14,7 @@
                 <td>{{ $b->failure_description }}@if ($b->failure_category)<div class="el-sub">{{ $categories[$b->failure_category] ?? $b->failure_category }}</div>@endif</td>
                 <td>{{ $b->started_at->displayShortDate() }}</td>
                 <td class="el-r">{{ $hours($b->downtimeHours()) }} h</td>
-                <td><span class="el-pill {{ $b->restored_at ? '' : 'bad' }}">{{ $b->restored_at ? 'Restored' : 'Down' }}</span></td>
+                <td><span class="el-pill {{ $b->restored_at ? '' : 'el-bad' }}">{{ $b->restored_at ? 'Restored' : 'Down' }}</span></td>
                 <td class="el-r">@unless ($b->restored_at)<button type="button" class="el-btn" data-quick="qd-restore" data-act="{{ route('equipment-maintenance.breakdowns.restore', $b) }}" data-title="Restore {{ $b->breakdown_number }}">Restore</button>@endunless</td>
             </tr>
         @endforeach

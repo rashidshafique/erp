@@ -12,7 +12,7 @@
     $outcome = old('outcome', 'ACCEPTED');
     $dev = $developments->first();
 @endphp
-@include('enquiry::partials._list_styles')
+@include('partials.record-ui')
 <style>
     .cl-out { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; } .cl-out label { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--border); border-radius: 7px; cursor: pointer; font-size: 13px; }
     .cl-out label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft, #eaf0fd); } .cl-out .d { font-size: 12px; color: var(--muted); }

@@ -14,7 +14,7 @@
     $waitingNow = $q->status === 'AWAITING_APPROVAL';
     $annual = $line?->annualQty() ?: $line?->qty;
 @endphp
-@include('enquiry::partials._list_styles')
+@include('partials.record-ui')
 <style>
     .ap-sum { padding: 14px 28px; border-bottom: 1px solid var(--border); font-size: 14px; background: #fbf0dc; color: #5a3d07; }
     .ap-sec { margin-bottom: 24px; } .ap-sec table td, .ap-sec table th { white-space: normal; vertical-align: top; } .ap-sec .el-r { text-align: right; }

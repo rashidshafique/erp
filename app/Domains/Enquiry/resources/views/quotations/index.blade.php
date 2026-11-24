@@ -14,7 +14,7 @@
     $filtered = request()->hasAny(['search', 'customer', 'valid']);
     $details = \App\Support\ListLayout::details();
 @endphp
-@include('enquiry::partials._list_styles')
+@include('partials.record-ui')
 @include('partials.list-ui')
 <style>
     .qt-kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-bottom: 1px solid var(--border); font-size: 13px; }
