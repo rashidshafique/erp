@@ -17,7 +17,7 @@
     $kept = ! $record ? 0 : ($record->repeats() ? (float) $record->deliveries->where('due_date', '<', today())->sum('quantity')
         : (float) (\App\Domains\Sales\Models\SalesOrderLine::shippedByLine([$record->id])[$record->id] ?? 0));
 @endphp
-<div class="so-line {{ $hasDate ? 'is-open' : '' }}" data-line @if ($quote) data-quoted data-list-price="{{ $quote['price'] }}" data-ref-name="{{ $quote['ref'] }}" @endif data-was-repeating="{{ $record?->repeats() ? 1 : 0 }}" data-kept="{{ $kept }}" data-ordered="{{ $record ? (float) $record->ordered_qty : 0 }}" data-each-kg="{{ $p['kg'] ?? '' }}">
+<div class="so-line {{ $hasDate ? 'is-open' : '' }}" data-line @if ($quote) data-quoted data-list-price="{{ $quote['price'] }}" data-ref-name="{{ $quote['ref'] }}" @elseif ($record?->quoted_price !== null) data-list-price="{{ (float) $record->quoted_price }}" data-ref-name="Quote" @endif data-was-repeating="{{ $record?->repeats() ? 1 : 0 }}" data-kept="{{ $kept }}" data-ordered="{{ $record ? (float) $record->ordered_qty : 0 }}" data-each-kg="{{ $p['kg'] ?? '' }}">
     <div class="so-grid">
         <button type="button" class="so-caret" data-toggle aria-expanded="{{ $hasDate ? 'true' : 'false' }}" aria-label="Line details">&#9656;</button>
         @if ($p['img'])<img class="so-thumb" src="{{ $p['img'] }}" alt="">@else<span class="so-thumb" aria-hidden="true">&#9638;</span>@endif
@@ -39,6 +39,8 @@
             @endif
         </div>
         @if ($record)<input type="hidden" name="lines[{{ $i }}][id]" value="{{ $record->id }}">@endif
+        {{-- A line taken from a quote is checked against the quoted price while it is edited, as the contract review does. --}}
+        @if (! $quote && $record?->quoted_price !== null)<input type="hidden" name="lines[{{ $i }}][quoted_price]" value="{{ (float) $record->quoted_price }}">@endif
         {{-- Production always makes pieces; a line sold by kg is priced, shipped and invoiced on the weighed net kg. --}}
         <span class="so-uom">@if ($locked || $quote){{ \App\Domains\Sales\Models\SalesOrderLine::UNITS[$unit] }}<input type="hidden" name="lines[{{ $i }}][uom]" value="{{ $unit }}" data-unit>@else<input type="hidden" name="lines[{{ $i }}][uom]" value="{{ $unit }}" data-unit><span class="so-segu" role="group" aria-label="Sold by">@foreach (\App\Domains\Sales\Models\SalesOrderLine::UNITS as $key => $label)<button type="button" data-unit-pick="{{ $key }}" @class(['is-on' => $unit === $key])>{{ $label }}</button>@endforeach</span>@endif</span>
         <div class="so-qty"><input type="number" name="lines[{{ $i }}][ordered_qty]" step="any" min="0" @required($value !== '') value="{{ $line['ordered_qty'] ?? '' }}" placeholder="{{ $repeats ? 'Each time' : 'Qty' }}" aria-label="Quantity" data-qty><small data-pcs-hint @if ($unit !== 'kg') hidden @endif></small></div>

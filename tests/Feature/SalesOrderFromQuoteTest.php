@@ -78,6 +78,7 @@ class SalesOrderFromQuoteTest extends TestCase
         $this->assertEquals(2, $line->discount_percent);
         $this->assertEquals((float) $new->unit_price, (float) $line->quoted_price);
         $this->assertNotNull($new->item->fresh()->product_id);
+        $this->get(route('sales-orders.edit', $order))->assertOk()->assertSee('name="lines[0][quoted_price]" value="'.(float) $new->unit_price.'"', false);
         $this->assertFalse($order->lines->contains('product_id', $repeat->item->product_id));
     }
 
@@ -94,6 +95,18 @@ class SalesOrderFromQuoteTest extends TestCase
         $this->post(route('quotations.order.store', $expired), ['lines' => [['quote_line_id' => $expired->lines->first()->id, 'ordered_qty' => 10]]])->assertSessionHas('error');
         $this->assertSame(1, SalesOrder::count());
         $this->assertSame('ISSUED', $expired->fresh()->status);
+    }
+
+    public function test_an_ordinary_order_cannot_claim_a_quoted_price(): void
+    {
+        $customer = Customer::create(['code' => 'ACME', 'name' => 'Acme Pumps']);
+        $rev = ProductRevision::create(['product_id' => Product::create(['code' => 'FLG-1', 'name' => 'Flange'])->id, 'revision' => 'A', 'status' => 'APPROVED']);
+
+        $this->post(route('sales-orders.store'), ['customer_id' => $customer->id, 'order_date' => today()->toDateString(), 'lines' => [
+            ['product_revision_id' => $rev->id, 'ordered_qty' => 10, 'unit_price' => 5, 'quoted_price' => 5],
+        ]])->assertSessionHasNoErrors();
+
+        $this->assertNull(\App\Domains\Sales\Models\SalesOrderLine::sole()->quoted_price);
     }
 
     public function test_a_line_must_belong_to_the_quote(): void
