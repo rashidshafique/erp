@@ -193,7 +193,7 @@ class HeatLightTest extends TestCase
         $held->update(['hold_reason' => 'EQUIPMENT', 'hold_note' => 'Blower', 'held_at' => now()]);
         $this->get(route('heats.show', $held))->assertOk()->assertSee('class="heat-light heat-light-red"', false)->assertDontSee('heat-light-orange', false);
 
-        $css = file_get_contents(public_path('css/app-overrides.css'));
+        $css = file_get_contents(public_path('css/app-base.css'));
         $this->assertStringContainsString('.heat-light-orange { animation: heat-light-ring', $css);
         $this->assertStringContainsString('@keyframes heat-light-ring', $css);
         $this->assertStringNotContainsString('.heat-light-red {', $css, 'Red and green stay steady.');

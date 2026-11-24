@@ -23,9 +23,9 @@ class FontSettingTest extends TestCase
     public function test_menu_sub_items_use_regular_weight(): void
     {
         $this->get(route('dashboard'))->assertOk();
-        $html = file_get_contents(public_path('css/app-base.css')).file_get_contents(public_path('css/app-overrides.css'));
-        $this->assertMatchesRegularExpression('/\.nav-submenu \.nav-link, \.nav-link \{[^}]*font-weight: 400;/s', $html);
-        $this->assertMatchesRegularExpression('/\.nav-submenu \.nav-link\.active, \.nav-link\.active \{[^}]*font-weight: 400;/s', $html);
+        $html = file_get_contents(public_path('css/app-base.css'));
+        $this->assertMatchesRegularExpression('/\.nav-submenu \.nav-link, \.nav-link \{[^}]*font-weight: 400( !important)?;/s', $html);
+        $this->assertMatchesRegularExpression('/\.nav-submenu \.nav-link\.active, \.nav-link\.active, \.nav-link\.active:hover \{ font-weight: 500 !important; \}/', $html);   // the open page keeps a little more weight
     }
 
     public function test_the_font_is_editable_and_applies_everywhere(): void
