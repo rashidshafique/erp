@@ -82,7 +82,7 @@ Dependencies show which modules must be on for another to work. Core is always o
 | Core: quality | Inspections, quick QC, NCRs, lot queue, phone screens | — | Built (sand tests on phone and tensile not built) |
 | Core: sand lab | Sand systems, tests, limits | — | Built |
 | Parties | Customers and suppliers: country, currency, local or export | — | Built |
-| Enquiry | Enquiries, feasibility, quotations with revisions and margin approval | Parties | Built; 23a "From quote" open |
+| Enquiry | Enquiries, feasibility, quotations with revisions and margin approval | Parties | Built |
 | Sales | Sales orders, contract review, repeating lines, forecast, staggered deliveries, price lists, discounts | Parties | Built |
 | QuickFlow | Quick order, moulds made and poured grids, Next heat, Today board | Sales, melting | Built |
 | Development | New part development, from a won enquiry to an approved pattern | Enquiry, Tooling | Partial |
@@ -116,7 +116,6 @@ Each flow names its Basic shape (one person, steps collapsed) and its Full shape
 ### 8.1 Enquiry to order
 - **Full:** enquiry, then feasibility review, then a quotation. Its revisions are costed, and the margin is tested on the whole quotation; a thin one goes for approval. The quotation is sent, won, and becomes a sales order. Contract review follows with two signatures, from different users.
 - **Basic:** quick order on one screen, saved straight to live with production released. Contract review passes automatically.
-- **Open:** 23a, creating the order from an accepted quotation.
 
 ### 8.2 Order to pour (the floor day)
 - **Full:** production order released (through approval if a policy is on), then the planner, work list, moulding run, mould assembly, melting plan, heat, pour, and casting lots.
@@ -187,21 +186,20 @@ Status: **Partial.** The wizard and import exist, but the one-day path has not b
 
 In order:
 
-1. **23a, From quote:** an accepted quotation becomes a sales order.
-2. **Finish Stores:**
+1. **Finish Stores:**
    - finished goods on the stock ledger
    - issue and backflush to production
    - cost layers for every item type
-3. **Costing:** actual against standard cost per casting (metal, energy, labour, fettling), rolled up from the BOM and the ledger.
-4. **Finish Finance:**
+2. **Costing:** actual against standard cost per casting (metal, energy, labour, fettling), rolled up from the BOM and the ledger.
+3. **Finish Finance:**
    - fixed assets phase 4
    - settling withheld tax in receivables
    - purchase-side tax rules
-5. **MRP and scheduling:** material requirements and finite-capacity scheduling, built on the planner.
-6. **Outside processing and machining routings.**
-7. **Reporting and BI:** management dashboards, customer scorecards, statutory exports.
-8. **Integrations:** FBR digital invoicing, EDI, barcodes and devices.
-9. **Platform work, alongside:**
+4. **MRP and scheduling:** material requirements and finite-capacity scheduling, built on the planner.
+5. **Outside processing and machining routings.**
+6. **Reporting and BI:** management dashboards, customer scorecards, statutory exports.
+7. **Integrations:** FBR digital invoicing, EDI, barcodes and devices.
+8. **Platform work, alongside:**
    - instance provisioning and backups
    - offline floor entry
    - translation readiness

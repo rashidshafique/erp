@@ -1,8 +1,11 @@
 {{-- One line of the sales order form: $i (index, or __I__ in the template), $value (revision id or product:<id>, empty on a new
      row), $p (name, sub, img, price, uom, kg), $catalogue (every product that can be ordered, keyed by value), $line (input values),
      $record (the saved line when editing, else null), $currency, $prices (show the price). The product is picked in the row. The caret opens the line's
-     own delivery date, repeat settings and, once the line is saved, its staggered deliveries. A saved line with production orders keeps its product and cannot be removed. --}}
+     own delivery date, repeat settings and, once the line is saved, its staggered deliveries. A saved line with production orders keeps its product and cannot be removed.
+     $quote (optional, design 23a): the quotation line it came from, {id, price, ref}: the product and unit are fixed, the price starts at the quote's
+     and is checked against it, and the line has no repeats. --}}
 @php
+    $quote ??= null;
     $repeats = ! empty($line['repeat_every']);
     $staggered = ! $repeats && ! empty($line['staggered']);
     $deliveries = array_values((array) ($line['deliveries'] ?? []));
@@ -14,12 +17,16 @@
     $kept = ! $record ? 0 : ($record->repeats() ? (float) $record->deliveries->where('due_date', '<', today())->sum('quantity')
         : (float) (\App\Domains\Sales\Models\SalesOrderLine::shippedByLine([$record->id])[$record->id] ?? 0));
 @endphp
-<div class="so-line {{ $hasDate ? 'is-open' : '' }}" data-line data-was-repeating="{{ $record?->repeats() ? 1 : 0 }}" data-kept="{{ $kept }}" data-ordered="{{ $record ? (float) $record->ordered_qty : 0 }}" data-each-kg="{{ $p['kg'] ?? '' }}">
+<div class="so-line {{ $hasDate ? 'is-open' : '' }}" data-line @if ($quote) data-quoted data-list-price="{{ $quote['price'] }}" data-ref-name="{{ $quote['ref'] }}" @endif data-was-repeating="{{ $record?->repeats() ? 1 : 0 }}" data-kept="{{ $kept }}" data-ordered="{{ $record ? (float) $record->ordered_qty : 0 }}" data-each-kg="{{ $p['kg'] ?? '' }}">
     <div class="so-grid">
         <button type="button" class="so-caret" data-toggle aria-expanded="{{ $hasDate ? 'true' : 'false' }}" aria-label="Line details">&#9656;</button>
         @if ($p['img'])<img class="so-thumb" src="{{ $p['img'] }}" alt="">@else<span class="so-thumb" aria-hidden="true">&#9638;</span>@endif
         <div class="so-prod">
-            @if ($locked)
+            @if ($quote)
+                <strong>{{ $p['name'] }}</strong><small>{{ $p['sub'] }}</small>
+                <input type="hidden" name="lines[{{ $i }}][quote_line_id]" value="{{ $quote['id'] }}"><input type="hidden" name="lines[{{ $i }}][quoted_price]" value="{{ $quote['price'] }}">
+                <input type="hidden" name="lines[{{ $i }}][product_revision_id]" value="{{ $value }}">
+            @elseif ($locked)
                 <strong>{{ $p['name'] }}</strong><small>{{ $p['sub'] }}</small><small class="muted" style="display:block">Has production orders: cannot go below what is scheduled or shipped</small>
                 <input type="hidden" name="lines[{{ $i }}][product_revision_id]" value="{{ $value }}">
             @else
@@ -33,7 +40,7 @@
         </div>
         @if ($record)<input type="hidden" name="lines[{{ $i }}][id]" value="{{ $record->id }}">@endif
         {{-- Production always makes pieces; a line sold by kg is priced, shipped and invoiced on the weighed net kg. --}}
-        <span class="so-uom">@if ($locked){{ \App\Domains\Sales\Models\SalesOrderLine::UNITS[$unit] }}<input type="hidden" name="lines[{{ $i }}][uom]" value="{{ $unit }}" data-unit>@else<input type="hidden" name="lines[{{ $i }}][uom]" value="{{ $unit }}" data-unit><span class="so-segu" role="group" aria-label="Sold by">@foreach (\App\Domains\Sales\Models\SalesOrderLine::UNITS as $key => $label)<button type="button" data-unit-pick="{{ $key }}" @class(['is-on' => $unit === $key])>{{ $label }}</button>@endforeach</span>@endif</span>
+        <span class="so-uom">@if ($locked || $quote){{ \App\Domains\Sales\Models\SalesOrderLine::UNITS[$unit] }}<input type="hidden" name="lines[{{ $i }}][uom]" value="{{ $unit }}" data-unit>@else<input type="hidden" name="lines[{{ $i }}][uom]" value="{{ $unit }}" data-unit><span class="so-segu" role="group" aria-label="Sold by">@foreach (\App\Domains\Sales\Models\SalesOrderLine::UNITS as $key => $label)<button type="button" data-unit-pick="{{ $key }}" @class(['is-on' => $unit === $key])>{{ $label }}</button>@endforeach</span>@endif</span>
         <div class="so-qty"><input type="number" name="lines[{{ $i }}][ordered_qty]" step="any" min="0" @required($value !== '') value="{{ $line['ordered_qty'] ?? '' }}" placeholder="{{ $repeats ? 'Each time' : 'Qty' }}" aria-label="Quantity" data-qty><small data-pcs-hint @if ($unit !== 'kg') hidden @endif></small></div>
         @if ($prices)
         <label class="so-money"><input type="number" name="lines[{{ $i }}][unit_price]" step="any" min="0" value="{{ array_key_exists('unit_price', $line) ? $line['unit_price'] : $p['price'] }}" aria-label="Unit price" data-price><span>{{ $currency ?: 'price' }}</span><small class="so-ref" data-ref hidden></small></label>
@@ -48,15 +55,17 @@
     </div>
     <div class="so-extra" data-extra @unless ($hasDate) hidden @endunless>
         <div class="field"><label>Line delivery date</label><input type="date" name="lines[{{ $i }}][requested_delivery_date]" value="{{ $line['requested_delivery_date'] ?? '' }}"></div>
+        @if ($quote)<input type="hidden" value="" data-repeat>@else
         <div class="field"><label>Repeats</label><select name="lines[{{ $i }}][repeat_every]" data-repeat>
             <option value="">No, one order</option>
             @foreach (\App\Domains\Sales\Models\SalesOrderLine::REPEATS as $key => $label)<option value="{{ $key }}" @selected(($line['repeat_every'] ?? '') === $key)>{{ $label }}</option>@endforeach
-        </select></div>
+        </select></div>@endif
         @if ($record)<label class="so-check" data-stagger-field @if ($repeats) hidden @endif><input type="hidden" name="lines[{{ $i }}][staggered]" value="0"><input type="checkbox" name="lines[{{ $i }}][staggered]" value="1" data-stagger @checked($staggered)> Staggered deliveries</label>@endif
         <div class="field" data-repeat-field @unless ($repeats) hidden @endunless><label>First delivery</label><input type="date" name="lines[{{ $i }}][repeat_from]" value="{{ $line['repeat_from'] ?? '' }}"></div>
         <div class="field" data-repeat-field @unless ($repeats) hidden @endunless><label>Until (optional)</label><input type="date" name="lines[{{ $i }}][repeat_until]" value="{{ $line['repeat_until'] ?? '' }}"></div>
+        @if ($quote)<span class="muted small" data-repeat-note>Leave empty to use the order's required date. Repeats and staggered deliveries can be set once the order is saved.</span>@else
         <span class="muted small" data-repeat-note @if ($repeats) hidden @endif>Leave empty to use the order's requested delivery. {{ $record ? 'Tick staggered deliveries to split the quantity over several dates.' : 'Staggered deliveries can be set once the order is saved.' }}</span>
-        <span class="muted small" data-repeat-field @unless ($repeats) hidden @endunless>No PO each time: the quantity is per delivery and later deliveries are added automatically. For an extra one-off, add the product again. Stopping keeps scheduled deliveries.</span>
+        <span class="muted small" data-repeat-field @unless ($repeats) hidden @endunless>No PO each time: the quantity is per delivery and later deliveries are added automatically. For an extra one-off, add the product again. Stopping keeps scheduled deliveries.</span>@endif
     </div>
     @if ($record)
     <div class="so-deliveries" data-deliveries @unless ($staggered) hidden @endunless>

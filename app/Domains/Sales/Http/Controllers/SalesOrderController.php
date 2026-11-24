@@ -87,8 +87,17 @@ class SalesOrderController extends Controller
         // "Copy an order": the earlier order's customer and lines start the form; prices are asked from the lists again.
         $copy = request()->filled('copy') ? SalesOrder::with(['customer', 'lines.product', 'lines.productRevision'])->find(request('copy')) : null;
 
-        return view('sales::orders.create', [
-            'copyFrom' => $copy,
+        return view('sales::orders.create', ['copyFrom' => $copy] + self::formData());
+    }
+
+    /**
+     * What the order form needs to offer: customers, orderable products, last prices and recent orders to copy.
+     *
+     * @return array{recentOrders: \Illuminate\Support\Collection<int, SalesOrder>, customers: \Illuminate\Support\Collection<int, Customer>, revisions: \Illuminate\Support\Collection<int, ProductRevision>, bareProducts: \Illuminate\Support\Collection<int, Product>, lastPrices: \Illuminate\Support\Collection<string, mixed>}
+     */
+    public static function formData(): array
+    {
+        return [
             'recentOrders' => SalesOrder::with('customer')->latest('order_date')->latest('created_at')->limit(30)->get(['id', 'order_number', 'customer_id', 'order_date']),
             'customers' => Customer::active()->orderBy('code')->get(),
             'revisions' => ProductRevision::with('product')->whereIn('status', ['APPROVED', 'ACTIVE'])->get()
@@ -97,7 +106,7 @@ class SalesOrderController extends Controller
             // The last price each product was sold at, offered as the starting price of a new line.
             'lastPrices' => DB::table('sales_order_lines')->whereNotNull('unit_price')->selectRaw('DISTINCT ON (product_id) product_id, unit_price')
                 ->orderBy('product_id')->orderByDesc('created_at')->pluck('unit_price', 'product_id'),
-        ]);
+        ];
     }
 
     /** The checks panel of the order form: the contract review's checks on the order as typed, nothing saved. */

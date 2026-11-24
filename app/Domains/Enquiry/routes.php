@@ -56,6 +56,8 @@ Route::middleware('web')->group(function () {
         Route::post('/{quotation}/issue', 'issue')->name('issue');
         Route::post('/{quotation}/reject', 'reject')->name('reject');
         Route::post('/{quotation}/accept', 'accept')->name('accept');
+        Route::get('/{quotation}/order', 'orderForm')->name('order');
+        Route::post('/{quotation}/order', 'orderStore')->name('order.store');
     });
 
     Route::get('/settings/quotation', [QuotationSettingsController::class, 'edit'])->name('settings.quotation');

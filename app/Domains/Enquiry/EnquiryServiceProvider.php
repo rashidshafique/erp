@@ -13,6 +13,7 @@ use App\Domains\Enquiry\Services\QuoteCalculator;
 use App\Domains\Enquiry\Services\Rates;
 use App\Services\Approvals\ApprovalDecided;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\View;
 use Livewire\Livewire;
 
 /** Customer enquiries, the guided request wizard, feasibility, and the costed quotations that follow. */
@@ -52,6 +53,9 @@ class EnquiryServiceProvider extends ModuleServiceProvider
 
         Livewire::addNamespace('enquiry', viewPath: __DIR__.'/resources/views/livewire');
         Event::listen(ApprovalDecided::class, [QuotationService::class, 'onApprovalDecided']);
+        // The new order form offers the quotes awaiting the customer's answer under Start from (design 23a).
+        View::composer('sales::orders._order-form', fn ($view) => ! \Illuminate\Support\Facades\Route::has('quotations.order') ? null : $view->with('openQuotes', Quotation::awaitingAnswer()->whereHas('enquiry', fn ($q) => $q->whereNotNull('customer_id'))
+            ->with('enquiry.customer')->latest('issued_at')->limit(30)->get()));
     }
 
     protected function classAliases(): array

@@ -4,6 +4,8 @@ namespace App\Domains\Enquiry\Models;
 
 use App\Domains\Sales\Models\SalesOrder;
 use App\Models\Concerns\GeneratesCodes;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -112,6 +114,15 @@ class Quotation extends Model
     public function salesOrder(): BelongsTo
     {
         return $this->belongsTo(SalesOrder::class);
+    }
+
+    /** Sent, still in date and the newest revision: the quotes a new sales order can start from (design 23a). */
+    #[Scope]
+    protected function awaitingAnswer(Builder $query): void
+    {
+        $query->where('status', 'ISSUED')->where(fn ($q) => $q->whereNull('valid_until')->orWhere('valid_until', '>=', today()))
+            ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('quotations as newer')->whereColumn('newer.enquiry_id', 'quotations.enquiry_id')
+                ->whereColumn('newer.code', 'quotations.code')->whereColumn('newer.version', '>', 'quotations.version'));
     }
 
     public function isExpired(): bool

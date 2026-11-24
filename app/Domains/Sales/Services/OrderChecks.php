@@ -49,6 +49,7 @@ class OrderChecks
             $line = new SalesOrderLine([
                 'product_id' => $rev->product_id, 'product_revision_id' => $rev->exists ? $rev->id : null, 'ordered_qty' => (float) ($l['ordered_qty'] ?? 0),
                 'unit_price' => filled($l['unit_price'] ?? null) ? $l['unit_price'] : null, 'discount_percent' => (float) ($l['discount_percent'] ?? 0),
+                'quoted_price' => filled($l['quoted_price'] ?? null) ? $l['quoted_price'] : null,
                 'uom' => $l['uom'] ?? 'piece', 'requested_delivery_date' => $l['requested_delivery_date'] ?? null,
                 'repeat_every' => $l['repeat_every'] ?? null,
             ]);

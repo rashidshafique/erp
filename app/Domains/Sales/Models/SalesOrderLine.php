@@ -22,6 +22,7 @@ class SalesOrderLine extends Model
         'ordered_qty',
         'unit_price',
         'discount_percent',
+        'quoted_price',
         'uom',
         'requested_delivery_date',
         'repeat_every',
@@ -39,7 +40,7 @@ class SalesOrderLine extends Model
     protected function casts(): array
     {
         return [
-            'ordered_qty' => 'decimal:3', 'unit_price' => 'decimal:4', 'discount_percent' => 'decimal:2', 'requested_delivery_date' => 'date',
+            'ordered_qty' => 'decimal:3', 'unit_price' => 'decimal:4', 'discount_percent' => 'decimal:2', 'quoted_price' => 'decimal:4', 'requested_delivery_date' => 'date',
             'partial_shipments' => 'boolean', 'repeat_qty' => 'decimal:3', 'repeat_from' => 'date', 'repeat_until' => 'date', 'repeated_to' => 'date',
         ];
     }

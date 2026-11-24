@@ -380,10 +380,14 @@ class QuotationService
     /**
      * The customer said yes. Creates what is missing (product, draft revision) and a DRAFT sales order priced from the quote.
      * The contract review then blocks the order until the revision is approved, so the usual gates still apply.
+     * The new order form started from a quote (design 23a) passes what was typed there: only the quote lines it names are ordered,
+     * at its quantity and price; each line keeps the quoted price for the price check.
+     *
+     * @param  array{lines?: array<string, array{ordered_qty: mixed, unit_price?: mixed, discount_percent?: mixed, requested_delivery_date?: ?string}>, requested_delivery_date?: ?string, customer_reference?: ?string, notes?: ?string}  $terms
      */
-    public function accept(Quotation $q): SalesOrder
+    public function accept(Quotation $q, array $terms = []): SalesOrder
     {
-        return DB::transaction(function () use ($q) {
+        return DB::transaction(function () use ($q, $terms) {
             $q = Quotation::with(['lines.item.analysis', 'enquiry.customer'])->lockForUpdate()->findOrFail($q->id);
             if ($q->status !== 'ISSUED') {
                 throw new \RuntimeException('Only an issued quotation can be accepted.');
@@ -393,14 +397,22 @@ class QuotationService
                 throw new \RuntimeException('This quotation has expired. Create a new version and reissue it.');
             }
             $enquiry = $q->enquiry;
+            $chosen = $terms['lines'] ?? null;
+            $lines = $chosen === null ? $q->lines : $q->lines->filter(fn ($l) => isset($chosen[$l->id]))->values();
+            if ($lines->isEmpty()) {
+                throw new \RuntimeException('Keep at least one line of the quotation.');
+            }
             $firstTime = (bool) $enquiry->customer?->isFirstTimeCustomer();
+            $note = trim("From quotation {$q->code} ({$enquiry->code}).".($q->tooling_mode === 'UPFRONT' ? ' Tooling charge agreed: '.\App\Support\Formats::number($q->upfrontToolingPrice(), 2)." {$q->currency}, invoiced separately." : ''));
             $order = SalesOrder::create([
                 'order_number' => SalesOrder::nextNumber(), 'customer_id' => $enquiry->customer_id, 'order_date' => now()->toDateString(),
-                'requested_delivery_date' => $q->delivery_weeks ? now()->addWeeks($q->delivery_weeks)->toDateString() : null,
-                'customer_reference' => $enquiry->customer_reference ?: $enquiry->code,
-                'notes' => trim("From quotation {$q->code} ({$enquiry->code}).".($q->tooling_mode === 'UPFRONT' ? ' Tooling charge agreed: '.\App\Support\Formats::number($q->upfrontToolingPrice(), 2)." {$q->currency}, invoiced separately." : '')), 'status' => 'DRAFT',
+                'requested_delivery_date' => array_key_exists('requested_delivery_date', $terms) ? $terms['requested_delivery_date']
+                    : ($q->delivery_weeks ? now()->addWeeks($q->delivery_weeks)->toDateString() : null),
+                'customer_reference' => filled($terms['customer_reference'] ?? null) ? trim($terms['customer_reference']) : ($enquiry->customer_reference ?: $enquiry->code),
+                'notes' => filled($terms['notes'] ?? null) ? $note."\n".trim($terms['notes']) : $note, 'status' => 'DRAFT',
             ]);
-            foreach ($q->lines as $i => $line) {
+            foreach ($lines as $i => $line) {
+                $typed = $chosen[$line->id] ?? [];
                 $item = $line->item;
                 $existed = (bool) $item->product_id;
                 $product = $item->product ?? Product::create([
@@ -413,8 +425,10 @@ class QuotationService
                     $item->analysis->update(['product_id' => $product->id]);
                 }
                 $order->lines()->create([
-                    'product_id' => $product->id, 'product_revision_id' => $revision->id, 'line_number' => $i + 1, 'ordered_qty' => $line->qty,
-                    'unit_price' => $line->unit_price, 'uom' => 'piece', 'requested_delivery_date' => $order->requested_delivery_date,
+                    'product_id' => $product->id, 'product_revision_id' => $revision->id, 'line_number' => $i + 1, 'ordered_qty' => $typed['ordered_qty'] ?? $line->qty,
+                    'unit_price' => filled($typed['unit_price'] ?? null) ? $typed['unit_price'] : $line->unit_price, 'discount_percent' => (float) ($typed['discount_percent'] ?? 0),
+                    'quoted_price' => $line->unit_price, 'uom' => 'piece',
+                    'requested_delivery_date' => filled($typed['requested_delivery_date'] ?? null) ? $typed['requested_delivery_date'] : $order->requested_delivery_date,
                 ]);
             }
             $q->update(['status' => 'ACCEPTED', 'decided_at' => now(), 'sales_order_id' => $order->id]);
@@ -439,7 +453,7 @@ class QuotationService
      * Records the customer's answer (design 30e). Accepted fills a sales order from the quote, closes the enquiry as won and keeps their
      * order reference; lost asks why, which feeds the lost-and-declined figures; no reply keeps the history without calling it lost.
      *
-     * @param  array{outcome: string, customer_po?: ?string, customer_po_date?: ?string, lost_reason?: ?string, price_gap_pct?: mixed, note?: ?string}  $d
+     * @param  array{outcome: string, customer_po?: ?string, customer_po_date?: ?string, lost_reason?: ?string, price_gap_pct?: mixed, note?: ?string, order?: array<string, mixed>}  $d the order terms typed on the new order form, see accept()
      * @return SalesOrder|null the order an accepted quotation made
      *
      * @throws \RuntimeException
@@ -453,7 +467,7 @@ class QuotationService
 
         return DB::transaction(function () use ($q, $d, $note) {
             if ($d['outcome'] === 'ACCEPTED') {
-                $order = $this->accept($q);
+                $order = $this->accept($q, $d['order'] ?? []);
                 $po = filled($d['customer_po'] ?? null) ? trim($d['customer_po']) : null;
                 $q->update(['outcome' => 'ACCEPTED', 'customer_po' => $po, 'customer_po_date' => $d['customer_po_date'] ?? null, 'decision_note' => $note]);
                 if ($po) {

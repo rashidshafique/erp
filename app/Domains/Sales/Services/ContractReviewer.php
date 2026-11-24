@@ -107,7 +107,13 @@ class ContractReviewer
         if ((float) $line->ordered_qty <= 0) {
             $out[] = ['QUANTITY', 'BLOCK', "{$label}: the quantity must be above zero."];
         }
-        if ($under = $this->underListPrice($order, $line)) {
+        // A line taken from a quotation is held to the price agreed there, not to the price list.
+        if ($line->quoted_price !== null && $line->unit_price !== null && PriceLists::check() !== 'OFF') {
+            $net = (float) $line->unit_price * (1 - (float) $line->discount_percent / 100);
+            $out[] = $net < (float) $line->quoted_price - 0.005
+                ? ['PRICE', PriceLists::check(), "{$label}: priced ".Formats::number($net, 2).', under the quoted '.Formats::number((float) $line->quoted_price, 2).'.']
+                : ['PRICE', 'PASS', "{$label}: at the quoted price."];
+        } elseif ($under = $this->underListPrice($order, $line)) {
             $out[] = ['PRICE', PriceLists::check(), "{$label}: priced ".Formats::number((float) $line->unit_price, 2).", under the list price of ".Formats::number($under['price'], 2)." ({$under['list']->code})."];
         }
 

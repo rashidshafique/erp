@@ -2,6 +2,7 @@
 
 namespace App\Domains\Enquiry\Http\Controllers;
 
+use App\Domains\Sales\Http\Controllers\SalesOrderController;
 use App\Domains\Sales\Services\SalesOrderStatus;
 use App\Services\Orders\ProductionOrderFactory;
 use App\Http\Controllers\Controller;
@@ -220,6 +221,47 @@ class QuotationController extends Controller
             $order = $this->svc->accept($quotation);
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
+        }
+
+        return $this->afterAccept($quotation, $order);
+    }
+
+    /** A new sales order started from this quote (design 23a): the order form with its customer and lines, priced as quoted. */
+    public function orderForm(Quotation $quotation)
+    {
+        if (! $this->svc->canClose($quotation) || $quotation->isExpired()) {
+            return redirect()->route('quotations.show', $quotation)->with('error', 'Only a sent quotation that is still in date can start an order.');
+        }
+        $quotation->load('lines.item.product', 'enquiry.customer');
+
+        return view('enquiry::quotations.order', ['q' => $quotation, 'form' => SalesOrderController::formData()]);
+    }
+
+    /** Creating the order from the form is the customer's yes: it goes through the same acceptance as closing the quote (30e). */
+    public function orderStore(Request $request, Quotation $quotation)
+    {
+        $ids = $quotation->lines()->pluck('id')->all();
+        $d = $request->validate([
+            'customer_reference' => ['nullable', 'string', 'max:100'],
+            'requested_delivery_date' => ['nullable', 'date', 'after_or_equal:today'],
+            'notes' => ['nullable', 'string', 'max:3000'],
+            'lines' => ['required', 'array', 'min:1', 'max:50'],
+            'lines.*.quote_line_id' => ['required', 'distinct', Rule::in($ids)],
+            'lines.*.ordered_qty' => ['required', 'numeric', 'gt:0', 'max:999999999'],
+            'lines.*.unit_price' => ['nullable', 'numeric', 'min:0', 'max:9999999999'],
+            'lines.*.discount_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'lines.*.requested_delivery_date' => ['nullable', 'date'],
+        ], ['lines.required' => 'Keep at least one line of the quotation.']);
+
+        $terms = ['requested_delivery_date' => $d['requested_delivery_date'] ?? null, 'customer_reference' => $d['customer_reference'] ?? null, 'notes' => $d['notes'] ?? null,
+            'lines' => collect($d['lines'])->keyBy('quote_line_id')->map(fn ($l) => collect($l)->except('quote_line_id')->all())->all()];
+        try {
+            $order = $this->svc->close($quotation, ['outcome' => 'ACCEPTED', 'customer_po' => $d['customer_reference'] ?? null, 'order' => $terms]);
+        } catch (\RuntimeException $e) {
+            return back()->withInput()->with('error', $e->getMessage());
+        }
+        if ($request->boolean('draft')) {
+            return redirect()->route('sales-orders.show', $order)->with('success', "Quotation accepted. Sales order {$order->order_number} is saved as a draft.");
         }
 
         return $this->afterAccept($quotation, $order);

@@ -1,5 +1,7 @@
 {{-- The sales order form, for a new order and for editing one: $order (null when new), $action, $title, $submit, $cancel,
-     $needsReason, $started, with the catalogue data from SalesOrderController::create(). --}}
+     $needsReason, $started, with the catalogue data from SalesOrderController::formData(). Optional: $copyFrom (an order to copy),
+     $fromQuote (a sent quotation the order starts from, design 23a: its customer and lines are fixed, prices start at the quote's)
+     and $openQuotes (quotations awaiting the customer's answer, offered under Start from; given by the Enquiry module). --}}
 @include('partials.search-select')
 @include('partials.quick-dialog', ['id' => 'qd-customer', 'title' => 'Add a customer', 'action' => route('customers.store'), 'submit' => 'Add customer', 'fields' => 'customers._quick-fields'])
 @php $canAddProduct = \App\Http\Middleware\EnforceAccess::allows(auth()->user(), 'products.quick'); @endphp
@@ -38,6 +40,22 @@
                 'repeat_every' => $line->repeat_every, 'repeat_from' => $line->repeat_from?->toDateString(), 'repeat_until' => $line->repeat_until?->toDateString(),
                 'staggered' => ! $line->repeats() && $line->deliveries->isNotEmpty(),
                 'deliveries' => $line->repeats() ? [] : $line->deliveries->map(fn ($d) => ['id' => $d->id, 'due_date' => $d->due_date->toDateString(), 'quantity' => $trim($d->quantity), 'notes' => $d->notes])->all()]])->values());
+    $fromQuote ??= null;
+    $openQuotes ??= collect();
+    if ($fromQuote) {
+        // Every quote line shows, even a part with no product yet: accepting the quote makes it. A line removed before a failed save stays removed.
+        $posted = old('lines') === null ? null : collect(old('lines'))->keyBy('quote_line_id');
+        $quoteRef = 'Quote '.$fromQuote->code.($fromQuote->version > 1 ? ' R'.$fromQuote->version : '');
+        $formLines = $fromQuote->lines->filter(fn ($l) => $posted === null || $posted->has($l->id))->map(function ($l) use ($catalogue, $revisions, $posted, $trim, $quoteRef, $photos) {
+            $product = $l->item?->product;
+            // The product's newest released revision, or the product itself when it has none yet; a part not yet made is checked once it is.
+            $value = ! $product ? '' : ($revisions->where('product_id', $product->id)->last()?->id ?? (isset($catalogue['product:'.$product->id]) ? 'product:'.$product->id : ''));
+            $p = $value !== '' ? $catalogue[$value] : ['name' => $product?->name ?? $l->item?->description, 'sub' => $product ? $product->code.' · revision not yet approved' : 'New part · the product is made with the order', 'img' => $product ? ($photos[$product->id] ?? null) : null, 'price' => null, 'uom' => 'pcs', 'kg' => $l->weight_kg];
+
+            return ['value' => $value, 'p' => $p, 'record' => null, 'quote' => ['id' => $l->id, 'price' => $trim($l->unit_price), 'ref' => $quoteRef],
+                'line' => $posted?->get($l->id) ?? ['uom' => 'piece', 'ordered_qty' => $trim($l->qty), 'unit_price' => $trim($l->unit_price), 'discount_percent' => '']];
+        })->values();
+    }
 @endphp
 <style>
     .so-head { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
@@ -155,7 +173,7 @@
 
 @if ($errors->any())<div class="alert alert-error">@foreach ($errors->all() as $e)<div>{{ $e }}</div>@endforeach</div>@endif
 
-@if ($catalogue->isEmpty() && ! $canAddProduct)
+@if ($catalogue->isEmpty() && ! $canAddProduct && ! $fromQuote)
     <div class="alert alert-error">There are no products to order yet. Add a product first.</div>
 @else
 <form method="POST" action="{{ $action }}" id="so-form" @if ($copyFrom) data-copy @endif @class(['so-noprice' => ! $prices, 'so-disc' => $discounts]) data-today="{{ today()->toDateString() }}" data-ahead="{{ \App\Support\OrderRules::repeatAheadDays() }}">
@@ -164,23 +182,34 @@
 <div class="so-card"><div class="so-body">
     <div class="so-title"><h1>{{ $title }}</h1>@unless ($order)
 <div class="so-start"><span>Start from</span><div class="so-seg">
-    <a href="{{ route('sales-orders.create') }}" @class(['so-chip', 'is-on' => ! $copyFrom])>New order</a>
+    <a href="{{ route('sales-orders.create') }}" @class(['so-chip', 'is-on' => ! $copyFrom && ! $fromQuote])>New order</a>
+    @if ($fromQuote || $openQuotes->isNotEmpty())
+    <select class="so-chip {{ $fromQuote ? 'is-on' : '' }}" aria-label="Start from a quote" onchange="if (this.value) location.href = this.value">
+        <option value="">From quote{{ $openQuotes->isNotEmpty() ? ' ('.$openQuotes->count().' awaiting an answer)' : '' }}</option>
+        @foreach ($openQuotes->when($fromQuote && ! $openQuotes->contains('id', $fromQuote->id), fn ($c) => $c->prepend($fromQuote)) as $oq)<option value="{{ route('quotations.order', $oq) }}" @selected($fromQuote?->id === $oq->id)>{{ $oq->code }}{{ $oq->version > 1 ? ' R'.$oq->version : '' }} · {{ $oq->enquiry?->customer?->name }} · {{ $oq->enquiry?->title }}</option>@endforeach
+    </select>
+    @endif
     <select class="so-chip {{ $copyFrom ? 'is-on' : '' }}" aria-label="Copy an earlier order" onchange="if (this.value) location.href = this.value">
         <option value="">Copy an order</option>
         @foreach ($recentOrders as $r)<option value="{{ route('sales-orders.create', ['copy' => $r->id]) }}" @selected($copyFrom?->id === $r->id)>{{ $r->order_number }} · {{ $r->customer?->name }} · {{ $r->order_date?->format('j M Y') }}</option>@endforeach
     </select>
     </div>@if ($copyFrom)<span class="muted small">Lines of {{ $copyFrom->order_number }}; prices come from the price list again.</span>@endif
+    @if ($fromQuote)<span class="muted small">Quote <a href="{{ route('quotations.show', $fromQuote) }}">{{ $fromQuote->code }}{{ $fromQuote->version > 1 ? ' R'.$fromQuote->version : '' }}</a> · sent {{ $fromQuote->issued_at?->format('j M') }}{{ $fromQuote->valid_until ? ' · valid to '.$fromQuote->valid_until->format('j M') : '' }}. Creating the order marks it accepted.</span>@endif
 </div>
 @endunless</div>
     @if ($order)<p class="muted small" style="margin:-6px 0 14px">Every change is written to the order's history with who made it{{ $needsReason ? ' and your reason' : '' }}.</p>@endif
     <div class="so-top">
+        @if ($fromQuote)
+        <div class="field"><label>Customer</label><div class="so-terms">{{ $fromQuote->enquiry->customer?->name }}</div><input type="hidden" id="customer_id" name="customer_id" value="{{ $fromQuote->enquiry->customer_id }}"></div>
+        @else
         <div class="field"><label for="customer_id">Customer <a href="{{ route('customers.create') }}" class="qd-add" data-quick="qd-customer" data-quick-target="customer_id">+ Add</a></label>
             <select id="customer_id" name="customer_id" required data-search-select data-quick-add="qd-customer" data-quick-add-label="New customer"><option value="">Select customer</option>
                 @foreach ($customers as $c)<option value="{{ $c->id }}" data-sub="{{ $c->code }}" data-terms="{{ $c->payment_terms }}" @selected(old('customer_id', $order?->customer_id ?? $copyFrom?->customer_id) === $c->id)>{{ $c->name }}</option>@endforeach
             </select>@if ($started)<div class="muted small">Production orders exist, so the customer cannot change.</div>@endif</div>
+        @endif
         <div class="field"><label for="customer_reference">Customer PO no.</label><input id="customer_reference" name="customer_reference" maxlength="100" value="{{ old('customer_reference', $order?->customer_reference) }}"></div>
-        <div class="field"><label for="requested_delivery_date">Required by</label><input id="requested_delivery_date" name="requested_delivery_date" type="date" value="{{ old('requested_delivery_date', $order?->requested_delivery_date?->toDateString()) }}"></div>
-        <div class="field"><label>Payment terms</label><div class="so-terms" data-terms>{{ ($order?->customer ?? $copyFrom?->customer)?->payment_terms ?: '—' }}</div></div>
+        <div class="field"><label for="requested_delivery_date">Required by</label><input id="requested_delivery_date" name="requested_delivery_date" type="date" value="{{ old('requested_delivery_date', $order?->requested_delivery_date?->toDateString() ?? ($fromQuote?->delivery_weeks ? today()->addWeeks($fromQuote->delivery_weeks)->toDateString() : null)) }}"></div>
+        <div class="field"><label>Payment terms</label><div class="so-terms" data-terms>{{ ($order?->customer ?? $copyFrom?->customer ?? $fromQuote?->enquiry->customer)?->payment_terms ?: '—' }}</div></div>
         @if ($order)<div class="field"><label for="order_date">Order date</label><input id="order_date" name="order_date" type="date" required value="{{ old('order_date', $order->order_date?->toDateString()) }}"></div>
         @else<input id="order_date" name="order_date" type="hidden" value="{{ old('order_date', today()->toDateString()) }}">@endif
     </div>
@@ -189,7 +218,7 @@
         <div class="so-grid so-lines-head" aria-hidden="true"><span class="so-head-product">Product</span><span>Unit</span><span>Qty</span>@if ($prices)<span>Price</span>@if ($discounts)<span>Disc %</span>@endif<span class="so-right">Total</span>@endif<span></span></div>
         <div data-lines>
             @foreach ($formLines as $i => $l)
-                @include('sales::orders._create-line', ['discounts' => $discounts, 'i' => $i, 'value' => $l['value'], 'p' => $l['p'], 'line' => $l['line'], 'record' => $l['record'], 'catalogue' => $catalogue, 'canAddProduct' => $canAddProduct, 'currency' => $money['currency'], 'prices' => $prices])
+                @include('sales::orders._create-line', ['discounts' => $discounts, 'i' => $i, 'value' => $l['value'], 'p' => $l['p'], 'line' => $l['line'], 'record' => $l['record'], 'quote' => $l['quote'] ?? null, 'catalogue' => $catalogue, 'canAddProduct' => $canAddProduct, 'currency' => $money['currency'], 'prices' => $prices])
             @endforeach
             {{-- A new order starts with one empty row to pick the first product in. --}}
             @if ($formLines->isEmpty() && ! $order)
@@ -197,7 +226,7 @@
             @endif
         </div>
         <div class="so-empty" data-no-lines hidden>No lines yet. Add the first one below.</div>
-        <div class="so-add-row"><button type="button" class="btn" data-add-line>+ Add line</button></div>
+        <div class="so-add-row">@if ($fromQuote)<span class="muted small">The lines of the quote. Other products can be added once the order is created.</span>@else<button type="button" class="btn" data-add-line>+ Add line</button>@endif</div>
     </div>
 
     <div class="so-bottom">
@@ -342,7 +371,7 @@
         out.textContent = !each ? 'No casting weight' : (q ? '≈ ' + Math.ceil(Math.round(q / each * 1e6) / 1e6).toLocaleString() + ' pcs' : num(each) + ' kg each');
     }
     // A row counts once a product is picked; an empty row is left out of the totals and not sent.
-    function chosen(row) { var p = row.querySelector('[name$="[product_revision_id]"]'); return !!(p && p.value); }
+    function chosen(row) { var p = row.querySelector('[name$="[product_revision_id]"]'); return row.hasAttribute('data-quoted') || !!(p && p.value); }
     function addLine() {
         var holder = document.createElement('div'); holder.innerHTML = tpl.innerHTML.replace(/__I__/g, String(next++)).trim();
         var row = holder.firstElementChild;
@@ -371,11 +400,11 @@
         if (!out || !priceBox) return;
         if (!list) { out.hidden = true; return; }
         var p = parseFloat(priceBox.value), d = row.querySelector('[data-disc]'), net = p * (1 - (d ? parseFloat(d.value) || 0 : 0) / 100);
-        out.hidden = false; out.textContent = 'List ' + list.toLocaleString(undefined, { maximumFractionDigits: 2 }); out.classList.toggle('is-low', !isNaN(net) && net < list - 0.005);
+        out.hidden = false; out.textContent = (row.dataset.refName || 'List') + ' ' + list.toLocaleString(undefined, { maximumFractionDigits: 2 }); out.classList.toggle('is-low', !isNaN(net) && net < list - 0.005);
     }
     function listPrice(row) {
         var priceBox = row.querySelector('[data-price]'), product = row.querySelector('[name$="[product_revision_id]"]'), unit = row.querySelector('[data-unit]');
-        if (!priceBox || !product || !product.value || (priceBox.value !== '' && priceBox.value !== priceBox.dataset.filled)) return;
+        if (!priceBox || !product || !product.value || row.hasAttribute('data-quoted') || (priceBox.value !== '' && priceBox.value !== priceBox.dataset.filled)) return;
         var q = new URLSearchParams({ customer: form.querySelector('#customer_id').value, product: product.value, qty: row.querySelector('[data-qty]').value || 0,
             uom: unit ? unit.value : 'piece', date: form.querySelector('#order_date').value });
         fetch(@js(route('price-lists.lookup')) + '?' + q, { headers: { Accept: 'application/json' } }).then(function (r) { return r.ok ? r.json() : { price: null }; }).then(function (j) {
@@ -385,7 +414,7 @@
     }
     form.querySelector('#customer_id').addEventListener('change', function (e) { var o = e.target.options[e.target.selectedIndex]; form.querySelector('[data-terms]').textContent = (o && o.dataset.terms) || '—'; });
     form.querySelector('#customer_id').addEventListener('change', function () { linesBox.querySelectorAll('[data-line]').forEach(listPrice); });
-    form.querySelector('[data-add-line]').addEventListener('click', addLine);
+    if (form.querySelector('[data-add-line]')) form.querySelector('[data-add-line]').addEventListener('click', addLine);
     linesBox.addEventListener('input', function (e) { var row = e.target.closest('[data-line]'); if (row) { preview(row); unscheduled(row); piecesHint(row); refLine(row); } recalc(); });
     linesBox.addEventListener('change', function (e) {
         var row = e.target.closest('[data-line]'); if (!row) return;
@@ -436,7 +465,7 @@
     form.addEventListener('input', checks); form.addEventListener('change', checks);
     new MutationObserver(checks).observe(linesBox, { childList: true });
     checks();
-    linesBox.querySelectorAll('[data-line]').forEach(function (row) { unscheduled(row); piecesHint(row); });
+    linesBox.querySelectorAll('[data-line]').forEach(function (row) { unscheduled(row); piecesHint(row); refLine(row); });
     // A copied order starts at the last price sold; the price list is asked again for each line.
     if (form.hasAttribute('data-copy')) linesBox.querySelectorAll('[data-line]').forEach(function (row) { var b = row.querySelector('[data-price]'); if (b) { b.dataset.filled = b.value; listPrice(row); } });
     recalc();
