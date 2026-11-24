@@ -73,6 +73,14 @@ class CodeGenerator
         return max(3, min(10, (int) self::setting('mark_length', '5')));
     }
 
+    /** Between the prefix and the number in letters-and-numbers codes (PR-10012). Blank joins them (PR10012). */
+    public static function separator(): string
+    {
+        $s = self::setting('code_separator', '-');
+
+        return preg_match('/^[-_.\/]{0,2}$/', $s) ? $s : '-';
+    }
+
     public static function codeDigits(): int
     {
         return max(3, min(8, (int) self::setting('code_digits', '5')));
@@ -115,7 +123,7 @@ class CodeGenerator
         return match (self::codeStyle()) {
             'NUMBERS' => $typeDigit.str_pad((string) $n, $digits, '0', STR_PAD_LEFT),
             'LETTERS' => self::prefix($kind).$this->toBase($n, 'ABCDEFGHJKLMNPRSTUVWXYZ', $digits),
-            default => self::prefix($kind).'-'.str_pad((string) $n, $digits, '0', STR_PAD_LEFT),
+            default => self::prefix($kind).self::separator().str_pad((string) $n, $digits, '0', STR_PAD_LEFT),
         };
     }
 

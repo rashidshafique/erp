@@ -57,6 +57,19 @@ class CodesAndMarksTest extends TestCase
         $this->assertMatchesRegularExpression('/^CST-\d{5}$/', Product::create(['name' => 'B', 'product_type' => 'CASTING', 'base_uom' => 'EA'])->code);
     }
 
+    public function test_the_code_separator_can_be_changed_or_left_out(): void
+    {
+        $base = ['code_style' => 'BOTH', 'code_digits' => 5, 'mark_style' => 'NUMBERS', 'mark_length' => 5];
+        $this->put(route('settings.codes.update'), $base + ['code_separator' => '/'])->assertSessionHasNoErrors();
+        $this->assertSame('PR/10000', Product::create(['name' => 'Slash', 'product_type' => 'CASTING', 'base_uom' => 'EA'])->code);
+
+        $this->put(route('settings.codes.update'), $base + ['code_separator' => ''])->assertSessionHasNoErrors();
+        $this->assertSame('', CodeGenerator::separator());
+        $this->assertSame('PR10001', Product::create(['name' => 'None', 'product_type' => 'CASTING', 'base_uom' => 'EA'])->code);
+
+        $this->put(route('settings.codes.update'), $base + ['code_separator' => 'X'])->assertSessionHasErrors('code_separator');
+    }
+
     public function test_tool_marks_are_numbers_only_by_default_and_unique_across_all_tooling(): void
     {
         $p1 = $this->pattern();

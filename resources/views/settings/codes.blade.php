@@ -7,6 +7,7 @@
 <div class="form-grid">
 <div class="field"><label>Style</label><select name="code_style">@foreach($styles as $k => $l)<option value="{{ $k }}" @selected(\App\Services\Codes\CodeGenerator::codeStyle() === $k)>{{ $l }}</option>@endforeach</select>
 <div class="help">Letters and numbers: PRD-00012. Numbers only: 100012. Letters only: PRDAAAAB.</div></div>
+<div class="field"><label for="code_separator">Separator <span class="muted small">(optional)</span></label><input id="code_separator" name="code_separator" maxlength="2" value="{{ \App\Services\Codes\CodeGenerator::separator() }}" style="width:90px"><div class="help">Between the prefix and number with letters and numbers: PRD-00012. Leave blank for PRD00012.</div></div>
 <div class="field"><label>Digits in the running number</label><input type="number" name="code_digits" min="3" max="8" value="{{ \App\Services\Codes\CodeGenerator::codeDigits() }}"></div>
 </div>
 <table style="margin-top:10px"><thead><tr><th>Type</th><th>Prefix (letters)</th><th>Next code</th></tr></thead><tbody>
