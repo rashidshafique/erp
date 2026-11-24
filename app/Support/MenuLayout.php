@@ -46,7 +46,10 @@ class MenuLayout
         foreach ($chunks as $i => $chunk) {
             $chunks[$i] = preg_replace_callback('/<a href="([^"]*)" class="nav-link[^"]*">.*?<\/a>/s', function (array $m) use (&$links): string {
                 $key = self::key($m[1]);
-                if (isset($links[$key]) || ! str_contains($m[0], 'nav-link')) {
+                if (isset($links[$key])) {
+                    return ''; // keep the first copy; a later copy would leave a stray duplicate item/group
+                }
+                if (! str_contains($m[0], 'nav-link')) {
                     return $m[0];
                 }
                 $links[$key] = $m[0];

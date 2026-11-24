@@ -8,7 +8,7 @@
 @section('content')
 @php
     use App\Domains\Sales\Models\SalesOrder;
-    $tabs = ['OPEN' => 'Open'] + SalesOrder::STATUSES + ['' => 'All'];
+    $tabs = ['' => 'All', 'OPEN' => 'Open'] + SalesOrder::STATUSES;
     $tones = ['DRAFT' => 'el-grey', 'UNDER_REVIEW' => 'el-warn', 'CONFIRMED' => 'el-blue', 'IN_PRODUCTION' => 'el-blue', 'ON_HOLD' => 'el-bad', 'DISPATCHED' => 'el-ok', 'CANCELLED' => 'el-grey'];
     $keep = fn (array $over) => request()->fullUrlWithQuery($over + ['page' => null]);
     $filtered = request()->hasAny(['search', 'customer']);
