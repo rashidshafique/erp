@@ -11,11 +11,8 @@
     $theme = UiSettings::theme();
     $fontNow = UiSettings::font();
     $canFont = UiSettings::canEditFont();
-    $dash = \App\Models\AppSetting::getValue('ui.dashboard', 'classic');
-    $dash = in_array($dash, UiSettings::DASHBOARD_LAYOUTS, true) ? $dash : 'classic';
     $accentNow = old('accent', $theme['accent']);
     $sampleDate = \Illuminate\Support\Carbon::parse('2026-10-18 14:30:15');
-    $dashLabels = ['classic' => 'Classic', 'command' => 'Command', 'columns' => 'Columns', 'telemetry' => 'Telemetry'];
     $swatches = ['#24945a' => 'Green', '#2f5fd0' => 'Blue', '#a84a22' => 'Rust', '#7c3aed' => 'Violet', '#0f766e' => 'Teal', '#b45309' => 'Amber', '#be123c' => 'Crimson', '#334155' => 'Slate'];
 @endphp
 <style>
@@ -48,15 +45,13 @@
     </div>
     <div class="ap-grid">
         <div class="ap-main">
-            <div><h1 style="font-size:22px;font-weight:600;margin:0">Appearance</h1><div style="color:var(--muted);margin-top:4px">How the app looks for everyone. People can pick their own dashboard layout.</div><div class="ap-note" style="margin-top:6px">Needs <code>settings.manage</code> · font: administrator only</div></div>
+            <div><h1 style="font-size:22px;font-weight:600;margin:0">Appearance</h1><div style="color:var(--muted);margin-top:4px">How the app looks for everyone.</div><div class="ap-note" style="margin-top:6px">Needs <code>settings.manage</code> · font: administrator only</div></div>
             @if ($errors->any())<div class="alert alert-error">@foreach ($errors->all() as $e)<div>{{ $e }}</div>@endforeach</div>@endif
 
             <div class="ap-card">
                 <h2>Screen</h2>
                 <div class="ap-row"><span class="l">Density</span><div class="ap-seg">
                     <label><input type="radio" name="density" value="COMPACT" @checked($ui['compact'])><span>Compact</span></label><label><input type="radio" name="density" value="COMFORTABLE" @checked(! $ui['compact'])><span>Comfortable</span></label></div></div>
-                <div class="ap-row"><div class="l">Dashboard layout<span class="s">Default, each person can change</span></div><div class="ap-seg">
-                    @foreach ($dashLabels as $k => $l)<label><input type="radio" name="dashboard" value="{{ $k }}" @checked($dash === $k)><span>{{ $l }}</span></label>@endforeach</div></div>
                 <div class="ap-row"><span class="l">Font</span>
                     @if ($canFont)
                     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">

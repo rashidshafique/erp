@@ -103,15 +103,15 @@ class BrandingTest extends TestCase
 
     public function test_the_appearance_page_saves_screen_brand_and_formats_with_one_save(): void
     {
-        $this->get(route('settings.display'))->assertOk()->assertSee('Appearance')->assertSee('Preview')->assertSee('name="dashboard"', false);
+        $this->get(route('settings.display'))->assertOk()->assertSee('Appearance')->assertSee('Preview')->assertDontSee('name="dashboard"', false);
 
         $this->put(route('settings.display.update'), [
-            'density' => 'COMFORTABLE', 'dashboard' => 'command', 'accent' => '#2f5fd0', 'brand_name' => 'Redfern', 'logo_position' => 'BOTTOM_LEFT', 'logo_height' => 60,
+            'density' => 'COMFORTABLE', 'accent' => '#2f5fd0', 'brand_name' => 'Redfern', 'logo_position' => 'BOTTOM_LEFT', 'logo_height' => 60,
             'date' => 'dmy/', 'time' => '12', 'number' => 'eu', 'currency' => 'PKR', 'currency_position' => 'before', 'decimals' => 2,
         ])->assertSessionHasNoErrors();
 
-        $this->assertSame(['command', 'COMFORTABLE', '#2f5fd0', 'Redfern', 'dmy/', 'eu'], [
-            AppSetting::getValue('ui.dashboard'), AppSetting::getValue('ui.density'), AppSetting::getValue('ui.accent'), AppSetting::getValue('ui.brand_name'),
+        $this->assertSame(['COMFORTABLE', '#2f5fd0', 'Redfern', 'dmy/', 'eu'], [
+            AppSetting::getValue('ui.density'), AppSetting::getValue('ui.accent'), AppSetting::getValue('ui.brand_name'),
             AppSetting::getValue('format.date'), AppSetting::getValue('format.number'),
         ]);
     }

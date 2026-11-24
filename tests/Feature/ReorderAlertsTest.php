@@ -172,7 +172,7 @@ class ReorderAlertsTest extends TestCase
             ->assertSee(route('materials.lots.create', Material::where('code', 'LOWMAT')->first()))->set('search', 'zzz')->assertDontSee('LOWMAT')
             ->set('search', '')->call('checkNow')->assertSee('Checked');
 
-        $this->get(route('dashboard', ['layout' => 'command']))->assertOk()->assertSee('1 material is at or below minimum stock', false);
+        $this->get(route('dashboard'))->assertOk()->assertSee('1 material is at or below minimum stock', false);
     }
 
     public function test_the_bell_sits_in_the_top_bar_for_a_signed_in_user_and_not_for_a_guest(): void

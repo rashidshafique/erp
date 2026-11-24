@@ -4,8 +4,6 @@ namespace App\Services\Dashboard;
 
 use App\Domains\Finance\Models\Invoice;
 use App\Domains\Finance\Services\Receivables;
-use App\Domains\Sales\Models\SalesOrder;
-use App\Domains\Sales\Models\SalesOrderLine;
 use App\Models\ApprovalRequest;
 use App\Models\Attachment;
 use App\Models\Enquiry;
@@ -97,100 +95,6 @@ class DashboardData
             'heats' => ['total' => $heatsToday->count(), 'done' => $heatsDone, 'tonnes' => $tapped / 1000, 'running' => Heat::where('status', 'IN_PROGRESS')->count()],
             'scrap' => ['rate' => $scrap, 'delta' => $scrap !== null && $scrapPrev !== null ? $scrap - $scrapPrev : null, 'spark' => array_map(fn ($d) => $d['scrap'] ?? 0, $daily)],
             'ncrs' => ['open' => (clone $ncrOpen)->count(), 'major' => (clone $ncrOpen)->whereIn('severity', ['MAJOR', 'CRITICAL'])->count(), 'minor' => (clone $ncrOpen)->whereNotIn('severity', ['MAJOR', 'CRITICAL'])->count()],
-        ];
-    }
-
-    /**
-     * The four headline numbers of the dashboard design: open quotes, order book, on-time dispatch, internal rejection.
-     *
-     * @param  array<int, array<string, mixed>>  $daily
-     * @return array<int, array{label: string, value: string, note: string, tone: string}>
-     */
-    public function headline(array $daily): array
-    {
-        $quotes = Quotation::where('status', 'ISSUED');
-        $expiring = (clone $quotes)->whereDate('valid_until', '>=', today())->whereDate('valid_until', '<=', today()->addDays(7))->count();
-
-        $orders = \App\Domains\Sales\Models\SalesOrder::whereNotIn('status', ['COMPLETED', 'CANCELLED', 'CLOSED', 'DRAFT'])->count();
-        $openWork = ProductionOrder::open()->count();
-
-        $sent = \App\Domains\Dispatch\Models\Dispatch::whereNotNull('dispatched_at')->where('dispatched_at', '>=', now()->subDays(30))->get(['planned_dispatch_at', 'dispatched_at']);
-        $onTime = $sent->filter(fn ($d) => $d->planned_dispatch_at === null || $d->dispatched_at->lte($d->planned_dispatch_at->copy()->endOfDay()))->count();
-
-        $kpis = $this->kpis($daily)['scrap'];
-        $target = 3.0;
-
-        return [
-            ['label' => 'Open quotes', 'value' => Formats::number((int) (clone $quotes)->count()), 'note' => $expiring.' expire this week', 'tone' => ''],
-            ['label' => 'Order book', 'value' => Formats::number($orders), 'note' => $openWork.' production order'.($openWork === 1 ? '' : 's').' open', 'tone' => ''],
-            ['label' => 'On-time dispatch, 30 days', 'value' => $sent->isEmpty() ? '—' : number_format(100 * $onTime / $sent->count(), 1).'%', 'note' => $sent->isEmpty() ? 'No dispatches yet' : $onTime.' of '.$sent->count().' on time', 'tone' => $sent->isNotEmpty() && $onTime === $sent->count() ? 'ok' : ''],
-            ['label' => 'Internal rejection', 'value' => $kpis['rate'] === null ? '—' : number_format($kpis['rate'], 1).'%', 'note' => $kpis['rate'] === null ? 'Nothing poured in 7 days' : 'Target '.number_format($target, 1).'%'.($kpis['delta'] !== null ? ', '.($kpis['delta'] > 0 ? 'up ' : 'down ').number_format(abs($kpis['delta']), 1).' pts' : ''), 'tone' => $kpis['rate'] !== null && $kpis['rate'] > $target ? 'bad' : ($kpis['rate'] !== null ? 'ok' : '')],
-        ];
-    }
-
-    /**
-     * Records on their way from enquiry to dispatch, a few per stage, newest first.
-     *
-     * @return array<int, array{label: string, count: int, cards: array<int, array{code: string, name: string, sub: string, tone: string, url: string}>}>
-     */
-    public function pipeline(int $per = 3): array
-    {
-        $stage = fn (string $label, $query, \Closure $card, string $order = 'created_at') => [
-            'label' => $label, 'count' => (clone $query)->count(), 'cards' => (clone $query)->orderByDesc($order)->limit($per)->get()->map($card)->all(),
-        ];
-
-        return [
-            $stage('Enquiry', Enquiry::where('status', 'NEW')->with('customer'),
-                fn ($e) => ['code' => $e->code, 'name' => $e->title ?: 'Enquiry', 'sub' => $e->customer?->name ?? '', 'tone' => '', 'url' => route('enquiries.show', $e)]),
-            $stage('Feasibility', Enquiry::where('status', 'FEASIBILITY')->with('customer')->withCount(['items as pending_items_count' => fn ($q) => $q->where('feasibility_status', 'PENDING')]),
-                fn ($e) => ['code' => $e->code, 'name' => $e->title ?: 'Enquiry', 'sub' => $e->pending_items_count > 0 ? $e->pending_items_count.' to review' : ($e->customer?->name ?? ''), 'tone' => $e->pending_items_count > 0 ? 'warn' : '', 'url' => route('enquiries.show', $e)]),
-            $stage('Quoted', Quotation::where('status', 'ISSUED')->with('enquiry.customer'),
-                fn ($q) => ['code' => $q->code, 'name' => $q->enquiry?->title ?: 'Quotation', 'sub' => $q->valid_until ? 'Expires '.$q->valid_until->displayShortDate() : ($q->enquiry?->customer?->name ?? ''), 'tone' => $q->valid_until && $q->valid_until->lte(today()->addDays(7)) ? 'bad' : '', 'url' => route('quotations.show', $q)]),
-            $stage('Order', \App\Domains\Sales\Models\SalesOrder::whereIn('status', ['DRAFT', 'UNDER_REVIEW', 'CONFIRMED'])->with('customer'),
-                fn ($o) => ['code' => $o->order_number, 'name' => $o->customer?->name ?? 'Sales order', 'sub' => str_replace('_', ' ', ucfirst(strtolower($o->status))), 'tone' => '', 'url' => route('sales-orders.show', $o)]),
-            $stage('Production', ProductionOrder::open()->with('product'),
-                fn ($o) => ['code' => $o->production_order_number, 'name' => $o->product?->name ?? 'Production order', 'sub' => str_replace('_', ' ', ucfirst(strtolower($o->status))), 'tone' => $o->status === 'IN_PROGRESS' ? 'accent' : '', 'url' => route('production-orders.show', $o)]),
-            $stage('QC', \App\Models\QualityInspection::where('status', '!=', 'COMPLETED')->with('lot'),
-                fn ($i) => ['code' => $i->inspection_number, 'name' => $i->lot?->lot_number ?? 'Inspection', 'sub' => str_replace('_', ' ', ucfirst(strtolower($i->status))), 'tone' => 'warn', 'url' => route('inspections.show', $i)]),
-            $stage('Dispatch', \App\Domains\Dispatch\Models\Dispatch::whereNull('dispatched_at')->with('customer'),
-                fn ($d) => ['code' => $d->dispatch_number, 'name' => $d->customer?->name ?? 'Dispatch', 'sub' => $d->planned_dispatch_at ? 'Planned '.$d->planned_dispatch_at->displayShortDate() : '', 'tone' => '', 'url' => route('dispatches.show', $d)]),
-        ];
-    }
-
-    /**
-     * Today's heats per furnace, with the metal each has made so far (poured, or charged for a cupola), and the next heat on the plan.
-     *
-     * @return array{rows: array<int, array{code: string, grade: string, heats: int, state: string, tone: string, metal: string}>, poured: float, planned: float, charged: float, next: array{number: string, at: \Illuminate\Support\Carbon, furnace: string, url: string}|null}
-     */
-    public function melt(): array
-    {
-        $heats = Heat::with(['furnace', 'ironGrade'])->where(fn ($q) => $q->whereDate('planned_start_at', today())->orWhereDate('actual_start_at', today()))->get();
-        $done = fn ($h) => $h->tapped_at || in_array($h->status, ['POURED', 'CLOSED', 'COMPLETED'], true);
-        $rows = $heats->groupBy('furnace_id')->map(function ($group) use ($done) {
-            $finished = $group->filter($done)->count();
-            $running = $group->contains(fn ($h) => $h->status === 'IN_PROGRESS');
-            $next = $group->reject($done)->sortBy('planned_start_at')->first();
-            $cupola = $group->first()->isCupola();
-            $kg = $group->sum(fn ($h) => $cupola ? $h->chargedMetalKg() : (float) ($h->actual_tapped_weight_kg ?: 0));
-
-            return [
-                'code' => $group->first()->furnace?->code ?? 'Furnace', 'grade' => $group->first()->ironGrade?->code ?? $group->first()->process_type ?? '',
-                'heats' => $group->count(), 'state' => $running ? 'Melting' : ($finished === $group->count() || $finished > 0 ? $finished.' done' : ($next?->planned_start_at?->displayTime() ?? 'Planned')),
-                'tone' => $running ? 'accent' : ($finished > 0 ? 'ok' : ''),
-                'metal' => number_format($kg / 1000, 1).' t '.($cupola ? 'charged' : 'poured'),
-            ];
-        })->values()->all();
-
-        $isCupola = fn ($h) => $h->isCupola();
-        $next = Heat::with('furnace')->whereNull('actual_start_at')->whereNull('tapped_at')->whereNotNull('planned_start_at')->where('planned_start_at', '>=', now())
-            ->whereNotIn('status', ['CLOSED', 'CANCELLED', 'POURED', 'COMPLETED'])->orderBy('planned_start_at')->first();
-
-        return [
-            'rows' => $rows,
-            'poured' => $heats->reject($isCupola)->sum(fn ($h) => (float) ($h->actual_tapped_weight_kg ?: 0)) / 1000,
-            'planned' => $heats->reject($isCupola)->sum(fn ($h) => (float) ($h->target_metal_weight_kg ?: 0)) / 1000,
-            'charged' => $heats->filter($isCupola)->sum(fn ($h) => $h->chargedMetalKg()) / 1000,
-            'next' => $next ? ['number' => $next->heat_number, 'at' => $next->planned_start_at, 'furnace' => $next->furnace?->code ?? '', 'url' => route('heats.show', $next)] : null,
         ];
     }
 
@@ -466,74 +370,6 @@ class DashboardData
             'ncrs' => NonconformanceReport::where('status', '!=', 'CLOSED')->count(), 'ncrMajor' => NonconformanceReport::where('status', '!=', 'CLOSED')->whereIn('severity', ['MAJOR', 'CRITICAL'])->count(),
             'tonnage' => $tonnage, 'families' => $families, 'customers' => $customers, 'decisions' => $decisions, 'slipping' => $this->attention(),
             'late' => ProductionOrder::open()->whereDate('required_date', '<', today())->count(),
-        ];
-    }
-
-    /**
-     * The four owner tiles: castings sold by weight, turnover, casting returns and the pending order book.
-     * Sales and returns are measured on issued invoices, so a kg line uses its kg and a piece line uses the
-     * dispatch weight (or the product's casting weight when the line was never dispatched).
-     *
-     * @return array<string, array<string, float|int|null>>
-     */
-    public function ownerTiles(): array
-    {
-        $now = now();
-        $from = $now->copy()->startOfMonth();
-        $prevFrom = $now->copy()->subMonthNoOverflow()->startOfMonth();
-        $prevTo = $prevFrom->copy()->addDays(min($now->day, $prevFrom->daysInMonth) - 1)->endOfDay();
-
-        $weightKg = fn (string $kind, Carbon $a, Carbon $b): float => (float) DB::table('invoice_lines as il')
-            ->join('invoices as i', 'i.id', '=', 'il.invoice_id')
-            ->leftJoin('products as p', 'p.id', '=', 'il.product_id')
-            ->leftJoin('sales_order_lines as sol', 'sol.id', '=', 'il.sales_order_line_id')
-            ->leftJoin('product_revisions as pr', 'pr.id', '=', 'sol.product_revision_id')
-            ->leftJoin('dispatch_items as di', 'di.id', '=', 'il.dispatch_item_id')
-            ->where('i.kind', $kind)->where('i.status', 'ISSUED')
-            ->whereBetween('i.invoice_date', [$a->toDateString(), $b->toDateString()])
-            ->sum(DB::raw("case when il.uom = 'kg' then il.quantity when di.quantity_dispatched > 0 then il.quantity * di.net_weight_kg / di.quantity_dispatched else il.quantity * coalesce(pr.net_weight_kg, p.nominal_weight_kg, 0) end"));
-
-        $turnover = fn (Carbon $a, Carbon $b): float => (float) Invoice::where('status', 'ISSUED')
-            ->whereBetween('invoice_date', [$a->toDateString(), $b->toDateString()])
-            ->sum(DB::raw("case when kind = 'CREDIT_NOTE' then -subtotal else subtotal end"));
-
-        $sold = $weightKg('INVOICE', $from, $now->copy()->endOfDay());
-        $soldPrev = $weightKg('INVOICE', $prevFrom, $prevTo);
-        $sales = $turnover($from, $now->copy()->endOfDay());
-        $salesPrev = $turnover($prevFrom, $prevFrom->copy()->endOfMonth());
-
-        $returns = $weightKg('CREDIT_NOTE', $from, $now->copy()->endOfDay());
-        $returnsLastMonth = $weightKg('CREDIT_NOTE', $prevFrom, $prevFrom->copy()->endOfMonth());
-        $projectedReturns = $returns / max(1, $now->day) * $now->daysInMonth;
-
-        $open = SalesOrder::whereIn('status', ['UNDER_REVIEW', 'CONFIRMED', 'IN_PRODUCTION', 'ON_HOLD'])
-            ->with(['lines.product', 'lines.productRevision'])->get();
-        $lineIds = $open->flatMap(fn (SalesOrder $o) => $o->lines->pluck('id'))->all();
-        $shipped = $lineIds === [] ? collect() : SalesOrderLine::shippedByLine($lineIds);
-        $pendingKg = 0.0;
-        $pendingValue = 0.0;
-        $pendingOrders = 0;
-        foreach ($open as $order) {
-            $counted = false;
-            foreach ($order->lines as $line) {
-                $left = round((float) $line->ordered_qty - (float) ($shipped[$line->id] ?? 0), 3);
-                if ($left <= 0) {
-                    continue;
-                }
-                $counted = true;
-                $pendingKg += $line->isSoldByKg() ? $left : $left * $line->pieceWeightKg();
-                $pendingValue += $line->netValue($left);
-            }
-            $pendingOrders += $counted ? 1 : 0;
-        }
-
-        $pct = fn (float $nowValue, float $before): ?float => $before > 0 ? round(100 * ($nowValue - $before) / $before, 1) : null;
-
-        return [
-            'sold' => ['tons' => round($sold / 1000, 1), 'prev' => round($soldPrev / 1000, 1), 'delta' => round(($sold - $soldPrev) / 1000, 1), 'change' => $pct($sold, $soldPrev)],
-            'turnover' => ['lacs' => round($sales / 100000, 1), 'prev' => round($salesPrev / 100000, 1), 'change' => $pct($sales, $salesPrev)],
-            'returns' => ['tons' => round($returns / 1000, 1), 'projected' => round($projectedReturns / 1000, 1), 'prev' => round($returnsLastMonth / 1000, 1), 'change' => $pct($projectedReturns, $returnsLastMonth)],
-            'pending' => ['tons' => round($pendingKg / 1000, 1), 'value_lacs' => round($pendingValue / 100000, 1), 'orders' => $pendingOrders],
         ];
     }
 

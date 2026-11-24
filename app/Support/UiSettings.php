@@ -26,25 +26,6 @@ class UiSettings
         }
     }
 
-    public const DASHBOARD_LAYOUTS = ['classic', 'command', 'columns', 'telemetry'];
-
-    /** Which dashboard to show: ?layout= wins, then the person's own choice (cookie), then the site default from Display settings. */
-    public static function dashboardLayout(?string $query = null, ?string $cookie = null): string
-    {
-        foreach ([$query, $cookie] as $c) {
-            if (in_array($c, self::DASHBOARD_LAYOUTS, true)) {
-                return $c;
-            }
-        }
-        try {
-            $set = AppSetting::getValue('ui.dashboard', 'classic');
-        } catch (\Throwable) {
-            $set = 'classic';
-        }
-
-        return in_array($set, self::DASHBOARD_LAYOUTS, true) ? $set : 'classic';
-    }
-
     private const SYSTEM_STACK = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 
     /** Fonts the administrator can pick. 'google' fonts load from Google Fonts and fall back to the system font when offline. */

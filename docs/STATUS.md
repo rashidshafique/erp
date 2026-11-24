@@ -73,7 +73,7 @@ Updated 2026-11-15.
 - Enquiry and development: one intake page, a list with win/loss figures, a record once sent, and a close dialog. A won enquiry opens one pattern development per part, when a rule says so (on the win, or when the pattern is decided). A lost enquiry cancels its open developments; reaching Approved approves the draft revision the order waits on. A development can go back a stage with a reason, carries the tooling cost allowed, who pays, and the actual pattern cost. The enquiry flags a pattern near or past its service life. First-time customers start a new part, established ones a new product.
 - Feasibility: a queue of parts waiting for a decision and a review screen where each department signs; the worst verdict wins.
 - Contract review judges a repeating line by its earliest delivery still to come.
-- Dashboard is the owner's home; the old pipeline view is at `?layout=classic`. The melt panel shows the next scheduled heat.
+- Dashboard is the owner's home; the telemetry wall screen is at `?layout=telemetry`. The classic, iCast, command and columns layouts and the Appearance dashboard picker were removed (2026-11-24).
 - Patterns: core boxes show in the patterns list with a Show filter. Core boxes and core stock sit under Engineering. Production orders are labelled Orders and sit right after Planning.
 
 **Cores and core boxes (design turn 29, 2026-11-15)**

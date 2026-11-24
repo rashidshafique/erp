@@ -73,11 +73,7 @@ class DisplaySettingsController extends Controller
     {
         $request->validate([
             'density' => 'required|in:COMPACT,COMFORTABLE',
-            'dashboard' => ['nullable', Rule::in(UiSettings::DASHBOARD_LAYOUTS)],
         ]);
-        if ($request->filled('dashboard')) {
-            AppSetting::setValue('ui.dashboard', $request->input('dashboard'), 'Dashboard layout people start with');
-        }
         if ($request->has('date')) {
             $this->saveFormats($request);
         }
